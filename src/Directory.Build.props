@@ -19,7 +19,7 @@
     <Authors>Amer Koleci</Authors>
     <Product>Alimer</Product>
     <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
-    <RepositoryUrl>https://github.com/amerkoleci/alimer</RepositoryUrl>
+    <RepositoryUrl>https://github.com/amerkoleci/alimer_sharp</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
     <!-- Enable SourceLink support -->

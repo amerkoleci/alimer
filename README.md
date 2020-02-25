@@ -1,8 +1,8 @@
 # Alimer
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer/blob/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer_sharp/blob/master/LICENSE)
 [![Join the chat at https://gitter.im/alimer/Lobby](https://badges.gitter.im/alimer/Lobby.svg)](https://gitter.im/alimer/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build status](https://github.com/amerkoleci/alimer/workflows/CI/badge.svg)](https://github.com/amerkoleci/alimer/actions)
+[![Build status](https://github.com/amerkoleci/alimer_sharp/workflows/CI/badge.svg)](https://github.com/amerkoleci/alimer_sharp/actions)
 
 **Alimer** is a cross platform 2D and 3D .NET engine implemented in C#.
 
