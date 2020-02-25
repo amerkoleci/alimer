@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alimer.Foundation", "Alimer.Foundation\Alimer.Foundation.csproj", "{BC4C25B2-9347-4857-9822-F35A9BB17426}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BC4C25B2-9347-4857-9822-F35A9BB17426}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC4C25B2-9347-4857-9822-F35A9BB17426}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC4C25B2-9347-4857-9822-F35A9BB17426}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC4C25B2-9347-4857-9822-F35A9BB17426}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}
+	EndGlobalSection
+EndGlobal
