@@ -15,6 +15,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>CS1591;CS1701</NoWarn>
 
+    <PackageTags>Mef Composition Extensibility</PackageTags>
+    <Authors>Amer Koleci</Authors>
+    <Product>Alimer</Product>
+    <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
+    <RepositoryUrl>https://github.com/amerkoleci/alimer</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
     <!-- Enable SourceLink support -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
