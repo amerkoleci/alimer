@@ -15,12 +15,14 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>CS1591;CS1701</NoWarn>
 
-    <PackageTags>Mef Composition Extensibility</PackageTags>
+    <Product>$(AssemblyName) ($(TargetFramework))</Product>
+    <DefaultLanguage>en-US</DefaultLanguage>
+
     <Authors>Amer Koleci</Authors>
-    <Product>Alimer</Product>
     <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
     <RepositoryUrl>https://github.com/amerkoleci/alimer_sharp</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>3D Engine Graphics gamedev alimer Direct3D DirectX Vulkan OpenGL Metal Core Standard Game</PackageTags>
 
     <!-- Enable SourceLink support -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -29,6 +31,16 @@
 
     <!-- Packages versions -->
     <NerdbankGitVersioningVersion>3.1.51-beta</NerdbankGitVersioningVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsNetStandard>$(TargetFramework.ToLower().StartsWith('netstandard'))</IsNetStandard>
+    <IsNetFramework>$(TargetFramework.ToLower().StartsWith('net4'))</IsNetFramework>
+    <IsMonoAndroid>$(TargetFramework.ToLower().StartsWith('monoandroid'))</IsMonoAndroid>
+    <IsXamarinIOS>$(TargetFramework.ToLower().StartsWith('xamarinios'))</IsXamarinIOS>
+    <IsXamarinMac>$(TargetFramework.ToLower().StartsWith('xamarinmac'))</IsXamarinMac>
+    <IsNetCoreApp>$(TargetFramework.ToLower().StartsWith('netcoreapp'))</IsNetCoreApp>
+    <IsUAP>$(TargetFramework.ToLower().StartsWith('uap'))</IsUAP>
   </PropertyGroup>
 
   <ItemGroup>
