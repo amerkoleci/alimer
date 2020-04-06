@@ -1,6 +1,11 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+    - 'CHANGELOG.md'
+    - 'README.md'
+  pull_request:
 
 jobs:
   build:
@@ -13,25 +18,25 @@ jobs:
     - name: Install .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.100
+        dotnet-version: 3.1.101
 
     - name: Version
       uses: aarnott/nbgv@master
 
     - name: Pack
-      run: dotnet pack src -c Release
+      run: dotnet pack src --configuration Release --output build/packages
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
       with:
         name: Packages
-        path: bin/Release/Packages
+        path: build/packages
 
     - name: Publish to NuGet
       if: github.event_name == 'push'
       run: |      
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$" ) {
-              dotnet nuget push src\${{env.PROJECT_NAME}}\bin\Release\Packages\*.nupkg -s nuget.org -k ${{secrets.NUGET_TOKEN}}
+              dotnet nuget push build/packages/**/*.nupkg -s nuget.org -k ${{secrets.NUGET_TOKEN}}
           } else {
               echo "publish is only enabled by tagging with a release tag"
           }

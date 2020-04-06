@@ -5,7 +5,6 @@
     <RepoBinPath>$(MSBuildThisFileDirectory)..\bin\</RepoBinPath>
     <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoBinPath)$(MSBuildProjectName)\</BaseOutputPath>
-    <PackageOutputPath>$(RepoBinPath)$(Configuration)\Packages\</PackageOutputPath>
 
     <LangVersion>8.0</LangVersion>
 
@@ -30,7 +29,7 @@
 
     <!-- Packages versions -->
     <NerdbankGitVersioningVersion>3.1.71</NerdbankGitVersioningVersion>
-    <VorticeDirectXVersion>1.6.17-beta-gd2fbca648e</VorticeDirectXVersion>
+    <VorticeDirectXVersion>1.6.0</VorticeDirectXVersion>
   </PropertyGroup>
 
   <PropertyGroup>
