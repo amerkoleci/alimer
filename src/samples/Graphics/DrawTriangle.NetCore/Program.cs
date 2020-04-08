@@ -22,7 +22,12 @@ namespace DrawTriangle
             {
                 base.OnLoad(e);
 
-                using (var game = new DrawTriangleGame(new WinFormsGameContext(this)))
+                //using (var game = new DrawTriangleGame(new WinFormsGameContext(this)))
+                //{
+                //    game.Run();
+                //}
+
+                using (var game = new DrawTriangleGame(new NetStandardGameContext()))
                 {
                     game.Run();
                 }

@@ -24,7 +24,7 @@ jobs:
       uses: aarnott/nbgv@master
 
     - name: Pack
-      run: dotnet pack src --configuration Release --output build/packages
+      run: msbuild /t:pack /p:Configuration=Release /m src/Alimer.sln
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1

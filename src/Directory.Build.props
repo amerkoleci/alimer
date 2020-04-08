@@ -5,17 +5,19 @@
     <RepoBinPath>$(MSBuildThisFileDirectory)..\bin\</RepoBinPath>
     <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoBinPath)$(MSBuildProjectName)\</BaseOutputPath>
+    <PackageOutputPath>$(RepositoryRootDirectory)build\packages\</PackageOutputPath>
 
     <LangVersion>8.0</LangVersion>
 
-    <DebugType Condition=" '$(Configuration)' == 'Release' ">pdbonly</DebugType>
-    <DebugType Condition=" '$(Configuration)' == 'Debug' ">full</DebugType>
+    <DebugType>portable</DebugType>
+    <DebugSymbols Condition=" '$(Configuration)' == 'Debug' ">true</DebugSymbols>
+    <Configurations>Debug;Release</Configurations>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>CS1591;CS1701</NoWarn>
 
     <Product>$(AssemblyName) ($(TargetFramework))</Product>
-    <DefaultLanguage>en-US</DefaultLanguage>
+    <NeutralLanguage>en</NeutralLanguage>
 
     <Authors>Amer Koleci</Authors>
     <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
