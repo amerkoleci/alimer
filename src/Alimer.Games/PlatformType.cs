@@ -40,7 +40,7 @@ namespace Alimer
 		/// <summary>
 		/// Universal Windows platform.
 		/// </summary>
-		UWP,
+		Uwp,
 
         /// <summary>
 		/// Xbox One platform.

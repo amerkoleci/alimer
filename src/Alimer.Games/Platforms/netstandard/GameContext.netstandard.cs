@@ -2,22 +2,37 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using Microsoft.Extensions.DependencyInjection;
+using static Alimer.GLFW;
 
 namespace Alimer
 {
     public sealed class NetStandardGameContext : GameContext
     {
-        public override GameWindow GameWindow => throw new NotImplementedException();
-        
+        /// <inheritdoc/>
+        public override GameWindow GameWindow { get; }
+
+        private GLFWGameWindow GLFWWindow => (GLFWGameWindow)GameWindow;
+
         public NetStandardGameContext()
         {
-            int result = GLFW.glfwInit();
+            if (!glfwInit())
+            {
+                return;
+            }
+
+            GameWindow = new GLFWGameWindow();
         }
 
         public override bool Run(Action loadAction, Action tickAction)
         {
-            throw new NotImplementedException();
+            while (!GLFWWindow.ShouldClose())
+            {
+                GLFWWindow.SwapBuffers();
+                glfwPollEvents();
+            }
+
+            glfwTerminate();
+            return true;
         }
     }
 }

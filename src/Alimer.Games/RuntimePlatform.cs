@@ -6,31 +6,31 @@ namespace Alimer
     /// <summary>
     /// Class describing the current running platform.
     /// </summary>
-    public interface IRuntimePlatform
+    public static partial class RuntimePlatform
     {
         /// <summary>
         /// Gets the running platform type.
         /// </summary>
-        PlatformType PlatformType { get; }
+        public static PlatformType PlatformType { get; }
 
         /// <summary>
         /// Gets the running platform family.
         /// </summary>
-        PlatformFamily PlatformFamily { get; }
+        public static PlatformFamily PlatformFamily { get; }
 
         /// <summary>
 		/// Gets the running framework description.
 		/// </summary>
-		string FrameworkDescription { get; }
+		public static string FrameworkDescription { get; }
 
         /// <summary>
 		/// Get the operating system description.
 		/// </summary>
-		string OSDescription { get; }
+		public static string OSDescription { get; }
 
         /// <summary>
 		/// Returns the default directory name where the current application runs.
 		/// </summary>
-		string DefaultAppDirectory { get; }
+		public static string DefaultAppDirectory { get; }
     }
 }

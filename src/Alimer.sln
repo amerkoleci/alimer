@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "platforms", "platforms", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Platform.Windows", "platforms\Alimer.Platform.Windows\Alimer.Platform.Windows.csproj", "{5119EA40-EB59-486F-976C-CD57570E12CD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.GLFW", "Alimer.GLFW\Alimer.GLFW.csproj", "{D334CA63-F02F-400B-B906-CA4DB1E4077A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{5119EA40-EB59-486F-976C-CD57570E12CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5119EA40-EB59-486F-976C-CD57570E12CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5119EA40-EB59-486F-976C-CD57570E12CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -38,11 +38,8 @@ namespace Alimer
             ConfigureServices(services);
             Services = services.BuildServiceProvider();
 
-            Platform = Services.GetRequiredService<IRuntimePlatform>();
             //Input = Services.GetRequiredService<InputManager>();
         }
-
-        public IRuntimePlatform Platform { get; }
 
         public InputManager Input { get; }
 

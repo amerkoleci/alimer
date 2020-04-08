@@ -33,7 +33,6 @@ namespace Alimer
         {
             base.ConfigureServices(services);
 
-            services.AddSingleton<IRuntimePlatform, WindowsRuntimePlatform>();
             //services.AddSingleton(_graphicsDeviceFactory.CreateDevice());
         }
 

@@ -2,31 +2,13 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using System.Windows.Media;
 
 namespace Alimer
 {
-    internal sealed class WindowsRuntimePlatform : IRuntimePlatform
+    partial class RuntimePlatform
     {
-        /// <inheritdoc/>
-        public PlatformType PlatformType { get; }
-
-        /// <inheritdoc/>
-        public PlatformFamily PlatformFamily { get; }
-
-        /// <inheritdoc/>
-        public string FrameworkDescription => RuntimeInformation.FrameworkDescription;
-
-        /// <inheritdoc/>
-        public string OSDescription => RuntimeInformation.OSDescription;
-
-        /// <inheritdoc/>
-        public string DefaultAppDirectory => AppContext.BaseDirectory;
-
-        public WindowsRuntimePlatform()
+        static RuntimePlatform()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -43,6 +25,10 @@ namespace Alimer
                 PlatformType = PlatformType.Linux;
                 PlatformFamily = PlatformFamily.Desktop;
             }
+
+            FrameworkDescription = RuntimeInformation.FrameworkDescription;
+            OSDescription = RuntimeInformation.OSDescription;
+            DefaultAppDirectory = AppContext.BaseDirectory;
         }
     }
 }
