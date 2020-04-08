@@ -19,12 +19,15 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.101
-        
+
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.0.0
 
     - name: Version
       uses: aarnott/nbgv@master
+
+    - name: Restore packages
+      run: dotnet restore src/Alimer.sln
 
     - name: Pack
       run: msbuild /t:pack /p:Configuration=Release /m src/Alimer.sln
