@@ -2,16 +2,20 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
+using Alimer.Graphics;
+using Microsoft.Extensions.DependencyInjection;
 using static Alimer.GLFW;
 
 namespace Alimer
 {
-    public sealed class NetStandardGameContext : GameContext
+    public class NetStandardGameContext : GameContext
     {
         /// <inheritdoc/>
-        public override GameWindow GameWindow { get; }
+        public override GameWindow? GameWindow { get; }
 
-        private GLFWGameWindow GLFWWindow => (GLFWGameWindow)GameWindow;
+        public GraphicsDevice? GraphicsDevice { get; set; }
+
+        private GLFWGameWindow? GLFWWindow => (GLFWGameWindow)GameWindow;
 
         public NetStandardGameContext()
         {
@@ -21,6 +25,13 @@ namespace Alimer
             }
 
             GameWindow = new GLFWGameWindow();
+        }
+
+        public override void ConfigureServices(IServiceCollection services)
+        {
+            base.ConfigureServices(services);
+
+            services.AddSingleton(GraphicsDevice);
         }
 
         public override bool Run(Action loadAction, Action tickAction)

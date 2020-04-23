@@ -2,25 +2,51 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Immutable;
 
 namespace Alimer.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
-        private readonly GraphicsAdapter _adapter;
+        public const string EnableValidationSwitchName = "Alimer.Graphics.EnableValidation";
+        public const string EnableGPUBasedValidationSwitchName = "Alimer.Graphics.EnableGPUBasedValidation";
+
+        static GraphicsDevice()
+        {
+            if (!AppContext.TryGetSwitch(EnableValidationSwitchName, out var validationValue))
+            {
+#if DEBUG
+                validationValue = true;
+                AppContext.SetSwitch(EnableValidationSwitchName, validationValue);
+#endif
+            }
+
+            EnableValidation = validationValue;
+
+            if (AppContext.TryGetSwitch(EnableGPUBasedValidationSwitchName, out validationValue))
+            {
+                EnableGPUBasedValidation = validationValue;
+                if (validationValue)
+                {
+                    EnableValidation = true;
+                }
+            }
+        }
 
         /// <summary>
         /// Create new instance of the <see cref="GraphicsDevice" /> class.
         /// </summary>
-        /// <param name="adapter">The physical graphics adapter.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="adapter" /> is <c>null</c>.</exception>
-        protected GraphicsDevice(GraphicsAdapter adapter)
+        protected GraphicsDevice()
         {
-            Guard.ThrowIfNull(adapter, nameof(adapter));
-
-            _adapter = adapter;
+            
         }
+
+        public static bool EnableValidation { get; }
+        public static bool EnableGPUBasedValidation { get; }
+
+        /// <summary>
+        /// Gets the <see cref="GraphicsAdapter" /> for the instance.
+        /// </summary>
+        public GraphicsAdapter Adapter { get; protected set; }
 
         /// <inheritdoc />
         public void Dispose()

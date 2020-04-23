@@ -7,14 +7,9 @@ namespace Alimer.Graphics.Direct3D11
 {
     public sealed class D3D11GraphicsAdapter : GraphicsAdapter
     {
-        private readonly IDXGIAdapter1 _dxgiAdapter;
-
-        internal D3D11GraphicsAdapter(D3D11GraphicsProvider provider, IDXGIAdapter1 dxgiAdapter)
-            : base(provider)
+        internal D3D11GraphicsAdapter(IDXGIAdapter1 dxgiAdapter)
         {
             Guard.AssertNotNull(dxgiAdapter, nameof(dxgiAdapter));
-
-            _dxgiAdapter = dxgiAdapter;
 
             var adapterDescription = dxgiAdapter.Description1;
             VendorId = adapterDescription.VendorId;
@@ -27,13 +22,5 @@ namespace Alimer.Graphics.Direct3D11
         public override int DeviceId { get; }
 
         public override string Name { get; }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _dxgiAdapter.Dispose();
-            }
-        }
     }
 }
