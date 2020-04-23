@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Alimer.Graphics;
 using Alimer.Input;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,9 +16,6 @@ namespace Alimer
         private bool _isExiting;
         private readonly Stopwatch _stopwatch = new Stopwatch();
         private bool _endRunRequired;
-
-        public GameContext Context { get; }
-        public IServiceProvider Services { get; }
 
         /// <summary>
         /// Gets a list of registered <see cref="GameSystem"/>.
@@ -31,15 +29,29 @@ namespace Alimer
 
         protected Game(GameContext context)
         {
+            Guard.ThrowIfNull(context, nameof(context));
+
             Context = context;
 
             // Configure and build services
             ServiceCollection services = new ServiceCollection();
+
+            context.ConfigureServices(services);
             ConfigureServices(services);
+
             Services = services.BuildServiceProvider();
 
-            //Input = Services.GetRequiredService<InputManager>();
+            // Get required services.
+            Input = Services.GetRequiredService<InputManager>();
+
+            // Get optional services.
+            GraphicsDevice = Services.GetService<GraphicsDevice>();
         }
+
+        public GameContext Context { get; }
+        public IServiceProvider Services { get; }
+
+        public GraphicsDevice? GraphicsDevice { get; }
 
         public InputManager Input { get; }
 
@@ -53,8 +65,6 @@ namespace Alimer
 
         protected virtual void ConfigureServices(IServiceCollection services)
         {
-            Context.ConfigureServices(services);
-
             services.AddSingleton(this);
             //services.AddSingleton<IContentManager, ContentManager>();
             services.AddSingleton<InputManager>();
