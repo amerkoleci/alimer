@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
+using Alimer.Graphics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Alimer
@@ -16,8 +17,16 @@ namespace Alimer
         /// </summary>
         public abstract GameWindow? GameWindow { get; }
 
+        public GraphicsDevice GraphicsDevice { get; set; }
+
         public virtual void ConfigureServices(IServiceCollection services)
         {
+            if (GraphicsDevice == null)
+            {
+                GraphicsDevice = GraphicsDevice.Create(new DeviceDescriptor(BackendType.Direct3D11));
+            }
+
+            services.AddSingleton(GraphicsDevice);
         }
 
         /// <summary>

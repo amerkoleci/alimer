@@ -15,8 +15,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Alimer.Graphics.Direct3D11\Alimer.Graphics.Direct3D11.csproj" />
-    <ProjectReference Include="..\..\..\Alimer.Graphics.Direct3D12\Alimer.Graphics.Direct3D12.csproj" />
     <ProjectReference Include="..\..\..\platforms\Alimer.Platform.Windows\Alimer.Platform.Windows.csproj" />
     <ProjectReference Include="..\DrawTriangle.Game\DrawTriangle.Game.csproj" />
   </ItemGroup>

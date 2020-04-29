@@ -27,10 +27,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.GLFW", "Alimer.GLFW\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics", "Alimer.Graphics\Alimer.Graphics.csproj", "{B8873C4A-A6A4-4891-BCD8-2D57DCC29E63}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics.Direct3D12", "Alimer.Graphics.Direct3D12\Alimer.Graphics.Direct3D12.csproj", "{23D7E75E-1644-4BA6-B13F-CE731C472D51}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics.Direct3D11", "Alimer.Graphics.Direct3D11\Alimer.Graphics.Direct3D11.csproj", "{52273C83-0B4A-4ABD-9BC8-4C08BA704958}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,14 +65,6 @@ Global
 		{B8873C4A-A6A4-4891-BCD8-2D57DCC29E63}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8873C4A-A6A4-4891-BCD8-2D57DCC29E63}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8873C4A-A6A4-4891-BCD8-2D57DCC29E63}.Release|Any CPU.Build.0 = Release|Any CPU
-		{23D7E75E-1644-4BA6-B13F-CE731C472D51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{23D7E75E-1644-4BA6-B13F-CE731C472D51}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{23D7E75E-1644-4BA6-B13F-CE731C472D51}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{23D7E75E-1644-4BA6-B13F-CE731C472D51}.Release|Any CPU.Build.0 = Release|Any CPU
-		{52273C83-0B4A-4ABD-9BC8-4C08BA704958}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{52273C83-0B4A-4ABD-9BC8-4C08BA704958}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{52273C83-0B4A-4ABD-9BC8-4C08BA704958}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{52273C83-0B4A-4ABD-9BC8-4C08BA704958}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

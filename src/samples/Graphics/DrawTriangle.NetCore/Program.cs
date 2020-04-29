@@ -4,8 +4,7 @@
 using System;
 using System.Windows.Forms;
 using Alimer;
-using Alimer.Graphics.Direct3D11;
-using Alimer.Graphics.Direct3D12;
+using Alimer.Graphics;
 
 namespace DrawTriangle
 {
@@ -29,10 +28,10 @@ namespace DrawTriangle
                 //    game.Run();
                 //}
 
+                var surface = Surface.CreateWin32(IntPtr.Zero, Handle);
+
                 var context = new NetStandardGameContext
                 {
-                    GraphicsDevice = new D3D11GraphicsDevice()
-                    //GraphicsDevice = new D3D12GraphicsDevice()
                 };
 
                 using (var game = new DrawTriangleGame(context))

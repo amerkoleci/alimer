@@ -13,7 +13,7 @@ namespace Alimer
         /// <inheritdoc/>
         public override GameWindow? GameWindow { get; }
 
-        public GraphicsDevice? GraphicsDevice { get; set; }
+       
 
         private GLFWGameWindow? GLFWWindow => (GLFWGameWindow)GameWindow;
 
@@ -30,8 +30,6 @@ namespace Alimer
         public override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-
-            services.AddSingleton(GraphicsDevice);
         }
 
         public override bool Run(Action loadAction, Action tickAction)
