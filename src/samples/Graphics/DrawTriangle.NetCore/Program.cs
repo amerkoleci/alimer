@@ -28,8 +28,6 @@ namespace DrawTriangle
                 //    game.Run();
                 //}
 
-                var surface = Surface.CreateWin32(IntPtr.Zero, Handle);
-
                 var context = new NetStandardGameContext
                 {
                 };

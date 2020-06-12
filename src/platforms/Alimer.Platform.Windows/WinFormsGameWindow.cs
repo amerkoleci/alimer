@@ -22,6 +22,8 @@ namespace Alimer
             set => _control.Text = value;
         }
 
+        public override IntPtr Handle => _control.Handle;
+
         /// <inheritdoc/>
         public override RectangleF ClientBounds => _control.ClientRectangle;
 

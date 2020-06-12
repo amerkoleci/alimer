@@ -135,5 +135,10 @@ namespace Alimer
         private delegate void glfwSwapBuffers_t(IntPtr window);
         private static glfwSwapBuffers_t s_glfwSwapBuffers = LoadFunction<glfwSwapBuffers_t>(nameof(glfwSwapBuffers));
         public static void glfwSwapBuffers(IntPtr window) => s_glfwSwapBuffers(window);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate IntPtr glfwGetNativeHandleDelegate_t(IntPtr window);
+        private static glfwGetNativeHandleDelegate_t s_glfwGetWin32Window = LoadFunction<glfwGetNativeHandleDelegate_t>(nameof(glfwGetWin32Window));
+        public static IntPtr glfwGetWin32Window(IntPtr window) => s_glfwGetWin32Window(window);
     }
 }

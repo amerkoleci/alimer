@@ -3,10 +3,10 @@
 
 namespace Alimer.Graphics
 {
-    public enum GPUPowerPreference
+    public enum GPUDevicePreference
     {
-        Default,
+        HighPerformance,
         LowPower,
-        HighPerformance
+        DontCare,
     }
 }

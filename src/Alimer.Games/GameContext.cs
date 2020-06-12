@@ -15,18 +15,10 @@ namespace Alimer
         /// <summary>
         /// Get the main window.
         /// </summary>
-        public abstract GameWindow? GameWindow { get; }
-
-        public GraphicsDevice GraphicsDevice { get; set; }
+        public abstract GameWindow GameWindow { get; }
 
         public virtual void ConfigureServices(IServiceCollection services)
-        {
-            if (GraphicsDevice == null)
-            {
-                GraphicsDevice = GraphicsDevice.Create(new DeviceDescriptor(BackendType.Direct3D11));
-            }
-
-            services.AddSingleton(GraphicsDevice);
+        { 
         }
 
         /// <summary>

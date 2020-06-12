@@ -15,6 +15,9 @@ namespace Alimer
 
         public bool IsExiting { get; private set; }
 
+
+        public abstract IntPtr Handle { get; }
+
         /// <summary>
         /// Gets the screen dimensions of the game window's client rectangle.
         /// </summary>

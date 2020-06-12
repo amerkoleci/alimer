@@ -11,11 +11,9 @@ namespace Alimer
     public class NetStandardGameContext : GameContext
     {
         /// <inheritdoc/>
-        public override GameWindow? GameWindow { get; }
+        public override GameWindow GameWindow { get; }
 
-       
-
-        private GLFWGameWindow? GLFWWindow => (GLFWGameWindow)GameWindow;
+        private GLFWGameWindow GLFWWindow => (GLFWGameWindow)GameWindow;
 
         public NetStandardGameContext()
         {
@@ -34,9 +32,11 @@ namespace Alimer
 
         public override bool Run(Action loadAction, Action tickAction)
         {
+            loadAction();
+
             while (!GLFWWindow.ShouldClose())
             {
-                GLFWWindow.SwapBuffers();
+                tickAction();
                 glfwPollEvents();
             }
 
