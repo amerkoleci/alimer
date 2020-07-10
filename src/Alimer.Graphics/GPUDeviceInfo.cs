@@ -9,7 +9,7 @@ namespace Alimer.Graphics
     public struct GPUDeviceInfo
     {
         public Bool32 Debug;
-        public GPUDevicePreference DevicePreference;
+        public GPUPowerPreference DevicePreference;
         public SwapchainInfo SwapchainInfo;
     }
 }

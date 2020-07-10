@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics
 {
-    public enum GPUDevicePreference
+    public enum GPUPowerPreference
     {
         HighPerformance,
         LowPower,

@@ -46,25 +46,13 @@ namespace Alimer
             Input = Services.GetRequiredService<InputManager>();
 
             // Setup graphics.
-            vgpuSetLogCallback(GPULogCallback, IntPtr.Zero);
-
-            GPUDevice = vgpuCreateDevice(BackendType.Default, new GPUDeviceInfo
-            {
-                Debug = false,
-                DevicePreference = GPUDevicePreference.HighPerformance,
-                SwapchainInfo = new SwapchainInfo
-                {
-                    WindowHandle = context.GameWindow.Handle
-                }
-            });
-
-            vgpuGetDeviceCaps(GPUDevice, out var caps);
+            GraphicsDevice = GraphicsDevice.CreateSystemDefault();
         }
 
         public GameContext Context { get; }
         public IServiceProvider Services { get; }
 
-        public GPUDevice GPUDevice { get; }
+        public GraphicsDevice? GraphicsDevice { get; }
 
         public InputManager Input { get; }
 
@@ -75,7 +63,7 @@ namespace Alimer
                 gameSystem.Dispose();
             }
 
-            vgpuDestroyDevice(GPUDevice);
+            GraphicsDevice?.Dispose();
         }
 
         private static void GPULogCallback(IntPtr userData, GPULogLevel level, string message)
@@ -125,7 +113,7 @@ namespace Alimer
 
         public void Tick()
         {
-            vgpuBeginFrame(GPUDevice);
+            /*vgpuBeginFrame(GPUDevice);
 
             var renderPass = new RenderPassDescription();
             renderPass.colorAttachments0.clearColor = new Color4(1.0f, 0.0f, 1.0f);
@@ -133,7 +121,7 @@ namespace Alimer
             renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GPUDevice);
             vgpuCmdBeginRenderPass(GPUDevice, renderPass);
             vgpuCmdEndRenderPass(GPUDevice);
-            vgpuEndFrame(GPUDevice);
+            vgpuEndFrame(GPUDevice);*/
         }
 
         private void InitializeBeforeRun()
