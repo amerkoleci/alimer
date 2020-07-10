@@ -19,7 +19,7 @@ namespace Alimer.Graphics.D3D12
             {
                 GpuPreference gpuPreference = lowPower ? GpuPreference.MinimumPower : GpuPreference.HighPerformance;
 
-                for (int adapterIndex = 0; factory6.EnumAdaptersByGpuPreference(adapterIndex, gpuPreference, out adapter).Success; adapterIndex++)
+                for (int adapterIndex = 0; factory6.EnumAdapterByGpuPreference(adapterIndex, gpuPreference, out adapter).Success; adapterIndex++)
                 {
                     if (adapter == null)
                     {

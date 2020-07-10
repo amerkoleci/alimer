@@ -11,8 +11,8 @@ namespace Alimer.Graphics
     {
         public uint Width;
         public uint Height;
-        public TextureFormat ColorFrmat;
-        public TextureFormat DepthStencilFormat;
+        public PixelFormat ColorFrmat;
+        public PixelFormat DepthStencilFormat;
         public PresentMode PresentMode;
         public Bool32 Fullscreen;
         public IntPtr WindowHandle;

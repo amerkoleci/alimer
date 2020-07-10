@@ -31,7 +31,7 @@
 
     <!-- Packages versions -->
     <NerdbankGitVersioningVersion>3.1.71</NerdbankGitVersioningVersion>
-    <VorticeDirectXVersion>1.7.24-beta</VorticeDirectXVersion>
+    <VorticeDirectXVersion>1.7.25-beta</VorticeDirectXVersion>
   </PropertyGroup>
 
   <PropertyGroup>
