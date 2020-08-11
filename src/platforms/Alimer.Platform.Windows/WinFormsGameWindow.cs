@@ -4,7 +4,6 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Windows.Media;
 
 namespace Alimer
 {
@@ -38,7 +37,7 @@ namespace Alimer
             //ConfigureSwapChain(SwapChainHandle.CreateWin32(hInstance, _control.Handle));
         }
 
-        private void Control_ClientSizeChanged(object sender, EventArgs e)
+        private void Control_ClientSizeChanged(object? sender, EventArgs e)
         {
             OnSizeChanged();
         }

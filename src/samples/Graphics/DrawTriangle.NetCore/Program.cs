@@ -10,9 +10,9 @@ namespace DrawTriangle
 {
     public static class Program
     {
-        public class MyForm : Form
+        public class MainForm : Form
         {
-            public MyForm()
+            public MainForm()
             {
                 Text = "Alimer - Hello Triangle";
                 Width = 1200;
@@ -45,7 +45,7 @@ namespace DrawTriangle
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MyForm());
+            Application.Run(new MainForm());
         }
     }
 }

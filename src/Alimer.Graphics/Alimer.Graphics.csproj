@@ -1,10 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>8.0</LangVersion>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net5.0</TargetFramework>
     <DefineConstants Condition="'$(ExcludeD3D11)' == 'true'">$(DefineConstants);EXCLUDE_D3D11_BACKEND</DefineConstants>
     <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
   </PropertyGroup>
@@ -12,14 +9,6 @@
   <ItemGroup>
     <Compile Remove="D3D11/**/*" Condition="'$(ExcludeD3D11)' == 'true'" />
     <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)native\win-x64\vgpu.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes/win-x64/native</PackagePath>
-      <Pack>true</Pack>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

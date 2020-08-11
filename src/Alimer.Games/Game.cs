@@ -7,7 +7,6 @@ using System.Diagnostics;
 using Alimer.Graphics;
 using Alimer.Input;
 using Microsoft.Extensions.DependencyInjection;
-using static Alimer.Graphics.VGPU;
 
 namespace Alimer
 {
@@ -64,12 +63,6 @@ namespace Alimer
             }
 
             GraphicsDevice?.Dispose();
-        }
-
-        private static void GPULogCallback(IntPtr userData, GPULogLevel level, string message)
-        {
-            Console.WriteLine($"{level}: {message}");
-            System.Diagnostics.Debug.WriteLine($"{level}: {message}");
         }
 
         protected virtual void ConfigureServices(IServiceCollection services)

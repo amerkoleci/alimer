@@ -7,7 +7,9 @@
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoBinPath)$(MSBuildProjectName)\</BaseOutputPath>
     <PackageOutputPath>$(RepositoryRootDirectory)build\packages\</PackageOutputPath>
 
-    <LangVersion>8.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
 
     <DebugType>portable</DebugType>
     <DebugSymbols Condition=" '$(Configuration)' == 'Debug' ">true</DebugSymbols>
