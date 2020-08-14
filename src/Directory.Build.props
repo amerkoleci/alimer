@@ -32,8 +32,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
     <!-- Packages versions -->
-    <NerdbankGitVersioningVersion>3.1.71</NerdbankGitVersioningVersion>
-    <VorticeDirectXVersion>1.7.25-beta</VorticeDirectXVersion>
+    <VorticeDirectXVersion>1.7.33-beta</VorticeDirectXVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -42,17 +41,8 @@
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <IsNetStandard>$(TargetFramework.ToLower().StartsWith('netstandard'))</IsNetStandard>
-    <IsNetFramework>$(TargetFramework.ToLower().StartsWith('net4'))</IsNetFramework>
-    <IsMonoAndroid>$(TargetFramework.ToLower().StartsWith('monoandroid'))</IsMonoAndroid>
-    <IsXamarinIOS>$(TargetFramework.ToLower().StartsWith('xamarinios'))</IsXamarinIOS>
-    <IsXamarinMac>$(TargetFramework.ToLower().StartsWith('xamarinmac'))</IsXamarinMac>
-    <IsNetCoreApp>$(TargetFramework.ToLower().StartsWith('netcoreapp'))</IsNetCoreApp>
-    <IsUAP>$(TargetFramework.ToLower().StartsWith('uap'))</IsUAP>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Nerdbank.GitVersioning" Version="$(NerdbankGitVersioningVersion)" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.2.31" PrivateAssets="All" />
   </ItemGroup>
 </Project>
