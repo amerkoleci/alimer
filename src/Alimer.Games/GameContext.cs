@@ -15,7 +15,7 @@ namespace Alimer
         /// <summary>
         /// Get the main window.
         /// </summary>
-        public abstract GameWindow GameWindow { get; }
+        public abstract GameWindow? GameWindow { get; }
 
         public virtual void ConfigureServices(IServiceCollection services)
         { 

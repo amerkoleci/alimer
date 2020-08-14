@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Alimer</RootNamespace>
   </PropertyGroup>
 
@@ -10,7 +10,7 @@
 
     <!-- Workaround so the files appear in VS -->
     <None Include="Platforms\**\*.*" />
-    <Compile Remove="Platforms\uwp\*.*" />
+    <Compile Remove="Platforms\**\*.*" />
   </ItemGroup>
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">

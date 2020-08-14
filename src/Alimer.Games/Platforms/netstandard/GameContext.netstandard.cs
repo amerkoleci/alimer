@@ -11,9 +11,9 @@ namespace Alimer
     public class NetStandardGameContext : GameContext
     {
         /// <inheritdoc/>
-        public override GameWindow GameWindow { get; }
+        public override GameWindow? GameWindow { get; }
 
-        private GLFWGameWindow GLFWWindow => (GLFWGameWindow)GameWindow;
+        private GLFWGameWindow? GLFWWindow => (GLFWGameWindow?)GameWindow;
 
         public NetStandardGameContext()
         {
