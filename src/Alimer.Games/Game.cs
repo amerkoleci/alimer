@@ -27,16 +27,14 @@ namespace Alimer
         /// </summary>
         public bool IsRunning { get; private set; }
 
-        protected Game(GameContext context)
+        protected Game()
         {
-            Guard.ThrowIfNull(context, nameof(context));
-
-            Context = context;
+            Context = GameContext.Create(this);
 
             // Configure and build services
             ServiceCollection services = new ServiceCollection();
 
-            context.ConfigureServices(services);
+            Context.ConfigureServices(services);
             ConfigureServices(services);
 
             Services = services.BuildServiceProvider();

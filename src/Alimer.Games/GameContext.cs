@@ -10,12 +10,21 @@ namespace Alimer
     /// <summary>
     /// Defines a context for <see cref="Game"/> that handles platform logic.
     /// </summary>
-    public abstract class GameContext
+    public abstract partial class GameContext
     {
         /// <summary>
         /// Get the main window.
         /// </summary>
         public abstract GameWindow? GameWindow { get; }
+
+        protected GameContext(Game game)
+        {
+            Guard.AssertNotNull(game, nameof(game));
+
+            Game = game;
+        }
+
+        public Game Game { get; }
 
         public virtual void ConfigureServices(IServiceCollection services)
         { 

@@ -7,7 +7,7 @@ namespace DrawTriangle
 {
     public sealed class DrawTriangleGame : Game
     {
-        public DrawTriangleGame(GameContext context) : base(context)
+        public DrawTriangleGame() 
         {
         }
     }

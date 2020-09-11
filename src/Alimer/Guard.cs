@@ -24,7 +24,7 @@ namespace Alimer
         {
             if (!condition)
             {
-                var message = string.Format(messageFormat, formatArg);
+                string message = string.Format(messageFormat, formatArg);
                 Debug.Assert(condition, message);
             }
         }
@@ -47,7 +47,7 @@ namespace Alimer
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void ThrowArgumentNullException(string paramName)
         {
-            var message = string.Format(Resources.ArgumentNullExceptionMessage, paramName);
+            string message = string.Format(Resources.ArgumentNullExceptionMessage, paramName);
             throw new ArgumentNullException(paramName, message);
         }
     }

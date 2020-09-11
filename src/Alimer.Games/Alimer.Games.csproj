@@ -1,8 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSBuild.Sdk.Extras/2.1.2">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);uap10.0.16299;</TargetFrameworks>
     <RootNamespace>Alimer</RootNamespace>
+    <ExtrasUwpMetaPackageVersion>6.2.10</ExtrasUwpMetaPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +17,10 @@
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">
     <Compile Include="Platforms\netstandard\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <Compile Include="Platforms\uwp\**\*.cs" />
   </ItemGroup>
   
   <ItemGroup>
