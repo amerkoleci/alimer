@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer.Presentation\Alimer.Presentation.csproj" />
+    <ProjectReference Include="..\Alimer.Gemini\Alimer.Gemini.csproj" />
   </ItemGroup>
 
 </Project>

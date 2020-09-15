@@ -31,10 +31,10 @@ namespace Alimer
 
         public GLFWGameWindow()
         {
-            glfwWindowHint(WindowIntHint.ContextVersionMajor, 3);
-            glfwWindowHint(WindowIntHint.ContextVersionMinor, 3);
-            glfwWindowHint(WindowBoolHint.OpenGLForwardCompat, true);
-            glfwWindowHint(OpenGLProfile.CoreProfile);
+            //glfwWindowHint(WindowIntHint.ContextVersionMajor, 3);
+            //glfwWindowHint(WindowIntHint.ContextVersionMinor, 3);
+            //glfwWindowHint(WindowBoolHint.OpenGLForwardCompat, true);
+            //glfwWindowHint(OpenGLProfile.CoreProfile);
             _window = glfwCreateWindow(800, 600, "Alimer", IntPtr.Zero, IntPtr.Zero);
         }
 

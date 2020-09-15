@@ -10,14 +10,18 @@ namespace Alimer.Graphics.D3D12
 {
     internal static class D3D12Utils
     {
-        public static IDXGIAdapter1? GetAdapter(IDXGIFactory4 factory, FeatureLevel minFeatureLevel, bool lowPower)
+        public static IDXGIAdapter1? GetAdapter(IDXGIFactory4 factory, FeatureLevel minFeatureLevel, GraphicsAdapterPreference adapterPreference)
         {
             IDXGIAdapter1? adapter = null;
 
             IDXGIFactory6? factory6 = factory.QueryInterfaceOrNull<IDXGIFactory6>();
             if (factory6 != null)
             {
-                GpuPreference gpuPreference = lowPower ? GpuPreference.MinimumPower : GpuPreference.HighPerformance;
+                GpuPreference gpuPreference = GpuPreference.HighPerformance;
+                if (adapterPreference == GraphicsAdapterPreference.LowPower)
+                {
+                    gpuPreference = GpuPreference.MinimumPower;
+                }
 
                 for (int adapterIndex = 0; factory6.EnumAdapterByGpuPreference(adapterIndex, gpuPreference, out adapter).Success; adapterIndex++)
                 {

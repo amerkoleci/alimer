@@ -44,8 +44,8 @@ namespace Alimer.Graphics.D3D12
             }
         }
 
-        public D3D12GraphicsDevice(FeatureLevel minFeatureLevel = FeatureLevel.Level_11_1)
-            : base(BackendType.Direct3D12)
+        public D3D12GraphicsDevice(GraphicsAdapterPreference adapterPreference, FeatureLevel minFeatureLevel = FeatureLevel.Level_11_1)
+            : base()
         {
             bool debugFactory = false;
 
@@ -107,26 +107,44 @@ namespace Alimer.Graphics.D3D12
             }
 
             // Find adapter now.
-            IDXGIAdapter1? adapter = D3D12Utils.GetAdapter(DXGIFactory, minFeatureLevel, false);
+            IDXGIAdapter1? adapter = D3D12Utils.GetAdapter(DXGIFactory, minFeatureLevel, adapterPreference);
             if (adapter == null)
             {
                 throw new NotSupportedException("Direct3D12: Cannot find suitable adapter with Direct3D12 support.");
             }
 
-            // Assign adapter properties, create logical device and release it.
-            AdapterDescription1 adapterDescription = adapter.Description1;
-            Name = adapterDescription.Description;
-            VendorId = adapterDescription.VendorId;
-            DeviceId = adapterDescription.DeviceId;
             D3D12CreateDevice(adapter, minFeatureLevel, out NativeDevice).CheckError();
-            adapter.Release();
+
+            // Init capabilites.
+            {
+                AdapterDescription1 adapterDescription = adapter.Description1;
+
+                // Detect adapter type.
+                GraphicsAdapterType adapterType = GraphicsAdapterType.Unknown;
+                if ((adapterDescription.Flags & AdapterFlags.Software) != AdapterFlags.None)
+                {
+                    adapterType = GraphicsAdapterType.CPU;
+                }
+                else
+                {
+                    adapterType = NativeDevice.Architecture.Uma ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
+                }
+
+                Capabilities = new GraphicsDeviceCaps
+                {
+                    BackendType = BackendType.Direct3D12,
+                    DeviceId = adapterDescription.DeviceId,
+                    VendorId = adapterDescription.VendorId,
+                    AdapterName = adapterDescription.Description,
+                    AdapterType = adapterType
+                };
+
+                adapter.Release();
+            }
         }
 
         /// <inheritdoc/>
-        public override string Name { get; }
-        public override bool IsLowPower { get; }
-        public override int VendorId { get; }
-        public override int DeviceId { get; }
+        public override GraphicsDeviceCaps Capabilities { get; }
 
         /// <summary>
         /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.

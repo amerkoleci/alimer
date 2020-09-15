@@ -32,7 +32,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{64161D7E
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Presentation", "editor\Alimer.Presentation\Alimer.Presentation.csproj", "{4EDBD2FA-229B-4A51-A97D-A2C39355DF43}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Gemini", "editor\Alimer.Gemini\Alimer.Gemini.csproj", "{4EDBD2FA-229B-4A51-A97D-A2C39355DF43}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Studio", "editor\Alimer.Studio\Alimer.Studio.csproj", "{F6F69886-F2E8-4B05-9978-ACCB1869EB37}"
 EndProject

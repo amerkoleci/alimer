@@ -23,6 +23,7 @@ namespace Alimer
                 return;
             }
 
+            glfwWindowHint(WindowClientApi.None);
             GameWindow = new GLFWGameWindow();
         }
 

@@ -35,20 +35,16 @@ namespace Alimer.Graphics
 
         public static bool EnableValidation { get; }
         public static bool EnableGPUBasedValidation { get; }
-        public BackendType BackendType { get; }
-        public abstract string Name { get; }
-        public abstract bool IsLowPower { get; }
-        public abstract int VendorId { get; }
-        public abstract int DeviceId { get; }
 
         /// <summary>
-        /// Create new instance of the <see cref="GraphicsDevice" /> class.
+        /// Get the device capabilities.
         /// </summary>
-        protected GraphicsDevice(BackendType backendType)
-        {
-            Guard.Assert(backendType != BackendType.Default, "Invalid backend type");
+        public abstract GraphicsDeviceCaps Capabilities { get; }
 
-            BackendType = backendType;
+        public BackendType BackendType => Capabilities.BackendType;
+
+        protected GraphicsDevice()
+        {
         }
 
         /// <inheritdoc />
@@ -64,9 +60,11 @@ namespace Alimer.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-        public static GraphicsDevice? CreateSystemDefault(BackendType preferredBackendType = BackendType.Default)
+        public static GraphicsDevice? CreateSystemDefault(
+            BackendType preferredBackendType = BackendType.Count,
+            GraphicsAdapterPreference adapterPreference = GraphicsAdapterPreference.Default)
         {
-            if (preferredBackendType == BackendType.Default)
+            if (preferredBackendType == BackendType.Count)
             {
                 preferredBackendType = GetDefaultPlatformBackend();
             }
@@ -75,7 +73,7 @@ namespace Alimer.Graphics
             {
 #if !EXCLUDE_D3D12_BACKEND
                 case BackendType.Direct3D12:
-                    return new D3D12.D3D12GraphicsDevice();
+                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
 #endif
 #if !EXCLUDE_D3D11_BACKEND
                 case BackendType.Direct3D11:
@@ -88,7 +86,7 @@ namespace Alimer.Graphics
 
         public static bool IsBackendSupported(BackendType backend)
         {
-            if (backend == BackendType.Default)
+            if (backend == BackendType.Count)
             {
                 backend = GetDefaultPlatformBackend();
             }
@@ -110,8 +108,11 @@ namespace Alimer.Graphics
             }
         }
 
-
-        private static BackendType GetDefaultPlatformBackend()
+        /// <summary>
+        /// Gets the best supported <see cref="BackendType"/> on the current platform.
+        /// </summary>
+        /// <returns></returns>
+        public static BackendType GetDefaultPlatformBackend()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -125,12 +126,11 @@ namespace Alimer.Graphics
                     return BackendType.Vulkan;
                 }
 
-                if (IsBackendSupported(BackendType.Direct3D11))
-                {
-                    return BackendType.Direct3D11;
-                }
-
-                return BackendType.OpenGL;
+                return BackendType.Direct3D11;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return BackendType.Metal;
             }
 
             if (IsBackendSupported(BackendType.Vulkan))
@@ -138,7 +138,7 @@ namespace Alimer.Graphics
                 return BackendType.Vulkan;
             }
 
-            return BackendType.OpenGL;
+            return BackendType.Null;
         }
     }
 }

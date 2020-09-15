@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp3.1;net461</TargetFrameworks>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Gemini</RootNamespace>
+    <PackageId>Alimer.Gemini</PackageId>
+    <Title>Alimer.Gemini</Title>
+    <PackageTags>core WPF MVVM AvalonDock Caliburn Micro Visual Studio IDE Shell</PackageTags>
+    <Description>Alimer.Gemini is a fork of https://github.com/tgjones/gemini.</Description>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(TargetFramework) == 'net461'">
+    <Reference Include="PresentationFramework.Aero" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Icons\*.png" />
+    <Resource Include="Framework\ShaderEffects\GrayscaleEffect.ps" />
+
+    <!-- Settings -->
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    
+    <Compile Update="Properties\Resources.de.Designer.cs">
+      <DependentUpon>Resources.de.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <DesignData Include="Modules\Settings\SampleData\SettingsViewModelSampleData.xaml" />
+
+    <!-- resx -->
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Properties\Resources.de.resx" />
+    <EmbeddedResource Update="Properties\Resources.ko.resx" />
+    <EmbeddedResource Update="Properties\Resources.ru.resx" />
+    <EmbeddedResource Update="Properties\Resources.zh-Hans.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ComponentModel.Composition" Version="5.0.0-rc.1.20451.14" />
+    <PackageReference Include="DotNetProjects.Extended.Wpf.Toolkit" Version="4.6.86" />
+    <PackageReference Include="Caliburn.Micro" Version="4.0.136-rc" />
+    <PackageReference Include="MahApps.Metro" Version="2.2.0" />
+    <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" Version="4.40.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  
+</Project>
