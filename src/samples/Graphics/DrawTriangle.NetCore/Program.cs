@@ -7,7 +7,7 @@ namespace DrawTriangle
     {
         public static void Main()
         {
-            using (var game = new DrawTriangleGame())
+            using (DrawTriangleGame game = new DrawTriangleGame())
             {
                 game.Run();
             }

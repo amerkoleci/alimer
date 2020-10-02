@@ -15,8 +15,7 @@ namespace Alimer
 
         private GLFWGameWindow? GLFWWindow => (GLFWGameWindow?)GameWindow;
 
-        public NetStandardGameContext(Game game)
-            : base(game)
+        public NetStandardGameContext()
         {
             if (!glfwInit())
             {
@@ -45,10 +44,5 @@ namespace Alimer
             glfwTerminate();
             return true;
         }
-    }
-
-    public partial class GameContext
-    {
-        public static GameContext Create(Game game) => new NetStandardGameContext(game);
     }
 }

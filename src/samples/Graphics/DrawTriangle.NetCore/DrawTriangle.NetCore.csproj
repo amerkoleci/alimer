@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
@@ -14,7 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DrawTriangle.Game\DrawTriangle.Game.csproj" />
+    <ProjectReference Include="..\..\..\Alimer.Games\Alimer.Games.csproj" />
+    <ProjectReference Include="..\..\..\platforms\Alimer.Platform.Windows\Alimer.Platform.Windows.csproj" />
   </ItemGroup>
 
 </Project>

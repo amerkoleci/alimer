@@ -33,16 +33,16 @@ namespace Alimer
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate int glfwInit_t();
-        private static glfwInit_t s_glfwInit = LoadFunction<glfwInit_t>(nameof(glfwInit));
+        private static readonly glfwInit_t s_glfwInit = LoadFunction<glfwInit_t>(nameof(glfwInit));
         public static bool glfwInit() => s_glfwInit() == GLFW_TRUE;
 
-        private static glfwVoidDelegate_t s_glfwTerminate = LoadFunction<glfwVoidDelegate_t>(nameof(glfwTerminate));
+        private static readonly glfwVoidDelegate_t s_glfwTerminate = LoadFunction<glfwVoidDelegate_t>(nameof(glfwTerminate));
         public static void glfwTerminate() => s_glfwTerminate();
 
-        private static glfwHintDelegate_t s_glfwInitHint = LoadFunction<glfwHintDelegate_t>(nameof(glfwInitHint));
+        private static readonly glfwHintDelegate_t s_glfwInitHint = LoadFunction<glfwHintDelegate_t>(nameof(glfwInitHint));
         public static void glfwInitHint(InitHint hint, int value) => s_glfwInitHint((int)hint, value);
 
-        private static glfwVoidDelegate_t s_glfwPollEvents = LoadFunction<glfwVoidDelegate_t>(nameof(glfwPollEvents));
+        private static readonly glfwVoidDelegate_t s_glfwPollEvents = LoadFunction<glfwVoidDelegate_t>(nameof(glfwPollEvents));
         public static void glfwPollEvents() => s_glfwPollEvents();
 
         #region NativeLibrary logic
@@ -84,7 +84,7 @@ namespace Alimer
 
         private static IntPtr LoadLibrary(string libname)
         {
-            var assemblyLocation = Path.GetDirectoryName(typeof(GLFW).Assembly.Location) ?? "./";
+            string? assemblyLocation = Path.GetDirectoryName(typeof(GLFW).Assembly.Location) ?? "./";
             IntPtr ret;
 
             // Try .NET Framework / mono locations
@@ -122,9 +122,9 @@ namespace Alimer
             return ret;
         }
 
-        private static T LoadFunction<T>(string function, bool throwIfNotFound = false)
+        private static T? LoadFunction<T>(string function, bool throwIfNotFound = false)
         {
-            var handle = s_loader.GetSymbol(s_glfwLibrary, function);
+            IntPtr handle = s_loader.GetSymbol(s_glfwLibrary, function);
 
             if (handle == IntPtr.Zero)
             {

@@ -104,10 +104,10 @@ namespace Alimer
             CompatProfile = 0x00032002
         }
 
-        private static glfwVoidDelegate_t s_glfwDefaultWindowHints = LoadFunction<glfwVoidDelegate_t>(nameof(glfwDefaultWindowHints));
+        private static readonly glfwVoidDelegate_t s_glfwDefaultWindowHints = LoadFunction<glfwVoidDelegate_t>(nameof(glfwDefaultWindowHints));
         public static void glfwDefaultWindowHints() => s_glfwDefaultWindowHints();
 
-        private static glfwHintDelegate_t s_glfwWindowHint = LoadFunction<glfwHintDelegate_t>(nameof(glfwWindowHint));
+        private static readonly glfwHintDelegate_t s_glfwWindowHint = LoadFunction<glfwHintDelegate_t>(nameof(glfwWindowHint));
         public static void glfwWindowHint(WindowBoolHint hint, bool value) => s_glfwWindowHint((int)hint, value ? GLFW_TRUE : GLFW_FALSE);
         public static void glfwWindowHint(WindowIntHint hint, int value) => s_glfwWindowHint((int)hint, value);
         public static void glfwWindowHint(WindowClientApi value) => s_glfwWindowHint(GLFW_CLIENT_API, (int)value);

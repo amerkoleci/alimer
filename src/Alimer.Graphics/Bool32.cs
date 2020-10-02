@@ -37,7 +37,7 @@ namespace Alimer.Graphics
         public bool Equals(Bool32 other) => _value == other._value;
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Bool32 rawBool && Equals(rawBool);
+        public override bool Equals(object? obj) => obj is Bool32 rawBool && Equals(rawBool);
 
         /// <inheritdoc/>
         public override int GetHashCode() => _value;

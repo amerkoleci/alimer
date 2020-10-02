@@ -9,7 +9,7 @@ namespace Alimer.Graphics
 {
     internal static class D3DUtils
     {
-        private static readonly FormatMap<PixelFormat, Format> _formatsMap = new FormatMap<PixelFormat, Format>
+        private static readonly FormatMap<PixelFormat, Format> s_formatsMap = new FormatMap<PixelFormat, Format>
         {
             { PixelFormat.Invalid,        Format.Unknown },
             // 8-bit pixel formats
@@ -101,8 +101,8 @@ namespace Alimer.Graphics
             //{ PixelFormat.ASTC12x12,    Format.Unknown },
         };
 
-        public static Format ToDirectXPixelFormat(this PixelFormat format) => _formatsMap[format];
-        public static PixelFormat FromDirectXPixelFormat(this Format format) => _formatsMap[format];
+        public static Format ToDirectXPixelFormat(this PixelFormat format) => s_formatsMap[format];
+        public static PixelFormat FromDirectXPixelFormat(this Format format) => s_formatsMap[format];
 
         private class FormatMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
         {

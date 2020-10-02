@@ -27,9 +27,11 @@ namespace Alimer
         /// </summary>
         public bool IsRunning { get; private set; }
 
-        protected Game()
+        protected Game(GameContext context)
         {
-            Context = GameContext.Create(this);
+            Guard.AssertNotNull(context, nameof(context));
+
+            Context = context;
 
             // Configure and build services
             ServiceCollection services = new ServiceCollection();
@@ -55,7 +57,7 @@ namespace Alimer
 
         public virtual void Dispose()
         {
-            foreach (var gameSystem in GameSystems)
+            foreach (GameSystem? gameSystem in GameSystems)
             {
                 gameSystem.Dispose();
             }
@@ -80,7 +82,7 @@ namespace Alimer
             try
             {
                 // Enter main loop.
-                var blocking = Context.Run(InitializeBeforeRun, Tick);
+                bool blocking = Context.Run(InitializeBeforeRun, Tick);
 
                 if (blocking)
                 {

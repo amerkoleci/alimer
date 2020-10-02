@@ -19,7 +19,7 @@ namespace Alimer.Graphics
         public static bool operator !=(GPUDevice left, IntPtr right) => left.Handle != right;
         public bool Equals(ref GPUDevice other) => Handle == other.Handle;
         public bool Equals(GPUDevice other) => Handle == other.Handle;
-        public override bool Equals(object obj) => obj is GPUDevice handle && Equals(ref handle);
+        public override bool Equals(object? obj) => obj is GPUDevice handle && Equals(ref handle);
         public override int GetHashCode() => Handle.GetHashCode();
         private string DebuggerDisplay => string.Format($"{nameof(GPUDevice)} [0x{0}]", Handle.ToString("X"));
     }

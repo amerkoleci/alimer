@@ -1,8 +1,7 @@
-<Project Sdk="MSBuild.Sdk.Extras/2.1.2">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);uap10.0.16299;</TargetFrameworks>
+    <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>Alimer</RootNamespace>
     <ExtrasUwpMetaPackageVersion>6.2.10</ExtrasUwpMetaPackageVersion>
   </PropertyGroup>
@@ -15,7 +14,7 @@
     <Compile Remove="Platforms\**\*.*" />
   </ItemGroup>
 
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('net5')) ">
     <Compile Include="Platforms\netstandard\**\*.cs" />
     <ProjectReference Include="..\Alimer.GLFW\Alimer.GLFW.csproj" />
   </ItemGroup>

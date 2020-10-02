@@ -25,14 +25,15 @@
     <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
     <RepositoryUrl>https://github.com/amerkoleci/alimer_sharp</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>3D Engine Graphics gamedev alimer Direct3D DirectX Vulkan OpenGL Metal Core Standard Game</PackageTags>
 
-    <!-- Enable symbols -->
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-
-    <!-- Packages versions -->
-    <VorticeDirectXVersion>1.7.33-beta</VorticeDirectXVersion>
+    <RepositoryType>git</RepositoryType>
+    <RestoreSources>
+      https://api.nuget.org/v3/index.json;
+      https://pkgs.terrafx.dev/index.json;
+    </RestoreSources>
+    <UseSharedCompilation>true</UseSharedCompilation>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -40,9 +41,4 @@
     <IsMacOS Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsMacOS>
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
-    <PackageReference Include="Nerdbank.GitVersioning" Version="3.2.31" PrivateAssets="All" />
-  </ItemGroup>
 </Project>

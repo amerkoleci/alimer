@@ -19,7 +19,7 @@ namespace Alimer.Graphics
         public static bool operator !=(GPUTexture left, IntPtr right) => left.Handle != right;
         public bool Equals(ref GPUTexture other) => Handle == other.Handle;
         public bool Equals(GPUTexture other) => Handle == other.Handle;
-        public override bool Equals(object obj) => obj is GPUTexture handle && Equals(ref handle);
+        public override bool Equals(object? obj) => obj is GPUTexture handle && Equals(ref handle);
         public override int GetHashCode() => Handle.GetHashCode();
         private string DebuggerDisplay => string.Format($"{nameof(GPUTexture)} [0x{0}]", Handle.ToString("X"));
     }
