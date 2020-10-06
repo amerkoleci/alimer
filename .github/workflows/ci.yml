@@ -26,3 +26,43 @@ jobs:
           build/packages
         if-no-files-found: error
       if: github.event_name == 'push'
+  linux-x64:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        architecture: [ x64 ]
+        configuration: [ debug, release ]
+        os: [ ubuntu ]
+    steps:
+    - uses: actions/checkout@v2
+    - run: ./scripts/cibuild.sh --configuration ${{ matrix.configuration }} --architecture ${{ matrix.architecture }}
+      shell: bash
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}_${{ matrix.configuration }}_${{ matrix.architecture }}
+        path: |
+          ./artifacts/bin/**/*
+          ./artifacts/log/**/*
+          ./artifacts/pkg/**/*
+          ./artifacts/tst/**/*
+        if-no-files-found: error
+  macos-x64:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        architecture: [ x64 ]
+        configuration: [ debug, release ]
+        os: [ macos ]
+    steps:
+    - uses: actions/checkout@v2
+    - run: ./scripts/cibuild.sh --configuration ${{ matrix.configuration }} --architecture ${{ matrix.architecture }}
+      shell: bash
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}_${{ matrix.configuration }}_${{ matrix.architecture }}
+        path: |
+          ./artifacts/bin/**/*
+          ./artifacts/log/**/*
+          ./artifacts/pkg/**/*
+          ./artifacts/tst/**/*
+        if-no-files-found: error      
