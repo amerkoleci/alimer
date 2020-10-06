@@ -41,10 +41,7 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.configuration }}_${{ matrix.architecture }}
         path: |
-          ./artifacts/bin/**/*
-          ./artifacts/log/**/*
-          ./artifacts/pkg/**/*
-          ./artifacts/tst/**/*
+          build/packages
         if-no-files-found: error
   macos-x64:
     runs-on: ${{ matrix.os }}-latest
@@ -61,8 +58,5 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.configuration }}_${{ matrix.architecture }}
         path: |
-          ./artifacts/bin/**/*
-          ./artifacts/log/**/*
-          ./artifacts/pkg/**/*
-          ./artifacts/tst/**/*
+          build/packages
         if-no-files-found: error      
