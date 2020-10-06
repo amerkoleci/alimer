@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Alimer.Games\Alimer.Games.csproj" />
-    <ProjectReference Include="..\..\..\platforms\Alimer.Platform.Windows\Alimer.Platform.Windows.csproj" />
   </ItemGroup>
 
 </Project>

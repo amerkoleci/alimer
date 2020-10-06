@@ -15,10 +15,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Input", "Alimer.Inpu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Games", "Alimer.Games\Alimer.Games.csproj", "{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "platforms", "platforms", "{ACC23BA3-5A4D-4F57-8187-AD0946437031}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Platform.Windows", "platforms\Alimer.Platform.Windows\Alimer.Platform.Windows.csproj", "{5119EA40-EB59-486F-976C-CD57570E12CD}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.GLFW", "Alimer.GLFW\Alimer.GLFW.csproj", "{D334CA63-F02F-400B-B906-CA4DB1E4077A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics", "Alimer.Graphics\Alimer.Graphics.csproj", "{B8873C4A-A6A4-4891-BCD8-2D57DCC29E63}"
@@ -50,10 +46,6 @@ Global
 		{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5119EA40-EB59-486F-976C-CD57570E12CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5119EA40-EB59-486F-976C-CD57570E12CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5119EA40-EB59-486F-976C-CD57570E12CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5119EA40-EB59-486F-976C-CD57570E12CD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D334CA63-F02F-400B-B906-CA4DB1E4077A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -69,7 +61,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{DE7DB03A-8E6D-4A0B-B19B-B56B2F0E1C87} = {9044C65B-33AC-4288-8517-65F312BE95B1}
 		{E983FA7D-03D9-4804-8BA4-E8258F7231C2} = {DE7DB03A-8E6D-4A0B-B19B-B56B2F0E1C87}
-		{5119EA40-EB59-486F-976C-CD57570E12CD} = {ACC23BA3-5A4D-4F57-8187-AD0946437031}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}
