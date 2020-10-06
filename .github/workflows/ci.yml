@@ -29,9 +29,3 @@ jobs:
           ./artifacts/tst/**/*
         if-no-files-found: error
       if: github.event_name == 'push'
-      run: |      
-          if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$" ) {
-              dotnet nuget push build/packages/**/*.nupkg -s nuget.org -k ${{secrets.NUGET_TOKEN}}
-          } else {
-              echo "publish is only enabled by tagging with a release tag"
-          }
