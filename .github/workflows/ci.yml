@@ -23,9 +23,6 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.configuration }}_${{ matrix.architecture }}
         path: |
-          ./artifacts/bin/**/*
-          ./artifacts/log/**/*
-          ./artifacts/pkg/**/*
-          ./artifacts/tst/**/*
+          build/packages
         if-no-files-found: error
       if: github.event_name == 'push'
