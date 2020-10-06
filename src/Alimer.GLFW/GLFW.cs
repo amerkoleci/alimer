@@ -122,17 +122,24 @@ namespace Alimer
             return ret;
         }
 
-        private static T? LoadFunction<T>(string function, bool throwIfNotFound = false)
+        private static T LoadFunction<T>(string function)
         {
             IntPtr handle = s_loader.GetSymbol(s_glfwLibrary, function);
 
             if (handle == IntPtr.Zero)
             {
-                if (throwIfNotFound)
                     throw new EntryPointNotFoundException(function);
-
-                return default;
             }
+
+            return Marshal.GetDelegateForFunctionPointer<T>(handle);
+        }
+
+        private static T? LoadOptionalFunction<T>(string function)
+        {
+            IntPtr handle = s_loader.GetSymbol(s_glfwLibrary, function);
+
+            if (handle == IntPtr.Zero)
+                return default;
 
             return Marshal.GetDelegateForFunctionPointer<T>(handle);
         }

@@ -105,6 +105,8 @@ namespace Alimer.Graphics
         public static PixelFormat FromDirectXPixelFormat(this Format format) => s_formatsMap[format];
 
         private class FormatMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+            where TKey : notnull
+            where TValue : notnull
         {
             private readonly Dictionary<TKey, TValue> _forward = new Dictionary<TKey, TValue>();
             private readonly Dictionary<TValue, TKey> _reverse = new Dictionary<TValue, TKey>();

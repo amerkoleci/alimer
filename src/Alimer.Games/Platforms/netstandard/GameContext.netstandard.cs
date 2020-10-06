@@ -8,7 +8,7 @@ using static Alimer.GLFW;
 
 namespace Alimer
 {
-    internal class NetStandardGameContext : GameContext
+    public sealed class NetStandardGameContext : GameContext
     {
         /// <inheritdoc/>
         public override GameWindow? GameWindow { get; }
@@ -35,7 +35,7 @@ namespace Alimer
         {
             loadAction();
 
-            while (!GLFWWindow.ShouldClose())
+            while (!GLFWWindow!.ShouldClose())
             {
                 tickAction();
                 glfwPollEvents();

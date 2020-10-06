@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   push:
@@ -8,39 +8,26 @@ on:
   pull_request:
 
 jobs:
-  build:
-    runs-on: windows-latest
-
+  windows-x64:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        architecture: [ x64 ]
+        configuration: [ debug, release ]
+        os: [ windows ]
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+    - run: ./scripts/cibuild.cmd -configuration ${{ matrix.configuration }} -architecture ${{ matrix.architecture }}
+      shell: cmd
+    - uses: actions/upload-artifact@v2
       with:
-        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-
-    - name: Install .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: '3.1.101'
-
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.0
-
-    - name: Version
-      uses: aarnott/nbgv@master
-
-    - name: Restore packages
-      run: dotnet restore src/Alimer.sln
-
-    - name: Pack
-      run: msbuild /t:pack /p:Configuration=Release /m src/Alimer.sln
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: Packages
-        path: build/packages
-
-    - name: Publish to NuGet
+        name: ${{ matrix.os }}_${{ matrix.configuration }}_${{ matrix.architecture }}
+        path: |
+          ./artifacts/bin/**/*
+          ./artifacts/log/**/*
+          ./artifacts/pkg/**/*
+          ./artifacts/tst/**/*
+        if-no-files-found: error
       if: github.event_name == 'push'
       run: |      
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$" ) {

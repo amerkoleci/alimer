@@ -13,7 +13,7 @@ namespace Alimer
     public abstract class Game : IDisposable
     {
         private readonly object _tickLock = new object();
-        private bool _isExiting;
+        //private bool _isExiting;
         private readonly Stopwatch _stopwatch = new Stopwatch();
         private bool _endRunRequired;
 

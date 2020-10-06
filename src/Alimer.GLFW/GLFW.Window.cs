@@ -138,7 +138,7 @@ namespace Alimer
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate IntPtr glfwGetNativeHandleDelegate_t(IntPtr window);
-        private static glfwGetNativeHandleDelegate_t s_glfwGetWin32Window = LoadFunction<glfwGetNativeHandleDelegate_t>(nameof(glfwGetWin32Window));
-        public static IntPtr glfwGetWin32Window(IntPtr window) => s_glfwGetWin32Window(window);
+        private static glfwGetNativeHandleDelegate_t? s_glfwGetWin32Window = LoadOptionalFunction<glfwGetNativeHandleDelegate_t>(nameof(glfwGetWin32Window));
+        public static IntPtr glfwGetWin32Window(IntPtr window) => s_glfwGetWin32Window!(window);
     }
 }

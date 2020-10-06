@@ -7,7 +7,7 @@ namespace DrawTriangle
 {
     public sealed class DrawTriangleGame : Game
     {
-        public DrawTriangleGame() : base(new WinFormsGameContext())
+        public DrawTriangleGame() : base(new NetStandardGameContext())
         {
         }
     }
