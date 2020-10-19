@@ -27,6 +27,11 @@ namespace Alimer
         /// </summary>
         public bool IsRunning { get; private set; }
 
+        protected Game()
+            : this(GameContext.CreateDefault())
+        {
+        }
+
         protected Game(GameContext context)
         {
             Guard.AssertNotNull(context, nameof(context));

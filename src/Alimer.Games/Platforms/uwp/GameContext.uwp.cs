@@ -12,12 +12,6 @@ namespace Alimer
     {
         public override GameWindow GameWindow => throw new NotImplementedException();
 
-        public CoreWindowGameContext(Game game)
-            : base(game)
-        {
-
-        }
-
         public override bool Run(Action loadAction, Action tickAction)
         {
             throw new NotImplementedException();
@@ -26,6 +20,6 @@ namespace Alimer
 
     public partial class GameContext
     {
-        public static GameContext Create(Game game) => new CoreWindowGameContext(game);
+        public static GameContext CreateDefault() => new CoreWindowGameContext();
     }
 }
