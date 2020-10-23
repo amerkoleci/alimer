@@ -2,20 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <DefineConstants Condition="'$(ExcludeD3D11)' == 'true'">$(DefineConstants);EXCLUDE_D3D11_BACKEND</DefineConstants>
-    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
-    <VorticeDirectXVersion>1.8.17</VorticeDirectXVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="D3D11/**/*" Condition="'$(ExcludeD3D11)' == 'true'" />
-    <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Content Include="$(MSBuildThisFileDirectory)native\win-x64\vgpu.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes/win-x64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="D3D/**/*" />
+    <Compile Remove="D3D11/**/*" />
+    <Compile Remove="D3D12/**/*" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Alimer\Alimer.csproj" />
-    <PackageReference Include="Vortice.Direct3D11" Version="$(VorticeDirectXVersion)" Condition="'$(ExcludeD3D11)' != 'true'" />
-    <PackageReference Include="Vortice.Direct3D12" Version="$(VorticeDirectXVersion)" Condition="'$(ExcludeD3D12)' != 'true'" />
   </ItemGroup>
 
 </Project>

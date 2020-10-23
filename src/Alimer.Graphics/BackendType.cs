@@ -26,6 +26,10 @@ namespace Alimer.Graphics
         /// </summary>
         Vulkan,
         /// <summary>
+        /// OpenGL backend.
+        /// </summary>
+        OpenGL,
+        /// <summary>
         /// Default best platform supported backend.
         /// </summary>
         Count

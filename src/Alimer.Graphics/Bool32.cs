@@ -16,11 +16,10 @@ namespace Alimer.Graphics
         public static readonly Bool32 True = new Bool32(true);
         public static readonly Bool32 False = new Bool32(false);
 
-
         private readonly int _value;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bool32" /> class.
+        /// Initializes a new instance of the <see cref="Bool32" /> struct.
         /// </summary>
         /// <param name="boolValue">if set to <c>true</c> [bool value].</param>
         public Bool32(bool boolValue)

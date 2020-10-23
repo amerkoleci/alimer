@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Alimer.Graphics;
 using Alimer.Input;
 using Microsoft.Extensions.DependencyInjection;
+using static Alimer.Graphics.VGPU;
 
 namespace Alimer
 {
@@ -50,13 +51,25 @@ namespace Alimer
             Input = Services.GetRequiredService<InputManager>();
 
             // Setup graphics.
-            GraphicsDevice = GraphicsDevice.CreateSystemDefault();
+            vgpuSetLogCallback(GPULogCallback, IntPtr.Zero);
+
+            GraphicsDevice = vgpuCreateDevice(BackendType.Count, new GPUDeviceInfo
+            {
+                Debug = false,
+                PowerPreference = PowerPreference.HighPerformance,
+                SwapchainInfo = new SwapchainInfo
+                {
+                    WindowHandle = context.GameWindow!.Handle
+                }
+            });
+
+            vgpuGetDeviceCaps(GraphicsDevice, out GPUDeviceCaps caps);
         }
 
         public GameContext Context { get; }
         public IServiceProvider Services { get; }
 
-        public GraphicsDevice? GraphicsDevice { get; }
+        public GPUDevice GraphicsDevice { get; }
 
         public InputManager Input { get; }
 
@@ -67,7 +80,7 @@ namespace Alimer
                 gameSystem.Dispose();
             }
 
-            GraphicsDevice?.Dispose();
+            vgpuDestroyDevice(GraphicsDevice);
         }
 
         protected virtual void ConfigureServices(IServiceCollection services)
@@ -111,20 +124,27 @@ namespace Alimer
 
         public void Tick()
         {
-            /*vgpuBeginFrame(GPUDevice);
+            if (!vgpuBeginFrame(GraphicsDevice))
+                return;
 
             var renderPass = new RenderPassDescription();
             renderPass.colorAttachments0.clearColor = new Color4(1.0f, 0.0f, 1.0f);
             renderPass.colorAttachments0.loadOp = LoadOp.Clear;
-            renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GPUDevice);
-            vgpuCmdBeginRenderPass(GPUDevice, renderPass);
-            vgpuCmdEndRenderPass(GPUDevice);
-            vgpuEndFrame(GPUDevice);*/
+            renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GraphicsDevice);
+            vgpuCmdBeginRenderPass(GraphicsDevice, renderPass);
+            vgpuCmdEndRenderPass(GraphicsDevice);
+            vgpuEndFrame(GraphicsDevice);
         }
 
         private void InitializeBeforeRun()
         {
             IsRunning = true;
+        }
+
+        private static void GPULogCallback(IntPtr userData, GPULogLevel level, string message)
+        {
+            Console.WriteLine($"{level}: {message}");
+            System.Diagnostics.Debug.WriteLine($"{level}: {message}");
         }
     }
 }

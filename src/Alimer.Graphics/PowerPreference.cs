@@ -3,9 +3,8 @@
 
 namespace Alimer.Graphics
 {
-    public enum GraphicsAdapterPreference
+    public enum PowerPreference
     {
-        Default,
         LowPower,
         HighPerformance
     }

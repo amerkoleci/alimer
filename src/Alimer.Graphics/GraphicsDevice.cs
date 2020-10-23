@@ -36,13 +36,6 @@ namespace Alimer.Graphics
         public static bool EnableValidation { get; }
         public static bool EnableGPUBasedValidation { get; }
 
-        /// <summary>
-        /// Get the device capabilities.
-        /// </summary>
-        public abstract GraphicsDeviceCaps Capabilities { get; }
-
-        public BackendType BackendType => Capabilities.BackendType;
-
         protected GraphicsDevice()
         {
         }
@@ -60,29 +53,29 @@ namespace Alimer.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-        public static GraphicsDevice? CreateSystemDefault(
-            BackendType preferredBackendType = BackendType.Count,
-            GraphicsAdapterPreference adapterPreference = GraphicsAdapterPreference.Default)
-        {
-            if (preferredBackendType == BackendType.Count)
-            {
-                preferredBackendType = GetDefaultPlatformBackend();
-            }
+//        public static GraphicsDevice? CreateSystemDefault(
+//            BackendType preferredBackendType = BackendType.Count,
+//            GraphicsAdapterPreference adapterPreference = GraphicsAdapterPreference.Default)
+//        {
+//            if (preferredBackendType == BackendType.Count)
+//            {
+//                preferredBackendType = GetDefaultPlatformBackend();
+//            }
 
-            switch (preferredBackendType)
-            {
-#if !EXCLUDE_D3D12_BACKEND
-                case BackendType.Direct3D12:
-                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
-#endif
-#if !EXCLUDE_D3D11_BACKEND
-                case BackendType.Direct3D11:
-                    return null;
-#endif
-                default:
-                    return null;
-            }
-        }
+//            switch (preferredBackendType)
+//            {
+//#if !EXCLUDE_D3D12_BACKEND
+//                case BackendType.Direct3D12:
+//                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
+//#endif
+//#if !EXCLUDE_D3D11_BACKEND
+//                case BackendType.Direct3D11:
+//                    return null;
+//#endif
+//                default:
+//                    return null;
+//            }
+//        }
 
         public static bool IsBackendSupported(BackendType backend)
         {
@@ -95,14 +88,14 @@ namespace Alimer.Graphics
             {
                 case BackendType.Null:
                     return true;
-#if !EXCLUDE_D3D12_BACKEND
-                case BackendType.Direct3D12:
-                    return D3D12.D3D12GraphicsDevice.IsSupported();
-#endif
-#if !EXCLUDE_D3D11_BACKEND
-                case BackendType.Direct3D11:
-                    return false;
-#endif
+//#if !EXCLUDE_D3D12_BACKEND
+//                case BackendType.Direct3D12:
+//                    return D3D12.D3D12GraphicsDevice.IsSupported();
+//#endif
+//#if !EXCLUDE_D3D11_BACKEND
+//                case BackendType.Direct3D11:
+//                    return false;
+//#endif
                 default:
                     return false;
             }
