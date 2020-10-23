@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using Alimer.Graphics;
 using Alimer.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,6 +65,23 @@ namespace Alimer
             });
 
             vgpuGetDeviceCaps(GraphicsDevice, out GPUDeviceCaps caps);
+
+            unsafe
+            {
+                string deviceName = GetString(caps.AdapterName);
+            }
+        }
+
+        private static unsafe string GetString(byte* ptr)
+        {
+            int length = 0;
+            while (length < 4096 && ptr[length] != 0)
+            {
+                length++;
+            }
+
+            // Decode UTF-8 bytes to string.
+            return Encoding.UTF8.GetString(ptr, length);
         }
 
         public GameContext Context { get; }

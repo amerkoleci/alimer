@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics
 {
-    public enum GraphicsAdapterType
+    public enum GPUAdapterType
     {
         DiscreteGPU,
         IntegratedGPU,

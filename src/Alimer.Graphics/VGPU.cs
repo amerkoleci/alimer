@@ -18,6 +18,8 @@ namespace Alimer.Graphics
     {
         private static readonly NativeLibrary s_vgpuLibrary = LoadLibrary();
 
+        public const int MaxAdapterNameSize = 256;
+
         private static NativeLibrary LoadLibrary()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

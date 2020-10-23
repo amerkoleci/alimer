@@ -6,12 +6,14 @@ using System.Runtime.InteropServices;
 namespace Alimer.Graphics
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct GPUDeviceCaps
+    public struct GPUDeviceCaps
     {
-        public readonly BackendType BackendType;
-        public readonly GPUVendorId VendorId;
-        public readonly uint DeviceId;
-        public readonly GPUDeviceFeatures Features;
-        public readonly GPUDeviceLimits Limits;
+        public BackendType BackendType;
+        public GPUVendorId VendorId;
+        public uint AdapterId;
+        public GPUAdapterType AdapterType;
+        public unsafe fixed byte AdapterName[VGPU.MaxAdapterNameSize];
+        public GPUDeviceFeatures Features;
+        public GPUDeviceLimits Limits;
     }
 }
