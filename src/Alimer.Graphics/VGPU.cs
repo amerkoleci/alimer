@@ -16,28 +16,38 @@ namespace Alimer.Graphics
 
     public static unsafe class VGPU
     {
-        private static readonly NativeLibrary s_vgpuLibrary = LoadLibrary();
+        private static readonly IntPtr s_vgpuLibrary;
 
         public const int MaxAdapterNameSize = 256;
 
-        private static NativeLibrary LoadLibrary()
+        static VGPU()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return new NativeLibrary("vgpu.dll");
+                s_vgpuLibrary = NativeLibrary.Load("vgpu.dll", typeof(VGPU).Assembly, DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return new NativeLibrary("vgpu.so");
+                s_vgpuLibrary = NativeLibrary.Load("vgpu.so");
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                return new NativeLibrary("vgpu.dylib");
+                s_vgpuLibrary = NativeLibrary.Load("vgpu.dylib");
             }
             else
             {
-                return new NativeLibrary("vgpu");
+                s_vgpuLibrary = NativeLibrary.Load("vgpu");
             }
+
+            s_vgpu_set_log_callback_function = LoadFunction<vgpu_set_log_callback_t>(nameof(vgpuSetLogCallback));
+            s_vgpu_device_create = LoadFunction<vgpu_device_create_t>(nameof(vgpuCreateDevice));
+            vgpuDestroyDevice_ptr = LoadFunction<vgpuDestroyDeviceDelegate>(nameof(vgpuDestroyDevice));
+            vgpuBeginFrame_ptr = LoadFunction<vgpuBeginFrameDelegate>(nameof(vgpuBeginFrame));
+            vgpuEndFrame_ptr = LoadFunction<vgpuEndFrameDelegate>(nameof(vgpuEndFrame));
+            vgpuGetDeviceCaps_ptr = LoadFunction<vgpuGetDeviceCapsDelegate>(nameof(vgpuGetDeviceCaps));
+            vgpuGetBackbufferTexture_ptr = LoadFunction<vgpuGetBackbufferTextureDelegate>(nameof(vgpuGetBackbufferTexture));
+            vgpuCmdBeginRenderPass_ptr = LoadFunction<vgpuCmdBeginRenderPassDelegate>(nameof(vgpuCmdBeginRenderPass));
+            vgpuCmdEndRenderPass_ptr = LoadFunction<vgpuCmdEndRenderPassDelegate>(nameof(vgpuCmdEndRenderPass));
         }
 
         #region Delegates
@@ -73,15 +83,21 @@ namespace Alimer.Graphics
         #endregion
 
         #region Function Pointers
-        private static vgpu_set_log_callback_t s_vgpu_set_log_callback_function = s_vgpuLibrary.LoadFunction<vgpu_set_log_callback_t>(nameof(vgpuSetLogCallback));
-        private static vgpu_device_create_t s_vgpu_device_create = s_vgpuLibrary.LoadFunction<vgpu_device_create_t>(nameof(vgpuCreateDevice));
-        private static vgpuDestroyDeviceDelegate vgpuDestroyDevice_ptr = s_vgpuLibrary.LoadFunction<vgpuDestroyDeviceDelegate>(nameof(vgpuDestroyDevice));
-        private static vgpuBeginFrameDelegate vgpuBeginFrame_ptr = s_vgpuLibrary.LoadFunction<vgpuBeginFrameDelegate>(nameof(vgpuBeginFrame));
-        private static vgpuEndFrameDelegate vgpuEndFrame_ptr = s_vgpuLibrary.LoadFunction<vgpuEndFrameDelegate>(nameof(vgpuEndFrame));
-        private static vgpuGetDeviceCapsDelegate vgpuGetDeviceCaps_ptr = s_vgpuLibrary.LoadFunction<vgpuGetDeviceCapsDelegate>(nameof(vgpuGetDeviceCaps));
-        private static vgpuGetBackbufferTextureDelegate vgpuGetBackbufferTexture_ptr = s_vgpuLibrary.LoadFunction<vgpuGetBackbufferTextureDelegate>(nameof(vgpuGetBackbufferTexture));
-        private static vgpuCmdBeginRenderPassDelegate vgpuCmdBeginRenderPass_ptr = s_vgpuLibrary.LoadFunction<vgpuCmdBeginRenderPassDelegate>(nameof(vgpuCmdBeginRenderPass));
-        private static vgpuCmdEndRenderPassDelegate vgpuCmdEndRenderPass_ptr = s_vgpuLibrary.LoadFunction<vgpuCmdEndRenderPassDelegate>(nameof(vgpuCmdEndRenderPass));
+        private static T LoadFunction<T>(string name)
+        {
+            IntPtr handle = NativeLibrary.GetExport(s_vgpuLibrary, name);
+            return Marshal.GetDelegateForFunctionPointer<T>(handle);
+        }
+
+        private static readonly vgpu_set_log_callback_t s_vgpu_set_log_callback_function;
+        private static readonly vgpu_device_create_t s_vgpu_device_create;
+        private static readonly vgpuDestroyDeviceDelegate vgpuDestroyDevice_ptr;
+        private static readonly vgpuBeginFrameDelegate vgpuBeginFrame_ptr;
+        private static readonly vgpuEndFrameDelegate vgpuEndFrame_ptr;
+        private static readonly vgpuGetDeviceCapsDelegate vgpuGetDeviceCaps_ptr;
+        private static readonly vgpuGetBackbufferTextureDelegate vgpuGetBackbufferTexture_ptr;
+        private static readonly vgpuCmdBeginRenderPassDelegate vgpuCmdBeginRenderPass_ptr;
+        private static readonly vgpuCmdEndRenderPassDelegate vgpuCmdEndRenderPass_ptr;
         #endregion
 
         public static void vgpuSetLogCallback(LogCallback callback, IntPtr userData) => s_vgpu_set_log_callback_function(callback, userData);

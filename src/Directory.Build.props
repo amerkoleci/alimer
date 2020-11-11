@@ -14,19 +14,19 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
 
-    <DebugType>portable</DebugType>
-    <DebugSymbols Condition=" '$(Configuration)' == 'Debug' ">true</DebugSymbols>
-    <Configurations>Debug;Release</Configurations>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>embedded</DebugType>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>CS1591;CS1701</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
 
-    <Product>$(AssemblyName) ($(TargetFramework))</Product>
-    <NeutralLanguage>en</NeutralLanguage>
+    <Product>Alimer</Product>
+    <NeutralLanguage>en-US</NeutralLanguage>
 
     <Authors>Amer Koleci</Authors>
     <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
     <RepositoryUrl>https://github.com/amerkoleci/alimer_sharp</RepositoryUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>3D Engine Graphics gamedev alimer Direct3D DirectX Vulkan OpenGL Metal Core Standard Game</PackageTags>

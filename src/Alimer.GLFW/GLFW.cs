@@ -134,7 +134,7 @@ namespace Alimer
             return Marshal.GetDelegateForFunctionPointer<T>(handle);
         }
 
-        private static T LoadOptionalFunction<T>(string function)
+        private static T? LoadOptionalFunction<T>(string function)
         {
             IntPtr handle = s_loader.GetSymbol(s_glfwLibrary, function);
 
