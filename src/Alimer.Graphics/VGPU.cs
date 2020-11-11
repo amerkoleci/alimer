@@ -2,6 +2,8 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
+using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics
@@ -22,32 +24,95 @@ namespace Alimer.Graphics
 
         static VGPU()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            NativeLibrary.SetDllImportResolver(typeof(VGPU).Assembly, ImportResolver);
+
+            //if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            //{
+            //    s_vgpuLibrary = NativeLibrary.Load("vgpu.dll");
+            //}
+            //else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            //{
+            //    s_vgpuLibrary = NativeLibrary.Load("vgpu.so");
+            //}
+            //else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            //{
+            //    s_vgpuLibrary = NativeLibrary.Load("vgpu.dylib");
+            //}
+            //else
+            //{
+            //    s_vgpuLibrary = NativeLibrary.Load("vgpu");
+            //}
+
+            //s_vgpu_set_log_callback_function = LoadFunction<vgpu_set_log_callback_t>(nameof(vgpuSetLogCallback));
+            //s_vgpu_device_create = LoadFunction<vgpu_device_create_t>(nameof(vgpuCreateDevice));
+            //vgpuDestroyDevice_ptr = LoadFunction<vgpuDestroyDeviceDelegate>(nameof(vgpuDestroyDevice));
+            //vgpuBeginFrame_ptr = LoadFunction<vgpuBeginFrameDelegate>(nameof(vgpuBeginFrame));
+            //vgpuEndFrame_ptr = LoadFunction<vgpuEndFrameDelegate>(nameof(vgpuEndFrame));
+            //vgpuGetDeviceCaps_ptr = LoadFunction<vgpuGetDeviceCapsDelegate>(nameof(vgpuGetDeviceCaps));
+            //vgpuGetBackbufferTexture_ptr = LoadFunction<vgpuGetBackbufferTextureDelegate>(nameof(vgpuGetBackbufferTexture));
+            //vgpuCmdBeginRenderPass_ptr = LoadFunction<vgpuCmdBeginRenderPassDelegate>(nameof(vgpuCmdBeginRenderPass));
+            //vgpuCmdEndRenderPass_ptr = LoadFunction<vgpuCmdEndRenderPassDelegate>(nameof(vgpuCmdEndRenderPass));
+        }
+
+
+        private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            string assemblyLocation = Path.GetDirectoryName(assembly.Location);
+
+            IntPtr lib = IntPtr.Zero;
+            // Try .NET Framework / mono locations
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                s_vgpuLibrary = NativeLibrary.Load("vgpu.dll", typeof(VGPU).Assembly, DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory);
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                s_vgpuLibrary = NativeLibrary.Load("vgpu.so");
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                s_vgpuLibrary = NativeLibrary.Load("vgpu.dylib");
+                libraryName += ".dylib";
+                // Look in Frameworks for .app bundles
+                if (!NativeLibrary.TryLoad(Path.Combine(assemblyLocation, libraryName), out lib))
+                {
+                    NativeLibrary.TryLoad(Path.Combine(assemblyLocation, "..", "Frameworks", libraryName), out lib);
+                }
             }
             else
             {
-                s_vgpuLibrary = NativeLibrary.Load("vgpu");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    libraryName += ".dll";
+                }
+                else
+                {
+                    libraryName += ".so";
+                }
+
+                if (Environment.Is64BitProcess)
+                    NativeLibrary.TryLoad(Path.Combine(assemblyLocation, "x64", libraryName), out lib);
+                else
+                    NativeLibrary.TryLoad(Path.Combine(assemblyLocation, "x86", libraryName), out lib);
             }
 
-            s_vgpu_set_log_callback_function = LoadFunction<vgpu_set_log_callback_t>(nameof(vgpuSetLogCallback));
-            s_vgpu_device_create = LoadFunction<vgpu_device_create_t>(nameof(vgpuCreateDevice));
-            vgpuDestroyDevice_ptr = LoadFunction<vgpuDestroyDeviceDelegate>(nameof(vgpuDestroyDevice));
-            vgpuBeginFrame_ptr = LoadFunction<vgpuBeginFrameDelegate>(nameof(vgpuBeginFrame));
-            vgpuEndFrame_ptr = LoadFunction<vgpuEndFrameDelegate>(nameof(vgpuEndFrame));
-            vgpuGetDeviceCaps_ptr = LoadFunction<vgpuGetDeviceCapsDelegate>(nameof(vgpuGetDeviceCaps));
-            vgpuGetBackbufferTexture_ptr = LoadFunction<vgpuGetBackbufferTextureDelegate>(nameof(vgpuGetBackbufferTexture));
-            vgpuCmdBeginRenderPass_ptr = LoadFunction<vgpuCmdBeginRenderPassDelegate>(nameof(vgpuCmdBeginRenderPass));
-            vgpuCmdEndRenderPass_ptr = LoadFunction<vgpuCmdEndRenderPassDelegate>(nameof(vgpuCmdEndRenderPass));
+            // Try .NET Core development locations
+            if (lib == IntPtr.Zero)
+                NativeLibrary.TryLoad(Path.Combine(assemblyLocation, "native", GetPlaformRid(), libraryName), out lib);
+
+            if (lib == IntPtr.Zero)
+                NativeLibrary.TryLoad(Path.Combine(assemblyLocation, "runtimes", GetPlaformRid(), "native", libraryName), out lib);
+
+            // Welp, all failed, PANIC!!!
+            if (lib == IntPtr.Zero)
+                throw new PlatformNotSupportedException("Failed to load library: " + libraryName);
+
+            return lib;
+        }
+
+        private static string GetPlaformRid()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Is64BitProcess)
+                return "win-x64";
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !Environment.Is64BitProcess)
+                return "win-x86";
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                return "linux-x64";
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return "osx";
+            else
+                return "unknown";
         }
 
         #region Delegates
@@ -82,33 +147,31 @@ namespace Alimer.Graphics
         private delegate void vgpuCmdEndRenderPassDelegate(GPUDevice device);
         #endregion
 
-        #region Function Pointers
-        private static T LoadFunction<T>(string name)
-        {
-            IntPtr handle = NativeLibrary.GetExport(s_vgpuLibrary, name);
-            return Marshal.GetDelegateForFunctionPointer<T>(handle);
-        }
+        [DllImport("vgpu")]
+        public static extern void vgpuSetLogCallback(LogCallback callback, IntPtr userData);
 
-        private static readonly vgpu_set_log_callback_t s_vgpu_set_log_callback_function;
-        private static readonly vgpu_device_create_t s_vgpu_device_create;
-        private static readonly vgpuDestroyDeviceDelegate vgpuDestroyDevice_ptr;
-        private static readonly vgpuBeginFrameDelegate vgpuBeginFrame_ptr;
-        private static readonly vgpuEndFrameDelegate vgpuEndFrame_ptr;
-        private static readonly vgpuGetDeviceCapsDelegate vgpuGetDeviceCaps_ptr;
-        private static readonly vgpuGetBackbufferTextureDelegate vgpuGetBackbufferTexture_ptr;
-        private static readonly vgpuCmdBeginRenderPassDelegate vgpuCmdBeginRenderPass_ptr;
-        private static readonly vgpuCmdEndRenderPassDelegate vgpuCmdEndRenderPass_ptr;
-        #endregion
+        [DllImport("vgpu")]
+        public static extern GPUDevice vgpuCreateDevice(BackendType backendType, GPUDeviceInfo info);
 
-        public static void vgpuSetLogCallback(LogCallback callback, IntPtr userData) => s_vgpu_set_log_callback_function(callback, userData);
-        public static GPUDevice vgpuCreateDevice(BackendType backendType, GPUDeviceInfo info) => s_vgpu_device_create(backendType, &info);
-        public static void vgpuDestroyDevice(GPUDevice device) => vgpuDestroyDevice_ptr(device);
-        public static bool vgpuBeginFrame(GPUDevice device) => vgpuBeginFrame_ptr(device);
-        public static void vgpuEndFrame(GPUDevice device) => vgpuEndFrame_ptr(device);
-        public static void vgpuGetDeviceCaps(GPUDevice device, out GPUDeviceCaps caps) => vgpuGetDeviceCaps_ptr(device, out caps);
-        public static GPUTexture vgpuGetBackbufferTexture(GPUDevice device) => vgpuGetBackbufferTexture_ptr(device);
+        [DllImport("vgpu")]
+        public static extern void vgpuDestroyDevice(GPUDevice device);
 
-        public static void vgpuCmdBeginRenderPass(GPUDevice device, RenderPassDescription pass) => vgpuCmdBeginRenderPass_ptr(device, &pass);
-        public static void vgpuCmdEndRenderPass(GPUDevice device) => vgpuCmdEndRenderPass_ptr(device);
+        [DllImport("vgpu")]
+        public static extern bool vgpuBeginFrame(GPUDevice device);
+
+        [DllImport("vgpu")]
+        public static extern void vgpuEndFrame(GPUDevice device);
+
+        [DllImport("vgpu")]
+        public static extern void vgpuGetDeviceCaps(GPUDevice device, out GPUDeviceCaps caps);
+
+        [DllImport("vgpu")]
+        public static extern GPUTexture vgpuGetBackbufferTexture(GPUDevice device);
+
+        [DllImport("vgpu")]
+        public static extern void vgpuCmdBeginRenderPass(GPUDevice device, RenderPassDescription pass);
+
+        [DllImport("vgpu")]
+        public static extern void vgpuCmdEndRenderPass(GPUDevice device);
     }
 }
