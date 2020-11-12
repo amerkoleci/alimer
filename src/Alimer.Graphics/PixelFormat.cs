@@ -60,6 +60,7 @@ namespace Alimer.Graphics
         Depth16Unorm,
         Depth32Float,
         Depth24UnormStencil8,
+        Depth32FloatStencil8,
         // Compressed formats
         // Compressed BC formats
         BC1RGBAUnorm,

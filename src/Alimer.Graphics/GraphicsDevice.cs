@@ -40,6 +40,8 @@ namespace Alimer.Graphics
         {
         }
 
+        public abstract GraphicsDeviceCaps Capabilities { get; }
+
         /// <inheritdoc />
         public void Dispose()
         {
@@ -53,29 +55,23 @@ namespace Alimer.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-//        public static GraphicsDevice? CreateSystemDefault(
-//            BackendType preferredBackendType = BackendType.Count,
-//            GraphicsAdapterPreference adapterPreference = GraphicsAdapterPreference.Default)
-//        {
-//            if (preferredBackendType == BackendType.Count)
-//            {
-//                preferredBackendType = GetDefaultPlatformBackend();
-//            }
+        public static GraphicsDevice? CreateSystemDefault(
+            BackendType preferredBackendType = BackendType.Count,
+            GraphicsAdapterType adapterPreference = GraphicsAdapterType.DiscreteGPU)
+        {
+            if (preferredBackendType == BackendType.Count)
+            {
+                preferredBackendType = GetDefaultPlatformBackend();
+            }
 
-//            switch (preferredBackendType)
-//            {
-//#if !EXCLUDE_D3D12_BACKEND
-//                case BackendType.Direct3D12:
-//                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
-//#endif
-//#if !EXCLUDE_D3D11_BACKEND
-//                case BackendType.Direct3D11:
-//                    return null;
-//#endif
-//                default:
-//                    return null;
-//            }
-//        }
+            switch (preferredBackendType)
+            {
+                case BackendType.Direct3D12:
+                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
+                default:
+                    return null;
+            }
+        }
 
         public static bool IsBackendSupported(BackendType backend)
         {
@@ -88,14 +84,9 @@ namespace Alimer.Graphics
             {
                 case BackendType.Null:
                     return true;
-//#if !EXCLUDE_D3D12_BACKEND
-//                case BackendType.Direct3D12:
-//                    return D3D12.D3D12GraphicsDevice.IsSupported();
-//#endif
-//#if !EXCLUDE_D3D11_BACKEND
-//                case BackendType.Direct3D11:
-//                    return false;
-//#endif
+                case BackendType.Direct3D12:
+                    return D3D12.D3D12GraphicsDevice.IsSupported();
+
                 default:
                     return false;
             }

@@ -1,70 +1,82 @@
 // Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
-using Vortice;
-using Vortice.Direct3D;
-using Vortice.DXGI;
-using static Vortice.Direct3D12.D3D12;
+using System.Runtime.InteropServices;
+using TerraFX.Interop;
+using static TerraFX.Interop.Windows;
+using static TerraFX.Interop.DXGI_GPU_PREFERENCE;
+using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.DXGI_FORMAT;
+using System;
 
 namespace Alimer.Graphics.D3D12
 {
-    internal static class D3D12Utils
+    internal static unsafe class D3D12Utils
     {
-        public static IDXGIAdapter1? GetAdapter(IDXGIFactory4 factory, FeatureLevel minFeatureLevel, GraphicsAdapterPreference adapterPreference)
+        public static void ThrowIfFailed(HRESULT hr)
         {
-            IDXGIAdapter1? adapter = null;
-
-            IDXGIFactory6? factory6 = factory.QueryInterfaceOrNull<IDXGIFactory6>();
-            if (factory6 != null)
+            if (FAILED(hr))
             {
-                GpuPreference gpuPreference = GpuPreference.HighPerformance;
-                if (adapterPreference == GraphicsAdapterPreference.LowPower)
+                Marshal.ThrowExceptionForHR(hr);
+            }
+        }
+
+        public static IDXGIAdapter1* GetAdapter(IDXGIFactory4* factory, D3D_FEATURE_LEVEL minFeatureLevel, bool lowPower)
+        {
+            Guid IDXGIAdapter1_iid = IID_IDXGIAdapter1;
+            Guid factory6_iid = IID_IDXGIFactory6;
+            Guid ID3D12Device_iid = IID_ID3D12Device;
+
+            IDXGIAdapter1* adapter = null;
+            using ComPtr<IDXGIFactory6> dxgiFactory6 = null;
+            if (SUCCEEDED(factory->QueryInterface(&factory6_iid, (void**)&dxgiFactory6)))
+            {
+                DXGI_GPU_PREFERENCE gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+                if (lowPower)
                 {
-                    gpuPreference = GpuPreference.MinimumPower;
+                    gpuPreference = DXGI_GPU_PREFERENCE_MINIMUM_POWER;
                 }
 
-                for (int adapterIndex = 0; factory6.EnumAdapterByGpuPreference(adapterIndex, gpuPreference, out adapter).Success; adapterIndex++)
+                for (uint adapterIndex = 0;
+                    DXGI_ERROR_NOT_FOUND != dxgiFactory6.Get()->EnumAdapterByGpuPreference(adapterIndex, gpuPreference, &IDXGIAdapter1_iid, (void**)&adapter);
+                    adapterIndex++)
                 {
-                    if (adapter == null)
-                    {
-                        continue;
-                    }
+                    DXGI_ADAPTER_DESC1 desc;
+                    ThrowIfFailed(adapter->GetDesc1(&desc));
 
-                    if ((adapter.Description1.Flags & AdapterFlags.Software) != 0)
+                    if ((desc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
                     {
                         // Don't select the Basic Render Driver adapter.
-                        adapter.Dispose();
+                        adapter->Release();
                         continue;
                     }
 
                     // Check to see if the adapter supports Direct3D 12.
-                    if (IsSupported(adapter, minFeatureLevel))
+                    if (SUCCEEDED(D3D12CreateDevice((IUnknown*)adapter, minFeatureLevel, &ID3D12Device_iid, null)))
                     {
                         break;
                     }
                 }
-
-                factory6.Dispose();
             }
 
             if (adapter == null)
             {
-                for (int adapterIndex = 0; factory.EnumAdapters1(adapterIndex, out adapter).Success; adapterIndex++)
+                for (uint adapterIndex = 0;
+                    DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &adapter);
+                    adapterIndex++)
                 {
-                    if (adapter == null)
-                    {
-                        continue;
-                    }
+                    DXGI_ADAPTER_DESC1 desc;
+                    ThrowIfFailed(adapter->GetDesc1(&desc));
 
-                    if ((adapter.Description1.Flags & AdapterFlags.Software) != 0)
+                    if ((desc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
                     {
                         // Don't select the Basic Render Driver adapter.
-                        adapter.Dispose();
+                        adapter->Release();
                         continue;
                     }
 
                     // Check to see if the adapter supports Direct3D 12.
-                    if (IsSupported(adapter, minFeatureLevel))
+                    if (SUCCEEDED(D3D12CreateDevice((IUnknown*)adapter, minFeatureLevel, &ID3D12Device_iid, null)))
                     {
                         break;
                     }

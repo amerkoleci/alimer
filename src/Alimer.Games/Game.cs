@@ -4,11 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using Alimer.Graphics;
 using Alimer.Input;
 using Microsoft.Extensions.DependencyInjection;
-using static Alimer.Graphics.VGPU;
 
 namespace Alimer
 {
@@ -52,42 +50,13 @@ namespace Alimer
             Input = Services.GetRequiredService<InputManager>();
 
             // Setup graphics.
-            vgpuSetLogCallback(GPULogCallback, IntPtr.Zero);
-
-            GraphicsDevice = vgpuCreateDevice(BackendType.Count, new GPUDeviceInfo
-            {
-                Debug = false,
-                PowerPreference = PowerPreference.HighPerformance,
-                SwapchainInfo = new SwapchainInfo
-                {
-                    WindowHandle = context.GameWindow!.Handle
-                }
-            });
-
-            vgpuGetDeviceCaps(GraphicsDevice, out GPUDeviceCaps caps);
-
-            unsafe
-            {
-                string deviceName = GetString(caps.AdapterName);
-            }
-        }
-
-        private static unsafe string GetString(byte* ptr)
-        {
-            int length = 0;
-            while (length < 4096 && ptr[length] != 0)
-            {
-                length++;
-            }
-
-            // Decode UTF-8 bytes to string.
-            return Encoding.UTF8.GetString(ptr, length);
+            GraphicsDevice = GraphicsDevice.CreateSystemDefault();
         }
 
         public GameContext Context { get; }
         public IServiceProvider Services { get; }
 
-        public GPUDevice GraphicsDevice { get; }
+        public GraphicsDevice? GraphicsDevice { get; }
 
         public InputManager Input { get; }
 
@@ -98,7 +67,7 @@ namespace Alimer
                 gameSystem.Dispose();
             }
 
-            vgpuDestroyDevice(GraphicsDevice);
+            GraphicsDevice?.Dispose();
         }
 
         protected virtual void ConfigureServices(IServiceCollection services)
@@ -142,27 +111,21 @@ namespace Alimer
 
         public void Tick()
         {
-            if (!vgpuBeginFrame(GraphicsDevice))
-                return;
+            //if (!vgpuBeginFrame(GraphicsDevice))
+            //    return;
 
-            var renderPass = new RenderPassDescription();
-            renderPass.colorAttachments0.clearColor = new Color4(1.0f, 0.0f, 1.0f);
-            renderPass.colorAttachments0.loadOp = LoadOp.Clear;
-            renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GraphicsDevice);
-            vgpuCmdBeginRenderPass(GraphicsDevice, renderPass);
-            vgpuCmdEndRenderPass(GraphicsDevice);
-            vgpuEndFrame(GraphicsDevice);
+            //var renderPass = new RenderPassDescription();
+            //renderPass.colorAttachments0.clearColor = new Color4(1.0f, 0.0f, 1.0f);
+            //renderPass.colorAttachments0.loadOp = LoadOp.Clear;
+            //renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GraphicsDevice);
+            //vgpuCmdBeginRenderPass(GraphicsDevice, renderPass);
+            //vgpuCmdEndRenderPass(GraphicsDevice);
+            //vgpuEndFrame(GraphicsDevice);
         }
 
         private void InitializeBeforeRun()
         {
             IsRunning = true;
-        }
-
-        private static void GPULogCallback(IntPtr userData, GPULogLevel level, string message)
-        {
-            Console.WriteLine($"{level}: {message}");
-            System.Diagnostics.Debug.WriteLine($"{level}: {message}");
         }
     }
 }

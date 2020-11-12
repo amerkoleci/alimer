@@ -2,39 +2,40 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using Vortice.Direct3D12.Debug;
-using Vortice.DXGI;
-using static Vortice.Direct3D12.D3D12;
-using static Vortice.DXGI.DXGI;
-using Vortice.Direct3D;
-using Vortice.Direct3D12;
+using TerraFX.Interop;
+using static TerraFX.Interop.Windows;
+using static TerraFX.Interop.D3D_FEATURE_LEVEL;
+using static Alimer.Graphics.D3D12.D3D12Utils;
+using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+using static TerraFX.Interop.DXGI_FEATURE;
+using static TerraFX.Interop.D3D12_FEATURE;
+using static Alimer.InteropUtilities;
 
 namespace Alimer.Graphics.D3D12
 {
-    internal class D3D12GraphicsDevice : GraphicsDevice
+    internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
-        public readonly IDXGIFactory4 DXGIFactory;
+        private IDXGIFactory4* _dxgiFactory;
         public readonly bool IsTearingSupported;
-        public readonly ID3D12Device NativeDevice;
+        public readonly ID3D12Device* NativeDevice;
+        private GraphicsDeviceCaps _capabilities;
 
         public static bool IsSupported()
         {
             try
             {
-                if (CreateDXGIFactory1(out IDXGIFactory4 dxgiFactory).Failure)
+                var dxgiFactoryFlags = 0u;
+                var iid = IID_IDXGIFactory4;
+
+                using ComPtr<IDXGIFactory4> dxgiFactory = null;
+                if (FAILED(CreateDXGIFactory2(dxgiFactoryFlags, &iid, (void**)&dxgiFactory)))
                 {
                     return false;
                 }
 
-                dxgiFactory.Dispose();
-
-#if DEBUG
-                if (DXGIGetDebugInterface1<IDXGIDebug1>(out IDXGIDebug1? dxgiDebug).Success)
-                {
-                    dxgiDebug.ReportLiveObjects(All, ReportLiveObjectFlags.Detail | ReportLiveObjectFlags.IgnoreInternal);
-                    dxgiDebug.Release();
-                }
-#endif
+                IDXGIAdapter1* adapter = GetAdapter(dxgiFactory, D3D_FEATURE_LEVEL_11_0, false);
+                bool supported = adapter != null;
 
                 return true;
             }
@@ -44,107 +45,96 @@ namespace Alimer.Graphics.D3D12
             }
         }
 
-        public D3D12GraphicsDevice(GraphicsAdapterPreference adapterPreference, FeatureLevel minFeatureLevel = FeatureLevel.Level_11_1)
+        public D3D12GraphicsDevice(GraphicsAdapterType adapterPreference, D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0)
             : base()
         {
-            bool debugFactory = false;
+            uint dxgiFactoryFlags = 0u;
+            Guid iid = default;
 
             if (EnableValidation || EnableGPUBasedValidation)
             {
-                if (D3D12GetDebugInterface<ID3D12Debug>(out ID3D12Debug? debugController).Success)
+                iid = IID_ID3D12Debug;
+                ID3D12Debug* debugController = null;
+                if (SUCCEEDED(D3D12GetDebugInterface(&iid, (void**)&debugController)))
                 {
                     // Enable the D3D12 debug layer.
-                    debugController.EnableDebugLayer();
+                    debugController->EnableDebugLayer();
 
-                    if (EnableGPUBasedValidation)
+                    iid = IID_ID3D12Debug1;
+                    ID3D12Debug1* debugController1 = null;
+                    if (SUCCEEDED(debugController->QueryInterface(&iid, (void**)&debugController1)))
                     {
-                        ID3D12Debug1? debugController1 = debugController.QueryInterfaceOrNull<ID3D12Debug1>();
-                        if (debugController1 != null)
-                        {
-                            debugController1.SetEnableGPUBasedValidation(true);
-                            debugController1.SetEnableSynchronizedCommandQueueValidation(true);
-                            debugController1.Dispose();
-                        }
+                        debugController1->SetEnableGPUBasedValidation(EnableGPUBasedValidation ? TRUE : FALSE);
+                        //debugController1->SetEnableSynchronizedCommandQueueValidation(TRUE);
+                        debugController1->Release();
                     }
 
-                    debugController.Dispose();
+                    debugController->Release();
                 }
 
-                if (DXGIGetDebugInterface1<IDXGIInfoQueue>(out IDXGIInfoQueue? dxgiInfoQueue).Success)
+#if DEBUG
+                IDXGIInfoQueue* dxgiInfoQueue;
+                iid = IID_IDXGIInfoQueue;
+                if (SUCCEEDED(DXGIGetDebugInterface1(0u, &iid, (void**)&dxgiInfoQueue)))
                 {
-                    debugFactory = true;
+                    dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 
-                    dxgiInfoQueue.SetBreakOnSeverity(All, InfoQueueMessageSeverity.Error, true);
-                    dxgiInfoQueue.SetBreakOnSeverity(All, InfoQueueMessageSeverity.Corruption, true);
+                    ThrowIfFailed(dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, TRUE));
+                    ThrowIfFailed(dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, TRUE));
 
-                    dxgiInfoQueue.AddStorageFilterEntries(Dxgi, new Vortice.DXGI.InfoQueueFilter
+                    int* hide = stackalloc int[1]
                     {
-                        DenyList = new Vortice.DXGI.InfoQueueFilterDescription
-                        {
-                            Ids = new[]
-                            {
-                                80 // IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides
-                            }
-                        }
-                    });
+                        80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
+                    };
 
-                    dxgiInfoQueue.Dispose();
+                    DXGI_INFO_QUEUE_FILTER filter = default;
+                    filter.DenyList.NumIDs = 1u;
+                    filter.DenyList.pIDList = hide;
+
+                    ThrowIfFailed(dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter));
+                    dxgiInfoQueue->Release();
                 }
+#endif
             }
 
-            if (CreateDXGIFactory2(debugFactory, out DXGIFactory).Failure)
+            iid = IID_IDXGIFactory4;
+            IDXGIFactory4* dxgiFactory;
+            if (FAILED(CreateDXGIFactory2(dxgiFactoryFlags, &iid, (void**)&dxgiFactory)))
             {
                 throw new NotSupportedException("IDXGIFactory4 creation failed");
             }
+            _dxgiFactory = dxgiFactory;
 
             // Check for tearing support.
-            IDXGIFactory5? dxgiFactory5 = DXGIFactory.QueryInterfaceOrNull<IDXGIFactory5>();
-            if (dxgiFactory5 != null)
+            iid = IID_IDXGIFactory5;
+            using ComPtr<IDXGIFactory5> dxgiFactory5 = null;
+            if (SUCCEEDED(_dxgiFactory->QueryInterface(&iid, (void**)&dxgiFactory5)))
             {
-                IsTearingSupported = dxgiFactory5.PresentAllowTearing;
-
-                dxgiFactory5.Dispose();
+                int allowTearing = 0;
+                ThrowIfFailed(dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(int)));
+                IsTearingSupported = allowTearing == 1;
             }
 
             // Find adapter now.
-            IDXGIAdapter1? adapter = D3D12Utils.GetAdapter(DXGIFactory, minFeatureLevel, adapterPreference);
+            IDXGIAdapter1* adapter = GetAdapter(_dxgiFactory, minFeatureLevel, adapterPreference != GraphicsAdapterType.DiscreteGPU);
             if (adapter == null)
             {
                 throw new NotSupportedException("Direct3D12: Cannot find suitable adapter with Direct3D12 support.");
             }
 
-            D3D12CreateDevice(adapter, minFeatureLevel, out NativeDevice).CheckError();
+            ID3D12Device* device;
+            iid = IID_ID3D12Device;
+            ThrowIfFailed(D3D12CreateDevice((IUnknown*)adapter, minFeatureLevel, &iid, (void**)&device));
+            NativeDevice = device;
 
             // Init capabilites.
-            {
-                AdapterDescription1 adapterDescription = adapter.Description1;
+            InitCapabilites(adapter);
 
-                // Detect adapter type.
-                GraphicsAdapterType adapterType = GraphicsAdapterType.Unknown;
-                if ((adapterDescription.Flags & AdapterFlags.Software) != AdapterFlags.None)
-                {
-                    adapterType = GraphicsAdapterType.CPU;
-                }
-                else
-                {
-                    adapterType = NativeDevice.Architecture.Uma ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
-                }
-
-                Capabilities = new GraphicsDeviceCaps
-                {
-                    BackendType = BackendType.Direct3D12,
-                    DeviceId = adapterDescription.DeviceId,
-                    VendorId = adapterDescription.VendorId,
-                    AdapterName = adapterDescription.Description,
-                    AdapterType = adapterType
-                };
-
-                adapter.Release();
-            }
+            adapter->Release();
         }
 
         /// <inheritdoc/>
-        public override GraphicsDeviceCaps Capabilities { get; }
+        public override GraphicsDeviceCaps Capabilities => _capabilities;
 
         /// <summary>
         /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
@@ -159,17 +149,42 @@ namespace Alimer.Graphics.D3D12
         {
             if (disposing)
             {
-                NativeDevice.Dispose();
-                DXGIFactory.Dispose();
+                //                NativeDevice.Dispose();
+                _dxgiFactory->Release();
 
 #if DEBUG
-                if (DXGIGetDebugInterface1<IDXGIDebug1>(out IDXGIDebug1? dxgiDebug).Success)
-                {
-                    dxgiDebug.ReportLiveObjects(All, ReportLiveObjectFlags.Detail | ReportLiveObjectFlags.IgnoreInternal);
-                    dxgiDebug.Release();
-                }
+                //                if (DXGIGetDebugInterface1<IDXGIDebug1>(out IDXGIDebug1? dxgiDebug).Success)
+                //                {
+                //                    dxgiDebug.ReportLiveObjects(All, ReportLiveObjectFlags.Detail | ReportLiveObjectFlags.IgnoreInternal);
+                //                    dxgiDebug.Release();
+                //                }
 #endif
             }
+        }
+
+        private void InitCapabilites(IDXGIAdapter1* adapter)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            ThrowIfFailed(adapter->GetDesc1(&desc));
+
+            _capabilities.BackendType = BackendType.Direct3D12;
+            _capabilities.VendorId = new GPUVendorId(desc.VendorId);
+            _capabilities.AdapterId = desc.DeviceId;
+
+            if ((desc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+            {
+                _capabilities.AdapterType = GraphicsAdapterType.CPU;
+            }
+            else
+            {
+                D3D12_FEATURE_DATA_ARCHITECTURE featureDataArchitecture;
+                ThrowIfFailed(NativeDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &featureDataArchitecture, SizeOf<D3D12_FEATURE_DATA_ARCHITECTURE>()));
+                _capabilities.AdapterType = (featureDataArchitecture.UMA == 1) ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
+            }
+
+            _capabilities.AdapterName = MarshalNullTerminatedStringUtf16(in desc.Description[0], 128).AsString() ?? string.Empty;
+            //public GPUDeviceFeatures Features;
+            //public GPUDeviceLimits Limits;
         }
     }
 }

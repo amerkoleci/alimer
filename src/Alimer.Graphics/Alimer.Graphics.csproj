@@ -6,17 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)native\win-x64\vgpu.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes/win-x64/native</PackagePath>
-      <Pack>true</Pack>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="D3D/**/*" />
-    <Compile Remove="D3D11/**/*" />
-    <Compile Remove="D3D12/**/*" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.19041-beta1" />
   </ItemGroup>
 
   <ItemGroup>
