@@ -11,24 +11,36 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+        - os: windows-latest
+          runtime: win-x64
+        - os: macos-latest
+          runtime: osx-x64
+        - os: ubuntu-latest
+          runtime: linux-x64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 
-    - run: ./scripts/cibuild.cmd -configuration release -architecture x64
-      shell: cmd
-      env:
-        EXCLUDE_RUN_ID_FROM_PACKAGE: true
+    - name: Install .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.100
+
+    - name: Publish
+      run: dotnet publish src --configuration Release --runtime ${{ matrix.runtime }} --output build/artifacts/${{ matrix.runtime }}
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: Packages
-        path: bin/packages
+        name: ${{ matrix.runtime }}
+        path: build/artifacts/${{ matrix.runtime }}
 
     - name: Publish to NuGet
       if: github.event_name == 'push'

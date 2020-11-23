@@ -6,7 +6,6 @@
     <RepoBinPath>$(MSBuildThisFileDirectory)..\bin\</RepoBinPath>
     <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoBinPath)$(MSBuildProjectName)\</BaseOutputPath>
-    <PackageOutputPath>$(RepoBinPath)packages\</PackageOutputPath>
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <VersionSuffix Condition="'$(GITHUB_EVENT_NAME)' == 'pull_request'">pr</VersionSuffix>
