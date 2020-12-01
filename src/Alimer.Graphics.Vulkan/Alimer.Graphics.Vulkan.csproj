@@ -6,7 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer\Alimer.csproj" />
+    <PackageReference Include="Vortice.Vulkan" Version="1.2.162" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Graphics\Alimer.Graphics.csproj" />
   </ItemGroup>
 
 </Project>

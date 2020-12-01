@@ -10,7 +10,7 @@ namespace Alimer
     /// <summary>
     /// Defines a context for <see cref="Game"/> that handles platform logic.
     /// </summary>
-    public abstract partial class GameContext
+    public abstract class GameContext
     {
         /// <summary>
         /// Get the main window.

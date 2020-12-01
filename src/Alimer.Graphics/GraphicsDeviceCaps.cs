@@ -12,7 +12,7 @@ namespace Alimer.Graphics
         public uint AdapterId;
         public GraphicsAdapterType AdapterType;
         public string AdapterName;
-        public GPUDeviceFeatures Features;
-        public GPUDeviceLimits Limits;
+        public GraphicsDeviceFeatures Features;
+        public GraphicsDeviceLimits Limits;
     }
 }

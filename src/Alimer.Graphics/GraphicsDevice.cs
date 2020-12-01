@@ -13,7 +13,7 @@ namespace Alimer.Graphics
 
         static GraphicsDevice()
         {
-            if (!AppContext.TryGetSwitch(EnableValidationSwitchName, out var validationValue))
+            if (!AppContext.TryGetSwitch(EnableValidationSwitchName, out bool validationValue))
             {
 #if DEBUG
                 validationValue = true;
@@ -32,6 +32,8 @@ namespace Alimer.Graphics
                 }
             }
         }
+
+        public static GraphicsAdapterType AdapterPreference { get; set; } = GraphicsAdapterType.DiscreteGPU;
 
         public static bool EnableValidation { get; }
         public static bool EnableGPUBasedValidation { get; }
@@ -54,75 +56,5 @@ namespace Alimer.Graphics
         /// <c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.
         /// </param>
         protected abstract void Dispose(bool disposing);
-
-        public static GraphicsDevice? CreateSystemDefault(
-            BackendType preferredBackendType = BackendType.Count,
-            GraphicsAdapterType adapterPreference = GraphicsAdapterType.DiscreteGPU)
-        {
-            if (preferredBackendType == BackendType.Count)
-            {
-                preferredBackendType = GetDefaultPlatformBackend();
-            }
-
-            switch (preferredBackendType)
-            {
-                case BackendType.Direct3D12:
-                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
-                default:
-                    return null;
-            }
-        }
-
-        public static bool IsBackendSupported(BackendType backend)
-        {
-            if (backend == BackendType.Count)
-            {
-                backend = GetDefaultPlatformBackend();
-            }
-
-            switch (backend)
-            {
-                case BackendType.Null:
-                    return true;
-                case BackendType.Direct3D12:
-                    return D3D12.D3D12GraphicsDevice.IsSupported();
-
-                default:
-                    return false;
-            }
-        }
-
-        /// <summary>
-        /// Gets the best supported <see cref="BackendType"/> on the current platform.
-        /// </summary>
-        /// <returns></returns>
-        public static BackendType GetDefaultPlatformBackend()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                if (IsBackendSupported(BackendType.Direct3D12))
-                {
-                    return BackendType.Direct3D12;
-                }
-
-                if (IsBackendSupported(BackendType.Vulkan))
-                {
-                    return BackendType.Vulkan;
-                }
-
-                return BackendType.Direct3D11;
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                return BackendType.Metal;
-            }
-
-            if (IsBackendSupported(BackendType.Vulkan))
-            {
-                return BackendType.Vulkan;
-            }
-
-            return BackendType.Null;
-        }
     }
 }

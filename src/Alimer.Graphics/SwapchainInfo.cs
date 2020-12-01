@@ -14,7 +14,7 @@ namespace Alimer.Graphics
         public PixelFormat ColorFrmat;
         public PixelFormat DepthStencilFormat;
         public PresentMode PresentMode;
-        public Bool32 Fullscreen;
+        public bool Fullscreen;
         public IntPtr WindowHandle;
     }
 }

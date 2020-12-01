@@ -8,7 +8,7 @@ using static Alimer.GLFW;
 
 namespace Alimer
 {
-    internal class NetStandardGameContext : GameContext
+    public class NetStandardGameContext : GameContext
     {
         /// <inheritdoc/>
         public override GameWindow? GameWindow { get; }
@@ -44,10 +44,5 @@ namespace Alimer
             glfwTerminate();
             return true;
         }
-    }
-
-    public partial class GameContext
-    {
-        public static GameContext CreateDefault() => new NetStandardGameContext();
     }
 }
