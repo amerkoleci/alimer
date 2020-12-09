@@ -15,8 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Alimer.Games\Alimer.Games.csproj" />
-    <ProjectReference Include="..\..\..\Alimer.Graphics.Direct3D12\Alimer.Graphics.Direct3D12.csproj" />
-    <ProjectReference Include="..\..\..\Alimer.Graphics.Vulkan\Alimer.Graphics.Vulkan.csproj" />
   </ItemGroup>
 
 </Project>

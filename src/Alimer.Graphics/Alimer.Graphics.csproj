@@ -3,10 +3,21 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);ENABLE_VALIDATION</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="D3D/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Alimer\Alimer.csproj" />
+    <PackageReference Include="Vortice.Vulkan" Version="1.2.162" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.19041-beta1" Condition="'$(ExcludeD3D12)' != 'true'" />
   </ItemGroup>
 
 </Project>

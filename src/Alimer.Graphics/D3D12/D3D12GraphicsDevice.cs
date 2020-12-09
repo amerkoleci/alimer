@@ -19,7 +19,7 @@ namespace Alimer.Graphics.D3D12
     /// <summary>
     /// Direct3D12 graphics device implementation.
     /// </summary>
-    public unsafe class D3D12GraphicsDevice : GraphicsDevice
+    internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
         private D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
         private IDXGIFactory4* _dxgiFactory;
@@ -51,7 +51,7 @@ namespace Alimer.Graphics.D3D12
             }
         }
 
-        public D3D12GraphicsDevice()
+        public D3D12GraphicsDevice(GraphicsAdapterType adapterPreference)
             : base()
         {
             uint dxgiFactoryFlags = 0u;
@@ -122,7 +122,7 @@ namespace Alimer.Graphics.D3D12
             }
 
             // Find adapter now.
-            IDXGIAdapter1* adapter = GetAdapter(_dxgiFactory, minFeatureLevel, AdapterPreference != GraphicsAdapterType.DiscreteGPU);
+            IDXGIAdapter1* adapter = GetAdapter(_dxgiFactory, minFeatureLevel, adapterPreference != GraphicsAdapterType.DiscreteGPU);
             if (adapter == null)
             {
                 throw new NotSupportedException("Direct3D12: Cannot find suitable adapter with Direct3D12 support.");
@@ -139,16 +139,10 @@ namespace Alimer.Graphics.D3D12
             adapter->Release();
         }
 
-        /// <inheritdoc/>
-        public override GraphicsDeviceCaps Capabilities => _capabilities;
-
         /// <summary>
         /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
         /// </summary>
-        ~D3D12GraphicsDevice()
-        {
-            Dispose(disposing: false);
-        }
+        ~D3D12GraphicsDevice() => Dispose(disposing: false);
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
@@ -181,6 +175,9 @@ namespace Alimer.Graphics.D3D12
                 _dxgiFactory->Release();
             }
         }
+
+        /// <inheritdoc/>
+        public override GraphicsDeviceCaps Capabilities => _capabilities;
 
         private void InitCapabilites(IDXGIAdapter1* adapter)
         {

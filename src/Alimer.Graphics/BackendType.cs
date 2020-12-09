@@ -10,9 +10,9 @@ namespace Alimer.Graphics
         /// </summary>
         Null,
         /// <summary>
-        /// Direct3D 11 backend.
+        /// Vulkan backend.
         /// </summary>
-        Direct3D11,
+        Vulkan,
         /// <summary>
         /// Direct3D 12 backend.
         /// </summary>
@@ -21,14 +21,6 @@ namespace Alimer.Graphics
         /// Metal backend.
         /// </summary>
         Metal,
-        /// <summary>
-        /// Vulkan backend.
-        /// </summary>
-        Vulkan,
-        /// <summary>
-        /// OpenGL backend.
-        /// </summary>
-        OpenGL,
         /// <summary>
         /// Default best platform supported backend.
         /// </summary>

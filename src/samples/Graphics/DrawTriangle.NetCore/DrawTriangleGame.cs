@@ -28,13 +28,13 @@ namespace DrawTriangle
             {
                 if (RuntimePlatform.PlatformType == PlatformType.Windows)
                 {
-                    if (D3D12GraphicsDevice.IsSupported())
+                    if (GraphicsDevice.IsBackendSupported(BackendType.Direct3D12))
                     {
-                        return new D3D12GraphicsDevice();
+                        return GraphicsDevice.CreateSystemDefault(BackendType.Direct3D12);
                     }
                 }
 
-                return new VulkanGraphicsDevice(nameof(DrawTriangleGame));
+                return GraphicsDevice.CreateSystemDefault();
             }
         }
 

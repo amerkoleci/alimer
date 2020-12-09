@@ -42,17 +42,17 @@ namespace Alimer.Graphics.Vulkan
             }
         }
 
-        public VulkanGraphicsDevice(string applicationName)
+        public VulkanGraphicsDevice(GraphicsAdapterType adapterPreference)
         {
             if (!IsSupported())
                 throw new NotSupportedException("Vulkan is not supported");
 
-            VkString name = applicationName;
-            var appInfo = new VkApplicationInfo
+            //VkString name = applicationName;
+            VkApplicationInfo appInfo = new VkApplicationInfo
             {
                 sType = VkStructureType.ApplicationInfo,
-                pApplicationName = name,
-                applicationVersion = new VkVersion(1, 0, 0),
+                //pApplicationName = name,
+                //applicationVersion = new VkVersion(1, 0, 0),
                 pEngineName = s_EngineName,
                 engineVersion = new VkVersion(1, 0, 0),
                 apiVersion = vkEnumerateInstanceVersion()
