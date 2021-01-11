@@ -3,86 +3,85 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using TerraFX.Interop;
-using static TerraFX.Interop.DXGI_FORMAT;
+using Vortice.DXGI;
 
 namespace Alimer.Graphics
 {
     internal static class D3DUtils
     {
-        private static readonly FormatMap<PixelFormat, DXGI_FORMAT> s_formatsMap = new FormatMap<PixelFormat, DXGI_FORMAT>
+        private static readonly FormatMap<PixelFormat, Format> s_formatsMap = new FormatMap<PixelFormat, Format>
         {
-            { PixelFormat.Invalid,        DXGI_FORMAT_UNKNOWN },
+            { PixelFormat.Invalid,        Format.Unknown },
             // 8-bit pixel formats
-            { PixelFormat.R8Unorm,          DXGI_FORMAT_R8_UNORM },
-            { PixelFormat.R8Snorm,          DXGI_FORMAT_R8_SNORM },
-            { PixelFormat.R8Uint,           DXGI_FORMAT_R8_UINT },
-            { PixelFormat.R8Sint,           DXGI_FORMAT_R8_SINT },
+            { PixelFormat.R8Unorm,          Format.R8_UNorm },
+            { PixelFormat.R8Snorm,          Format.R8_SNorm },
+            { PixelFormat.R8Uint,           Format.R8_UInt },
+            { PixelFormat.R8Sint,           Format.R8_SInt },
             // 16-bit pixel formats
-            { PixelFormat.R16Unorm,         DXGI_FORMAT_R16_UNORM },
-            { PixelFormat.R16Snorm,         DXGI_FORMAT_R16_SNORM },
-            { PixelFormat.R16Uint,          DXGI_FORMAT_R16_UINT },
-            { PixelFormat.R16Sint,          DXGI_FORMAT_R16_SINT },
-            { PixelFormat.R16Float,         DXGI_FORMAT_R16_FLOAT },
-            { PixelFormat.RG8Unorm,         DXGI_FORMAT_R8G8_UNORM },
-            { PixelFormat.RG8Snorm,         DXGI_FORMAT_R8G8_SNORM },
-            { PixelFormat.RG8Uint,          DXGI_FORMAT_R8G8_UINT },
-            { PixelFormat.RG8Sint,          DXGI_FORMAT_R8G8_SINT },
+            { PixelFormat.R16Unorm,         Format.R16_UNorm },
+            { PixelFormat.R16Snorm,         Format.R16_SNorm },
+            { PixelFormat.R16Uint,          Format.R16_UInt },
+            { PixelFormat.R16Sint,          Format.R16_SInt },
+            { PixelFormat.R16Float,         Format.R16_Float },
+            { PixelFormat.RG8Unorm,         Format.R8G8_UNorm },
+            { PixelFormat.RG8Snorm,         Format.R8G8_SNorm },
+            { PixelFormat.RG8Uint,          Format.R8G8_UInt },
+            { PixelFormat.RG8Sint,          Format.R8G8_SInt },
             // Packed 16-bit pixel formats
             //{ PixelFormat.B5G6R5UNorm,      DXGI_FORMAT_B5G6R5_UNorm },
             //{ PixelFormat.BGRA4UNorm,       DXGI_FORMAT_B4G4R4A4_UNorm },
             // 32-bit pixel formats
-            { PixelFormat.R32Uint,          DXGI_FORMAT_R32_UINT },
-            { PixelFormat.R32Sint,          DXGI_FORMAT_R32_SINT },
-            { PixelFormat.R32Float,         DXGI_FORMAT_R32_FLOAT },
-            { PixelFormat.RG16Unorm,        DXGI_FORMAT_R16G16_UNORM },
-            { PixelFormat.RG16Snorm,        DXGI_FORMAT_R16G16_SNORM },
-            { PixelFormat.RG16Uint,         DXGI_FORMAT_R16G16_UINT },
-            { PixelFormat.RG16Sint,         DXGI_FORMAT_R16G16_SINT },
-            { PixelFormat.RG16Float,        DXGI_FORMAT_R16G16_FLOAT },
-            { PixelFormat.RGBA8Unorm,       DXGI_FORMAT_R8G8B8A8_UNORM },
-            { PixelFormat.RGBA8UnormSrgb,   DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },
-            { PixelFormat.RGBA8Snorm,       DXGI_FORMAT_R8G8B8A8_SNORM },
-            { PixelFormat.RGBA8Uint,        DXGI_FORMAT_R8G8B8A8_UINT },
-            { PixelFormat.RGBA8Sint,        DXGI_FORMAT_R8G8B8A8_SINT },
-            { PixelFormat.BGRA8Unorm,       DXGI_FORMAT_B8G8R8A8_UNORM },
-            { PixelFormat.BGRA8UnormSrgb,   DXGI_FORMAT_B8G8R8A8_UNORM_SRGB },
+            { PixelFormat.R32Uint,          Format.R32_UInt },
+            { PixelFormat.R32Sint,          Format.R32_SInt },
+            { PixelFormat.R32Float,         Format.R32_Float },
+            { PixelFormat.RG16Unorm,        Format.R16G16_UNorm },
+            { PixelFormat.RG16Snorm,        Format.R16G16_SNorm },
+            { PixelFormat.RG16Uint,         Format.R16G16_UInt },
+            { PixelFormat.RG16Sint,         Format.R16G16_SInt },
+            { PixelFormat.RG16Float,        Format.R16G16_Float },
+            { PixelFormat.RGBA8Unorm,       Format.R8G8B8A8_UNorm },
+            { PixelFormat.RGBA8UnormSrgb,   Format.R8G8B8A8_UNorm_SRgb },
+            { PixelFormat.RGBA8Snorm,       Format.R8G8B8A8_SNorm },
+            { PixelFormat.RGBA8Uint,        Format.R8G8B8A8_UInt },
+            { PixelFormat.RGBA8Sint,        Format.R8G8B8A8_SInt },
+            { PixelFormat.BGRA8Unorm,       Format.B8G8R8A8_UNorm },
+            { PixelFormat.BGRA8UnormSrgb,   Format.B8G8R8A8_UNorm_SRgb },
             // Packed 32-Bit Pixel formats
-            { PixelFormat.RGB10A2Unorm,     DXGI_FORMAT_R10G10B10A2_UNORM },
-            { PixelFormat.RG11B10Float,     DXGI_FORMAT_R11G11B10_FLOAT },
+            { PixelFormat.RGB10A2Unorm,     Format.R10G10B10A2_UNorm },
+            { PixelFormat.RG11B10Float,     Format.R11G11B10_Float },
             // 64-Bit Pixel Formats
-            { PixelFormat.RG32Uint,         DXGI_FORMAT_R32G32_UINT },
-            { PixelFormat.RG32Sint,         DXGI_FORMAT_R32G32_SINT },
-            { PixelFormat.RG32Float,        DXGI_FORMAT_R32G32_FLOAT },
-            { PixelFormat.RGBA16Unorm,      DXGI_FORMAT_R16G16B16A16_UNORM },
-            { PixelFormat.RGBA16Snorm,      DXGI_FORMAT_R16G16B16A16_SNORM },
-            { PixelFormat.RGBA16Uint,       DXGI_FORMAT_R16G16B16A16_UINT },
-            { PixelFormat.RGBA16Sint,       DXGI_FORMAT_R16G16B16A16_SINT },
-            { PixelFormat.RGBA16Float,      DXGI_FORMAT_R16G16B16A16_FLOAT },
+            { PixelFormat.RG32Uint,         Format.R32G32_UInt },
+            { PixelFormat.RG32Sint,         Format.R32G32_SInt },
+            { PixelFormat.RG32Float,        Format.R32G32_Float },
+            { PixelFormat.RGBA16Unorm,      Format.R16G16B16A16_UNorm },
+            { PixelFormat.RGBA16Snorm,      Format.R16G16B16A16_SNorm },
+            { PixelFormat.RGBA16Uint,       Format.R16G16B16A16_UInt },
+            { PixelFormat.RGBA16Sint,       Format.R16G16B16A16_SInt },
+            { PixelFormat.RGBA16Float,      Format.R16G16B16A16_Float },
             // 128-Bit Pixel Formats
-            { PixelFormat.RGBA32Uint,           DXGI_FORMAT_R32G32B32A32_UINT },
-            { PixelFormat.RGBA32Sint,           DXGI_FORMAT_R32G32B32A32_SINT },
-            { PixelFormat.RGBA32Float,          DXGI_FORMAT_R32G32B32A32_FLOAT },
+            { PixelFormat.RGBA32Uint,           Format.R32G32B32A32_UInt },
+            { PixelFormat.RGBA32Sint,           Format.R32G32B32A32_SInt },
+            { PixelFormat.RGBA32Float,          Format.R32G32B32A32_Float },
             // Depth-stencil
-            { PixelFormat.Depth16Unorm,         DXGI_FORMAT_D16_UNORM },
-            { PixelFormat.Depth32Float,         DXGI_FORMAT_D32_FLOAT },
-            { PixelFormat.Depth24UnormStencil8, DXGI_FORMAT_D24_UNORM_S8_UINT },
-            { PixelFormat.Depth32FloatStencil8, DXGI_FORMAT_D32_FLOAT_S8X24_UINT },
+            { PixelFormat.Depth16Unorm,         Format.D16_UNorm },
+            { PixelFormat.Depth32Float,         Format.D32_Float },
+            { PixelFormat.Depth24UnormStencil8, Format.D24_UNorm_S8_UInt },
+            { PixelFormat.Depth32FloatStencil8, Format.D32_Float_S8X24_UInt },
             // Compressed BC formats
-            { PixelFormat.BC1RGBAUnorm,         DXGI_FORMAT_BC1_UNORM },
-            { PixelFormat.BC1RGBAUnormSrgb,     DXGI_FORMAT_BC1_UNORM_SRGB },
-            { PixelFormat.BC2RGBAUnorm,         DXGI_FORMAT_BC2_UNORM },
-            { PixelFormat.BC2RGBAUnormSrgb,     DXGI_FORMAT_BC2_UNORM_SRGB },
-            { PixelFormat.BC3RGBAUnorm,         DXGI_FORMAT_BC3_UNORM },
-            { PixelFormat.BC3RGBAUnormSrgb,     DXGI_FORMAT_BC3_UNORM_SRGB },
-            { PixelFormat.BC4RUnorm,            DXGI_FORMAT_BC4_UNORM },
-            { PixelFormat.BC4RSnorm,            DXGI_FORMAT_BC4_SNORM },
-            { PixelFormat.BC5RGUnorm,           DXGI_FORMAT_BC5_UNORM },
-            { PixelFormat.BC5RGSnorm,           DXGI_FORMAT_BC5_SNORM },
-            { PixelFormat.BC6HRGBSfloat,        DXGI_FORMAT_BC6H_SF16 },
-            { PixelFormat.BC6HRGBUfloat,        DXGI_FORMAT_BC6H_UF16 },
-            { PixelFormat.BC7RGBAUnorm,         DXGI_FORMAT_BC7_UNORM },
-            { PixelFormat.BC7RGBAUnormSrgb,     DXGI_FORMAT_BC7_UNORM_SRGB },
+            { PixelFormat.BC1RGBAUnorm,         Format.BC1_UNorm },
+            { PixelFormat.BC1RGBAUnormSrgb,     Format.BC1_UNorm_SRgb },
+            { PixelFormat.BC2RGBAUnorm,         Format.BC2_UNorm },
+            { PixelFormat.BC2RGBAUnormSrgb,     Format.BC2_UNorm_SRgb },
+            { PixelFormat.BC3RGBAUnorm,         Format.BC3_UNorm },
+            { PixelFormat.BC3RGBAUnormSrgb,     Format.BC3_UNorm_SRgb },
+            { PixelFormat.BC4RUnorm,            Format.BC4_UNorm },
+            { PixelFormat.BC4RSnorm,            Format.BC4_SNorm },
+            { PixelFormat.BC5RGUnorm,           Format.BC5_UNorm },
+            { PixelFormat.BC5RGSnorm,           Format.BC5_SNorm },
+            { PixelFormat.BC6HRGBSfloat,        Format.BC6H_Sf16 },
+            { PixelFormat.BC6HRGBUfloat,        Format.BC6H_Uf16 },
+            { PixelFormat.BC7RGBAUnorm,         Format.BC7_UNorm },
+            { PixelFormat.BC7RGBAUnormSrgb,     Format.BC7_UNorm_SRgb },
             // Compressed PVRTC Pixel Formats
             //{ PixelFormat.PVRTC_RGB2,   Format.Unknown },
             //{ PixelFormat.PVRTC_RGBA2,  Format.Unknown },
@@ -102,8 +101,8 @@ namespace Alimer.Graphics
             //{ PixelFormat.ASTC12x12,    Format.Unknown },
         };
 
-        public static DXGI_FORMAT ToDirectXPixelFormat(this PixelFormat format) => s_formatsMap[format];
-        public static PixelFormat FromDirectXPixelFormat(this DXGI_FORMAT format) => s_formatsMap[format];
+        public static Format ToDirectXPixelFormat(this PixelFormat format) => s_formatsMap[format];
+        public static PixelFormat FromDirectXPixelFormat(this Format format) => s_formatsMap[format];
 
         private class FormatMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
             where TKey : notnull
