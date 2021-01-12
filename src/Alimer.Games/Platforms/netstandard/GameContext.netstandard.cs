@@ -2,7 +2,6 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using Alimer.Graphics;
 using Microsoft.Extensions.DependencyInjection;
 using static Alimer.GLFW;
 

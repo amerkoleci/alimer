@@ -7,38 +7,27 @@ using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics
 {
-    public enum KnownVendorId : uint
-    {
-        AMD = GPUVendorId.KnownVendorId_AMD,
-        Intel = GPUVendorId.KnownVendorId_Intel,
-        Nvidia = GPUVendorId.KnownVendorId_Nvidia,
-        Microsoft = GPUVendorId.KnownVendorId_Microsoft,
-        ARM = GPUVendorId.KnownVendorId_ARM,
-        ImgTec = GPUVendorId.KnownVendorId_ImgTec,
-        Qualcomm = GPUVendorId.KnownVendorId_Qualcomm,
-    }
-
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct GPUVendorId : IEquatable<GPUVendorId>
     {
-        public const int KnownVendorId_AMD = 0x1002;
-        public const int KnownVendorId_Intel = 0x8086;
-        public const int KnownVendorId_Nvidia = 0x10DE;
-        public const int KnownVendorId_Microsoft = 0x1414;
-        public const int KnownVendorId_ARM = 0x13B5;
-        public const int KnownVendorId_ImgTec = 0x1010;
-        public const int KnownVendorId_Qualcomm = 0x5143;
+        public const uint KnownVendorId_AMD = 0x1002;
+        public const uint KnownVendorId_Intel = 0x8086;
+        public const uint KnownVendorId_Nvidia = 0x10DE;
+        public const uint KnownVendorId_Microsoft = 0x1414;
+        public const uint KnownVendorId_ARM = 0x13B5;
+        public const uint KnownVendorId_ImgTec = 0x1010;
+        public const uint KnownVendorId_Qualcomm = 0x5143;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GPUVendorId" /> struct.
         /// </summary>
         /// <param name="value">The vendor id value.</param>
-        public GPUVendorId(int value)
+        public GPUVendorId(uint value)
         {
             Id = value;
         }
 
-        public int Id { get; }
+        public uint Id { get; }
 
         public KnownVendorId KnownVendor => (KnownVendorId)Id;
 

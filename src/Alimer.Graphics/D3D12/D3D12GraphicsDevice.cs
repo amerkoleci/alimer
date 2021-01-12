@@ -17,14 +17,19 @@ namespace Alimer.Graphics.D3D12
     /// </summary>
     internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
+        private static bool? _supportInitialized;
         private static readonly FeatureLevel s_minFeatureLevel = FeatureLevel.Level_11_0;
         private IDXGIFactory4 _dxgiFactory;
         public readonly bool IsTearingSupported;
         public readonly ID3D12Device NativeDevice;
         private GraphicsDeviceCaps _capabilities;
+        public bool SupportsRenderPass { get; private set; }
 
         public static bool IsSupported()
         {
+            if (_supportInitialized.HasValue)
+                return _supportInitialized.Value;
+
             try
             {
                 if (CreateDXGIFactory2(false, out IDXGIFactory4 dxgiFactory).Failure)
@@ -32,15 +37,18 @@ namespace Alimer.Graphics.D3D12
                     return false;
                 }
 
-                IDXGIAdapter1 adapter = GetAdapter(dxgiFactory, s_minFeatureLevel, false);
-                bool supported = adapter != null;
-                adapter.Dispose();
+                using (IDXGIAdapter1? adapter = GetAdapter(dxgiFactory, s_minFeatureLevel, false))
+                {
+                    _supportInitialized = adapter != null;
+                }
                 dxgiFactory.Dispose();
 
-                return true;
+                return _supportInitialized.Value;
             }
             catch
             {
+                _supportInitialized = false;
+
                 return false;
             }
         }
@@ -57,40 +65,37 @@ namespace Alimer.Graphics.D3D12
                     // Enable the D3D12 debug layer.
                     debugController.EnableDebugLayer();
 
-                    //iid = IID_ID3D12Debug1;
-                    //ID3D12Debug1* debugController1 = null;
-                    //if (SUCCEEDED(debugController->QueryInterface(&iid, (void**)&debugController1)))
-                    //{
-                    //    debugController1->SetEnableGPUBasedValidation(EnableGPUBasedValidation ? TRUE : FALSE);
-                    //    //debugController1->SetEnableSynchronizedCommandQueueValidation(TRUE);
-                    //    debugController1->Release();
-                    //}
-
-                    debugController.Dispose();
+                    using (ID3D12Debug1? debugController1 = debugController.QueryInterfaceOrNull<ID3D12Debug1>())
+                    {
+                        if (debugController1 != null)
+                        {
+                            debugController1.SetEnableGPUBasedValidation(EnableGPUBasedValidation);
+                            debugController1.SetEnableSynchronizedCommandQueueValidation(false);
+                        }
+                    }
                 }
 
 #if DEBUG
-                //IDXGIInfoQueue* dxgiInfoQueue;
-                //iid = IID_IDXGIInfoQueue;
-                //if (SUCCEEDED(DXGIGetDebugInterface1(0u, &iid, (void**)&dxgiInfoQueue)))
-                //{
-                //    dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+                if (DXGIGetDebugInterface1(out IDXGIInfoQueue dxgiInfoQueue).Success)
+                {
+                    debug = true;
 
-                //    ThrowIfFailed(dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, TRUE));
-                //    ThrowIfFailed(dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, TRUE));
+                    dxgiInfoQueue.SetBreakOnSeverity(All, InfoQueueMessageSeverity.Error, true);
+                    dxgiInfoQueue.SetBreakOnSeverity(All, InfoQueueMessageSeverity.Corruption, true);
 
-                //    int* hide = stackalloc int[1]
-                //    {
-                //        80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
-                //    };
+                    dxgiInfoQueue.AddStorageFilterEntries(Dxgi, new Vortice.DXGI.InfoQueueFilter
+                    {
+                        DenyList = new Vortice.DXGI.InfoQueueFilterDescription
+                        {
+                            Ids = new int[]
+                            {
+                                80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
+                            }
+                        }
+                    });
 
-                //    DXGI_INFO_QUEUE_FILTER filter = default;
-                //    filter.DenyList.NumIDs = 1u;
-                //    filter.DenyList.pIDList = hide;
-
-                //    ThrowIfFailed(dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter));
-                //    dxgiInfoQueue->Release();
-                //}
+                    dxgiInfoQueue.Release();
+                }
 #endif
             }
 
@@ -100,31 +105,27 @@ namespace Alimer.Graphics.D3D12
             }
 
             // Check for tearing support.
-            //iid = IID_IDXGIFactory5;
-            //using ComPtr<IDXGIFactory5> dxgiFactory5 = null;
-            //if (SUCCEEDED(_dxgiFactory->QueryInterface(&iid, (void**)&dxgiFactory5)))
-            //{
-            //    int allowTearing = 0;
-            //    ThrowIfFailed(dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(int)));
-            //    IsTearingSupported = allowTearing == 1;
-            //}
-
-            // Find adapter now.
-            IDXGIAdapter1 adapter = GetAdapter(_dxgiFactory, s_minFeatureLevel, adapterPreference != GraphicsAdapterType.DiscreteGPU);
-            if (adapter == null)
+            using (IDXGIFactory5? dxgiFactory5 = _dxgiFactory.QueryInterfaceOrNull<IDXGIFactory5>())
             {
-                throw new NotSupportedException("Direct3D12: Cannot find suitable adapter with Direct3D12 support.");
+                if (dxgiFactory5 != null)
+                {
+                    IsTearingSupported = dxgiFactory5.PresentAllowTearing;
+                }
             }
 
-            //ID3D12Device* device;
-            //iid = IID_ID3D12Device;
-            //ThrowIfFailed(D3D12CreateDevice((IUnknown*)adapter, s_minFeatureLevel, &iid, (void**)&device));
-            //NativeDevice = device;
+            // Find adapter now.
+            using (IDXGIAdapter1? adapter = GetAdapter(_dxgiFactory, s_minFeatureLevel, adapterPreference != GraphicsAdapterType.DiscreteGPU))
+            {
+                if (adapter == null)
+                {
+                    throw new NotSupportedException("Direct3D12: Cannot find suitable adapter with Direct3D12 support.");
+                }
 
-            // Init capabilites.
-            InitCapabilites(adapter);
+                D3D12CreateDevice(adapter, s_minFeatureLevel, out NativeDevice).CheckError();
 
-            adapter.Dispose();
+                // Init capabilites.
+                InitCapabilites(adapter);
+            }
         }
 
         /// <summary>
@@ -143,24 +144,24 @@ namespace Alimer.Graphics.D3D12
                 {
                     System.Diagnostics.Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
-                    //Guid iid = IID_ID3D12DebugDevice;
-                    //using ComPtr<ID3D12DebugDevice> debugDevice = null;
-                    //if (SUCCEEDED(NativeDevice->QueryInterface(&iid, (void**)&debugDevice)))
-                    //{
-                    //    debugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-                    //}
+                    using (ID3D12DebugDevice debugDevice = NativeDevice.QueryInterfaceOrNull<ID3D12DebugDevice>())
+                    {
+                        debugDevice?.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail | ReportLiveDeviceObjectFlags.IgnoreInternal);
+                    }
                 }
-
-                //                if (DXGIGetDebugInterface1<IDXGIDebug1>(out IDXGIDebug1? dxgiDebug).Success)
-                //                {
-                //                    dxgiDebug.ReportLiveObjects(All, ReportLiveObjectFlags.Detail | ReportLiveObjectFlags.IgnoreInternal);
-                //                    dxgiDebug.Release();
-                //                }
 #else
-                NativeDevice->Release();
+                NativeDevice.Dispose();
 #endif
 
                 _dxgiFactory.Dispose();
+
+#if DEBUG
+                if (DXGIGetDebugInterface1(out IDXGIDebug1? dxgiDebug).Success)
+                {
+                    dxgiDebug!.ReportLiveObjects(All, ReportLiveObjectFlags.Detail | ReportLiveObjectFlags.IgnoreInternal);
+                    dxgiDebug!.Dispose();
+                }
+#endif
             }
         }
 
@@ -172,7 +173,7 @@ namespace Alimer.Graphics.D3D12
             AdapterDescription1 desc = adapter.Description1;
 
             _capabilities.BackendType = BackendType.Direct3D12;
-            _capabilities.VendorId = new GPUVendorId(desc.VendorId);
+            _capabilities.VendorId = new GPUVendorId((uint)desc.VendorId);
             _capabilities.AdapterId = (uint)desc.DeviceId;
 
             if ((desc.Flags & AdapterFlags.Software) != 0)
@@ -181,15 +182,20 @@ namespace Alimer.Graphics.D3D12
             }
             else
             {
-                // D3D12_FEATURE_DATA_ARCHITECTURE featureDataArchitecture;
-                //ThrowIfFailed(NativeDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &featureDataArchitecture, SizeOf<D3D12_FEATURE_DATA_ARCHITECTURE>()));
-                //_capabilities.AdapterType = (featureDataArchitecture.UMA == 1) ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
+                FeatureDataArchitecture featureDataArchitecture = NativeDevice.Architecture;
+                _capabilities.AdapterType = featureDataArchitecture.Uma ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
             }
 
             _capabilities.AdapterName = desc.Description;
 
-            //D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5;
-            //ThrowIfFailed(NativeDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, SizeOf<D3D12_FEATURE_DATA_D3D12_OPTIONS5>()));
+            FeatureDataD3D12Options5 options5 = NativeDevice.Options5;
+
+            SupportsRenderPass = false;
+            if (options5.RenderPassesTier > RenderPassTier.Tier0
+                && _capabilities.VendorId.KnownVendor != KnownVendorId.Intel)
+            {
+                SupportsRenderPass = true;
+            }
 
             _capabilities.Features = new GraphicsDeviceFeatures
             {
@@ -205,7 +211,7 @@ namespace Alimer.Graphics.D3D12
                 TextureCompressionASTC_LDR = false,
                 TextureCompressionBC = true,
                 TextureCubeArray = true,
-                //Raytracing = options5.RaytracingTier > D3D12_RAYTRACING_TIER_NOT_SUPPORTED
+                Raytracing = options5.RaytracingTier >= RaytracingTier.Tier1_0
             };
 
             _capabilities.Limits = new GraphicsDeviceLimits
@@ -215,31 +221,29 @@ namespace Alimer.Graphics.D3D12
                 MaxVertexAttributeOffset = 2047,
                 MaxVertexBindingStride = 2048,
                 MaxTextureDimension1D = RequestTexture1DUDimension,
-                //MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
-                //MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
-                //MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
-                //MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-                //MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
-                //MaxUniformBufferRange = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+                MaxTextureDimension2D = RequestTexture2DUOrVDimension,
+                MaxTextureDimension3D = RequestTexture3DUVOrWDimension,
+                MaxTextureDimensionCube = RequestTextureCubeDimension,
+                MaxTextureArrayLayers = RequestTexture2DArrayAxisDimension,
+                MaxColorAttachments = SimultaneousRenderTargetCount,
+                MaxUniformBufferRange = RequestConstantBufferElementCount * 16,
                 MaxStorageBufferRange = uint.MaxValue,
                 MinUniformBufferOffsetAlignment = 256u,
                 MinStorageBufferOffsetAlignment = 16u,
-                //MaxSamplerAnisotropy = D3D12_MAX_MAXANISOTROPY,
-                //MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-                //MaxViewportWidth = D3D12_VIEWPORT_BOUNDS_MAX,
-                //MaxViewportHeight = D3D12_VIEWPORT_BOUNDS_MAX,
-                //MaxTessellationPatchSize = D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT,
-                //MaxComputeSharedMemorySize = D3D12_CS_THREAD_LOCAL_TEMP_REGISTER_POOL,
-                //MaxComputeWorkGroupCountX = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                //MaxComputeWorkGroupCountY = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                //MaxComputeWorkGroupCountZ = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                //MaxComputeWorkGroupInvocations = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
-                //MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
-                //MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_X,
-                //MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_X,
+                MaxSamplerAnisotropy = MaxMaxAnisotropy,
+                MaxViewports = ViewportAndScissorRectObjectCountPerPipeline,
+                MaxViewportWidth = ViewportBoundsMax,
+                MaxViewportHeight = ViewportBoundsMax,
+                MaxTessellationPatchSize = InputAssemblerPatchMaxControlPointCount,
+                MaxComputeSharedMemorySize = ComputeShaderThreadLocalTempRegisterPool,
+                MaxComputeWorkGroupCountX = ComputeShaderDispatchMaxThreadGroupsPerDimension,
+                MaxComputeWorkGroupCountY = ComputeShaderDispatchMaxThreadGroupsPerDimension,
+                MaxComputeWorkGroupCountZ = ComputeShaderDispatchMaxThreadGroupsPerDimension,
+                MaxComputeWorkGroupInvocations = ComputeShaderThreadGroupMaxThreadsPerGroup,
+                MaxComputeWorkGroupSizeX = ComputeShaderThreadGroupMaxX,
+                MaxComputeWorkGroupSizeY = ComputeShaderThreadGroupMaxY,
+                MaxComputeWorkGroupSizeZ = ComputeShaderThreadGroupMaxZ,
             };
-
-            //public GPUDeviceLimits Limits;
         }
     }
 }

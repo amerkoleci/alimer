@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Vulkan.VulkanUtils;
 
 namespace Alimer.Graphics.Vulkan
 {
@@ -15,29 +16,28 @@ namespace Alimer.Graphics.Vulkan
     /// </summary>
     public unsafe class VulkanGraphicsDevice : GraphicsDevice
     {
-        private static readonly VkString s_EngineName = "Engine";
-        private static readonly string[] s_RequestedValidationLayers = new[] { "VK_LAYER_KHRONOS_validation" };
-        private static bool? _supportInitializad;
+        private static readonly VkString s_EngineName = "Alimer";
+        private static bool? _supportInitialized;
 
         private VkInstance _instance;
-        private vkDebugUtilsMessengerCallbackEXT? _debugMessengerCallbackFunc;
-        private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
+        private readonly vkDebugUtilsMessengerCallbackEXT? _debugMessengerCallbackFunc;
+        private VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
         private GraphicsDeviceCaps _capabilities;
 
         public static bool IsSupported()
         {
-            if (_supportInitializad.HasValue)
-                return _supportInitializad.Value;
+            if (_supportInitialized.HasValue)
+                return _supportInitialized.Value;
 
             try
             {
                 VkResult result = vkInitialize();
-                _supportInitializad = result == VkResult.Success;
-                return _supportInitializad.Value;
+                _supportInitialized = result == VkResult.Success;
+                return _supportInitialized.Value;
             }
             catch
             {
-                _supportInitializad = false;
+                _supportInitialized = false;
                 return false;
             }
         }
@@ -45,7 +45,11 @@ namespace Alimer.Graphics.Vulkan
         public VulkanGraphicsDevice(GraphicsAdapterType adapterPreference)
         {
             if (!IsSupported())
+            {
                 throw new NotSupportedException("Vulkan is not supported");
+            }
+
+            HashSet<string> availableInstanceExtensions = new HashSet<string>(EnumerateInstanceExtensions());
 
             //VkString name = applicationName;
             VkApplicationInfo appInfo = new VkApplicationInfo
@@ -66,6 +70,39 @@ namespace Alimer.Graphics.Vulkan
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 instanceExtensions.Add(KHRWin32SurfaceExtensionName);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                if (availableInstanceExtensions.Contains(KHRAndroidSurfaceExtensionName))
+                {
+                    instanceExtensions.Add(KHRAndroidSurfaceExtensionName);
+                }
+                if (availableInstanceExtensions.Contains(KHRXlibSurfaceExtensionName))
+                {
+                    instanceExtensions.Add(KHRXlibSurfaceExtensionName);
+                }
+                if (availableInstanceExtensions.Contains(KHRWaylandSurfaceExtensionName))
+                {
+                    instanceExtensions.Add(KHRWaylandSurfaceExtensionName);
+                }
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                if (availableInstanceExtensions.Contains(EXTMetalSurfaceExtensionName))
+                {
+                    instanceExtensions.Add(EXTMetalSurfaceExtensionName);
+                }
+                else // Legacy MoltenVK extensions
+                {
+                    if (availableInstanceExtensions.Contains(MvkMacosSurfaceExtensionName))
+                    {
+                        instanceExtensions.Add(MvkMacosSurfaceExtensionName);
+                    }
+                    if (availableInstanceExtensions.Contains(MvkIosSurfaceExtensionName))
+                    {
+                        instanceExtensions.Add(MvkIosSurfaceExtensionName);
+                    }
+                }
             }
 
             List<string> instanceLayers = new List<string>();
@@ -132,7 +169,20 @@ namespace Alimer.Graphics.Vulkan
             //        Log.Info($"Instance layer '{layer}'");
             //    }
             //}
+
+            // Find physical device, setup queue's and create device.
+            ReadOnlySpan<VkPhysicalDevice> physicalDevices = vkEnumeratePhysicalDevices(_instance);
+            foreach (VkPhysicalDevice physicalDevice in physicalDevices)
+            {
+                vkGetPhysicalDeviceProperties(physicalDevice, out VkPhysicalDeviceProperties properties);
+            }
+
+            PhysicalDevice = physicalDevices[0];
+
+            InitCapabilites();
         }
+
+        public VkPhysicalDevice PhysicalDevice { get; }
 
         /// <inheritdoc/>
         public override GraphicsDeviceCaps Capabilities => _capabilities;
@@ -150,36 +200,53 @@ namespace Alimer.Graphics.Vulkan
         {
             if (disposing)
             {
+                if (_debugMessenger != VkDebugUtilsMessengerEXT.Null)
+                {
+                    vkDestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, null);
+                    _debugMessenger = VkDebugUtilsMessengerEXT.Null;
+                }
+
+                if (_instance != VkInstance.Null)
+                {
+                    vkDestroyInstance(_instance, null);
+                }
+
+                _instance = VkInstance.Null;
             }
         }
 
-        private static void FindValidationLayers(List<string> appendTo)
+        private void InitCapabilites()
         {
-            ReadOnlySpan<VkLayerProperties> availableLayers = vkEnumerateInstanceLayerProperties();
+            vkGetPhysicalDeviceProperties(PhysicalDevice, out VkPhysicalDeviceProperties properties);
 
-            bool hasLayer = false;
-            for (int i = 0; i < s_RequestedValidationLayers.Length; i++)
+            _capabilities.BackendType = BackendType.Vulkan;
+            _capabilities.VendorId = new GPUVendorId(properties.vendorID);
+            _capabilities.AdapterId = properties.deviceID;
+
+            switch (properties.deviceType)
             {
-                for (int j = 0; j < availableLayers.Length; j++)
-                {
-                    if (s_RequestedValidationLayers[i] == availableLayers[j].GetLayerName())
-                    {
-                        hasLayer = true;
-                        break;
-                    }
-                }
+                case VkPhysicalDeviceType.IntegratedGpu:
+                    _capabilities.AdapterType = GraphicsAdapterType.IntegratedGPU;
+                    break;
 
-                if (hasLayer)
-                {
-                    appendTo.Add(s_RequestedValidationLayers[i]);
-                }
-                else
-                {
-                    // TODO: Warn
-                }
+                case VkPhysicalDeviceType.DiscreteGpu:
+                    _capabilities.AdapterType = GraphicsAdapterType.DiscreteGPU;
+                    break;
+
+                case VkPhysicalDeviceType.Cpu:
+                    _capabilities.AdapterType = GraphicsAdapterType.CPU;
+                    break;
+
+                default:
+                    _capabilities.AdapterType = GraphicsAdapterType.Unknown;
+                    break;
             }
+
+            _capabilities.AdapterName = properties.GetDeviceName();
         }
 
+
+        #region Debug Messenger Callback
         private static VkBool32 DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageTypes,
             VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -215,5 +282,6 @@ namespace Alimer.Graphics.Vulkan
 
             return VkBool32.False;
         }
+        #endregion
     }
 }

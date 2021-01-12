@@ -12,10 +12,14 @@ namespace Alimer
     /// </summary>
     public abstract class GameContext
     {
+        private GraphicsDevice? graphicsDevice;
+
         /// <summary>
         /// Get the main window.
         /// </summary>
         public abstract GameWindow? GameWindow { get; }
+
+        public GraphicsDevice? GraphicsDevice { get => graphicsDevice ??= CreateGraphicsDevice(); set => graphicsDevice = value; }
 
         protected GameContext()
         {
@@ -23,6 +27,7 @@ namespace Alimer
 
         public virtual void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton(GraphicsDevice);
         }
 
         /// <summary>
@@ -32,5 +37,19 @@ namespace Alimer
         /// <param name="tickAction">The tick action to execute.</param>
         /// <returns>Return true if blocking otherwise false.</returns>
         public abstract bool Run(Action loadAction, Action tickAction);
+
+        private static GraphicsDevice? CreateGraphicsDevice()
+        {
+            //return GraphicsDevice.CreateSystemDefault(BackendType.Vulkan);
+            if (RuntimePlatform.PlatformType == PlatformType.Windows)
+            {
+                if (GraphicsDevice.IsBackendSupported(BackendType.Direct3D12))
+                {
+                    return GraphicsDevice.CreateSystemDefault(BackendType.Direct3D12);
+                }
+            }
+
+            return GraphicsDevice.CreateSystemDefault();
+        }
     }
 }

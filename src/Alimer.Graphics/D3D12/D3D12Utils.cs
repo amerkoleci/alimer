@@ -10,11 +10,10 @@ namespace Alimer.Graphics.D3D12
 {
     internal static unsafe class D3D12Utils
     {
-        public static IDXGIAdapter1 GetAdapter(IDXGIFactory4 factory, FeatureLevel minFeatureLevel, bool lowPower)
+        public static IDXGIAdapter1? GetAdapter(IDXGIFactory4 factory, FeatureLevel minFeatureLevel, bool lowPower)
         {
-            IDXGIAdapter1 adapter = null;
-            IDXGIFactory6 dxgiFactory6 = factory.QueryInterfaceOrNull<IDXGIFactory6>();
-            if (dxgiFactory6 != null)
+            IDXGIAdapter1? adapter = null;
+            using (IDXGIFactory6 dxgiFactory6 = factory.QueryInterfaceOrNull<IDXGIFactory6>())
             {
                 GpuPreference gpuPreference = GpuPreference.HighPerformance;
                 if (lowPower)
@@ -26,7 +25,7 @@ namespace Alimer.Graphics.D3D12
                     ResultCode.NotFound != dxgiFactory6.EnumAdapterByGpuPreference(adapterIndex, gpuPreference, out adapter);
                     adapterIndex++)
                 {
-                    AdapterDescription1 desc = adapter.Description1;
+                    AdapterDescription1 desc = adapter!.Description1;
 
                     if ((desc.Flags & AdapterFlags.Software) != 0)
                     {

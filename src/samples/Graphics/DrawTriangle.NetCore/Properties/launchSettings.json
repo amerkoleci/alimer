@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DrawTriangle.NetCore": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
