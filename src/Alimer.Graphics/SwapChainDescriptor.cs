@@ -2,16 +2,14 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics
 {
-    [StructLayout(LayoutKind.Sequential)]
-    public struct SwapchainInfo
+    public struct SwapChainDescriptor
     {
-        public uint Width;
-        public uint Height;
-        public PixelFormat ColorFrmat;
+        public int Width;
+        public int Height;
+        public PixelFormat ColorFormat;
         public PixelFormat DepthStencilFormat;
         public PresentMode PresentMode;
         public bool Fullscreen;
