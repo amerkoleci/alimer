@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>Vortice</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE" PackagePath="" Pack="true" />
+
+    <!-- Workaround so the files appear in VS -->
+    <None Include="Platforms\**\*.*" />
+    <Compile Remove="Platforms\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('net5')) ">
+    <Compile Include="Platforms\netstandard\**\*.cs" />
+    <ProjectReference Include="..\Vortice.GLFW\Vortice.GLFW.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <Compile Include="Platforms\uwp\**\*.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.7" />
+    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
+    <ProjectReference Include="..\Vortice.Input\Vortice.Input.csproj" />
+  </ItemGroup>
+
+</Project>

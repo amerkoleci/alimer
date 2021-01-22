@@ -1,13 +1,13 @@
-# Alimer
+# Vortice
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer_sharp/blob/master/LICENSE)
-[![Build status](https://github.com/amerkoleci/alimer_sharp/workflows/ci/badge.svg)](https://github.com/amerkoleci/alimer_sharp/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/vortice/blob/master/LICENSE)
+[![Build status](https://github.com/amerkoleci/vortice/workflows/ci/badge.svg)](https://github.com/amerkoleci/vortice/actions)
 
-**Alimer** is a cross platform 2D and 3D .NET engine implemented in C#.
+**Vortice** is a cross platform 2D and 3D .NET engine implemented in C#.
 
 ## Features
 
-- Cross-platform targets .NET Standard 2.0.
+- Cross-platform targets .NET Standard 2.0 and net5.
 - Modern graphics/rendering API using Direct3D12, Vulkan and Direct3D11.1.
 - CommandBuffer, Command Queue based rendering.
 
@@ -20,7 +20,7 @@
 
 ## Credits
 
-Alimer development, contributions and bugfixes by:
+Vortice development, contributions and bugfixes by:
 
 - Amer Koleci
 

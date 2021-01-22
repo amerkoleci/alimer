@@ -6,12 +6,9 @@
     <RepoBinPath>$(MSBuildThisFileDirectory)..\bin\</RepoBinPath>
     <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoBinPath)$(MSBuildProjectName)\</BaseOutputPath>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix>alpha</VersionSuffix>
-    <VersionSuffix Condition="'$(GITHUB_EVENT_NAME)' == 'pull_request'">pr</VersionSuffix>
 
-    <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>embedded</DebugType>
@@ -19,22 +16,23 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
 
-    <Product>Alimer</Product>
+    <Product>Vortice</Product>
     <NeutralLanguage>en-US</NeutralLanguage>
 
     <Authors>Amer Koleci</Authors>
-    <Copyright>Copyright © 2019-2020 Amer Koleci.</Copyright>
-    <RepositoryUrl>https://github.com/amerkoleci/alimer_sharp</RepositoryUrl>
+    <Copyright>Copyright © 2019-2021 Amer Koleci.</Copyright>
+    <RepositoryUrl>https://github.com/amerkoleci/vortice</RepositoryUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
-    <PackageTags>3D Engine Graphics gamedev alimer Direct3D DirectX Vulkan OpenGL Metal Core Standard Game</PackageTags>
+    <PackageTags>3D Engine Graphics gamedev Vortice Direct3D DirectX Vulkan OpenGL Metal Core Standard Game</PackageTags>
 
     <RepositoryType>git</RepositoryType>
-    <RestoreSources>
-      https://api.nuget.org/v3/index.json;
-    </RestoreSources>
     <ExtrasUwpMetaPackageVersion>6.2.10</ExtrasUwpMetaPackageVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37" PrivateAssets="all" />
+  </ItemGroup>
 
 </Project>

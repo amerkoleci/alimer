@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);ENABLE_VALIDATION</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="D3D/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.Vulkan" Version="1.2.166.4" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.Direct3D12" Version="1.8.57" Condition="'$(ExcludeD3D12)' != 'true'" />
+    <PackageReference Include="Vortice.Direct3D11" Version="1.8.57" Condition="'$(ExcludeD3D12)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vortice.Core\Vortice.Core.csproj" />
+  </ItemGroup>
+
+</Project>

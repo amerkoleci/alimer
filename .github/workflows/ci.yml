@@ -11,33 +11,29 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-        include:
-        - os: windows-latest
-          runtime: win-x64
-        - os: macos-latest
-          runtime: osx-x64
-        - os: ubuntu-latest
-          runtime: linux-x64
-
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 
     - name: Install .NET
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.100
 
-    - name: Publish
-      run: dotnet publish src --configuration Release --runtime ${{ matrix.runtime }} --output build/artifacts/${{ matrix.runtime }}
+    - name: Version
+      uses: aarnott/nbgv@v0.4.0
+      with:
+        setAllVars: true        
+
+    - name: Pack
+      run: dotnet pack src --configuration Release --output build/packages
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.runtime }}
-        path: build/artifacts/${{ matrix.runtime }}
+        name: Packages
+        path: build/packages

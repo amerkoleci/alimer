@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Alimer.Games\Alimer.Games.csproj" />
+    <ProjectReference Include="..\..\..\Vortice.Application\Vortice.Application.csproj" />
   </ItemGroup>
 
 </Project>
