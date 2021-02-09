@@ -30,7 +30,7 @@ jobs:
         setAllVars: true        
 
     - name: Pack
-      run: dotnet pack src --configuration Release --output build/packages
+      run: dotnet pack Vortice.sln --configuration Release --output build/packages
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
