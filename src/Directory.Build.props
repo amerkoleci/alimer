@@ -1,37 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <RepositoryRootDirectory>$(MSBuildThisFileDirectory)..\</RepositoryRootDirectory>
-    <RepoBinPath>$(MSBuildThisFileDirectory)..\bin\</RepoBinPath>
-    <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
-    <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoBinPath)$(MSBuildProjectName)\</BaseOutputPath>
-
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DebugType>embedded</DebugType>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
 
-    <Product>Vortice</Product>
-    <NeutralLanguage>en-US</NeutralLanguage>
-
-    <Authors>Amer Koleci</Authors>
+    <Company>Amer Koleci</Company>
     <Copyright>Copyright © 2019-2021 Amer Koleci.</Copyright>
     <RepositoryUrl>https://github.com/amerkoleci/vortice</RepositoryUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>3D Engine Graphics gamedev Vortice Direct3D DirectX Vulkan OpenGL Metal Core Standard Game</PackageTags>
-
-    <RepositoryType>git</RepositoryType>
-    <ExtrasUwpMetaPackageVersion>6.2.10</ExtrasUwpMetaPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.0.0" />
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37" PrivateAssets="all" />
   </ItemGroup>
 
