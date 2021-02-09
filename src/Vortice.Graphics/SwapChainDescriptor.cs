@@ -9,8 +9,8 @@ namespace Vortice.Graphics
     {
         public int Width;
         public int Height;
-        public PixelFormat ColorFormat;
-        public PixelFormat DepthStencilFormat;
+        public TextureFormat ColorFormat;
+        public TextureFormat DepthStencilFormat;
         public PresentMode PresentMode;
         public bool Fullscreen;
         public IntPtr WindowHandle;

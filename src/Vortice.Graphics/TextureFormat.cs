@@ -4,9 +4,9 @@
 namespace Vortice.Graphics
 {
     /// <summary>
-    /// Defines pixel format.
+    /// Defines texture format.
     /// </summary>
-    public enum PixelFormat
+    public enum TextureFormat
     {
         Invalid = 0,
         // 8-bit pixel formats
@@ -43,6 +43,7 @@ namespace Vortice.Graphics
         // Packed 32-Bit Pixel formats
         RGB10A2Unorm,
         RG11B10Float,
+        RGB9E5Float,
         // 64-Bit Pixel Formats
         RG32Uint,
         RG32Sint,
@@ -61,7 +62,6 @@ namespace Vortice.Graphics
         Depth32Float,
         Depth24UnormStencil8,
         Depth32FloatStencil8,
-        // Compressed formats
         // Compressed BC formats
         BC1RGBAUnorm,
         BC1RGBAUnormSrgb,

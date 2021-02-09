@@ -6,24 +6,20 @@ namespace Vortice.Graphics
     public enum BackendType
     {
         /// <summary>
-        /// Null renderer.
+        /// Default best platform supported backend.
         /// </summary>
-        Null,
-        /// <summary>
-        /// Vulkan backend.
-        /// </summary>
-        Vulkan,
+        Default,
         /// <summary>
         /// Direct3D 12 backend.
         /// </summary>
         Direct3D12,
         /// <summary>
-        /// Metal backend.
+        /// Vulkan backend.
         /// </summary>
-        Metal,
+        Vulkan,
         /// <summary>
-        /// Default best platform supported backend.
+        /// Null renderer.
         /// </summary>
-        Count
+        Null,
     }
 }

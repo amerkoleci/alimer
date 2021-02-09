@@ -9,7 +9,7 @@ namespace Vortice.Graphics
     {
         protected GraphicsResource(GraphicsDevice device)
         {
-            Guard.AssertNotNull(device, nameof(device));
+            //Guard.AssertNotNull(device, nameof(device));
 
             GraphicsDevice = device;
         }

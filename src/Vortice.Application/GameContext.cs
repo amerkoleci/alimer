@@ -45,7 +45,8 @@ namespace Vortice
             {
                 if (GraphicsDevice.IsBackendSupported(BackendType.Direct3D12))
                 {
-                    return GraphicsDevice.CreateSystemDefault(BackendType.Direct3D12);
+                    GraphicsDevice.PreferredBackendType = BackendType.Direct3D12;
+                    return GraphicsDevice.CreateSystemDefault();
                 }
             }
 

@@ -1,191 +1,179 @@
 // Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
-using System.Collections;
-using System.Collections.Generic;
-using Vortice.Direct3D;
-using Vortice.DXGI;
-using static Vortice.Direct3D12.D3D12;
+using System.Diagnostics;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using TerraFX.Interop;
+using static TerraFX.Interop.DXGI_FORMAT;
+using static TerraFX.Interop.Windows;
 
 namespace Vortice.Graphics.D3D12
 {
     internal static unsafe class D3D12Utils
     {
-        public static IDXGIAdapter1? GetAdapter(IDXGIFactory4 factory, FeatureLevel minFeatureLevel, bool lowPower)
+        public static void ThrowIfFailed(HRESULT hr)
         {
-            IDXGIAdapter1? adapter = null;
-            using (IDXGIFactory6 dxgiFactory6 = factory.QueryInterfaceOrNull<IDXGIFactory6>())
+            if (FAILED(hr))
             {
-                GpuPreference gpuPreference = GpuPreference.HighPerformance;
-                if (lowPower)
-                {
-                    gpuPreference = GpuPreference.MinimumPower;
-                }
-
-                for (int adapterIndex = 0;
-                    ResultCode.NotFound != dxgiFactory6.EnumAdapterByGpuPreference(adapterIndex, gpuPreference, out adapter);
-                    adapterIndex++)
-                {
-                    AdapterDescription1 desc = adapter!.Description1;
-
-                    if ((desc.Flags & AdapterFlags.Software) != 0)
-                    {
-                        // Don't select the Basic Render Driver adapter.
-                        adapter.Dispose();
-                        continue;
-                    }
-
-                    // Check to see if the adapter supports Direct3D 12.
-                    if (IsSupported(adapter, minFeatureLevel))
-                    {
-                        break;
-                    }
-                }
-
-                dxgiFactory6.Dispose();
+                Marshal.ThrowExceptionForHR(hr);
             }
-
-            if (adapter == null)
-            {
-                for (int adapterIndex = 0;
-                    ResultCode.NotFound != factory.EnumAdapters1(adapterIndex, out adapter);
-                    adapterIndex++)
-                {
-                    AdapterDescription1 desc = adapter.Description1;
-
-                    if ((desc.Flags & AdapterFlags.Software) != 0)
-                    {
-                        // Don't select the Basic Render Driver adapter.
-                        adapter.Dispose();
-                        continue;
-                    }
-
-                    // Check to see if the adapter supports Direct3D 12.
-                    if (IsSupported(adapter, minFeatureLevel))
-                    {
-                        break;
-                    }
-                }
-            }
-
-            return adapter;
         }
 
-        private static readonly FormatMap<PixelFormat, Format> s_formatsMap = new FormatMap<PixelFormat, Format>
+        [Conditional("DEBUG")]
+        public static void SetName(ID3D12Object* pObject, string name)
         {
-            { PixelFormat.Invalid,        Format.Unknown },
-            // 8-bit pixel formats
-            { PixelFormat.R8Unorm,          Format.R8_UNorm },
-            { PixelFormat.R8Snorm,          Format.R8_SNorm },
-            { PixelFormat.R8Uint,           Format.R8_UInt },
-            { PixelFormat.R8Sint,           Format.R8_SInt },
-            // 16-bit pixel formats
-            { PixelFormat.R16Unorm,         Format.R16_UNorm },
-            { PixelFormat.R16Snorm,         Format.R16_SNorm },
-            { PixelFormat.R16Uint,          Format.R16_UInt },
-            { PixelFormat.R16Sint,          Format.R16_SInt },
-            { PixelFormat.R16Float,         Format.R16_Float },
-            { PixelFormat.RG8Unorm,         Format.R8G8_UNorm },
-            { PixelFormat.RG8Snorm,         Format.R8G8_SNorm },
-            { PixelFormat.RG8Uint,          Format.R8G8_UInt },
-            { PixelFormat.RG8Sint,          Format.R8G8_SInt },
-            // Packed 16-bit pixel formats
-            //{ PixelFormat.B5G6R5UNorm,      DXGI_FORMAT_B5G6R5_UNorm },
-            //{ PixelFormat.BGRA4UNorm,       DXGI_FORMAT_B4G4R4A4_UNorm },
-            // 32-bit pixel formats
-            { PixelFormat.R32Uint,          Format.R32_UInt },
-            { PixelFormat.R32Sint,          Format.R32_SInt },
-            { PixelFormat.R32Float,         Format.R32_Float },
-            { PixelFormat.RG16Unorm,        Format.R16G16_UNorm },
-            { PixelFormat.RG16Snorm,        Format.R16G16_SNorm },
-            { PixelFormat.RG16Uint,         Format.R16G16_UInt },
-            { PixelFormat.RG16Sint,         Format.R16G16_SInt },
-            { PixelFormat.RG16Float,        Format.R16G16_Float },
-            { PixelFormat.RGBA8Unorm,       Format.R8G8B8A8_UNorm },
-            { PixelFormat.RGBA8UnormSrgb,   Format.R8G8B8A8_UNorm_SRgb },
-            { PixelFormat.RGBA8Snorm,       Format.R8G8B8A8_SNorm },
-            { PixelFormat.RGBA8Uint,        Format.R8G8B8A8_UInt },
-            { PixelFormat.RGBA8Sint,        Format.R8G8B8A8_SInt },
-            { PixelFormat.BGRA8Unorm,       Format.B8G8R8A8_UNorm },
-            { PixelFormat.BGRA8UnormSrgb,   Format.B8G8R8A8_UNorm_SRgb },
-            // Packed 32-Bit Pixel formats
-            { PixelFormat.RGB10A2Unorm,     Format.R10G10B10A2_UNorm },
-            { PixelFormat.RG11B10Float,     Format.R11G11B10_Float },
-            // 64-Bit Pixel Formats
-            { PixelFormat.RG32Uint,         Format.R32G32_UInt },
-            { PixelFormat.RG32Sint,         Format.R32G32_SInt },
-            { PixelFormat.RG32Float,        Format.R32G32_Float },
-            { PixelFormat.RGBA16Unorm,      Format.R16G16B16A16_UNorm },
-            { PixelFormat.RGBA16Snorm,      Format.R16G16B16A16_SNorm },
-            { PixelFormat.RGBA16Uint,       Format.R16G16B16A16_UInt },
-            { PixelFormat.RGBA16Sint,       Format.R16G16B16A16_SInt },
-            { PixelFormat.RGBA16Float,      Format.R16G16B16A16_Float },
-            // 128-Bit Pixel Formats
-            { PixelFormat.RGBA32Uint,           Format.R32G32B32A32_UInt },
-            { PixelFormat.RGBA32Sint,           Format.R32G32B32A32_SInt },
-            { PixelFormat.RGBA32Float,          Format.R32G32B32A32_Float },
-            // Depth-stencil
-            { PixelFormat.Depth16Unorm,         Format.D16_UNorm },
-            { PixelFormat.Depth32Float,         Format.D32_Float },
-            { PixelFormat.Depth24UnormStencil8, Format.D24_UNorm_S8_UInt },
-            { PixelFormat.Depth32FloatStencil8, Format.D32_Float_S8X24_UInt },
-            // Compressed BC formats
-            { PixelFormat.BC1RGBAUnorm,         Format.BC1_UNorm },
-            { PixelFormat.BC1RGBAUnormSrgb,     Format.BC1_UNorm_SRgb },
-            { PixelFormat.BC2RGBAUnorm,         Format.BC2_UNorm },
-            { PixelFormat.BC2RGBAUnormSrgb,     Format.BC2_UNorm_SRgb },
-            { PixelFormat.BC3RGBAUnorm,         Format.BC3_UNorm },
-            { PixelFormat.BC3RGBAUnormSrgb,     Format.BC3_UNorm_SRgb },
-            { PixelFormat.BC4RUnorm,            Format.BC4_UNorm },
-            { PixelFormat.BC4RSnorm,            Format.BC4_SNorm },
-            { PixelFormat.BC5RGUnorm,           Format.BC5_UNorm },
-            { PixelFormat.BC5RGSnorm,           Format.BC5_SNorm },
-            { PixelFormat.BC6HRGBSfloat,        Format.BC6H_Sf16 },
-            { PixelFormat.BC6HRGBUfloat,        Format.BC6H_Uf16 },
-            { PixelFormat.BC7RGBAUnorm,         Format.BC7_UNorm },
-            { PixelFormat.BC7RGBAUnormSrgb,     Format.BC7_UNorm_SRgb },
-            // Compressed PVRTC Pixel Formats
-            //{ PixelFormat.PVRTC_RGB2,   Format.Unknown },
-            //{ PixelFormat.PVRTC_RGBA2,  Format.Unknown },
-            //{ PixelFormat.PVRTC_RGB4,   Format.Unknown },
-            //{ PixelFormat.PVRTC_RGBA4,  Format.Unknown },
-            // Compressed ETC Pixel Formats
-            //{ PixelFormat.ETC2_RGB8,    Format.Unknown },
-            //{ PixelFormat.ETC2_RGB8A1,  Format.Unknown },
-            // Compressed ASTC Pixel Formats
-            //{ PixelFormat.ASTC4x4,      Format.Unknown },
-            //{ PixelFormat.ASTC5x5,      Format.Unknown },
-            //{ PixelFormat.ASTC6x6,      Format.Unknown },
-            //{ PixelFormat.ASTC8x5,      Format.Unknown },
-            //{ PixelFormat.ASTC8x6,      Format.Unknown },
-            //{ PixelFormat.ASTC8x8,      Format.Unknown },
-            //{ PixelFormat.ASTC10x10,    Format.Unknown },
-            //{ PixelFormat.ASTC12x12,    Format.Unknown },
-        };
-
-        public static Format ToDirectXPixelFormat(this PixelFormat format) => s_formatsMap[format];
-        public static PixelFormat FromDirectXPixelFormat(this Format format) => s_formatsMap[format];
-
-        private class FormatMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
-            where TKey : notnull
-            where TValue : notnull
-        {
-            private readonly Dictionary<TKey, TValue> _forward = new Dictionary<TKey, TValue>();
-            private readonly Dictionary<TValue, TKey> _reverse = new Dictionary<TValue, TKey>();
-            public void Add(TKey key, TValue value)
+            fixed (char* pName = name)
             {
-                _forward.Add(key, value);
-                if (!_reverse.ContainsKey(value))
-                {
-                    _reverse.Add(value, key);
-                }
+                _ = pObject->SetName((ushort*)pName);
             }
-            public TValue this[TKey key] => _forward[key];
-            public TKey this[TValue value] => _reverse[value];
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-            public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        }
+
+        [Conditional("DEBUG")]
+        public static void SetNameIndexed(ID3D12Object* pObject, string name, uint index)
+        {
+            string fullName = $"{name}[{index}]";
+            SetName(pObject, fullName);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static DXGI_FORMAT ToDXGIFormat(TextureFormat format)
+        {
+            switch (format)
             {
-                return _forward.GetEnumerator();
+                // 8-bit formats
+                case TextureFormat.R8Unorm:
+                    return DXGI_FORMAT_R8_UNORM;
+                case TextureFormat.R8Snorm:
+                    return DXGI_FORMAT_R8_SNORM;
+                case TextureFormat.R8Uint:
+                    return DXGI_FORMAT_R8_UINT;
+                case TextureFormat.R8Sint:
+                    return DXGI_FORMAT_R8_SINT;
+                // 16-bit formats
+                case TextureFormat.R16Unorm:
+                    return DXGI_FORMAT_R16_UNORM;
+                case TextureFormat.R16Snorm:
+                    return DXGI_FORMAT_R16_SNORM;
+                case TextureFormat.R16Uint:
+                    return DXGI_FORMAT_R16_UINT;
+                case TextureFormat.R16Sint:
+                    return DXGI_FORMAT_R16_SINT;
+                case TextureFormat.R16Float:
+                    return DXGI_FORMAT_R16_FLOAT;
+                case TextureFormat.RG8Unorm:
+                    return DXGI_FORMAT_R8G8_UNORM;
+                case TextureFormat.RG8Snorm:
+                    return DXGI_FORMAT_R8G8_SNORM;
+                case TextureFormat.RG8Uint:
+                    return DXGI_FORMAT_R8G8_UINT;
+                case TextureFormat.RG8Sint:
+                    return DXGI_FORMAT_R8G8_SINT;
+                // 32-bit formats
+                case TextureFormat.R32Uint:
+                    return DXGI_FORMAT_R32_UINT;
+                case TextureFormat.R32Sint:
+                    return DXGI_FORMAT_R32_SINT;
+                case TextureFormat.R32Float:
+                    return DXGI_FORMAT_R32_FLOAT;
+                case TextureFormat.RG16Unorm:
+                    return DXGI_FORMAT_R16G16_UNORM;
+                case TextureFormat.RG16Snorm:
+                    return DXGI_FORMAT_R16G16_SNORM;
+                case TextureFormat.RG16Uint:
+                    return DXGI_FORMAT_R16G16_UINT;
+                case TextureFormat.RG16Sint:
+                    return DXGI_FORMAT_R16G16_SINT;
+                case TextureFormat.RG16Float:
+                    return DXGI_FORMAT_R16G16_FLOAT;
+                case TextureFormat.RGBA8Unorm:
+                    return DXGI_FORMAT_R8G8B8A8_UNORM;
+                case TextureFormat.RGBA8UnormSrgb:
+                    return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+                case TextureFormat.RGBA8Snorm:
+                    return DXGI_FORMAT_R8G8B8A8_SNORM;
+                case TextureFormat.RGBA8Uint:
+                    return DXGI_FORMAT_R8G8B8A8_UINT;
+                case TextureFormat.RGBA8Sint:
+                    return DXGI_FORMAT_R8G8B8A8_SINT;
+                case TextureFormat.BGRA8Unorm:
+                    return DXGI_FORMAT_B8G8R8A8_UNORM;
+                case TextureFormat.BGRA8UnormSrgb:
+                    return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+                // Packed 32-Bit formats
+                case TextureFormat.RGB10A2Unorm:
+                    return DXGI_FORMAT_R10G10B10A2_UNORM;
+                case TextureFormat.RG11B10Float:
+                    return DXGI_FORMAT_R11G11B10_FLOAT;
+                case TextureFormat.RGB9E5Float:
+                    return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+                // 64-Bit formats
+                case TextureFormat.RG32Uint:
+                    return DXGI_FORMAT_R32G32_UINT;
+                case TextureFormat.RG32Sint:
+                    return DXGI_FORMAT_R32G32_SINT;
+                case TextureFormat.RG32Float:
+                    return DXGI_FORMAT_R32G32_FLOAT;
+                case TextureFormat.RGBA16Unorm:
+                    return DXGI_FORMAT_R16G16B16A16_UNORM;
+                case TextureFormat.RGBA16Snorm:
+                    return DXGI_FORMAT_R16G16B16A16_SNORM;
+                case TextureFormat.RGBA16Uint:
+                    return DXGI_FORMAT_R16G16B16A16_UINT;
+                case TextureFormat.RGBA16Sint:
+                    return DXGI_FORMAT_R16G16B16A16_SINT;
+                case TextureFormat.RGBA16Float:
+                    return DXGI_FORMAT_R16G16B16A16_FLOAT;
+                // 128-Bit formats
+                case TextureFormat.RGBA32Uint:
+                    return DXGI_FORMAT_R32G32B32A32_UINT;
+                case TextureFormat.RGBA32Sint:
+                    return DXGI_FORMAT_R32G32B32A32_SINT;
+                case TextureFormat.RGBA32Float:
+                    return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                // Depth-stencil formats
+                case TextureFormat.Depth16Unorm:
+                    return DXGI_FORMAT_D16_UNORM;
+                case TextureFormat.Depth32Float:
+                    return DXGI_FORMAT_D32_FLOAT;
+                case TextureFormat.Depth24UnormStencil8:
+                    return DXGI_FORMAT_D24_UNORM_S8_UINT;
+                case TextureFormat.Depth32FloatStencil8:
+                    return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+                // Compressed BC formats
+                case TextureFormat.BC1RGBAUnorm:
+                    return DXGI_FORMAT_BC1_UNORM;
+                case TextureFormat.BC1RGBAUnormSrgb:
+                    return DXGI_FORMAT_BC1_UNORM_SRGB;
+                case TextureFormat.BC2RGBAUnorm:
+                    return DXGI_FORMAT_BC2_UNORM;
+                case TextureFormat.BC2RGBAUnormSrgb:
+                    return DXGI_FORMAT_BC2_UNORM_SRGB;
+                case TextureFormat.BC3RGBAUnorm:
+                    return DXGI_FORMAT_BC3_UNORM;
+                case TextureFormat.BC3RGBAUnormSrgb:
+                    return DXGI_FORMAT_BC3_UNORM_SRGB;
+                case TextureFormat.BC4RSnorm:
+                    return DXGI_FORMAT_BC4_SNORM;
+                case TextureFormat.BC4RUnorm:
+                    return DXGI_FORMAT_BC4_UNORM;
+                case TextureFormat.BC5RGSnorm:
+                    return DXGI_FORMAT_BC5_SNORM;
+                case TextureFormat.BC5RGUnorm:
+                    return DXGI_FORMAT_BC5_UNORM;
+                case TextureFormat.BC6HRGBUfloat:
+                    return DXGI_FORMAT_BC6H_UF16;
+                case TextureFormat.BC6HRGBSfloat:
+                    return DXGI_FORMAT_BC6H_SF16;
+                case TextureFormat.BC7RGBAUnorm:
+                    return DXGI_FORMAT_BC7_UNORM;
+                case TextureFormat.BC7RGBAUnormSrgb:
+                    return DXGI_FORMAT_BC7_UNORM_SRGB;
+
+                default:
+                    return ThrowHelper.ThrowArgumentException<DXGI_FORMAT>("Invalid texture type");
             }
         }
     }

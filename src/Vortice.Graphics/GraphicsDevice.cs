@@ -8,8 +8,8 @@ namespace Vortice.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
-        public const string EnableValidationSwitchName = "Alimer.Graphics.EnableValidation";
-        public const string EnableGPUBasedValidationSwitchName = "Alimer.Graphics.EnableGPUBasedValidation";
+        public const string EnableValidationSwitchName = "Vortice.Graphics.EnableValidation";
+        public const string EnableGPUBasedValidationSwitchName = "Vortice.Graphics.EnableGPUBasedValidation";
 
         static GraphicsDevice()
         {
@@ -35,6 +35,7 @@ namespace Vortice.Graphics
 
         public static bool EnableValidation { get; }
         public static bool EnableGPUBasedValidation { get; }
+        public static BackendType PreferredBackendType { get; set; } = BackendType.Default;
 
         protected GraphicsDevice()
         {
@@ -55,25 +56,23 @@ namespace Vortice.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-        public static GraphicsDevice? CreateSystemDefault(
-           BackendType preferredBackendType = BackendType.Count,
-           GraphicsAdapterType adapterPreference = GraphicsAdapterType.DiscreteGPU)
+        public static GraphicsDevice? CreateSystemDefault()
         {
-            if (preferredBackendType == BackendType.Count)
+            if (PreferredBackendType == BackendType.Default)
             {
-                preferredBackendType = GetDefaultPlatformBackend();
+                PreferredBackendType = GetDefaultPlatformBackend();
             }
 
-            switch (preferredBackendType)
+            switch (PreferredBackendType)
             {
 #if !EXCLUDE_VULKAN_BACKEND
                 case BackendType.Vulkan:
-                    return new Vulkan.VulkanGraphicsDevice(adapterPreference);
+                    return new Vulkan.VulkanGraphicsDevice(GraphicsAdapterType.DiscreteGPU);
 #endif
 
 #if !EXCLUDE_D3D12_BACKEND
                 case BackendType.Direct3D12:
-                    return new D3D12.D3D12GraphicsDevice(adapterPreference);
+                    return new D3D12.D3D12GraphicsDevice();
 #endif
 
                 default:
@@ -83,7 +82,7 @@ namespace Vortice.Graphics
 
         public static bool IsBackendSupported(BackendType backend)
         {
-            if (backend == BackendType.Count)
+            if (backend == BackendType.Default)
             {
                 backend = GetDefaultPlatformBackend();
             }
@@ -128,10 +127,10 @@ namespace Vortice.Graphics
 
                 return BackendType.Null;
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                return BackendType.Metal;
-            }
+            //else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            //{
+            //    return BackendType.Metal;
+            //}
 
             if (IsBackendSupported(BackendType.Vulkan))
             {
