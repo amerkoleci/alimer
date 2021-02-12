@@ -30,7 +30,7 @@ namespace Vortice.Graphics
     [StructLayout(LayoutKind.Sequential)]
     public struct RenderPassColorAttachment
     {
-        public GPUTexture texture;
+        public SwapChain texture;
         public uint mipLevel;
         public uint slice;
         public LoadOp loadOp;
@@ -40,7 +40,7 @@ namespace Vortice.Graphics
     [StructLayout(LayoutKind.Sequential)]
     public struct RenderPassDepthStencilAttachment
     {
-        public GPUTexture texture;
+        public SwapChain texture;
         public LoadOp depthLoadOp;
         public float clearDepth;
         public LoadOp stencilLoadOp;

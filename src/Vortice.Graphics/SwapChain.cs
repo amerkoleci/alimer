@@ -1,14 +1,11 @@
 // Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
-using System;
-using System.Diagnostics;
-
 namespace Vortice.Graphics
 {
-    public abstract class Texture : GraphicsResource
+    public abstract class SwapChain : GraphicsResource
     {
-        protected Texture(GraphicsDevice device, in TextureDescriptor descriptor)
+        protected SwapChain(GraphicsDevice device, in SwapChainDescriptor descriptor)
             : base(device)
         {
         }

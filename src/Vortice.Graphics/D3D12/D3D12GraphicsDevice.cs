@@ -2,7 +2,6 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using HRESULT = System.Int32;
 using static Vortice.Graphics.D3D12.D3D12Utils;
 using TerraFX.Interop;
 using static TerraFX.Interop.D3D_FEATURE_LEVEL;
@@ -19,6 +18,9 @@ using static TerraFX.Interop.D3D12_RENDER_PASS_TIER;
 using static TerraFX.Interop.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.D3D12_MESSAGE_SEVERITY;
 using static TerraFX.Interop.D3D12_MESSAGE_ID;
+using static TerraFX.Interop.D3D12_COMMAND_LIST_TYPE;
+using static TerraFX.Interop.D3D12_COMMAND_QUEUE_FLAGS;
+using static TerraFX.Interop.D3D12_COMMAND_QUEUE_PRIORITY;
 using System.Diagnostics;
 
 namespace Vortice.Graphics.D3D12
@@ -44,6 +46,9 @@ namespace Vortice.Graphics.D3D12
 
         private readonly ComPtr<ID3D12Device2> d3d12Device;
         private GraphicsDeviceCaps _capabilities;
+
+        private ComPtr<ID3D12CommandQueue> directQueue;
+
         //        public bool SupportsRenderPass { get; private set; }
 
         private static bool CreateFactory()
@@ -320,7 +325,6 @@ namespace Vortice.Graphics.D3D12
                 SupportsRenderPass = true;
             }
 
-
             _capabilities.Features = new GraphicsDeviceFeatures
             {
                 IndependentBlend = true,
@@ -368,6 +372,18 @@ namespace Vortice.Graphics.D3D12
                 MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
                 MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
             };
+
+            // Create queue
+            D3D12_COMMAND_QUEUE_DESC queueDesc;
+            queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+            queueDesc.Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+            queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+            queueDesc.NodeMask = 0;
+
+            ThrowIfFailed(d3d12Device.Get()->CreateCommandQueue(&queueDesc,
+                __uuidof<ID3D12CommandQueue>(),
+                directQueue.GetVoidAddressOf())
+                );
         }
 
         /// <summary>
@@ -380,6 +396,8 @@ namespace Vortice.Graphics.D3D12
         {
             if (disposing)
             {
+                directQueue.Dispose();
+
 #if DEBUG
                 uint refCount = d3d12Device.Reset();
                 if (refCount > 0)
@@ -408,11 +426,17 @@ namespace Vortice.Graphics.D3D12
             }
         }
 
+        internal static IDXGIFactory4* DxgiFactory => s_dxgiFactory4;
+
         internal ID3D12Device2* D3D12Device => d3d12Device;
+
+        internal ID3D12CommandQueue* DirectQueue => directQueue;
 
         internal bool SupportsRenderPass { get; }
 
         /// <inheritdoc/>
         public override GraphicsDeviceCaps Capabilities => _capabilities;
+
+        protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor) => new D3D12SwapChain(this, IntPtr.Zero, descriptor);
     }
 }

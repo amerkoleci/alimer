@@ -140,5 +140,11 @@ namespace Vortice.Graphics
             return BackendType.Null;
         }
 
+        public SwapChain CreateSwapChain(in SwapChainDescriptor descriptor)
+        {
+            return CreateSwapChainCore(descriptor);
+        }
+
+        protected abstract SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor);
     }
 }
