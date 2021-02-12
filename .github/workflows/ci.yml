@@ -22,7 +22,7 @@ jobs:
     - name: Install .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.102
+        dotnet-version: 5.0.103
 
     - name: Version
       uses: aarnott/nbgv@v0.4.0
