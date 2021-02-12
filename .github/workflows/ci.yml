@@ -12,7 +12,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      
     steps:
     - name: Checkout
       uses: actions/checkout@v2

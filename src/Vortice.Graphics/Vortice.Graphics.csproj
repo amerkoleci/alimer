@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vortice.Vulkan" Version="1.2.166.4" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.Vulkan" Version="1.2.169" Condition="'$(ExcludeVulkan)' != 'true'" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.19041-beta2-548755542" Condition="'$(ExcludeD3D12)' != 'true'" />
   </ItemGroup>
 
