@@ -47,7 +47,7 @@ namespace Vortice.Graphics.D3D12
         private readonly ComPtr<ID3D12Device2> d3d12Device;
         private GraphicsDeviceCaps _capabilities;
 
-        private ComPtr<ID3D12CommandQueue> directQueue;
+        private readonly ComPtr<ID3D12CommandQueue> directQueue;
 
         //        public bool SupportsRenderPass { get; private set; }
 
@@ -437,6 +437,6 @@ namespace Vortice.Graphics.D3D12
         /// <inheritdoc/>
         public override GraphicsDeviceCaps Capabilities => _capabilities;
 
-        protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor) => new D3D12SwapChain(this, IntPtr.Zero, descriptor);
+        protected override SwapChain CreateSwapChainCore(IntPtr windowHandle, in SwapChainDescriptor descriptor) => new D3D12SwapChain(this, windowHandle, descriptor);
     }
 }

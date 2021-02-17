@@ -49,14 +49,19 @@ namespace Vortice
             // Get required services.
             GraphicsDevice = Services.GetRequiredService<GraphicsDevice>();
             Input = Services.GetRequiredService<InputManager>();
+
+            // Create main swap chain
+            SwapChain = GraphicsDevice.CreateSwapChain(Context.GameWindow.Handle, new SwapChainDescriptor());
         }
 
         public GameContext Context { get; }
         public IServiceProvider Services { get; }
 
-        public GraphicsDevice? GraphicsDevice { get; }
+        public GraphicsDevice GraphicsDevice { get; }
 
         public InputManager? Input { get; }
+
+        public SwapChain? SwapChain { get; }
 
         public virtual void Dispose()
         {
@@ -65,7 +70,8 @@ namespace Vortice
                 gameSystem.Dispose();
             }
 
-            GraphicsDevice?.Dispose();
+            SwapChain!.Dispose();
+            GraphicsDevice.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -119,6 +125,7 @@ namespace Vortice
             //renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GraphicsDevice);
             //vgpuCmdBeginRenderPass(GraphicsDevice, renderPass);
             //vgpuCmdEndRenderPass(GraphicsDevice);
+            SwapChain.Present();
             //vgpuEndFrame(GraphicsDevice);
         }
 

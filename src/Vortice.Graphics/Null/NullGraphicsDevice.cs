@@ -28,6 +28,6 @@ namespace Vortice.Graphics.Null
         /// <inheritdoc/>
         public override GraphicsDeviceCaps Capabilities => default;
 
-        protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor) => throw new NotImplementedException();
+        protected override SwapChain CreateSwapChainCore(IntPtr windowHandle, in SwapChainDescriptor descriptor) => throw new NotImplementedException();
     }
 }

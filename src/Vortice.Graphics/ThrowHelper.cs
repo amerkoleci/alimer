@@ -32,6 +32,5 @@ namespace Vortice.Graphics
         {
             throw new ArgumentException(message);
         }
-
     }
 }

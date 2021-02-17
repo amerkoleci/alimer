@@ -11,6 +11,8 @@ namespace Vortice.Graphics.D3D12
 {
     internal unsafe class D3D12SwapChain : SwapChain
     {
+        private IDXGISwapChain3* _handle;
+
         public D3D12SwapChain(D3D12GraphicsDevice device, IntPtr windowHandle, in SwapChainDescriptor descriptor)
             : base(device, descriptor)
         {
@@ -20,26 +22,54 @@ namespace Vortice.Graphics.D3D12
             {
                 Width = (uint)descriptor.Width,
                 Height = (uint)descriptor.Height,
-                Format = ToDXGIFormat(descriptor.ColorFormat),
+                Format = ToDXGISwapChainFormat(descriptor.ColorFormat),
                 BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
                 BufferCount = 2,
                 SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
                 SampleDesc = new DXGI_SAMPLE_DESC(count: 1, quality: 0),
             };
 
+            var fullscreenDesc = new DXGI_SWAP_CHAIN_FULLSCREEN_DESC
+            {
+                Windowed = descriptor.IsFullscreen ? FALSE : TRUE
+            };
+
             ThrowIfFailed(D3D12GraphicsDevice.DxgiFactory->CreateSwapChainForHwnd(
                 (IUnknown*)device.DirectQueue,
                 windowHandle,
                 &swapChainDesc,
-                pFullscreenDesc: null,
+                pFullscreenDesc: &fullscreenDesc,
                 pRestrictToOutput: null,
                 swapChain.GetAddressOf()
             ));
+
+            IDXGISwapChain3* swapChain3;
+            ThrowIfFailed(swapChain.Get()->QueryInterface(__uuidof<IDXGISwapChain3>(), (void**)&swapChain3));
+            _handle = swapChain3;
+            AfterReset();
         }
 
         protected override void Dispose(bool disposing)
         {
+            if (disposing)
+            {
+                _handle->Release();
+                _handle = null;
+            }
+        }
 
+        public override void Present()
+        {
+            ThrowIfFailed(_handle->Present(SyncInterval: 1, Flags: 0));
+        }
+
+        private void AfterReset()
+        {
+            DXGI_SWAP_CHAIN_DESC1 desc;
+            ThrowIfFailed(_handle->GetDesc1(&desc));
+
+            Width = (int)desc.Width;
+            Height = (int)desc.Height;
         }
     }
 }

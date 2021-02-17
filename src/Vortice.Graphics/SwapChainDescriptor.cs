@@ -5,14 +5,13 @@ using System;
 
 namespace Vortice.Graphics
 {
-    public struct SwapChainDescriptor
+    public readonly struct SwapChainDescriptor
     {
-        public int Width;
-        public int Height;
-        public TextureFormat ColorFormat;
-        public TextureFormat DepthStencilFormat;
-        public PresentMode PresentMode;
-        public bool Fullscreen;
-        public IntPtr WindowHandle;
+        public int Width { get; }
+        public int Height { get; }
+        public TextureFormat ColorFormat { get; }
+        public TextureFormat DepthStencilFormat { get; }
+        public PresentMode PresentMode { get; }
+        public bool IsFullscreen { get; }
     }
 }

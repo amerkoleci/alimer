@@ -39,6 +39,32 @@ namespace Vortice.Graphics.D3D12
 
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static DXGI_FORMAT ToDXGISwapChainFormat(TextureFormat format)
+        {
+            // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
+            switch (format)
+            {
+                case TextureFormat.RGBA16Float:
+                    return DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+                case TextureFormat.BGRA8Unorm:
+                case TextureFormat.BGRA8UnormSrgb:
+                    return DXGI_FORMAT_B8G8R8A8_UNORM;
+
+                case TextureFormat.RGBA8Unorm:
+                case TextureFormat.RGBA8UnormSrgb:
+                    return DXGI_FORMAT_R8G8B8A8_UNORM;
+
+                case TextureFormat.RGB10A2Unorm:
+                    return DXGI_FORMAT_R10G10B10A2_UNORM;
+
+                default:
+                    return DXGI_FORMAT_B8G8R8A8_UNORM;
+            }
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DXGI_FORMAT ToDXGIFormat(TextureFormat format)
         {
             switch (format)
