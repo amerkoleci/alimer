@@ -16,28 +16,29 @@ namespace Vortice.Graphics.Vulkan
     /// </summary>
     public unsafe class VulkanGraphicsDevice : GraphicsDevice
     {
-        private static readonly VkString s_EngineName = "Alimer";
-        private static bool? _supportInitialized;
+        private static readonly VkString s_engineName = "Alimer";
+        private static bool? s_supportInitialized;
 
         private VkInstance _instance;
-        private readonly vkDebugUtilsMessengerCallbackEXT? _debugMessengerCallbackFunc;
         private VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
         private GraphicsDeviceCaps _capabilities;
 
         public static bool IsSupported()
         {
-            if (_supportInitialized.HasValue)
-                return _supportInitialized.Value;
+            if (s_supportInitialized.HasValue)
+            {
+                return s_supportInitialized.Value;
+            }
 
             try
             {
                 VkResult result = vkInitialize();
-                _supportInitialized = result == VkResult.Success;
-                return _supportInitialized.Value;
+                s_supportInitialized = result == VkResult.Success;
+                return s_supportInitialized.Value;
             }
             catch
             {
-                _supportInitialized = false;
+                s_supportInitialized = false;
                 return false;
             }
         }
@@ -49,15 +50,15 @@ namespace Vortice.Graphics.Vulkan
                 throw new NotSupportedException("Vulkan is not supported");
             }
 
-            HashSet<string> availableInstanceExtensions = new HashSet<string>(EnumerateInstanceExtensions());
+            var availableInstanceExtensions = new HashSet<string>(EnumerateInstanceExtensions());
 
             //VkString name = applicationName;
-            VkApplicationInfo appInfo = new VkApplicationInfo
+            var appInfo = new VkApplicationInfo
             {
                 sType = VkStructureType.ApplicationInfo,
                 //pApplicationName = name,
                 //applicationVersion = new VkVersion(1, 0, 0),
-                pEngineName = s_EngineName,
+                pEngineName = s_engineName,
                 engineVersion = new VkVersion(1, 0, 0),
                 apiVersion = vkEnumerateInstanceVersion()
             };
@@ -67,16 +68,16 @@ namespace Vortice.Graphics.Vulkan
                 KHRSurfaceExtensionName
             };
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OperatingSystem.IsWindows())
             {
                 instanceExtensions.Add(KHRWin32SurfaceExtensionName);
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            else if (OperatingSystem.IsAndroid())
             {
-                if (availableInstanceExtensions.Contains(KHRAndroidSurfaceExtensionName))
-                {
-                    instanceExtensions.Add(KHRAndroidSurfaceExtensionName);
-                }
+                instanceExtensions.Add(KHRAndroidSurfaceExtensionName);
+            }
+            else if (OperatingSystem.IsLinux())
+            {
                 if (availableInstanceExtensions.Contains(KHRXlibSurfaceExtensionName))
                 {
                     instanceExtensions.Add(KHRXlibSurfaceExtensionName);
@@ -140,10 +141,9 @@ namespace Vortice.Graphics.Vulkan
 
             if (instanceLayers.Count > 0)
             {
-                _debugMessengerCallbackFunc = DebugMessengerCallback;
                 debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
                 debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
-                debugUtilsCreateInfo.pfnUserCallback = Marshal.GetFunctionPointerForDelegate(_debugMessengerCallbackFunc);
+                debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
 
                 instanceCreateInfo.pNext = &debugUtilsCreateInfo;
             }
@@ -248,12 +248,14 @@ namespace Vortice.Graphics.Vulkan
         protected override SwapChain CreateSwapChainCore(IntPtr windowHandle, in SwapChainDescriptor descriptor) => throw new NotImplementedException();
 
         #region Debug Messenger Callback
-        private static VkBool32 DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,
+
+        [UnmanagedCallersOnly]
+        private static uint DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageTypes,
             VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-            IntPtr userData)
+            void* userData)
         {
-            string? message = VulkanUtils.GetString(pCallbackData->pMessage);
+            string? message = GetString(pCallbackData->pMessage);
             if (messageTypes == VkDebugUtilsMessageTypeFlagsEXT.Validation)
             {
                 if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
@@ -281,7 +283,7 @@ namespace Vortice.Graphics.Vulkan
                 Debug.WriteLine($"[Vulkan]: {messageSeverity} - {message}");
             }
 
-            return VkBool32.False;
+            return VK_FALSE;
         }
         #endregion
     }

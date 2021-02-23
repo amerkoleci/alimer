@@ -1,19 +1,18 @@
-﻿// Copyright (c) Amer Koleci and contributors.
-// Distributed under the MIT license. See the LICENSE file in the project root for more information.
+// Copyright © Amer Koleci and Contributors. Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
 using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using static Alimer.Win32Native;
 
-namespace Alimer
+namespace Vortice
 {
     /// <summary>
-    /// Defines a context for <see cref="Game"/> that handles logic using Windows Forms.
+    /// Defines a context for <see cref="Application"/> that handles logic using Windows Forms.
     /// </summary>
     public class WinFormsGameContext : GameContext
     {
-        private bool _paused = false;
+        private readonly bool _paused = false;
         //private readonly GraphicsDeviceFactory _graphicsDeviceFactory = new D3D11GraphicsDeviceFactory(false);
 
         public Control Control { get; protected set; }
@@ -48,7 +47,7 @@ namespace Alimer
                 if (!_paused)
                 {
                     const int PM_REMOVE = 1;
-                    if (PeekMessage(out var msg, IntPtr.Zero, 0, 0, PM_REMOVE))
+                    if (PeekMessage(out NativeMessage msg, IntPtr.Zero, 0, 0, PM_REMOVE))
                     {
                         TranslateMessage(ref msg);
                         DispatchMessage(ref msg);
@@ -64,7 +63,7 @@ namespace Alimer
                 }
                 else
                 {
-                    var ret = GetMessage(out var msg, IntPtr.Zero, 0, 0);
+                    var ret = GetMessage(out NativeMessage msg, IntPtr.Zero, 0, 0);
                     if (ret == 0)
                     {
                         GameWindow.Exit();

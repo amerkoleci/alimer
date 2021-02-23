@@ -14,8 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vortice.Vulkan" Version="1.2.169" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.Vulkan" Version="1.3.1" Condition="'$(ExcludeVulkan)' != 'true'" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.19041-beta2" Condition="'$(ExcludeD3D12)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vortice.Core\Vortice.Core.csproj" />
   </ItemGroup>
 
 </Project>

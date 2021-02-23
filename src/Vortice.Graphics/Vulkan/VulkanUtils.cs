@@ -52,12 +52,15 @@ namespace Vortice.Graphics.Vulkan
 
         public static void FindValidationLayers(List<string> appendTo)
         {
-            ReadOnlySpan<VkLayerProperties> availableLayers = vkEnumerateInstanceLayerProperties();
+            uint propertyCount = 0;
+            vkEnumerateInstanceLayerProperties(&propertyCount, null).CheckResult();
+            VkLayerProperties* availableLayers = stackalloc VkLayerProperties[(int)propertyCount];
+            vkEnumerateInstanceLayerProperties(&propertyCount, availableLayers).CheckResult();
 
             bool hasLayer = false;
             for (int i = 0; i < s_RequestedValidationLayers.Length; i++)
             {
-                for (int j = 0; j < availableLayers.Length; j++)
+                for (int j = 0; j < propertyCount; j++)
                 {
                     if (s_RequestedValidationLayers[i] == availableLayers[j].GetLayerName())
                     {

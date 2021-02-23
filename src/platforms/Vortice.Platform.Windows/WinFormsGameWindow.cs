@@ -1,11 +1,11 @@
-﻿// Copyright (c) Amer Koleci and contributors.
+// Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Alimer
+namespace Vortice
 {
     /// <summary>
     /// Defines a for <see cref="Game"/> window created using Windows Forms.
@@ -15,7 +15,7 @@ namespace Alimer
         private readonly Control _control;
 
         /// <inheritdoc/>
-        public override string Title 
+        public override string Title
         {
             get => _control.Text;
             set => _control.Text = value;

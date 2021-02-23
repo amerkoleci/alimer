@@ -5,50 +5,37 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using static Vortice.Configuration;
 
 namespace Vortice
 {
     public static class Guard
     {
-        [Conditional("DEBUG")]
-        public static void Assert([DoesNotReturnIf(false)] bool condition, string message)
-        {
-            if (!condition)
-            {
-                Debug.Assert(condition, message);
-            }
-        }
-
-        [Conditional("DEBUG")]
-        public static void Assert<T>([DoesNotReturnIf(false)] bool condition, string messageFormat, T formatArg)
-        {
-            if (!condition)
-            {
-                string message = string.Format(messageFormat, formatArg);
-                Debug.Assert(condition, message);
-            }
-        }
-
-        [Conditional("DEBUG")]
-        public static void AssertNotNull<T>([NotNull] T? value, string paramName)
-            where T : class => Assert(value != null, $"{paramName} is null.");
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIfNull<T>([NotNull] T? value, string paramName)
-            where T : class
+        public static void Assert([DoesNotReturnIf(false)] bool condition)
         {
-            if (value is null)
+            if (AssertionsEnabled && !condition)
             {
-                ThrowArgumentNullException(paramName);
+                Fail();
             }
         }
 
+        /// <summary>Asserts that <paramref name="value" /> is not <c>null</c>.</summary>
+        /// <typeparam name="T">The type of <paramref name="value" />.</typeparam>
+        /// <param name="value">The value to assert is not <c>null</c>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AssertNotNull<T>([NotNull] T? value) where T : class => Assert(AssertionsEnabled && (value is not null));
+
+        /// <summary>Throws an <see cref="Exception" />.</summary>
         [DoesNotReturn]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void ThrowArgumentNullException(string paramName)
+        public static void Fail()
         {
-            string message = $"{paramName} is null.";
-            throw new ArgumentNullException(paramName, message);
+            if (BreakOnFailedAssert)
+            {
+                Debugger.Break();
+            }
+
+            throw new Exception();
         }
     }
 }

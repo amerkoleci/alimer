@@ -2,26 +2,25 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
-using static Vortice.Graphics.D3D12.D3D12Utils;
+using System.Diagnostics;
 using TerraFX.Interop;
 using static TerraFX.Interop.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.Windows;
-using static TerraFX.Interop.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DXGI_FEATURE;
-using static TerraFX.Interop.DXGI_GPU_PREFERENCE;
-using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
-using static TerraFX.Interop.D3D12_COMMAND_LIST_TYPE;
-using static TerraFX.Interop.D3D12_FEATURE;
-using static TerraFX.Interop.DXGI_DEBUG_RLO_FLAGS;
-using static TerraFX.Interop.D3D12_RLDO_FLAGS;
-using static TerraFX.Interop.D3D12_RENDER_PASS_TIER;
-using static TerraFX.Interop.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.D3D12_MESSAGE_ID;
 using static TerraFX.Interop.D3D12_COMMAND_LIST_TYPE;
 using static TerraFX.Interop.D3D12_COMMAND_QUEUE_FLAGS;
 using static TerraFX.Interop.D3D12_COMMAND_QUEUE_PRIORITY;
-using System.Diagnostics;
+using static TerraFX.Interop.D3D12_FEATURE;
+using static TerraFX.Interop.D3D12_MESSAGE_ID;
+using static TerraFX.Interop.D3D12_MESSAGE_SEVERITY;
+using static TerraFX.Interop.D3D12_RAYTRACING_TIER;
+using static TerraFX.Interop.D3D12_RENDER_PASS_TIER;
+using static TerraFX.Interop.D3D12_RLDO_FLAGS;
+using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.DXGI_DEBUG_RLO_FLAGS;
+using static TerraFX.Interop.DXGI_FEATURE;
+using static TerraFX.Interop.DXGI_GPU_PREFERENCE;
+using static TerraFX.Interop.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+using static TerraFX.Interop.Windows;
+using static Vortice.Graphics.D3D12.D3D12Utils;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -427,6 +426,7 @@ namespace Vortice.Graphics.D3D12
         }
 
         internal static IDXGIFactory4* DxgiFactory => s_dxgiFactory4;
+        internal static bool IsTearingSupported => s_tearingSupported;
 
         internal ID3D12Device2* D3D12Device => d3d12Device;
 

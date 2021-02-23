@@ -34,12 +34,12 @@ namespace Vortice
 
         protected Application(GameContext context)
         {
-            Guard.AssertNotNull(context, nameof(context));
+            Guard.AssertNotNull(context);
 
             Context = context;
 
             // Configure and build services
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
 
             Context.ConfigureServices(services);
             ConfigureServices(services);
@@ -51,7 +51,7 @@ namespace Vortice
             Input = Services.GetRequiredService<InputManager>();
 
             // Create main swap chain
-            SwapChain = GraphicsDevice.CreateSwapChain(Context.GameWindow.Handle, new SwapChainDescriptor());
+            SwapChain = GraphicsDevice.CreateSwapChain(Context.GameWindow!.Handle, new SwapChainDescriptor());
         }
 
         public GameContext Context { get; }
@@ -65,7 +65,7 @@ namespace Vortice
 
         public virtual void Dispose()
         {
-            foreach (GameSystem? gameSystem in GameSystems)
+            foreach (var gameSystem in GameSystems)
             {
                 gameSystem.Dispose();
             }
@@ -92,7 +92,7 @@ namespace Vortice
             try
             {
                 // Enter main loop.
-                bool blocking = Context.Run(InitializeBeforeRun, Tick);
+                var blocking = Context.Run(InitializeBeforeRun, Tick);
 
                 if (blocking)
                 {

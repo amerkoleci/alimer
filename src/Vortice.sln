@@ -26,6 +26,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		version.json = version.json
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "platform", "platform", "{6A804EA1-4D9E-48EB-8FA7-E1650E0B5FAA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Platform.Windows", "platforms\Vortice.Platform.Windows\Vortice.Platform.Windows.csproj", "{208F052B-BF1D-4E63-8B79-92E242895848}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +60,10 @@ Global
 		{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEEB0402-5B7D-48D7-9701-C26BCBDE687C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{208F052B-BF1D-4E63-8B79-92E242895848}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{208F052B-BF1D-4E63-8B79-92E242895848}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{208F052B-BF1D-4E63-8B79-92E242895848}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{208F052B-BF1D-4E63-8B79-92E242895848}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -63,6 +71,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{DE7DB03A-8E6D-4A0B-B19B-B56B2F0E1C87} = {9044C65B-33AC-4288-8517-65F312BE95B1}
 		{E983FA7D-03D9-4804-8BA4-E8258F7231C2} = {DE7DB03A-8E6D-4A0B-B19B-B56B2F0E1C87}
+		{208F052B-BF1D-4E63-8B79-92E242895848} = {6A804EA1-4D9E-48EB-8FA7-E1650E0B5FAA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}

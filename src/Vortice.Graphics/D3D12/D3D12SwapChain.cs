@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using TerraFX.Interop;
+using static TerraFX.Interop.DXGI_SWAP_CHAIN_FLAG;
 using static TerraFX.Interop.DXGI_SWAP_EFFECT;
 using static TerraFX.Interop.Windows;
 using static Vortice.Graphics.D3D12.D3D12Utils;
@@ -27,6 +28,7 @@ namespace Vortice.Graphics.D3D12
                 BufferCount = 2,
                 SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
                 SampleDesc = new DXGI_SAMPLE_DESC(count: 1, quality: 0),
+                Flags = D3D12GraphicsDevice.IsTearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
             };
 
             var fullscreenDesc = new DXGI_SWAP_CHAIN_FULLSCREEN_DESC
