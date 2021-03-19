@@ -10,7 +10,7 @@ namespace Vortice
     /// <summary>
     /// Defines a context for <see cref="Application"/> that handles logic using Windows Forms.
     /// </summary>
-    public class WinFormsGameContext : GameContext
+    public abstract class WinFormsGameContext : GameContext
     {
         private readonly bool _paused = false;
         //private readonly GraphicsDeviceFactory _graphicsDeviceFactory = new D3D11GraphicsDeviceFactory(false);
