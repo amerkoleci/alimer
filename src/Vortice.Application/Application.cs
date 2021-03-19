@@ -7,14 +7,15 @@ using System.Diagnostics;
 using Vortice.Graphics;
 using Vortice.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Vortice.Content;
 
 namespace Vortice
 {
     public abstract class Application : IDisposable
     {
-        private readonly object _tickLock = new object();
+        //private readonly object _tickLock = new object();
         //private bool _isExiting;
-        private readonly Stopwatch _stopwatch = new Stopwatch();
+        //private readonly Stopwatch _stopwatch = new Stopwatch();
         private bool _endRunRequired;
 
         /// <summary>
@@ -27,11 +28,10 @@ namespace Vortice
         /// </summary>
         public bool IsRunning { get; private set; }
 
-        protected Application()
-            : this(new NetStandardGameContext())
-        {
-        }
-
+        /// <summary>
+        /// Create a new instance of <see cref="Application"/> class.
+        /// </summary>
+        /// <param name="context"></param>
         protected Application(GameContext context)
         {
             Guard.AssertNotNull(context);
@@ -39,7 +39,7 @@ namespace Vortice
             Context = context;
 
             // Configure and build services
-            var services = new ServiceCollection();
+            ServiceCollection services = new ServiceCollection();
 
             Context.ConfigureServices(services);
             ConfigureServices(services);
@@ -47,7 +47,10 @@ namespace Vortice
             Services = services.BuildServiceProvider();
 
             // Get required services.
-            GraphicsDevice = Services.GetRequiredService<GraphicsDevice>();
+            //Content = Services.GetRequiredService<IContentManager>();
+
+            // Get optional services.
+            GraphicsDevice = Services.GetService<GraphicsDevice>();
             Input = Services.GetRequiredService<InputManager>();
 
             // Create main swap chain
@@ -56,8 +59,9 @@ namespace Vortice
 
         public GameContext Context { get; }
         public IServiceProvider Services { get; }
+        public IContentManager Content { get; }
 
-        public GraphicsDevice GraphicsDevice { get; }
+        public GraphicsDevice? GraphicsDevice { get; }
 
         public InputManager? Input { get; }
 
@@ -65,20 +69,20 @@ namespace Vortice
 
         public virtual void Dispose()
         {
-            foreach (var gameSystem in GameSystems)
+            foreach (GameSystem gameSystem in GameSystems)
             {
                 gameSystem.Dispose();
             }
 
             SwapChain!.Dispose();
-            GraphicsDevice.Dispose();
+            GraphicsDevice?.Dispose();
             GC.SuppressFinalize(this);
         }
 
         protected virtual void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton(this);
-            //services.AddSingleton<IContentManager, ContentManager>();
+            services.AddSingleton<IContentManager, ContentManager>();
             services.AddSingleton<InputManager>();
         }
 
@@ -86,7 +90,7 @@ namespace Vortice
         {
             if (IsRunning)
             {
-                throw new InvalidOperationException("This game is already running.");
+                throw new InvalidOperationException("The application is already running.");
             }
 
             try
@@ -116,17 +120,13 @@ namespace Vortice
 
         public void Tick()
         {
-            //if (!vgpuBeginFrame(GraphicsDevice))
-            //    return;
-
             //var renderPass = new RenderPassDescription();
             //renderPass.colorAttachments0.clearColor = new Color4(1.0f, 0.0f, 1.0f);
             //renderPass.colorAttachments0.loadOp = LoadOp.Clear;
             //renderPass.colorAttachments0.texture = vgpuGetBackbufferTexture(GraphicsDevice);
             //vgpuCmdBeginRenderPass(GraphicsDevice, renderPass);
             //vgpuCmdEndRenderPass(GraphicsDevice);
-            SwapChain.Present();
-            //vgpuEndFrame(GraphicsDevice);
+            SwapChain?.Present();
         }
 
         private void InitializeBeforeRun()

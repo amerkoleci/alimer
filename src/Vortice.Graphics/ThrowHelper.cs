@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Vortice.Graphics
 {
-    internal static class ThrowHelper
+    public static class ThrowHelper
     {
         /// <summary>
         /// Throws a new <see cref="ArgumentException"/>.

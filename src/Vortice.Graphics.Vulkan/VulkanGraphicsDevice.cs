@@ -43,7 +43,7 @@ namespace Vortice.Graphics.Vulkan
             }
         }
 
-        public VulkanGraphicsDevice(GraphicsAdapterType adapterPreference)
+        public VulkanGraphicsDevice(PowerPreference powerPreference = PowerPreference.HighPerformance)
         {
             if (!IsSupported())
             {

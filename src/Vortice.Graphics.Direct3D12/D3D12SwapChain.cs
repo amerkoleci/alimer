@@ -28,7 +28,7 @@ namespace Vortice.Graphics.D3D12
                 BufferCount = 2,
                 SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
                 SampleDesc = new DXGI_SAMPLE_DESC(count: 1, quality: 0),
-                Flags = D3D12GraphicsDevice.IsTearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+                Flags = device.IsTearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
             };
 
             var fullscreenDesc = new DXGI_SWAP_CHAIN_FULLSCREEN_DESC
@@ -36,7 +36,7 @@ namespace Vortice.Graphics.D3D12
                 Windowed = descriptor.IsFullscreen ? FALSE : TRUE
             };
 
-            ThrowIfFailed(D3D12GraphicsDevice.DxgiFactory->CreateSwapChainForHwnd(
+            ThrowIfFailed(device.DXGIFactory->CreateSwapChainForHwnd(
                 (IUnknown*)device.DirectQueue,
                 windowHandle,
                 &swapChainDesc,

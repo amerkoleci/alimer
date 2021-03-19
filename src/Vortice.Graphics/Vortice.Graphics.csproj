@@ -2,24 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>$(DefineConstants);ENABLE_VALIDATION</DefineConstants>
-    <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
-    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
-    <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Vortice.Vulkan" Version="1.3.1" Condition="'$(ExcludeVulkan)' != 'true'" />
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.19041-beta2" Condition="'$(ExcludeD3D12)' != 'true'" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Vortice.Core\Vortice.Core.csproj" />
+    <!--<ProjectReference Include="..\Vortice.Core\Vortice.Core.csproj" />-->
   </ItemGroup>
 
 </Project>

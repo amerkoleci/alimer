@@ -7,7 +7,7 @@ using static GLFW;
 
 namespace Vortice
 {
-    public class NetStandardGameContext : GameContext
+    public abstract class NetStandardGameContext : GameContext
     {
         /// <inheritdoc/>
         public override GameWindow? GameWindow { get; }

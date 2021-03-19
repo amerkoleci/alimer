@@ -27,7 +27,7 @@ namespace Vortice.Graphics.D3D12
     /// <summary>
     /// Direct3D12 graphics device implementation.
     /// </summary>
-    internal unsafe class D3D12GraphicsDevice : GraphicsDevice
+    public unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
         // Feature levels to try creating devices. Listed in descending order so the highest supported level is used.
         private static readonly D3D_FEATURE_LEVEL[] s_featureLevels = new[]
@@ -39,24 +39,38 @@ namespace Vortice.Graphics.D3D12
         };
 
         private static bool? s_supportInitialized;
-        private static uint IDXGIFactoryCreationFlags = 0;
-        private static ComPtr<IDXGIFactory4> s_dxgiFactory4 = default;
-        private static bool s_tearingSupported = default;
+        private readonly uint _dxgiFactoryFlags = 0;
+        private ComPtr<IDXGIFactory4> _dxgiFactory = default;
+        private bool _tearingSupported = default;
 
         private readonly ComPtr<ID3D12Device2> d3d12Device;
         private GraphicsDeviceCaps _capabilities;
 
+        private readonly D3D12MA_Allocator* allocator;
+
         private readonly ComPtr<ID3D12CommandQueue> directQueue;
 
-        //        public bool SupportsRenderPass { get; private set; }
-
-        private static bool CreateFactory()
+        public static bool IsSupported()
         {
-            if (s_dxgiFactory4.Get() != null)
+            if (s_supportInitialized.HasValue)
+                return s_supportInitialized.Value;
+
+            s_supportInitialized = false;
+
+            try
             {
-                return true;
+                HRESULT result = D3D12CreateDevice(null, D3D_FEATURE_LEVEL_11_0, __uuidof<ID3D12Device>(), null);
+                s_supportInitialized = SUCCEEDED(result);
+            }
+            catch
+            {
             }
 
+            return s_supportInitialized.Value;
+        }
+
+        public D3D12GraphicsDevice(PowerPreference powerPreference = PowerPreference.HighPerformance)
+        {
             if (EnableValidation || EnableGPUBasedValidation)
             {
                 using ComPtr<ID3D12Debug> d3D12Debug = default;
@@ -79,7 +93,7 @@ namespace Vortice.Graphics.D3D12
 
                 if (SUCCEEDED(DXGIGetDebugInterface1(0u, __uuidof<IDXGIInfoQueue>(), dxgiInfoQueue.GetVoidAddressOf())))
                 {
-                    IDXGIFactoryCreationFlags = DXGI_CREATE_FACTORY_DEBUG;
+                    _dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 
                     dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, TRUE);
                     dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, TRUE);
@@ -101,70 +115,48 @@ namespace Vortice.Graphics.D3D12
 #endif
             }
 
-            if (FAILED(CreateDXGIFactory2(IDXGIFactoryCreationFlags, __uuidof<IDXGIFactory4>(), s_dxgiFactory4.GetVoidAddressOf())))
+            if (FAILED(CreateDXGIFactory2(_dxgiFactoryFlags, __uuidof<IDXGIFactory4>(), _dxgiFactory.GetVoidAddressOf())))
             {
-                return false;
+                return;
             }
 
             using ComPtr<IDXGIFactory5> dxgiFactory5 = default;
-            if (SUCCEEDED(s_dxgiFactory4.CopyTo(dxgiFactory5.GetAddressOf())))
+            if (SUCCEEDED(_dxgiFactory.CopyTo(dxgiFactory5.GetAddressOf())))
             {
                 int allowTearing = FALSE;
                 HRESULT hr = dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, (uint)sizeof(int));
 
                 if (FAILED(hr) || allowTearing == 0)
                 {
-                    s_tearingSupported = false;
+                    _tearingSupported = false;
                     Debug.WriteLine("WARNING: Variable refresh rate displays not supported");
                 }
                 else
                 {
-                    s_tearingSupported = true;
+                    _tearingSupported = true;
                 }
             }
 
-            return true;
-        }
-
-        public static bool IsSupported()
-        {
-            if (s_supportInitialized.HasValue)
-                return s_supportInitialized.Value;
-
-            s_supportInitialized = false;
-
-            try
-            {
-                s_supportInitialized = CreateFactory();
-                if (!s_supportInitialized.Value)
-                    return s_supportInitialized.Value;
-
-                HRESULT result = D3D12CreateDevice(null, D3D_FEATURE_LEVEL_11_0, __uuidof<ID3D12Device>(), null);
-                s_supportInitialized = SUCCEEDED(result);
-            }
-            catch
-            {
-            }
-
-            return s_supportInitialized.Value;
-        }
-
-        public D3D12GraphicsDevice()
-        {
             bool shouldBreak = false;
 
             using ComPtr<IDXGIAdapter1> dxgiAdapter1 = default;
             using ComPtr<IDXGIFactory6> dxgiFactor6 = default;
-            if (SUCCEEDED(s_dxgiFactory4.CopyTo(dxgiFactor6.GetAddressOf())))
+            if (SUCCEEDED(_dxgiFactory.CopyTo(dxgiFactor6.GetAddressOf())))
             {
                 uint adapterIndex = 0;
                 while (!shouldBreak)
                 {
+                    DXGI_GPU_PREFERENCE gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+                    if (powerPreference == PowerPreference.LowPower)
+                    {
+                        gpuPreference = DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+                    }
+
                     HRESULT result = dxgiFactor6.Get()->EnumAdapterByGpuPreference(
                         adapterIndex++,
-                        DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                         __uuidof<IDXGIAdapter1>(),
-                         (void**)dxgiAdapter1.ReleaseAndGetAddressOf());
+                        gpuPreference,
+                        __uuidof<IDXGIAdapter1>(),
+                        (void**)dxgiAdapter1.ReleaseAndGetAddressOf());
 
                     if (result == DXGI_ERROR_NOT_FOUND)
                     {
@@ -189,24 +181,6 @@ namespace Vortice.Graphics.D3D12
                             __uuidof<ID3D12Device2>(),
                             d3d12Device.GetVoidAddressOf())))
                         {
-                            _capabilities.VendorId = new GPUVendorId(desc.VendorId);
-                            _capabilities.AdapterId = desc.DeviceId;
-                            _capabilities.AdapterName = new string((char*)desc.Description);
-
-                            if ((desc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
-                            {
-                                _capabilities.AdapterType = GraphicsAdapterType.CPU;
-                            }
-
-#if DEBUG
-                            //auto adapterName = ToUtf8(desc.Description);
-                            //LOGD("Create Direct3D12 device {} with adapter ({}): VID:{:#04x}, PID:{:#04x} - {}",
-                            //    ToString(kFeatureLevels[i]),
-                            //    index,
-                            //    desc.VendorId,
-                            //    desc.DeviceId,
-                            //    adapterName);
-#endif
 
                             shouldBreak = true;
                             break;
@@ -220,7 +194,7 @@ namespace Vortice.Graphics.D3D12
 
                 while (!shouldBreak)
                 {
-                    HRESULT result = s_dxgiFactory4.Get()->EnumAdapters1(adapterIndex++, dxgiAdapter1.ReleaseAndGetAddressOf());
+                    HRESULT result = _dxgiFactory.Get()->EnumAdapters1(adapterIndex++, dxgiAdapter1.ReleaseAndGetAddressOf());
 
                     if (result == DXGI_ERROR_NOT_FOUND)
                     {
@@ -245,24 +219,6 @@ namespace Vortice.Graphics.D3D12
                             __uuidof<ID3D12Device2>(),
                             d3d12Device.GetVoidAddressOf())))
                         {
-                            _capabilities.VendorId = new GPUVendorId(desc.VendorId);
-                            _capabilities.AdapterId = desc.DeviceId;
-                            _capabilities.AdapterName = new string((char*)desc.Description);
-
-                            if ((desc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
-                            {
-                                _capabilities.AdapterType = GraphicsAdapterType.CPU;
-                            }
-#if DEBUG
-                            //auto adapterName = ToUtf8(desc.Description);
-                            //LOGD("Create Direct3D12 device {} with adapter ({}): VID:{:#04x}, PID:{:#04x} - {}",
-                            //    ToString(kFeatureLevels[i]),
-                            //    index,
-                            //    desc.VendorId,
-                            //    desc.DeviceId,
-                            //    adapterName);
-#endif
-
                             shouldBreak = true;
                             break;
                         }
@@ -311,11 +267,25 @@ namespace Vortice.Graphics.D3D12
             // Init capabilites.
             _capabilities.BackendType = BackendType.Direct3D12;
 
-            var featureDataArchitecture = d3d12Device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_ARCHITECTURE1>(D3D12_FEATURE_ARCHITECTURE1);
-            _capabilities.AdapterType = (featureDataArchitecture.UMA == TRUE) ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            ThrowIfFailed(dxgiAdapter1.Get()->GetDesc1(&adapterDesc));
+            _capabilities.VendorId = new GPUVendorId(adapterDesc.VendorId);
+            _capabilities.AdapterId = adapterDesc.DeviceId;
+            _capabilities.AdapterName = new string((char*)adapterDesc.Description);
 
-            var dataOptions1 = d3d12Device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
-            var dataOptions5 = d3d12Device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
+            if ((adapterDesc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+            {
+                _capabilities.AdapterType = GraphicsAdapterType.CPU;
+            }
+            else
+            {
+                D3D12_FEATURE_DATA_ARCHITECTURE1 featureDataArchitecture = d3d12Device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_ARCHITECTURE1>(D3D12_FEATURE_ARCHITECTURE1);
+                _capabilities.AdapterType = (featureDataArchitecture.UMA == TRUE) ? GraphicsAdapterType.IntegratedGPU : GraphicsAdapterType.DiscreteGPU;
+                IsCacheCoherentUMA = featureDataArchitecture.CacheCoherentUMA != 0;
+            }
+
+            D3D12_FEATURE_DATA_D3D12_OPTIONS1 dataOptions1 = d3d12Device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
+            D3D12_FEATURE_DATA_D3D12_OPTIONS5 dataOptions5 = d3d12Device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
 
             SupportsRenderPass = false;
             if (dataOptions5.RenderPassesTier > D3D12_RENDER_PASS_TIER_0
@@ -372,6 +342,15 @@ namespace Vortice.Graphics.D3D12
                 MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
             };
 
+            // Create allocator
+            D3D12MA_ALLOCATOR_DESC allocatorDesc = default;
+            allocatorDesc.pDevice = (ID3D12Device*)d3d12Device.Get();
+            allocatorDesc.pAdapter = (IDXGIAdapter*)dxgiAdapter1.Get();
+
+            D3D12MA_Allocator* newAllocator;
+            ThrowIfFailed(D3D12MemAlloc.D3D12MA_CreateAllocator(&allocatorDesc, &newAllocator));
+            allocator = newAllocator;
+
             // Create queue
             D3D12_COMMAND_QUEUE_DESC queueDesc;
             queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -395,6 +374,8 @@ namespace Vortice.Graphics.D3D12
         {
             if (disposing)
             {
+                allocator->Release();
+
                 directQueue.Dispose();
 
 #if DEBUG
@@ -412,11 +393,10 @@ namespace Vortice.Graphics.D3D12
 #else
                 d3d12Device.Dispose();
 #endif
-                s_dxgiFactory4.Dispose();
+                _dxgiFactory.Dispose();
 
 #if DEBUG
                 using ComPtr<IDXGIDebug1> dxgiDebug1 = default;
-
                 if (SUCCEEDED(DXGIGetDebugInterface1(0u, __uuidof<IDXGIDebug1>(), dxgiDebug1.GetVoidAddressOf())))
                 {
                     dxgiDebug1.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
@@ -425,14 +405,19 @@ namespace Vortice.Graphics.D3D12
             }
         }
 
-        internal static IDXGIFactory4* DxgiFactory => s_dxgiFactory4;
-        internal static bool IsTearingSupported => s_tearingSupported;
+        internal IDXGIFactory4* DXGIFactory => _dxgiFactory;
+        public bool IsTearingSupported => _tearingSupported;
+
+        public bool SupportsRenderPass { get; private set; }
 
         internal ID3D12Device2* D3D12Device => d3d12Device;
 
-        internal ID3D12CommandQueue* DirectQueue => directQueue;
+        /// <summary>
+        /// Gets whether or not the current device has a cache coherent UMA architecture.
+        /// </summary>
+        internal bool IsCacheCoherentUMA { get; }
 
-        internal bool SupportsRenderPass { get; }
+        internal ID3D12CommandQueue* DirectQueue => directQueue;
 
         /// <inheritdoc/>
         public override GraphicsDeviceCaps Capabilities => _capabilities;

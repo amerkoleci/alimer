@@ -4,6 +4,7 @@
 using System;
 using Vortice.Graphics;
 using Microsoft.Extensions.DependencyInjection;
+using Vortice.Content;
 
 namespace Vortice
 {
@@ -13,6 +14,8 @@ namespace Vortice
     public abstract class GameContext
     {
         private GraphicsDevice? graphicsDevice;
+
+        public IFileProvider? FileProvider { get; set; }
 
         /// <summary>
         /// Get the main window.
@@ -27,6 +30,8 @@ namespace Vortice
 
         public virtual void ConfigureServices(IServiceCollection services)
         {
+            //IFileProvider fileProvider = FileProvider ?? new FileSystemProvider(Package.Current.InstalledLocation, ApplicationData.Current.TemporaryFolder);
+            //services.AddSingleton(fileProvider);
             services.AddSingleton(GraphicsDevice);
         }
 
@@ -38,19 +43,6 @@ namespace Vortice
         /// <returns>Return true if blocking otherwise false.</returns>
         public abstract bool Run(Action loadAction, Action tickAction);
 
-        private static GraphicsDevice? CreateGraphicsDevice()
-        {
-            //return GraphicsDevice.CreateSystemDefault(BackendType.Vulkan);
-            if (RuntimePlatform.PlatformType == PlatformType.Windows)
-            {
-                if (GraphicsDevice.IsBackendSupported(BackendType.Direct3D12))
-                {
-                    GraphicsDevice.PreferredBackendType = BackendType.Direct3D12;
-                    return GraphicsDevice.CreateSystemDefault();
-                }
-            }
-
-            return GraphicsDevice.CreateSystemDefault();
-        }
+        protected abstract GraphicsDevice? CreateGraphicsDevice();
     }
 }
