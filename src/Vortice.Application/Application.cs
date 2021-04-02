@@ -54,7 +54,7 @@ namespace Vortice
             Input = Services.GetRequiredService<InputManager>();
 
             // Create main swap chain
-            SwapChain = GraphicsDevice.CreateSwapChain(Context.GameWindow!.Handle, new SwapChainDescriptor());
+            SwapChain = GraphicsDevice.CreateSwapChain(Context.GameWindow!.Handle, new SwapChainDescriptor(0, 0));
         }
 
         public GameContext Context { get; }

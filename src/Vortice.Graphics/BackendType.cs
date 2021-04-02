@@ -6,10 +6,6 @@ namespace Vortice.Graphics
     public enum BackendType
     {
         /// <summary>
-        /// Default best platform supported backend.
-        /// </summary>
-        Default,
-        /// <summary>
         /// Direct3D 12 backend.
         /// </summary>
         Direct3D12,
@@ -21,5 +17,9 @@ namespace Vortice.Graphics
         /// Null renderer.
         /// </summary>
         Null,
+        /// <summary>
+        /// Default best platform supported backend.
+        /// </summary>
+        Count,
     }
 }

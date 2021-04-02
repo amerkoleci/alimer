@@ -14,7 +14,7 @@ namespace Vortice.Graphics.Vulkan
     /// <summary>
     /// Vulkan graphics device implementation.
     /// </summary>
-    public unsafe class VulkanGraphicsDevice : GraphicsDevice
+    internal unsafe class VulkanGraphicsDevice : GraphicsDevice
     {
         private static readonly VkString s_engineName = "Alimer";
         private static bool? s_supportInitialized;

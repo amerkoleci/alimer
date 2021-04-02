@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
+using System;
 using Vortice;
 using Vortice.Graphics;
 using Vortice.Graphics.D3D12;
@@ -19,17 +20,18 @@ namespace DrawTriangle
         {
             protected override GraphicsDevice? CreateGraphicsDevice()
             {
-                PowerPreference powerPreference = PowerPreference.HighPerformance;
+                //PowerPreference powerPreference = PowerPreference.HighPerformance;
 
-                if (RuntimePlatform.PlatformType == PlatformType.Windows)
+                if (OperatingSystem.IsWindows())
                 {
-                    if (D3D12GraphicsDevice.IsSupported())
+                    if (GraphicsDevice.IsBackendSupported(BackendType.Direct3D12))
                     {
-                        return new D3D12GraphicsDevice(powerPreference);
+                        return GraphicsDevice.CreateSystemDefault(BackendType.Direct3D12);
                     }
                 }
 
-                return new VulkanGraphicsDevice(powerPreference);
+                // Just created best supported.
+                return GraphicsDevice.CreateSystemDefault();
             }
         }
     }

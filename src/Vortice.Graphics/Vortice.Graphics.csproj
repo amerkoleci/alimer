@@ -3,10 +3,18 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <DefineConstants>$(DefineConstants);ENABLE_VALIDATION</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <!--<ProjectReference Include="..\Vortice.Core\Vortice.Core.csproj" />-->
+    <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.Vulkan" Version="1.3.10" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.Direct3D12" Version="1.9.29-beta" Condition="'$(ExcludeD3D12)' != 'true'" />
   </ItemGroup>
 
 </Project>
