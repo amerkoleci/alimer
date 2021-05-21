@@ -5,8 +5,4 @@ using System;
 
 namespace Vortice
 {
-    internal partial class AppContext
-    {
-        public static AppContext Create(Application application) => throw new NotImplementedException();
-    }
 }

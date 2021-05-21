@@ -1,0 +1,32 @@
+<Project>
+  <ItemGroup>
+    <Compile Remove="Platform\**\*.*" />
+    <EmbeddedResource Remove="Platform\**\*.*" />
+
+    <!-- Workaround so the files appear in VS -->
+    <None Include="Platform\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) or '$(TargetFramework)' == 'net5.0' ">
+    <Compile Include="Platform\Standard\**\*.cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('net5.0-windows'))">
+    <Compile Include="Platform\Windows\**\*.cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <Compile Include="Platform\UWP\**\*.cs" />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('net5.0-windows'))">
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17134.0</TargetPlatformMinVersion>
+  </PropertyGroup>
+  
+</Project>

@@ -5,13 +5,13 @@ using System;
 
 namespace Vortice
 {
-    internal partial class AppContext
+    public abstract class GameView
     {
-        protected AppContext(Application application)
-        {
-            Application = application;
-        }
+        public event EventHandler? SizeChanged;
 
-        public Application Application { get; }
+        protected virtual void OnSizeChanged()
+        {
+            SizeChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 }
