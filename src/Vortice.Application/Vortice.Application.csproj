@@ -1,0 +1,37 @@
+<Project Sdk="MSBuild.Sdk.Extras">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net5.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);uap10.0.19041;</TargetFrameworks>
+    <RootNamespace>Vortice</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'uap10.0.19041'">
+    <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17134.0</TargetPlatformMinVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Platform\**\*.*" />
+    <EmbeddedResource Remove="Platform\**\*.*" />
+
+    <!-- Workaround so the files appear in VS -->
+    <None Include="Platform\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) or $(TargetFramework.StartsWith('net5')) ">
+    <Compile Include="Platform\**\*.Standard.cs" />
+    <Compile Include="Platform\**\*.Standard.*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <Compile Include="Platform\**\*.UWP.cs" />
+    <Compile Include="Platform\**\*.UWP.*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
+    <ProjectReference Include="..\Vortice\Vortice.csproj" />
+  </ItemGroup>
+
+</Project>

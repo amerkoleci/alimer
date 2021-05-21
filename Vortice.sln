@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice", "src\Vortice\Vort
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics", "src\Vortice.Graphics\Vortice.Graphics.csproj", "{11197091-B1A6-4CFD-AD1F-54E6D6413C93}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Application", "src\Vortice.Application\Vortice.Application.csproj", "{C6CEA688-2A93-4E16-9CCF-62EC48F91589}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{11197091-B1A6-4CFD-AD1F-54E6D6413C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11197091-B1A6-4CFD-AD1F-54E6D6413C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{11197091-B1A6-4CFD-AD1F-54E6D6413C93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6CEA688-2A93-4E16-9CCF-62EC48F91589}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6CEA688-2A93-4E16-9CCF-62EC48F91589}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6CEA688-2A93-4E16-9CCF-62EC48F91589}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6CEA688-2A93-4E16-9CCF-62EC48F91589}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
