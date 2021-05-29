@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{4205B27B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice", "src\Vortice\Vortice.csproj", "{EA44EF00-245A-440C-A5E0-A820E6666626}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics", "src\Vortice.Graphics\Vortice.Graphics.csproj", "{11197091-B1A6-4CFD-AD1F-54E6D6413C93}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics.Vulkan", "src\Graphics\Vortice.Graphics.Vulkan\Vortice.Graphics.Vulkan.csproj", "{11197091-B1A6-4CFD-AD1F-54E6D6413C93}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Application", "src\Vortice.Application\Vortice.Application.csproj", "{C6CEA688-2A93-4E16-9CCF-62EC48F91589}"
 EndProject
@@ -29,6 +29,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DrawTriangle", "src\samples\Graphics\DrawTriangle\DrawTriangle.csproj", "{0DB41C96-7D02-41EE-8E7B-F2B1024A8659}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DrawTriangle.Windows", "src\samples\Graphics\DrawTriangle.Windows\DrawTriangle.Windows.csproj", "{96F40ED5-9D9E-4D06-A308-BA76E0F3616C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics", "Graphics", "{8590FE4B-8B27-4F0E-BE55-C7B335F9AA7B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +63,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{11197091-B1A6-4CFD-AD1F-54E6D6413C93} = {8590FE4B-8B27-4F0E-BE55-C7B335F9AA7B}
 		{4E0EA7FF-529D-4F30-977E-A5C7F3D83835} = {D8EC0278-B4F9-4EF5-A4BE-FE2284C6ECED}
 		{0DB41C96-7D02-41EE-8E7B-F2B1024A8659} = {4E0EA7FF-529D-4F30-977E-A5C7F3D83835}
 		{96F40ED5-9D9E-4D06-A308-BA76E0F3616C} = {4E0EA7FF-529D-4F30-977E-A5C7F3D83835}

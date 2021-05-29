@@ -15,7 +15,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
     
-    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
     <ProjectReference Include="..\Vortice\Vortice.csproj" />
   </ItemGroup>
 
