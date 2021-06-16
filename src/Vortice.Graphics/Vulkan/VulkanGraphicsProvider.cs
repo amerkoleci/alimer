@@ -1,18 +1,22 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
-namespace Vortice.Graphics
+namespace Vortice.Graphics.Vulkan
 {
     public sealed unsafe class VulkanGraphicsProvider : GraphicsProvider
     {
+        private static readonly Lazy<bool> s_isSupported = new Lazy<bool>(CheckIsSupported, isThreadSafe: true);
         private static readonly VkString s_appName = new("Vortice");
         private static readonly VkString s_engineName = new("Vortice");
         private readonly VkInstance _instance;
 
-        public VulkanGraphicsProvider()
+        public static bool IsSupported() => s_isSupported.Value;
+
+        public VulkanGraphicsProvider(bool validation)
         {
             // Need to initialize 
             vkInitialize().CheckResult();
@@ -44,6 +48,19 @@ namespace Vortice.Graphics
         /// <inheritdoc />
         protected override void Dispose(bool isDisposing)
         {
+        }
+
+        private static bool CheckIsSupported()
+        {
+            VkResult result = vkInitialize();
+            if (result != VkResult.Success)
+            {
+                return false;
+            }
+
+            // TODO: Enumerate physical devices and try to create instance.
+
+            return true;
         }
     }
 }
