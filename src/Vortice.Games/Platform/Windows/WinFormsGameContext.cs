@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Vortice
 {
-    public class WinFormsGameContext : GameContext
+    public class WinFormsGameContext : GameContextWithGraphics
     {
         public WinFormsGameContext(Control control)
         {

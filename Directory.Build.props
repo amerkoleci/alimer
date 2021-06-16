@@ -12,7 +12,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>9.0</LangVersion>
     <Nullable>enable</Nullable>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!--<TreatWarningsAsErrors>true</TreatWarningsAsErrors>-->
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -26,8 +26,8 @@
     <Copyright>Copyright © 2021 Amer Koleci</Copyright>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/amerkoleci/vortice.git</RepositoryUrl>
-    <ProjectUrl>https://github.com/amerkoleci/vortice</ProjectUrl>
+    <RepositoryUrl>https://github.com/amerkoleci/alimer</RepositoryUrl>
+    <ProjectUrl>https://github.com/amerkoleci/alimer</ProjectUrl>
     <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu</PackageTags>
   </PropertyGroup>
 

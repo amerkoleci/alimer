@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Vortice.Graphics;
 
 namespace Vortice
 {
@@ -21,6 +22,11 @@ namespace Vortice
             ConfigureServices(services);
 
             _serviceProvider = services.BuildServiceProvider();
+
+            // Get services.
+            View = Services.GetRequiredService<GameView>();
+
+            GraphicsDevice = Services.GetService<GraphicsDevice>();
         }
 
         public event EventHandler<EventArgs>? Disposed;
@@ -30,6 +36,10 @@ namespace Vortice
         public bool IsRunning { get; private set; }
 
         public bool IsDisposed { get; private set; }
+
+        public GameView View { get; }
+
+        public GraphicsDevice? GraphicsDevice { get; }
 
         ~Game()
         {

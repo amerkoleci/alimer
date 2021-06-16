@@ -46,10 +46,10 @@ jobs:
         setAllVars: true
 
     - name: Restore
-      run: dotnet restore Vortice.sln
+      run: dotnet restore Alimer.sln
 
     - name: Pack
-      run: msbuild /t:pack /p:Configuration=Release /m Vortice.sln
+      run: msbuild /t:pack /p:Configuration=Release /m Alimer.sln
 
     - name: Publish to NuGet
       if: github.event_name == 'push'

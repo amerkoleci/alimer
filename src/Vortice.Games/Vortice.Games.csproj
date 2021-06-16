@@ -9,11 +9,12 @@
   <Import Project="..\..\.nuspec\Vortice.MultiTargeting.targets" />
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) or '$(TargetFramework)' == 'net5.0' ">
-    <PackageReference Include="ppy.SDL2-CS" Version="1.0.238-alpha" />
+    <PackageReference Include="ppy.SDL2-CS" Version="1.0.248-alpha" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-preview.5.21301.5" />
+    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
     
     <ProjectReference Include="..\Vortice\Vortice.csproj" />
   </ItemGroup>

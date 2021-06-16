@@ -6,7 +6,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Vortice.Application\Vortice.Application.csproj" />
+    <ProjectReference Include="..\..\..\Vortice.Games\Vortice.Games.csproj" />
   </ItemGroup>
 
 </Project>

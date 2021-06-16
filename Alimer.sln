@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{4205B27B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice", "src\Vortice\Vortice.csproj", "{EA44EF00-245A-440C-A5E0-A820E6666626}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Application", "src\Vortice.Application\Vortice.Application.csproj", "{C6CEA688-2A93-4E16-9CCF-62EC48F91589}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Games", "src\Vortice.Games\Vortice.Games.csproj", "{C6CEA688-2A93-4E16-9CCF-62EC48F91589}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuspec", ".nuspec", "{32D5F8C0-9BC8-4231-AA60-50C7310BFE4B}"
 	ProjectSection(SolutionItems) = preProject

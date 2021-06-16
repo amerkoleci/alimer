@@ -1,6 +1,6 @@
-# Vortice
+# Alimer
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/vortice/blob/master/LICENSE)
-[![Build status](https://github.com/amerkoleci/vortice/workflows/ci/badge.svg)](https://github.com/amerkoleci/vortice/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer/blob/master/LICENSE)
+[![Build status](https://github.com/amerkoleci/alimer/workflows/ci/badge.svg)](https://github.com/amerkoleci/alimer/actions)
 
-**Vortice** is a cross platform 2D and 3D .NET engine implemented in C#.
+**Alimer** is a cross platform 2D and 3D .NET engine implemented in C#.

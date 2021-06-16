@@ -7,16 +7,16 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Vortice.Graphics.Vulkan
 {
-    public sealed unsafe class VulkanGraphicsProvider : GraphicsProvider
+    public static unsafe class VulkanDeviceHelper
     {
-        private static readonly Lazy<bool> s_isSupported = new Lazy<bool>(CheckIsSupported, isThreadSafe: true);
         private static readonly VkString s_appName = new("Vortice");
         private static readonly VkString s_engineName = new("Vortice");
-        private readonly VkInstance _instance;
 
-        public static bool IsSupported() => s_isSupported.Value;
+        public static readonly Lazy<bool> IsSupported = new(CheckIsSupported);
 
-        public VulkanGraphicsProvider(bool validation)
+        public static readonly Lazy<VkInstance> Instance = new(CreateInstance);
+
+        private static VkInstance CreateInstance()
         {
             // Need to initialize 
             vkInitialize().CheckResult();
@@ -37,17 +37,6 @@ namespace Vortice.Graphics.Vulkan
                 pApplicationInfo = &appInfo,
             };
             vkCreateInstance(&createInfo, null, out _instance);
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="VulkanGraphicsProvider" /> class.
-        /// </summary>
-        ~VulkanGraphicsProvider() => Dispose(isDisposing: false);
-
-
-        /// <inheritdoc />
-        protected override void Dispose(bool isDisposing)
-        {
         }
 
         private static bool CheckIsSupported()
