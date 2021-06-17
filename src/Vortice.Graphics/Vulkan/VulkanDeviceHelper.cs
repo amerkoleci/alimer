@@ -36,7 +36,9 @@ namespace Vortice.Graphics.Vulkan
                 sType = VkStructureType.InstanceCreateInfo,
                 pApplicationInfo = &appInfo,
             };
-            vkCreateInstance(&createInfo, null, out _instance);
+
+            vkCreateInstance(&createInfo, null, out VkInstance instance).CheckResult();
+            return instance;
         }
 
         private static bool CheckIsSupported()

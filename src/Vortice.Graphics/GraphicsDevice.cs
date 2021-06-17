@@ -29,7 +29,7 @@ namespace Vortice.Graphics
                 if (IsSupported(GraphicsBackend.Direct3D12))
                 {
 #if !EXCLUDE_D3D12_BACKEND
-                    return D3D12.D3D12GraphicsDeviceHelper.DefaultDevice.Value;
+                    return D3D12.D3D12DeviceHelper.DefaultDevice.Value;
 #endif // !EXCLUDE_D3D12_BACKEND
                 }
             }
@@ -48,12 +48,12 @@ namespace Vortice.Graphics
             {
 #if !EXCLUDE_VULKAN_BACKEND
                 case GraphicsBackend.Vulkan:
-                    return Vulkan.VulkanGraphicsProvider.IsSupported();
+                    return Vulkan.VulkanDeviceHelper.IsSupported.Value;
 #endif // !EXCLUDE_VULKAN_BACKEND
 
 #if !EXCLUDE_D3D12_BACKEND
                 case GraphicsBackend.Direct3D12:
-                    return D3D12.D3D12GraphicsDeviceHelper.IsSupported.Value;
+                    return D3D12.D3D12DeviceHelper.IsSupported.Value;
 #endif // !EXCLUDE_D3D12_BACKEND
                 default:
                     return false;
@@ -66,7 +66,7 @@ namespace Vortice.Graphics
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
 #if !EXCLUDE_D3D12_BACKEND
-                if (D3D12.D3D12GraphicsDeviceHelper.IsSupported.Value)
+                if (D3D12.D3D12DeviceHelper.IsSupported.Value)
                 {
                     return GraphicsBackend.Direct3D12;
                 }
@@ -74,7 +74,7 @@ namespace Vortice.Graphics
             }
 
 #if !EXCLUDE_VULKAN_BACKEND
-            if (Vulkan.VulkanGraphicsProvider.IsSupported())
+            if (Vulkan.VulkanDeviceHelper.IsSupported.Value)
             {
                 return GraphicsBackend.Vulkan;
             }
