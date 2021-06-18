@@ -17,4 +17,8 @@
     <PackageReference Include="Vortice.Vulkan" Version="1.3.23" Condition="'$(ExcludeVulkan)' != 'true'" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Vortice\Vortice.csproj" />
+  </ItemGroup>
+
 </Project>

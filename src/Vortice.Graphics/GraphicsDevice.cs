@@ -11,6 +11,15 @@ namespace Vortice.Graphics
         private static readonly Lazy<GraphicsDevice> s_Default = new(InitializeDefaultDevice);
         public static GraphicsDevice Default => s_Default.Value;
 
+        protected GraphicsDevice()
+        {
+        }
+
+        /// <summary>
+        /// Get the device capabilities.
+        /// </summary>
+        public abstract GraphicsDeviceCaps Capabilities { get; }
+
         /// <inheritdoc />
         public void Dispose()
         {
