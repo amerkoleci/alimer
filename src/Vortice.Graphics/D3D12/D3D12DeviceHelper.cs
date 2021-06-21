@@ -9,6 +9,7 @@ using static Vortice.DXGI.DXGI;
 using static Vortice.Direct3D12.D3D12;
 using Vortice.Direct3D12.Debug;
 using System.Diagnostics;
+using Vortice.DXGI.Debug;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -30,11 +31,20 @@ namespace Vortice.Graphics.D3D12
         private static IDXGIFactory4 CreateFactory()
         {
             bool debug = false;
-            if (debug)
+            if (GraphicsDevice.EnableValidationLayers)
             {
                 if (D3D12GetDebugInterface(out ID3D12Debug? debugController).Success)
                 {
                     debugController!.EnableDebugLayer();
+
+                    using (ID3D12Debug1? debugController1 = debugController!.QueryInterfaceOrNull<ID3D12Debug1>())
+                    {
+                        if (debugController1 != null)
+                        {
+                            debugController1.SetEnableGPUBasedValidation(GraphicsDevice.EnableGpuBasedValidation);
+                        }
+                    }
+
                     debugController!.Dispose();
                 }
                 else
@@ -45,12 +55,14 @@ namespace Vortice.Graphics.D3D12
 #if DEBUG
                 if (DXGIGetDebugInterface1(out IDXGIInfoQueue? dxgiInfoQueue).Success)
                 {
-                    dxgiInfoQueue!.SetBreakOnSeverity(All, InfoQueueMessageSeverity.Error, true);
-                    dxgiInfoQueue!.SetBreakOnSeverity(All, InfoQueueMessageSeverity.Corruption, true);
+                    debug = true;
 
-                    DXGI.InfoQueueFilter filter = new DXGI.InfoQueueFilter()
+                    dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Error, true);
+                    dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Corruption, true);
+
+                    var filter = new DXGI.Debug.InfoQueueFilter()
                     {
-                        DenyList = new DXGI.InfoQueueFilterDescription()
+                        DenyList = new DXGI.Debug.InfoQueueFilterDescription()
                         {
                             Ids = new int[]
                             {
@@ -59,12 +71,8 @@ namespace Vortice.Graphics.D3D12
                         }
                     };
 
-                    dxgiInfoQueue!.AddStorageFilterEntries(Dxgi, filter);
+                    dxgiInfoQueue!.AddStorageFilterEntries(DebugDxgi, filter);
                     dxgiInfoQueue!.Dispose();
-                }
-                else
-                {
-                    debug = false;
                 }
 #endif
             }

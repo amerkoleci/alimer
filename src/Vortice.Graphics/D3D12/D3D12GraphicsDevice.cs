@@ -30,15 +30,13 @@ namespace Vortice.Graphics.D3D12
 #endif
                     MessageId[] hide = new[]
                     {
-                    MessageId.ClearRenderTargetViewMismatchingClearValue,
-                    MessageId.ClearDepthStencilViewMismatchingClearValue,
+                        MessageId.ClearRenderTargetViewMismatchingClearValue,
+                        MessageId.ClearDepthStencilViewMismatchingClearValue,
 
-                    MessageId.MapInvalidNullRange,
-                    MessageId.UnmapInvalidNullRange,
-                    MessageId.ExecutecommandlistsWrongswapchainbufferreference
-                    //MessageId.ExecutecommandlistsWrongswapchainbufferreference
-                    //D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE
-                };
+                        MessageId.MapInvalidNullRange,
+                        MessageId.UnmapInvalidNullRange,
+                        MessageId.ExecuteCommandListsWrongSwapChainBufferReference
+                    };
 
                     InfoQueueFilter filter = new()
                     {

@@ -3,25 +3,13 @@
 
 namespace Vortice.Graphics
 {
-    public readonly struct SwapChainDescriptor
+    public record SwapChainDescriptor
     {
-        public int Width { get; }
-        public int Height { get; }
-        public TextureFormat ColorFormat { get; }
+        public int Width { get; init; }
+        public int Height { get; init; }
+        public TextureFormat ColorFormat { get; init; } = TextureFormat.BGRA8UNormSrgb;
         //public TextureFormat DepthStencilFormat { get; }
-        public bool EnableVerticalSync { get; }
-        public bool IsFullscreen { get; }
-
-        public SwapChainDescriptor(int width, int height,
-            TextureFormat colorFormat = TextureFormat.BGRA8UNormSrgb,
-            bool enableVerticalSync = true,
-            bool isFullscreen = false)
-        {
-            Width = width;
-            Height = height;
-            ColorFormat = colorFormat;
-            EnableVerticalSync = enableVerticalSync;
-            IsFullscreen = isFullscreen;
-        }
+        public bool EnableVerticalSync { get; init; } = true;
+        public bool IsFullscreen { get; init; } = false;
     }
 }

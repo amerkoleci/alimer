@@ -3,20 +3,20 @@
 
 namespace Vortice.Graphics
 {
-    public struct GraphicsDeviceFeatures
+    public record GraphicsDeviceFeatures
     {
-        public bool IndependentBlend;
-        public bool ComputeShader;
-        public bool TessellationShader;
-        public bool MultiViewport;
-        public bool IndexUInt32;
-        public bool MultiDrawIndirect;
-        public bool FillModeNonSolid;
-        public bool SamplerAnisotropy;
-        public bool TextureCompressionETC2;
-        public bool TextureCompressionASTC_LDR;
-        public bool TextureCompressionBC;
-        public bool TextureCubeArray;
-        public bool Raytracing;
+        public bool IndependentBlend { get; init; }
+        public bool ComputeShader { get; init; }
+        public bool TessellationShader { get; init; }
+        public bool MultiViewport { get; init; }
+        public bool IndexUInt32 { get; init; }
+        public bool MultiDrawIndirect { get; init; }
+        public bool FillModeNonSolid { get; init; }
+        public bool SamplerAnisotropy { get; init; }
+        public bool TextureCompressionETC2 { get; init; }
+        public bool TextureCompressionASTC_LDR { get; init; }
+        public bool TextureCompressionBC { get; init; }
+        public bool TextureCubeArray { get; init; }
+        public bool Raytracing { get; init; }
     }
 }

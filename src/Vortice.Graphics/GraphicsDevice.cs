@@ -15,6 +15,9 @@ namespace Vortice.Graphics
         {
         }
 
+        public static bool EnableValidationLayers { get; set; }
+        public static bool EnableGpuBasedValidation { get; set; }
+
         /// <summary>
         /// Get the device capabilities.
         /// </summary>

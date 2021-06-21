@@ -4,6 +4,7 @@
 using System;
 using System.Windows.Forms;
 using Vortice;
+using Vortice.Graphics;
 
 namespace DrawTriangle
 {
@@ -19,6 +20,10 @@ namespace DrawTriangle
 
         private void OnMainFormLoad(object? sender, EventArgs e)
         {
+#if DEBUG
+            GraphicsDevice.EnableValidationLayers = true;
+#endif
+
             //StorageFolder rootFolder = await StorageFolder.GetFolderFromPathAsync(Directory.GetCurrentDirectory());
 
             var game = new DrawTriangleGame(new WinFormsGameContext(this));

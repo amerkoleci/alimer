@@ -3,34 +3,34 @@
 
 namespace Vortice.Graphics
 {
-    public struct GraphicsDeviceLimits
+    public record GraphicsDeviceLimits
     {
-        public uint MaxVertexAttributes;
-        public uint MaxVertexBindings;
-        public uint MaxVertexAttributeOffset;
-        public uint MaxVertexBindingStride;
-        public uint MaxTextureDimension1D;
-        public uint MaxTextureDimension2D;
-        public uint MaxTextureDimension3D;
-        public uint MaxTextureDimensionCube;
-        public uint MaxTextureArrayLayers;
-        public uint MaxColorAttachments;
-        public uint MaxUniformBufferRange;
-        public uint MaxStorageBufferRange;
-        public ulong MinUniformBufferOffsetAlignment;
-        public ulong MinStorageBufferOffsetAlignment;
-        public uint MaxSamplerAnisotropy;
-        public uint MaxViewports;
-        public uint MaxViewportWidth;
-        public uint MaxViewportHeight;
-        public uint MaxTessellationPatchSize;
-        public uint MaxComputeSharedMemorySize;
-        public uint MaxComputeWorkGroupCountX;
-        public uint MaxComputeWorkGroupCountY;
-        public uint MaxComputeWorkGroupCountZ;
-        public uint MaxComputeWorkGroupInvocations;
-        public uint MaxComputeWorkGroupSizeX;
-        public uint MaxComputeWorkGroupSizeY;
-        public uint MaxComputeWorkGroupSizeZ;
+        public uint MaxVertexAttributes { get; init; }
+        public uint MaxVertexBindings { get; init; }
+        public uint MaxVertexAttributeOffset { get; init; }
+        public uint MaxVertexBindingStride { get; init; }
+        public uint MaxTextureDimension1D { get; init; }
+        public uint MaxTextureDimension2D { get; init; }
+        public uint MaxTextureDimension3D { get; init; }
+        public uint MaxTextureDimensionCube { get; init; }
+        public uint MaxTextureArrayLayers { get; init; }
+        public uint MaxColorAttachments { get; init; }
+        public uint MaxUniformBufferRange { get; init; }
+        public uint MaxStorageBufferRange { get; init; }
+        public ulong MinUniformBufferOffsetAlignment { get; init; }
+        public ulong MinStorageBufferOffsetAlignment { get; init; }
+        public uint MaxSamplerAnisotropy { get; init; }
+        public uint MaxViewports { get; init; }
+        public uint MaxViewportWidth { get; init; }
+        public uint MaxViewportHeight { get; init; }
+        public uint MaxTessellationPatchSize { get; init; }
+        public uint MaxComputeSharedMemorySize { get; init; }
+        public uint MaxComputeWorkGroupCountX { get; init; }
+        public uint MaxComputeWorkGroupCountY { get; init; }
+        public uint MaxComputeWorkGroupCountZ { get; init; }
+        public uint MaxComputeWorkGroupInvocations { get; init; }
+        public uint MaxComputeWorkGroupSizeX { get; init; }
+        public uint MaxComputeWorkGroupSizeY { get; init; }
+        public uint MaxComputeWorkGroupSizeZ { get; init; }
     }
 }
