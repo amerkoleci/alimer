@@ -5,16 +5,16 @@ using System;
 
 namespace Vortice.Graphics
 {
-    public record TextureDescriptor
+    public readonly struct TextureDescriptor : IEquatable<TextureDescriptor>
     {
-        public TextureDescriptor(TextureDimension dimension, TextureFormat format, int width, int height, int depthOrArrayLayers, int mipLevels = 0, int sampleCount = 1, TextureUsage usage = TextureUsage.Sampled)
+        public TextureDescriptor(TextureDimension dimension, TextureFormat format, int width, int height, int depthOrArraySize, int mipLevels = 0, TextureSampleCount sampleCount = TextureSampleCount.Count1, TextureUsage usage = TextureUsage.Sampled)
         {
             Dimension = dimension;
             Format = format;
             Width = width;
             Height = height;
-            DepthOrArrayLayers = depthOrArrayLayers;
-            MipLevels = mipLevels == 1 ? CountMipLevels(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevels;
+            DepthOrArraySize = depthOrArraySize;
+            MipLevels = mipLevels == 1 ? CountMipLevels(width, height, dimension == TextureDimension.Texture3D ? depthOrArraySize : 1) : mipLevels;
             SampleCount = sampleCount;
             Usage = usage;
         }
@@ -22,8 +22,8 @@ namespace Vortice.Graphics
         public static TextureDescriptor Texture1D(
             TextureFormat format,
             int width,
+            int mipLevels = 1,
             int arrayLayers = 1,
-            int mipLevels = 0,
             TextureUsage usage = TextureUsage.Sampled)
         {
             return new TextureDescriptor(
@@ -33,7 +33,7 @@ namespace Vortice.Graphics
                 1,
                 arrayLayers,
                 mipLevels,
-                1,
+                TextureSampleCount.Count1,
                 usage);
         }
 
@@ -41,10 +41,11 @@ namespace Vortice.Graphics
             TextureFormat format,
             int width,
             int height,
+            int mipLevels = 1,
             int arrayLayers = 1,
-            int mipLevels = 0,
-            int sampleCount = 1,
-            TextureUsage usage = TextureUsage.Sampled)
+            TextureUsage usage = TextureUsage.Sampled,
+            TextureSampleCount sampleCount = TextureSampleCount.Count1
+            )
         {
             return new TextureDescriptor(
                 TextureDimension.Texture2D,
@@ -62,7 +63,7 @@ namespace Vortice.Graphics
             int width,
             int height,
             int depth = 1,
-            int mipLevels = 0,
+            int mipLevels = 1,
             TextureUsage usage = TextureUsage.Sampled)
         {
             return new TextureDescriptor(
@@ -72,21 +73,20 @@ namespace Vortice.Graphics
                 height,
                 depth,
                 mipLevels,
-                1,
+                TextureSampleCount.Count1,
                 usage);
         }
 
-        public TextureDimension Dimension { get; init; }
+        public TextureDimension Dimension { get; }
 
-        public TextureFormat Format { get; init; }
+        public TextureFormat Format { get; }
 
-        public int Width { get; init; }
-        public int Height { get; init; }
-        public int DepthOrArrayLayers { get; init; }
-        public int MipLevels { get; init; }
-        public int SampleCount { get; init; }
-
-        public TextureUsage Usage { get; init; }
+        public int Width { get;  }
+        public int Height { get; }
+        public int DepthOrArraySize { get; }
+        public int MipLevels { get; }
+        public TextureSampleCount SampleCount { get;  }
+        public TextureUsage Usage { get; }
 
         /// <summary>
         /// Returns the number of mip levels given a texture size
@@ -108,6 +108,64 @@ namespace Vortice.Graphics
                 ++numMips;
 
             return numMips;
+        }
+
+        /// <summary>
+        /// Compares two <see cref="TextureDescriptor"/> objects for equality.
+        /// </summary>
+        /// <param name="left">The <see cref="TextureDescriptor"/> on the left hand of the operand.</param>
+        /// <param name="right">The <see cref="TextureDescriptor"/> on the right hand of the operand.</param>
+        /// <returns>
+        /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(TextureDescriptor left, TextureDescriptor right) => left.Equals(right);
+
+        /// <summary>
+        /// Compares two <see cref="TextureDescriptor"/> objects for inequality.
+        /// </summary>
+        /// <param name="left">The <see cref="TextureDescriptor"/> on the left hand of the operand.</param>
+        /// <param name="right">The <see cref="TextureDescriptor"/> on the right hand of the operand.</param>
+        /// <returns>
+        /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(TextureDescriptor left, TextureDescriptor right) => !left.Equals(right);
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is TextureDescriptor other && Equals(other);
+
+        /// <inheritdoc/>
+        public bool Equals(TextureDescriptor other)
+        {
+            return
+                Dimension == other.Dimension &&
+                Format == other.Format &&
+                Width == other.Width &&
+                Height == other.Height &&
+                DepthOrArraySize == other.DepthOrArraySize &&
+                MipLevels == other.MipLevels &&
+                SampleCount == other.SampleCount &&
+                Usage == other.Usage;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this instance.
+        /// </summary>
+        /// <returns>A 32-bit signed integer that is the hash code for this instance.</returns>
+        public override int GetHashCode()
+        {
+            var hashCode = new HashCode();
+            {
+                hashCode.Add(Dimension);
+                hashCode.Add(Format);
+                hashCode.Add(Width);
+                hashCode.Add(Height);
+                hashCode.Add(DepthOrArraySize);
+                hashCode.Add(MipLevels);
+                hashCode.Add(SampleCount);
+                hashCode.Add(Usage);
+            }
+
+            return hashCode.ToHashCode();
         }
     }
 }

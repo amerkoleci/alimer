@@ -26,13 +26,15 @@ namespace Vortice.Graphics
         /// <inheritdoc />
         public void Dispose()
         {
-            Dispose(isDisposing: true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
         /// <inheritdoc cref="Dispose()" />
-        /// <param name="isDisposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
-        protected abstract void Dispose(bool isDisposing);
+        /// <param name="disposing">
+        /// <c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.
+        /// </param>
+        protected abstract void Dispose(bool disposing);
 
         private static GraphicsDevice InitializeDefaultDevice()
         {
@@ -94,5 +96,12 @@ namespace Vortice.Graphics
 
             return GraphicsBackend.Vulkan;
         }
+
+        public Texture CreateTexture(in TextureDescriptor descriptor)
+        {
+            return CreateTextureCore(descriptor);
+        }
+
+        protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor);
     }
 }

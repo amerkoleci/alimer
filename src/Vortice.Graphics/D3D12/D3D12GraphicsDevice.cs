@@ -150,12 +150,15 @@ namespace Vortice.Graphics.D3D12
         /// <summary>
         /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
         /// </summary>
-        ~D3D12GraphicsDevice() => Dispose(isDisposing: false);
+        ~D3D12GraphicsDevice() => Dispose(disposing: false);
 
 
         /// <inheritdoc />
-        protected override void Dispose(bool isDisposing)
+        protected override void Dispose(bool disposing)
         {
         }
+
+        /// <inheritdoc />
+        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new D3D12Texture(this, descriptor);
     }
 }

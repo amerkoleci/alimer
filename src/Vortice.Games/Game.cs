@@ -27,6 +27,10 @@ namespace Vortice
             View = Services.GetRequiredService<GameView>();
 
             GraphicsDevice = Services.GetService<GraphicsDevice>();
+            if (GraphicsDevice == null)
+            {
+                GraphicsDevice = GraphicsDevice.Default;
+            }
         }
 
         public event EventHandler<EventArgs>? Disposed;
@@ -39,7 +43,7 @@ namespace Vortice
 
         public GameView View { get; }
 
-        public GraphicsDevice? GraphicsDevice { get; }
+        public GraphicsDevice GraphicsDevice { get; }
 
         ~Game()
         {

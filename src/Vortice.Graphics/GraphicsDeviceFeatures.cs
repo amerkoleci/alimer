@@ -3,7 +3,7 @@
 
 namespace Vortice.Graphics
 {
-    public record GraphicsDeviceFeatures
+    public readonly struct GraphicsDeviceFeatures
     {
         public bool IndependentBlend { get; init; }
         public bool ComputeShader { get; init; }

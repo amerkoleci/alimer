@@ -10,7 +10,7 @@ namespace Vortice.Graphics
         protected SwapChain(GraphicsDevice device, in SwapChainDescriptor descriptor)
             : base(device)
         {
-            Size = new(descriptor.Width, descriptor.Height);
+            Size = descriptor.Size;
             ColorFormat = descriptor.ColorFormat;
             EnableVerticalSync = descriptor.EnableVerticalSync;
             IsFullscreen = descriptor.IsFullscreen;

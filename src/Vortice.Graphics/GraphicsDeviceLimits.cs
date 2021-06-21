@@ -3,7 +3,7 @@
 
 namespace Vortice.Graphics
 {
-    public record GraphicsDeviceLimits
+    public readonly struct GraphicsDeviceLimits
     {
         public uint MaxVertexAttributes { get; init; }
         public uint MaxVertexBindings { get; init; }
