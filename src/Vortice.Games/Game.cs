@@ -7,35 +7,49 @@ using Vortice.Graphics;
 
 namespace Vortice
 {
-    public abstract partial class Game : IDisposable
+    public abstract class Game : IGame, IDisposable
     {
-        private GameContext _context;
+        private readonly GameContext _context;
+        private readonly GamePlatform _platform;
         private readonly ServiceProvider _serviceProvider;
         private bool _isInitialized;
 
         protected Game(GameContext context)
         {
             _context = context;
-            ServiceCollection services = new();
+            _platform = GamePlatform.Create(this);
+            _platform.Activated += GamePlatform_Activated;
+            _platform.Deactivated += GamePlatform_Deactivated;
 
+            ServiceCollection services = new();
             context.ConfigureServices(services);
             ConfigureServices(services);
 
             _serviceProvider = services.BuildServiceProvider();
 
             // Get services.
-            View = Services.GetRequiredService<GameView>();
+            View = _serviceProvider.GetRequiredService<GameView>();
 
-            GraphicsDevice = Services.GetService<GraphicsDevice>();
+            GraphicsDevice = _serviceProvider.GetService<GraphicsDevice>();
             if (GraphicsDevice == null)
             {
                 GraphicsDevice = GraphicsDevice.Default;
             }
         }
 
+        ~Game()
+        {
+            Dispose(dispose: false);
+        }
+
+        public event EventHandler<EventArgs>? Activated;
+        public event EventHandler<EventArgs>? Deactivated;
+
         public event EventHandler<EventArgs>? Disposed;
 
         public IServiceProvider Services => _serviceProvider;
+
+        public bool IsActive { get; private set; }
 
         public bool IsRunning { get; private set; }
 
@@ -44,11 +58,6 @@ namespace Vortice
         public GameView View { get; }
 
         public GraphicsDevice GraphicsDevice { get; }
-
-        ~Game()
-        {
-            Dispose(dispose: false);
-        }
 
         public void Dispose()
         {
@@ -98,5 +107,46 @@ namespace Vortice
                 _isInitialized = true;
             }
         }
+
+        /// <summary>
+        /// Raises the <see cref="Activated"/> event. Override this method to add code to handle when the game gains focus.
+        /// </summary>
+        /// <param name="sender">The Game.</param>
+        /// <param name="args">Arguments for the Activated event.</param>
+        protected virtual void OnActivated(object sender, EventArgs args)
+        {
+            Activated?.Invoke(this, args);
+        }
+
+        /// <summary>
+        /// Raises the <see cref="Deactivated"/> event. Override this method to add code to handle when the game loses focus.
+        /// </summary>
+        /// <param name="sender">The Game.</param>
+        /// <param name="args">Arguments for the Deactivated event.</param>
+        protected virtual void OnDeactivated(object sender, EventArgs args)
+        {
+            Deactivated?.Invoke(this, args);
+        }
+
+
+        #region GamePlatform Events
+        private void GamePlatform_Activated(object sender, EventArgs e)
+        {
+            if (!IsActive)
+            {
+                IsActive = true;
+                OnActivated(this, EventArgs.Empty);
+            }
+        }
+
+        private void GamePlatform_Deactivated(object sender, EventArgs e)
+        {
+            if (IsActive)
+            {
+                IsActive = false;
+                OnDeactivated(this, EventArgs.Empty);
+            }
+        }
+        #endregion
     }
 }
