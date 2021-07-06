@@ -35,21 +35,15 @@ jobs:
     - name: Install .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
-
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2             
+        dotnet-version: 5.0.x 
 
     - name: Version
       uses: aarnott/nbgv@v0.4.0
       with:
         setAllVars: true
 
-    - name: Restore
-      run: dotnet restore Vortice.sln
-
     - name: Pack
-      run: msbuild /t:pack /p:Configuration=Release /m Vortice.sln
+      run: dotnet pack Vortice.sln --configuration Release
 
     - name: Publish to NuGet
       if: github.event_name == 'push'

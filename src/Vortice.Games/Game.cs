@@ -130,7 +130,7 @@ namespace Vortice
 
 
         #region GamePlatform Events
-        private void GamePlatform_Activated(object sender, EventArgs e)
+        private void GamePlatform_Activated(object? sender, EventArgs e)
         {
             if (!IsActive)
             {
@@ -139,7 +139,7 @@ namespace Vortice
             }
         }
 
-        private void GamePlatform_Deactivated(object sender, EventArgs e)
+        private void GamePlatform_Deactivated(object? sender, EventArgs e)
         {
             if (IsActive)
             {
