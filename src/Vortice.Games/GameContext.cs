@@ -20,7 +20,7 @@ namespace Vortice
     {
         private GraphicsDevice? graphicsDevice;
 
-        public GraphicsDevice GraphicsDevice { get => graphicsDevice ??= GraphicsDevice.Default; set => graphicsDevice = value; }
+        public GraphicsDevice GraphicsDevice { get => graphicsDevice ??= GraphicsDevice.Create(); set => graphicsDevice = value; }
 
         public override void ConfigureServices(IServiceCollection services)
         {

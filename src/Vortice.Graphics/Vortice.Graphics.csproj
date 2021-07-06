@@ -14,7 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vortice.Direct3D12" Version="1.9.87" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.20348-beta1-988607287" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta2-990717493" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="Vortice.Vulkan" Version="1.3.26" Condition="'$(ExcludeVulkan)' != 'true'" />

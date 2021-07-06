@@ -33,7 +33,7 @@ namespace Vortice
             GraphicsDevice = _serviceProvider.GetService<GraphicsDevice>();
             if (GraphicsDevice == null)
             {
-                GraphicsDevice = GraphicsDevice.Default;
+                GraphicsDevice = GraphicsDevice.Create();
             }
         }
 
@@ -57,7 +57,7 @@ namespace Vortice
 
         public GameView View { get; }
 
-        public GraphicsDevice GraphicsDevice { get; }
+        public GraphicsDevice? GraphicsDevice { get; }
 
         public void Dispose()
         {
@@ -69,8 +69,9 @@ namespace Vortice
         {
             if (dispose && !IsDisposed)
             {
-                Disposed?.Invoke(this, EventArgs.Empty);
+                GraphicsDevice?.Dispose();
 
+                Disposed?.Invoke(this, EventArgs.Empty);
                 IsDisposed = true;
             }
         }

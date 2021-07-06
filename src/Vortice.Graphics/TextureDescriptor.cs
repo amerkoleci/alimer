@@ -5,6 +5,9 @@ using System;
 
 namespace Vortice.Graphics
 {
+    /// <summary>
+    /// Structure that describes the <see cref="Texture"/>.
+    /// </summary>
     public readonly struct TextureDescriptor : IEquatable<TextureDescriptor>
     {
         public TextureDescriptor(TextureDimension dimension, TextureFormat format, int width, int height, int depthOrArraySize, int mipLevels = 0, TextureSampleCount sampleCount = TextureSampleCount.Count1, TextureUsage usage = TextureUsage.Sampled)

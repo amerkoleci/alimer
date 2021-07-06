@@ -8,9 +8,6 @@ namespace Vortice.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
-        private static readonly Lazy<GraphicsDevice> s_Default = new(InitializeDefaultDevice);
-        public static GraphicsDevice Default => s_Default.Value;
-
         protected GraphicsDevice()
         {
         }
@@ -36,7 +33,7 @@ namespace Vortice.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-        private static GraphicsDevice InitializeDefaultDevice()
+        public static GraphicsDevice? Create()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

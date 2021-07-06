@@ -10,12 +10,22 @@ namespace DrawTriangle
 {
     public class MainForm : Form
     {
+        // Until we add cross platform game logic.
+        private DrawTriangleGame? _game;
+
         public MainForm()
         {
             Width = 1200;
             Height = 800;
 
             Load += OnMainFormLoad;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _game?.Dispose();
+
+            base.OnClosed(e);
         }
 
         private void OnMainFormLoad(object? sender, EventArgs e)
@@ -26,8 +36,8 @@ namespace DrawTriangle
 
             //StorageFolder rootFolder = await StorageFolder.GetFolderFromPathAsync(Directory.GetCurrentDirectory());
 
-            var game = new DrawTriangleGame(new WinFormsGameContext(this));
-            game.Run();
+            _game = new DrawTriangleGame(new WinFormsGameContext(this));
+            _game.Run();
         }
     }
 

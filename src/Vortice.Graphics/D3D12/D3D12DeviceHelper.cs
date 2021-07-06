@@ -2,14 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
-using Vortice.Direct3D;
-using Vortice.Direct3D12;
-using Vortice.DXGI;
-using static Vortice.DXGI.DXGI;
-using static Vortice.Direct3D12.D3D12;
-using Vortice.Direct3D12.Debug;
+using TerraFX.Interop;
+using FX = TerraFX.Interop.Windows;
 using System.Diagnostics;
-using Vortice.DXGI.Debug;
+using static TerraFX.Interop.DXGI_FEATURE;
+using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+using static TerraFX.Interop.D3D_FEATURE_LEVEL;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -17,7 +16,7 @@ namespace Vortice.Graphics.D3D12
     {
         public static readonly Lazy<bool> IsSupported = new(CheckIsSupported);
 
-        public static readonly Lazy<IDXGIFactory4> DXGIFactory = new(CreateFactory);
+        public static readonly ComPtr<IDXGIFactory4> DXGIFactory = CreateFactory();
 
         public static bool IsTearingSupported { get; private set; }
 
@@ -25,27 +24,34 @@ namespace Vortice.Graphics.D3D12
 
         private static bool CheckIsSupported()
         {
-            return Vortice.Direct3D12.D3D12.IsSupported(FeatureLevel.Level_11_0);
+            try
+            {
+                HRESULT result = FX.D3D12CreateDevice(null, D3D_FEATURE_LEVEL_11_0, FX.__uuidof<ID3D12Device>(), null);
+                return FX.SUCCEEDED(result);
+            }
+            catch
+            {
+                // On pre Windows 10 d3d12.dll is not present and therefore not supported.
+                return false;
+            }
         }
 
-        private static IDXGIFactory4 CreateFactory()
+        private static ComPtr<IDXGIFactory4> CreateFactory()
         {
-            bool debug = false;
+            uint factoryFlags = 0;
             if (GraphicsDevice.EnableValidationLayers)
             {
-                if (D3D12GetDebugInterface(out ID3D12Debug? debugController).Success)
+                using ComPtr<ID3D12Debug> d3d12Debug = default;
+                using ComPtr<ID3D12Debug1> d3d12Debug1 = default;
+
+                if (FX.SUCCEEDED(FX.D3D12GetDebugInterface(FX.__uuidof<ID3D12Debug>(), d3d12Debug.GetVoidAddressOf())))
                 {
-                    debugController!.EnableDebugLayer();
+                    d3d12Debug.Get()->EnableDebugLayer();
 
-                    using (ID3D12Debug1? debugController1 = debugController!.QueryInterfaceOrNull<ID3D12Debug1>())
+                    if (FX.SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug1.GetAddressOf())))
                     {
-                        if (debugController1 != null)
-                        {
-                            debugController1.SetEnableGPUBasedValidation(GraphicsDevice.EnableGpuBasedValidation);
-                        }
+                        d3d12Debug1.Get()->SetEnableGPUBasedValidation(GraphicsDevice.EnableGpuBasedValidation ? FX.TRUE : FX.FALSE);
                     }
-
-                    debugController!.Dispose();
                 }
                 else
                 {
@@ -53,59 +59,92 @@ namespace Vortice.Graphics.D3D12
                 }
 
 #if DEBUG
-                if (DXGIGetDebugInterface1(out IDXGIInfoQueue? dxgiInfoQueue).Success)
+                using ComPtr<IDXGIInfoQueue> dxgiInfoQueue = default;
+                if (FX.SUCCEEDED(FX.DXGIGetDebugInterface1(0, FX.__uuidof<IDXGIInfoQueue>(), dxgiInfoQueue.GetVoidAddressOf())))
                 {
-                    debug = true;
+                    factoryFlags = FX.DXGI_CREATE_FACTORY_DEBUG;
 
-                    dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Error, true);
-                    dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Corruption, true);
+                    dxgiInfoQueue.Get()->SetBreakOnSeverity(FX.DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, FX.TRUE);
+                    dxgiInfoQueue.Get()->SetBreakOnSeverity(FX.DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, FX.TRUE);
 
-                    var filter = new DXGI.Debug.InfoQueueFilter()
+                    Span<int> hide = stackalloc int[]
                     {
-                        DenyList = new DXGI.Debug.InfoQueueFilterDescription()
-                        {
-                            Ids = new int[]
-                            {
-                                80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
-                            }
-                        }
+                        80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
                     };
 
-                    dxgiInfoQueue!.AddStorageFilterEntries(DebugDxgi, filter);
-                    dxgiInfoQueue!.Dispose();
+                    fixed (int* pIDList = hide)
+                    {
+                        DXGI_INFO_QUEUE_FILTER filter = new()
+                        {
+                            DenyList = new()
+                            {
+                                NumIDs = (uint)hide.Length,
+                                pIDList = pIDList
+                            }
+                        };
+
+                        dxgiInfoQueue.Get()->AddStorageFilterEntries(FX.DXGI_DEBUG_DXGI, &filter);
+                    }
                 }
 #endif
             }
 
-            CreateDXGIFactory2(debug, out IDXGIFactory4? factory).CheckError();
+            ComPtr<IDXGIFactory4> dxgiFactory4 = default;
+            FX.CreateDXGIFactory2(factoryFlags, FX.__uuidof<IDXGIFactory4>(), dxgiFactory4.GetVoidAddressOf()).Assert();
 
-            using (IDXGIFactory5? factory5 = factory!.QueryInterfaceOrNull<IDXGIFactory5>())
+            using ComPtr<IDXGIFactory5> dxgiFactory5 = default;
+            if (FX.SUCCEEDED(dxgiFactory4.CopyTo(dxgiFactory5.GetAddressOf())))
             {
-                if (factory5 != null)
+                int allowTearing = FX.FALSE;
+                if (FX.FAILED(dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, (uint)sizeof(int)))
+                    && allowTearing == FX.FALSE)
                 {
-                    IsTearingSupported = factory5.PresentAllowTearing;
+                    IsTearingSupported = false;
+                }
+                else
+                {
+                    IsTearingSupported = true;
                 }
             }
 
-            return factory!;
+
+            return dxgiFactory4;
         }
 
         private static D3D12GraphicsDevice GetDefaultDevice()
         {
-            for (int adapterIndex = 0; DXGIFactory.Value.EnumAdapters1(adapterIndex, out IDXGIAdapter1 adapter).Success; adapterIndex++)
-            {
-                AdapterDescription1 desc = adapter.Description1;
+            uint i = 0;
 
-                if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
+            while (true)
+            {
+                using ComPtr<IDXGIAdapter1> dxgiAdapter1 = default;
+                HRESULT result = DXGIFactory.Get()->EnumAdapters1(i++, dxgiAdapter1.GetAddressOf());
+
+                if (result == FX.DXGI_ERROR_NOT_FOUND)
+                {
+                    break;
+                }
+
+                result.Assert();
+
+                DXGI_ADAPTER_DESC1 adapterDesc;
+                dxgiAdapter1.Get()->GetDesc1(&adapterDesc).Assert();
+
+                if (((DXGI_ADAPTER_FLAG)adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == DXGI_ADAPTER_FLAG_SOFTWARE)
                 {
                     // Don't select the Basic Render Driver adapter.
-                    adapter.Dispose();
                     continue;
                 }
 
-                if (D3D12CreateDevice(adapter, FeatureLevel.Level_11_0, out ID3D12Device2? device).Success)
+                HRESULT createDeviceResult = FX.D3D12CreateDevice(
+                    dxgiAdapter1.AsIUnknown().Get(),
+                    D3D_FEATURE_LEVEL_11_0,
+                    FX.__uuidof<ID3D12Device>(),
+                    null);
+
+                if (FX.SUCCEEDED(createDeviceResult))
                 {
-                    return new D3D12GraphicsDevice(device!, adapter);
+                    return new D3D12GraphicsDevice(dxgiAdapter1);
                 }
             }
 

@@ -1,18 +1,18 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Vortice.Direct3D12;
+using TerraFX.Interop;
 
 namespace Vortice.Graphics.D3D12
 {
-    internal class D3D12Texture : Texture
+    internal unsafe class D3D12Texture : Texture
     {
+        private ComPtr<ID3D12Resource> resource;
+
         public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
+#if TODO
             ResourceDescription description = new ResourceDescription
             {
                 Dimension = descriptor.Dimension.ToD3D12(),
@@ -75,16 +75,18 @@ namespace Vortice.Graphics.D3D12
                 HeapFlags.None,
                 description,
                 state,
-                optimizedClearValue);
+                optimizedClearValue); 
+#endif
         }
 
-        public ID3D12Resource Handle { get; }
+        public ID3D12Resource* Resource => resource;
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
+                resource.Dispose();
             }
         }
     }
