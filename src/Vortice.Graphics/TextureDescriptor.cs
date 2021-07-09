@@ -10,7 +10,15 @@ namespace Vortice.Graphics
     /// </summary>
     public readonly struct TextureDescriptor : IEquatable<TextureDescriptor>
     {
-        public TextureDescriptor(TextureDimension dimension, TextureFormat format, int width, int height, int depthOrArraySize, int mipLevels = 0, TextureSampleCount sampleCount = TextureSampleCount.Count1, TextureUsage usage = TextureUsage.Sampled)
+        public TextureDescriptor(
+            TextureDimension dimension,
+            TextureFormat format,
+            int width,
+            int height,
+            int depthOrArraySize,
+            int mipLevels = 1,
+            TextureUsage usage = TextureUsage.ShaderRead,
+            TextureSampleCount sampleCount = TextureSampleCount.Count1)
         {
             Dimension = dimension;
             Format = format;
@@ -27,7 +35,7 @@ namespace Vortice.Graphics
             int width,
             int mipLevels = 1,
             int arrayLayers = 1,
-            TextureUsage usage = TextureUsage.Sampled)
+            TextureUsage usage = TextureUsage.ShaderRead)
         {
             return new TextureDescriptor(
                 TextureDimension.Texture1D,
@@ -36,8 +44,8 @@ namespace Vortice.Graphics
                 1,
                 arrayLayers,
                 mipLevels,
-                TextureSampleCount.Count1,
-                usage);
+                usage,
+                TextureSampleCount.Count1);
         }
 
         public static TextureDescriptor Texture2D(
@@ -46,7 +54,7 @@ namespace Vortice.Graphics
             int height,
             int mipLevels = 1,
             int arrayLayers = 1,
-            TextureUsage usage = TextureUsage.Sampled,
+            TextureUsage usage = TextureUsage.ShaderRead,
             TextureSampleCount sampleCount = TextureSampleCount.Count1
             )
         {
@@ -57,8 +65,8 @@ namespace Vortice.Graphics
                 height,
                 arrayLayers,
                 mipLevels,
-                sampleCount,
-                usage);
+                usage,
+                sampleCount);
         }
 
         public static TextureDescriptor Texture3D(
@@ -67,7 +75,7 @@ namespace Vortice.Graphics
             int height,
             int depth = 1,
             int mipLevels = 1,
-            TextureUsage usage = TextureUsage.Sampled)
+            TextureUsage usage = TextureUsage.ShaderRead)
         {
             return new TextureDescriptor(
                 TextureDimension.Texture3D,
@@ -76,10 +84,13 @@ namespace Vortice.Graphics
                 height,
                 depth,
                 mipLevels,
-                TextureSampleCount.Count1,
-                usage);
+                usage,
+                TextureSampleCount.Count1);
         }
 
+        /// <summary>
+        /// Dimension of texture.
+        /// </summary>
         public TextureDimension Dimension { get; }
 
         public TextureFormat Format { get; }
@@ -88,8 +99,8 @@ namespace Vortice.Graphics
         public int Height { get; }
         public int DepthOrArraySize { get; }
         public int MipLevels { get; }
-        public TextureSampleCount SampleCount { get;  }
         public TextureUsage Usage { get; }
+        public TextureSampleCount SampleCount { get;  }
 
         /// <summary>
         /// Returns the number of mip levels given a texture size

@@ -178,7 +178,7 @@ namespace Vortice.Graphics.D3D12
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ToD3D12(this TextureSampleCount sampleCount)
+        public static uint ToD3D12(this TextureSampleCount sampleCount)
         {
             switch (sampleCount)
             {

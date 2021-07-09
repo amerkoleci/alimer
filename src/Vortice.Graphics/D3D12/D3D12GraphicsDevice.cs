@@ -202,13 +202,14 @@ namespace Vortice.Graphics.D3D12
 
                 _allocator.Dispose();
 #if DEBUG
+                var d3dDevice = _nativeDevice.Get();
                 uint refCount = _nativeDevice.Reset();
                 if (refCount > 0)
                 {
                     Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
                     using ComPtr<ID3D12DebugDevice> d3d12DebugDevice = default;
-                    if (FX.SUCCEEDED(_nativeDevice.CopyTo(d3d12DebugDevice.GetAddressOf())))
+                    if (FX.SUCCEEDED(d3dDevice->QueryInterface(FX.__uuidof<ID3D12DebugDevice>(), d3d12DebugDevice.GetVoidAddressOf())))
                     {
                         d3d12DebugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
                     }

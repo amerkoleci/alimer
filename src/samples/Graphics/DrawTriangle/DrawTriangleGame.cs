@@ -15,6 +15,9 @@ namespace DrawTriangle
 
         protected override void Initialize()
         {
+            using (var texture = GraphicsDevice.CreateTexture(TextureDescriptor.Texture2D(TextureFormat.RGBA8UNorm, 256, 256)))
+            {
+            }
         }
     }
 }
