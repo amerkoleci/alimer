@@ -12,4 +12,15 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- Settings that are only set for executables -->
+  <PropertyGroup Condition="'$(OutputType)' != 'Library'">
+    <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- Settings that are only set for libraries -->
+  <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
 </Project>

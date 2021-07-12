@@ -6,7 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{4205B27B-0F9D-4FE5-8FC5-8995C60F8EE4}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
-		global.json = global.json
+		Directory.Build.targets = Directory.Build.targets
 		NuGet.Config = NuGet.Config
 		version.json = version.json
 	EndProjectSection
