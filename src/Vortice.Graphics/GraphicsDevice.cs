@@ -33,7 +33,7 @@ namespace Vortice.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-        public static GraphicsDevice? Create()
+        public static GraphicsDevice Create()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -45,7 +45,14 @@ namespace Vortice.Graphics
                 }
             }
 
-            return null;
+            if (IsSupported(GraphicsBackend.Vulkan))
+            {
+#if !EXCLUDE_D3D12_BACKEND
+                return Vulkan.VulkanDeviceHelper.DefaultDevice.Value;
+#endif // !EXCLUDE_D3D12_BACKEND
+            }
+
+            return new Null.GraphicsDeviceNull();
         }
 
         public static bool IsSupported(GraphicsBackend backend)

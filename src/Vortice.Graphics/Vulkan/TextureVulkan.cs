@@ -7,11 +7,11 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Vortice.Graphics.Vulkan
 {
-    internal class VulkanTexture : Texture
+    internal unsafe class TextureVulkan : Texture
     {
         private readonly VkImage _handle;
 
-        public unsafe VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor)
+        public TextureVulkan(GraphicsDeviceVulkan device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
             VkImageCreateInfo createInfo = new VkImageCreateInfo()

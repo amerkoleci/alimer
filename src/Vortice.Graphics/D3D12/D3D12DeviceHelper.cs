@@ -12,7 +12,7 @@ using static TerraFX.Interop.D3D_FEATURE_LEVEL;
 
 namespace Vortice.Graphics.D3D12
 {
-    public static unsafe class D3D12DeviceHelper
+    internal static unsafe class D3D12DeviceHelper
     {
         public static readonly Lazy<bool> IsSupported = new(CheckIsSupported);
 
@@ -20,7 +20,7 @@ namespace Vortice.Graphics.D3D12
 
         public static bool IsTearingSupported { get; private set; }
 
-        public static readonly Lazy<D3D12GraphicsDevice> DefaultDevice = new(GetDefaultDevice);
+        public static readonly Lazy<GraphicsDeviceD3D12> DefaultDevice = new(GetDefaultDevice);
 
         private static bool CheckIsSupported()
         {
@@ -111,7 +111,7 @@ namespace Vortice.Graphics.D3D12
             return dxgiFactory4;
         }
 
-        private static D3D12GraphicsDevice GetDefaultDevice()
+        private static GraphicsDeviceD3D12 GetDefaultDevice()
         {
             uint i = 0;
 
@@ -144,7 +144,7 @@ namespace Vortice.Graphics.D3D12
 
                 if (FX.SUCCEEDED(createDeviceResult))
                 {
-                    return new D3D12GraphicsDevice(dxgiAdapter1);
+                    return new GraphicsDeviceD3D12(dxgiAdapter1);
                 }
             }
 

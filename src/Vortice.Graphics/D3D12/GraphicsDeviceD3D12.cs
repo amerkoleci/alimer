@@ -17,7 +17,7 @@ using static Vortice.MarshalUtilities;
 
 namespace Vortice.Graphics.D3D12
 {
-    public sealed unsafe class D3D12GraphicsDevice : GraphicsDevice
+    public sealed unsafe class GraphicsDeviceD3D12 : GraphicsDevice
     {
         private ComPtr<ID3D12Device2> _nativeDevice;
 
@@ -28,7 +28,7 @@ namespace Vortice.Graphics.D3D12
 
         private readonly GraphicsDeviceCaps _caps;
 
-        internal D3D12GraphicsDevice(ComPtr<IDXGIAdapter1> dxgiAdapter1)
+        internal GraphicsDeviceD3D12(ComPtr<IDXGIAdapter1> dxgiAdapter1)
         {
             HRESULT result = FX.D3D12CreateDevice(
                 dxgiAdapter1.AsIUnknown().Get(),
@@ -183,9 +183,9 @@ namespace Vortice.Graphics.D3D12
         public override GraphicsDeviceCaps Capabilities => _caps;
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
+        /// Finalizes an instance of the <see cref="GraphicsDeviceD3D12" /> class.
         /// </summary>
-        ~D3D12GraphicsDevice() => Dispose(disposing: false);
+        ~GraphicsDeviceD3D12() => Dispose(disposing: false);
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
@@ -221,6 +221,6 @@ namespace Vortice.Graphics.D3D12
         }
 
         /// <inheritdoc />
-        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new D3D12Texture(this, descriptor);
+        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureD3D12(this, descriptor);
     }
 }

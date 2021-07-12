@@ -6,11 +6,11 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Vortice.Graphics.Vulkan
 {
-    public sealed unsafe class VulkanGraphicsDevice : GraphicsDevice
+    public sealed unsafe class GraphicsDeviceVulkan : GraphicsDevice
     {
         private readonly GraphicsDeviceCaps _caps;
 
-        internal VulkanGraphicsDevice(VkPhysicalDevice physicalDevice)
+        internal GraphicsDeviceVulkan(VkPhysicalDevice physicalDevice)
         {
             VkDeviceCreateInfo createInfo = new VkDeviceCreateInfo
             {
@@ -42,7 +42,6 @@ namespace Vortice.Graphics.Vulkan
                     adapterType = GPUAdapterType.Unknown;
                     break;
             }
-
 
             _caps = new GraphicsDeviceCaps()
             {
@@ -109,7 +108,7 @@ namespace Vortice.Graphics.Vulkan
         /// <summary>
         /// Finalizes an instance of the <see cref="VulkanGraphicsDevice" /> class.
         /// </summary>
-        ~VulkanGraphicsDevice() => Dispose(disposing: false);
+        ~GraphicsDeviceVulkan() => Dispose(disposing: false);
 
 
         /// <inheritdoc />
@@ -118,6 +117,6 @@ namespace Vortice.Graphics.Vulkan
         }
 
         /// <inheritdoc />
-        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new VulkanTexture(this, descriptor);
+        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureVulkan(this, descriptor);
     }
 }

@@ -10,12 +10,12 @@ using static TerraFX.Interop.D3D12_TEXTURE_LAYOUT;
 
 namespace Vortice.Graphics.D3D12
 {
-    internal unsafe class D3D12Texture : Texture
+    public unsafe class TextureD3D12 : Texture
     {
         private ComPtr<ID3D12Resource> resource;
         private UniquePtr<D3D12MA_Allocation> allocation;
 
-        public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor)
+        public TextureD3D12(GraphicsDeviceD3D12 device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
             D3D12MA_ALLOCATION_DESC allocationDesc = default;

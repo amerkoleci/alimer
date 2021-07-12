@@ -7,7 +7,7 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Vortice.Graphics.Vulkan
 {
-    public static unsafe class VulkanDeviceHelper
+    internal static unsafe class VulkanDeviceHelper
     {
         private static readonly VkString s_appName = new("Vortice");
         private static readonly VkString s_engineName = new("Vortice");
@@ -15,6 +15,7 @@ namespace Vortice.Graphics.Vulkan
         public static readonly Lazy<bool> IsSupported = new(CheckIsSupported);
 
         public static readonly Lazy<VkInstance> Instance = new(CreateInstance);
+        public static readonly Lazy<GraphicsDeviceVulkan> DefaultDevice = new(GetDefaultDevice);
 
         private static VkInstance CreateInstance()
         {
@@ -52,6 +53,21 @@ namespace Vortice.Graphics.Vulkan
             // TODO: Enumerate physical devices and try to create instance.
 
             return true;
+        }
+
+        private static GraphicsDeviceVulkan GetDefaultDevice()
+        {
+            ReadOnlySpan<VkPhysicalDevice> physicalDevices = vkEnumeratePhysicalDevices(Instance.Value);
+            foreach (VkPhysicalDevice physicalDevice in physicalDevices)
+            {
+                var availableDeviceExtensions = vkEnumerateDeviceExtensionProperties(physicalDevice);
+
+                // TODO: Check if suitable
+
+                    return new GraphicsDeviceVulkan(physicalDevice);
+            }
+
+            throw new GraphicsException("Vulkan: No suitable GPU found");
         }
     }
 }
