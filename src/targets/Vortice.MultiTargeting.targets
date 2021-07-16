@@ -7,15 +7,11 @@
     <None Include="Platform\**\*.*" />
   </ItemGroup>
 
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) or $(TargetFramework.StartsWith('net5.')) ">
-    <Compile Include="Platform\Standard\**\*.cs" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('net6.')) ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' or '$(TargetFramework)' == 'net6.0' ">
     <Compile Include="Platform\Standard\**\*.cs" />
   </ItemGroup>
   
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('net5.0-windows'))">
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('net5.0-windows')) or $(TargetFramework.StartsWith('net6.0-windows')) ">
     <Compile Include="Platform\Windows\**\*.cs" />
   </ItemGroup>
   
