@@ -7,7 +7,7 @@ using Vortice.Vulkan;
 
 namespace Vortice.Graphics.Vulkan
 {
-    internal static class VulkanUtils
+    internal static unsafe class VulkanUtils
     {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -147,6 +147,11 @@ namespace Vortice.Graphics.Vulkan
                 default:
                     return ThrowHelper.ThrowArgumentException<VkFormat>("Invalid texture format");
             }
+        }
+
+        public static VkMemoryHeap GetMemoryHeap(this VkPhysicalDeviceMemoryProperties memoryProperties, uint index)
+        {
+            return (&memoryProperties.memoryHeaps_0)[index];
         }
     }
 }

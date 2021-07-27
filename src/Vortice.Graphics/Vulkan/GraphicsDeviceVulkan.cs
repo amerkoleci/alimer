@@ -1,6 +1,8 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System;
+using System.Collections.Generic;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
@@ -12,9 +14,33 @@ namespace Vortice.Graphics.Vulkan
 
         internal GraphicsDeviceVulkan(VkPhysicalDevice physicalDevice)
         {
+            ReadOnlySpan<VkQueueFamilyProperties> queueFamilies = vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice);
+
+            List<string> enabledExtensions = new List<string>
+            {
+                KHRSwapchainExtensionName
+            };
+
+            float priority = 1.0f;
+            VkDeviceQueueCreateInfo queueCreateInfo = new VkDeviceQueueCreateInfo
+            {
+                sType = VkStructureType.DeviceQueueCreateInfo,
+                queueFamilyIndex = 0, // queueFamilies.graphicsFamily,
+                queueCount = 1,
+                pQueuePriorities = &priority
+            };
+
+            using var deviceExtensionNames = new VkStringArray(enabledExtensions);
+
             VkDeviceCreateInfo createInfo = new VkDeviceCreateInfo
             {
-                sType = VkStructureType.DeviceCreateInfo
+                sType = VkStructureType.DeviceCreateInfo,
+                //pNext = &deviceFeatures2,
+                queueCreateInfoCount = 1,
+                pQueueCreateInfos = &queueCreateInfo,
+                enabledExtensionCount = deviceExtensionNames.Length,
+                ppEnabledExtensionNames = deviceExtensionNames,
+                pEnabledFeatures = null,
             };
 
             vkCreateDevice(physicalDevice, &createInfo, null, out VkDevice device);
