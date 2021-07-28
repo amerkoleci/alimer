@@ -12,7 +12,6 @@ namespace Vortice
         private readonly GameContext _context;
         private readonly GamePlatform _platform;
         private readonly ServiceProvider _serviceProvider;
-        private bool _isInitialized;
 
         protected Game(GameContext context)
         {
@@ -104,11 +103,7 @@ namespace Vortice
 
         public void Tick()
         {
-            if (_isInitialized)
-            {
-                Initialize();
-                _isInitialized = true;
-            }
+            View.SwapChain!.Present();
         }
 
         /// <summary>

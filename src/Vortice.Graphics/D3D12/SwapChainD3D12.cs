@@ -35,6 +35,23 @@ namespace Vortice.Graphics.D3D12
 
             if (surface is SwapChainSurfaceWin32 surfaceWin32)
             {
+                DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new DXGI_SWAP_CHAIN_FULLSCREEN_DESC()
+                {
+                    Windowed = TRUE
+                };
+
+                using ComPtr<IDXGISwapChain1> tempSwapChain = default;
+
+                D3D12DeviceHelper.DXGIFactory.Get()->CreateSwapChainForHwnd(
+                    (IUnknown*)device.GetQueue()!.Handle,
+                    surfaceWin32.Hwnd,
+                    &swapChainDesc,
+                    &fsSwapChainDesc,
+                    null,
+                    tempSwapChain.GetAddressOf()
+                    ).Assert();
+
+                tempSwapChain.CopyTo(_handle.GetAddressOf());
             }
         }
 
@@ -50,6 +67,9 @@ namespace Vortice.Graphics.D3D12
         }
 
         /// <inheritdoc />
-        public override void Present() => throw new System.NotImplementedException();
+        public override void Present()
+        {
+            _handle.Get()->Present(1, 0);
+        }
     }
 }

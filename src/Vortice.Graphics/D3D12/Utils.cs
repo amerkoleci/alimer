@@ -7,6 +7,7 @@ using Microsoft.Toolkit.Diagnostics;
 using TerraFX.Interop;
 using static TerraFX.Interop.D3D12_RESOURCE_DIMENSION;
 using static TerraFX.Interop.DXGI_FORMAT;
+using static TerraFX.Interop.D3D12_COMMAND_LIST_TYPE;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -197,6 +198,21 @@ namespace Vortice.Graphics.D3D12
 
                 default:
                     return 1;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static D3D12_COMMAND_LIST_TYPE ToD3D12(this CommandQueueType type)
+        {
+            switch (type)
+            {
+                case CommandQueueType.Compute:
+                    return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+                case CommandQueueType.Copy:
+                    return D3D12_COMMAND_LIST_TYPE_COPY;
+
+                default:
+                    return D3D12_COMMAND_LIST_TYPE_DIRECT;
             }
         }
 
