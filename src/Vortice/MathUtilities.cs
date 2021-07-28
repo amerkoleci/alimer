@@ -2,8 +2,9 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.X86;
+using Microsoft.Toolkit.Diagnostics;
 using static Vortice.UnsafeUtilities;
+using System.Runtime.Intrinsics.X86;
 
 namespace Vortice
 {
@@ -69,7 +70,7 @@ namespace Vortice
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint AlignUp(uint address, uint alignment)
         {
-            Guard.Assert(IsPow2(alignment));
+            Guard.IsTrue(IsPow2(alignment), nameof(alignment));
             return (address + (alignment - 1)) & ~(alignment - 1);
         }
 
@@ -81,7 +82,7 @@ namespace Vortice
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong AlignUp(ulong address, ulong alignment)
         {
-            Guard.Assert(IsPow2(alignment));
+            Guard.IsTrue(IsPow2(alignment), nameof(alignment));
             return (address + (alignment - 1)) & ~(alignment - 1);
         }
 
@@ -93,7 +94,7 @@ namespace Vortice
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static nuint AlignUp(nuint address, nuint alignment)
         {
-            Guard.Assert(IsPow2(alignment));
+            Guard.IsTrue(IsPow2(alignment), nameof(alignment));
             return (address + (alignment - 1)) & ~(alignment - 1);
         }
     }

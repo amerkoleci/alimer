@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
+using Microsoft.Toolkit.Diagnostics;
 
 namespace Vortice.Graphics
 {
@@ -9,7 +10,7 @@ namespace Vortice.Graphics
     {
         protected GraphicsResource(GraphicsDevice device)
         {
-            Guard.AssertNotNull(device);
+            Guard.IsNotNull(device, nameof(device));
 
             GraphicsDevice = device;
         }

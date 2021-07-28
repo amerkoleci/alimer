@@ -1,13 +1,15 @@
-// Copyright � Tanner Gooding and Contributors. Licensed under the MIT License (MIT). See License.md in the repository root for more information.
+﻿// Copyright © Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+// Copyright © Tanner Gooding and Contributors. Licensed under the MIT License (MIT). See License.md in the repository root for more information.
 
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
-namespace Vortice
+namespace Vortice.Graphics
 {
-    /// <summary>Provides a set of methods to supplement or replace <see cref="Unsafe" /> and <see cref="MemoryMarshal" />.</summary>
-    public static unsafe class UnsafeUtilities
+    internal static unsafe class Utilities
     {
         /// <inheritdoc cref="Unsafe.As{TFrom, TTo}(ref TFrom)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -149,5 +151,81 @@ namespace Vortice
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteUnaligned<T>(void* source, nuint offset, T value)
             where T : unmanaged => Unsafe.WriteUnaligned((void*)((nuint)source + offset), value);
+
+        /// <summary>
+        /// Gets a string for a given span.
+        /// </summary>
+        /// <param name="span">The span for which to create the string.</param>
+        /// <returns>A string created from <paramref name="span" />.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string? GetString(this ReadOnlySpan<sbyte> span)
+        {
+            string? result;
+
+            if (span.GetPointer() != null)
+            {
+                result = Encoding.UTF8.GetString(span.As<sbyte, byte>());
+            }
+            else
+            {
+                result = null;
+            }
+
+            return result;
+        }
+
+        /// <summary>Gets a string for a given span.</summary>
+        /// <param name="span">The span for which to create the string.</param>
+        /// <returns>A string created from <paramref name="span" />.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string? GetString(this ReadOnlySpan<ushort> span)
+        {
+            string? result;
+
+            if (span.GetPointer() != null)
+            {
+                result = new string(span.As<ushort, char>());
+            }
+            else
+            {
+                result = null;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Marshals a null-terminated UTF16 string to a <see cref="ReadOnlySpan{UInt16}" />.
+        /// </summary>
+        /// <param name="source">The reference to a null-terminated UTF16 string.</param>
+        /// <param name="maxLength">The maxmimum length of <paramref name="source" /> or <c>-1</c> if the maximum length is unknown.</param>
+        /// <returns>A <see cref="ReadOnlySpan{UInt16}" /> that starts at <paramref name="source" /> and extends to <paramref name="maxLength" /> or the first null character, whichever comes first.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ReadOnlySpan<ushort> GetUtf16Span(in ushort source, int maxLength = -1)
+        {
+            ReadOnlySpan<ushort> result;
+
+            if (!IsNullRef(in source))
+            {
+                if (maxLength < 0)
+                {
+                    maxLength = int.MaxValue;
+                }
+
+                result = CreateReadOnlySpan(in source, maxLength);
+                int length = result.IndexOf('\0');
+
+                if (length != -1)
+                {
+                    result = result.Slice(0, length);
+                }
+            }
+            else
+            {
+                result = null;
+            }
+
+            return result;
+        }
     }
 }

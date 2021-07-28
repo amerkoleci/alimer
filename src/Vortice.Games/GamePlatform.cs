@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
+using Microsoft.Toolkit.Diagnostics;
 
 namespace Vortice
 {
@@ -9,7 +10,8 @@ namespace Vortice
     {
         protected GamePlatform(Game game)
         {
-            Guard.AssertNotNull(game);
+            Guard.IsNotNull(game, nameof(game));
+
             Game = game;
         }
 

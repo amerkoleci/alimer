@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Toolkit.Diagnostics;
 using TerraFX.Interop;
-using static Vortice.MathUtilities;
 
 namespace Vortice.Graphics
 {
@@ -18,7 +18,7 @@ namespace Vortice.Graphics
 
         public BuddyAllocator(ulong maxSize)
         {
-            Guard.Assert(IsPow2(maxSize));
+            //Guard.IsTrue(IsPow2(maxSize), nameof(maxSize));
 
             _maxBlockSize = maxSize;
 

@@ -15,18 +15,4 @@ namespace Vortice
 
         public abstract void RunMainLoop(Action callback);
     }
-
-    public abstract class GameContextWithGraphics : GameContext
-    {
-        private GraphicsDevice? graphicsDevice;
-
-        public GraphicsDevice GraphicsDevice { get => graphicsDevice ??= GraphicsDevice.Create(); set => graphicsDevice = value; }
-
-        public override void ConfigureServices(IServiceCollection services)
-        {
-            base.ConfigureServices(services);
-
-            services.AddSingleton(GraphicsDevice);
-        }
-    }
 }

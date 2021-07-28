@@ -31,7 +31,7 @@ namespace DrawTriangle
         private void OnMainFormLoad(object? sender, EventArgs e)
         {
 #if DEBUG
-            GraphicsDevice.EnableValidationLayers = true;
+            GraphicsDevice.ValidationMode = ValidationMode.GPU;
 #endif
 
             //StorageFolder rootFolder = await StorageFolder.GetFolderFromPathAsync(Directory.GetCurrentDirectory());

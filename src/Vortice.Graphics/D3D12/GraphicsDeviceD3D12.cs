@@ -13,7 +13,8 @@ using static TerraFX.Interop.D3D12_RENDER_PASS_TIER;
 using static TerraFX.Interop.D3D12_RAYTRACING_TIER;
 using System;
 using System.Diagnostics;
-using static Vortice.MarshalUtilities;
+using static Vortice.Graphics.Utilities;
+using static Vortice.Graphics.D3D12.D3D12Utils;
 
 namespace Vortice.Graphics.D3D12
 {

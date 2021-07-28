@@ -7,10 +7,13 @@ using TerraFX.Interop;
 using static TerraFX.Interop.DXGI_FORMAT;
 using static TerraFX.Interop.D3D12_RESOURCE_DIMENSION;
 using Microsoft.Toolkit.Diagnostics;
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Vortice.Graphics.D3D12
 {
-    internal static class D3D12Utils
+    internal static unsafe class D3D12Utils
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DXGI_FORMAT ToDXGISwapChainFormat(TextureFormat format)
@@ -43,10 +46,10 @@ namespace Vortice.Graphics.D3D12
             switch (format)
             {
                 // 8-bit formats
-                case TextureFormat.R8UNorm:     return DXGI_FORMAT_R8_UNORM;
-                case TextureFormat.R8SNorm:     return DXGI_FORMAT_R8_SNORM;
-                case TextureFormat.R8UInt:      return DXGI_FORMAT_R8_UINT;
-                case TextureFormat.R8SInt:      return DXGI_FORMAT_R8_SINT;
+                case TextureFormat.R8UNorm: return DXGI_FORMAT_R8_UNORM;
+                case TextureFormat.R8SNorm: return DXGI_FORMAT_R8_SNORM;
+                case TextureFormat.R8UInt: return DXGI_FORMAT_R8_UINT;
+                case TextureFormat.R8SInt: return DXGI_FORMAT_R8_SINT;
                 // 16-bit formats
                 case TextureFormat.R16UNorm:
                     return DXGI_FORMAT_R16_UNORM;
@@ -98,42 +101,42 @@ namespace Vortice.Graphics.D3D12
                 case TextureFormat.BGRA8UNormSrgb:
                     return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
                 // Packed 32-Bit formats
-                case TextureFormat.RGB10A2UNorm:    return DXGI_FORMAT_R10G10B10A2_UNORM;
-                case TextureFormat.RG11B10Float:    return DXGI_FORMAT_R11G11B10_FLOAT;
-                case TextureFormat.RGB9E5Float:     return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+                case TextureFormat.RGB10A2UNorm: return DXGI_FORMAT_R10G10B10A2_UNORM;
+                case TextureFormat.RG11B10Float: return DXGI_FORMAT_R11G11B10_FLOAT;
+                case TextureFormat.RGB9E5Float: return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
                 // 64-Bit formats
-                case TextureFormat.RG32UInt:        return DXGI_FORMAT_R32G32_UINT;
-                case TextureFormat.RG32SInt:        return DXGI_FORMAT_R32G32_SINT;
-                case TextureFormat.RG32Float:       return DXGI_FORMAT_R32G32_FLOAT;
-                case TextureFormat.RGBA16UNorm:     return DXGI_FORMAT_R16G16B16A16_UNORM;
-                case TextureFormat.RGBA16SNorm:     return DXGI_FORMAT_R16G16B16A16_SNORM;
-                case TextureFormat.RGBA16UInt:      return DXGI_FORMAT_R16G16B16A16_UINT;
-                case TextureFormat.RGBA16SInt:      return DXGI_FORMAT_R16G16B16A16_SINT;
-                case TextureFormat.RGBA16Float:     return DXGI_FORMAT_R16G16B16A16_FLOAT;
+                case TextureFormat.RG32UInt: return DXGI_FORMAT_R32G32_UINT;
+                case TextureFormat.RG32SInt: return DXGI_FORMAT_R32G32_SINT;
+                case TextureFormat.RG32Float: return DXGI_FORMAT_R32G32_FLOAT;
+                case TextureFormat.RGBA16UNorm: return DXGI_FORMAT_R16G16B16A16_UNORM;
+                case TextureFormat.RGBA16SNorm: return DXGI_FORMAT_R16G16B16A16_SNORM;
+                case TextureFormat.RGBA16UInt: return DXGI_FORMAT_R16G16B16A16_UINT;
+                case TextureFormat.RGBA16SInt: return DXGI_FORMAT_R16G16B16A16_SINT;
+                case TextureFormat.RGBA16Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
                 // 128-Bit formats
-                case TextureFormat.RGBA32UInt:      return DXGI_FORMAT_R32G32B32A32_UINT;
-                case TextureFormat.RGBA32SInt:      return DXGI_FORMAT_R32G32B32A32_SINT;
-                case TextureFormat.RGBA32Float:     return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                case TextureFormat.RGBA32UInt: return DXGI_FORMAT_R32G32B32A32_UINT;
+                case TextureFormat.RGBA32SInt: return DXGI_FORMAT_R32G32B32A32_SINT;
+                case TextureFormat.RGBA32Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
                 // Depth-stencil formats
-                case TextureFormat.Depth16UNorm:            return DXGI_FORMAT_D16_UNORM;
-                case TextureFormat.Depth32Float:            return DXGI_FORMAT_D32_FLOAT;
-                case TextureFormat.Depth24UNormStencil8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;
-                case TextureFormat.Depth32FloatStencil8:    return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+                case TextureFormat.Depth16UNorm: return DXGI_FORMAT_D16_UNORM;
+                case TextureFormat.Depth32Float: return DXGI_FORMAT_D32_FLOAT;
+                case TextureFormat.Depth24UNormStencil8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+                case TextureFormat.Depth32FloatStencil8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
                 // Compressed BC formats
-                case TextureFormat.BC1RGBAUNorm:        return DXGI_FORMAT_BC1_UNORM;
-                case TextureFormat.BC1RGBAUNormSrgb:    return DXGI_FORMAT_BC1_UNORM_SRGB;
-                case TextureFormat.BC2RGBAUNorm:        return DXGI_FORMAT_BC2_UNORM;
-                case TextureFormat.BC2RGBAUNormSrgb:    return DXGI_FORMAT_BC2_UNORM_SRGB;
-                case TextureFormat.BC3RGBAUNorm:        return DXGI_FORMAT_BC3_UNORM;
-                case TextureFormat.BC3RGBAUNormSrgb:    return DXGI_FORMAT_BC3_UNORM_SRGB;
-                case TextureFormat.BC4RSNorm:           return DXGI_FORMAT_BC4_SNORM;
-                case TextureFormat.BC4RUNorm:           return DXGI_FORMAT_BC4_UNORM;
-                case TextureFormat.BC5RGSNorm:          return DXGI_FORMAT_BC5_SNORM;
-                case TextureFormat.BC5RGUNorm:          return DXGI_FORMAT_BC5_UNORM;
-                case TextureFormat.BC6HRGBUFloat:       return DXGI_FORMAT_BC6H_UF16;
-                case TextureFormat.BC6HRGBFloat:        return DXGI_FORMAT_BC6H_SF16;
-                case TextureFormat.BC7RGBAUNorm:        return DXGI_FORMAT_BC7_UNORM;
-                case TextureFormat.BC7RGBAUNormSrgb:    return DXGI_FORMAT_BC7_UNORM_SRGB;
+                case TextureFormat.BC1RGBAUNorm: return DXGI_FORMAT_BC1_UNORM;
+                case TextureFormat.BC1RGBAUNormSrgb: return DXGI_FORMAT_BC1_UNORM_SRGB;
+                case TextureFormat.BC2RGBAUNorm: return DXGI_FORMAT_BC2_UNORM;
+                case TextureFormat.BC2RGBAUNormSrgb: return DXGI_FORMAT_BC2_UNORM_SRGB;
+                case TextureFormat.BC3RGBAUNorm: return DXGI_FORMAT_BC3_UNORM;
+                case TextureFormat.BC3RGBAUNormSrgb: return DXGI_FORMAT_BC3_UNORM_SRGB;
+                case TextureFormat.BC4RSNorm: return DXGI_FORMAT_BC4_SNORM;
+                case TextureFormat.BC4RUNorm: return DXGI_FORMAT_BC4_UNORM;
+                case TextureFormat.BC5RGSNorm: return DXGI_FORMAT_BC5_SNORM;
+                case TextureFormat.BC5RGUNorm: return DXGI_FORMAT_BC5_UNORM;
+                case TextureFormat.BC6HRGBUFloat: return DXGI_FORMAT_BC6H_UF16;
+                case TextureFormat.BC6HRGBFloat: return DXGI_FORMAT_BC6H_SF16;
+                case TextureFormat.BC7RGBAUNorm: return DXGI_FORMAT_BC7_UNORM;
+                case TextureFormat.BC7RGBAUNormSrgb: return DXGI_FORMAT_BC7_UNORM_SRGB;
 
                 default:
                     return ThrowHelper.ThrowArgumentException<DXGI_FORMAT>("Invalid texture format");
@@ -170,7 +173,7 @@ namespace Vortice.Graphics.D3D12
                     return DXGI_FORMAT_R24G8_TYPELESS;
                 case TextureFormat.Depth32FloatStencil8:
                     return DXGI_FORMAT_R32G8X24_TYPELESS;
-                
+
                 default:
                     Debug.Assert(format.IsDepthFormat() == false);
                     return ToDXGIFormat(format);

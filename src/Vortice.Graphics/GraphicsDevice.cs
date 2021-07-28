@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Toolkit.Diagnostics;
 
 namespace Vortice.Graphics
 {
@@ -12,8 +13,7 @@ namespace Vortice.Graphics
         {
         }
 
-        public static bool EnableValidationLayers { get; set; }
-        public static bool EnableGpuBasedValidation { get; set; }
+        public static ValidationMode ValidationMode { get; set; } = ValidationMode.Disabled;
 
         /// <summary>
         /// Get the device capabilities.
@@ -78,7 +78,6 @@ namespace Vortice.Graphics
             }
         }
 
-
         public static GraphicsBackend GetDefaultPlatformBackend()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -103,6 +102,10 @@ namespace Vortice.Graphics
 
         public Texture CreateTexture(in TextureDescriptor descriptor)
         {
+            Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
+            Guard.IsGreaterThanOrEqualTo(descriptor.Height, 1, nameof(TextureDescriptor.Height));
+            Guard.IsGreaterThanOrEqualTo(descriptor.DepthOrArraySize, 1, nameof(TextureDescriptor.DepthOrArraySize));
+
             return CreateTextureCore(descriptor);
         }
 

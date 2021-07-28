@@ -9,6 +9,7 @@ using static TerraFX.Interop.DXGI_FEATURE;
 using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
 using static TerraFX.Interop.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
 using static TerraFX.Interop.D3D_FEATURE_LEVEL;
+using static TerraFX.Interop.D3D12_GPU_BASED_VALIDATION_FLAGS;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -39,18 +40,29 @@ namespace Vortice.Graphics.D3D12
         private static ComPtr<IDXGIFactory4> CreateFactory()
         {
             uint factoryFlags = 0;
-            if (GraphicsDevice.EnableValidationLayers)
+            if (GraphicsDevice.ValidationMode != ValidationMode.Disabled)
             {
                 using ComPtr<ID3D12Debug> d3d12Debug = default;
-                using ComPtr<ID3D12Debug1> d3d12Debug1 = default;
 
                 if (FX.SUCCEEDED(FX.D3D12GetDebugInterface(FX.__uuidof<ID3D12Debug>(), d3d12Debug.GetVoidAddressOf())))
                 {
                     d3d12Debug.Get()->EnableDebugLayer();
 
-                    if (FX.SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug1.GetAddressOf())))
+                    if (GraphicsDevice.ValidationMode == ValidationMode.GPU)
                     {
-                        d3d12Debug1.Get()->SetEnableGPUBasedValidation(GraphicsDevice.EnableGpuBasedValidation ? FX.TRUE : FX.FALSE);
+                        using ComPtr<ID3D12Debug1> d3d12Debug1 = default;
+                        using ComPtr<ID3D12Debug2> d3d12Debug2 = default;
+
+                        if (FX.SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug1.GetAddressOf())))
+                        {
+                            d3d12Debug1.Get()->SetEnableGPUBasedValidation(FX.TRUE);
+                            d3d12Debug1.Get()->SetEnableSynchronizedCommandQueueValidation(FX.TRUE);
+                        }
+
+                        if (FX.SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug2.GetAddressOf())))
+                        {
+                            d3d12Debug2.Get()->SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS_NONE);
+                        }
                     }
                 }
                 else

@@ -30,11 +30,8 @@ namespace Vortice
             // Get services.
             View = _serviceProvider.GetRequiredService<GameView>();
 
-            GraphicsDevice = _serviceProvider.GetService<GraphicsDevice>();
-            if (GraphicsDevice == null)
-            {
-                GraphicsDevice = GraphicsDevice.Create();
-            }
+            // Create GraphicsDevice
+            GraphicsDevice = GraphicsDevice.Create();
         }
 
         ~Game()
