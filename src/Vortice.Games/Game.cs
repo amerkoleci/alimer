@@ -88,13 +88,18 @@ namespace Vortice
 
             IsRunning = true;
 
-            _context.RunMainLoop(Tick);
-
-            Initialize();
+            _context.RunMainLoop(InitializeBeforeRun, Tick);
         }
 
         protected virtual void Initialize()
         {
+        }
+
+        private void InitializeBeforeRun()
+        {
+            View.CreateSwapChain(GraphicsDevice!);
+
+            Initialize();
         }
 
         public void Tick()

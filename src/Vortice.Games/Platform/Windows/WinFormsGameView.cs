@@ -2,7 +2,12 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
+using System.Drawing;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Vortice.Graphics;
 
 namespace Vortice
 {
@@ -14,8 +19,19 @@ namespace Vortice
         {
             _control = control;
 
-            control.ClientSizeChanged += OnControlClientSizeChanged;
+            Surface = SwapChainSurface.CreateWin32(
+                Marshal.GetHINSTANCE(Assembly.GetEntryAssembly()!.Modules.First()),
+                _control.Handle
+                );
+
+            _control.ClientSizeChanged += OnControlClientSizeChanged;
         }
+
+        /// <inheritdoc />
+        public override Size ClientSize => _control.ClientSize;
+
+        /// <inheritdoc />
+        public override SwapChainSurface Surface { get; }
 
         private void OnControlClientSizeChanged(object? sender, EventArgs e)
         {

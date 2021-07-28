@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using TerraFX.Interop;
-using FX = TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows;
 using static TerraFX.Interop.D3D_FEATURE_LEVEL;
 using static TerraFX.Interop.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
@@ -11,10 +11,10 @@ using static TerraFX.Interop.D3D12_MESSAGE_SEVERITY;
 using static TerraFX.Interop.D3D12_FEATURE;
 using static TerraFX.Interop.D3D12_RENDER_PASS_TIER;
 using static TerraFX.Interop.D3D12_RAYTRACING_TIER;
-using System;
 using System.Diagnostics;
 using static Vortice.Graphics.Utilities;
-using static Vortice.Graphics.D3D12.D3D12Utils;
+using static Vortice.Graphics.D3D12.Utils;
+using System;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -27,51 +27,56 @@ namespace Vortice.Graphics.D3D12
         /// </summary>
         private UniquePtr<D3D12MA_Allocator> _allocator;
 
+        private readonly QueueD3D12?[] _queues = new QueueD3D12[(int)CommandQueueType.Count];
+
         private readonly GraphicsDeviceCaps _caps;
 
         internal GraphicsDeviceD3D12(ComPtr<IDXGIAdapter1> dxgiAdapter1)
         {
-            HRESULT result = FX.D3D12CreateDevice(
+            HRESULT result = D3D12CreateDevice(
                 dxgiAdapter1.AsIUnknown().Get(),
                 D3D_FEATURE_LEVEL_11_0,
-                FX.__uuidof<ID3D12Device>(),
+                __uuidof<ID3D12Device>(),
                 _nativeDevice.GetVoidAddressOf());
 
             result.Assert();
 
             // Configure debug device (if active).
-            using ComPtr<ID3D12InfoQueue> d3d12InfoQueue = default;
-            if (FX.SUCCEEDED(_nativeDevice.CopyTo(d3d12InfoQueue.GetAddressOf())))
+            if (ValidationMode != ValidationMode.Disabled)
             {
+                using ComPtr<ID3D12InfoQueue> d3d12InfoQueue = default;
+                if (SUCCEEDED(_nativeDevice.CopyTo(d3d12InfoQueue.GetAddressOf())))
+                {
 #if DEBUG
-                d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, FX.TRUE);
-                d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, FX.TRUE);
+                    d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+                    d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
 #endif
-                Span<D3D12_MESSAGE_ID> hide = stackalloc D3D12_MESSAGE_ID[]
-                {
-                    D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
-                    D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
-                    D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-                    D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-                    D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE
-                };
-
-                fixed (D3D12_MESSAGE_ID* pIDList = hide)
-                {
-                    D3D12_INFO_QUEUE_FILTER filter = new()
+                    Span<D3D12_MESSAGE_ID> hide = stackalloc D3D12_MESSAGE_ID[]
                     {
-                        DenyList = new D3D12_INFO_QUEUE_FILTER_DESC()
-                        {
-                            NumIDs = (uint)hide.Length,
-                            pIDList = pIDList
-                        }
+                        D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+                        D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+                        D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
+                        D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+                        D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE
                     };
 
-                    d3d12InfoQueue.Get()->AddStorageFilterEntries(&filter);
-                }
+                    fixed (D3D12_MESSAGE_ID* pIDList = hide)
+                    {
+                        D3D12_INFO_QUEUE_FILTER filter = new()
+                        {
+                            DenyList = new D3D12_INFO_QUEUE_FILTER_DESC()
+                            {
+                                NumIDs = (uint)hide.Length,
+                                pIDList = pIDList
+                            }
+                        };
 
-                // Break on DEVICE_REMOVAL_PROCESS_AT_FAULT
-                d3d12InfoQueue.Get()->SetBreakOnID(D3D12_MESSAGE_ID_DEVICE_REMOVAL_PROCESS_AT_FAULT, FX.TRUE);
+                        d3d12InfoQueue.Get()->AddStorageFilterEntries(&filter);
+                    }
+
+                    // Break on DEVICE_REMOVAL_PROCESS_AT_FAULT
+                    d3d12InfoQueue.Get()->SetBreakOnID(D3D12_MESSAGE_ID_DEVICE_REMOVAL_PROCESS_AT_FAULT, TRUE);
+                }
             }
 
             // Create memory allocator.
@@ -82,6 +87,10 @@ namespace Vortice.Graphics.D3D12
             {
                 D3D12MemAlloc.D3D12MA_CreateAllocator(&allocatorDesc, allocator).Assert();
             }
+
+            // Create queues
+            _queues[(int)CommandQueueType.Graphics] = new QueueD3D12(this, CommandQueueType.Graphics);
+            _queues[(int)CommandQueueType.Compute] = new QueueD3D12(this, CommandQueueType.Compute);
 
             DXGI_ADAPTER_DESC1 adapterDesc;
             dxgiAdapter1.Get()->GetDesc1(&adapterDesc).Assert();
@@ -139,29 +148,29 @@ namespace Vortice.Graphics.D3D12
                     MaxVertexBindings = 16,
                     MaxVertexAttributeOffset = 2047,
                     MaxVertexBindingStride = 2048,
-                    MaxTextureDimension1D = FX.D3D12_REQ_TEXTURE1D_U_DIMENSION,
-                    MaxTextureDimension2D = FX.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
-                    MaxTextureDimension3D = FX.D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
-                    MaxTextureDimensionCube = FX.D3D12_REQ_TEXTURECUBE_DIMENSION,
-                    MaxTextureArrayLayers = FX.D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-                    MaxColorAttachments = FX.D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
-                    MaxUniformBufferRange = FX.D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+                    MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
+                    MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
+                    MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
+                    MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
+                    MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
+                    MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
+                    MaxUniformBufferRange = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
                     MaxStorageBufferRange = uint.MaxValue,
                     MinUniformBufferOffsetAlignment = 256u,
                     MinStorageBufferOffsetAlignment = 16u,
-                    MaxSamplerAnisotropy = FX.D3D12_MAX_MAXANISOTROPY,
-                    MaxViewports = FX.D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-                    MaxViewportWidth = FX.D3D12_VIEWPORT_BOUNDS_MAX,
-                    MaxViewportHeight = FX.D3D12_VIEWPORT_BOUNDS_MAX,
-                    MaxTessellationPatchSize = FX.D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT,
-                    MaxComputeSharedMemorySize = FX.D3D12_CS_THREAD_LOCAL_TEMP_REGISTER_POOL,
-                    MaxComputeWorkGroupCountX = FX.D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    MaxComputeWorkGroupCountY = FX.D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    MaxComputeWorkGroupCountZ = FX.D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    MaxComputeWorkGroupInvocations = FX.D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
-                    MaxComputeWorkGroupSizeX = FX.D3D12_CS_THREAD_GROUP_MAX_X,
-                    MaxComputeWorkGroupSizeY = FX.D3D12_CS_THREAD_GROUP_MAX_Y,
-                    MaxComputeWorkGroupSizeZ = FX.D3D12_CS_THREAD_GROUP_MAX_Z,
+                    MaxSamplerAnisotropy = D3D12_MAX_MAXANISOTROPY,
+                    MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
+                    MaxViewportWidth = D3D12_VIEWPORT_BOUNDS_MAX,
+                    MaxViewportHeight = D3D12_VIEWPORT_BOUNDS_MAX,
+                    MaxTessellationPatchSize = D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT,
+                    MaxComputeSharedMemorySize = D3D12_CS_THREAD_LOCAL_TEMP_REGISTER_POOL,
+                    MaxComputeWorkGroupCountX = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+                    MaxComputeWorkGroupCountY = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+                    MaxComputeWorkGroupCountZ = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+                    MaxComputeWorkGroupInvocations = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
+                    MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
+                    MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
+                    MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
                 }
             };
         }
@@ -172,6 +181,8 @@ namespace Vortice.Graphics.D3D12
         /// Gets the underlying <see cref="D3D12MA_Allocator"/> wrapped by the current instance.
         /// </summary>
         internal D3D12MA_Allocator* Allocator => _allocator;
+
+        public QueueD3D12? GetQueue(CommandQueueType type = CommandQueueType.Graphics) => _queues[(int)type];
 
         /// <summary>
         /// Gets whether or not the current device has a cache coherent UMA architecture.
@@ -193,6 +204,11 @@ namespace Vortice.Graphics.D3D12
         {
             if (disposing)
             {
+                for (int i = 0; i < (int)CommandQueueType.Count; i++)
+                {
+                    _queues[i]?.Dispose();
+                }
+
                 D3D12MA_Stats stats;
                 Allocator->CalculateStats(&stats);
 
@@ -203,14 +219,14 @@ namespace Vortice.Graphics.D3D12
 
                 _allocator.Dispose();
 #if DEBUG
-                var d3dDevice = _nativeDevice.Get();
+                ID3D12Device2* d3dDevice = _nativeDevice.Get();
                 uint refCount = _nativeDevice.Reset();
                 if (refCount > 0)
                 {
                     Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
                     using ComPtr<ID3D12DebugDevice> d3d12DebugDevice = default;
-                    if (FX.SUCCEEDED(d3dDevice->QueryInterface(FX.__uuidof<ID3D12DebugDevice>(), d3d12DebugDevice.GetVoidAddressOf())))
+                    if (SUCCEEDED(d3dDevice->QueryInterface(__uuidof<ID3D12DebugDevice>(), d3d12DebugDevice.GetVoidAddressOf())))
                     {
                         d3d12DebugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
                     }
@@ -220,6 +236,9 @@ namespace Vortice.Graphics.D3D12
 #endif
             }
         }
+
+        /// <inheritdoc />
+        protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => new SwapChainD3D12(this, surface, descriptor);
 
         /// <inheritdoc />
         protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureD3D12(this, descriptor);

@@ -28,6 +28,9 @@ namespace Vortice.Graphics.Null
         }
 
         /// <inheritdoc />
+        protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => throw new System.NotImplementedException();
+
+        /// <inheritdoc />
         protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureNull(this, descriptor);
     }
 }

@@ -8,21 +8,24 @@ namespace Vortice.Graphics
 {
     public readonly struct SwapChainDescriptor : IEquatable<SwapChainDescriptor>
     {
-        public Size Size { get; }
-        public TextureFormat ColorFormat { get; }
-        //public TextureFormat DepthStencilFormat { get; }
-        public bool EnableVerticalSync { get; }
-        public bool IsFullscreen { get; }
+        public Size Size { get; init; }
+        public TextureFormat ColorFormat { get; init; }
+        public PresentMode PresentMode { get; init; }
+        public bool IsFullscreen { get; init; }
+
+        public string? Label { get; init; }
 
         public SwapChainDescriptor(Size size,
             TextureFormat colorFormat = TextureFormat.BGRA8UNormSrgb,
-            bool enableVerticalSync = true,
-            bool isFullscreen = false)
+            PresentMode presentMode = PresentMode.Fifo,
+            bool isFullscreen = false,
+            string? label = default)
         {
             Size = size;
             ColorFormat = colorFormat;
-            EnableVerticalSync = enableVerticalSync;
+            PresentMode = presentMode;
             IsFullscreen = isFullscreen;
+            Label = label;
         }
 
         /// <summary>
@@ -54,7 +57,7 @@ namespace Vortice.Graphics
             return
                 Size == other.Size &&
                 ColorFormat == other.ColorFormat &&
-                EnableVerticalSync == other.EnableVerticalSync &&
+                PresentMode == other.PresentMode &&
                 IsFullscreen == other.IsFullscreen;
         }
 
@@ -68,7 +71,7 @@ namespace Vortice.Graphics
             {
                 hashCode.Add(Size);
                 hashCode.Add(ColorFormat);
-                hashCode.Add(EnableVerticalSync);
+                hashCode.Add(PresentMode);
                 hashCode.Add(IsFullscreen);
             }
 

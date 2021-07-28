@@ -143,6 +143,9 @@ namespace Vortice.Graphics.Vulkan
         }
 
         /// <inheritdoc />
+        protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => new SwapChainVulkan(this, surface, descriptor);
+
+        /// <inheritdoc />
         protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureVulkan(this, descriptor);
     }
 }

@@ -3,17 +3,14 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop;
-using static TerraFX.Interop.DXGI_FORMAT;
-using static TerraFX.Interop.D3D12_RESOURCE_DIMENSION;
 using Microsoft.Toolkit.Diagnostics;
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
+using TerraFX.Interop;
+using static TerraFX.Interop.D3D12_RESOURCE_DIMENSION;
+using static TerraFX.Interop.DXGI_FORMAT;
 
 namespace Vortice.Graphics.D3D12
 {
-    internal static unsafe class D3D12Utils
+    internal static unsafe class Utils
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DXGI_FORMAT ToDXGISwapChainFormat(TextureFormat format)
@@ -175,7 +172,7 @@ namespace Vortice.Graphics.D3D12
                     return DXGI_FORMAT_R32G8X24_TYPELESS;
 
                 default:
-                    Debug.Assert(format.IsDepthFormat() == false);
+                    Guard.IsFalse(format.IsDepthFormat(), nameof(format));
                     return ToDXGIFormat(format);
             }
         }
@@ -200,6 +197,39 @@ namespace Vortice.Graphics.D3D12
 
                 default:
                     return 1;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint PresentModeToBufferCount(PresentMode mode)
+        {
+            switch (mode)
+            {
+                case PresentMode.Immediate:
+                case PresentMode.Fifo:
+                    return 2;
+                case PresentMode.Mailbox:
+                    return 3;
+                default:
+                    return ThrowHelper.ThrowArgumentException<uint>("Invalid present mode");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        public static void SetName(this ref ID3D12Resource resource, string name)
+        {
+            fixed (char* p = name)
+            {
+                resource.SetName((ushort*)p).Assert();
+            }
+        }
+
+        [Conditional("DEBUG")]
+        public static void SetName(this ref ID3D12CommandQueue resource, string name)
+        {
+            fixed (char* p = name)
+            {
+                resource.SetName((ushort*)p).Assert();
             }
         }
     }

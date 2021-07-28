@@ -3,13 +3,13 @@
 
 using System;
 using TerraFX.Interop;
-using FX = TerraFX.Interop.Windows;
 using System.Diagnostics;
 using static TerraFX.Interop.DXGI_FEATURE;
 using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
 using static TerraFX.Interop.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
 using static TerraFX.Interop.D3D_FEATURE_LEVEL;
 using static TerraFX.Interop.D3D12_GPU_BASED_VALIDATION_FLAGS;
+using static TerraFX.Interop.Windows;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -27,8 +27,8 @@ namespace Vortice.Graphics.D3D12
         {
             try
             {
-                HRESULT result = FX.D3D12CreateDevice(null, D3D_FEATURE_LEVEL_11_0, FX.__uuidof<ID3D12Device>(), null);
-                return FX.SUCCEEDED(result);
+                HRESULT result = D3D12CreateDevice(null, D3D_FEATURE_LEVEL_11_0, __uuidof<ID3D12Device>(), null);
+                return SUCCEEDED(result);
             }
             catch
             {
@@ -44,7 +44,7 @@ namespace Vortice.Graphics.D3D12
             {
                 using ComPtr<ID3D12Debug> d3d12Debug = default;
 
-                if (FX.SUCCEEDED(FX.D3D12GetDebugInterface(FX.__uuidof<ID3D12Debug>(), d3d12Debug.GetVoidAddressOf())))
+                if (SUCCEEDED(D3D12GetDebugInterface(__uuidof<ID3D12Debug>(), d3d12Debug.GetVoidAddressOf())))
                 {
                     d3d12Debug.Get()->EnableDebugLayer();
 
@@ -53,13 +53,13 @@ namespace Vortice.Graphics.D3D12
                         using ComPtr<ID3D12Debug1> d3d12Debug1 = default;
                         using ComPtr<ID3D12Debug2> d3d12Debug2 = default;
 
-                        if (FX.SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug1.GetAddressOf())))
+                        if (SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug1.GetAddressOf())))
                         {
-                            d3d12Debug1.Get()->SetEnableGPUBasedValidation(FX.TRUE);
-                            d3d12Debug1.Get()->SetEnableSynchronizedCommandQueueValidation(FX.TRUE);
+                            d3d12Debug1.Get()->SetEnableGPUBasedValidation(TRUE);
+                            d3d12Debug1.Get()->SetEnableSynchronizedCommandQueueValidation(TRUE);
                         }
 
-                        if (FX.SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug2.GetAddressOf())))
+                        if (SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug2.GetAddressOf())))
                         {
                             d3d12Debug2.Get()->SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS_NONE);
                         }
@@ -72,12 +72,12 @@ namespace Vortice.Graphics.D3D12
 
 #if DEBUG
                 using ComPtr<IDXGIInfoQueue> dxgiInfoQueue = default;
-                if (FX.SUCCEEDED(FX.DXGIGetDebugInterface1(0, FX.__uuidof<IDXGIInfoQueue>(), dxgiInfoQueue.GetVoidAddressOf())))
+                if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIInfoQueue>(), dxgiInfoQueue.GetVoidAddressOf())))
                 {
-                    factoryFlags = FX.DXGI_CREATE_FACTORY_DEBUG;
+                    factoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 
-                    dxgiInfoQueue.Get()->SetBreakOnSeverity(FX.DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, FX.TRUE);
-                    dxgiInfoQueue.Get()->SetBreakOnSeverity(FX.DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, FX.TRUE);
+                    dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, TRUE);
+                    dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 
                     Span<int> hide = stackalloc int[]
                     {
@@ -95,21 +95,21 @@ namespace Vortice.Graphics.D3D12
                             }
                         };
 
-                        dxgiInfoQueue.Get()->AddStorageFilterEntries(FX.DXGI_DEBUG_DXGI, &filter);
+                        dxgiInfoQueue.Get()->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
                     }
                 }
 #endif
             }
 
             ComPtr<IDXGIFactory4> dxgiFactory4 = default;
-            FX.CreateDXGIFactory2(factoryFlags, FX.__uuidof<IDXGIFactory4>(), dxgiFactory4.GetVoidAddressOf()).Assert();
+            CreateDXGIFactory2(factoryFlags, __uuidof<IDXGIFactory4>(), dxgiFactory4.GetVoidAddressOf()).Assert();
 
             using ComPtr<IDXGIFactory5> dxgiFactory5 = default;
-            if (FX.SUCCEEDED(dxgiFactory4.CopyTo(dxgiFactory5.GetAddressOf())))
+            if (SUCCEEDED(dxgiFactory4.CopyTo(dxgiFactory5.GetAddressOf())))
             {
-                int allowTearing = FX.FALSE;
-                if (FX.FAILED(dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, (uint)sizeof(int)))
-                    && allowTearing == FX.FALSE)
+                int allowTearing = FALSE;
+                if (FAILED(dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, (uint)sizeof(int)))
+                    && allowTearing == FALSE)
                 {
                     IsTearingSupported = false;
                 }
@@ -132,7 +132,7 @@ namespace Vortice.Graphics.D3D12
                 using ComPtr<IDXGIAdapter1> dxgiAdapter1 = default;
                 HRESULT result = DXGIFactory.Get()->EnumAdapters1(i++, dxgiAdapter1.GetAddressOf());
 
-                if (result == FX.DXGI_ERROR_NOT_FOUND)
+                if (result == DXGI_ERROR_NOT_FOUND)
                 {
                     break;
                 }
@@ -148,13 +148,13 @@ namespace Vortice.Graphics.D3D12
                     continue;
                 }
 
-                HRESULT createDeviceResult = FX.D3D12CreateDevice(
+                HRESULT createDeviceResult = D3D12CreateDevice(
                     dxgiAdapter1.AsIUnknown().Get(),
                     D3D_FEATURE_LEVEL_11_0,
-                    FX.__uuidof<ID3D12Device>(),
+                    __uuidof<ID3D12Device>(),
                     null);
 
-                if (FX.SUCCEEDED(createDeviceResult))
+                if (SUCCEEDED(createDeviceResult))
                 {
                     return new GraphicsDeviceD3D12(dxgiAdapter1);
                 }

@@ -13,6 +13,6 @@ namespace Vortice
         {
         }
 
-        public abstract void RunMainLoop(Action callback);
+        public abstract void RunMainLoop(Action init, Action callback);
     }
 }

@@ -26,8 +26,10 @@ namespace Vortice
             //services.AddSingleton<IInputSourceConfiguration>(new WinFormsInputSourceConfiguration(Control));
         }
 
-        public override void RunMainLoop(Action callback)
+        public override void RunMainLoop(Action init, Action callback)
         {
+            init();
+
             CompositionTarget.Rendering += (s, e) => callback();
         }
     }

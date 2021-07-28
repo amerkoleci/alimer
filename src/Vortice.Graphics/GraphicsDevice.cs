@@ -100,6 +100,13 @@ namespace Vortice.Graphics
             return GraphicsBackend.Vulkan;
         }
 
+        public SwapChain CreateSwapChain(in SwapChainSurface surface, in SwapChainDescriptor descriptor)
+        {
+            Guard.IsNotNull(surface, nameof(surface));
+
+            return CreateSwapChainCore(surface, descriptor);
+        }
+
         public Texture CreateTexture(in TextureDescriptor descriptor)
         {
             Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
@@ -108,6 +115,8 @@ namespace Vortice.Graphics
 
             return CreateTextureCore(descriptor);
         }
+
+        protected abstract SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor);
 
         protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor);
     }
