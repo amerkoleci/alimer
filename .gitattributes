@@ -1,0 +1,24 @@
+Source/ThirdParty/* linguist-vendored
+*.h linguist-language=C++
+
+* text=auto
+*.h   text
+*.c   text
+*.hpp text
+*.cpp text
+*.hxx text
+*.cxx text
+*.inl text
+*.txt text
+*.xml text
+*.json text
+*.html text
+*.cmake text
+*.dox text
+*.in text
+*.md text
+*.sh text
+*.bat text
+*.py text
+*.glsl text
+*.hlsl text

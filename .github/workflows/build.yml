@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+    paths-ignore:
+    - 'README.md'
+
+jobs:
+  Windows:
+    runs-on: "windows-latest"
+
+    strategy:
+      matrix:
+        build_type: [Release]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2  
+
+      - name: Configure and Build
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          mkdir build
+          cd build
+          cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX="SDK" -DCMAKE_BUILD_TYPE:STRING="Release" ..
+          cmake --build . --target install --config Release    
