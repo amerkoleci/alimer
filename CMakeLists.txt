@@ -148,7 +148,7 @@ elseif(ANDROID)
     set(ALIMER_BUILD_SHARED ON CACHE BOOL "Always enable shared library on (ANDROID)" FORCE)
 endif ()
 
-# Graphics backends
+# RHI backends
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 	option(ALIMER_RHI_D3D11 "RHI Direct3D11 backend" ON)
     option(ALIMER_RHI_GL "RHI OpenGL backend" ON)
