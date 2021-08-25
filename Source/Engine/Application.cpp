@@ -22,14 +22,6 @@ namespace Alimer
     {
         //ALIMER_VERIFY_MSG(g_currentApp == nullptr, "Cannot create more than one Application");
 
-        // Init log first.
-        //gLog().Start();
-
-        // Initialize platform host.
-        PlatformInit();
-        //host->Ready.ConnectMember(this, &Game::HostReady);
-        //host->Exiting.ConnectMember(this, &Game::HostExiting);
-
         g_currentApp = this;
     }
 
@@ -39,8 +31,7 @@ namespace Alimer
         //gGraphics().WaitIdle();
         //gGraphics().Shutdown();
         //gAssets().Shutdown();
-        PlatformShutdown();
-        //gLog().Shutdown();
+        
         g_currentApp = nullptr;
     }
 
@@ -49,100 +40,74 @@ namespace Alimer
         return g_currentApp;
     }
 
-    //Window* Game::GetMainWindow() const
-    //{
-    //    return host->GetMainWindow();
-    //}
+    bool Application::InitBeforeRun(int argc, const char* argv[])
+    {
+        // Initialize platform first.
+        if (!PlatformInit())
+        {
+            return false;
+        }
 
-    int Application::Run()
+        // Init log first.
+        //gLog().Start();
+
+         // Defaults
+        Settings settings = SetupSettings();
+
+        if (!PlatformSetup(settings))
+        {
+            return false;
+        }
+
+        // TODO: Setup rest
+        if (!Initialize(argc, argv))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void Application::ShutdownInternal()
+    {
+        Shutdown();
+
+        PlatformShutdown();
+        //gLog().Shutdown();
+    }
+
+    int Application::Run(int argc, const char* argv[])
     {
         if (running)
         {
             return EXIT_SUCCESS;
         }
 
-#if !defined(__GNUC__) || __EXCEPTIONS
-        try
+        if (!InitBeforeRun(argc, argv))
         {
-#endif
-            PlatformRun();
-
-            if (blockingRun)
-            {
-                // If the previous call was blocking, then we can call Endrun
-                EndRun();
-            }
-            else
-            {
-                // EndRun will be executed on Exit
-                endRunRequired = true;
-            }
-
-#if !defined(__GNUC__) || __EXCEPTIONS
-        }
-        catch (std::bad_alloc&)
-        {
-            //ErrorDialog(GetTypeName(), "An out-of-memory error occurred. The application will now exit.");
-            return EXIT_FAILURE;
-        }
-#endif
-
-        if (!endRunRequired)
-        {
-            running = false;
+            ShutdownInternal();
+            return 1;
         }
 
-        return exitCode;
-    }
+        while (!IsExitRequested())
+        {
+            PlatformUpdate();
+            Render();
+        }
 
-    void Application::Tick()
-    {
-        Render();
+        ShutdownInternal();
+        running = false;
+        return 0;
     }
 
     void Application::Update()
     {
     }
 
-    void Application::HostReady()
-    {
-        InitializeBeforeRun();
-    }
-
-    void Application::HostExiting(int32_t exitCode_)
-    {
-        exitCode = exitCode_;
-        //Exiting.Emit(exitCode_);
-    }
-
-    void Application::InitializeBeforeRun()
-    {
-        // Platform logic has been setup and main window has been created.
-
-        // Init modules.
-        //gAssets().Start(config.assetsDirectory);
-        //
-        //// Init graphics module
-        //if (!Graphics::Initialize(config.validationMode, config.backendType))
-        //{
-        //    headless = true;
-        //}
-        //else
-        //{
-        //
-        //}
-
-        // Show main window.
-        //host->GetMainWindow()->Show();
-
-        Initialize();
-    }
-
     void Application::Render()
     {
         // Don't try to render anything before the first Update or rendering is not allowed
-        if (!exiting &&
-            //frameCount > 0 &&
+        if (//frameCount > 0 &&
             //!host->GetMainWindow()->IsMinimized() &&
             BeginDraw())
         {
@@ -186,16 +151,5 @@ namespace Alimer
     void Application::EndDraw()
     {
         //gGraphics().EndFrame();
-    }
-
-    void Application::Exit()
-    {
-        exiting = true;
-        //host->Exit();
-        if (running && endRunRequired)
-        {
-            EndRun();
-            running = false;
-        }
     }
 }

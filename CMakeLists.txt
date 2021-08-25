@@ -134,7 +134,6 @@ endif()
 # Options
 include(CMakeDependentOption)
 option(ALIMER_BUILD_SHARED "Build engine as shared library" ON)
-option(ALIMER_BUILD_SAMPLES "Build sample projects" ON)
 option(ALIMER_ENABLE_CODE_ANALYSIS "Use Static Code Analysis on build" OFF)
 option(ALIMER_PROFILING "Enable performance profiling" ON)
 option(ALIMER_NETWORK "Enable Networking system " ON)
@@ -179,8 +178,8 @@ set (INSTALL_THIRDPARTY_DIR ${INSTALL_INCLUDE_DIR}/ThirdParty)
 
 # Compiler-specific setup
 if(MSVC)
-  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:console /ENTRY:wWinMainCRTStartup")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:windows /ENTRY:wWinMainCRTStartup")
+  #set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:console /ENTRY:wWinMainCRTStartup")
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:windows /ENTRY:wWinMainCRTStartup")
 endif ()
 
 # Source
