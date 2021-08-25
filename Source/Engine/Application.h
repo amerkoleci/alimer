@@ -3,10 +3,7 @@
 
 #pragma once
 
-//#include "Core/Main.h"
-#include "PlatformDef.h"
-#include <stdint.h>
-#include <string>
+#include "RHI/RHI.h"
 
 namespace Alimer
 {
@@ -66,6 +63,8 @@ namespace Alimer
         virtual bool BeginDraw();
         virtual void EndDraw();
 
+        RHI::DeviceHandle rhiDevice;
+
     private:
         // Internal lifecycle methods
         bool InitBeforeRun(int argc, const char* argv[]);
@@ -75,6 +74,7 @@ namespace Alimer
         void PlatformShutdown();
         bool PlatformSetup(const Settings& settings);
         void PlatformUpdate();
+        void* GetWindowHandle() const;
 
         void Render();
 

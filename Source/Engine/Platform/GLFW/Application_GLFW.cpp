@@ -101,4 +101,21 @@ namespace Alimer
     {
         return glfwWindowShouldClose(window) == GLFW_TRUE;
     }
+
+    void* Application::GetWindowHandle() const
+    {
+        assert(window);
+
+#if defined(GLFW_EXPOSE_NATIVE_WIN32)
+        return glfwGetWin32Window(window);
+#elif defined(GLFW_EXPOSE_NATIVE_X11)
+        return glfwGetX11Window(window);
+#elif defined(GLFW_EXPOSE_NATIVE_COCOA)
+        return glfwGetCocoaWindow(window);
+#elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
+        return glfwGetWaylandWindow(window);
+#else
+        return nullptr;
+#endif
+    }
 }

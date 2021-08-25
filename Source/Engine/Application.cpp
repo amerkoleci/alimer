@@ -59,6 +59,9 @@ namespace Alimer
             return false;
         }
 
+        // Create RHI device
+        rhiDevice = RHI::IDevice::Create(GetWindowHandle());
+
         // TODO: Setup rest
         if (!Initialize(argc, argv))
         {
@@ -71,6 +74,8 @@ namespace Alimer
     void Application::ShutdownInternal()
     {
         Shutdown();
+
+        rhiDevice.Reset();
 
         PlatformShutdown();
         //gLog().Shutdown();
@@ -145,11 +150,11 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return true; // gGraphics().BeginFrame();
+        return rhiDevice->BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        //gGraphics().EndFrame();
+        rhiDevice->EndFrame();
     }
 }
