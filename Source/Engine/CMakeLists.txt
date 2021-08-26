@@ -63,7 +63,6 @@ define_engine_source_files(
   Core
   Math
   IO
-  Platform
   Graphics
   RHI
 )

@@ -4,7 +4,8 @@
 #if defined(ALIMER_RHI_D3D11)
 #include "Graphics/Graphics.h"
 #include "Graphics/Texture.h"
-#include "Platform/Window.h"
+#include "Window.h"
+#include "Core/Log.h"
 #include "PlatformInclude.h"
 #define D3D11_NO_HELPERS
 #include <d3d11_1.h>
@@ -27,7 +28,6 @@ namespace alimer
 {
     namespace
     {
-#if defined(_DEBUG)
         // Check for SDK Layer support.
         inline bool SdkLayersAvailable() noexcept
         {
@@ -46,7 +46,6 @@ namespace alimer
 
             return SUCCEEDED(hr);
         }
-#endif
     }
 
     static struct
@@ -101,6 +100,7 @@ namespace alimer
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC             fullScreenDesc{};
 #endif
+        bool vsyncEnabled = false;
 
         RefCountPtr<IDXGISwapChain1> swapChain;
         RefCountPtr<ID3D11Texture2D> renderTarget;
@@ -115,9 +115,10 @@ namespace alimer
         D3D11_Graphics();
         ~D3D11_Graphics() override;
 
-        bool Initialize(_In_ Window* window) override;
+        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters) override;
         bool BeginFrame() override;
         void EndFrame() override;
+        void Resize(u32 newWidth, u32 newHeight) override;
         RefCountPtr<Texture> CreateTexture(u32 width, u32 height) override;
     };
 
@@ -137,8 +138,6 @@ namespace alimer
                 }
             }
         }
-
-        
     }
 
     D3D11_Graphics::~D3D11_Graphics()
@@ -153,24 +152,26 @@ namespace alimer
         d3d11.device.Reset();
     }
 
-    bool D3D11_Graphics::Initialize(_In_ Window* window)
+    bool D3D11_Graphics::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
     {
         RefCountPtr<IDXGIAdapter1> adapter;
         GetAdapter(adapter.GetAddressOf());
 
         UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
-#if defined(_DEBUG)
-        if (SdkLayersAvailable())
+        if (presentationParameters.validationMode != ValidationMode::Disabled)
         {
-            // If the project is in a debug build, enable debugging via SDK Layers with this flag.
-            creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+            if (SdkLayersAvailable())
+            {
+                // If the project is in a debug build, enable debugging via SDK Layers with this flag.
+                creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+            }
+            else
+            {
+                OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
+            }
         }
-        else
-        {
-            OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
-        }
-#endif
+
         static const D3D_FEATURE_LEVEL s_featureLevels[] =
         {
             D3D_FEATURE_LEVEL_11_1,
@@ -200,7 +201,7 @@ namespace alimer
 #if defined(NDEBUG)
         else
         {
-            throw std::runtime_error("No Direct3D hardware device found");
+            LOGE("No Direct3D11 hardware device found");
         }
 #else
         if (FAILED(hr))
@@ -260,11 +261,11 @@ namespace alimer
         // Create SwapChain
         {
             swapChainDesc = {};
-            swapChainDesc.Width = 0;
-            swapChainDesc.Height = 0;
+            swapChainDesc.Width = presentationParameters.backBufferWidth;
+            swapChainDesc.Height = presentationParameters.backBufferHeight;
             swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
             swapChainDesc.BufferUsage = DXGI_USAGE_SHADER_INPUT | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            swapChainDesc.BufferCount = 2u;
+            swapChainDesc.BufferCount = presentationParameters.backBufferCount;
             swapChainDesc.SampleDesc.Count = 1;
             swapChainDesc.SampleDesc.Quality = 0;
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
@@ -278,7 +279,7 @@ namespace alimer
             fullScreenDesc.RefreshRate.Denominator = 1;
             fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;
             fullScreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-            fullScreenDesc.Windowed = TRUE;
+            fullScreenDesc.Windowed = !presentationParameters.isFullScreen;
 
             // Create a SwapChain from a Win32 window.
             ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
@@ -295,6 +296,8 @@ namespace alimer
 #else
 #endif
         }
+
+        vsyncEnabled = presentationParameters.vsyncEnabled;
 
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
@@ -340,12 +343,13 @@ namespace alimer
 
     void D3D11_Graphics::EndFrame()
     {
-        //UINT presentFlags = 0;
-        //if (!m_DeviceParams.vsyncEnabled && m_FullScreenDesc.Windowed && tearingSupported)
-        //    presentFlags |= DXGI_PRESENT_ALLOW_TEARING;
-        //
-        //HRESULT hr = swapChain->Present(m_DeviceParams.vsyncEnabled ? 1 : 0, presentFlags);
-        HRESULT hr = swapChain->Present(1, 0);
+        UINT presentFlags = 0;
+        if (!vsyncEnabled && fullScreenDesc.Windowed && tearingSupported)
+        {
+            presentFlags |= DXGI_PRESENT_ALLOW_TEARING;
+        }
+
+        HRESULT hr = swapChain->Present(vsyncEnabled ? 1 : 0, presentFlags);
 
         // If the device was removed either by a disconnection or a driver upgrade, we
         // must recreate all device resources.
@@ -370,6 +374,11 @@ namespace alimer
                 CreateFactory();
             }
         }
+    }
+
+    void D3D11_Graphics::Resize(u32 newWidth, u32 newHeight)
+    {
+
     }
 
     RefCountPtr<Texture> D3D11_Graphics::CreateTexture(u32 width, u32 height)
@@ -486,14 +495,11 @@ namespace alimer
     {
         // TODO
     }
-}
 
-namespace alimer
-{
-    bool InitializeD3D11(Window* window)
+    bool D3D11_Initialize(Window* window, const PresentationParameters& presentationParameters)
     {
         gGraphics().Start<D3D11_Graphics>();
-        return gGraphics().Initialize(window);
+        return gGraphics().Initialize(window, presentationParameters);
     }
 }
 

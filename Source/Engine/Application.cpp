@@ -61,7 +61,12 @@ namespace alimer
         }
 
         // Init graphics module
-        if (!GraphicsInitialize(window.get()))
+        PresentationParameters presentationParameters = {};
+#if ALIMER_DEBUG
+        presentationParameters.validationMode = ValidationMode::Enabled;
+#endif
+
+        if (!GraphicsInitialize(window.get(), presentationParameters))
         {
             return false;
         }

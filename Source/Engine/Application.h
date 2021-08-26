@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Platform/Window.h"
+#include "Window.h"
 
 namespace alimer
 {
