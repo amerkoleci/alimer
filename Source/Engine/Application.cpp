@@ -41,6 +41,7 @@ namespace alimer
         window.reset();
         gLog().Shutdown();
         PlatformShutdown();
+
         g_currentApp = nullptr;
     }
 

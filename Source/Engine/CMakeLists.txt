@@ -166,7 +166,7 @@ endif()
 
 # GLFW
 if(NOT (EMSCRIPTEN OR ANDROID))
-  target_compile_definitions(${TARGET_NAME} PUBLIC USE_GLFW=1)
+  target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_PLATFORM_GLFW)
   target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 endif ()
 

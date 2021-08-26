@@ -1,6 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#if defined(ALIMER_PLATFORM_GLFW)
 #include "Application.h"
 //#include "Platform/Window.h"
 #include "Core/Log.h"
@@ -213,3 +214,4 @@ namespace alimer
 #endif
     }
 }
+#endif /* defined(ALIMER_PLATFORM_GLFW) */

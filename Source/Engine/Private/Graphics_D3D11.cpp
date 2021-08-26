@@ -6,11 +6,21 @@
 #include "Graphics/Texture.h"
 #include "Platform/Window.h"
 #include "PlatformInclude.h"
+#define D3D11_NO_HELPERS
 #include <d3d11_1.h>
 #include <dxgi1_6.h>
 
 #ifdef _DEBUG
 #   include <dxgidebug.h>
+#endif
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+// Indicates to hybrid graphics systems to prefer the discrete part by default
+extern "C"
+{
+    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 #endif
 
 namespace alimer
@@ -41,9 +51,10 @@ namespace alimer
 
     static struct
     {
-        RefCountPtr<ID3D11Device1> device;
-        RefCountPtr<ID3D11DeviceContext1> immediateContext;
-        D3D_FEATURE_LEVEL featureLevel{};
+        RefCountPtr<ID3D11Device1>              device;
+        RefCountPtr<ID3D11DeviceContext1>       context;
+        RefCountPtr<ID3DUserDefinedAnnotation>  annotation;
+        D3D_FEATURE_LEVEL                       featureLevel{};
     } d3d11;
 
     class D3D11_Texture final : public RefCounter<Texture>
@@ -84,12 +95,17 @@ namespace alimer
     private:
         RefCountPtr<IDXGIFactory2> dxgiFactory;
         bool tearingSupported{ false };
+        bool deviceLost{ false };
 
-        
+        DXGI_SWAP_CHAIN_DESC1                       swapChainDesc{};
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC             fullScreenDesc{};
+#endif
 
         RefCountPtr<IDXGISwapChain1> swapChain;
-
-        bool deviceLost{ false };
+        RefCountPtr<ID3D11Texture2D> renderTarget;
+        RefCountPtr<ID3D11RenderTargetView> renderTargetView;
+        D3D11_VIEWPORT viewport = {};
 
         void CreateFactory();
         void GetAdapter(IDXGIAdapter1** ppAdapter);
@@ -127,7 +143,13 @@ namespace alimer
 
     D3D11_Graphics::~D3D11_Graphics()
     {
-        d3d11.immediateContext.Reset();
+        renderTargetView.Reset();
+        renderTarget.Reset();
+        //m_depthStencil.Reset();
+        swapChain.Reset();
+
+        d3d11.annotation.Reset();
+        d3d11.context.Reset();
         d3d11.device.Reset();
     }
 
@@ -232,17 +254,16 @@ namespace alimer
 #endif
 
         ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3d11.device)));
-        ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&d3d11.immediateContext)));
-        //ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&d3dAnnotation)));
+        ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&d3d11.context)));
+        ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&d3d11.annotation)));
 
         // Create SwapChain
         {
-            // Create a descriptor for the swap chain.
-            DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+            swapChainDesc = {};
             swapChainDesc.Width = 0;
             swapChainDesc.Height = 0;
             swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-            swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            swapChainDesc.BufferUsage = DXGI_USAGE_SHADER_INPUT | DXGI_USAGE_RENDER_TARGET_OUTPUT;
             swapChainDesc.BufferCount = 2u;
             swapChainDesc.SampleDesc.Count = 1;
             swapChainDesc.SampleDesc.Quality = 0;
@@ -251,29 +272,70 @@ namespace alimer
             swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
             swapChainDesc.Flags = tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 
-            DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
-            fsSwapChainDesc.Windowed = TRUE;
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+            fullScreenDesc = {};
+            fullScreenDesc.RefreshRate.Numerator = 0;
+            fullScreenDesc.RefreshRate.Denominator = 1;
+            fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;
+            fullScreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+            fullScreenDesc.Windowed = TRUE;
 
             // Create a SwapChain from a Win32 window.
             ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
                 d3d11.device.Get(),
                 static_cast<HWND>(window->GetPlatformHandle()),
                 &swapChainDesc,
-                &fsSwapChainDesc,
+                &fullScreenDesc,
                 nullptr,
                 swapChain.ReleaseAndGetAddressOf()
             ));
 
             // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
             ThrowIfFailed(dxgiFactory->MakeWindowAssociation(static_cast<HWND>(window->GetPlatformHandle()), DXGI_MWA_NO_ALT_ENTER));
+#else
+#endif
         }
+
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+        ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
+
+        // Create a render target view of the swap chain back buffer.
+        ThrowIfFailed(swapChain->GetBuffer(0, IID_PPV_ARGS(renderTarget.ReleaseAndGetAddressOf())));
+        ThrowIfFailed(d3d11.device->CreateRenderTargetView(renderTarget.Get(), nullptr, renderTargetView.ReleaseAndGetAddressOf()));
+        viewport.Width = static_cast<FLOAT>(swapChainDesc.Width);
+        viewport.Height = static_cast<FLOAT>(swapChainDesc.Height);
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
 
         return true;
     }
 
     bool D3D11_Graphics::BeginFrame()
     {
-        return !deviceLost;
+        if (deviceLost)
+        {
+            return false;
+        }
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        DXGI_SWAP_CHAIN_DESC1 newSwapChainDesc;
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC newFullScreenDesc;
+        if (SUCCEEDED(swapChain->GetDesc1(&newSwapChainDesc)) &&
+            SUCCEEDED(swapChain->GetFullscreenDesc(&newFullScreenDesc)))
+        {
+            if (fullScreenDesc.Windowed != newFullScreenDesc.Windowed)
+            {
+            }
+        }
+#endif
+
+        d3d11.context->OMSetRenderTargets(1, &renderTargetView, nullptr);
+        d3d11.context->RSSetViewports(1, &viewport);
+
+        const float clearColor[4] = { 0.392156899f, 0.584313750f, 0.929411829f, 1.0f };
+        d3d11.context->ClearRenderTargetView(renderTargetView.Get(), clearColor);
+
+        return true;
     }
 
     void D3D11_Graphics::EndFrame()
@@ -284,13 +346,6 @@ namespace alimer
         //
         //HRESULT hr = swapChain->Present(m_DeviceParams.vsyncEnabled ? 1 : 0, presentFlags);
         HRESULT hr = swapChain->Present(1, 0);
-
-        //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
-        //if (m_d3dDepthStencilView)
-        //{
-        //    // Discard the contents of the depth stencil.
-        //    m_d3dContext->DiscardView(m_d3dDepthStencilView.Get());
-        //}
 
         // If the device was removed either by a disconnection or a driver upgrade, we
         // must recreate all device resources.
