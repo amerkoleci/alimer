@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Core/Signal.h"
+#include "Platform/Window.h"
 #include "RHI/RHI.h"
 
 namespace alimer
@@ -40,7 +40,7 @@ namespace alimer
 
 		/// Checks whether exit was requested.
         [[nodiscard]] bool IsExitRequested() const;
-        //[[nodiscard]] Window* GetMainWindow() const;
+        [[nodiscard]] Window* GetWindow() const { return window.get(); }
 
 	protected:
 		/// Constructor.
@@ -64,6 +64,7 @@ namespace alimer
         virtual bool BeginDraw();
         virtual void EndDraw();
 
+        std::unique_ptr<Window> window;
         RHI::DeviceHandle rhiDevice;
 
     private:
@@ -71,11 +72,10 @@ namespace alimer
         bool InitBeforeRun(int argc, const char* argv[]);
         void ShutdownInternal();
 
-        bool PlatformInit();
+        void PlatformConstruct();
         void PlatformShutdown();
         bool PlatformSetup(const Settings& settings);
         void PlatformUpdate();
-        void* GetWindowHandle() const;
 
         void Render();
 

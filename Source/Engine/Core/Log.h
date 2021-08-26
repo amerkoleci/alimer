@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "PlatformDef.h"
 #include "Core/Types.h"
 #include "Core/Module.h"
 #include <spdlog/fmt/fmt.h>

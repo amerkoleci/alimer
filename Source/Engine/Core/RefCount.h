@@ -3,11 +3,7 @@
 
 #pragma once
 
-#include "PlatformDef.h"
-#include <atomic>
-#include <cstdint>
-#include <cassert>
-#include <type_traits>
+#include "Core/Types.h"
 
 namespace alimer
 {

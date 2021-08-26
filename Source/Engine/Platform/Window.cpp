@@ -3,7 +3,34 @@
 
 #include "Window.h"
 
+#if defined(USE_GLFW)
+#endif
+
 namespace alimer
 {
-    
+    Window::Window(const std::string_view& title, int32_t width, int32_t height, WindowFlags flags)
+        : Window(title, Int2{ Centered, Centered }, Int2{ width, height }, flags)
+    {
+
+    }
+
+    Window::Window(const std::string_view& title, int32_t x, int32_t y, int32_t width, int32_t height, WindowFlags flags)
+        : Window(title, Int2{ x, y }, Int2{ width, height }, flags)
+    {
+    }
+
+    Window::Window(const std::string_view& title, const Int2& size, WindowFlags flags)
+        : Window(title, Int2{ Centered, Centered }, size, flags)
+    {
+
+    }
+
+    void Window::OnClosed()
+    {
+        ALIMER_ASSERT(isClosing);
+        //depthStencilTexture.Reset();
+        //swapChain.Reset();
+
+        Closed(this);
+    }
 }

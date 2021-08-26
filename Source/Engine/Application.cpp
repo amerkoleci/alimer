@@ -26,6 +26,8 @@ namespace alimer
          // Init log first.
         gLog().Start();
 
+        PlatformConstruct();
+
         g_currentApp = this;
     }
 
@@ -47,16 +49,7 @@ namespace alimer
 
     bool Application::InitBeforeRun(int argc, const char* argv[])
     {
-        // Initialize platform first.
-        if (!PlatformInit())
-        {
-            return false;
-        }
-
-        // Init log first.
-        //gLog().Start();
-
-         // Defaults
+        // Defaults
         Settings settings = SetupSettings();
 
         if (!PlatformSetup(settings))
@@ -65,7 +58,10 @@ namespace alimer
         }
 
         // Create RHI device
-        rhiDevice = RHI::IDevice::Create(GetWindowHandle());
+        rhiDevice = RHI::IDevice::Create(window->GetPlatformHandle());
+
+        // Show window
+        window->Show();
 
         // TODO: Setup rest
         if (!Initialize(argc, argv))
@@ -81,7 +77,7 @@ namespace alimer
         Shutdown();
 
         rhiDevice.Reset();
-
+        window.reset();
         PlatformShutdown();
     }
 

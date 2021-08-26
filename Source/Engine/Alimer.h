@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "PlatformDef.h"
+#include "Core/Types.h"
 
 // RHI
 #include "RHI/RHI.h"
