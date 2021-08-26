@@ -3,9 +3,10 @@
 
 #pragma once
 
+#include "Core/Signal.h"
 #include "RHI/RHI.h"
 
-namespace Alimer
+namespace alimer
 {
     class GameHost;
 
@@ -23,7 +24,7 @@ namespace Alimer
 	{
 	public:
 		/// Occurs when the game is about to exit.
-		//Signal<int32_t> Exiting;
+		Signal<int32_t> Exiting;
 
 		/// Destructor.
 		virtual ~Application();

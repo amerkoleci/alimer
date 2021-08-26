@@ -2,8 +2,9 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Application.h"
+#include "Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     namespace
     {
@@ -22,6 +23,9 @@ namespace Alimer
     {
         //ALIMER_VERIFY_MSG(g_currentApp == nullptr, "Cannot create more than one Application");
 
+         // Init log first.
+        gLog().Start();
+
         g_currentApp = this;
     }
 
@@ -31,7 +35,8 @@ namespace Alimer
         //gGraphics().WaitIdle();
         //gGraphics().Shutdown();
         //gAssets().Shutdown();
-        
+        gLog().Shutdown();
+
         g_currentApp = nullptr;
     }
 
@@ -78,7 +83,6 @@ namespace Alimer
         rhiDevice.Reset();
 
         PlatformShutdown();
-        //gLog().Shutdown();
     }
 
     int Application::Run(int argc, const char* argv[])

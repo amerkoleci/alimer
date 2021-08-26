@@ -2,7 +2,7 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 #include <Alimer.h>
-using namespace Alimer;
+using namespace alimer;
 
 class HelloWorldApp final : public Application
 {

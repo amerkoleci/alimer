@@ -9,7 +9,7 @@
 #include <cassert>
 #include <type_traits>
 
-namespace Alimer
+namespace alimer
 {
     /// Base class for intrusively reference counted objects that can be pointed to with RefPtr. These are noncopyable and non-assignable.
     class ALIMER_API RefCounted

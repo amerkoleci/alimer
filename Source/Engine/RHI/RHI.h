@@ -37,7 +37,7 @@
 #   define RHI_API
 #endif
 
-namespace Alimer::RHI
+namespace alimer::RHI
 {
     /* Constants */
     static constexpr uint32_t kMaxFramesInFlight = 2;

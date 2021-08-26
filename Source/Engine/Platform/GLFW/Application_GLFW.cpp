@@ -3,6 +3,7 @@
 
 #include "Application.h"
 //#include "Platform/Window.h"
+#include "Core/Log.h"
 
 #define GLFW_INCLUDE_NONE
 #if ALIMER_PLATFORM_WINDOWS
@@ -16,7 +17,7 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-namespace Alimer
+namespace alimer
 {
     namespace
     {
@@ -83,7 +84,7 @@ namespace Alimer
         //glfwSetWindowIconifyCallback(window, window_iconify_callback_glfw);
         glfwSetWindowUserPointer(window, this);
 
-        //LOGI("Successfully initialized platform!");
+        LOGI("Successfully initialized platform!");
         return true;
     }
 

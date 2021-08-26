@@ -24,7 +24,7 @@
 #   include <memory>
 #   include <stdexcept>
 
-namespace Alimer
+namespace alimer
 {
     // Helper class for COM exceptions
     class COMException : public std::exception

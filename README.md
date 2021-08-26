@@ -21,3 +21,5 @@ Uses the following open-source and third-party libraries:
 
 - [stb](https://github.com/nothings/stb): Single-file public domain (or MIT licensed) libraries
 - [glfw](https://github.com/glfw/glfw): A multi-platform library for OpenGL, OpenGL ES, Vulkan, window and input
+- [spdlog](https://github.com/gabime/spdlog): Fast C++ logging library
+- [fmt](https://fmt.dev): A modern formatting library

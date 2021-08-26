@@ -4,7 +4,7 @@
 #include "PlatformDef.h"
 #include "RHI.h"
 
-namespace Alimer::RHI
+namespace alimer::RHI
 {
 #if defined(ALIMER_RHI_D3D11)
     extern DeviceHandle CreateD3D11Device(void* windowHandle);

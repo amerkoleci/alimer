@@ -11,7 +11,7 @@
 #   include <dxgidebug.h>
 #endif
 
-namespace Alimer::RHI::D3D11
+namespace alimer::RHI::D3D11
 {
     namespace
     {
@@ -372,7 +372,7 @@ namespace Alimer::RHI::D3D11
     }
 }
 
-namespace Alimer::RHI
+namespace alimer::RHI
 {
     DeviceHandle CreateD3D11Device(void* windowHandle)
     {

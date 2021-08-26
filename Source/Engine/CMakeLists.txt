@@ -63,6 +63,7 @@ define_engine_source_files(
   Core
   Math
   IO
+  Platform
   RHI
 )
 
@@ -102,6 +103,11 @@ target_compile_definitions(${TARGET_NAME} PUBLIC
   $<IF:$<BOOL:${ALIMER_NETWORK}>,ALIMER_NETWORK=1,ALIMER_NETWORK=0>
   $<IF:$<BOOL:${ALIMER_AUDIO}>,ALIMER_AUDIO=1,ALIMER_AUDIO=0>
   $<IF:$<BOOL:${ALIMER_PHYSICS}>,ALIMER_PHYSICS=1,ALIMER_PHYSICS=0>
+)
+
+target_link_libraries(${TARGET_NAME} PUBLIC
+  #stb
+  spdlog
 )
 
 # RHI defines
