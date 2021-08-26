@@ -170,6 +170,10 @@ if(NOT (EMSCRIPTEN OR ANDROID))
   target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 endif ()
 
+if (ALIMER_RHI_VULKAN)
+  target_link_libraries(${TARGET_NAME} PRIVATE volk vma spirv-reflect)
+endif()
+
 # SDK installation
 install(TARGETS ${TARGET_NAME}
     EXPORT ${TARGET_NAME}

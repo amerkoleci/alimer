@@ -6,6 +6,10 @@
 #include "Graphics/Texture.h"
 #include "Platform/Window.h"
 #include "PlatformInclude.h"
+#include "volk.h"
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+#include "spirv_reflect.h"
 
 namespace alimer
 {
