@@ -53,6 +53,11 @@ namespace alimer
         [[nodiscard]] bool ShouldClose() const;
         [[nodiscard]] void* GetPlatformHandle() const;
 
+        [[nodiscard]] std::string GetTitle() const noexcept { return title; }
+        void SetTitle(const std::string_view& newTitle);
+
+        [[nodiscard]] bool IsMinimized() const;
+
         [[nodiscard]] WindowImpl* GetImpl() const { return impl.get(); }
 
     private:

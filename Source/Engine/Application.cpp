@@ -35,7 +35,7 @@ namespace alimer
     Application::~Application()
     {
         // Shutdown modules.
-        //gGraphics().WaitIdle();
+        gGraphics().WaitIdle();
         gGraphics().Shutdown();
         //gAssets().Shutdown();
         window.reset();
@@ -101,6 +101,9 @@ namespace alimer
             Render();
         }
 
+        // Wait for pending GPU operations before shutdown.
+        gGraphics().WaitIdle();
+
         running = false;
         return 0;
     }
@@ -113,48 +116,25 @@ namespace alimer
     {
         // Don't try to render anything before the first Update or rendering is not allowed
         if (//frameCount > 0 &&
-            //!host->GetMainWindow()->IsMinimized() &&
-            BeginDraw())
+            !window->IsMinimized()
+            )
         {
             // Custom application draw.
-            //CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
-            //{
-            //    commandBuffer->PushDebugGroup("Frame");
-            //
-            //    RHI::RenderPassDescriptor renderPass;
-            //    renderPass.colorAttachments[0].texture = host->GetMainWindow()->GetSwapChain()->GetCurrentTexture();
-            //    renderPass.colorAttachments[0].loadAction = LoadAction::Clear;
-            //    renderPass.colorAttachments[0].storeAction = StoreAction::Store;
-            //    renderPass.colorAttachments[0].clearColor = { 0.1f, 0.2f, 0.3f, 1.0f };
-            //
-            //    if (host->GetMainWindow()->GetDepthStencilFormat() != PixelFormat::Undefined)
-            //    {
-            //        //renderPass.depthStencilAttachment.view = host->GetMainWindow()->GetDepthStencilTexture()->GetDefaultView();
-            //        renderPass.depthStencilAttachment.clearDepth = 1.0f;
-            //    }
-            //
-            //    commandBuffer->BeginRenderPass(renderPass);
-            //
-            //    OnDraw(commandBuffer);
-            //
-            //    // End main window render pass
-            //    commandBuffer->EndRenderPass();
-            //
-            //    commandBuffer->PopDebugGroup();
-            //}
+            CommandList* commandList = gGraphics().BeginFrame();
+            if (commandList == nullptr)
+            {
+                // Cannot draw
+                return;
+            }
 
-            //gGraphics().GetQueue().Submit(commandBuffer);
-            EndDraw();
+            commandList->PushDebugGroup("Frame");
+            commandList->BeginDefaultRenderPass(Colors::CornflowerBlue);
+            
+            OnDraw(commandList);
+
+            commandList->EndRenderPass();
+            commandList->PopDebugGroup();
+            gGraphics().EndFrame();
         }
-    }
-
-    bool Application::BeginDraw()
-    {
-        return gGraphics().BeginFrame();
-    }
-
-    void Application::EndDraw()
-    {
-        gGraphics().EndFrame();
     }
 }

@@ -196,6 +196,19 @@ namespace alimer
         return glfwWindowShouldClose(impl->window) == GLFW_TRUE;
     }
 
+    bool Window::IsMinimized() const
+    {
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(impl->window, &width, &height);
+        return width == 0 || height == 0;
+    }
+
+    void Window::SetTitle(const std::string_view& newTitle)
+    {
+        title = newTitle;
+        glfwSetWindowTitle(impl->window, newTitle.data());
+    }
+
     void* Window::GetPlatformHandle() const
     {
         ALIMER_ASSERT(impl->window);

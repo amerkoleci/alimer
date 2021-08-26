@@ -7,7 +7,7 @@
 
 namespace alimer
 {
-    class GameHost;
+    class CommandList;
 
     struct Settings
     {
@@ -18,31 +18,31 @@ namespace alimer
         bool        fullscreen = false;
     };
 
-	/// Class that provides graphics initialization, application logic, and rendering code.
-	class ALIMER_API Application
-	{
-	public:
-		/// Occurs when the game is about to exit.
-		Signal<int32_t> Exiting;
+    /// Class that provides graphics initialization, application logic, and rendering code.
+    class ALIMER_API Application
+    {
+    public:
+        /// Occurs when the game is about to exit.
+        Signal<int32_t> Exiting;
 
-		/// Destructor.
-		virtual ~Application();
+        /// Destructor.
+        virtual ~Application();
 
-		/// Gets the current Application instance.
-		static Application* GetCurrent();
+        /// Gets the current Application instance.
+        static Application* GetCurrent();
 
-		/// Setups all subsystem and run's platform main loop.
+        /// Setups all subsystem and run's platform main loop.
         int32_t Run(int argc, const char* argv[]);
 
-		/// Request the application to exit.
-		void RequestExit();
+        /// Request the application to exit.
+        void RequestExit();
 
-		/// Checks whether exit was requested.
+        /// Checks whether exit was requested.
         [[nodiscard]] bool IsExitRequested() const;
         [[nodiscard]] Window* GetWindow() const { return window.get(); }
 
-	protected:
-		/// Constructor.
+    protected:
+        /// Constructor.
         Application();
 
         // Intial app settings. Override this to set defaults.
@@ -53,14 +53,11 @@ namespace alimer
 
         virtual bool Initialize(int argc, const char* argv[]) { return true; }
 
-		virtual void Update();
-		virtual void OnDraw(/* [[maybe_unused]] CommandBuffer* commandBuffer*/) {}
+        virtual void Update();
+        virtual void OnDraw([[maybe_unused]] CommandList* commandList) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}
-
-        virtual bool BeginDraw();
-        virtual void EndDraw();
 
         std::unique_ptr<Window> window;
 
@@ -75,8 +72,8 @@ namespace alimer
 
         void Render();
 
-		bool running{ false };
-	};
+        bool running{ false };
+    };
 }
 
 #if !defined(ALIMER_DEFINE_APPLICATION)

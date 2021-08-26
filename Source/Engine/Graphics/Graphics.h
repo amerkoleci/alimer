@@ -5,12 +5,14 @@
 
 #include "Core/RefCount.h"
 #include "Core/Module.h"
-#include "Math/Color.h"
+#include "Graphics/CommandList.h"
 
 namespace alimer
 {
     class Window;
     class Texture;
+    struct TextureDesc;
+    struct TextureData;
 
     enum class ValidationMode : uint32_t
     {
@@ -32,6 +34,7 @@ namespace alimer
         uint32_t backBufferWidth = 0;
         uint32_t backBufferHeight = 0;
         uint32_t backBufferCount = 3;
+        Format depthStencilFormat = Format::Depth32Float;
         bool vsyncEnabled = false;
         bool isFullScreen = false;
     };
@@ -42,15 +45,23 @@ namespace alimer
 
     public:
         virtual bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters) = 0;
-        virtual bool BeginFrame() = 0;
+        virtual void WaitIdle() = 0;
+        virtual CommandList* BeginFrame() = 0;
         virtual void EndFrame() = 0;
         virtual void Resize(u32 newWidth, u32 newHeight) = 0;
 
-        virtual void BeginDefaultRenderPass(const Color& clearColor) = 0;
-        virtual void EndRenderPass() = 0;
+        /// Return backbuffer width.
+        [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
+        /// Return backbuffer height.
+        [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
 
     private:
-        [[nodiscard]] virtual RefCountPtr<Texture> CreateTexture(u32 width, u32 height) = 0;
+        [[nodiscard]] virtual RefCountPtr<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) = 0;
+
+    protected:
+        uint32_t backBufferWidth = 0;
+        uint32_t backBufferHeight = 0;
+        bool vsyncEnabled = false;
     };
 
     ALIMER_API bool GraphicsInitialize(_In_ Window* window, const PresentationParameters& presentationParameters);

@@ -67,6 +67,14 @@ namespace alimer
 
     namespace
     {
+        const char* kDeviceTypes[] = {
+            "Other",
+            "IntegratedGPU",
+            "DiscreteGPU",
+            "VirtualGPU",
+            "CPU"
+        };
+
         VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessengerCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -316,6 +324,10 @@ namespace alimer
         uint32_t computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t copyQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
+        VkQueue graphicsQueue = VK_NULL_HANDLE;
+        VkQueue computeQueue = VK_NULL_HANDLE;
+        VkQueue copyQueue = VK_NULL_HANDLE;
+
         VkDevice device = VK_NULL_HANDLE;
         VmaAllocator allocator = VK_NULL_HANDLE;
         bool bufferDeviceAddress = false;
@@ -326,7 +338,7 @@ namespace alimer
     class Vulkan_Texture final : public RefCounter<Texture>
     {
     public:
-        Vulkan_Texture(u32 width, u32 height)
+        Vulkan_Texture(const TextureDesc& desc, const TextureData* initialData)
         {
 
         }
@@ -348,13 +360,12 @@ namespace alimer
         ~Vulkan_Graphics() override;
 
         bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters) override;
-        bool BeginFrame() override;
+        void WaitIdle() override;
+        CommandList* BeginFrame() override;
         void EndFrame() override;
         void Resize(u32 newWidth, u32 newHeight) override;
-        void BeginDefaultRenderPass(const Color& clearColor) override;
-        void EndRenderPass() override;
 
-        RefCountPtr<Texture> CreateTexture(u32 width, u32 height) override;
+        RefCountPtr<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData) override;
     };
 
     bool Vulkan_Graphics::IsAvailable()
@@ -545,6 +556,8 @@ namespace alimer
 
     Vulkan_Graphics::~Vulkan_Graphics()
     {
+        VK_CHECK(vkDeviceWaitIdle(vk.device));
+
         if (vk.allocator != VK_NULL_HANDLE)
         {
             VmaStats stats;
@@ -599,6 +612,7 @@ namespace alimer
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
         VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragment_shading_rate_properties = {};
         VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
+        VkPhysicalDeviceDescriptorIndexingPropertiesEXT descriptor_indexing_properties = {};
 
         VkPhysicalDeviceFeatures2 features2 = {};
         VkPhysicalDeviceVulkan11Features features_1_1 = {};
@@ -610,6 +624,7 @@ namespace alimer
         VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_features = {};
         VkPhysicalDevicePerformanceQueryFeaturesKHR perf_counter_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR };
         VkPhysicalDeviceHostQueryResetFeatures host_query_reset_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES };
+        VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptor_indexing_features = {};
 
         // Enumerate physical devices and create logical device.
         {
@@ -643,7 +658,7 @@ namespace alimer
                 VK_CHECK(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data()));
 
                 PhysicalDeviceExtensions physicalDeviceExt = QueryPhysicalDeviceExtensions(physicalDevice);
-                suitable = physicalDeviceExt.swapchain&& physicalDeviceExt.depth_clip_enable;
+                suitable = physicalDeviceExt.swapchain && physicalDeviceExt.depth_clip_enable;
                 if (!suitable)
                 {
                     continue;
@@ -721,11 +736,15 @@ namespace alimer
                     enabledExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
                 }
 
-                if (physicalDeviceExt.descriptor_indexing)
-                {
-                    // Required by VK_KHR_acceleration_structure
-                    enabledExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-                }
+                //if (physicalDeviceExt.descriptor_indexing)
+                //{
+                //    // Required by VK_KHR_acceleration_structure
+                //    enabledExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+                //
+                //    descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+                //    *features_chain = &descriptor_indexing_features;
+                //    features_chain = &descriptor_indexing_features.pNext;
+                //}
 
                 if (physicalDeviceExt.accelerationStructure)
                 {
@@ -917,14 +936,71 @@ namespace alimer
             }
 
             volkLoadDevice(vk.device);
+
+            // Queues
+            //queues[(uint32_t)CommandQueueType::Graphics].queueFamilyIndex = vk.graphicsQueueFamily;
+            vkGetDeviceQueue(vk.device, vk.graphicsQueueFamily, graphicsQueueIndex, &vk.graphicsQueue);
+
+            // Compute queue
+            //queues[(uint32_t)CommandQueueType::Graphics].queueFamilyIndex = computeQueueFamily;
+            vkGetDeviceQueue(vk.device, vk.computeQueueFamily, computeQueueIndex, &vk.computeQueue);
+
+            // Copy
+            vkGetDeviceQueue(vk.device, vk.copyQueueFamily, copyQueueIndex, &vk.copyQueue);
+
+            LOGI("Vendor : {}", GetVendorName(properties2.properties.vendorID));
+            LOGI("Name   : {}", properties2.properties.deviceName);
+            LOGI("Type   : {}", kDeviceTypes[properties2.properties.deviceType]);
+            LOGI("API    : {}.{}.{}",
+                VK_VERSION_MAJOR(properties2.properties.apiVersion),
+                VK_VERSION_MINOR(properties2.properties.apiVersion),
+                VK_VERSION_PATCH(properties2.properties.apiVersion)
+            );
+            LOGI("Driver : {}.{}.{}",
+                VK_VERSION_MAJOR(properties2.properties.driverVersion),
+                VK_VERSION_MINOR(properties2.properties.driverVersion),
+                VK_VERSION_PATCH(properties2.properties.driverVersion)
+            );
+            LOGI("Enabled {} Device Extensions:", createInfo.enabledExtensionCount);
+            for (uint32_t i = 0; i < createInfo.enabledExtensionCount; ++i)
+            {
+                LOGI("	\t{}", createInfo.ppEnabledExtensionNames[i]);
+            }
+
+#ifdef _DEBUG
+            LOGD("Graphics queue: family {}, index {}.", vk.graphicsQueueFamily, graphicsQueueIndex);
+            LOGD("Compute queue: family {}, index {}.", vk.computeQueueFamily, computeQueueIndex);
+            LOGD("Transfer queue: family {}, index {}.", vk.copyQueueFamily, copyQueueIndex);
+#endif
+        }
+
+        vk.bufferDeviceAddress = features_1_2.bufferDeviceAddress;
+
+        // Initialize Vulkan Memory Allocator helper
+        {
+            VmaAllocatorCreateInfo allocatorInfo = {};
+            allocatorInfo.physicalDevice = vk.physicalDevice;
+            allocatorInfo.device = vk.device;
+            allocatorInfo.instance = vk.instance;
+            if (features_1_2.bufferDeviceAddress)
+            {
+                allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+            }
+
+            VK_CHECK(vmaCreateAllocator(&allocatorInfo, &vk.allocator));
         }
 
         return true;
     }
 
-    bool Vulkan_Graphics::BeginFrame()
+    void Vulkan_Graphics::WaitIdle()
     {
-        return true;
+        VK_CHECK(vkDeviceWaitIdle(vk.device));
+    }
+
+    CommandList* Vulkan_Graphics::BeginFrame()
+    {
+        return nullptr;
     }
 
     void Vulkan_Graphics::EndFrame()
@@ -936,18 +1012,9 @@ namespace alimer
 
     }
 
-    void Vulkan_Graphics::BeginDefaultRenderPass(const Color& clearColor)
+    RefCountPtr<Texture> Vulkan_Graphics::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
     {
-    }
-
-    void Vulkan_Graphics::EndRenderPass()
-    {
-
-    }
-
-    RefCountPtr<Texture> Vulkan_Graphics::CreateTexture(u32 width, u32 height)
-    {
-        auto result = new Vulkan_Texture(width, height);
+        auto result = new Vulkan_Texture(desc, initialData);
 
         //if (result->handle)
         return TextureRef::Create(result);

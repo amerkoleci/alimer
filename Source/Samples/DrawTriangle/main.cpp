@@ -23,13 +23,12 @@ public:
 
     bool Initialize(int argc, const char* argv[]) override
     {
-        texture = Texture::Create(4, 4);
+        texture = Texture::Create2D(4, 4);
         return true;
     }
 
-    void OnDraw(/*[[maybe_unused]] CommandBuffer* commandBuffer*/) override
+    void OnDraw([[maybe_unused]] CommandList* commandList) override
     {
-        
     }
 };
 

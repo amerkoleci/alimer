@@ -6,10 +6,23 @@
 
 namespace alimer
 {
-    TextureRef Texture::Create(u32 width, u32 height)
+    TextureRef Texture::Create2D(uint32_t width, uint32_t height, Format format, uint32_t arraySize, uint32_t mipLevels, const TextureData* initialData, TextureUsage usage)
+    {
+        TextureDesc desc;
+        desc.dimension = TextureDimension::Texture2D;
+        desc.width = width;
+        desc.height = height;
+        desc.depthOrArraySize = arraySize;
+        desc.format = format;
+        desc.mipLevels = mipLevels;
+        desc.usage = usage;
+        return Create(desc, initialData);
+    }
+
+    TextureRef Texture::Create(const TextureDesc& desc, const TextureData* initialData)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
 
-        return gGraphics().CreateTexture(width, height);
+        return gGraphics().CreateTexture(desc, initialData);
     }
 }
