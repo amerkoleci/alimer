@@ -1,10 +1,9 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "PlatformDef.h"
-#include "RHI.h"
+#include "Graphics/Types.h"
 
-namespace alimer::RHI
+namespace alimer
 {
     const char* ToString(CompareFunction func)
     {

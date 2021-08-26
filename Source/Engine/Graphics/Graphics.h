@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "Core/Types.h"
 #include "Core/RefCount.h"
 #include "Core/Module.h"
+#include "Math/Color.h"
 
 namespace alimer
 {
@@ -45,6 +45,9 @@ namespace alimer
         virtual bool BeginFrame() = 0;
         virtual void EndFrame() = 0;
         virtual void Resize(u32 newWidth, u32 newHeight) = 0;
+
+        virtual void BeginDefaultRenderPass(const Color& clearColor) = 0;
+        virtual void EndRenderPass() = 0;
 
     private:
         [[nodiscard]] virtual RefCountPtr<Texture> CreateTexture(u32 width, u32 height) = 0;

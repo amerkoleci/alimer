@@ -64,7 +64,6 @@ define_engine_source_files(
   Math
   IO
   Graphics
-  RHI
 )
 
 define_engine_source_files(Private NO_INSTALL)

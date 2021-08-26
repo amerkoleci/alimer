@@ -53,6 +53,8 @@ namespace alimer
         [[nodiscard]] bool ShouldClose() const;
         [[nodiscard]] void* GetPlatformHandle() const;
 
+        [[nodiscard]] WindowImpl* GetImpl() const { return impl.get(); }
+
     private:
         ALIMER_DISABLE_COPY_MOVE(Window);
 
@@ -62,7 +64,7 @@ namespace alimer
         bool isClosing{ false };
         std::string title;
 
-        std::unique_ptr<WindowImpl> pImpl;
+        std::unique_ptr<WindowImpl> impl;
     };
 }
 

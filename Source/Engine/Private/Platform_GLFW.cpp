@@ -6,6 +6,10 @@
 //#include "Platform/Window.h"
 #include "Core/Log.h"
 
+#if defined(ALIMER_RHI_VULKAN)
+#include "volk.h"
+#endif
+
 #define GLFW_INCLUDE_NONE
 #if ALIMER_PLATFORM_WINDOWS
 #   define GLFW_EXPOSE_NATIVE_WIN32
@@ -81,7 +85,7 @@ namespace alimer
     /* Window */
     Window::Window(const std::string_view& title_, const Int2& position, const Int2& size, WindowFlags flags)
         : title(title_)
-        , pImpl(std::make_unique<WindowImpl>())
+        , impl(std::make_unique<WindowImpl>())
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -114,8 +118,8 @@ namespace alimer
             glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
         }
 
-        pImpl->window = glfwCreateWindow(size.x, size.y, title.data(), monitor, nullptr);
-        if (!pImpl->window)
+        impl->window = glfwCreateWindow(size.x, size.y, title.data(), monitor, nullptr);
+        if (!impl->window)
         {
             LOGE("GLFW: Failed to create window");
             return;
@@ -124,8 +128,8 @@ namespace alimer
         windowCount++;
 
         glfwDefaultWindowHints();
-        glfwSetWindowUserPointer(pImpl->window, this);
-        glfwSetWindowCloseCallback(pImpl->window, [](GLFWwindow* glfwWindow) {
+        glfwSetWindowUserPointer(impl->window, this);
+        glfwSetWindowCloseCallback(impl->window, [](GLFWwindow* glfwWindow) {
             Window* engineWindow = (Window*)glfwGetWindowUserPointer(glfwWindow);
             engineWindow->Close();
             }
@@ -142,10 +146,10 @@ namespace alimer
 
     void Window::Destroy()
     {
-        if (pImpl->window)
+        if (impl->window)
         {
-            glfwDestroyWindow(pImpl->window);
-            pImpl->window = nullptr;
+            glfwDestroyWindow(impl->window);
+            impl->window = nullptr;
         }
 
         //windowCount--;
@@ -153,21 +157,16 @@ namespace alimer
 
     void Window::Show()
     {
-        ALIMER_ASSERT(pImpl->window);
+        ALIMER_ASSERT(impl->window);
 
-        //if (swapChain.IsNull())
-        //{
-        //    CreateSwapChain(GetHandle());
-        //}
-
-        glfwShowWindow(pImpl->window);
+        glfwShowWindow(impl->window);
     }
 
     void Window::Hide()
     {
-        ALIMER_ASSERT(pImpl->window);
+        ALIMER_ASSERT(impl->window);
 
-        glfwHideWindow(pImpl->window);
+        glfwHideWindow(impl->window);
     }
 
     void Window::Close()
@@ -184,9 +183,9 @@ namespace alimer
             return;
         }
 
-        if (pImpl->window)
+        if (impl->window)
         {
-            glfwSetWindowShouldClose(pImpl->window, GLFW_TRUE);
+            glfwSetWindowShouldClose(impl->window, GLFW_TRUE);
         }
 
         OnClosed();
@@ -194,24 +193,31 @@ namespace alimer
 
     bool Window::ShouldClose() const
     {
-        return glfwWindowShouldClose(pImpl->window) == GLFW_TRUE;
+        return glfwWindowShouldClose(impl->window) == GLFW_TRUE;
     }
 
     void* Window::GetPlatformHandle() const
     {
-        ALIMER_ASSERT(pImpl->window);
+        ALIMER_ASSERT(impl->window);
 
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
-        return glfwGetWin32Window(pImpl->window);
+        return glfwGetWin32Window(impl->window);
 #elif defined(GLFW_EXPOSE_NATIVE_X11)
-        return glfwGetX11Window(pImpl->window);
+        return glfwGetX11Window(impl->window);
 #elif defined(GLFW_EXPOSE_NATIVE_COCOA)
-        return glfwGetCocoaWindow(pImpl->window);
+        return glfwGetCocoaWindow(impl->window);
 #elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
-        return glfwGetWaylandWindow(pImpl->window);
+        return glfwGetWaylandWindow(impl->window);
 #else
         return nullptr;
 #endif
     }
+
+#if defined(ALIMER_RHI_VULKAN)
+    VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface)
+    {
+        return glfwCreateWindowSurface(instance, window->GetImpl()->window, allocator, surface);
+    }
+#endif
 }
 #endif /* defined(ALIMER_PLATFORM_GLFW) */

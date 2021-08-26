@@ -3,41 +3,9 @@
 
 #pragma once
 
-#include "Core/RefCount.h"
-#include <cstdint>
-#include <cmath>
-#include <cstring>
-#include <string>
-#include <vector>
+#include "Core/Types.h"
 
-#define RHI_ENUM_CLASS_FLAG_OPERATORS(T) \
-    inline T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
-    inline T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } /* NOLINT(bugprone-macro-parentheses) */ \
-    inline T operator ~ (T a) { return T(~uint32_t(a)); } /* NOLINT(bugprone-macro-parentheses) */ \
-    inline bool operator !(T a) { return uint32_t(a) == 0; } \
-    inline bool operator ==(T a, uint32_t b) { return uint32_t(a) == b; } \
-    inline bool operator !=(T a, uint32_t b) { return uint32_t(a) != b; }
-
-#if defined(RHI_SHARED_LIBRARY_BUILD)
-#   if defined(_MSC_VER)
-#       define RHI_API __declspec(dllexport)
-#   elif defined(__GNUC__)
-#       define RHI_API __attribute__((visibility("default")))
-#   else
-#       define RHI_API
-#       pragma warning "Unknown dynamic link import/export semantics."
-#   endif
-#elif defined(RHI_SHARED_LIBRARY_INCLUDE)
-#   if defined(_MSC_VER)
-#       define RHI_API __declspec(dllimport)
-#   else
-#       define RHI_API
-#   endif
-#else
-#   define RHI_API
-#endif
-
-namespace alimer::RHI
+namespace alimer
 {
     /* Constants */
     static constexpr uint32_t kMaxFramesInFlight = 2;
@@ -74,38 +42,15 @@ namespace alimer::RHI
         Always,
     };
 
-    /* Forward declarations */
-    class IBuffer;
-    class ITexture;
-    class ISampler;
-    class IShader;
-    class IDevice;
-
-    using DeviceHandle = RefCountPtr<IDevice>;
-
-    class IDevice : public RefCounted
-    {
-    public:
-        virtual bool BeginFrame() = 0;
-        virtual void EndFrame() = 0;
-    };
-
     /* Helper methods */
-    RHI_API const char* ToString(CompareFunction func);
-
-    template <class T>
-    void hash_combine(size_t& seed, const T& v)
-    {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
+    ALIMER_API const char* ToString(CompareFunction func);
 }
 
 #undef RHI_ENUM_CLASS_FLAG_OPERATORS
 
-#if TODO
 namespace std
 {
+#if TODO
     template<> struct hash<Alimer::RHI::TextureSubresourceSet>
     {
         std::size_t operator()(const Alimer::RHI::TextureSubresourceSet& set) const noexcept
@@ -178,6 +123,6 @@ namespace std
             return hash;
         }
     };
-}
 #endif // TODO
+}
 

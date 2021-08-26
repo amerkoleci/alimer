@@ -18,7 +18,7 @@ namespace alimer
     bool GraphicsInitialize(_In_ Window* window, const PresentationParameters& presentationParameters)
     {
 #if defined(ALIMER_RHI_D3D11)
-        return D3D11_Initialize(window, presentationParameters);
+        //return D3D11_Initialize(window, presentationParameters);
 #endif
 
 #if defined(ALIMER_RHI_VULKAN)

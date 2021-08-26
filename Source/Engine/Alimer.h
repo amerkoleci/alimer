@@ -7,9 +7,7 @@
 
 // Graphics
 #include "Graphics/Texture.h"
-
-// RHI
-#include "RHI/RHI.h"
+#include "Graphics/Graphics.h"
 
 // Application
 #include "Application.h"

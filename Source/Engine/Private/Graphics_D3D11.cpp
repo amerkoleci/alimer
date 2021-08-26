@@ -119,6 +119,10 @@ namespace alimer
         bool BeginFrame() override;
         void EndFrame() override;
         void Resize(u32 newWidth, u32 newHeight) override;
+
+        void BeginDefaultRenderPass(const Color& clearColor) override;
+        void EndRenderPass() override;
+
         RefCountPtr<Texture> CreateTexture(u32 width, u32 height) override;
     };
 
@@ -377,6 +381,15 @@ namespace alimer
     }
 
     void D3D11_Graphics::Resize(u32 newWidth, u32 newHeight)
+    {
+
+    }
+
+    void D3D11_Graphics::BeginDefaultRenderPass(const Color& clearColor)
+    {
+    }
+
+    void D3D11_Graphics::EndRenderPass()
     {
 
     }
