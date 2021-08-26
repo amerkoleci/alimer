@@ -6,20 +6,6 @@
 
 namespace alimer::RHI
 {
-#if defined(ALIMER_RHI_D3D11)
-    extern DeviceHandle CreateD3D11Device(void* windowHandle);
-#endif
-
-    DeviceHandle IDevice::Create(void* windowHandle)
-    {
-#if defined(ALIMER_RHI_D3D11)
-        return CreateD3D11Device(windowHandle);
-#else
-        return nullptr;
-#endif
-
-    }
-
     const char* ToString(CompareFunction func)
     {
         switch (func)

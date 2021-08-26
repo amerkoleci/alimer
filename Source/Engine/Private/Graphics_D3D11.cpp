@@ -2,7 +2,9 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #if defined(ALIMER_RHI_D3D11)
-#include "RHI.h"
+#include "Graphics/Graphics.h"
+#include "Graphics/Texture.h"
+#include "Platform/Window.h"
 #include "PlatformInclude.h"
 #include <d3d11_1.h>
 #include <dxgi1_6.h>
@@ -11,7 +13,7 @@
 #   include <dxgidebug.h>
 #endif
 
-namespace alimer::RHI::D3D11
+namespace alimer
 {
     namespace
     {
@@ -37,15 +39,53 @@ namespace alimer::RHI::D3D11
 #endif
     }
 
-    class Device final : public RefCounter<IDevice>
+    static struct
+    {
+        RefCountPtr<ID3D11Device1> device;
+        RefCountPtr<ID3D11DeviceContext1> immediateContext;
+        D3D_FEATURE_LEVEL featureLevel{};
+    } d3d11;
+
+    class D3D11_Texture final : public RefCounter<Texture>
+    {
+    public:
+        RefCountPtr<ID3D11Resource> handle;
+
+        D3D11_Texture(u32 width, u32 height)
+        {
+            D3D11_TEXTURE2D_DESC desc = { 0 };
+            desc.Width = width;
+            desc.Height = height;
+            desc.MipLevels = 1;
+            desc.ArraySize = 1;
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            desc.SampleDesc.Count = 1;
+            desc.SampleDesc.Quality = 0;
+            desc.Usage = D3D11_USAGE_DEFAULT;
+            desc.CPUAccessFlags = 0;
+            desc.MiscFlags = 0;
+
+            HRESULT hr = d3d11.device->CreateTexture2D(&desc, NULL, (ID3D11Texture2D**)handle.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                return;
+            }
+
+        }
+
+        ~D3D11_Texture() override
+        {
+
+        }
+    };
+
+    class D3D11_Graphics final : public Graphics
     {
     private:
         RefCountPtr<IDXGIFactory2> dxgiFactory;
         bool tearingSupported{ false };
 
-        RefCountPtr<ID3D11Device1> handle;
-        RefCountPtr<ID3D11DeviceContext1> immediateContext;
-        D3D_FEATURE_LEVEL featureLevel{};
+        
 
         RefCountPtr<IDXGISwapChain1> swapChain;
 
@@ -56,14 +96,16 @@ namespace alimer::RHI::D3D11
         void HandleDeviceLost();
 
     public:
-        Device(void* windowHandle);
-        ~Device() override;
+        D3D11_Graphics();
+        ~D3D11_Graphics() override;
 
+        bool Initialize(_In_ Window* window) override;
         bool BeginFrame() override;
         void EndFrame() override;
+        RefCountPtr<Texture> CreateTexture(u32 width, u32 height) override;
     };
 
-    Device::Device(void* windowHandle)
+    D3D11_Graphics::D3D11_Graphics()
     {
         CreateFactory();
 
@@ -80,6 +122,17 @@ namespace alimer::RHI::D3D11
             }
         }
 
+        
+    }
+
+    D3D11_Graphics::~D3D11_Graphics()
+    {
+        d3d11.immediateContext.Reset();
+        d3d11.device.Reset();
+    }
+
+    bool D3D11_Graphics::Initialize(_In_ Window* window)
+    {
         RefCountPtr<IDXGIAdapter1> adapter;
         GetAdapter(adapter.GetAddressOf());
 
@@ -118,7 +171,7 @@ namespace alimer::RHI::D3D11
                 _countof(s_featureLevels),
                 D3D11_SDK_VERSION,
                 device.GetAddressOf(),
-                &featureLevel,
+                &d3d11.featureLevel,
                 context.GetAddressOf()
             );
         }
@@ -142,7 +195,7 @@ namespace alimer::RHI::D3D11
                 _countof(s_featureLevels),
                 D3D11_SDK_VERSION,
                 device.GetAddressOf(),
-                &featureLevel,
+                &d3d11.featureLevel,
                 context.GetAddressOf()
             );
 
@@ -178,8 +231,8 @@ namespace alimer::RHI::D3D11
         }
 #endif
 
-        ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&handle)));
-        ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&immediateContext)));
+        ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3d11.device)));
+        ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&d3d11.immediateContext)));
         //ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&d3dAnnotation)));
 
         // Create SwapChain
@@ -203,8 +256,8 @@ namespace alimer::RHI::D3D11
 
             // Create a SwapChain from a Win32 window.
             ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
-                handle.Get(),
-                static_cast<HWND>(windowHandle),
+                d3d11.device.Get(),
+                static_cast<HWND>(window->GetPlatformHandle()),
                 &swapChainDesc,
                 &fsSwapChainDesc,
                 nullptr,
@@ -212,21 +265,18 @@ namespace alimer::RHI::D3D11
             ));
 
             // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-            ThrowIfFailed(dxgiFactory->MakeWindowAssociation(static_cast<HWND>(windowHandle), DXGI_MWA_NO_ALT_ENTER));
+            ThrowIfFailed(dxgiFactory->MakeWindowAssociation(static_cast<HWND>(window->GetPlatformHandle()), DXGI_MWA_NO_ALT_ENTER));
         }
+
+        return true;
     }
 
-    Device::~Device()
-    {
-
-    }
-
-    bool Device::BeginFrame()
+    bool D3D11_Graphics::BeginFrame()
     {
         return !deviceLost;
     }
 
-    void Device::EndFrame()
+    void D3D11_Graphics::EndFrame()
     {
         //UINT presentFlags = 0;
         //if (!m_DeviceParams.vsyncEnabled && m_FullScreenDesc.Windowed && tearingSupported)
@@ -250,7 +300,7 @@ namespace alimer::RHI::D3D11
 #ifdef _DEBUG
             char buff[64] = {};
             sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n",
-                static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? handle->GetDeviceRemovedReason() : hr));
+                static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? d3d11.device->GetDeviceRemovedReason() : hr));
             OutputDebugStringA(buff);
 #endif
             HandleDeviceLost();
@@ -267,7 +317,18 @@ namespace alimer::RHI::D3D11
         }
     }
 
-    void Device::CreateFactory()
+    RefCountPtr<Texture> D3D11_Graphics::CreateTexture(u32 width, u32 height)
+    {
+        auto result = new D3D11_Texture(width, height);
+
+        if (result->handle)
+            return TextureRef::Create(result);
+
+        delete result;
+        return nullptr;
+    }
+
+    void D3D11_Graphics::CreateFactory()
     {
 #if defined(_DEBUG) && (_WIN32_WINNT >= 0x0603 /*_WIN32_WINNT_WINBLUE*/)
         bool debugDXGI = false;
@@ -300,7 +361,7 @@ namespace alimer::RHI::D3D11
         }
     }
 
-    void Device::GetAdapter(IDXGIAdapter1** ppAdapter)
+    void D3D11_Graphics::GetAdapter(IDXGIAdapter1** ppAdapter)
     {
         *ppAdapter = nullptr;
 
@@ -366,17 +427,18 @@ namespace alimer::RHI::D3D11
         *ppAdapter = adapter.Detach();
     }
 
-    void Device::HandleDeviceLost()
+    void D3D11_Graphics::HandleDeviceLost()
     {
         // TODO
     }
 }
 
-namespace alimer::RHI
+namespace alimer
 {
-    DeviceHandle CreateD3D11Device(void* windowHandle)
+    bool InitializeD3D11(Window* window)
     {
-        return DeviceHandle::Create(new D3D11::Device(windowHandle));
+        gGraphics().Start<D3D11_Graphics>();
+        return gGraphics().Initialize(window);
     }
 }
 

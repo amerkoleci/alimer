@@ -3,6 +3,7 @@
 
 #include "Application.h"
 #include "Core/Log.h"
+#include "Graphics/Graphics.h"
 
 namespace alimer
 {
@@ -35,10 +36,11 @@ namespace alimer
     {
         // Shutdown modules.
         //gGraphics().WaitIdle();
-        //gGraphics().Shutdown();
+        gGraphics().Shutdown();
         //gAssets().Shutdown();
+        window.reset();
         gLog().Shutdown();
-
+        PlatformShutdown();
         g_currentApp = nullptr;
     }
 
@@ -57,8 +59,11 @@ namespace alimer
             return false;
         }
 
-        // Create RHI device
-        rhiDevice = RHI::IDevice::Create(window->GetPlatformHandle());
+        // Init graphics module
+        if (!GraphicsInitialize(window.get()))
+        {
+            return false;
+        }
 
         // Show window
         window->Show();
@@ -72,15 +77,6 @@ namespace alimer
         return true;
     }
 
-    void Application::ShutdownInternal()
-    {
-        Shutdown();
-
-        rhiDevice.Reset();
-        window.reset();
-        PlatformShutdown();
-    }
-
     int Application::Run(int argc, const char* argv[])
     {
         if (running)
@@ -90,7 +86,6 @@ namespace alimer
 
         if (!InitBeforeRun(argc, argv))
         {
-            ShutdownInternal();
             return 1;
         }
 
@@ -100,7 +95,6 @@ namespace alimer
             Render();
         }
 
-        ShutdownInternal();
         running = false;
         return 0;
     }
@@ -150,11 +144,11 @@ namespace alimer
 
     bool Application::BeginDraw()
     {
-        return rhiDevice->BeginFrame();
+        return gGraphics().BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        rhiDevice->EndFrame();
+        gGraphics().EndFrame();
     }
 }

@@ -7,7 +7,7 @@ using namespace alimer;
 class HelloWorldApp final : public Application
 {
 private:
-    
+    TextureRef texture;
 
 public:
     HelloWorldApp()
@@ -23,6 +23,7 @@ public:
 
     bool Initialize(int argc, const char* argv[]) override
     {
+        texture = Texture::Create(4, 4);
         return true;
     }
 

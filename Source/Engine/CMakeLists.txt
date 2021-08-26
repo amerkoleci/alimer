@@ -64,8 +64,11 @@ define_engine_source_files(
   Math
   IO
   Platform
+  Graphics
   RHI
 )
+
+define_engine_source_files(Private NO_INSTALL)
 
 # GLFW
 if(NOT (EMSCRIPTEN OR ANDROID))

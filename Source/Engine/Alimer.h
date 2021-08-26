@@ -5,6 +5,9 @@
 
 #include "Core/Types.h"
 
+// Graphics
+#include "Graphics/Texture.h"
+
 // RHI
 #include "RHI/RHI.h"
 

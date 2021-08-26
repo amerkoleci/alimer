@@ -86,8 +86,6 @@ namespace alimer::RHI
     class IDevice : public RefCounted
     {
     public:
-        static DeviceHandle Create(void* windowHandle);
-
         virtual bool BeginFrame() = 0;
         virtual void EndFrame() = 0;
     };
