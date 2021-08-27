@@ -63,7 +63,7 @@ define_engine_source_files(
   Core
   Math
   IO
-  Graphics
+  RHI
 )
 
 define_engine_source_files(Private NO_INSTALL)
@@ -114,7 +114,7 @@ target_link_libraries(${TARGET_NAME} PUBLIC
 # RHI defines
 if (ALIMER_RHI_D3D11)
   target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_D3D11)
-  target_link_libraries(${TARGET_NAME} PRIVATE dxguid dxgi d3d11)
+  target_link_libraries(${TARGET_NAME} PRIVATE d3d11 dxgi dxguid)
 endif()
 
 if (ALIMER_RHI_D3D12)

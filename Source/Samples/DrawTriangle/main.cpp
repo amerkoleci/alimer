@@ -3,11 +3,12 @@
 
 #include <Alimer.h>
 using namespace alimer;
+using namespace alimer::rhi;
 
 class HelloWorldApp final : public Application
 {
 private:
-    TextureRef texture;
+    TextureHandle texture;
 
 public:
     HelloWorldApp()
@@ -23,11 +24,12 @@ public:
 
     bool Initialize(int argc, const char* argv[]) override
     {
-        texture = Texture::Create2D(4, 4);
+        texture = rhiDevice->CreateTexture(TextureDesc::Tex2D(Format::RGBA8UNorm, 4, 4));
+        texture->SetName("TEST");
         return true;
     }
 
-    void OnDraw([[maybe_unused]] CommandList* commandList) override
+    void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
     {
     }
 };

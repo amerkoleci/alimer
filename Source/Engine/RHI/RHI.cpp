@@ -1,9 +1,10 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Graphics/Types.h"
+#include "RHI.h"
+#include "Window.h"
 
-namespace alimer
+namespace alimer::rhi
 {
     const PixelFormatInfo kFormatDesc[] = {
         //        format                    name                bytes blk         kind               red   green   blue  alpha  depth  stencl signed  srgb
@@ -107,6 +108,24 @@ namespace alimer
             ALIMER_UNREACHABLE();
             return "<Unknown>";
         }
+    }
+
+    /* IDevice */
+#if defined(ALIMER_RHI_D3D11)
+    extern DeviceHandle CreateD3D11Device(alimer::Window* window, const PresentationParameters& presentationParameters);
+#endif
+
+    DeviceHandle IDevice::Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters)
+    {
+#if defined(ALIMER_RHI_D3D11)
+        return CreateD3D11Device(window, presentationParameters);
+#endif
+
+#if defined(ALIMER_RHI_VULKAN)
+        //return Vulkan_Initialize(window, presentationParameters);
+#endif
+
+        return nullptr;
     }
 
 #if TODO

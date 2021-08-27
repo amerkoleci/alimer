@@ -4,10 +4,10 @@
 #pragma once
 
 #include "Window.h"
+#include "RHI/RHI.h"
 
 namespace alimer
 {
-    class CommandList;
 
     struct Settings
     {
@@ -54,12 +54,13 @@ namespace alimer
         virtual bool Initialize(int argc, const char* argv[]) { return true; }
 
         virtual void Update();
-        virtual void OnDraw([[maybe_unused]] CommandList* commandList) {}
+        virtual void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}
 
         std::unique_ptr<Window> window;
+        rhi::DeviceHandle rhiDevice;
 
     private:
         // Internal lifecycle methods

@@ -225,12 +225,16 @@ namespace alimer
         return nullptr;
 #endif
     }
+}
 
 #if defined(ALIMER_RHI_VULKAN)
+namespace alimer::rhi
+{
     VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface)
     {
         return glfwCreateWindowSurface(instance, window->GetImpl()->window, allocator, surface);
     }
-#endif
 }
+#endif
+
 #endif /* defined(ALIMER_PLATFORM_GLFW) */

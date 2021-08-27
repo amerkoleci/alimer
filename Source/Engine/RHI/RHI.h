@@ -3,9 +3,42 @@
 
 #pragma once
 
-#include "Core/Types.h"
+#include "Core/RefCount.h"
+#include "Math/Color.h"
+
+#define RHI_ENUM_CLASS_FLAG_OPERATORS(T) \
+    inline T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
+    inline T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } /* NOLINT(bugprone-macro-parentheses) */ \
+    inline T operator ~ (T a) { return T(~uint32_t(a)); } /* NOLINT(bugprone-macro-parentheses) */ \
+    inline bool operator !(T a) { return uint32_t(a) == 0; } \
+    inline bool operator ==(T a, uint32_t b) { return uint32_t(a) == b; } \
+    inline bool operator !=(T a, uint32_t b) { return uint32_t(a) != b; }
+
+#if defined(RHI_SHARED_LIBRARY_BUILD)
+#   if defined(_MSC_VER)
+#       define RHI_API __declspec(dllexport)
+#   elif defined(__GNUC__)
+#       define RHI_API __attribute__((visibility("default")))
+#   else
+#       define RHI_API
+#       pragma warning "Unknown dynamic link import/export semantics."
+#   endif
+#elif defined(RHI_SHARED_LIBRARY_INCLUDE)
+#   if defined(_MSC_VER)
+#       define RHI_API __declspec(dllimport)
+#   else
+#       define RHI_API
+#   endif
+#else
+#   define RHI_API
+#endif
 
 namespace alimer
+{
+    class Window;
+}
+
+namespace alimer::rhi
 {
     /* Constants */
     static constexpr uint32_t kMaxFramesInFlight = 2;
@@ -30,6 +63,18 @@ namespace alimer
     static constexpr uint32_t KnownVendorId_Qualcomm = 0x5143;
 
     /* Enums */
+    enum class ValidationMode : uint32_t
+    {
+        /// No validation is enabled.
+        Disabled,
+        /// Print warnings and errors
+        Enabled,
+        /// Print all warnings, errors and info messages
+        Verbose,
+        /// Enable GPU-based validation
+        GPU
+    };
+
     enum class Format : uint32_t
     {
         Undefined = 0,
@@ -120,8 +165,234 @@ namespace alimer
         Always,
     };
 
+    enum class TextureDimension : uint32_t
+    {
+        Texture1D,
+        Texture2D,
+        Texture3D,
+        TextureCube
+    };
+
+    enum class TextureUsage : uint32_t
+    {
+        None,
+        ShaderRead = 1 << 0,
+        ShaderWrite = 1 << 1,
+        RenderTarget = 1 << 2,
+        ShadingRate = 1 << 3,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
+
+    enum class ClearMask : uint32_t
+    {
+        None = 0,
+        Color = 1,
+        Depth = 2,
+        Stencil = 4,
+        All = (uint32_t)Color | (uint32_t)Depth | (uint32_t)Stencil
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ClearMask);
+
+    /* Forward declarations */
+    class IBuffer;
+    class ITexture;
+    class ISampler;
+    class IShader;
+    class IPipeline;
+    class IDevice;
+
+    /* Structs */
+    struct TextureDesc
+    {
+        TextureDimension dimension = TextureDimension::Texture2D;
+        uint32_t width = 1;
+        uint32_t height = 1;
+        uint32_t depthOrArraySize = 1;
+        Format format = Format::RGBA8UNorm;
+        uint32_t mipLevels = 1;
+        TextureUsage usage = TextureUsage::ShaderRead;
+        uint32_t sampleCount = 1;
+
+        static inline TextureDesc Tex1D(
+            Format format,
+            uint32_t width,
+            uint32_t arraySize = 1,
+            uint32_t mipLevels = 1,
+            TextureUsage usage = TextureUsage::ShaderRead) noexcept
+        {
+            TextureDesc desc;
+            desc.dimension = TextureDimension::Texture1D;
+            desc.width = width;
+            desc.height = 1;
+            desc.depthOrArraySize = arraySize;
+            desc.mipLevels = mipLevels;
+            desc.format = format;
+            desc.sampleCount = 1;
+            desc.usage = usage;
+            return desc;
+        }
+
+        static inline TextureDesc Tex2D(
+            Format format,
+            uint32_t width,
+            uint32_t height,
+            uint32_t arraySize = 1,
+            uint32_t mipLevels = 1,
+            TextureUsage usage = TextureUsage::ShaderRead,
+            uint32_t sampleCount = 1) noexcept
+        {
+            TextureDesc desc;
+            desc.dimension = TextureDimension::Texture2D;
+            desc.width = width;
+            desc.height = height;
+            desc.depthOrArraySize = arraySize;
+            desc.mipLevels = mipLevels;
+            desc.format = format;
+            desc.sampleCount = sampleCount;
+            desc.usage = usage;
+            return desc;
+        }
+    };
+
+    struct TextureData
+    {
+        const void* pData = nullptr;
+        uint32_t    rowPitch = 0;
+        uint32_t    slicePitch = 0;
+    };
+
+    struct PresentationParameters
+    {
+        ValidationMode validationMode = ValidationMode::Disabled;
+        uint32_t maxFramesInFlight = 2;
+
+        uint32_t backBufferWidth = 0;
+        uint32_t backBufferHeight = 0;
+        uint32_t backBufferCount = 3;
+        Format depthStencilFormat = Format::Depth32Float;
+        bool vsyncEnabled = false;
+        bool isFullScreen = false;
+    };
+
+    /* Objects */
+    class RHI_API Object : public RefCounted
+    {
+    public:
+        /// Destructor. 
+        virtual ~Object() = default;
+
+        /// Get the object name.
+        [[nodiscard]] const std::string& GetName() const { return name; }
+
+        /// Set the object name.
+        void SetName(const std::string_view& newName)
+        {
+            name = newName;
+            ApiSetName(newName);
+        }
+
+    protected:
+        /// Constructor.
+        Object() = default;
+
+        virtual void ApiSetName(const std::string_view& newName) = 0;
+
+        std::string name;
+    };
+
+    class RHI_API DeviceChild : public Object
+    {
+    public:
+        [[nodiscard]] virtual IDevice* GetDevice() const = 0;
+    };
+
+    class RHI_API IResource : public DeviceChild
+    {
+    protected:
+        //[[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
+    };
+
+    class RHI_API IBuffer : public IResource
+    {
+    public:
+        //[[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
+    };
+
+    class RHI_API ITexture : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const TextureDesc& GetDesc() const = 0;
+    };
+
+    class RHI_API ISampler : public DeviceChild
+    {
+    public:
+        //[[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
+        //[[nodiscard]] virtual uint32_t GetBindlessIndex() const = 0;
+    };
+
+    class RHI_API IShader : public DeviceChild
+    {
+    public:
+    };
+
+    class RHI_API IPipeline : public DeviceChild
+    {
+    public:
+    };
+
+    class ALIMER_API ICommandList
+    {
+    protected:
+        ICommandList() = default;
+        virtual ~ICommandList() = default;
+
+    public:
+        // Non-copyable and non-movable
+        ICommandList(const ICommandList&) = delete;
+        ICommandList(const ICommandList&&) = delete;
+        ICommandList& operator=(const ICommandList&) = delete;
+        ICommandList& operator=(const ICommandList&&) = delete;
+
+        virtual void PushDebugGroup(const std::string_view& name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(const std::string_view& name) = 0;
+
+        virtual void BeginDefaultRenderPass(const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0, ClearMask mask = ClearMask::All) = 0;
+        virtual void EndRenderPass() = 0;
+    };
+
+    using BufferHandle = RefCountPtr<IBuffer>;
+    using TextureHandle = RefCountPtr<ITexture>;
+    using SamplerHandle = RefCountPtr<ISampler>;
+    using ShaderHandle = RefCountPtr<IShader>;
+    using PipelineHandle = RefCountPtr<IPipeline>;
+    using DeviceHandle = RefCountPtr<IDevice>;
+
+    class RHI_API IDevice : public RefCounted
+    {
+    public:
+        static DeviceHandle Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters);
+
+        virtual void WaitIdle() = 0;
+        virtual ICommandList* BeginFrame() = 0;
+        virtual void EndFrame() = 0;
+        virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
+
+        [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) = 0;
+
+        /// Return backbuffer width.
+        [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
+        /// Return backbuffer height.
+        [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
+
+    protected:
+        uint32_t backBufferWidth = 0;
+        uint32_t backBufferHeight = 0;
+        bool vsyncEnabled = false;
+    };
+
     /* Helper methods */
-    /// Pixel format kind
     enum class PixelFormatKind
     {
         Integer,
@@ -147,8 +418,8 @@ namespace alimer
         bool isSRGB : 1;
     };
 
-    ALIMER_API extern const PixelFormatInfo kFormatDesc[];
-    ALIMER_API const PixelFormatInfo& GetFormatInfo(Format format);
+    RHI_API extern const PixelFormatInfo kFormatDesc[];
+    RHI_API const PixelFormatInfo& GetFormatInfo(Format format);
 
     /// Get the number of bits per format.
     constexpr uint32_t GetFormatBytesPerBlock(Format format)
@@ -275,7 +546,7 @@ namespace alimer
         }
     }
 
-    ALIMER_API const char* ToString(CompareFunction func);
+    RHI_API const char* ToString(CompareFunction func);
 
     inline const char* GetVendorName(uint32_t vendorId)
     {
@@ -296,6 +567,13 @@ namespace alimer
         default:
             return "Unknown";
         }
+    }
+
+    template <class T>
+    void hash_combine(size_t& seed, const T& v)
+    {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 }
 

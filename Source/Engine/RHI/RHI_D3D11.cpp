@@ -2,8 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #if defined(ALIMER_RHI_D3D11)
-#include "Graphics/Graphics.h"
-#include "Graphics/Texture.h"
+#include "RHI.h"
 #include "Window.h"
 #include "Core/Log.h"
 #include "PlatformInclude.h"
@@ -24,7 +23,7 @@ extern "C"
 }
 #endif
 
-namespace alimer
+namespace alimer::rhi
 {
     DXGI_FORMAT ToDXGIFormat(Format format)
     {
@@ -130,6 +129,11 @@ namespace alimer
             return SUCCEEDED(hr);
         }
 
+        inline void SetDebugName(ID3D11DeviceChild* pObject, const std::string_view& name)
+        {
+            D3D_SET_OBJECT_NAME_N_A(pObject, UINT(name.size()), name.data());
+        }
+
         [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(Format format)
         {
             switch (format)
@@ -160,17 +164,28 @@ namespace alimer
         RefCountPtr<ID3D11RenderTargetView> backbufferRTV;
 
         Format depthStencilFormat = Format::Undefined;
-        TextureRef depthStencilTexture;
+        TextureHandle depthStencilTexture;
         RefCountPtr<ID3D11DepthStencilView> depthStencilTextureDSV;
     } d3d11;
 
-    class D3D11_Texture final : public RefCounter<Texture>
+    class D3D11_Device;
+
+    class D3D11_Texture final : public RefCounter<ITexture>
     {
     public:
+        IDevice* device;
+        TextureDesc desc;
         RefCountPtr<ID3D11Resource> handle;
 
-        D3D11_Texture(const TextureDesc& desc, const TextureData* initialData)
+        D3D11_Texture(IDevice* device_, const TextureDesc& desc_, const TextureData* initialData)
+            : device(device_)
+            , desc(desc_)
         {
+            if (desc.mipLevels == 0)
+            {
+                desc.mipLevels = (uint32_t)log2(std::max(desc_.width, desc_.height)) + 1;
+            }
+
             HRESULT hr = E_FAIL;
 
             DXGI_FORMAT format = ToDXGIFormat(desc.format);
@@ -239,15 +254,25 @@ namespace alimer
         {
 
         }
+
+        IDevice* GetDevice() const override { return device; }
+        const TextureDesc& GetDesc() const override { return desc; }
+        //uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        void ApiSetName(const std::string_view& newName) override
+        {
+            SetDebugName(handle, newName);
+        }
     };
 
-    class D3D11_CommandList final : public CommandList
+    class D3D11_CommandList final : public ICommandList
     {
     public:
+        IDevice* device;
         RefCountPtr<ID3D11DeviceContext1>       context;
         RefCountPtr<ID3DUserDefinedAnnotation>  annotation;
 
-        D3D11_CommandList(ID3D11DeviceContext* context_)
+        D3D11_CommandList(IDevice* device_, ID3D11DeviceContext* context_)
+            : device(device_)
         {
             ThrowIfFailed(context_->QueryInterface(IID_PPV_ARGS(&context)));
             ThrowIfFailed(context_->QueryInterface(IID_PPV_ARGS(&annotation)));
@@ -283,8 +308,8 @@ namespace alimer
 
         void BeginDefaultRenderPass(const Color& clearColor, float clearDepth, uint8_t clearStencil, ClearMask mask) override
         {
-            const uint32_t width = gGraphics().GetBackBufferWidth();
-            const uint32_t height = gGraphics().GetBackBufferHeight();
+            const uint32_t width = device->GetBackBufferWidth();
+            const uint32_t height = device->GetBackBufferHeight();
 
             context->OMSetRenderTargets(1, &d3d11.backbufferRTV, d3d11.depthStencilTextureDSV);
 
@@ -325,7 +350,7 @@ namespace alimer
         }
     };
 
-    class D3D11_Graphics final : public Graphics
+    class D3D11_Device final : public RefCounter<IDevice>
     {
     private:
         RefCountPtr<IDXGIFactory2> dxgiFactory;
@@ -344,20 +369,20 @@ namespace alimer
         void HandleDeviceLost();
 
     public:
-        D3D11_Graphics();
-        ~D3D11_Graphics() override;
+        D3D11_Device();
+        ~D3D11_Device() override;
 
-        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters) override;
+        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
         void WaitIdle() override;
-        CommandList* BeginFrame() override;
+        ICommandList* BeginFrame() override;
         void EndFrame() override;
-        void Resize(u32 newWidth, u32 newHeight) override;
+        void Resize(uint32_t newWidth, uint32_t newHeight) override;
         void AfterReset();
 
-        RefCountPtr<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData) override;
+        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
     };
 
-    D3D11_Graphics::D3D11_Graphics()
+    D3D11_Device::D3D11_Device()
     {
         CreateFactory();
 
@@ -375,7 +400,7 @@ namespace alimer
         }
     }
 
-    D3D11_Graphics::~D3D11_Graphics()
+    D3D11_Device::~D3D11_Device()
     {
         d3d11.backbufferRTV.Reset();
         d3d11.depthStencilTextureDSV.Reset();
@@ -387,7 +412,7 @@ namespace alimer
         d3d11.device.Reset();
     }
 
-    bool D3D11_Graphics::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
+    bool D3D11_Device::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
     {
         RefCountPtr<IDXGIAdapter1> adapter;
         GetAdapter(adapter.GetAddressOf());
@@ -432,7 +457,7 @@ namespace alimer
                 &d3d11.featureLevel,
                 context.GetAddressOf()
             );
-    }
+        }
 #if defined(NDEBUG)
         else
         {
@@ -491,7 +516,7 @@ namespace alimer
 
         ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3d11.device)));
 
-        commandList = std::make_unique<D3D11_CommandList>(context.Get());
+        commandList = std::make_unique<D3D11_CommandList>(this, context.Get());
 
         // Create SwapChain
         {
@@ -537,9 +562,9 @@ namespace alimer
         AfterReset();
 
         return true;
-}
+    }
 
-    void D3D11_Graphics::WaitIdle()
+    void D3D11_Device::WaitIdle()
     {
         commandList->context->Flush();
 
@@ -556,7 +581,7 @@ namespace alimer
         ALIMER_ASSERT(result == TRUE);
     }
 
-    CommandList* D3D11_Graphics::BeginFrame()
+    ICommandList* D3D11_Device::BeginFrame()
     {
         if (deviceLost)
         {
@@ -578,7 +603,7 @@ namespace alimer
         return commandList.get();
     }
 
-    void D3D11_Graphics::EndFrame()
+    void D3D11_Device::EndFrame()
     {
         UINT presentFlags = 0;
         if (!vsyncEnabled && fullScreenDesc.Windowed && tearingSupported)
@@ -613,12 +638,12 @@ namespace alimer
         }
     }
 
-    void D3D11_Graphics::Resize(u32 newWidth, u32 newHeight)
+    void D3D11_Device::Resize(uint32_t newWidth, uint32_t newHeight)
     {
         AfterReset();
     }
 
-    void D3D11_Graphics::AfterReset()
+    void D3D11_Device::AfterReset()
     {
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(d3d11.swapChain->GetDesc1(&swapChainDesc));
@@ -631,7 +656,7 @@ namespace alimer
 
         if (d3d11.depthStencilFormat != Format::Undefined)
         {
-            d3d11.depthStencilTexture = Texture::Create2D(backBufferWidth, backBufferHeight, d3d11.depthStencilFormat, 1, 1, nullptr, TextureUsage::ShaderRead | TextureUsage::RenderTarget);
+            d3d11.depthStencilTexture = CreateTexture(TextureDesc::Tex2D(d3d11.depthStencilFormat, backBufferWidth, backBufferHeight, 1, 1, TextureUsage::RenderTarget));
 
             D3D11_DEPTH_STENCIL_VIEW_DESC dsvViewDesc = {};
             dsvViewDesc.Format = ToDXGIFormat(d3d11.depthStencilFormat);
@@ -646,18 +671,18 @@ namespace alimer
         }
     }
 
-    RefCountPtr<Texture> D3D11_Graphics::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+    TextureHandle D3D11_Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
     {
-        auto result = new D3D11_Texture(desc, initialData);
+        auto result = new D3D11_Texture(this, desc, initialData);
 
         if (result->handle)
-            return TextureRef::Create(result);
+            return TextureHandle::Create(result);
 
         delete result;
         return nullptr;
     }
 
-    void D3D11_Graphics::CreateFactory()
+    void D3D11_Device::CreateFactory()
     {
 #if defined(_DEBUG) && (_WIN32_WINNT >= 0x0603 /*_WIN32_WINNT_WINBLUE*/)
         bool debugDXGI = false;
@@ -690,7 +715,7 @@ namespace alimer
         }
     }
 
-    void D3D11_Graphics::GetAdapter(IDXGIAdapter1** ppAdapter)
+    void D3D11_Device::GetAdapter(IDXGIAdapter1** ppAdapter)
     {
         *ppAdapter = nullptr;
 
@@ -756,15 +781,21 @@ namespace alimer
         *ppAdapter = adapter.Detach();
     }
 
-    void D3D11_Graphics::HandleDeviceLost()
+    void D3D11_Device::HandleDeviceLost()
     {
         // TODO
     }
 
-    bool D3D11_Initialize(Window* window, const PresentationParameters& presentationParameters)
+    DeviceHandle CreateD3D11Device(alimer::Window* window, const PresentationParameters& presentationParameters)
     {
-        gGraphics().Start<D3D11_Graphics>();
-        return gGraphics().Initialize(window, presentationParameters);
+        auto device = new D3D11_Device();
+        if (device->Initialize(window, presentationParameters))
+        {
+            return DeviceHandle::Create(device);
+        }
+
+        delete device;
+        return nullptr;
     }
 }
 

@@ -3,7 +3,7 @@
 
 #include "Application.h"
 #include "Core/Log.h"
-#include "Graphics/Graphics.h"
+#include "Math/Color.h"
 
 namespace alimer
 {
@@ -35,8 +35,8 @@ namespace alimer
     Application::~Application()
     {
         // Shutdown modules.
-        gGraphics().WaitIdle();
-        gGraphics().Shutdown();
+        rhiDevice->WaitIdle();
+        rhiDevice.Reset();
         //gAssets().Shutdown();
         window.reset();
         gLog().Shutdown();
@@ -61,12 +61,13 @@ namespace alimer
         }
 
         // Init graphics module
-        PresentationParameters presentationParameters = {};
+        rhi::PresentationParameters presentationParameters = {};
 #if ALIMER_DEBUG
-        presentationParameters.validationMode = ValidationMode::Enabled;
+        presentationParameters.validationMode = rhi::ValidationMode::Enabled;
 #endif
 
-        if (!GraphicsInitialize(window.get(), presentationParameters))
+        rhiDevice = rhi::IDevice::Create(window.get(), presentationParameters);
+        if (!rhiDevice)
         {
             return false;
         }
@@ -102,7 +103,7 @@ namespace alimer
         }
 
         // Wait for pending GPU operations before shutdown.
-        gGraphics().WaitIdle();
+        rhiDevice->WaitIdle();
 
         running = false;
         return 0;
@@ -120,7 +121,7 @@ namespace alimer
             )
         {
             // Custom application draw.
-            CommandList* commandList = gGraphics().BeginFrame();
+            rhi::ICommandList* commandList = rhiDevice->BeginFrame();
             if (commandList == nullptr)
             {
                 // Cannot draw
@@ -134,7 +135,7 @@ namespace alimer
 
             commandList->EndRenderPass();
             commandList->PopDebugGroup();
-            gGraphics().EndFrame();
+            rhiDevice->EndFrame();
         }
     }
 }

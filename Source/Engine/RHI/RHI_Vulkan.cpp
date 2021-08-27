@@ -1,7 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_RHI_VULKAN)
+#if defined(ALIMER_RHI_VULKAN) && defined(TODO)
 #include "Graphics/Graphics.h"
 #include "Graphics/Texture.h"
 #include "Window.h"
@@ -20,13 +20,13 @@
 		VkResult err = x; \
 		if (err) \
 		{ \
-			LOGE("Detected Vulkan error: {}", alimer::ToString(err)); \
+			LOGE("Detected Vulkan error: {}", alimer::rhi::ToString(err)); \
 		} \
 	} while (0)
 
-#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, alimer::ToString(result));
+#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, alimer::rhi::ToString(result));
 
-namespace alimer
+namespace alimer::rhi
 {
     [[nodiscard]] constexpr const char* ToString(VkResult result)
     {
@@ -363,7 +363,7 @@ namespace alimer
         void WaitIdle() override;
         CommandList* BeginFrame() override;
         void EndFrame() override;
-        void Resize(u32 newWidth, u32 newHeight) override;
+        void Resize(uint32_t newWidth, uint32_t newHeight) override;
 
         RefCountPtr<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData) override;
     };
@@ -1007,7 +1007,7 @@ namespace alimer
     {
     }
 
-    void Vulkan_Graphics::Resize(u32 newWidth, u32 newHeight)
+    void Vulkan_Graphics::Resize(uint32_t newWidth, uint32_t newHeight)
     {
 
     }
