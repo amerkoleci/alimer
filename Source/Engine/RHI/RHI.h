@@ -201,6 +201,33 @@ namespace alimer::rhi
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
 
+    enum class ShaderStages : uint32_t
+    {
+        None = 0x0000,
+
+        Compute = 0x0020,
+
+        Vertex = 0x0001,
+        Hull = 0x0002,
+        Domain = 0x0004,
+        Geometry = 0x0008,
+        Pixel = 0x0010,
+        Amplification = 0x0040,
+        Mesh = 0x0080,
+        AllGraphics = 0x00FE,
+
+        RayGeneration = 0x0100,
+        AnyHit = 0x0200,
+        ClosestHit = 0x0400,
+        Miss = 0x0800,
+        Intersection = 0x1000,
+        Callable = 0x2000,
+        AllRayTracing = 0x3F00,
+
+        All = 0x3FFF,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+
     enum class LoadAction : uint32_t
     {
         Load,
@@ -359,6 +386,28 @@ namespace alimer::rhi
     };
     static const TextureSubresourceSet AllSubresources = TextureSubresourceSet(0, kAllMipLevels, 0, kAllArraySlices);
 
+    struct RenderPipelineDesc
+    {
+        IShader* vertex = nullptr;
+        IShader* hull = nullptr;
+        IShader* domain = nullptr;
+        IShader* geometry = nullptr;
+        IShader* pixel = nullptr;
+        //IShader* mesh = nullptr;
+        //IShader* amplification = nullptr;
+
+        //VertexLayout            vertexLayout;
+        //BlendState              blendState;
+        //DepthStencilState       depthStencilState;
+        //RasterizerState         rasterizerState;
+        PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
+        uint32_t                patchControlPoints = 0;
+        //PixelFormat             colorFormats[kMaxSimultaneousRenderTargets] = {};
+        //PixelFormat             depthStencilFormat = PixelFormat::Undefined;
+        //SampleCount             sampleCount = SampleCount::Count1;
+    };
+
+
     struct RenderPassColorAttachment
     {
         ITexture* texture = nullptr;
@@ -432,8 +481,8 @@ namespace alimer::rhi
         /// Constructor.
         Object() = default;
 
+    private:
         virtual void ApiSetName(const std::string_view& newName) = 0;
-
         std::string name;
     };
 
@@ -471,6 +520,7 @@ namespace alimer::rhi
     class RHI_API IShader : public DeviceChild
     {
     public:
+        [[nodiscard]] virtual ShaderStages GetStage() const = 0;
     };
 
     class RHI_API IPipeline : public DeviceChild
@@ -498,6 +548,9 @@ namespace alimer::rhi
         virtual void BeginDefaultRenderPass(const Color& clearColor, bool clearDepth = true, bool clearStencil = true, float depth = 1.0f, uint8_t stencil = 0) = 0;
         virtual void BeginRenderPass(const RenderPassDesc& desc) = 0;
         virtual void EndRenderPass() = 0;
+
+        virtual void SetPipeline(_In_ IPipeline* pipeline) = 0;
+        virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
     };
 
     using BufferHandle = RefCountPtr<IBuffer>;
@@ -517,9 +570,6 @@ namespace alimer::rhi
         virtual void EndFrame() = 0;
         virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
 
-        [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) = 0;
-        [[nodiscard]] virtual TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) = 0;
-
         [[nodiscard]] virtual ITexture* GetCurrentBackBuffer() const = 0;
         [[nodiscard]] virtual ITexture* GetBackBuffer(uint32_t index) const = 0;
         [[nodiscard]] virtual uint32_t GetCurrentBackBufferIndex() const = 0;
@@ -530,6 +580,14 @@ namespace alimer::rhi
         [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
         /// Return backbuffer height.
         [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
+
+        [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) = 0;
+        [[nodiscard]] virtual TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) = 0;
+
+        [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
+
+        /// Create new render pipeline.
+        [[nodiscard]] virtual PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
 
     protected:
         uint32_t backBufferWidth = 0;

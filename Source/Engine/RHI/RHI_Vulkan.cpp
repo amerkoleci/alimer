@@ -408,6 +408,8 @@ namespace alimer::rhi
 
         TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
         TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) override;
+        ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
+        PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
     };
 
     bool Vulkan_Device::IsAvailable()
@@ -1073,6 +1075,16 @@ namespace alimer::rhi
             return TextureHandle::Create(result);
 
         delete result;
+        return nullptr;
+    }
+
+    ShaderHandle Vulkan_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    {
+        return nullptr;
+    }
+
+    PipelineHandle Vulkan_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    {
         return nullptr;
     }
 

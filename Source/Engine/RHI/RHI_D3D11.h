@@ -81,6 +81,42 @@ namespace alimer::rhi
         std::unordered_map<D3D11_ViewKey, RefCountPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> unorderedAccessViews;
     };
 
+    class D3D11_Shader final : public RefCounter<IShader>
+    {
+    public:
+        IDevice* device = nullptr;
+        ShaderStages stage = ShaderStages::None;
+        RefCountPtr<ID3D11VertexShader> VS;
+        RefCountPtr<ID3D11HullShader> HS;
+        RefCountPtr<ID3D11DomainShader> DS;
+        RefCountPtr<ID3D11GeometryShader> GS;
+        RefCountPtr<ID3D11PixelShader> PS;
+        RefCountPtr<ID3D11ComputeShader> CS;
+        std::vector<char> bytecode;
+
+        IDevice* GetDevice() const override { return device; }
+        ShaderStages GetStage() const override { return stage; }
+        void ApiSetName(const std::string_view& newName) override;
+    };
+
+    class D3D11_Pipeline : public RefCounter<IPipeline>
+    {
+    public:
+        IDevice* device = nullptr;
+        ShaderStages shaderStages = ShaderStages::None;
+        RefCountPtr<ID3D11VertexShader> vertex;
+        RefCountPtr<ID3D11HullShader> hull;
+        RefCountPtr<ID3D11DomainShader> domain;
+        RefCountPtr<ID3D11GeometryShader> geometry;
+        RefCountPtr<ID3D11PixelShader> pixel;
+
+        ID3D11InputLayout* inputLayout = nullptr;
+        D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+        IDevice* GetDevice() const override { return device; }
+        void ApiSetName(const std::string_view& newName) override;
+    };
+
     class D3D11_CommandList final : public ICommandList
     {
     private:
@@ -99,6 +135,10 @@ namespace alimer::rhi
         void BeginDefaultRenderPass(const Color& clearColor, bool clearDepth = true, bool clearStencil = true, float depth = 1.0f, uint8_t stencil = 0) override;
         void BeginRenderPass(const RenderPassDesc& desc) override;
         void EndRenderPass() override;
+
+        void SetPipeline(_In_ IPipeline* pipeline) override;
+        void BindRenderPipeline(const D3D11_Pipeline* pipeline);
+        void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
     };
 
     class D3D11_Device final : public RefCounter<IDevice>
@@ -156,5 +196,16 @@ namespace alimer::rhi
 
         TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
         TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) override;
+        ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
+        std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
+
+        PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
+
+    private:
+#if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        bool D3DCompiler_LoadFailed = false;
+        HINSTANCE D3DCompiler = nullptr;
+        bool LoadShaderCompiler();
+#endif
     };
 }

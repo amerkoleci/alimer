@@ -5,6 +5,11 @@
 #include "Window.h"
 #include "Core/Log.h"
 #include "RHI_D3D11.h"
+
+#if !defined(ALIMER_DISABLE_SHADER_COMPILER)
+#include <d3dcompiler.h>
+#endif
+
 #include <array>
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -103,6 +108,10 @@ namespace alimer::rhi
 
     namespace
     {
+#if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        pD3DCompile D3DCompile;
+#endif
+
         // Check for SDK Layer support.
         inline bool SdkLayersAvailable() noexcept
         {
@@ -143,6 +152,33 @@ namespace alimer::rhi
                 default:
                     ALIMER_ASSERT(IsDepthFormat(format) == false);
                     return ToDXGIFormat(format);
+            }
+        }
+
+        [[nodiscard]] constexpr D3D_PRIMITIVE_TOPOLOGY ConvertPrimitiveTopology(PrimitiveTopology topology, uint32_t controlPoints)
+        {
+            switch (topology)
+            {
+                case PrimitiveTopology::PointList:
+                    return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+                case PrimitiveTopology::LineList:
+                    return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+                case PrimitiveTopology::LineStrip:
+                    return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+                case PrimitiveTopology::TriangleList:
+                    return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+                case PrimitiveTopology::TriangleStrip:
+                    return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                case PrimitiveTopology::PatchList:
+                    if (controlPoints == 0 || controlPoints > 32)
+                    {
+                        assert(false && "Invalid PatchList control points");
+                        return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+                    }
+                    return D3D_PRIMITIVE_TOPOLOGY(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (controlPoints - 1));
+                default:
+                    ALIMER_UNREACHABLE();
+                    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
             }
         }
     }
@@ -437,6 +473,20 @@ namespace alimer::rhi
         SetDebugName(handle, newName);
     }
 
+    void D3D11_Shader::ApiSetName(const std::string_view& newName)
+    {
+        if (VS)
+            SetDebugName(VS, newName);
+
+        if (PS)
+            SetDebugName(PS, newName);
+    }
+
+    void D3D11_Pipeline::ApiSetName(const std::string_view& newName)
+    {
+
+    }
+
     /* D3D11_CommandList */
     D3D11_CommandList::D3D11_CommandList(IDevice* device_, ID3D11DeviceContext* context_)
         : device(device_)
@@ -676,6 +726,39 @@ namespace alimer::rhi
                 default:
                     break;
             }
+        }
+    }
+
+    void D3D11_CommandList::SetPipeline(_In_ IPipeline* pipeline)
+    {
+        D3D11_Pipeline* d3d11Pipeline = checked_cast<D3D11_Pipeline*>(pipeline);
+        BindRenderPipeline(d3d11Pipeline);
+    }
+
+    void D3D11_CommandList::BindRenderPipeline(const D3D11_Pipeline* pipeline)
+    {
+        context->VSSetShader(pipeline->vertex, nullptr, 0);
+        context->HSSetShader(pipeline->hull, nullptr, 0);
+        context->DSSetShader(pipeline->domain, nullptr, 0);
+        context->GSSetShader(pipeline->geometry, nullptr, 0);
+        context->PSSetShader(pipeline->pixel, nullptr, 0);
+
+        context->IASetPrimitiveTopology(pipeline->primitiveTopology);
+        context->IASetInputLayout(pipeline->inputLayout);
+
+        //context->RSSetState(pso->pRS);
+        //context->OMSetDepthStencilState(pso->pDepthStencilState, pso->stencilRef);
+    }
+
+    void D3D11_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+    {
+        if (instanceCount > 1)
+        {
+            context->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+        }
+        else
+        {
+            context->Draw(vertexCount, vertexStart);
         }
     }
 
@@ -983,6 +1066,229 @@ namespace alimer::rhi
 
         delete result;
         return nullptr;
+    }
+
+    ShaderHandle D3D11_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    {
+        auto byteCode = CompileShader(stage, source, entryPoint);
+        if (byteCode.empty())
+            return nullptr;
+
+        RefCountPtr<D3D11_Shader> shader = RefCountPtr<D3D11_Shader>::Create(new D3D11_Shader());
+        shader->device = this;
+
+        switch (stage)  // NOLINT(clang-diagnostic-switch-enum)
+        {
+            case ShaderStages::Vertex:
+            {
+                // Save the bytecode for potential input layout creation later
+                shader->bytecode.resize(byteCode.size());
+                memcpy(shader->bytecode.data(), byteCode.data(), byteCode.size());
+
+                const HRESULT res = d3dDevice->CreateVertexShader(byteCode.data(), byteCode.size(), nullptr, &shader->VS);
+                if (FAILED(res))
+                {
+                    LOGE("Direct3D11: Failed to CreateVertexShader");
+                    return nullptr;
+                }
+            }
+            break;
+            case ShaderStages::Hull:
+            {
+                const HRESULT res = d3dDevice->CreateHullShader(byteCode.data(), byteCode.size(), nullptr, &shader->HS);
+                if (FAILED(res))
+                {
+                    LOGE("Direct3D11: Failed to CreateHullShader");
+                    return nullptr;
+                }
+            }
+            break;
+            case ShaderStages::Domain:
+            {
+                const HRESULT res = d3dDevice->CreateDomainShader(byteCode.data(), byteCode.size(), nullptr, &shader->DS);
+                if (FAILED(res))
+                {
+                    LOGE("Direct3D11: Failed to CreateDomainShader");
+                    return nullptr;
+                }
+            }
+            break;
+            case ShaderStages::Geometry:
+            {
+                const HRESULT res = d3dDevice->CreateGeometryShader(byteCode.data(), byteCode.size(), nullptr, &shader->GS);
+                if (FAILED(res))
+                {
+                    LOGE("Direct3D11: Failed to CreateGeometryShader");
+                    return nullptr;
+                }
+            }
+            break;
+            case ShaderStages::Pixel:
+            {
+                const HRESULT res = d3dDevice->CreatePixelShader(byteCode.data(), byteCode.size(), nullptr, &shader->PS);
+                if (FAILED(res))
+                {
+                    LOGE("Direct3D11: Failed to CreatePixelShader");
+                    return nullptr;
+                }
+            }
+            break;
+            case ShaderStages::Compute:
+            {
+                const HRESULT res = d3dDevice->CreateComputeShader(byteCode.data(), byteCode.size(), nullptr, &shader->CS);
+                if (FAILED(res))
+                {
+                    LOGE("Direct3D11: Failed to CreateComputeShader");
+                    return nullptr;
+                }
+            }
+            break;
+            default:
+                return nullptr;
+        }
+
+        return shader;
+    }
+
+    std::vector<uint8_t> D3D11_Device::CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    {
+#if defined(ALIMER_DISABLE_SHADER_COMPILER)
+        return {};
+#else
+        if (!LoadShaderCompiler())
+            return {};
+
+        UINT compileFlags = D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR;
+
+#ifdef _DEBUG
+        compileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_DEBUG;
+#else
+        compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+
+        std::string profile;
+        switch (stage)
+        {
+            // clang-format off
+            case ShaderStages::Vertex:           profile = "vs"; break;
+            case ShaderStages::Hull:             profile = "hs"; break;
+            case ShaderStages::Domain:           profile = "ds"; break;
+            case ShaderStages::Geometry:         profile = "gs"; break;
+            case ShaderStages::Pixel:            profile = "ps"; break;
+            case ShaderStages::Compute:          profile = "cs"; break;
+            default:
+                ALIMER_UNREACHABLE();
+                return {};
+        }
+
+        const uint32_t shaderModelMajor = 5;
+        const uint32_t shaderModelMinor = 0;
+
+        profile += "_";
+        profile += std::to_string(shaderModelMajor);
+        profile += "_";
+        profile += std::to_string(shaderModelMinor);
+
+        RefCountPtr<ID3DBlob> output;
+        RefCountPtr<ID3DBlob> errors_or_warnings;
+
+        HRESULT hr = D3DCompile(
+            source.c_str(),                     /* pSrcData */
+            source.length(),                    /* SrcDataSize */
+            nullptr,                            /* pSourceName */
+            NULL,                               /* pDefines */
+            D3D_COMPILE_STANDARD_FILE_INCLUDE,  /* pInclude */
+            entryPoint.c_str(),                 /* pEntryPoint */
+            profile.c_str(),                    /* pTarget */
+            compileFlags,                       /* Flags1 */
+            0,                                  /* Flags2 */
+            &output,                            /* ppCode */
+            &errors_or_warnings);               /* ppErrorMsgs */
+
+        if (errors_or_warnings)
+        {
+            LOGE((LPCSTR)errors_or_warnings->GetBufferPointer());
+        }
+
+        if (FAILED(hr))
+        {
+            return {};
+        }
+
+        std::vector<uint8_t> byteCode(output->GetBufferSize());
+        //shader->bytecode.resize(byteCode.size());
+        memcpy(byteCode.data(), output->GetBufferPointer(), output->GetBufferSize());
+        return byteCode;
+#endif
+    }
+
+#if !defined(ALIMER_DISABLE_SHADER_COMPILER)
+    bool D3D11_Device::LoadShaderCompiler()
+    {
+#if (defined(WINAPI_FAMILY_PARTITION) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
+        return true;
+#else
+        /* load DLL on demand */
+        if (D3DCompiler == nullptr && !D3DCompiler_LoadFailed)
+        {
+            D3DCompiler = LoadLibraryW(L"D3DCompiler_47.dll");
+            if (D3DCompiler == nullptr)
+            {
+                /* don't attempt to load missing DLL in the future */
+                LOGD("Direct3D11: Failed to load D3DCompiler_47.dll!");
+                D3DCompiler_LoadFailed = true;
+                return false;
+            }
+
+            /* look up function pointers */
+            D3DCompile = (pD3DCompile)(void*)GetProcAddress(D3DCompiler, "D3DCompile");
+            ALIMER_ASSERT(D3DCompile != nullptr);
+        }
+
+        return D3DCompiler != nullptr;
+#endif
+    }
+#endif
+
+    PipelineHandle D3D11_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    {
+        RefCountPtr<D3D11_Pipeline> pipeline = RefCountPtr<D3D11_Pipeline>::Create(new D3D11_Pipeline());
+        pipeline->device = this;
+        
+        pipeline->shaderStages = ShaderStages::None;
+        if (desc.vertex)
+        {
+            pipeline->vertex = checked_cast<D3D11_Shader*>(desc.vertex)->VS;
+            pipeline->shaderStages |= ShaderStages::Vertex;
+        }
+
+        if (desc.hull)
+        {
+            pipeline->hull = checked_cast<D3D11_Shader*>(desc.hull)->HS;
+            pipeline->shaderStages |= ShaderStages::Hull;
+        }
+
+        if (desc.domain)
+        {
+            pipeline->domain = checked_cast<D3D11_Shader*>(desc.domain)->DS;
+            pipeline->shaderStages |= ShaderStages::Domain;
+        }
+
+        if (desc.geometry)
+        {
+            pipeline->geometry = checked_cast<D3D11_Shader*>(desc.geometry)->GS;
+            pipeline->shaderStages |= ShaderStages::Geometry;
+        }
+
+        if (desc.pixel)
+        {
+            pipeline->pixel = checked_cast<D3D11_Shader*>(desc.pixel)->PS;
+            pipeline->shaderStages |= ShaderStages::Pixel;
+        }
+
+        pipeline->primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
+
+        return pipeline;
     }
 
     void D3D11_Device::CreateFactory()
