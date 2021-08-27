@@ -6,7 +6,7 @@
 
 namespace alimer::rhi
 {
-    const PixelFormatInfo kFormatDesc[] = {
+    const FormatInfo kFormatDesc[] = {
         //        format                    name                bytes blk         kind               red   green   blue  alpha  depth  stencl signed  srgb
         { Format::Undefined,           "Undefined",        0,   0, PixelFormatKind::Integer,      false, false, false, false, false, false, false, false },
         { Format::R8UNorm,             "R8UNorm",          1,   1, PixelFormatKind::Normalized,   true,  false, false, false, false, false, false, false },
@@ -79,15 +79,15 @@ namespace alimer::rhi
         { Format::BC7UNormSrgb,        "BC7UNormSrgb",     16,  4, PixelFormatKind::Normalized,   true,  true,  true,  true,  false, false, false, true  },
     };
 
-    const PixelFormatInfo& GetFormatInfo(Format format)
+    const FormatInfo& GetFormatInfo(Format format)
     {
-        static_assert(sizeof(kFormatDesc) / sizeof(PixelFormatInfo) == size_t(Format::Count),
+        static_assert(sizeof(kFormatDesc) / sizeof(FormatInfo) == size_t(Format::Count),
             "The format info table doesn't have the right number of elements");
 
         if (uint32_t(format) >= uint32_t(Format::Count))
             return kFormatDesc[0]; // UNKNOWN
 
-        const PixelFormatInfo& info = kFormatDesc[uint32_t(format)];
+        const FormatInfo& info = kFormatDesc[uint32_t(format)];
         ALIMER_ASSERT(info.format == format);
         return info;
     }
@@ -107,6 +107,23 @@ namespace alimer::rhi
         default:
             ALIMER_UNREACHABLE();
             return "<Unknown>";
+        }
+    }
+
+    const char* ToString(TextureDimension dimension)
+    {
+        switch (dimension)
+        {
+        case TextureDimension::Texture1D:           return "Texture1D";
+        case TextureDimension::Texture1DArray:      return "Texture1DArray";
+        case TextureDimension::Texture2D:           return "Texture2D";
+        case TextureDimension::Texture2DArray:      return "Texture2DArray";
+        case TextureDimension::Texture2DMS:         return "Texture2DMS";
+        case TextureDimension::Texture2DMSArray:    return "Texture2DMSArray";
+        case TextureDimension::TextureCube:         return "TextureCube";
+        case TextureDimension::TextureCubeArray:    return "TextureCubeArray";
+        case TextureDimension::Texture3D:           return "Texture3D";
+        default:                                    return "<INVALID>";
         }
     }
 

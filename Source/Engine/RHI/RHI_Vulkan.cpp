@@ -1,9 +1,8 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_RHI_VULKAN) && defined(TODO)
-#include "Graphics/Graphics.h"
-#include "Graphics/Texture.h"
+#if defined(ALIMER_RHI_VULKAN) 
+#include "RHI.h"
 #include "Window.h"
 #include "Core/Log.h"
 #include "PlatformInclude.h"
@@ -335,40 +334,83 @@ namespace alimer::rhi
 
     extern VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
 
-    class Vulkan_Texture final : public RefCounter<Texture>
+    class Vulkan_Texture final : public RefCounter<ITexture>
     {
     public:
-        Vulkan_Texture(const TextureDesc& desc, const TextureData* initialData)
-        {
+        IDevice* device;
+        TextureDesc desc;
+        VkImage handle = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
 
+        Vulkan_Texture(IDevice* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData)
+            : device(device_)
+            , desc(desc_)
+        {
+            if (desc.mipLevels == 0)
+            {
+                desc.mipLevels = (uint32_t)log2(std::max(desc_.width, desc_.height)) + 1;
+            }
+
+            if (nativeHandle != nullptr)
+            {
+                handle = (VkImage)nativeHandle;
+            }
+            else
+            {
+            }
         }
 
         ~Vulkan_Texture() override
         {
 
         }
+
+        IDevice* GetDevice() const override { return device; }
+        const TextureDesc& GetDesc() const override { return desc; }
+        //uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        void ApiSetName(const std::string_view& newName) override
+        {
+        }
     };
 
-    class Vulkan_Graphics final : public Graphics
+    class Vulkan_Device final : public RefCounter<IDevice>
     {
     private:
+        TextureHandle backBuffer;
+        Format depthStencilFormat = Format::Undefined;
+        TextureHandle depthStencilTexture;
 
     public:
         [[nodiscard]] static bool IsAvailable();
 
-        Vulkan_Graphics(bool enableDebugLayers);
-        ~Vulkan_Graphics() override;
+        Vulkan_Device(bool enableDebugLayers);
+        ~Vulkan_Device() override;
 
-        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters) override;
+        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
         void WaitIdle() override;
-        CommandList* BeginFrame() override;
+        ICommandList* BeginFrame() override;
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
 
-        RefCountPtr<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData) override;
+        ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
+
+        ITexture* GetBackBuffer(uint32_t index) const override
+        {
+            if (index == 0)
+                return backBuffer;
+
+            return nullptr;
+        }
+
+        uint32_t GetCurrentBackBufferIndex() const override { return 0; }
+        uint32_t GetBackBufferCount() const override { return 1; }
+        ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
+
+        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
+        TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) override;
     };
 
-    bool Vulkan_Graphics::IsAvailable()
+    bool Vulkan_Device::IsAvailable()
     {
         static bool available_initialized = false;
         static bool available = false;
@@ -395,7 +437,7 @@ namespace alimer::rhi
         return true;
     }
 
-    Vulkan_Graphics::Vulkan_Graphics(bool enableDebugLayers)
+    Vulkan_Device::Vulkan_Device(bool enableDebugLayers)
     {
         // Create instance and debug utils first.
         uint32_t instanceExtensionCount;
@@ -554,7 +596,7 @@ namespace alimer::rhi
         }
     }
 
-    Vulkan_Graphics::~Vulkan_Graphics()
+    Vulkan_Device::~Vulkan_Device()
     {
         VK_CHECK(vkDeviceWaitIdle(vk.device));
 
@@ -595,7 +637,7 @@ namespace alimer::rhi
         }
     }
 
-    bool Vulkan_Graphics::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
+    bool Vulkan_Device::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
     {
         VkResult result = CreateWindowSurface(vk.instance, window, nullptr, &vk.surface);
         if (result != VK_SUCCESS)
@@ -993,48 +1035,60 @@ namespace alimer::rhi
         return true;
     }
 
-    void Vulkan_Graphics::WaitIdle()
+    void Vulkan_Device::WaitIdle()
     {
         VK_CHECK(vkDeviceWaitIdle(vk.device));
     }
 
-    CommandList* Vulkan_Graphics::BeginFrame()
+    ICommandList* Vulkan_Device::BeginFrame()
     {
         return nullptr;
     }
 
-    void Vulkan_Graphics::EndFrame()
+    void Vulkan_Device::EndFrame()
     {
     }
 
-    void Vulkan_Graphics::Resize(uint32_t newWidth, uint32_t newHeight)
+    void Vulkan_Device::Resize(uint32_t newWidth, uint32_t newHeight)
     {
 
     }
 
-    RefCountPtr<Texture> Vulkan_Graphics::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+    TextureHandle Vulkan_Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
     {
-        auto result = new Vulkan_Texture(desc, initialData);
+        auto result = new Vulkan_Texture(this, nullptr, desc, initialData);
 
-        //if (result->handle)
-        return TextureRef::Create(result);
+        if (result->handle != VK_NULL_HANDLE)
+            return TextureHandle::Create(result);
 
-        //delete result;
-        //return nullptr;
+        delete result;
+        return nullptr;
     }
 
-    bool Vulkan_IsAvailable()
+    TextureHandle Vulkan_Device::CreateExternalTexture(void* nativeHandle, const TextureDesc& desc)
     {
-        return Vulkan_Graphics::IsAvailable();
+        auto result = new Vulkan_Texture(this, nativeHandle, desc, nullptr);
+
+        if (result->handle != VK_NULL_HANDLE)
+            return TextureHandle::Create(result);
+
+        delete result;
+        return nullptr;
     }
 
-    bool Vulkan_Initialize(Window* window, const PresentationParameters& presentationParameters)
+    DeviceHandle CreateVulkanDevice(alimer::Window* window, const PresentationParameters& presentationParameters)
     {
-        if (!Vulkan_Graphics::IsAvailable())
-            return false;
+        if (!Vulkan_Device::IsAvailable())
+            return nullptr;
 
-        gGraphics().Start<Vulkan_Graphics>(presentationParameters.validationMode != ValidationMode::Disabled);
-        return gGraphics().Initialize(window, presentationParameters);
+        auto device = new Vulkan_Device(presentationParameters.validationMode != ValidationMode::Disabled);
+        if (device->Initialize(window, presentationParameters))
+        {
+            return DeviceHandle::Create(device);
+        }
+
+        delete device;
+        return nullptr;
     }
 }
 

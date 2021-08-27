@@ -129,8 +129,8 @@ namespace alimer
             }
 
             commandList->PushDebugGroup("Frame");
-            commandList->BeginDefaultRenderPass(Colors::CornflowerBlue);
-            
+            commandList->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
+
             OnDraw(commandList);
 
             commandList->EndRenderPass();

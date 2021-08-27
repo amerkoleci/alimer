@@ -2,17 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #if defined(ALIMER_RHI_D3D11)
-#include "RHI.h"
 #include "Window.h"
 #include "Core/Log.h"
-#include "PlatformInclude.h"
-#define D3D11_NO_HELPERS
-#include <d3d11_1.h>
-#include <dxgi1_6.h>
-
-#ifdef _DEBUG
-#   include <dxgidebug.h>
-#endif
+#include "RHI_D3D11.h"
+#include <array>
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 // Indicates to hybrid graphics systems to prefer the discrete part by default
@@ -30,81 +23,81 @@ namespace alimer::rhi
         switch (format)
         {
             // 8-bit formats
-        case Format::R8UNorm:  return DXGI_FORMAT_R8_UNORM;
-        case Format::R8SNorm:  return DXGI_FORMAT_R8_SNORM;
-        case Format::R8UInt:   return DXGI_FORMAT_R8_UINT;
-        case Format::R8SInt:   return DXGI_FORMAT_R8_SINT;
-            // 16-bit formats
-        case Format::R16UNorm:     return DXGI_FORMAT_R16_UNORM;
-        case Format::R16SNorm:     return DXGI_FORMAT_R16_SNORM;
-        case Format::R16UInt:      return DXGI_FORMAT_R16_UINT;
-        case Format::R16SInt:      return DXGI_FORMAT_R16_SINT;
-        case Format::R16Float:     return DXGI_FORMAT_R16_FLOAT;
-        case Format::RG8UNorm:     return DXGI_FORMAT_R8G8_UNORM;
-        case Format::RG8SNorm:     return DXGI_FORMAT_R8G8_SNORM;
-        case Format::RG8UInt:      return DXGI_FORMAT_R8G8_UINT;
-        case Format::RG8SInt:      return DXGI_FORMAT_R8G8_SINT;
-            // Packed 16-Bit Pixel Formats
-        case Format::BGRA4UNorm:       return DXGI_FORMAT_B4G4R4A4_UNORM;
-        case Format::B5G6R5UNorm:      return DXGI_FORMAT_B5G6R5_UNORM;
-        case Format::B5G5R5A1UNorm:    return DXGI_FORMAT_B5G5R5A1_UNORM;
-            // 32-bit formats
-        case Format::R32UInt:          return DXGI_FORMAT_R32_UINT;
-        case Format::R32SInt:          return DXGI_FORMAT_R32_SINT;
-        case Format::R32Float:         return DXGI_FORMAT_R32_FLOAT;
-        case Format::RG16UNorm:        return DXGI_FORMAT_R16G16_UNORM;
-        case Format::RG16SNorm:        return DXGI_FORMAT_R16G16_SNORM;
-        case Format::RG16UInt:         return DXGI_FORMAT_R16G16_UINT;
-        case Format::RG16SInt:         return DXGI_FORMAT_R16G16_SINT;
-        case Format::RG16Float:        return DXGI_FORMAT_R16G16_FLOAT;
-        case Format::RGBA8UNorm:       return DXGI_FORMAT_R8G8B8A8_UNORM;
-        case Format::RGBA8UNormSrgb:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        case Format::RGBA8SNorm:       return DXGI_FORMAT_R8G8B8A8_SNORM;
-        case Format::RGBA8UInt:        return DXGI_FORMAT_R8G8B8A8_UINT;
-        case Format::RGBA8SInt:        return DXGI_FORMAT_R8G8B8A8_SINT;
-        case Format::BGRA8UNorm:       return DXGI_FORMAT_B8G8R8A8_UNORM;
-        case Format::BGRA8UNormSrgb:   return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-            // Packed 32-Bit formats
-        case Format::RGB10A2UNorm:     return DXGI_FORMAT_R10G10B10A2_UNORM;
-        case Format::RG11B10Float:     return DXGI_FORMAT_R11G11B10_FLOAT;
-        case Format::RGB9E5Float:      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
-            // 64-Bit formats
-        case Format::RG32UInt:         return DXGI_FORMAT_R32G32_UINT;
-        case Format::RG32SInt:         return DXGI_FORMAT_R32G32_SINT;
-        case Format::RG32Float:        return DXGI_FORMAT_R32G32_FLOAT;
-        case Format::RGBA16UNorm:      return DXGI_FORMAT_R16G16B16A16_UNORM;
-        case Format::RGBA16SNorm:      return DXGI_FORMAT_R16G16B16A16_SNORM;
-        case Format::RGBA16UInt:       return DXGI_FORMAT_R16G16B16A16_UINT;
-        case Format::RGBA16SInt:       return DXGI_FORMAT_R16G16B16A16_SINT;
-        case Format::RGBA16Float:      return DXGI_FORMAT_R16G16B16A16_FLOAT;
-            // 128-Bit formats
-        case Format::RGBA32UInt:       return DXGI_FORMAT_R32G32B32A32_UINT;
-        case Format::RGBA32SInt:       return DXGI_FORMAT_R32G32B32A32_SINT;
-        case Format::RGBA32Float:      return DXGI_FORMAT_R32G32B32A32_FLOAT;
-            // Depth-stencil formats
-        case Format::Depth16UNorm:			return DXGI_FORMAT_D16_UNORM;
-        case Format::Depth32Float:			return DXGI_FORMAT_D32_FLOAT;
-        case Format::Depth24UNormStencil8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-        case Format::Depth32FloatStencil8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-            // Compressed BC formats
-        case Format::BC1UNorm:         return DXGI_FORMAT_BC1_UNORM;
-        case Format::BC1UNormSrgb:     return DXGI_FORMAT_BC1_UNORM_SRGB;
-        case Format::BC2UNorm:         return DXGI_FORMAT_BC2_UNORM;
-        case Format::BC2UNormSrgb:     return DXGI_FORMAT_BC2_UNORM_SRGB;
-        case Format::BC3UNorm:         return DXGI_FORMAT_BC3_UNORM;
-        case Format::BC3UNormSrgb:     return DXGI_FORMAT_BC3_UNORM_SRGB;
-        case Format::BC4SNorm:         return DXGI_FORMAT_BC4_SNORM;
-        case Format::BC4UNorm:         return DXGI_FORMAT_BC4_UNORM;
-        case Format::BC5SNorm:         return DXGI_FORMAT_BC5_SNORM;
-        case Format::BC5UNorm:         return DXGI_FORMAT_BC5_UNORM;
-        case Format::BC6HUFloat:       return DXGI_FORMAT_BC6H_UF16;
-        case Format::BC6HSFloat:       return DXGI_FORMAT_BC6H_SF16;
-        case Format::BC7UNorm:         return DXGI_FORMAT_BC7_UNORM;
-        case Format::BC7UNormSrgb:     return DXGI_FORMAT_BC7_UNORM_SRGB;
+            case Format::R8UNorm:  return DXGI_FORMAT_R8_UNORM;
+            case Format::R8SNorm:  return DXGI_FORMAT_R8_SNORM;
+            case Format::R8UInt:   return DXGI_FORMAT_R8_UINT;
+            case Format::R8SInt:   return DXGI_FORMAT_R8_SINT;
+                // 16-bit formats
+            case Format::R16UNorm:     return DXGI_FORMAT_R16_UNORM;
+            case Format::R16SNorm:     return DXGI_FORMAT_R16_SNORM;
+            case Format::R16UInt:      return DXGI_FORMAT_R16_UINT;
+            case Format::R16SInt:      return DXGI_FORMAT_R16_SINT;
+            case Format::R16Float:     return DXGI_FORMAT_R16_FLOAT;
+            case Format::RG8UNorm:     return DXGI_FORMAT_R8G8_UNORM;
+            case Format::RG8SNorm:     return DXGI_FORMAT_R8G8_SNORM;
+            case Format::RG8UInt:      return DXGI_FORMAT_R8G8_UINT;
+            case Format::RG8SInt:      return DXGI_FORMAT_R8G8_SINT;
+                // Packed 16-Bit Pixel Formats
+            case Format::BGRA4UNorm:       return DXGI_FORMAT_B4G4R4A4_UNORM;
+            case Format::B5G6R5UNorm:      return DXGI_FORMAT_B5G6R5_UNORM;
+            case Format::B5G5R5A1UNorm:    return DXGI_FORMAT_B5G5R5A1_UNORM;
+                // 32-bit formats
+            case Format::R32UInt:          return DXGI_FORMAT_R32_UINT;
+            case Format::R32SInt:          return DXGI_FORMAT_R32_SINT;
+            case Format::R32Float:         return DXGI_FORMAT_R32_FLOAT;
+            case Format::RG16UNorm:        return DXGI_FORMAT_R16G16_UNORM;
+            case Format::RG16SNorm:        return DXGI_FORMAT_R16G16_SNORM;
+            case Format::RG16UInt:         return DXGI_FORMAT_R16G16_UINT;
+            case Format::RG16SInt:         return DXGI_FORMAT_R16G16_SINT;
+            case Format::RG16Float:        return DXGI_FORMAT_R16G16_FLOAT;
+            case Format::RGBA8UNorm:       return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case Format::RGBA8UNormSrgb:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+            case Format::RGBA8SNorm:       return DXGI_FORMAT_R8G8B8A8_SNORM;
+            case Format::RGBA8UInt:        return DXGI_FORMAT_R8G8B8A8_UINT;
+            case Format::RGBA8SInt:        return DXGI_FORMAT_R8G8B8A8_SINT;
+            case Format::BGRA8UNorm:       return DXGI_FORMAT_B8G8R8A8_UNORM;
+            case Format::BGRA8UNormSrgb:   return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+                // Packed 32-Bit formats
+            case Format::RGB10A2UNorm:     return DXGI_FORMAT_R10G10B10A2_UNORM;
+            case Format::RG11B10Float:     return DXGI_FORMAT_R11G11B10_FLOAT;
+            case Format::RGB9E5Float:      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+                // 64-Bit formats
+            case Format::RG32UInt:         return DXGI_FORMAT_R32G32_UINT;
+            case Format::RG32SInt:         return DXGI_FORMAT_R32G32_SINT;
+            case Format::RG32Float:        return DXGI_FORMAT_R32G32_FLOAT;
+            case Format::RGBA16UNorm:      return DXGI_FORMAT_R16G16B16A16_UNORM;
+            case Format::RGBA16SNorm:      return DXGI_FORMAT_R16G16B16A16_SNORM;
+            case Format::RGBA16UInt:       return DXGI_FORMAT_R16G16B16A16_UINT;
+            case Format::RGBA16SInt:       return DXGI_FORMAT_R16G16B16A16_SINT;
+            case Format::RGBA16Float:      return DXGI_FORMAT_R16G16B16A16_FLOAT;
+                // 128-Bit formats
+            case Format::RGBA32UInt:       return DXGI_FORMAT_R32G32B32A32_UINT;
+            case Format::RGBA32SInt:       return DXGI_FORMAT_R32G32B32A32_SINT;
+            case Format::RGBA32Float:      return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                // Depth-stencil formats
+            case Format::Depth16UNorm:			return DXGI_FORMAT_D16_UNORM;
+            case Format::Depth32Float:			return DXGI_FORMAT_D32_FLOAT;
+            case Format::Depth24UNormStencil8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+            case Format::Depth32FloatStencil8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+                // Compressed BC formats
+            case Format::BC1UNorm:         return DXGI_FORMAT_BC1_UNORM;
+            case Format::BC1UNormSrgb:     return DXGI_FORMAT_BC1_UNORM_SRGB;
+            case Format::BC2UNorm:         return DXGI_FORMAT_BC2_UNORM;
+            case Format::BC2UNormSrgb:     return DXGI_FORMAT_BC2_UNORM_SRGB;
+            case Format::BC3UNorm:         return DXGI_FORMAT_BC3_UNORM;
+            case Format::BC3UNormSrgb:     return DXGI_FORMAT_BC3_UNORM_SRGB;
+            case Format::BC4SNorm:         return DXGI_FORMAT_BC4_SNORM;
+            case Format::BC4UNorm:         return DXGI_FORMAT_BC4_UNORM;
+            case Format::BC5SNorm:         return DXGI_FORMAT_BC5_SNORM;
+            case Format::BC5UNorm:         return DXGI_FORMAT_BC5_UNORM;
+            case Format::BC6HUFloat:       return DXGI_FORMAT_BC6H_UF16;
+            case Format::BC6HSFloat:       return DXGI_FORMAT_BC6H_SF16;
+            case Format::BC7UNorm:         return DXGI_FORMAT_BC7_UNORM;
+            case Format::BC7UNormSrgb:     return DXGI_FORMAT_BC7_UNORM_SRGB;
 
-        default:
-            ALIMER_UNREACHABLE();
-            return DXGI_FORMAT_UNKNOWN;
+            default:
+                ALIMER_UNREACHABLE();
+                return DXGI_FORMAT_UNKNOWN;
         }
     }
 
@@ -138,57 +131,74 @@ namespace alimer::rhi
         {
             switch (format)
             {
-            case Format::Depth16UNorm:
-                return DXGI_FORMAT_R16_TYPELESS;
-            case Format::Depth32Float:
-                return DXGI_FORMAT_R32_TYPELESS;
-            case Format::Depth24UNormStencil8:
-                return DXGI_FORMAT_R24G8_TYPELESS;
-            case Format::Depth32FloatStencil8:
-                return DXGI_FORMAT_R32G8X24_TYPELESS;
+                case Format::Depth16UNorm:
+                    return DXGI_FORMAT_R16_TYPELESS;
+                case Format::Depth32Float:
+                    return DXGI_FORMAT_R32_TYPELESS;
+                case Format::Depth24UNormStencil8:
+                    return DXGI_FORMAT_R24G8_TYPELESS;
+                case Format::Depth32FloatStencil8:
+                    return DXGI_FORMAT_R32G8X24_TYPELESS;
 
-            default:
-                ALIMER_ASSERT(IsDepthFormat(format) == false);
-                return ToDXGIFormat(format);
+                default:
+                    ALIMER_ASSERT(IsDepthFormat(format) == false);
+                    return ToDXGIFormat(format);
             }
         }
     }
 
-    static struct
+    /* D3D11_Texture */
+    D3D11_Texture::D3D11_Texture(D3D11_Device* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData)
+        : device(device_)
+        , desc(desc_)
     {
-        RefCountPtr<ID3D11Device1>              device;
-        D3D_FEATURE_LEVEL                       featureLevel{};
-
-        RefCountPtr<IDXGISwapChain1> swapChain;
-        RefCountPtr<ID3D11Texture2D> renderTarget;
-        RefCountPtr<ID3D11RenderTargetView> backbufferRTV;
-
-        Format depthStencilFormat = Format::Undefined;
-        TextureHandle depthStencilTexture;
-        RefCountPtr<ID3D11DepthStencilView> depthStencilTextureDSV;
-    } d3d11;
-
-    class D3D11_Device;
-
-    class D3D11_Texture final : public RefCounter<ITexture>
-    {
-    public:
-        IDevice* device;
-        TextureDesc desc;
-        RefCountPtr<ID3D11Resource> handle;
-
-        D3D11_Texture(IDevice* device_, const TextureDesc& desc_, const TextureData* initialData)
-            : device(device_)
-            , desc(desc_)
+        if (desc.mipLevels == 0)
         {
-            if (desc.mipLevels == 0)
-            {
-                desc.mipLevels = (uint32_t)log2(std::max(desc_.width, desc_.height)) + 1;
-            }
+            desc.mipLevels = (uint32_t)log2(std::max(desc_.width, desc_.height)) + 1;
+        }
 
+        if (nativeHandle != nullptr)
+        {
+            switch (desc.dimension)
+            {
+                case TextureDimension::Texture2D:
+                case TextureDimension::TextureCube:
+                {
+                    ID3D11Texture2D* d3d11Tex2D = (ID3D11Texture2D*)nativeHandle;
+                    D3D11_TEXTURE2D_DESC desc2D;
+                    d3d11Tex2D->GetDesc(&desc2D);
+
+                    if (desc2D.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+                    {
+                        desc.usage |= TextureUsage::ShaderRead;
+                    }
+
+                    if (desc2D.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+                    {
+                        desc.usage |= TextureUsage::ShaderWrite;
+                    }
+
+                    if (desc2D.BindFlags & D3D11_BIND_RENDER_TARGET)
+                    {
+                        desc.usage |= TextureUsage::RenderTarget;
+                    }
+
+                    if (desc2D.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+                    {
+                        desc.usage |= TextureUsage::RenderTarget;
+                    }
+
+                    handle = d3d11Tex2D;
+                }
+                break;
+            }
+        }
+        else
+        {
             HRESULT hr = E_FAIL;
 
-            DXGI_FORMAT format = ToDXGIFormat(desc.format);
+            dxgiFormat = ToDXGIFormat(desc.format);
+            DXGI_FORMAT format = dxgiFormat;
             UINT bindFlags = 0;
             if (Any(desc.usage, TextureUsage::ShaderRead))
             {
@@ -219,169 +229,457 @@ namespace alimer::rhi
 
             switch (desc.dimension)
             {
-            case TextureDimension::Texture2D:
-            case TextureDimension::TextureCube:
-            {
-                D3D11_TEXTURE2D_DESC desc2D = {};
-                desc2D.Width = desc.width;
-                desc2D.Height = desc.height;
-                desc2D.MipLevels = desc.mipLevels;
-                desc2D.ArraySize = desc.depthOrArraySize;
-                desc2D.Format = format;
-                desc2D.SampleDesc.Count = desc.sampleCount;
-                desc2D.SampleDesc.Quality = 0;
-                desc2D.Usage = D3D11_USAGE_DEFAULT;
-                desc2D.BindFlags = bindFlags;
-                desc2D.CPUAccessFlags = 0;
-                desc2D.MiscFlags = 0;
+                case TextureDimension::Texture2D:
+                case TextureDimension::Texture2DArray:
+                case TextureDimension::TextureCube:
+                case TextureDimension::TextureCubeArray:
+                case TextureDimension::Texture2DMS:
+                case TextureDimension::Texture2DMSArray:
+                {
+                    D3D11_TEXTURE2D_DESC desc2D = {};
+                    desc2D.Width = desc.width;
+                    desc2D.Height = desc.height;
+                    desc2D.MipLevels = desc.mipLevels;
+                    desc2D.ArraySize = desc.depthOrArraySize;
+                    desc2D.Format = format;
+                    desc2D.SampleDesc.Count = desc.sampleCount;
+                    desc2D.SampleDesc.Quality = 0;
+                    desc2D.Usage = D3D11_USAGE_DEFAULT;
+                    desc2D.BindFlags = bindFlags;
+                    desc2D.CPUAccessFlags = 0;
+                    desc2D.MiscFlags = 0;
 
-                hr = d3d11.device->CreateTexture2D(&desc2D, nullptr, (ID3D11Texture2D**)handle.ReleaseAndGetAddressOf());
-                break;
-            }
+                    if (desc.dimension == TextureDimension::TextureCube)
+                    {
+                        desc2D.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+                    }
 
-            default:
-                break;
+                    hr = device->GetD3DDevice()->CreateTexture2D(&desc2D, nullptr, (ID3D11Texture2D**)handle.ReleaseAndGetAddressOf());
+                    break;
+                }
+
+                default:
+                    break;
             }
 
             if (FAILED(hr))
             {
                 return;
             }
-
         }
+    }
 
-        ~D3D11_Texture() override
-        {
-
-        }
-
-        IDevice* GetDevice() const override { return device; }
-        const TextureDesc& GetDesc() const override { return desc; }
-        //uint64_t GetAllocatedSize() const override { return allocatedSize; }
-        void ApiSetName(const std::string_view& newName) override
-        {
-            SetDebugName(handle, newName);
-        }
-    };
-
-    class D3D11_CommandList final : public ICommandList
+    D3D11_Texture::~D3D11_Texture()
     {
-    public:
-        IDevice* device;
-        RefCountPtr<ID3D11DeviceContext1>       context;
-        RefCountPtr<ID3DUserDefinedAnnotation>  annotation;
+        shaderResourceViews.clear();
+        renderTargetViews.clear();
+        depthStencilViews.clear();
+        unorderedAccessViews.clear();
+        handle.Reset();
+    }
 
-        D3D11_CommandList(IDevice* device_, ID3D11DeviceContext* context_)
-            : device(device_)
+    IDevice* D3D11_Texture::GetDevice() const
+    {
+        return device;
+    }
+
+    ID3D11RenderTargetView* D3D11_Texture::GetRTV(uint32_t mipLevel, uint32_t slice, uint32_t arraySize)
+    {
+        if (arraySize == kAllArraySlices)
         {
-            ThrowIfFailed(context_->QueryInterface(IID_PPV_ARGS(&context)));
-            ThrowIfFailed(context_->QueryInterface(IID_PPV_ARGS(&annotation)));
+            arraySize = desc.depthOrArraySize - slice;
+        }
+        else if (arraySize + slice > desc.depthOrArraySize)
+        {
+            arraySize = desc.depthOrArraySize - slice;
         }
 
-        void PushDebugGroup(const std::string_view& name) override
+        D3D11_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, false);
+
+        RefCountPtr<ID3D11RenderTargetView>& view = renderTargetViews[key];
+        if (view == nullptr)
         {
-            if (annotation)
+            D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+            viewDesc.Format = ToDXGIFormat(key.format);
+
+            switch (desc.dimension)  // NOLINT(clang-diagnostic-switch-enum)
             {
-                wchar_t buffer[512];
-                MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, name.data(), -1, buffer, ARRAYSIZE(buffer));
-                annotation->BeginEvent(buffer);
+                case TextureDimension::Texture1D:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
+                    viewDesc.Texture1D.MipSlice = mipLevel;
+                    break;
+                case TextureDimension::Texture1DArray:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1DARRAY;
+                    viewDesc.Texture1DArray.MipSlice = mipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = slice;
+                    viewDesc.Texture1DArray.ArraySize = arraySize;
+                    break;
+                case TextureDimension::Texture2D:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+                    viewDesc.Texture2D.MipSlice = mipLevel;
+                    break;
+                case TextureDimension::Texture2DArray:
+                case TextureDimension::TextureCube:
+                case TextureDimension::TextureCubeArray:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+                    viewDesc.Texture2DArray.MipSlice = mipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = slice;
+                    viewDesc.Texture2DArray.ArraySize = arraySize;
+                    break;
+                case TextureDimension::Texture2DMS:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+                    break;
+                case TextureDimension::Texture2DMSArray:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = slice;
+                    viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                    break;
+                case TextureDimension::Texture3D:
+                    viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+                    viewDesc.Texture3D.MipSlice = mipLevel;
+                    viewDesc.Texture3D.FirstWSlice = slice;
+                    viewDesc.Texture3D.WSize = arraySize;
+                    break;
+                default:
+                    LOGE("Texture has unsupported dimension for RTV: {}", ToString(desc.dimension));
+                    return nullptr;
+            }
+
+            HRESULT hr = device->GetD3DDevice()->CreateRenderTargetView(handle.Get(), &viewDesc, &view);
+            if (FAILED(hr))
+            {
+                LOGE("Direct3D11: Failed to create RTV");
+                return nullptr;
             }
         }
 
-        void PopDebugGroup() override
+        return view;
+    }
+
+    ID3D11DepthStencilView* D3D11_Texture::GetDSV(uint32_t mipLevel, uint32_t slice, uint32_t arraySize, bool isReadOnly)
+    {
+        if (arraySize == kAllArraySlices)
         {
-            if (annotation)
+            arraySize = desc.depthOrArraySize - slice;
+        }
+        else if (arraySize + slice > desc.depthOrArraySize)
+        {
+            arraySize = desc.depthOrArraySize - slice;
+        }
+
+        D3D11_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, isReadOnly);
+
+        RefCountPtr<ID3D11DepthStencilView>& view = depthStencilViews[key];
+        if (view == nullptr)
+        {
+            //we haven't seen this one before
+            D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
+            viewDesc.Format = ToDXGIFormat(desc.format);
+            viewDesc.Flags = 0;
+
+            if (isReadOnly)
             {
-                annotation->EndEvent();
+                viewDesc.Flags |= D3D11_DSV_READ_ONLY_DEPTH;
+                if (viewDesc.Format == DXGI_FORMAT_D24_UNORM_S8_UINT || viewDesc.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+                    viewDesc.Flags |= D3D11_DSV_READ_ONLY_STENCIL;
+            }
+
+            switch (desc.dimension)  // NOLINT(clang-diagnostic-switch-enum)
+            {
+                case TextureDimension::Texture1D:
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1D;
+                    viewDesc.Texture1D.MipSlice = mipLevel;
+                    break;
+                case TextureDimension::Texture1DArray:
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1DARRAY;
+                    viewDesc.Texture1DArray.MipSlice = mipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = slice;
+                    viewDesc.Texture1DArray.ArraySize = arraySize;
+                    break;
+                case TextureDimension::Texture2D:
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+                    viewDesc.Texture2D.MipSlice = mipLevel;
+                    break;
+                case TextureDimension::Texture2DArray:
+                case TextureDimension::TextureCube:
+                case TextureDimension::TextureCubeArray:
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                    viewDesc.Texture2DArray.MipSlice = mipLevel;
+                    viewDesc.Texture2DArray.ArraySize = slice;
+                    viewDesc.Texture2DArray.FirstArraySlice = arraySize;
+                    break;
+                case TextureDimension::Texture2DMS:
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+                    break;
+                case TextureDimension::Texture2DMSArray:
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = slice;
+                    viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                    break;
+                default:
+                    LOGE("Texture has unsupported dimension for DSV: {}", ToString(desc.dimension));
+                    return nullptr;
+            }
+
+            HRESULT hr = device->GetD3DDevice()->CreateDepthStencilView(handle.Get(), &viewDesc, &view);
+            if (FAILED(hr))
+            {
+                LOGE("Direct3D11: Failed to create DSV");
+                return nullptr;
             }
         }
 
-        void InsertDebugMarker(const std::string_view& name)  override
+        return view;
+    }
+
+    void D3D11_Texture::ApiSetName(const std::string_view& newName)
+    {
+        SetDebugName(handle, newName);
+    }
+
+    /* D3D11_CommandList */
+    D3D11_CommandList::D3D11_CommandList(IDevice* device_, ID3D11DeviceContext* context_)
+        : device(device_)
+    {
+        ThrowIfFailed(context_->QueryInterface(IID_PPV_ARGS(&context)));
+        ThrowIfFailed(context_->QueryInterface(IID_PPV_ARGS(&annotation)));
+    }
+
+    void D3D11_CommandList::PushDebugGroup(const std::string_view& name)
+    {
+        if (annotation)
         {
-            if (annotation)
+            wchar_t buffer[512];
+            MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, name.data(), -1, buffer, ARRAYSIZE(buffer));
+            annotation->BeginEvent(buffer);
+        }
+    }
+
+    void D3D11_CommandList::PopDebugGroup()
+    {
+        if (annotation)
+        {
+            annotation->EndEvent();
+        }
+    }
+
+    void D3D11_CommandList::InsertDebugMarker(const std::string_view& name)
+    {
+        if (annotation)
+        {
+            wchar_t buffer[512];
+            MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, name.data(), -1, buffer, ARRAYSIZE(buffer));
+            annotation->SetMarker(buffer);
+        }
+    }
+
+    void D3D11_CommandList::BeginDefaultRenderPass(const Color& clearColor, bool clearDepth, bool clearStencil, float depth, uint8_t stencil)
+    {
+        RenderPassDesc passDesc;
+        passDesc.colorAttachments[0].texture = device->GetCurrentBackBuffer();
+        passDesc.colorAttachments[0].loadAction = LoadAction::Clear;
+        passDesc.colorAttachments[0].clearColor = clearColor;
+
+        auto depthStencilTexture = device->GetBackBufferDepthStencilTexture();
+        if (depthStencilTexture != nullptr)
+        {
+            passDesc.depthStencilAttachment.texture = depthStencilTexture;
+            if (clearDepth)
             {
-                wchar_t buffer[512];
-                MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, name.data(), -1, buffer, ARRAYSIZE(buffer));
-                annotation->SetMarker(buffer);
+                passDesc.depthStencilAttachment.depthLoadAction = LoadAction::Clear;
+                passDesc.depthStencilAttachment.clearDepth = depth;
+            }
+
+            if (clearStencil)
+            {
+                passDesc.depthStencilAttachment.stencilLoadAction = LoadAction::Clear;
+                passDesc.depthStencilAttachment.clearStencil = stencil;
             }
         }
 
-        void BeginDefaultRenderPass(const Color& clearColor, float clearDepth, uint8_t clearStencil, ClearMask mask) override
+        BeginRenderPass(passDesc);
+    }
+
+    void D3D11_CommandList::BeginRenderPass(const RenderPassDesc& desc)
+    {
+        currentPass = desc;
+        uint32_t width = UINT32_MAX;
+        uint32_t height = UINT32_MAX;
+
+        uint32_t RTVCount = 0;
+        std::array<ID3D11RenderTargetView*, kMaxColorAttachments> RTVs;
+        ID3D11DepthStencilView* DSV = nullptr;
+
+        for (uint32_t i = 0; i < kMaxColorAttachments; i++)
         {
-            const uint32_t width = device->GetBackBufferWidth();
-            const uint32_t height = device->GetBackBufferHeight();
+            const RenderPassColorAttachment& attachment = desc.colorAttachments[i];
+            if (attachment.texture == nullptr)
+                break;
 
-            context->OMSetRenderTargets(1, &d3d11.backbufferRTV, d3d11.depthStencilTextureDSV);
+            auto d3d11Texture = checked_cast<D3D11_Texture*>(attachment.texture);
+            const TextureDesc& textureDesc = d3d11Texture->GetDesc();
 
-            if (Any(mask, ClearMask::Color))
+            const uint32_t mipLevel = attachment.mipLevel;
+            const uint32_t slice = attachment.slice;
+
+            width = Min(width, std::max(1u, textureDesc.width >> mipLevel));
+            height = Min(height, std::max(1u, textureDesc.height >> mipLevel));
+
+            RTVs[RTVCount] = d3d11Texture->GetRTV(mipLevel, slice, 1);
+
+            switch (attachment.loadAction)
             {
-                context->ClearRenderTargetView(d3d11.backbufferRTV.Get(), &clearColor.r);
+                default:
+                case LoadAction::Load:
+                    break;
+
+                case LoadAction::Clear:
+                    context->ClearRenderTargetView(RTVs[RTVCount], &attachment.clearColor.r);
+                    break;
+
+                case LoadAction::DontCare:
+                    context->DiscardView(RTVs[RTVCount]);
+                    break;
             }
 
-            if (d3d11.depthStencilTextureDSV)
+            RTVCount++;
+        }
+
+        if (desc.depthStencilAttachment.texture != nullptr)
+        {
+            const RenderPassDepthStencilAttachment& attachment = desc.depthStencilAttachment;
+
+            auto d3d11Texture = checked_cast<D3D11_Texture*>(attachment.texture);
+            const TextureDesc& textureDesc = d3d11Texture->GetDesc();
+
+            width = Min(width, std::max(1u, textureDesc.width >> attachment.mipLevel));
+            height = Min(height, std::max(1u, textureDesc.height >> attachment.mipLevel));
+
+            DSV = d3d11Texture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
+
+            UINT clearFlags = 0;
+
+            switch (desc.depthStencilAttachment.depthLoadAction)
             {
-                UINT clearFlags = 0;
-                if (Any(mask, ClearMask::Depth))
-                {
+                default:
+                case LoadAction::Load:
+                    break;
+
+                case LoadAction::Clear:
                     clearFlags |= D3D11_CLEAR_DEPTH;
-                }
+                    break;
 
-                if (Any(mask, ClearMask::Stencil) && IsStencilFormat(d3d11.depthStencilFormat))
-                {
-                    clearFlags |= D3D11_CLEAR_STENCIL;
-                }
-
-                if (clearFlags != 0)
-                {
-                    context->ClearDepthStencilView(d3d11.depthStencilTextureDSV.Get(), clearFlags, clearDepth, clearStencil);
-                }
+                case LoadAction::DontCare:
+                    context->DiscardView(DSV);
+                    break;
             }
 
-            // The viewport and scissor default to cover all of the attachments
-            const D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-            const D3D11_RECT scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+            switch (desc.depthStencilAttachment.stencilLoadAction)
+            {
+                default:
+                case LoadAction::Load:
+                    break;
 
-            context->RSSetViewports(1, &viewport);
-            context->RSSetScissorRects(1, &scissorRect);
+                case LoadAction::Clear:
+                    clearFlags |= D3D11_CLEAR_STENCIL;
+                    break;
+
+                case LoadAction::DontCare:
+                    context->DiscardView(DSV);
+                    break;
+            }
+
+            if (clearFlags != 0)
+            {
+                context->ClearDepthStencilView(DSV, clearFlags, desc.depthStencilAttachment.clearDepth, desc.depthStencilAttachment.clearStencil);
+            }
         }
 
-        void EndRenderPass() override
+        const bool pixelShaderHasUAVs = false;
+        if (pixelShaderHasUAVs)
         {
+            context->OMSetRenderTargetsAndUnorderedAccessViews(RTVCount, RTVs.data(), DSV,
+                D3D11_KEEP_UNORDERED_ACCESS_VIEWS, 0, nullptr, nullptr
+            );
         }
-    };
+        else
+        {
+            context->OMSetRenderTargets(RTVCount, RTVs.data(), DSV);
+        }
 
-    class D3D11_Device final : public RefCounter<IDevice>
+        // The viewport and scissor default to cover all of the attachments
+        const D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        const D3D11_RECT scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+
+        context->RSSetViewports(1, &viewport);
+        context->RSSetScissorRects(1, &scissorRect);
+    }
+
+    void D3D11_CommandList::EndRenderPass()
     {
-    private:
-        RefCountPtr<IDXGIFactory2> dxgiFactory;
-        bool tearingSupported{ false };
-        bool deviceLost{ false };
+        for (uint32_t i = 0; i < kMaxColorAttachments; i++)
+        {
+            const RenderPassColorAttachment& attachment = currentPass.colorAttachments[i];
+            if (attachment.texture == nullptr)
+                break;
 
-        DXGI_SWAP_CHAIN_DESC1                       swapChainDesc{};
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-        DXGI_SWAP_CHAIN_FULLSCREEN_DESC             fullScreenDesc{};
-#endif
+            auto d3d11Texture = checked_cast<D3D11_Texture*>(attachment.texture);
 
-        std::unique_ptr<D3D11_CommandList> commandList;
+            switch (attachment.storeAction)
+            {
+                case StoreAction::DontCare:
+                {
+                    auto RTV = d3d11Texture->GetRTV(attachment.mipLevel, attachment.slice, 1);
+                    context->DiscardView(RTV);
+                    break;
+                }
 
-        void CreateFactory();
-        void GetAdapter(IDXGIAdapter1** ppAdapter);
-        void HandleDeviceLost();
+                case StoreAction::Resolve:
+                case StoreAction::StoreAndResolve:
+                {
+                    auto resolveTexture = checked_cast<D3D11_Texture*>(attachment.resolveTexture);
+                    uint32_t dstSubresource = D3D11CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, resolveTexture->desc.mipLevels);
+                    uint32_t srcSubresource = D3D11CalcSubresource(attachment.mipLevel, attachment.slice, d3d11Texture->desc.mipLevels);
+                    context->ResolveSubresource(resolveTexture->handle, dstSubresource, d3d11Texture->handle, srcSubresource, d3d11Texture->dxgiFormat);
+                    break;
+                }
 
-    public:
-        D3D11_Device();
-        ~D3D11_Device() override;
+                default:
+                    break;
+            }
+        }
 
-        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
-        void WaitIdle() override;
-        ICommandList* BeginFrame() override;
-        void EndFrame() override;
-        void Resize(uint32_t newWidth, uint32_t newHeight) override;
-        void AfterReset();
+        if (currentPass.depthStencilAttachment.texture != nullptr)
+        {
+            const RenderPassDepthStencilAttachment& attachment = currentPass.depthStencilAttachment;
+            auto d3d11Texture = checked_cast<D3D11_Texture*>(attachment.texture);
 
-        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
-    };
+            switch (attachment.depthStoreAction)
+            {
+                case StoreAction::DontCare:
+                {
+                    auto DSV = d3d11Texture->GetDSV(attachment.mipLevel, attachment.slice, 1);
+                    context->DiscardView(DSV);
+                    break;
+                }
 
+                case StoreAction::Resolve:
+                case StoreAction::StoreAndResolve:
+                {
+                    auto resolveTexture = checked_cast<D3D11_Texture*>(attachment.resolveTexture);
+                    uint32_t dstSubresource = D3D11CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, resolveTexture->desc.mipLevels);
+                    uint32_t srcSubresource = D3D11CalcSubresource(attachment.mipLevel, attachment.slice, d3d11Texture->desc.mipLevels);
+                    context->ResolveSubresource(resolveTexture->handle, dstSubresource, d3d11Texture->handle, srcSubresource, d3d11Texture->dxgiFormat);
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    /* D3D11_Device */
     D3D11_Device::D3D11_Device()
     {
         CreateFactory();
@@ -402,14 +700,13 @@ namespace alimer::rhi
 
     D3D11_Device::~D3D11_Device()
     {
-        d3d11.backbufferRTV.Reset();
-        d3d11.depthStencilTextureDSV.Reset();
-        d3d11.renderTarget.Reset();
-        d3d11.depthStencilTexture.Reset();
-        d3d11.swapChain.Reset();
+        backBuffer.Reset();
+        depthStencilTexture.Reset();
+        swapChain.Reset();
 
         commandList.reset();
-        d3d11.device.Reset();
+        immediateContext.Reset();
+        d3dDevice.Reset();
     }
 
     bool D3D11_Device::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
@@ -454,7 +751,7 @@ namespace alimer::rhi
                 _countof(s_featureLevels),
                 D3D11_SDK_VERSION,
                 device.GetAddressOf(),
-                &d3d11.featureLevel,
+                &featureLevel,
                 context.GetAddressOf()
             );
         }
@@ -478,7 +775,7 @@ namespace alimer::rhi
                 _countof(s_featureLevels),
                 D3D11_SDK_VERSION,
                 device.GetAddressOf(),
-                &d3d11.featureLevel,
+                &featureLevel,
                 context.GetAddressOf()
             );
 
@@ -514,7 +811,8 @@ namespace alimer::rhi
         }
 #endif
 
-        ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3d11.device)));
+        ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3dDevice)));
+        ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&immediateContext)));
 
         commandList = std::make_unique<D3D11_CommandList>(this, context.Get());
 
@@ -543,12 +841,12 @@ namespace alimer::rhi
 
             // Create a SwapChain from a Win32 window.
             ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
-                d3d11.device.Get(),
+                device.Get(),
                 static_cast<HWND>(window->GetPlatformHandle()),
                 &swapChainDesc,
                 &fullScreenDesc,
                 nullptr,
-                d3d11.swapChain.ReleaseAndGetAddressOf()
+                swapChain.ReleaseAndGetAddressOf()
             ));
 
             // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
@@ -557,7 +855,7 @@ namespace alimer::rhi
 #endif
         }
 
-        d3d11.depthStencilFormat = presentationParameters.depthStencilFormat;
+        depthStencilFormat = presentationParameters.depthStencilFormat;
 
         AfterReset();
 
@@ -566,18 +864,18 @@ namespace alimer::rhi
 
     void D3D11_Device::WaitIdle()
     {
-        commandList->context->Flush();
+        immediateContext->Flush();
 
         D3D11_QUERY_DESC queryDesc;
         queryDesc.Query = D3D11_QUERY_EVENT;
         queryDesc.MiscFlags = 0;
 
         RefCountPtr<ID3D11Query> query;
-        ThrowIfFailed(d3d11.device->CreateQuery(&queryDesc, &query));
-        commandList->context->End(query.Get());
+        ThrowIfFailed(d3dDevice->CreateQuery(&queryDesc, &query));
+        immediateContext->End(query.Get());
 
         BOOL result;
-        while (commandList->context->GetData(query.Get(), &result, sizeof(result), 0) == S_FALSE);
+        while (immediateContext->GetData(query.Get(), &result, sizeof(result), 0) == S_FALSE);
         ALIMER_ASSERT(result == TRUE);
     }
 
@@ -591,8 +889,8 @@ namespace alimer::rhi
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         DXGI_SWAP_CHAIN_DESC1 newSwapChainDesc;
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC newFullScreenDesc;
-        if (SUCCEEDED(d3d11.swapChain->GetDesc1(&newSwapChainDesc)) &&
-            SUCCEEDED(d3d11.swapChain->GetFullscreenDesc(&newFullScreenDesc)))
+        if (SUCCEEDED(swapChain->GetDesc1(&newSwapChainDesc)) &&
+            SUCCEEDED(swapChain->GetFullscreenDesc(&newFullScreenDesc)))
         {
             if (fullScreenDesc.Windowed != newFullScreenDesc.Windowed)
             {
@@ -611,7 +909,7 @@ namespace alimer::rhi
             presentFlags |= DXGI_PRESENT_ALLOW_TEARING;
         }
 
-        HRESULT hr = d3d11.swapChain->Present(vsyncEnabled ? 1 : 0, presentFlags);
+        HRESULT hr = swapChain->Present(vsyncEnabled ? 1 : 0, presentFlags);
 
         // If the device was removed either by a disconnection or a driver upgrade, we
         // must recreate all device resources.
@@ -621,7 +919,7 @@ namespace alimer::rhi
 #ifdef _DEBUG
             char buff[64] = {};
             sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n",
-                static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? d3d11.device->GetDeviceRemovedReason() : hr));
+                static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? d3dDevice->GetDeviceRemovedReason() : hr));
             OutputDebugStringA(buff);
 #endif
             HandleDeviceLost();
@@ -646,34 +944,39 @@ namespace alimer::rhi
     void D3D11_Device::AfterReset()
     {
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
-        ThrowIfFailed(d3d11.swapChain->GetDesc1(&swapChainDesc));
+        ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
 
-        // Create a render target view of the swap chain back buffer.
-        ThrowIfFailed(d3d11.swapChain->GetBuffer(0, IID_PPV_ARGS(d3d11.renderTarget.ReleaseAndGetAddressOf())));
-        ThrowIfFailed(d3d11.device->CreateRenderTargetView(d3d11.renderTarget.Get(), nullptr, d3d11.backbufferRTV.ReleaseAndGetAddressOf()));
+        const TextureDesc backBufferTextureDesc = TextureDesc::Tex2D(Format::BGRA8UNorm,
+            swapChainDesc.Width, swapChainDesc.Height, 1, 1, TextureUsage::RenderTarget
+        );
+
+        RefCountPtr<ID3D11Texture2D> d3d11BackBuffer;
+        ThrowIfFailed(swapChain->GetBuffer(0, IID_PPV_ARGS(d3d11BackBuffer.ReleaseAndGetAddressOf())));
+        backBuffer = CreateExternalTexture(d3d11BackBuffer.Get(), backBufferTextureDesc);
+
         backBufferWidth = swapChainDesc.Width;
         backBufferHeight = swapChainDesc.Height;
 
-        if (d3d11.depthStencilFormat != Format::Undefined)
+        if (depthStencilFormat != Format::Undefined)
         {
-            d3d11.depthStencilTexture = CreateTexture(TextureDesc::Tex2D(d3d11.depthStencilFormat, backBufferWidth, backBufferHeight, 1, 1, TextureUsage::RenderTarget));
-
-            D3D11_DEPTH_STENCIL_VIEW_DESC dsvViewDesc = {};
-            dsvViewDesc.Format = ToDXGIFormat(d3d11.depthStencilFormat);
-            dsvViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-
-            ThrowIfFailed(d3d11.device->CreateDepthStencilView(
-                static_cast<D3D11_Texture*>(d3d11.depthStencilTexture.Get())->handle,
-                &dsvViewDesc,
-                d3d11.depthStencilTextureDSV.ReleaseAndGetAddressOf()
-            ));
-
+            depthStencilTexture = CreateTexture(TextureDesc::Tex2D(depthStencilFormat, backBufferWidth, backBufferHeight, 1, 1, TextureUsage::RenderTarget));
         }
     }
 
     TextureHandle D3D11_Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
     {
-        auto result = new D3D11_Texture(this, desc, initialData);
+        auto result = new D3D11_Texture(this, nullptr, desc, initialData);
+
+        if (result->handle)
+            return TextureHandle::Create(result);
+
+        delete result;
+        return nullptr;
+    }
+
+    TextureHandle D3D11_Device::CreateExternalTexture(void* nativeHandle, const TextureDesc& desc)
+    {
+        auto result = new D3D11_Texture(this, nativeHandle, desc, nullptr);
 
         if (result->handle)
             return TextureHandle::Create(result);
