@@ -110,6 +110,10 @@ namespace alimer::rhi
         RefCountPtr<ID3D11GeometryShader> geometry;
         RefCountPtr<ID3D11PixelShader> pixel;
 
+        ID3D11BlendState1* blendState = nullptr;
+        ID3D11DepthStencilState* depthStencilState = nullptr;
+        ID3D11RasterizerState1* rasterizerState = nullptr;
+
         ID3D11InputLayout* inputLayout = nullptr;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
@@ -202,6 +206,14 @@ namespace alimer::rhi
         PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:
+        ID3D11BlendState1* GetBlendState(const BlendState& state);
+        ID3D11DepthStencilState* GetDepthStencilState(const DepthStencilState& state);
+        ID3D11RasterizerState1* GetRasterizerState(const RasterizerState& state);
+
+        std::unordered_map<size_t, RefCountPtr<ID3D11BlendState1>> blendStates;
+        std::unordered_map<size_t, RefCountPtr<ID3D11DepthStencilState>> depthStencilStates;
+        std::unordered_map<size_t, RefCountPtr<ID3D11RasterizerState1>> rasterizerStates;
+
 #if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         bool D3DCompiler_LoadFailed = false;
         HINSTANCE D3DCompiler = nullptr;

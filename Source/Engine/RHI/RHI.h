@@ -6,13 +6,17 @@
 #include "Core/RefCount.h"
 #include "Math/Color.h"
 
-#define RHI_ENUM_CLASS_FLAG_OPERATORS(T) \
-    inline T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
-    inline T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } /* NOLINT(bugprone-macro-parentheses) */ \
-    inline T operator ~ (T a) { return T(~uint32_t(a)); } /* NOLINT(bugprone-macro-parentheses) */ \
-    inline bool operator !(T a) { return uint32_t(a) == 0; } \
-    inline bool operator ==(T a, uint32_t b) { return uint32_t(a) == b; } \
-    inline bool operator !=(T a, uint32_t b) { return uint32_t(a) != b; }
+#define RHI_DEFINE_ENUM_BITWISE_OPERATORS(T) \
+    inline constexpr T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
+    inline constexpr T& operator |= (T &a, T b) { return a = a | b; } \
+    inline constexpr T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } \
+    inline constexpr T& operator &= (T &a, T b) { return a = a & b; } \
+    inline constexpr T operator ~ (T a) { return T(~uint32_t(a)); } \
+    inline constexpr bool operator !(T a) { return uint32_t(a) == 0; } \
+    inline constexpr T operator ^ (T a, T b) { return T(uint32_t(a) ^ uint32_t(b)); } \
+    inline constexpr T& operator ^= (T &a, T b) { return a = a ^ b; } \
+    inline constexpr bool operator ==(T a, uint32_t b) { return uint32_t(a) == b; } \
+    inline constexpr bool operator !=(T a, uint32_t b) { return uint32_t(a) != b; }
 
 #if defined(RHI_SHARED_LIBRARY_BUILD)
 #   if defined(_MSC_VER)
@@ -199,7 +203,7 @@ namespace alimer::rhi
         RenderTarget = 1 << 2,
         ShadingRate = 1 << 3,
     };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
+    RHI_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
 
     enum class ShaderStages : uint32_t
     {
@@ -226,7 +230,85 @@ namespace alimer::rhi
 
         All = 0x3FFF,
     };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+    RHI_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+
+    enum class VertexStepRate : uint32_t
+    {
+        Vertex = 0,
+        Instance
+    };
+
+    enum class BlendFactor : uint32_t
+    {
+        Zero,
+        One,
+        SourceColor,
+        OneMinusSourceColor,
+        SourceAlpha,
+        OneMinusSourceAlpha,
+        DestinationColor,
+        OneMinusDestinationColor,
+        DestinationAlpha,
+        OneMinusDestinationAlpha,
+        SourceAlphaSaturated,
+        BlendColor,
+        OneMinusBlendColor,
+        Source1Color,
+        OneMinusSource1Color,
+        Source1Alpha,
+        OneMinusSource1Alpha,
+    };
+
+    enum class BlendOperation : uint32_t
+    {
+        Add,
+        Subtract,
+        ReverseSubtract,
+        Min,
+        Max
+    };
+
+    enum class ColorWriteMask : uint32_t
+    {
+        None = 0,
+        Red = 0x01,
+        Green = 0x02,
+        Blue = 0x04,
+        Alpha = 0x08,
+        All = 0x0F
+    };
+    RHI_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
+
+    enum class StencilOperation : uint32_t
+    {
+        Keep,
+        Zero,
+        Replace,
+        IncrementClamp,
+        DecrementClamp,
+        Invert,
+        IncrementWrap,
+        DecrementWrap,
+    };
+
+    enum class FillMode : uint32_t
+    {
+        Solid,
+        Wireframe,
+    };
+
+    enum class CullMode : uint32_t
+    {
+        None,
+        Front,
+        Back
+    };
+
+    enum class FaceWinding : uint32_t
+    {
+        Clockwise,
+        CounterClockwise,
+    };
 
     enum class LoadAction : uint32_t
     {
@@ -386,6 +468,75 @@ namespace alimer::rhi
     };
     static const TextureSubresourceSet AllSubresources = TextureSubresourceSet(0, kAllMipLevels, 0, kAllArraySlices);
 
+    struct VertexBufferLayout
+    {
+        uint32_t stride = 0;
+        VertexStepRate stepRate = VertexStepRate::Vertex;
+    };
+
+    struct VertexAttribute
+    {
+        //VertexFormat format = VertexFormat::Undefined;
+        Format format = Format::Undefined;
+        uint32_t offset = 0;
+        uint32_t bufferIndex = 0;
+    };
+
+    struct VertexLayout
+    {
+        VertexBufferLayout buffers[kMaxVertexBufferBindings];
+        VertexAttribute attributes[kMaxVertexAttributes];
+    };
+
+    struct RenderTargetBlendState
+    {
+        bool blendEnable = false;
+        BlendFactor srcBlend = BlendFactor::One;
+        BlendFactor destBlend = BlendFactor::Zero;
+        BlendOperation blendOp = BlendOperation::Add;
+        BlendFactor srcBlendAlpha = BlendFactor::One;
+        BlendFactor destBlendAlpha = BlendFactor::Zero;
+        BlendOperation blendOpAlpha = BlendOperation::Add;
+        ColorWriteMask writeMask = ColorWriteMask::All;
+    };
+
+    struct BlendState
+    {
+        bool alphaToCoverageEnable = false;
+        bool independentBlendEnable = false;
+
+        RenderTargetBlendState renderTargets[kMaxColorAttachments] = {};
+    };
+
+    struct StencilFaceState
+    {
+        StencilOperation failOp = StencilOperation::Keep;
+        StencilOperation passOp = StencilOperation::Keep;
+        StencilOperation depthFailOp = StencilOperation::Keep;
+        CompareFunction compare = CompareFunction::Always;
+    };
+
+    struct DepthStencilState
+    {
+        bool depthWriteEnable = true;
+        CompareFunction depthCompare = CompareFunction::Less;
+        bool stencilEnable = false;
+        uint8_t stencilReadMask = 0xFF;
+        uint8_t stencilWriteMask = 0xFF;
+        StencilFaceState frontFace;
+        StencilFaceState backFace;
+    };
+
+    struct RasterizerState
+    {
+        CullMode cullMode = CullMode::Back;
+        FaceWinding frontFace = FaceWinding::Clockwise;
+        FillMode fillMode = FillMode::Solid;
+        float depthBias = 0.0f;
+        float depthBiasSlopeScale = 0.0f;
+        float depthBiasClamp = 0.0f;
+    };
+
     struct RenderPipelineDesc
     {
         IShader* vertex = nullptr;
@@ -396,10 +547,10 @@ namespace alimer::rhi
         //IShader* mesh = nullptr;
         //IShader* amplification = nullptr;
 
-        //VertexLayout            vertexLayout;
-        //BlendState              blendState;
-        //DepthStencilState       depthStencilState;
-        //RasterizerState         rasterizerState;
+        VertexLayout            vertexLayout;
+        BlendState              blendState;
+        DepthStencilState       depthStencilState;
+        RasterizerState         rasterizerState;
         PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
         uint32_t                patchControlPoints = 0;
         //PixelFormat             colorFormats[kMaxSimultaneousRenderTargets] = {};
@@ -781,7 +932,7 @@ namespace alimer::rhi
     }
 }
 
-#undef RHI_ENUM_CLASS_FLAG_OPERATORS
+#undef RHI_DEFINE_ENUM_BITWISE_OPERATORS
 
 namespace std
 {
@@ -798,66 +949,81 @@ namespace std
         }
     };
 
-#if TODO
-    template<> struct hash<Alimer::RHI::StencilFaceState>
+    template<> struct hash<alimer::rhi::RenderTargetBlendState>
     {
-        std::size_t operator()(const Alimer::RHI::StencilFaceState& state) const noexcept
+        std::size_t operator()(const alimer::rhi::RenderTargetBlendState& state) const noexcept
         {
             size_t hash = 0;
-            Alimer::HashCombine(hash, (uint32_t)state.failOp);
-            Alimer::HashCombine(hash, (uint32_t)state.passOp);
-            Alimer::HashCombine(hash, (uint32_t)state.depthFailOp);
-            Alimer::HashCombine(hash, (uint32_t)state.compare);
+            alimer::rhi::hash_combine(hash, state.blendEnable);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlend);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.destBlend);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.blendOp);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlendAlpha);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.destBlendAlpha);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.blendOpAlpha);
+            alimer::rhi::hash_combine(hash, (uint8_t)state.writeMask);
             return hash;
         }
     };
 
-    template<> struct hash<Alimer::RHI::DepthStencilState>
+    template<> struct hash<alimer::rhi::BlendState>
     {
-        std::size_t operator()(const Alimer::RHI::DepthStencilState& state) const noexcept
+        std::size_t operator()(const alimer::rhi::BlendState& state) const noexcept
         {
             size_t hash = 0;
-            Alimer::HashCombine(hash, state.depthWriteEnabled);
-            Alimer::HashCombine(hash, (uint32_t)state.depthCompare);
-            Alimer::HashCombine(hash, state.frontFace);
-            Alimer::HashCombine(hash, state.backFace);
-            Alimer::HashCombine(hash, state.stencilReadMask);
-            Alimer::HashCombine(hash, state.stencilWriteMask);
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::RHI::RenderTargetBlendState>
-    {
-        std::size_t operator()(const Alimer::RHI::RenderTargetBlendState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::HashCombine(hash, state.blendEnable);
-            Alimer::HashCombine(hash, (uint32_t)state.srcBlend);
-            Alimer::HashCombine(hash, (uint32_t)state.destBlend);
-            Alimer::HashCombine(hash, (uint32_t)state.blendOp);
-            Alimer::HashCombine(hash, (uint32_t)state.srcBlendAlpha);
-            Alimer::HashCombine(hash, (uint32_t)state.destBlendAlpha);
-            Alimer::HashCombine(hash, (uint32_t)state.blendOpAlpha);
-            Alimer::HashCombine(hash, (uint8_t)state.writeMask);
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::RHI::BlendState>
-    {
-        std::size_t operator()(const Alimer::RHI::BlendState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::HashCombine(hash, state.alphaToCoverageEnable);
-            Alimer::HashCombine(hash, state.independentBlendEnable);
+            alimer::rhi::hash_combine(hash, state.alphaToCoverageEnable);
+            alimer::rhi::hash_combine(hash, state.independentBlendEnable);
             for (const auto& target : state.renderTargets)
             {
-                Alimer::HashCombine(hash, target);
+                alimer::rhi::hash_combine(hash, target);
             }
             return hash;
         }
     };
-#endif // TODO
+
+    template<> struct hash<alimer::rhi::StencilFaceState>
+    {
+        std::size_t operator()(const alimer::rhi::StencilFaceState& state) const noexcept
+        {
+            size_t hash = 0;
+            alimer::rhi::hash_combine(hash, (uint32_t)state.failOp);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.passOp);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.depthFailOp);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.compare);
+            return hash;
+        }
+    };
+
+    template<> struct hash<alimer::rhi::DepthStencilState>
+    {
+        std::size_t operator()(const alimer::rhi::DepthStencilState& state) const noexcept
+        {
+            size_t hash = 0;
+            alimer::rhi::hash_combine(hash, state.depthWriteEnable);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.depthCompare);
+            alimer::rhi::hash_combine(hash, state.stencilEnable);
+            alimer::rhi::hash_combine(hash, state.stencilReadMask);
+            alimer::rhi::hash_combine(hash, state.stencilWriteMask);
+            alimer::rhi::hash_combine(hash, state.frontFace);
+            alimer::rhi::hash_combine(hash, state.backFace);
+            return hash;
+        }
+    };
+
+    template<> struct hash<alimer::rhi::RasterizerState>
+    {
+        std::size_t operator()(const alimer::rhi::RasterizerState& state) const noexcept
+        {
+            size_t hash = 0;
+            alimer::rhi::hash_combine(hash, (uint32_t)state.cullMode);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
+            alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
+            alimer::rhi::hash_combine(hash, state.fillMode);
+            alimer::rhi::hash_combine(hash, state.depthBias);
+            alimer::rhi::hash_combine(hash, state.depthBiasSlopeScale);
+            alimer::rhi::hash_combine(hash, state.depthBiasClamp);
+            return hash;
+        }
+    };
 }
 

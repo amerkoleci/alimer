@@ -181,6 +181,150 @@ namespace alimer::rhi
                     return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
             }
         }
+
+        [[nodiscard]] constexpr D3D11_COMPARISON_FUNC ToD3D11(CompareFunction function)
+        {
+            switch (function)
+            {
+                case CompareFunction::Never:
+                    return D3D11_COMPARISON_NEVER;
+                case CompareFunction::Less:
+                    return D3D11_COMPARISON_LESS;
+                case CompareFunction::Equal:
+                    return D3D11_COMPARISON_EQUAL;
+                case CompareFunction::LessEqual:
+                    return D3D11_COMPARISON_LESS_EQUAL;
+                case CompareFunction::Greater:
+                    return D3D11_COMPARISON_GREATER;
+                case CompareFunction::NotEqual:
+                    return D3D11_COMPARISON_NOT_EQUAL;
+                case CompareFunction::GreaterEqual:
+                    return D3D11_COMPARISON_GREATER_EQUAL;
+                case CompareFunction::Always:
+                    return D3D11_COMPARISON_ALWAYS;
+
+                default:
+                    ALIMER_UNREACHABLE();
+                    return static_cast<D3D11_COMPARISON_FUNC>(0);
+            }
+        }
+
+        [[nodiscard]] constexpr D3D11_BLEND D3D11Blend(BlendFactor factor)
+        {
+            switch (factor) {
+                case BlendFactor::Zero:
+                    return D3D11_BLEND_ZERO;
+                case BlendFactor::One:
+                    return D3D11_BLEND_ONE;
+                case BlendFactor::SourceColor:
+                    return D3D11_BLEND_SRC_COLOR;
+                case BlendFactor::OneMinusSourceColor:
+                    return D3D11_BLEND_INV_SRC_COLOR;
+                case BlendFactor::SourceAlpha:
+                    return D3D11_BLEND_SRC_ALPHA;
+                case BlendFactor::OneMinusSourceAlpha:
+                    return D3D11_BLEND_INV_SRC_ALPHA;
+                case BlendFactor::DestinationColor:
+                    return D3D11_BLEND_DEST_COLOR;
+                case BlendFactor::OneMinusDestinationColor:
+                    return D3D11_BLEND_INV_DEST_COLOR;
+                case BlendFactor::DestinationAlpha:
+                    return D3D11_BLEND_DEST_ALPHA;
+                case BlendFactor::OneMinusDestinationAlpha:
+                    return D3D11_BLEND_INV_DEST_ALPHA;
+                case BlendFactor::SourceAlphaSaturated:
+                    return D3D11_BLEND_SRC_ALPHA_SAT;
+                case BlendFactor::BlendColor:
+                    return D3D11_BLEND_BLEND_FACTOR;
+                case BlendFactor::OneMinusBlendColor:
+                    return D3D11_BLEND_INV_BLEND_FACTOR;
+                case BlendFactor::Source1Color:
+                    return D3D11_BLEND_SRC1_COLOR;
+                case BlendFactor::OneMinusSource1Color:
+                    return D3D11_BLEND_INV_SRC1_COLOR;
+                case BlendFactor::Source1Alpha:
+                    return D3D11_BLEND_SRC1_ALPHA;
+                case BlendFactor::OneMinusSource1Alpha:
+                    return D3D11_BLEND_INV_SRC1_ALPHA;
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
+
+        [[nodiscard]] constexpr D3D11_BLEND D3D11AlphaBlend(BlendFactor factor)
+        {
+            switch (factor) {
+                case BlendFactor::SourceColor:
+                    return D3D11_BLEND_SRC_ALPHA;
+                case BlendFactor::OneMinusSourceColor:
+                    return D3D11_BLEND_INV_SRC_ALPHA;
+                case BlendFactor::DestinationColor:
+                    return D3D11_BLEND_DEST_ALPHA;
+                case BlendFactor::OneMinusDestinationColor:
+                    return D3D11_BLEND_INV_DEST_ALPHA;
+                case BlendFactor::SourceAlpha:
+                    return D3D11_BLEND_SRC_ALPHA;
+                case BlendFactor::Source1Color:
+                    return D3D11_BLEND_SRC1_ALPHA;
+                case BlendFactor::OneMinusSource1Color:
+                    return D3D11_BLEND_INV_SRC1_ALPHA;
+                    // Other blend factors translate to the same D3D12 enum as the color blend factors.
+                default:
+                    return D3D11Blend(factor);
+            }
+        }
+
+        [[nodiscard]] constexpr D3D11_BLEND_OP D3D11BlendOperation(BlendOperation operation)
+        {
+            switch (operation)
+            {
+                case BlendOperation::Add:
+                    return D3D11_BLEND_OP_ADD;
+                case BlendOperation::Subtract:
+                    return D3D11_BLEND_OP_SUBTRACT;
+                case BlendOperation::ReverseSubtract:
+                    return D3D11_BLEND_OP_REV_SUBTRACT;
+                case BlendOperation::Min:
+                    return D3D11_BLEND_OP_MIN;
+                case BlendOperation::Max:
+                    return D3D11_BLEND_OP_MAX;
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
+
+        [[nodiscard]] constexpr uint8_t D3D11RenderTargetWriteMask(ColorWriteMask mask)
+        {
+            static_assert(static_cast<D3D11_COLOR_WRITE_ENABLE>(ColorWriteMask::Red) == D3D11_COLOR_WRITE_ENABLE_RED, "ColorWriteMask mismatch");
+            static_assert(static_cast<D3D11_COLOR_WRITE_ENABLE>(ColorWriteMask::Green) == D3D11_COLOR_WRITE_ENABLE_GREEN, "ColorWriteMask mismatch");
+            static_assert(static_cast<D3D11_COLOR_WRITE_ENABLE>(ColorWriteMask::Blue) == D3D11_COLOR_WRITE_ENABLE_BLUE, "ColorWriteMask mismatch");
+            static_assert(static_cast<D3D11_COLOR_WRITE_ENABLE>(ColorWriteMask::Alpha) == D3D11_COLOR_WRITE_ENABLE_ALPHA, "ColorWriteMask mismatch");
+            return static_cast<uint8_t>(mask);
+        }
+
+        [[nodiscard]] constexpr D3D11_STENCIL_OP ToD3D11(StencilOperation op)
+        {
+            switch (op) {
+                case StencilOperation::Keep:
+                    return D3D11_STENCIL_OP_KEEP;
+                case StencilOperation::Zero:
+                    return D3D11_STENCIL_OP_ZERO;
+                case StencilOperation::Replace:
+                    return D3D11_STENCIL_OP_REPLACE;
+                case StencilOperation::IncrementClamp:
+                    return D3D11_STENCIL_OP_INCR_SAT;
+                case StencilOperation::DecrementClamp:
+                    return D3D11_STENCIL_OP_DECR_SAT;
+                case StencilOperation::Invert:
+                    return D3D11_STENCIL_OP_INVERT;
+                case StencilOperation::IncrementWrap:
+                    return D3D11_STENCIL_OP_INCR;
+                case StencilOperation::DecrementWrap:
+                    return D3D11_STENCIL_OP_DECR;
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
     }
 
     /* D3D11_Texture */
@@ -746,8 +890,10 @@ namespace alimer::rhi
         context->IASetPrimitiveTopology(pipeline->primitiveTopology);
         context->IASetInputLayout(pipeline->inputLayout);
 
-        //context->RSSetState(pso->pRS);
-        //context->OMSetDepthStencilState(pso->pDepthStencilState, pso->stencilRef);
+        float blendColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        context->OMSetBlendState(pipeline->blendState, blendColor, D3D11_DEFAULT_SAMPLE_MASK);
+        context->OMSetDepthStencilState(pipeline->depthStencilState, D3D11_DEFAULT_STENCIL_REFERENCE);
+        context->RSSetState(pipeline->rasterizerState);
     }
 
     void D3D11_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
@@ -783,13 +929,6 @@ namespace alimer::rhi
 
     D3D11_Device::~D3D11_Device()
     {
-        backBuffer.Reset();
-        depthStencilTexture.Reset();
-        swapChain.Reset();
-
-        commandList.reset();
-        immediateContext.Reset();
-        d3dDevice.Reset();
     }
 
     bool D3D11_Device::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
@@ -898,6 +1037,13 @@ namespace alimer::rhi
         ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&immediateContext)));
 
         commandList = std::make_unique<D3D11_CommandList>(this, context.Get());
+
+        D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2;
+        hr = device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &options2, sizeof(options2));
+        if (SUCCEEDED(hr) && options2.ConservativeRasterizationTier >= D3D11_CONSERVATIVE_RASTERIZATION_TIER_1)
+        {
+            LOGD("CONSERVATIVE_RASTERIZATION");
+        }
 
         // Create SwapChain
         {
@@ -1254,7 +1400,7 @@ namespace alimer::rhi
     {
         RefCountPtr<D3D11_Pipeline> pipeline = RefCountPtr<D3D11_Pipeline>::Create(new D3D11_Pipeline());
         pipeline->device = this;
-        
+
         pipeline->shaderStages = ShaderStages::None;
         if (desc.vertex)
         {
@@ -1286,9 +1432,146 @@ namespace alimer::rhi
             pipeline->shaderStages |= ShaderStages::Pixel;
         }
 
+        pipeline->blendState = GetBlendState(desc.blendState);
+        pipeline->depthStencilState = GetDepthStencilState(desc.depthStencilState);
+        pipeline->rasterizerState = GetRasterizerState(desc.rasterizerState);
+
         pipeline->primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
 
         return pipeline;
+    }
+
+    ID3D11BlendState1* D3D11_Device::GetBlendState(const BlendState& state)
+    {
+        std::hash<BlendState> hasher;
+        size_t hash = hasher(state);
+
+        RefCountPtr<ID3D11BlendState1> blendState = blendStates[hash];
+
+        if (blendState)
+            return blendState;
+
+        D3D11_BLEND_DESC1 desc = {};
+        desc.AlphaToCoverageEnable = state.alphaToCoverageEnable ? TRUE : FALSE;
+        desc.IndependentBlendEnable = state.independentBlendEnable ? TRUE : FALSE;
+
+        for (uint32_t i = 0; i < kMaxColorAttachments; i++)
+        {
+            const RenderTargetBlendState& renderTarget = state.renderTargets[i];
+
+            desc.RenderTarget[i].BlendEnable = renderTarget.blendEnable ? TRUE : FALSE;
+            desc.RenderTarget[i].SrcBlend = D3D11Blend(renderTarget.srcBlend);
+            desc.RenderTarget[i].DestBlend = D3D11Blend(renderTarget.destBlend);
+            desc.RenderTarget[i].BlendOp = D3D11BlendOperation(renderTarget.blendOp);
+            desc.RenderTarget[i].SrcBlendAlpha = D3D11AlphaBlend(renderTarget.srcBlendAlpha);
+            desc.RenderTarget[i].DestBlendAlpha = D3D11AlphaBlend(renderTarget.destBlendAlpha);
+            desc.RenderTarget[i].BlendOpAlpha = D3D11BlendOperation(renderTarget.blendOpAlpha);
+            desc.RenderTarget[i].RenderTargetWriteMask = (UINT8)D3D11RenderTargetWriteMask(renderTarget.writeMask);
+            desc.RenderTarget[i].LogicOpEnable = false;
+            desc.RenderTarget[i].LogicOp = D3D11_LOGIC_OP_NOOP;
+        }
+
+        const HRESULT hr = d3dDevice->CreateBlendState1(&desc, &blendState);
+        if (FAILED(hr))
+        {
+            LOGE("Direct3D11: Failed to create blend state");
+            return nullptr;
+        }
+
+        blendStates[hash] = blendState;
+        return blendState;
+    }
+
+    ID3D11DepthStencilState* D3D11_Device::GetDepthStencilState(const DepthStencilState& state)
+    {
+        std::hash<DepthStencilState> hasher;
+        size_t hash = hasher(state);
+
+        RefCountPtr<ID3D11DepthStencilState> depthStencilState = depthStencilStates[hash];
+
+        if (depthStencilState)
+            return depthStencilState;
+
+        D3D11_DEPTH_STENCIL_DESC desc;
+        desc.DepthEnable = (state.depthCompare != CompareFunction::Always || state.depthWriteEnable) ? TRUE : FALSE;
+        desc.DepthWriteMask = state.depthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+        desc.DepthFunc = ToD3D11(state.depthCompare);
+        desc.StencilEnable = state.stencilEnable ? TRUE : FALSE;
+        desc.StencilReadMask = (UINT8)state.stencilReadMask;
+        desc.StencilWriteMask = (UINT8)state.stencilWriteMask;
+        desc.FrontFace.StencilFailOp = ToD3D11(state.frontFace.failOp);
+        desc.FrontFace.StencilDepthFailOp = ToD3D11(state.frontFace.depthFailOp);
+        desc.FrontFace.StencilPassOp = ToD3D11(state.frontFace.passOp);
+        desc.FrontFace.StencilFunc = ToD3D11(state.frontFace.compare);
+        desc.BackFace.StencilFailOp = ToD3D11(state.backFace.failOp);
+        desc.BackFace.StencilDepthFailOp = ToD3D11(state.backFace.depthFailOp);
+        desc.BackFace.StencilPassOp = ToD3D11(state.backFace.passOp);
+        desc.BackFace.StencilFunc = ToD3D11(state.backFace.compare);
+
+        const HRESULT hr = d3dDevice->CreateDepthStencilState(&desc, &depthStencilState);
+        if (FAILED(hr))
+        {
+            LOGE("Direct3D11: Failed to create DepthStencil state");
+            return nullptr;
+        }
+
+        depthStencilStates[hash] = depthStencilState;
+        return depthStencilState.Get();
+    }
+
+    ID3D11RasterizerState1* D3D11_Device::GetRasterizerState(const RasterizerState& state)
+    {
+        std::hash<RasterizerState> hasher;
+        size_t hash = hasher(state);
+
+        RefCountPtr<ID3D11RasterizerState1> rasterizerState = rasterizerStates[hash];
+
+        if (rasterizerState)
+            return rasterizerState;
+
+        D3D11_RASTERIZER_DESC1 desc;
+        desc.FillMode = D3D11_FILL_SOLID;
+        switch (state.fillMode)
+        {
+            case FillMode::Wireframe:
+                desc.FillMode = D3D11_FILL_WIREFRAME;
+                break;
+            default:
+                break;
+        }
+
+        desc.CullMode = D3D11_CULL_BACK;
+        switch (state.cullMode)
+        {
+            case CullMode::Front:
+                desc.CullMode = D3D11_CULL_FRONT;
+                break;
+            case CullMode::None:
+                desc.CullMode = D3D11_CULL_NONE;
+                break;
+            default:
+                break;
+        }
+
+        desc.FrontCounterClockwise = (state.frontFace == FaceWinding::CounterClockwise) ? TRUE : FALSE;
+        desc.DepthBias = FloorToInt(state.depthBias * (float)(1 << 24));
+        desc.DepthBiasClamp = state.depthBiasClamp;
+        desc.SlopeScaledDepthBias = state.depthBiasSlopeScale;
+        desc.DepthClipEnable = TRUE; // state.depthClipEnable ? TRUE : FALSE;
+        desc.ScissorEnable = TRUE;
+        desc.MultisampleEnable = TRUE;
+        desc.AntialiasedLineEnable = FALSE;
+        desc.ForcedSampleCount = 0;
+
+        const HRESULT hr = d3dDevice->CreateRasterizerState1(&desc, &rasterizerState);
+        if (FAILED(hr))
+        {
+            LOGE("Direct3D11: Failed to create Rasterizer state");
+            return nullptr;
+        }
+
+        rasterizerStates[hash] = rasterizerState;
+        return rasterizerState.Get();
     }
 
     void D3D11_Device::CreateFactory()
