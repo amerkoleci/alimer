@@ -5,9 +5,14 @@
 
 #include "RHI.h"
 #include "PlatformInclude.h"
+#include <dxgi1_6.h>
+
 //#define D3D11_NO_HELPERS
 #include <d3d11_1.h>
-#include <dxgi1_6.h>
+
+#include "directx/d3d12.h"
+#define D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED
+#include "D3D12MemAlloc.h"
 
 #ifdef _DEBUG
 #   include <dxgidebug.h>
@@ -40,17 +45,17 @@ namespace alimer::rhi
         }
     };
 
-    class D3D11_Device;
+    class D3D12_Device;
 
     class D3D11_Texture final : public RefCounter<ITexture>
     {
     public:
-        D3D11_Device* device;
+        D3D12_Device* device;
         TextureDesc desc;
         DXGI_FORMAT dxgiFormat;
         RefCountPtr<ID3D11Resource> handle;
 
-        D3D11_Texture(D3D11_Device* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData);
+        D3D11_Texture(D3D12_Device* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData);
         ~D3D11_Texture() override;
 
         IDevice* GetDevice() const override;
@@ -145,10 +150,11 @@ namespace alimer::rhi
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
     };
 
-    class D3D11_Device final : public RefCounter<IDevice>
+    class D3D12_Device final : public RefCounter<IDevice>
     {
     private:
-        RefCountPtr<IDXGIFactory2> dxgiFactory;
+        DWORD dxgiFactoryFlags = 0;
+        RefCountPtr<IDXGIFactory4> dxgiFactory;
         bool tearingSupported{ false };
         bool deviceLost{ false };
 
@@ -162,18 +168,19 @@ namespace alimer::rhi
         RefCountPtr<ID3D11DeviceContext1>   immediateContext;
         std::unique_ptr<D3D11_CommandList>  commandList;
 
-        RefCountPtr<IDXGISwapChain1> swapChain;
+        RefCountPtr<IDXGISwapChain3> swapChain;
         TextureHandle backBuffer;
         Format depthStencilFormat = Format::Undefined;
         TextureHandle depthStencilTexture;
 
-        void CreateFactory();
         void GetAdapter(IDXGIAdapter1** ppAdapter);
         void HandleDeviceLost();
 
     public:
-        D3D11_Device();
-        ~D3D11_Device() override;
+        [[nodiscard]] static bool IsAvailable();
+
+        D3D12_Device(ValidationMode validationMode);
+        ~D3D12_Device() override;
 
         bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
         void WaitIdle() override;

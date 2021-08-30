@@ -4,7 +4,7 @@
 #if defined(ALIMER_RHI_D3D11)
 #include "Window.h"
 #include "Core/Log.h"
-#include "RHI_D3D11.h"
+#include "RHI_D3D12.h"
 
 #if !defined(ALIMER_DISABLE_SHADER_COMPILER)
 #include <d3dcompiler.h>
@@ -108,6 +108,26 @@ namespace alimer::rhi
 
     namespace
     {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        using PFN_CREATE_DXGI_FACTORY2 = decltype(&CreateDXGIFactory2);
+        static PFN_CREATE_DXGI_FACTORY2 CreateDXGIFactory2 = nullptr;
+
+        using PFN_DXGI_GET_DEBUG_INTERFACE1 = decltype(&DXGIGetDebugInterface1);
+        static PFN_DXGI_GET_DEBUG_INTERFACE1 DXGIGetDebugInterface1 = nullptr;
+
+        static PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterface = nullptr;
+        static PFN_D3D12_CREATE_DEVICE D3D12CreateDevice = nullptr;
+        static PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE D3D12SerializeVersionedRootSignature = nullptr;
+
+        //static DxcCreateInstanceProc DxcCreateInstance;
+#endif
+
+#ifdef _DEBUG
+        // Declare debug guids to avoid linking with "dxguid.lib"
+        static constexpr IID DXGI_DEBUG_ALL = { 0xe48ae283, 0xda80, 0x490b, {0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8} };
+        static constexpr IID DXGI_DEBUG_DXGI = { 0x25cddaa4, 0xb1c6, 0x47e1, {0xac, 0x3e, 0x98, 0x87, 0x5b, 0x5a, 0x2e, 0x2a} };
+#endif
+
 #if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         pD3DCompile D3DCompile;
 #endif
@@ -328,7 +348,7 @@ namespace alimer::rhi
     }
 
     /* D3D11_Texture */
-    D3D11_Texture::D3D11_Texture(D3D11_Device* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData)
+    D3D11_Texture::D3D11_Texture(D3D12_Device* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData)
         : device(device_)
         , desc(desc_)
     {
@@ -908,10 +928,118 @@ namespace alimer::rhi
         }
     }
 
-    /* D3D11_Device */
-    D3D11_Device::D3D11_Device()
+    /* D3D12_Device */
+    bool D3D12_Device::IsAvailable()
     {
-        CreateFactory();
+        static bool available_initialized = false;
+        static bool available = false;
+
+        if (available_initialized) {
+            return available;
+        }
+
+        available_initialized = true;
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        HMODULE dxgiDLL = LoadLibraryExW(L"dxgi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        HMODULE d3d12DLL = LoadLibraryExW(L"d3d12.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        //HMODULE dxcompiler = LoadLibraryW(L"dxcompiler.dll");
+
+        if (dxgiDLL == nullptr ||
+            d3d12DLL == nullptr)
+        {
+            return false;
+        }
+
+        CreateDXGIFactory2 = (PFN_CREATE_DXGI_FACTORY2)GetProcAddress(dxgiDLL, "CreateDXGIFactory2");
+        if (CreateDXGIFactory2 == nullptr)
+        {
+            return false;
+        }
+
+        DXGIGetDebugInterface1 = (PFN_DXGI_GET_DEBUG_INTERFACE1)GetProcAddress(dxgiDLL, "DXGIGetDebugInterface1");
+
+        D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(d3d12DLL, "D3D12GetDebugInterface");
+        D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12DLL, "D3D12CreateDevice");
+        if (!D3D12CreateDevice) {
+            return false;
+        }
+
+        D3D12SerializeVersionedRootSignature = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(d3d12DLL, "D3D12SerializeVersionedRootSignature");
+        if (!D3D12SerializeVersionedRootSignature) {
+            return false;
+        }
+#else
+        HMODULE dxcompiler = LoadPackagedLibrary(L"dxcompiler.dll", 0);
+#endif
+
+        //if (dxcompiler)
+        //{
+        //    DxcCreateInstance = (DxcCreateInstanceProc)GetProcAddress(dxcompiler, "DxcCreateInstance");
+        //    ALIMER_ASSERT(DxcCreateInstance != nullptr);
+        //}
+
+        if (SUCCEEDED(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
+        {
+            available = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    D3D12_Device::D3D12_Device(ValidationMode validationMode)
+    {
+        if (validationMode != ValidationMode::Disabled)
+        {
+            dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+
+            RefCountPtr<ID3D12Debug> d3d12Debug;
+            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(d3d12Debug.GetAddressOf()))))
+            {
+                d3d12Debug->EnableDebugLayer();
+
+                if (validationMode == ValidationMode::GPU)
+                {
+                    RefCountPtr<ID3D12Debug1> d3d12Debug1;
+                    if (SUCCEEDED(d3d12Debug->QueryInterface(IID_PPV_ARGS(&d3d12Debug1))))
+                    {
+                        d3d12Debug1->SetEnableGPUBasedValidation(TRUE);
+                        d3d12Debug1->SetEnableSynchronizedCommandQueueValidation(TRUE);
+                    }
+
+                    RefCountPtr<ID3D12Debug2> d3d12Debug2;
+                    if (SUCCEEDED(d3d12Debug->QueryInterface(IID_PPV_ARGS(&d3d12Debug2))))
+                    {
+                        d3d12Debug2->SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS_NONE);
+                    }
+                }
+            }
+            else
+            {
+                OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
+            }
+
+#if defined(_DEBUG)
+            RefCountPtr<IDXGIInfoQueue> dxgiInfoQueue;
+            if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
+            {
+                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
+
+                DXGI_INFO_QUEUE_MESSAGE_ID hide[] =
+                {
+                    80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
+                };
+                DXGI_INFO_QUEUE_FILTER filter = {};
+                filter.DenyList.NumIDs = static_cast<UINT>(std::size(hide));
+                filter.DenyList.pIDList = hide;
+                dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
+            }
+#endif
+        }
+
+        ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&dxgiFactory)));
 
         // Determines whether tearing support is available for fullscreen borderless windows.
         {
@@ -925,13 +1053,13 @@ namespace alimer::rhi
                 }
             }
         }
-    }
+            }
 
-    D3D11_Device::~D3D11_Device()
+    D3D12_Device::~D3D12_Device()
     {
     }
 
-    bool D3D11_Device::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
+    bool D3D12_Device::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
     {
         RefCountPtr<IDXGIAdapter1> adapter;
         GetAdapter(adapter.GetAddressOf());
@@ -1060,6 +1188,8 @@ namespace alimer::rhi
             swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
             swapChainDesc.Flags = tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 
+            RefCountPtr<IDXGISwapChain1> tempSwapChain;
+
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
             fullScreenDesc = {};
             fullScreenDesc.RefreshRate.Numerator = 0;
@@ -1075,13 +1205,15 @@ namespace alimer::rhi
                 &swapChainDesc,
                 &fullScreenDesc,
                 nullptr,
-                swapChain.ReleaseAndGetAddressOf()
+                tempSwapChain.GetAddressOf()
             ));
 
             // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
             ThrowIfFailed(dxgiFactory->MakeWindowAssociation(static_cast<HWND>(window->GetPlatformHandle()), DXGI_MWA_NO_ALT_ENTER));
 #else
 #endif
+
+            ThrowIfFailed(tempSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain)));
         }
 
         depthStencilFormat = presentationParameters.depthStencilFormat;
@@ -1091,7 +1223,7 @@ namespace alimer::rhi
         return true;
     }
 
-    void D3D11_Device::WaitIdle()
+    void D3D12_Device::WaitIdle()
     {
         immediateContext->Flush();
 
@@ -1108,7 +1240,7 @@ namespace alimer::rhi
         ALIMER_ASSERT(result == TRUE);
     }
 
-    ICommandList* D3D11_Device::BeginFrame()
+    ICommandList* D3D12_Device::BeginFrame()
     {
         if (deviceLost)
         {
@@ -1130,7 +1262,7 @@ namespace alimer::rhi
         return commandList.get();
     }
 
-    void D3D11_Device::EndFrame()
+    void D3D12_Device::EndFrame()
     {
         UINT presentFlags = 0;
         if (!vsyncEnabled && fullScreenDesc.Windowed && tearingSupported)
@@ -1160,17 +1292,17 @@ namespace alimer::rhi
             if (!dxgiFactory->IsCurrent())
             {
                 // Output information is cached on the DXGI Factory. If it is stale we need to create a new factory.
-                CreateFactory();
+                ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
             }
         }
     }
 
-    void D3D11_Device::Resize(uint32_t newWidth, uint32_t newHeight)
+    void D3D12_Device::Resize(uint32_t newWidth, uint32_t newHeight)
     {
         AfterReset();
     }
 
-    void D3D11_Device::AfterReset()
+    void D3D12_Device::AfterReset()
     {
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
@@ -1192,7 +1324,7 @@ namespace alimer::rhi
         }
     }
 
-    TextureHandle D3D11_Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+    TextureHandle D3D12_Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
     {
         auto result = new D3D11_Texture(this, nullptr, desc, initialData);
 
@@ -1203,7 +1335,7 @@ namespace alimer::rhi
         return nullptr;
     }
 
-    TextureHandle D3D11_Device::CreateExternalTexture(void* nativeHandle, const TextureDesc& desc)
+    TextureHandle D3D12_Device::CreateExternalTexture(void* nativeHandle, const TextureDesc& desc)
     {
         auto result = new D3D11_Texture(this, nativeHandle, desc, nullptr);
 
@@ -1214,7 +1346,7 @@ namespace alimer::rhi
         return nullptr;
     }
 
-    ShaderHandle D3D11_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    ShaderHandle D3D12_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
     {
         auto byteCode = CompileShader(stage, source, entryPoint);
         if (byteCode.empty())
@@ -1296,7 +1428,7 @@ namespace alimer::rhi
         return shader;
     }
 
-    std::vector<uint8_t> D3D11_Device::CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    std::vector<uint8_t> D3D12_Device::CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
     {
 #if defined(ALIMER_DISABLE_SHADER_COMPILER)
         return {};
@@ -1325,7 +1457,7 @@ namespace alimer::rhi
             default:
                 ALIMER_UNREACHABLE();
                 return {};
-        }
+    }
 
         const uint32_t shaderModelMajor = 5;
         const uint32_t shaderModelMinor = 0;
@@ -1366,10 +1498,10 @@ namespace alimer::rhi
         memcpy(byteCode.data(), output->GetBufferPointer(), output->GetBufferSize());
         return byteCode;
 #endif
-    }
+        }
 
 #if !defined(ALIMER_DISABLE_SHADER_COMPILER)
-    bool D3D11_Device::LoadShaderCompiler()
+    bool D3D12_Device::LoadShaderCompiler()
     {
 #if (defined(WINAPI_FAMILY_PARTITION) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
         return true;
@@ -1396,7 +1528,7 @@ namespace alimer::rhi
     }
 #endif
 
-    PipelineHandle D3D11_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    PipelineHandle D3D12_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
         RefCountPtr<D3D11_Pipeline> pipeline = RefCountPtr<D3D11_Pipeline>::Create(new D3D11_Pipeline());
         pipeline->device = this;
@@ -1441,7 +1573,7 @@ namespace alimer::rhi
         return pipeline;
     }
 
-    ID3D11BlendState1* D3D11_Device::GetBlendState(const BlendState& state)
+    ID3D11BlendState1* D3D12_Device::GetBlendState(const BlendState& state)
     {
         std::hash<BlendState> hasher;
         size_t hash = hasher(state);
@@ -1482,7 +1614,7 @@ namespace alimer::rhi
         return blendState;
     }
 
-    ID3D11DepthStencilState* D3D11_Device::GetDepthStencilState(const DepthStencilState& state)
+    ID3D11DepthStencilState* D3D12_Device::GetDepthStencilState(const DepthStencilState& state)
     {
         std::hash<DepthStencilState> hasher;
         size_t hash = hasher(state);
@@ -1519,7 +1651,7 @@ namespace alimer::rhi
         return depthStencilState.Get();
     }
 
-    ID3D11RasterizerState1* D3D11_Device::GetRasterizerState(const RasterizerState& state)
+    ID3D11RasterizerState1* D3D12_Device::GetRasterizerState(const RasterizerState& state)
     {
         std::hash<RasterizerState> hasher;
         size_t hash = hasher(state);
@@ -1574,40 +1706,7 @@ namespace alimer::rhi
         return rasterizerState.Get();
     }
 
-    void D3D11_Device::CreateFactory()
-    {
-#if defined(_DEBUG) && (_WIN32_WINNT >= 0x0603 /*_WIN32_WINNT_WINBLUE*/)
-        bool debugDXGI = false;
-        {
-            RefCountPtr<IDXGIInfoQueue> dxgiInfoQueue;
-            if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
-            {
-                debugDXGI = true;
-
-                ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
-
-                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
-                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-
-                DXGI_INFO_QUEUE_MESSAGE_ID hide[] =
-                {
-                    80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
-                };
-                DXGI_INFO_QUEUE_FILTER filter = {};
-                filter.DenyList.NumIDs = static_cast<UINT>(std::size(hide));
-                filter.DenyList.pIDList = hide;
-                dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
-            }
-        }
-
-        if (!debugDXGI)
-#endif
-        {
-            ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(dxgiFactory.ReleaseAndGetAddressOf())));
-        }
-    }
-
-    void D3D11_Device::GetAdapter(IDXGIAdapter1** ppAdapter)
+    void D3D12_Device::GetAdapter(IDXGIAdapter1** ppAdapter)
     {
         *ppAdapter = nullptr;
 
@@ -1673,14 +1772,19 @@ namespace alimer::rhi
         *ppAdapter = adapter.Detach();
     }
 
-    void D3D11_Device::HandleDeviceLost()
+    void D3D12_Device::HandleDeviceLost()
     {
         // TODO
     }
 
-    DeviceHandle CreateD3D11Device(alimer::Window* window, const PresentationParameters& presentationParameters)
+    DeviceHandle CreateD3D12Device(alimer::Window* window, const PresentationParameters& presentationParameters)
     {
-        auto device = new D3D11_Device();
+        if (!D3D12_Device::IsAvailable())
+        {
+            return nullptr;
+        }
+
+        auto device = new D3D12_Device(presentationParameters.validationMode);
         if (device->Initialize(window, presentationParameters))
         {
             return DeviceHandle::Create(device);
@@ -1689,6 +1793,6 @@ namespace alimer::rhi
         delete device;
         return nullptr;
     }
-}
+    }
 
 #endif /* defined(ALIMER_RHI_D3D11) */

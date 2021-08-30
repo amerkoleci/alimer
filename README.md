@@ -27,3 +27,5 @@ Uses the following open-source and third-party libraries:
 - [volk](https://github.com/zeux/volk): Meta loader for Vulkan API
 - [vma](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Vulkan Memory Allocator
 - [SPIRV-Reflect](https://github.com/KhronosGroup/SPIRV-Reflect): SPIRV-Reflect
+- [DirectX-Headers](https://github.com/microsoft/DirectX-Headers): Official MIT licensed Direct3D 12 headers
+- [D3D12MemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator): Easy to integrate memory allocation library for Direct3D 12
