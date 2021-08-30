@@ -722,10 +722,8 @@ namespace alimer::rhi
         currentPass = desc;
         uint32_t width = UINT32_MAX;
         uint32_t height = UINT32_MAX;
-
+        const D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
         uint32_t RTVCount = 0;
-        std::array<D3D12_CPU_DESCRIPTOR_HANDLE, kMaxColorAttachments> RTVs;
-        D3D12_CPU_DESCRIPTOR_HANDLE DSV = {};
 
         for (uint32_t i = 0; i < kMaxColorAttachments; i++)
         {
@@ -733,8 +731,8 @@ namespace alimer::rhi
             if (attachment.texture == nullptr)
                 break;
 
-            auto d3d12Texture = checked_cast<D3D12_Texture*>(attachment.texture);
-            const TextureDesc& textureDesc = d3d12Texture->GetDesc();
+            auto sourceTexture = checked_cast<D3D12_Texture*>(attachment.texture);
+            const TextureDesc& textureDesc = sourceTexture->GetDesc();
 
             const uint32_t mipLevel = attachment.mipLevel;
             const uint32_t slice = attachment.slice;
@@ -742,11 +740,11 @@ namespace alimer::rhi
             width = Min(width, std::max(1u, textureDesc.width >> mipLevel));
             height = Min(height, std::max(1u, textureDesc.height >> mipLevel));
 
-            RTVs[RTVCount] = d3d12Texture->GetRTV(mipLevel, slice, 1);
+            rtvDescs[RTVCount].cpuDescriptor = sourceTexture->GetRTV(mipLevel, slice, 1);
 
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            barrier.Transition.pResource = d3d12Texture->GetHandle();
+            barrier.Transition.pResource = sourceTexture->GetHandle();
             barrier.Transition.StateBefore = ToD3D12(attachment.initialState);
             barrier.Transition.StateAfter = ToD3D12(attachment.finalState);
             if (attachment.finalState == ResourceStates::Present)
@@ -763,22 +761,92 @@ namespace alimer::rhi
             {
                 default:
                 case LoadAction::Load:
+                    rtvDescs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                     break;
 
                 case LoadAction::Clear:
-                    handle->ClearRenderTargetView(RTVs[RTVCount], &attachment.clearColor.r, 0, nullptr);
+                    rtvDescs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    rtvDescs[i].BeginningAccess.Clear.ClearValue.Format = sourceTexture->dxgiFormat;
+                    rtvDescs[i].BeginningAccess.Clear.ClearValue.Color[0] = attachment.clearColor.r;
+                    rtvDescs[i].BeginningAccess.Clear.ClearValue.Color[1] = attachment.clearColor.g;
+                    rtvDescs[i].BeginningAccess.Clear.ClearValue.Color[2] = attachment.clearColor.b;
+                    rtvDescs[i].BeginningAccess.Clear.ClearValue.Color[3] = attachment.clearColor.a;
                     break;
 
-                case LoadAction::DontCare:
-                    handle->DiscardResource(d3d12Texture->GetHandle(), nullptr);
+                case LoadAction::Discard:
+                    rtvDescs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                     break;
+            }
+
+            switch (attachment.storeAction)
+            {
+                default:
+                case StoreAction::Store:
+                    rtvDescs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case StoreAction::Discard:
+                    rtvDescs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            if (attachment.resolveTexture != nullptr)
+            {
+                auto resolveTexture = checked_cast<D3D12_Texture*>(attachment.resolveTexture);
+
+                //TransitionResource(sourceTexture, D3D12_RESOURCE_STATE_RESOLVE_SOURCE, false);
+                //TransitionResource(resolveTexture, D3D12_RESOURCE_STATE_RESOLVE_DEST, false);
+                //FlushResourceBarriers();
+
+                rtvDescs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE;
+                rtvDescs[i].EndingAccess.Resolve.pSrcResource = sourceTexture->GetHandle();
+                rtvDescs[i].EndingAccess.Resolve.pDstResource = resolveTexture->GetHandle();
+                rtvDescs[i].EndingAccess.Resolve.SubresourceCount = 1;
+
+                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
+                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->desc.mipLevels, sourceTexture->desc.depthOrArraySize);
+
+                subresourceParameters[i].SrcSubresource = srcSubresource;
+                subresourceParameters[i].DstSubresource = dstSubresource;
+                subresourceParameters[i].DstX = 0;
+                subresourceParameters[i].DstY = 0;
+                subresourceParameters[i].SrcRect = { 0, 0, 0, 0 };
+
+                rtvDescs[i].EndingAccess.Resolve.pSubresourceParameters = &subresourceParameters[i];
+                rtvDescs[i].EndingAccess.Resolve.Format = resolveTexture->dxgiFormat;
+
+                // RESOLVE_MODE_AVERAGE is only valid for non-integer formats.
+                switch (GetFormatKind(resolveTexture->desc.format))
+                {
+                    case PixelFormatKind::Integer:
+                        rtvDescs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MAX;
+                        break;
+                    default:
+                        rtvDescs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_AVERAGE;
+                        break;
+                }
+
+                rtvDescs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_AVERAGE;
+
+                // Clear or preserve the resolve source.
+                if (attachment.storeAction == StoreAction::Discard || attachment.storeAction == StoreAction::Clear)
+                {
+                    rtvDescs[i].EndingAccess.Resolve.PreserveResolveSource = false;
+                }
+                else if (attachment.storeAction == StoreAction::Store)
+                {
+                    rtvDescs[i].EndingAccess.Resolve.PreserveResolveSource = true;
+                }
             }
 
             RTVCount++;
         }
 
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsvDesc{};
+        bool hasDepthStencil = false;
         if (desc.depthStencilAttachment.texture != nullptr)
         {
+            hasDepthStencil = true;
             const RenderPassDepthStencilAttachment& attachment = desc.depthStencilAttachment;
 
             auto d3d11Texture = checked_cast<D3D12_Texture*>(attachment.texture);
@@ -787,47 +855,70 @@ namespace alimer::rhi
             width = Min(width, std::max(1u, textureDesc.width >> attachment.mipLevel));
             height = Min(height, std::max(1u, textureDesc.height >> attachment.mipLevel));
 
-            DSV = d3d11Texture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
+            dsvDesc.cpuDescriptor = d3d11Texture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
 
-            D3D12_CLEAR_FLAGS clearFlags = {};
-
-            switch (desc.depthStencilAttachment.depthLoadAction)
+            switch (attachment.depthLoadAction)
             {
                 default:
                 case LoadAction::Load:
+                    dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                     break;
 
                 case LoadAction::Clear:
-                    clearFlags |= D3D12_CLEAR_FLAG_DEPTH;
+                    dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    dsvDesc.DepthBeginningAccess.Clear.ClearValue.Format = d3d11Texture->dxgiFormat;
+                    dsvDesc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.clearDepth;
                     break;
 
-                case LoadAction::DontCare:
-                    //handle->DiscardResource(DSV);
+                case LoadAction::Discard:
+                    dsvDesc.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
-            switch (desc.depthStencilAttachment.stencilLoadAction)
+            switch (attachment.depthStoreAction)
+            {
+                default:
+                case StoreAction::Store:
+                    dsvDesc.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case StoreAction::Discard:
+                    dsvDesc.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            switch (attachment.stencilLoadAction)
             {
                 default:
                 case LoadAction::Load:
+                    dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                     break;
 
                 case LoadAction::Clear:
-                    clearFlags |= D3D12_CLEAR_FLAG_STENCIL;
+                    dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    dsvDesc.StencilBeginningAccess.Clear.ClearValue.Format = d3d11Texture->dxgiFormat;
+                    dsvDesc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = attachment.clearStencil;
                     break;
 
-                case LoadAction::DontCare:
-                    //handle->DiscardResource(DSV);
+                case LoadAction::Discard:
+                    dsvDesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
-            if (clearFlags != 0)
+            switch (attachment.stencilStoreAction)
             {
-                handle->ClearDepthStencilView(DSV, clearFlags, desc.depthStencilAttachment.clearDepth, desc.depthStencilAttachment.clearStencil, 0, nullptr);
+                default:
+                case StoreAction::Store:
+                    dsvDesc.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case StoreAction::Discard:
+                    dsvDesc.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
             }
         }
 
-        handle->OMSetRenderTargets(RTVCount, RTVs.data(), FALSE, &DSV);
+        handle->BeginRenderPass(RTVCount, rtvDescs, hasDepthStencil ? &dsvDesc : nullptr, renderPassFlags);
 
         // The viewport and scissor default to cover all of the attachments
         const D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
@@ -839,6 +930,8 @@ namespace alimer::rhi
 
     void D3D12_CommandList::EndRenderPass()
     {
+        handle->EndRenderPass();
+
         for (uint32_t i = 0; i < kMaxColorAttachments; i++)
         {
             const RenderPassColorAttachment& attachment = currentPass.colorAttachments[i];
@@ -847,61 +940,18 @@ namespace alimer::rhi
 
             auto d3d11Texture = checked_cast<D3D12_Texture*>(attachment.texture);
 
-            switch (attachment.storeAction)
+            if (attachment.finalState == ResourceStates::Present)
             {
-                case StoreAction::Resolve:
-                case StoreAction::StoreAndResolve:
-                {
-                    auto resolveTexture = checked_cast<D3D12_Texture*>(attachment.resolveTexture);
-                    uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
-                    uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, d3d11Texture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
-                    handle->ResolveSubresource(resolveTexture->handle, dstSubresource, d3d11Texture->handle, srcSubresource, d3d11Texture->dxgiFormat);
-                    break;
-                }
-
-                default:
-                    if (attachment.finalState == ResourceStates::Present)
-                    {
-                        D3D12_RESOURCE_BARRIER barrier = {};
-                        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-                        barrier.Transition.pResource = d3d11Texture->handle;
-                        barrier.Transition.StateBefore = (attachment.initialState == ResourceStates::Unknown) ? ToD3D12(ResourceStates::RenderTarget) : ToD3D12(attachment.initialState);
-                        barrier.Transition.StateAfter = ToD3D12(attachment.finalState);
-                        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                        barriers.push_back(barrier);
-                    }
-                    break;
+                D3D12_RESOURCE_BARRIER barrier = {};
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                barrier.Transition.pResource = d3d11Texture->handle;
+                barrier.Transition.StateBefore = (attachment.initialState == ResourceStates::Unknown) ? ToD3D12(ResourceStates::RenderTarget) : ToD3D12(attachment.initialState);
+                barrier.Transition.StateAfter = ToD3D12(attachment.finalState);
+                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barriers.push_back(barrier);
             }
-        }
-
-        if (currentPass.depthStencilAttachment.texture != nullptr)
-        {
-            const RenderPassDepthStencilAttachment& attachment = currentPass.depthStencilAttachment;
-            auto d3d11Texture = checked_cast<D3D12_Texture*>(attachment.texture);
-
-            switch (attachment.depthStoreAction)
-            {
-                case StoreAction::DontCare:
-                {
-                    //auto DSV = d3d11Texture->GetDSV(attachment.mipLevel, attachment.slice, 1);
-                    //handle->DiscardView(DSV);
-                    break;
-                }
-
-                case StoreAction::Resolve:
-                case StoreAction::StoreAndResolve:
-                {
-                    auto resolveTexture = checked_cast<D3D12_Texture*>(attachment.resolveTexture);
-                    uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
-                    uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, d3d11Texture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
-                    handle->ResolveSubresource(resolveTexture->handle, dstSubresource, d3d11Texture->handle, srcSubresource, d3d11Texture->dxgiFormat);
-                    break;
-                }
-
-                default:
-                    break;
-            }
+            break;
         }
     }
 

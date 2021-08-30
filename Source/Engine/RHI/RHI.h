@@ -348,17 +348,16 @@ namespace alimer::rhi
 
     enum class LoadAction : uint32_t
     {
-        Load,
         Clear,
-        DontCare,
+        Load,
+        Discard,
     };
 
     enum class StoreAction : uint32_t
     {
         Store,
-        Resolve,
-        StoreAndResolve,
-        DontCare,
+        Discard,
+        Clear
     };
 
     /* Forward declarations */
@@ -605,7 +604,7 @@ namespace alimer::rhi
         ITexture* resolveTexture = nullptr;
         uint32_t resolveLevel = 0;
         uint32_t resolveSlice = 0;
-        LoadAction loadAction = LoadAction::DontCare;
+        LoadAction loadAction = LoadAction::Discard;
         StoreAction storeAction = StoreAction::Store;
 
         ResourceStates initialState = ResourceStates::Unknown;
@@ -625,9 +624,9 @@ namespace alimer::rhi
         uint32_t resolveSlice = 0;
 
         LoadAction depthLoadAction = LoadAction::Clear;
-        StoreAction depthStoreAction = StoreAction::DontCare;
+        StoreAction depthStoreAction = StoreAction::Discard;
         LoadAction stencilLoadAction = LoadAction::Clear;
-        StoreAction stencilStoreAction = StoreAction::DontCare;
+        StoreAction stencilStoreAction = StoreAction::Discard;
         float clearDepth = 1.0;
         uint8_t clearStencil = 0;
         bool depthStencilReadOnly = false;

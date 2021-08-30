@@ -119,6 +119,8 @@ namespace alimer::rhi
         RenderPassDesc currentPass = {};
 
         std::vector<D3D12_RESOURCE_BARRIER> barriers;
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC rtvDescs[kMaxColorAttachments] = {};
+        D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS subresourceParameters[kMaxColorAttachments] = {};
 
     public:
         D3D12_CommandList(D3D12_Device* device_, CommandQueue queue_);
