@@ -380,6 +380,10 @@ namespace alimer::rhi
         Format depthStencilFormat = Format::Undefined;
         TextureHandle depthStencilTexture;
 
+        uint64_t frameCount = 0;
+        uint32_t frameIndex = 0;
+
+
     public:
         [[nodiscard]] static bool IsAvailable();
 
@@ -391,6 +395,9 @@ namespace alimer::rhi
         ICommandList* BeginFrame() override;
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
+
+        uint64_t GetFrameCount() const override { return frameCount; }
+        uint32_t GetFrameIndex() const override { return frameIndex; }
 
         ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
 
@@ -406,8 +413,7 @@ namespace alimer::rhi
         uint32_t GetBackBufferCount() const override { return 1; }
         ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
-        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
-        TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) override;
+        TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
     };
@@ -1056,20 +1062,9 @@ namespace alimer::rhi
 
     }
 
-    TextureHandle Vulkan_Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+    TextureHandle Vulkan_Device::CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
-        auto result = new Vulkan_Texture(this, nullptr, desc, initialData);
-
-        if (result->handle != VK_NULL_HANDLE)
-            return TextureHandle::Create(result);
-
-        delete result;
-        return nullptr;
-    }
-
-    TextureHandle Vulkan_Device::CreateExternalTexture(void* nativeHandle, const TextureDesc& desc)
-    {
-        auto result = new Vulkan_Texture(this, nativeHandle, desc, nullptr);
+        auto result = new Vulkan_Texture(this, nativeHandle, desc, initialData);
 
         if (result->handle != VK_NULL_HANDLE)
             return TextureHandle::Create(result);

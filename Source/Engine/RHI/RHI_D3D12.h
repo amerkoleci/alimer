@@ -7,9 +7,6 @@
 #include "PlatformInclude.h"
 #include <dxgi1_6.h>
 
-//#define D3D11_NO_HELPERS
-#include <d3d11_1.h>
-
 #include "directx/d3d12.h"
 #define D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED
 #include "D3D12MemAlloc.h"
@@ -18,28 +15,29 @@
 #   include <dxgidebug.h>
 #endif
 
+#include <deque>
 #include <unordered_map>
 
 namespace alimer::rhi
 {
-    struct D3D11_ViewKey
+    struct D3D12_ViewKey
     {
         Format format = Format::Undefined;
         TextureSubresourceSet set;
         bool isReadOnlyDSV = false;
 
-        D3D11_ViewKey()
+        D3D12_ViewKey()
         {
         }
 
-        D3D11_ViewKey(const TextureSubresourceSet& set_, alimer::rhi::Format format_, bool isReadOnlyDSV_ = false)
+        D3D12_ViewKey(const TextureSubresourceSet& set_, alimer::rhi::Format format_, bool isReadOnlyDSV_ = false)
             : set(set_)
             , format(format_)
             , isReadOnlyDSV(isReadOnlyDSV_)
         {
         }
 
-        bool operator== (const D3D11_ViewKey& rhs) const
+        bool operator== (const D3D12_ViewKey& rhs) const
         {
             return format == rhs.format && set == rhs.set && isReadOnlyDSV == rhs.isReadOnlyDSV;
         }
@@ -47,30 +45,31 @@ namespace alimer::rhi
 
     class D3D12_Device;
 
-    class D3D11_Texture final : public RefCounter<ITexture>
+    class D3D12_Texture final : public RefCounter<ITexture>
     {
     public:
         D3D12_Device* device;
         TextureDesc desc;
         DXGI_FORMAT dxgiFormat;
-        RefCountPtr<ID3D11Resource> handle;
+        ID3D12Resource* handle = nullptr;
+        D3D12MA::Allocation* allocation = nullptr;
 
-        D3D11_Texture(D3D12_Device* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData);
-        ~D3D11_Texture() override;
+        ~D3D12_Texture() override;
 
         IDevice* GetDevice() const override;
         const TextureDesc& GetDesc() const override { return desc; }
         //uint64_t GetAllocatedSize() const override { return allocatedSize; }
 
-        ID3D11RenderTargetView* GetRTV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1);
-        ID3D11DepthStencilView* GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
+        auto GetHandle() const noexcept { return handle; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1);
+        D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
 
     private:
         void ApiSetName(const std::string_view& newName) override;
 
         struct ViewInfoHashFunc
         {
-            std::size_t operator()(const D3D11_ViewKey& key) const
+            std::size_t operator()(const D3D12_ViewKey& key) const
             {
                 size_t hash = 0;
                 alimer::rhi::hash_combine(hash, static_cast<uint32_t>(key.format));
@@ -80,62 +79,53 @@ namespace alimer::rhi
             }
         };
 
-        std::unordered_map<D3D11_ViewKey, RefCountPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> shaderResourceViews;
-        std::unordered_map<D3D11_ViewKey, RefCountPtr<ID3D11RenderTargetView>, ViewInfoHashFunc> renderTargetViews;
-        std::unordered_map<D3D11_ViewKey, RefCountPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> depthStencilViews;
-        std::unordered_map<D3D11_ViewKey, RefCountPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> unorderedAccessViews;
+        std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> shaderResourceViews;
+        std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> renderTargetViews;
+        std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> depthStencilViews;
+        std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> unorderedAccessViews;
     };
 
-    class D3D11_Shader final : public RefCounter<IShader>
+    class D3D12_Shader final : public RefCounter<IShader>
     {
     public:
-        IDevice* device = nullptr;
+        D3D12_Device* device = nullptr;
         ShaderStages stage = ShaderStages::None;
-        RefCountPtr<ID3D11VertexShader> VS;
-        RefCountPtr<ID3D11HullShader> HS;
-        RefCountPtr<ID3D11DomainShader> DS;
-        RefCountPtr<ID3D11GeometryShader> GS;
-        RefCountPtr<ID3D11PixelShader> PS;
-        RefCountPtr<ID3D11ComputeShader> CS;
-        std::vector<char> bytecode;
+        std::vector<uint8_t> bytecode;
 
-        IDevice* GetDevice() const override { return device; }
+        IDevice* GetDevice() const override;
         ShaderStages GetStage() const override { return stage; }
         void ApiSetName(const std::string_view& newName) override;
     };
 
-    class D3D11_Pipeline : public RefCounter<IPipeline>
+    class D3D12_Pipeline : public RefCounter<IPipeline>
     {
     public:
-        IDevice* device = nullptr;
+        D3D12_Device* device = nullptr;
         ShaderStages shaderStages = ShaderStages::None;
-        RefCountPtr<ID3D11VertexShader> vertex;
-        RefCountPtr<ID3D11HullShader> hull;
-        RefCountPtr<ID3D11DomainShader> domain;
-        RefCountPtr<ID3D11GeometryShader> geometry;
-        RefCountPtr<ID3D11PixelShader> pixel;
-
-        ID3D11BlendState1* blendState = nullptr;
-        ID3D11DepthStencilState* depthStencilState = nullptr;
-        ID3D11RasterizerState1* rasterizerState = nullptr;
-
-        ID3D11InputLayout* inputLayout = nullptr;
+        RefCountPtr<ID3D12PipelineState> handle;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
-        IDevice* GetDevice() const override { return device; }
+        IDevice* GetDevice() const override;
         void ApiSetName(const std::string_view& newName) override;
     };
 
-    class D3D11_CommandList final : public ICommandList
+    class D3D12_CommandList final : public ICommandList
     {
     private:
-        IDevice* device;
-        RefCountPtr<ID3D11DeviceContext1>       context;
-        RefCountPtr<ID3DUserDefinedAnnotation>  annotation;
+        D3D12_Device* device;
+        CommandQueue queue;
+        RefCountPtr<ID3D12CommandAllocator> commandAllocators[kMaxFramesInFlight];
+        RefCountPtr<ID3D12GraphicsCommandList4> handle;
         RenderPassDesc currentPass = {};
 
+        std::vector<D3D12_RESOURCE_BARRIER> barriers;
+
     public:
-        D3D11_CommandList(IDevice* device_, ID3D11DeviceContext* context_);
+        D3D12_CommandList(D3D12_Device* device_, CommandQueue queue_);
+
+        void Reset(uint32_t frameIndex);
+        ID3D12CommandList* Commit();
+        void FlushBarriers();
 
         void PushDebugGroup(const std::string_view& name) override;
         void PopDebugGroup() override;
@@ -146,7 +136,7 @@ namespace alimer::rhi
         void EndRenderPass() override;
 
         void SetPipeline(_In_ IPipeline* pipeline) override;
-        void BindRenderPipeline(const D3D11_Pipeline* pipeline);
+        void BindRenderPipeline(const D3D12_Pipeline* pipeline);
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
     };
 
@@ -163,18 +153,120 @@ namespace alimer::rhi
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC             fullScreenDesc{};
 #endif
 
-        RefCountPtr<ID3D11Device1>          d3dDevice;
+        RefCountPtr<ID3D12Device5>          d3dDevice;
         D3D_FEATURE_LEVEL                   featureLevel{};
-        RefCountPtr<ID3D11DeviceContext1>   immediateContext;
-        std::unique_ptr<D3D11_CommandList>  commandList;
+        D3D12MA::Allocator*                 allocator = nullptr;
+
+        struct Queue
+        {
+            RefCountPtr<ID3D12CommandQueue> queue;
+            RefCountPtr<ID3D12Fence> fence;
+            RefCountPtr<ID3D12Fence> frameFence[kMaxFramesInFlight];
+            ID3D12CommandList* submitCommandLists[kMaxCommandLists] = {};
+            uint32_t submitCount = 0;
+        } queues[(uint8_t)CommandQueue::Count];
+
+        struct DescriptorAllocator
+        {
+            D3D12_Device* device = nullptr;
+            std::mutex locker;
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            std::vector<ID3D12DescriptorHeap*> heaps;
+            uint32_t descriptorSize = 0;
+            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> freeList;
+
+            void Init(D3D12_Device* device_, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+            {
+                device = device_;
+                desc.Type = type;
+                desc.NumDescriptors = numDescriptors;
+                descriptorSize = device->d3dDevice->GetDescriptorHandleIncrementSize(type);
+            }
+
+            void Shutdown()
+            {
+                for (auto heap : heaps)
+                {
+                    heap->Release();
+                }
+                heaps.clear();
+            }
+
+            void BlockAllocate()
+            {
+                heaps.emplace_back();
+                ThrowIfFailed(device->d3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&heaps.back())));
+
+                D3D12_CPU_DESCRIPTOR_HANDLE heap_start = heaps.back()->GetCPUDescriptorHandleForHeapStart();
+                for (UINT i = 0; i < desc.NumDescriptors; ++i)
+                {
+                    D3D12_CPU_DESCRIPTOR_HANDLE handle = heap_start;
+                    handle.ptr += i * descriptorSize;
+                    freeList.push_back(handle);
+                }
+            }
+
+            D3D12_CPU_DESCRIPTOR_HANDLE Allocate()
+            {
+                locker.lock();
+                if (freeList.empty())
+                {
+                    BlockAllocate();
+                }
+
+                ALIMER_ASSERT(!freeList.empty());
+
+                D3D12_CPU_DESCRIPTOR_HANDLE handle = freeList.back();
+                freeList.pop_back();
+                locker.unlock();
+                return handle;
+            }
+
+            void Free(D3D12_CPU_DESCRIPTOR_HANDLE index)
+            {
+                locker.lock();
+                freeList.push_back(index);
+                locker.unlock();
+            }
+        };
+
+        DescriptorAllocator resourceDescriptorAllocator;
+        DescriptorAllocator samplerDescriptorAllocator;
+        DescriptorAllocator rtvDescriptorAllocator;
+        DescriptorAllocator dsvDescriptorAllocator;
+
+        struct CommandListMetadata
+        {
+            CommandQueue queue = {};
+            std::vector<uint8_t> waits;
+        } commandListMeta[kMaxCommandLists];
+        std::atomic_uint8_t commandListCount{ 0 };
+
+        std::unique_ptr<D3D12_CommandList> commandLists[kMaxCommandLists][(uint8_t)CommandQueue::Count];
+        inline D3D12_CommandList* GetCommandList(uint8_t cmd)
+        {
+            return commandLists[cmd][(uint8_t)commandListMeta[cmd].queue].get();
+        }
+
+        uint64_t frameCount = 0;
+        uint32_t frameIndex = 0;
 
         RefCountPtr<IDXGISwapChain3> swapChain;
-        TextureHandle backBuffer;
+        std::vector<TextureHandle> backBuffers;
         Format depthStencilFormat = Format::Undefined;
         TextureHandle depthStencilTexture;
 
+        // Destroy logic
+        bool shuttingDown = false;
+        SRWLOCK destroyMutex = SRWLOCK_INIT;
+        std::deque<std::pair<D3D12MA::Allocation*, uint64_t>> deferredAllocations;
+        std::deque<std::pair<IUnknown*, uint64_t>> deferredReleases;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessResources;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessSamplers;
+
         void GetAdapter(IDXGIAdapter1** ppAdapter);
         void HandleDeviceLost();
+        void ProcessDeletionQueue();
 
     public:
         [[nodiscard]] static bool IsAvailable();
@@ -184,42 +276,61 @@ namespace alimer::rhi
 
         bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
         void WaitIdle() override;
+        void DeferDestroy(IUnknown* resource, D3D12MA::Allocation* allocation = nullptr);
+
+        ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics);
+        void SubmitCommandLists();
+
         ICommandList* BeginFrame() override;
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
         void AfterReset();
 
         auto GetD3DDevice() const noexcept { return d3dDevice.Get(); }
+        auto GetGraphicsQueue() const noexcept { return queues[(uint8_t)CommandQueue::Graphics].queue.Get(); }
+        auto GetComputeQueue() const noexcept { return queues[(uint8_t)CommandQueue::Compute].queue.Get(); }
 
-        ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
+        D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type);
+        void FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+        uint32_t GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+
+        uint64_t GetFrameCount() const override { return frameCount; }
+        uint32_t GetFrameIndex() const override { return frameIndex; }
+
+        ITexture* GetCurrentBackBuffer() const override
+        {
+            return backBuffers[swapChain->GetCurrentBackBufferIndex()].Get();
+        }
 
         ITexture* GetBackBuffer(uint32_t index) const override
         {
-            if (index == 0)
-                return backBuffer;
+            if (index < backBuffers.size())
+            {
+                return backBuffers[index].Get();
+            }
 
             return nullptr;
         }
 
-        uint32_t GetCurrentBackBufferIndex() const override { return 0; }
-        uint32_t GetBackBufferCount() const override { return 1; }
+        uint32_t GetCurrentBackBufferIndex() const override
+        {
+            return swapChain->GetCurrentBackBufferIndex();
+        }
+
+        uint32_t GetBackBufferCount() const override
+        {
+            return swapChainDesc.BufferCount;
+        }
+
         ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
-        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) override;
-        TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) override;
+        TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
 
         PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:
-        ID3D11BlendState1* GetBlendState(const BlendState& state);
-        ID3D11DepthStencilState* GetDepthStencilState(const DepthStencilState& state);
-        ID3D11RasterizerState1* GetRasterizerState(const RasterizerState& state);
-
-        std::unordered_map<size_t, RefCountPtr<ID3D11BlendState1>> blendStates;
-        std::unordered_map<size_t, RefCountPtr<ID3D11DepthStencilState>> depthStencilStates;
-        std::unordered_map<size_t, RefCountPtr<ID3D11RasterizerState1>> rasterizerStates;
 
 #if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         bool D3DCompiler_LoadFailed = false;

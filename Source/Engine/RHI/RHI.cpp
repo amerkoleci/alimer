@@ -3,6 +3,7 @@
 
 #include "RHI.h"
 #include "Window.h"
+#include "Core/Log.h"
 
 namespace alimer::rhi
 {
@@ -143,6 +144,52 @@ namespace alimer::rhi
 #endif
 
         return nullptr;
+    }
+
+    TextureHandle IDevice::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+    {
+        if (!VerifyTextureDesc(desc))
+        {
+            return nullptr;
+        }
+
+        return CreateTextureCore(desc, nullptr, initialData);
+    }
+
+    TextureHandle IDevice::CreateExternalTexture(void* nativeHandle, const TextureDesc& desc)
+    {
+        if (!VerifyTextureDesc(desc))
+        {
+            return nullptr;
+        }
+
+        return CreateTextureCore(desc, nativeHandle, nullptr);
+    }
+
+    bool IDevice::VerifyTextureDesc(const TextureDesc& desc)
+    {
+        ALIMER_ASSERT(desc.width >= 1);
+        ALIMER_ASSERT(desc.height >= 1);
+        ALIMER_ASSERT(desc.depthOrArraySize >= 1);
+        ALIMER_ASSERT(desc.usage != TextureUsage::None);
+
+        if ((desc.usage & TextureUsage::ShaderWrite) != 0)
+        {
+            // Check storage support
+            //if (!Any(gGraphics().GetCaps().formatProperties[(uint32_t)desc.format].features, PixelFormatFeatures::Storage))
+            //{
+            //    LOGE("PixelFormat doesn't support shader write");
+            //    return nullptr;
+            //}
+
+            if (Any(desc.usage, TextureUsage::RenderTarget) && IsDepthStencilFormat(desc.format))
+            {
+                LOGE("Cannot create DepthStencil texture with ShaderWrite usage");
+                return false;
+            }
+        }
+
+        return true;
     }
 
 #if TODO

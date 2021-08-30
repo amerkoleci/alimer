@@ -45,13 +45,14 @@ namespace alimer
 namespace alimer::rhi
 {
     /* Constants */
-    static constexpr uint32_t kMaxFramesInFlight = 3;
+    static constexpr uint32_t kMaxFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
     static constexpr uint32_t kMaxViewportsAndScissors = 8;
     static constexpr uint32_t kMaxVertexBufferBindings = 4;
     static constexpr uint32_t kMaxVertexAttributes = 16;
     static constexpr uint32_t kMaxVertexAttributeOffset = 2047u;
     static constexpr uint32_t kMaxVertexBufferStride = 2048u;
+    static constexpr uint32_t kMaxCommandLists = 32u;
     //static constexpr uint32_t kMaxUniformBufferBindings = 14;
     //static constexpr uint32_t kMaxDescriptorBindings = 32;
     //static constexpr uint32_t kMaxUniformBufferSize = 16 * 1024;
@@ -80,6 +81,41 @@ namespace alimer::rhi
         /// Enable GPU-based validation
         GPU
     };
+
+    enum class CommandQueue : uint8_t
+    {
+        Graphics = 0,
+        Compute,
+
+        Count
+    };
+
+    enum class ResourceStates : uint32_t
+    {
+        Unknown = 0,
+        Common = 0x00000001,
+        ConstantBuffer = 0x00000002,
+        VertexBuffer = 0x00000004,
+        IndexBuffer = 0x00000008,
+        IndirectArgument = 0x00000010,
+        ShaderResource = 0x00000020,
+        UnorderedAccess = 0x00000040,
+        RenderTarget = 0x00000080,
+        DepthWrite = 0x00000100,
+        DepthRead = 0x00000200,
+        StreamOut = 0x00000400,
+        CopyDest = 0x00000800,
+        CopySource = 0x00001000,
+        ResolveDest = 0x00002000,
+        ResolveSource = 0x00004000,
+        Present = 0x00008000,
+        AccelerationStructureRead = 0x00010000,
+        AccelerationStructureWrite = 0x00020000,
+        AccelerationStructureBuildInput = 0x00040000,
+        AccelerationStructureBuildBlas = 0x00080000,
+        ShadingRateSurface = 0x00100000,
+    };
+    RHI_DEFINE_ENUM_BITWISE_OPERATORS(ResourceStates);
 
     enum class Format : uint32_t
     {
@@ -344,6 +380,7 @@ namespace alimer::rhi
         uint32_t mipLevels = 1;
         TextureUsage usage = TextureUsage::ShaderRead;
         uint32_t sampleCount = 1;
+        ResourceStates initialState = ResourceStates::Unknown;
 
         static inline TextureDesc Tex1D(
             Format format,
@@ -570,6 +607,10 @@ namespace alimer::rhi
         uint32_t resolveSlice = 0;
         LoadAction loadAction = LoadAction::DontCare;
         StoreAction storeAction = StoreAction::Store;
+
+        ResourceStates initialState = ResourceStates::Unknown;
+        ResourceStates finalState = ResourceStates::RenderTarget;
+
         Color clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
     };
 
@@ -601,7 +642,6 @@ namespace alimer::rhi
     struct PresentationParameters
     {
         ValidationMode validationMode = ValidationMode::Disabled;
-        uint32_t maxFramesInFlight = 2;
 
         uint32_t backBufferWidth = 0;
         uint32_t backBufferHeight = 0;
@@ -727,18 +767,25 @@ namespace alimer::rhi
         [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
         [[nodiscard]] virtual ITexture* GetBackBufferDepthStencilTexture() const = 0;
 
+        [[nodiscard]] virtual uint64_t GetFrameCount() const = 0;
+        [[nodiscard]] virtual uint32_t GetFrameIndex() const = 0;
+
         /// Return backbuffer width.
         [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
         /// Return backbuffer height.
         [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
 
-        [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr) = 0;
-        [[nodiscard]] virtual TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc) = 0;
+        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
+        TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc);
 
         [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
         /// Create new render pipeline.
         [[nodiscard]] virtual PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
+
+    private:
+        bool VerifyTextureDesc(const TextureDesc& desc);
+        virtual TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
 
     protected:
         uint32_t backBufferWidth = 0;

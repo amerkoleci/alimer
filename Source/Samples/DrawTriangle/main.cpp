@@ -8,7 +8,7 @@ using namespace alimer::rhi;
 class HelloWorldApp final : public Application
 {
 private:
-    TextureHandle texture;
+    //TextureHandle texture;
     ShaderHandle vertexShader;
     ShaderHandle pixelShader;
     PipelineHandle renderPipeline;
@@ -27,8 +27,8 @@ public:
 
     bool Initialize(int argc, const char* argv[]) override
     {
-        texture = rhiDevice->CreateTexture(TextureDesc::Tex2D(Format::RGBA8UNorm, 4, 4));
-        texture->SetName("TEST");
+        //texture = rhiDevice->CreateTexture(TextureDesc::Tex2D(Format::RGBA8UNorm, 4, 4));
+        //texture->SetName("TEST");
 
         static const char* shaderSource = R"(
 static const float2 g_positions[] = {
@@ -75,8 +75,8 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
     void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
     {
-        commandList->SetPipeline(renderPipeline);
-        commandList->Draw(0, 3);
+        //commandList->SetPipeline(renderPipeline);
+        //commandList->Draw(0, 3);
     }
 };
 
