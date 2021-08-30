@@ -102,9 +102,11 @@ namespace alimer::rhi
     public:
         D3D12_Device* device = nullptr;
         ShaderStages shaderStages = ShaderStages::None;
-        RefCountPtr<ID3D12PipelineState> handle;
+        ID3D12RootSignature* rootSignature = nullptr;
+        ID3D12PipelineState* handle = nullptr;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
+        ~D3D12_Pipeline() override;
         IDevice* GetDevice() const override;
         void ApiSetName(const std::string_view& newName) override;
     };

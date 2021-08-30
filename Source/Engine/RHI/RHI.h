@@ -357,7 +357,6 @@ namespace alimer::rhi
     {
         Store,
         Discard,
-        Clear
     };
 
     /* Forward declarations */
@@ -589,9 +588,9 @@ namespace alimer::rhi
         RasterizerState         rasterizerState;
         PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
         uint32_t                patchControlPoints = 0;
-        //PixelFormat             colorFormats[kMaxSimultaneousRenderTargets] = {};
-        //PixelFormat             depthStencilFormat = PixelFormat::Undefined;
-        //SampleCount             sampleCount = SampleCount::Count1;
+        Format                  colorFormats[kMaxColorAttachments] = {};
+        Format                  depthStencilFormat = Format::Undefined;
+        uint32_t                sampleCount = 1;
     };
 
 

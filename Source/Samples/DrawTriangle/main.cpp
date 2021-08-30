@@ -69,14 +69,16 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         RenderPipelineDesc renderPipelineDesc;
         renderPipelineDesc.vertex = vertexShader;
         renderPipelineDesc.pixel = pixelShader;
+        renderPipelineDesc.colorFormats[0] = Format::BGRA8UNorm;
+        renderPipelineDesc.depthStencilFormat = Format::Depth32Float;
         renderPipeline = rhiDevice->CreateRenderPipeline(renderPipelineDesc);
         return true;
     }
 
     void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
     {
-        //commandList->SetPipeline(renderPipeline);
-        //commandList->Draw(0, 3);
+        commandList->SetPipeline(renderPipeline);
+        commandList->Draw(0, 3);
     }
 };
 
