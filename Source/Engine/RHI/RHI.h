@@ -236,7 +236,14 @@ namespace alimer::rhi
 
     enum class BufferUsage : uint32_t
     {
-        None,
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Constant = 1 << 2,
+        ShaderRead = 1 << 3,
+        ShaderWrite = 1 << 4,
+        Indirect = 1 << 5,
+        RayTracingAccelerationStructure = 1 << 6,
     };
     RHI_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
 
@@ -807,6 +814,7 @@ namespace alimer::rhi
         virtual void EndRenderPass() = 0;
 
         virtual void SetPipeline(_In_ IPipeline* pipeline) = 0;
+        virtual void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) = 0;
         virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
     };
 

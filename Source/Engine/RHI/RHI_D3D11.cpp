@@ -24,7 +24,7 @@ extern "C"
 namespace alimer::rhi
 {
     extern DXGI_FORMAT ToDXGIFormat(Format format);
-    
+
     namespace
     {
 #if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -246,7 +246,7 @@ namespace alimer::rhi
         }
     }
 
-    
+
     D3D11_Texture::~D3D11_Texture()
     {
         shaderResourceViews.clear();
@@ -420,6 +420,18 @@ namespace alimer::rhi
         SetDebugName(handle, newName);
     }
 
+    /* D3D11_Buffer */
+    IDevice* D3D11_Buffer::GetDevice() const
+    {
+        return device;
+    }
+
+    void D3D11_Buffer::ApiSetName(const std::string_view& newName)
+    {
+        SetDebugName(handle, newName);
+    }
+
+    /* D3D11_Shader */
     void D3D11_Shader::ApiSetName(const std::string_view& newName)
     {
         if (VS)
@@ -429,6 +441,7 @@ namespace alimer::rhi
             SetDebugName(PS, newName);
     }
 
+    /* D3D11_Pipeline */
     void D3D11_Pipeline::ApiSetName(const std::string_view& newName)
     {
 
@@ -697,6 +710,14 @@ namespace alimer::rhi
         context->OMSetBlendState(pipeline->blendState, blendColor, D3D11_DEFAULT_SAMPLE_MASK);
         context->OMSetDepthStencilState(pipeline->depthStencilState, D3D11_DEFAULT_STENCIL_REFERENCE);
         context->RSSetState(pipeline->rasterizerState);
+    }
+
+    void D3D11_CommandList::SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer)
+    {
+        ID3D11Buffer* resource =  checked_cast<D3D11_Buffer*>(buffer)->handle;
+        const UINT stride = 28;
+        const UINT offset = 0;
+        context->IASetVertexBuffers(index, 1, &resource, &stride, &offset);
     }
 
     void D3D11_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
@@ -1127,12 +1148,197 @@ namespace alimer::rhi
 
     BufferHandle D3D11_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
     {
-        return nullptr;
+        auto buffer = new D3D11_Buffer();
+        buffer->device = this;
+        buffer->desc = desc;
+
+        D3D11_BUFFER_DESC d3d11Desc;
+        d3d11Desc.ByteWidth = (UINT)desc.size;
+
+        switch (desc.resourceUsage)
+        {
+            case GPUResourceUsage::Dynamic:
+                d3d11Desc.Usage = D3D11_USAGE_DYNAMIC;
+                d3d11Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+                break;
+            case GPUResourceUsage::StagingUpload:
+                d3d11Desc.Usage = D3D11_USAGE_STAGING;
+                d3d11Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+                break;
+
+            case GPUResourceUsage::StagingReadback:
+                d3d11Desc.Usage = D3D11_USAGE_STAGING;
+                d3d11Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+                break;
+            default:
+                d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
+                d3d11Desc.CPUAccessFlags = 0;
+                break;
+        }
+
+        d3d11Desc.MiscFlags = 0;
+        d3d11Desc.StructureByteStride = 0;
+        
+        if ((desc.usage & BufferUsage::Constant) != 0)
+        {
+            d3d11Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+            d3d11Desc.ByteWidth = AlignTo(d3d11Desc.ByteWidth, 16u);
+        }
+        else
+        {
+            d3d11Desc.BindFlags = 0;
+
+            if ((desc.usage & BufferUsage::Vertex) != 0)
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
+            }
+
+            if ((desc.usage & BufferUsage::Index) != 0)
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
+            }
+
+            if ((desc.usage & BufferUsage::ShaderRead) != 0)
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+            }
+
+            if ((desc.usage & BufferUsage::ShaderWrite) != 0)
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+            }
+
+            if ((desc.usage & BufferUsage::Indirect) != 0)
+            {
+                d3d11Desc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+            }
+
+            //if (desc.stride != 0)
+            //    d3d11Desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+        }
+
+        D3D11_SUBRESOURCE_DATA subresourceData;
+        if (initialData != nullptr)
+        {
+            subresourceData.pSysMem = initialData;
+            subresourceData.SysMemPitch = 0;
+            subresourceData.SysMemSlicePitch = 0;
+        }
+        const HRESULT hr = d3dDevice->CreateBuffer(&d3d11Desc,
+            initialData != nullptr ? &subresourceData : nullptr,
+            &buffer->handle);
+        if (FAILED(hr))
+        {
+            delete buffer;
+            return nullptr;
+        }
+
+        return BufferHandle::Create(buffer);
     }
 
     SamplerHandle D3D11_Device::CreateSampler(const SamplerDesc& desc)
     {
         return nullptr;
+    }
+
+    DXGI_FORMAT GetFormatFromComponetType(D3D_REGISTER_COMPONENT_TYPE componentType, unsigned int componentsCount)
+    {
+        if (componentsCount == 1)
+        {
+            switch (componentType)
+            {
+                case D3D_REGISTER_COMPONENT_UINT32:
+                    return DXGI_FORMAT_R32_UINT;
+                case D3D_REGISTER_COMPONENT_SINT32:
+                    return DXGI_FORMAT_R32_SINT;
+                case D3D_REGISTER_COMPONENT_FLOAT32:
+                    return DXGI_FORMAT_R32_FLOAT;
+                default:
+                    break;
+            }
+        }
+        else if (componentsCount <= 3)
+        {
+            switch (componentType)
+            {
+                case D3D_REGISTER_COMPONENT_UINT32:
+                    return DXGI_FORMAT_R32G32_UINT;
+                case D3D_REGISTER_COMPONENT_SINT32:
+                    return DXGI_FORMAT_R32G32_SINT;
+                case D3D_REGISTER_COMPONENT_FLOAT32:
+                    return DXGI_FORMAT_R32G32_FLOAT;
+                default:
+                    break;
+            }
+        }
+        else if (componentsCount <= 7)
+        {
+            switch (componentType)
+            {
+                case D3D_REGISTER_COMPONENT_UINT32:
+                    return DXGI_FORMAT_R32G32B32_UINT;
+                case D3D_REGISTER_COMPONENT_SINT32:
+                    return DXGI_FORMAT_R32G32B32_SINT;
+                case D3D_REGISTER_COMPONENT_FLOAT32:
+                    return DXGI_FORMAT_R32G32B32_FLOAT;
+                default:
+                    break;
+            }
+        }
+        else if (componentsCount <= 15)
+        {
+            switch (componentType)
+            {
+                case D3D_REGISTER_COMPONENT_UINT32:
+                    return DXGI_FORMAT_R32G32B32A32_UINT;
+                case D3D_REGISTER_COMPONENT_SINT32:
+                    return DXGI_FORMAT_R32G32B32A32_SINT;
+                case D3D_REGISTER_COMPONENT_FLOAT32:
+                    return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                default:
+                    break;
+            }
+        }
+
+        // error, unknown dxgi format
+        return DXGI_FORMAT_UNKNOWN;
+    }
+
+    HRESULT CreateInputLayoutFromBlob(ID3D11Device* device, const void* pShaderBytecode, size_t BytecodeLength, ID3D11InputLayout** inputLayout)
+    {
+        RefCountPtr<ID3D11ShaderReflection> reflection = nullptr;
+        HRESULT hr = D3DReflect(pShaderBytecode, BytecodeLength, IID_PPV_ARGS(&reflection));
+        if (FAILED(hr))
+        {
+            // error, failed to get shader reflection interface
+            return hr;
+        }
+
+        D3D11_SHADER_DESC shaderDesc{ 0 };
+        reflection->GetDesc(&shaderDesc);
+
+        std::vector<D3D11_INPUT_ELEMENT_DESC> inputLayoutDesc;
+        for (UINT i = 0; i < shaderDesc.InputParameters; i++)
+        {
+            D3D11_SIGNATURE_PARAMETER_DESC parameterDesc;
+            reflection->GetInputParameterDesc(i, &parameterDesc);
+
+            DXGI_FORMAT format = GetFormatFromComponetType(parameterDesc.ComponentType, parameterDesc.Mask);
+            D3D11_INPUT_ELEMENT_DESC elementDesc =
+            {
+                parameterDesc.SemanticName,
+                parameterDesc.SemanticIndex,
+                format,
+                0, // InputSlot
+                D3D11_APPEND_ALIGNED_ELEMENT, // AlignedByOffset
+                D3D11_INPUT_PER_VERTEX_DATA, // InputSlotClass
+                0, // InstanceDataStepRate
+            };
+            inputLayoutDesc.push_back(elementDesc);
+        }
+
+        hr = device->CreateInputLayout(inputLayoutDesc.data(), (UINT)inputLayoutDesc.size(), pShaderBytecode, BytecodeLength, inputLayout);
+        return hr;
     }
 
     ShaderHandle D3D11_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
@@ -1152,10 +1358,17 @@ namespace alimer::rhi
                 shader->bytecode.resize(byteCode.size());
                 memcpy(shader->bytecode.data(), byteCode.data(), byteCode.size());
 
-                const HRESULT res = d3dDevice->CreateVertexShader(byteCode.data(), byteCode.size(), nullptr, &shader->VS);
+                 HRESULT res = d3dDevice->CreateVertexShader(byteCode.data(), byteCode.size(), nullptr, &shader->VS);
                 if (FAILED(res))
                 {
                     LOGE("Direct3D11: Failed to CreateVertexShader");
+                    return nullptr;
+                }
+
+                res = CreateInputLayoutFromBlob(d3dDevice.Get(), byteCode.data(), byteCode.size(), shader->inputLayout.GetAddressOf());
+                if (FAILED(res))
+                {
+                    // error, failed to create the shader input layout
                     return nullptr;
                 }
             }
@@ -1326,6 +1539,7 @@ namespace alimer::rhi
         if (desc.vertex)
         {
             pipeline->vertex = checked_cast<D3D11_Shader*>(desc.vertex)->VS;
+            pipeline->inputLayout = checked_cast<D3D11_Shader*>(desc.vertex)->inputLayout.Get();
             pipeline->shaderStages |= ShaderStages::Vertex;
         }
 
@@ -1610,6 +1824,6 @@ namespace alimer::rhi
         delete device;
         return nullptr;
     }
-}
+    }
 
 #endif /* defined(ALIMER_RHI_D3D11) */

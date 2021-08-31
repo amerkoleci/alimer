@@ -8,7 +8,7 @@ using namespace alimer::rhi;
 class HelloWorldApp final : public Application
 {
 private:
-    //TextureHandle texture;
+    BufferHandle vertexBuffer;
     ShaderHandle vertexShader;
     ShaderHandle pixelShader;
     PipelineHandle renderPipeline;
@@ -27,38 +27,40 @@ public:
 
     bool Initialize(int argc, const char* argv[]) override
     {
-        //texture = rhiDevice->CreateTexture(TextureDesc::Tex2D(Format::RGBA8UNorm, 4, 4));
-        //texture->SetName("TEST");
+        const float vertices[] = {
+            /* positions            colors */
+             0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
+             0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
+        };
+        BufferDesc bufferDesc;
+        bufferDesc.size = sizeof(vertices);
+        bufferDesc.usage = BufferUsage::Vertex;
+        vertexBuffer = rhiDevice->CreateBuffer(bufferDesc, vertices);
 
         static const char* shaderSource = R"(
-static const float2 g_positions[] = {
-	float2(-0.5, -0.5),
-	float2(0, 0.5),
-	float2(0.5, -0.5)
-};
-
-static const float3 g_colors[] = {
-	float3(1, 0, 0),
-	float3(0, 1, 0),
-	float3(0, 0, 1)	
+struct VSInput 
+{ 
+    float3 Pos   : SV_POSITION; 
+    float4 Color : COLOR; 
 };
 
 struct PSInput 
 { 
     float4 Pos   : SV_POSITION; 
-    float3 Color : COLOR; 
+    float4 Color : COLOR; 
 };
-PSInput vertex_main(in uint vertexId : SV_VertexID) 
+PSInput vertex_main(in VSInput input) 
 {
     PSInput output;
-    output.Pos   = float4(g_positions[vertexId], 0, 1);
-    output.Color = g_colors[vertexId];
+    output.Pos   = float4(input.Pos, 1);
+    output.Color = input.Color;
     return output;
 }
 
 float4 pixel_main(in PSInput input) : SV_TARGET
 {
-    float4 color = float4(input.Color.rgb, 1.0);
+    float4 color = input.Color;
     return color;
 }
 )";
@@ -75,6 +77,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
     void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
     {
+        commandList->SetVertexBuffer(0, vertexBuffer);
         commandList->SetPipeline(renderPipeline);
         commandList->Draw(0, 3);
     }

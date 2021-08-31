@@ -176,6 +176,7 @@ namespace alimer::rhi
         void SetPipeline(_In_ IPipeline* pipeline) override;
 
         void BindRenderPipeline();
+        void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
 
     };

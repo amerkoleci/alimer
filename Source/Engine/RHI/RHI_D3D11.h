@@ -80,6 +80,20 @@ namespace alimer::rhi
         std::unordered_map<D3D11_ViewKey, RefCountPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> unorderedAccessViews;
     };
 
+    class D3D11_Buffer final : public RefCounter<IBuffer>
+    {
+    public:
+        D3D11_Device* device;
+        BufferDesc desc;
+        RefCountPtr<ID3D11Buffer> handle;
+
+        IDevice* GetDevice() const override;
+        const BufferDesc& GetDesc() const override { return desc; }
+
+    private:
+        void ApiSetName(const std::string_view& newName) override;
+    };
+
     class D3D11_Shader final : public RefCounter<IShader>
     {
     public:
@@ -91,6 +105,7 @@ namespace alimer::rhi
         RefCountPtr<ID3D11GeometryShader> GS;
         RefCountPtr<ID3D11PixelShader> PS;
         RefCountPtr<ID3D11ComputeShader> CS;
+        RefCountPtr<ID3D11InputLayout> inputLayout;
         std::vector<char> bytecode;
 
         IDevice* GetDevice() const override { return device; }
@@ -141,6 +156,8 @@ namespace alimer::rhi
 
         void SetPipeline(_In_ IPipeline* pipeline) override;
         void BindRenderPipeline(const D3D11_Pipeline* pipeline);
+
+        void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
     };
 

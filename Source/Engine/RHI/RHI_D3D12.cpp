@@ -1191,6 +1191,10 @@ namespace alimer::rhi
         handle->IASetPrimitiveTopology(boundPipeline->primitiveTopology);
     }
 
+    void D3D12_CommandList::SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer)
+    {
+    }
+
     void D3D12_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
     {
         BindRenderPipeline();

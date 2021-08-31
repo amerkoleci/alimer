@@ -80,7 +80,7 @@ if (ALIMER_BUILD_SHARED)
   #set_property(TARGET ${TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
   target_compile_definitions(${TARGET_NAME}
-    PRIVATE ALIMER_EXPORTS=1
+    PRIVATE ALIMER_EXPORTS=1 RHI_SHARED_LIBRARY_BUILD=1
   	PUBLIC ALIMER_IMPORTS=1
   )
 else()
@@ -114,7 +114,7 @@ target_link_libraries(${TARGET_NAME} PUBLIC
 # RHI defines
 if (ALIMER_RHI_D3D11)
   target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_D3D11)
-  target_link_libraries(${TARGET_NAME} PRIVATE d3d11 dxgi dxguid)
+  target_link_libraries(${TARGET_NAME} PRIVATE d3d11 dxgi dxguid D3DCompiler)
 endif()
 
 if (ALIMER_RHI_D3D12)
