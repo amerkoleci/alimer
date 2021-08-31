@@ -129,12 +129,20 @@ namespace alimer::rhi
     }
 
     /* IDevice */
+#if defined(ALIMER_RHI_D3D11)
+    extern DeviceHandle CreateD3D11Device(alimer::Window* window, const PresentationParameters& presentationParameters);
+#endif
+
 #if defined(ALIMER_RHI_D3D12)
     extern DeviceHandle CreateD3D12Device(alimer::Window* window, const PresentationParameters& presentationParameters);
 #endif
 
     DeviceHandle IDevice::Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters)
     {
+#if defined(ALIMER_RHI_D3D11)
+        return CreateD3D11Device(window, presentationParameters);
+#endif
+
 #if defined(ALIMER_RHI_D3D12)
         return CreateD3D12Device(window, presentationParameters);
 #endif
@@ -164,6 +172,12 @@ namespace alimer::rhi
         }
 
         return CreateTextureCore(desc, nativeHandle, nullptr);
+    }
+
+    BufferHandle IDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
+    {
+        //
+        return CreateBufferCore(desc, nullptr, initialData);
     }
 
     bool IDevice::VerifyTextureDesc(const TextureDesc& desc)

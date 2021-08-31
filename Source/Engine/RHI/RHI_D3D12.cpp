@@ -638,6 +638,188 @@ namespace alimer::rhi
         return device;
     }
 
+    ID3D12PipelineState* D3D12_Pipeline::GetPipeline() const
+    {
+        size_t hash = 0;
+        hash_combine(hash, (uint32)PrimitiveTopology::TriangleList);
+
+        auto it = pipelines.find(hash);
+        if (it == pipelines.end())
+        {
+            // Not found, create new one
+            struct PSO_STREAM
+            {
+                CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE rootSignature;
+                CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+                CD3DX12_PIPELINE_STATE_STREAM_HS HS;
+                CD3DX12_PIPELINE_STATE_STREAM_DS DS;
+                CD3DX12_PIPELINE_STATE_STREAM_GS GS;
+                CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+                CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
+                CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK SampleMask;
+                CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterizerState;
+                CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilState;
+                CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+                CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
+                CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+                CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+                CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+                CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
+            } stream = {};
+
+#if TODO
+            stream.rootSignature = pipeline->rootSignature;
+
+            pipeline->shaderStages = ShaderStages::None;
+
+            D3D12_Shader* shader = checked_cast<D3D12_Shader*>(desc.vertex);
+            if (shader != nullptr)
+            {
+                stream.VS = { shader->bytecode.data(), shader->bytecode.size() };
+                pipeline->shaderStages |= ShaderStages::Vertex;
+            }
+
+            shader = checked_cast<D3D12_Shader*>(desc.hull);
+            if (shader != nullptr)
+            {
+                stream.HS = { shader->bytecode.data(), shader->bytecode.size() };
+                pipeline->shaderStages |= ShaderStages::Hull;
+            }
+
+            shader = checked_cast<D3D12_Shader*>(desc.domain);
+            if (shader != nullptr)
+            {
+                stream.DS = { shader->bytecode.data(), shader->bytecode.size() };
+                pipeline->shaderStages |= ShaderStages::Domain;
+            }
+
+            shader = checked_cast<D3D12_Shader*>(desc.geometry);
+            if (shader != nullptr)
+            {
+                stream.GS = { shader->bytecode.data(), shader->bytecode.size() };
+                pipeline->shaderStages |= ShaderStages::Geometry;
+            }
+
+            shader = checked_cast<D3D12_Shader*>(desc.pixel);
+            if (shader != nullptr)
+            {
+                stream.PS = { shader->bytecode.data(), shader->bytecode.size() };
+                pipeline->shaderStages |= ShaderStages::Pixel;
+            }
+
+            // Blend State + RenderTargetFormats and SampleMask
+            CD3DX12_BLEND_DESC blendState = {};
+            blendState.AlphaToCoverageEnable = desc.blendState.alphaToCoverageEnable;
+            blendState.IndependentBlendEnable = desc.blendState.independentBlendEnable;
+            D3D12_RT_FORMAT_ARRAY RTVFormats{};
+
+            for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
+            {
+                if (desc.colorFormats[i] == Format::Undefined)
+                    break;
+
+                RTVFormats.RTFormats[RTVFormats.NumRenderTargets++] = ToDXGIFormat(desc.colorFormats[i]);
+
+                const RenderTargetBlendState& renderTarget = desc.blendState.renderTargets[i];
+                blendState.RenderTarget[i].BlendEnable = renderTarget.blendEnable ? TRUE : FALSE;
+                blendState.RenderTarget[i].SrcBlend = D3D12Blend(renderTarget.srcBlend);
+                blendState.RenderTarget[i].DestBlend = D3D12Blend(renderTarget.destBlend);
+                blendState.RenderTarget[i].BlendOp = D3D12BlendOperation(renderTarget.blendOp);
+                blendState.RenderTarget[i].SrcBlendAlpha = D3D12AlphaBlend(renderTarget.srcBlendAlpha);
+                blendState.RenderTarget[i].DestBlendAlpha = D3D12AlphaBlend(renderTarget.destBlendAlpha);
+                blendState.RenderTarget[i].BlendOpAlpha = D3D12BlendOperation(renderTarget.blendOpAlpha);
+                blendState.RenderTarget[i].RenderTargetWriteMask = D3D12RenderTargetWriteMask(renderTarget.writeMask);
+                blendState.RenderTarget[i].LogicOpEnable = false;
+                blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
+            }
+            stream.BlendState = blendState;
+            stream.SampleMask = UINT_MAX; // pipeline->GetSampleMask();
+
+            CD3DX12_RASTERIZER_DESC rasterizerState = {};
+            rasterizerState.FillMode = ToD3D12(desc.rasterizerState.fillMode);
+            rasterizerState.CullMode = ToD3D12(desc.rasterizerState.cullMode);
+            rasterizerState.FrontCounterClockwise = (desc.rasterizerState.frontFace == FaceWinding::CounterClockwise) ? TRUE : FALSE;
+            rasterizerState.DepthBias = FloorToInt(desc.rasterizerState.depthBias * (float)(1 << 24));;
+            rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
+            rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.depthBiasSlopeScale;
+            rasterizerState.DepthClipEnable = TRUE;
+            rasterizerState.MultisampleEnable = desc.sampleCount > 1 ? TRUE : FALSE;
+            rasterizerState.AntialiasedLineEnable = FALSE;
+            rasterizerState.ForcedSampleCount = 0;
+            rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+            stream.RasterizerState = rasterizerState;
+
+            // DepthStencilState
+            CD3DX12_DEPTH_STENCIL_DESC d3d12DepthStencilState = {};
+            d3d12DepthStencilState.DepthEnable = (desc.depthStencilState.depthCompare != CompareFunction::Always || desc.depthStencilState.depthWriteEnable) ? TRUE : FALSE;
+            d3d12DepthStencilState.DepthWriteMask = desc.depthStencilState.depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+            d3d12DepthStencilState.DepthFunc = ToD3D12(desc.depthStencilState.depthCompare);
+            d3d12DepthStencilState.StencilEnable = FALSE;
+            d3d12DepthStencilState.StencilReadMask = desc.depthStencilState.stencilReadMask;
+            d3d12DepthStencilState.StencilWriteMask = desc.depthStencilState.stencilWriteMask;
+
+            d3d12DepthStencilState.FrontFace.StencilFailOp = ToD3D12(desc.depthStencilState.frontFace.failOp);
+            d3d12DepthStencilState.FrontFace.StencilDepthFailOp = ToD3D12(desc.depthStencilState.frontFace.depthFailOp);
+            d3d12DepthStencilState.FrontFace.StencilPassOp = ToD3D12(desc.depthStencilState.frontFace.passOp);
+            d3d12DepthStencilState.FrontFace.StencilFunc = ToD3D12(desc.depthStencilState.frontFace.compare);
+
+            d3d12DepthStencilState.BackFace.StencilFailOp = ToD3D12(desc.depthStencilState.backFace.failOp);
+            d3d12DepthStencilState.BackFace.StencilDepthFailOp = ToD3D12(desc.depthStencilState.backFace.depthFailOp);
+            d3d12DepthStencilState.BackFace.StencilPassOp = ToD3D12(desc.depthStencilState.backFace.passOp);
+            d3d12DepthStencilState.BackFace.StencilFunc = ToD3D12(desc.depthStencilState.backFace.compare);
+            stream.DepthStencilState = d3d12DepthStencilState;
+
+            //stream.InputLayout = inputLayout;
+            stream.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+
+            pipeline->primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
+            switch (desc.primitiveTopology)
+            {
+                case PrimitiveTopology::PointList:
+                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+                    break;
+                case PrimitiveTopology::LineList:
+                case PrimitiveTopology::LineStrip:
+                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+                    break;
+                case PrimitiveTopology::TriangleList:
+                case PrimitiveTopology::TriangleStrip:
+                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+                    break;
+                case PrimitiveTopology::PatchList:
+                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+                    break;
+                default:
+                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+                    break;
+            }
+
+            stream.RTVFormats = RTVFormats;
+            stream.DSVFormat = ToDXGIFormat(desc.depthStencilFormat);
+
+            DXGI_SAMPLE_DESC sampleDesc = {};
+            sampleDesc.Count = desc.sampleCount;
+            sampleDesc.Quality = 0;
+            stream.SampleDesc = sampleDesc;
+#endif // TODO
+
+
+            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
+            streamDesc.pPipelineStateSubobjectStream = &stream;
+            streamDesc.SizeInBytes = sizeof(stream);
+
+            ID3D12PipelineState* handle;
+            const HRESULT hr = device->GetD3DDevice()->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&handle));
+            if (FAILED(hr))
+            {
+                LOGE("Failed to create RenderPipeline");
+                return nullptr;
+            }
+        }
+
+        return it->second;
+    }
+
     /* D3D12_CommandList */
     D3D12_CommandList::D3D12_CommandList(D3D12_Device* device_, CommandQueue queue_)
         : device(device_)
@@ -1700,7 +1882,6 @@ namespace alimer::rhi
             result->desc.mipLevels = (uint32_t)log2(std::max(desc.width, desc.height)) + 1;
         }
 
-
         result->dxgiFormat = ToDXGIFormat(desc.format);
 
         if (nativeHandle != nullptr)
@@ -1828,6 +2009,11 @@ namespace alimer::rhi
             return TextureHandle::Create(result);
 
         delete result;
+        return nullptr;
+    }
+
+    BufferHandle D3D12_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
+    {
         return nullptr;
     }
 

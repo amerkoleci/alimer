@@ -116,7 +116,7 @@ namespace alimer
     void Application::Render()
     {
         // Don't try to render anything before the first Update or rendering is not allowed
-        if (//frameCount > 0 &&
+        if (//rhiDevice->GetFrameCount() > 0 &&
             !window->IsMinimized()
             )
         {

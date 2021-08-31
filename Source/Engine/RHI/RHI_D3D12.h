@@ -107,8 +107,13 @@ namespace alimer::rhi
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
         ~D3D12_Pipeline() override;
+
+        ID3D12PipelineState* GetPipeline() const;
+
+    private:
         IDevice* GetDevice() const override;
         void ApiSetName(const std::string_view& newName) override;
+        std::unordered_map<uint64_t, RefCountPtr<ID3D12PipelineState>> pipelines;
     };
 
     class D3D12_CommandList final : public ICommandList
@@ -298,8 +303,9 @@ namespace alimer::rhi
         void FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_CPU_DESCRIPTOR_HANDLE handle);
         uint32_t GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
-        uint64_t GetFrameCount() const override { return frameCount; }
-        uint32_t GetFrameIndex() const override { return frameIndex; }
+        GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::D3D12; }
+        uint64 GetFrameCount() const override { return frameCount; }
+        uint32 GetFrameIndex() const { return frameIndex; }
 
         ITexture* GetCurrentBackBuffer() const override
         {
@@ -329,6 +335,7 @@ namespace alimer::rhi
         ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
+        BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
 

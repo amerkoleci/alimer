@@ -122,10 +122,6 @@ if (ALIMER_RHI_D3D12)
   target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
 endif()
 
-if (ALIMER_RHI_GL)
-  target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_GL)
-endif()
-
 if (ALIMER_RHI_VULKAN)
   target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_VULKAN)
 endif()

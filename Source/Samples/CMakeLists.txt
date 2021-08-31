@@ -1,7 +1,3 @@
-if (NOT ALIMER_BUILD_SAMPLES)
-	return()
-endif ()
-
 function(add_sample sample_name)
   file(GLOB SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/*.h"

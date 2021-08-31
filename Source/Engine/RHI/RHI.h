@@ -82,6 +82,14 @@ namespace alimer::rhi
         GPU
     };
 
+    enum class GraphicsAPI : uint8_t
+    {
+        D3D11,
+        D3D12,
+        Vulkan
+    };
+
+
     enum class CommandQueue : uint8_t
     {
         Graphics = 0,
@@ -195,6 +203,14 @@ namespace alimer::rhi
         Count,
     };
 
+    enum class GPUResourceUsage : uint32_t
+    {
+        Default,
+        Dynamic,
+        StagingUpload,
+        StagingReadback,
+    };
+
     enum class CompareFunction : uint32_t
     {
         Never,
@@ -217,6 +233,12 @@ namespace alimer::rhi
         PatchList,
         Count
     };
+
+    enum class BufferUsage : uint32
+    {
+        None,
+    };
+    RHI_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
 
     enum class TextureDimension : uint32_t
     {
@@ -368,6 +390,15 @@ namespace alimer::rhi
     class IDevice;
 
     /* Structs */
+    struct BufferDesc
+    {
+        uint64 size = 0;
+        uint32 stride = 0;
+        BufferUsage usage = BufferUsage::None;
+        GPUResourceUsage resourceUsage = GPUResourceUsage::Default;
+        Format format = Format::Undefined;
+    };
+
     struct TextureDesc
     {
         TextureDimension dimension = TextureDimension::Texture2D;
@@ -690,7 +721,7 @@ namespace alimer::rhi
     class RHI_API IBuffer : public IResource
     {
     public:
-        //[[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
+        [[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
     };
 
     class RHI_API ITexture : public IResource
@@ -765,16 +796,24 @@ namespace alimer::rhi
         [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
         [[nodiscard]] virtual ITexture* GetBackBufferDepthStencilTexture() const = 0;
 
-        [[nodiscard]] virtual uint64_t GetFrameCount() const = 0;
-        [[nodiscard]] virtual uint32_t GetFrameIndex() const = 0;
+        [[nodiscard]] virtual uint64 GetFrameCount() const = 0;
+
+        // Returns the API kind that the RHI backend is running on top of.
+        virtual GraphicsAPI GetGraphicsAPI() const = 0;
 
         /// Return backbuffer width.
         [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
         /// Return backbuffer height.
         [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
 
+        /// Create new texture.
         TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
+
+        /// Create new texture from external handle.
         TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc);
+
+        /// Create new buffer.
+        [[nodiscard]] BufferHandle CreateBuffer(const BufferDesc& desc, const void* initialData);
 
         [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
@@ -784,6 +823,7 @@ namespace alimer::rhi
     private:
         bool VerifyTextureDesc(const TextureDesc& desc);
         virtual TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
+        virtual BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) = 0;
 
     protected:
         uint32_t backBufferWidth = 0;

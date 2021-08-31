@@ -5,11 +5,9 @@
 #include "RHI.h"
 #include "Window.h"
 #include "Core/Log.h"
-#include "PlatformInclude.h"
-#include "volk.h"
+#include "RHI_Vulkan.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
-#include "spirv_reflect.h"
 #include <optional>
 
 /// Helper macro to test the result of Vulkan calls which can return an error.
@@ -380,9 +378,8 @@ namespace alimer::rhi
         Format depthStencilFormat = Format::Undefined;
         TextureHandle depthStencilTexture;
 
-        uint64_t frameCount = 0;
-        uint32_t frameIndex = 0;
-
+        uint64 frameCount = 0;
+        uint32 frameIndex = 0;
 
     public:
         [[nodiscard]] static bool IsAvailable();
@@ -396,8 +393,9 @@ namespace alimer::rhi
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
 
-        uint64_t GetFrameCount() const override { return frameCount; }
-        uint32_t GetFrameIndex() const override { return frameIndex; }
+        GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
+        uint64 GetFrameCount() const override { return frameCount; }
+        uint32 GetFrameIndex() const { return frameIndex; }
 
         ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
 
@@ -414,6 +412,7 @@ namespace alimer::rhi
         ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
+        BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
     };
@@ -1070,6 +1069,11 @@ namespace alimer::rhi
             return TextureHandle::Create(result);
 
         delete result;
+        return nullptr;
+    }
+
+    BufferHandle Vulkan_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
+    {
         return nullptr;
     }
 
