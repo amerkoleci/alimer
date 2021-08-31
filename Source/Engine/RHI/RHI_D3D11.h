@@ -146,12 +146,6 @@ namespace alimer::rhi
 
     class D3D11_Device final : public RefCounter<IDevice>
     {
-    private:
-
-        void CreateFactory();
-        void GetAdapter(IDXGIAdapter1** ppAdapter);
-        void HandleDeviceLost();
-
     public:
         D3D11_Device();
         ~D3D11_Device() override;
@@ -166,7 +160,7 @@ namespace alimer::rhi
         auto GetD3DDevice() const noexcept { return d3dDevice.Get(); }
 
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::D3D11; }
-        uint64 GetFrameCount() const override { return frameCount; }
+        uint64_t GetFrameCount() const override { return frameCount; }
 
         ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
 
@@ -184,12 +178,16 @@ namespace alimer::rhi
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
+        SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
 
         PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:
+        void CreateFactory();
+        void GetAdapter(IDXGIAdapter1** ppAdapter);
+        void HandleDeviceLost();
         ID3D11BlendState1* GetBlendState(const BlendState& state);
         ID3D11DepthStencilState* GetDepthStencilState(const DepthStencilState& state);
         ID3D11RasterizerState1* GetRasterizerState(const RasterizerState& state);
@@ -212,7 +210,7 @@ namespace alimer::rhi
         D3D_FEATURE_LEVEL                   featureLevel{};
         RefCountPtr<ID3D11DeviceContext1>   immediateContext;
         std::unique_ptr<D3D11_CommandList>  commandList;
-        uint64 frameCount = 0;
+        uint64_t frameCount = 0;
 
         RefCountPtr<IDXGISwapChain1> swapChain;
         TextureHandle backBuffer;

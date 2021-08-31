@@ -234,7 +234,7 @@ namespace alimer::rhi
         Count
     };
 
-    enum class BufferUsage : uint32
+    enum class BufferUsage : uint32_t
     {
         None,
     };
@@ -289,6 +289,29 @@ namespace alimer::rhi
         All = 0x3FFF,
     };
     RHI_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+
+    enum class SamplerFilter : uint32_t
+    {
+        Point,
+        Linear
+    };
+
+    enum class SamplerAddressMode : uint32_t
+    {
+        Wrap = 0,
+        Mirror,
+        Clamp,
+        Border,
+        MirrorOnce,
+    };
+
+    enum class SamplerBorderColor : uint32_t
+    {
+        TransparentBlack = 0,
+        OpaqueBlack,
+        OpaqueWhite,
+    };
+
 
     enum class VertexStepRate : uint32_t
     {
@@ -392,8 +415,8 @@ namespace alimer::rhi
     /* Structs */
     struct BufferDesc
     {
-        uint64 size = 0;
-        uint32 stride = 0;
+        uint32_t size = 0;
+        uint32_t stride = 0;
         BufferUsage usage = BufferUsage::None;
         GPUResourceUsage resourceUsage = GPUResourceUsage::Default;
         Format format = Format::Undefined;
@@ -497,6 +520,22 @@ namespace alimer::rhi
             desc.usage = usage;
             return desc;
         }
+    };
+
+    struct SamplerDesc
+    {
+        SamplerFilter minFilter = SamplerFilter::Point;
+        SamplerFilter magFilter = SamplerFilter::Point;
+        SamplerFilter mipmapFilter = SamplerFilter::Point;
+        SamplerAddressMode addressModeU = SamplerAddressMode::Clamp;
+        SamplerAddressMode addressModeV = SamplerAddressMode::Clamp;
+        SamplerAddressMode addressModeW = SamplerAddressMode::Clamp;
+        float mipLodBias = 0.0f;
+        uint16_t maxAnisotropy = 1;
+        CompareFunction compare = CompareFunction::Never;
+        float minLod = 0.0f;
+        float maxLod = FLT_MAX;
+        SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
     };
 
     struct TextureData
@@ -619,9 +658,6 @@ namespace alimer::rhi
         RasterizerState         rasterizerState;
         PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
         uint32_t                patchControlPoints = 0;
-        Format                  colorFormats[kMaxColorAttachments] = {};
-        Format                  depthStencilFormat = Format::Undefined;
-        uint32_t                sampleCount = 1;
     };
 
 
@@ -664,6 +700,7 @@ namespace alimer::rhi
 
     struct RenderPassDesc
     {
+        uint32_t colorAttachmentCount = 0;
         RenderPassColorAttachment colorAttachments[kMaxColorAttachments] = {};
         RenderPassDepthStencilAttachment depthStencilAttachment;
     };
@@ -733,7 +770,7 @@ namespace alimer::rhi
     class RHI_API ISampler : public DeviceChild
     {
     public:
-        //[[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
+        [[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
         //[[nodiscard]] virtual uint32_t GetBindlessIndex() const = 0;
     };
 
@@ -796,7 +833,7 @@ namespace alimer::rhi
         [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
         [[nodiscard]] virtual ITexture* GetBackBufferDepthStencilTexture() const = 0;
 
-        [[nodiscard]] virtual uint64 GetFrameCount() const = 0;
+        [[nodiscard]] virtual uint64_t GetFrameCount() const = 0;
 
         // Returns the API kind that the RHI backend is running on top of.
         virtual GraphicsAPI GetGraphicsAPI() const = 0;
@@ -815,6 +852,10 @@ namespace alimer::rhi
         /// Create new buffer.
         [[nodiscard]] BufferHandle CreateBuffer(const BufferDesc& desc, const void* initialData);
 
+        /// Create new sampler.
+        [[nodiscard]] virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
+
+        /// Create new shader.
         [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
         /// Create new render pipeline.

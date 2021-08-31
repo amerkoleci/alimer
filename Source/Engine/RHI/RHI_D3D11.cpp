@@ -1130,6 +1130,11 @@ namespace alimer::rhi
         return nullptr;
     }
 
+    SamplerHandle D3D11_Device::CreateSampler(const SamplerDesc& desc)
+    {
+        return nullptr;
+    }
+
     ShaderHandle D3D11_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
     {
         auto byteCode = CompileShader(stage, source, entryPoint);

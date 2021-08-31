@@ -10,58 +10,9 @@
 #include "vk_mem_alloc.h"
 #include <optional>
 
-/// Helper macro to test the result of Vulkan calls which can return an error.
-#define VK_CHECK(x) \
-	do \
-	{ \
-		VkResult err = x; \
-		if (err) \
-		{ \
-			LOGE("Detected Vulkan error: {}", alimer::rhi::ToString(err)); \
-		} \
-	} while (0)
-
-#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, alimer::rhi::ToString(result));
 
 namespace alimer::rhi
 {
-    [[nodiscard]] constexpr const char* ToString(VkResult result)
-    {
-        switch (result)
-        {
-#define STR(r)   \
-	case VK_##r: \
-		return #r
-            STR(SUCCESS);
-            STR(NOT_READY);
-            STR(TIMEOUT);
-            STR(EVENT_SET);
-            STR(EVENT_RESET);
-            STR(INCOMPLETE);
-            STR(ERROR_OUT_OF_HOST_MEMORY);
-            STR(ERROR_OUT_OF_DEVICE_MEMORY);
-            STR(ERROR_INITIALIZATION_FAILED);
-            STR(ERROR_DEVICE_LOST);
-            STR(ERROR_MEMORY_MAP_FAILED);
-            STR(ERROR_LAYER_NOT_PRESENT);
-            STR(ERROR_EXTENSION_NOT_PRESENT);
-            STR(ERROR_FEATURE_NOT_PRESENT);
-            STR(ERROR_INCOMPATIBLE_DRIVER);
-            STR(ERROR_TOO_MANY_OBJECTS);
-            STR(ERROR_FORMAT_NOT_SUPPORTED);
-            STR(ERROR_SURFACE_LOST_KHR);
-            STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-            STR(SUBOPTIMAL_KHR);
-            STR(ERROR_OUT_OF_DATE_KHR);
-            STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-            STR(ERROR_VALIDATION_FAILED_EXT);
-            STR(ERROR_INVALID_SHADER_NV);
-#undef STR
-        default:
-            return "UNKNOWN_ERROR";
-        }
-    }
-
     namespace
     {
         const char* kDeviceTypes[] = {
@@ -332,91 +283,21 @@ namespace alimer::rhi
 
     extern VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
 
-    class Vulkan_Texture final : public RefCounter<ITexture>
+    /* Vulkan_Texture */
+    Vulkan_Texture::~Vulkan_Texture()
     {
-    public:
-        IDevice* device;
-        TextureDesc desc;
-        VkImage handle = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
+    }
 
-        Vulkan_Texture(IDevice* device_, void* nativeHandle, const TextureDesc& desc_, const TextureData* initialData)
-            : device(device_)
-            , desc(desc_)
-        {
-            if (desc.mipLevels == 0)
-            {
-                desc.mipLevels = (uint32_t)log2(std::max(desc_.width, desc_.height)) + 1;
-            }
-
-            if (nativeHandle != nullptr)
-            {
-                handle = (VkImage)nativeHandle;
-            }
-            else
-            {
-            }
-        }
-
-        ~Vulkan_Texture() override
-        {
-
-        }
-
-        IDevice* GetDevice() const override { return device; }
-        const TextureDesc& GetDesc() const override { return desc; }
-        //uint64_t GetAllocatedSize() const override { return allocatedSize; }
-        void ApiSetName(const std::string_view& newName) override
-        {
-        }
-    };
-
-    class Vulkan_Device final : public RefCounter<IDevice>
+    IDevice* Vulkan_Texture::GetDevice() const
     {
-    private:
-        TextureHandle backBuffer;
-        Format depthStencilFormat = Format::Undefined;
-        TextureHandle depthStencilTexture;
+        return device;
+    }
 
-        uint64 frameCount = 0;
-        uint32 frameIndex = 0;
+    void Vulkan_Texture::ApiSetName(const std::string_view& newName)
+    {
+    }
 
-    public:
-        [[nodiscard]] static bool IsAvailable();
-
-        Vulkan_Device(bool enableDebugLayers);
-        ~Vulkan_Device() override;
-
-        bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
-        void WaitIdle() override;
-        ICommandList* BeginFrame() override;
-        void EndFrame() override;
-        void Resize(uint32_t newWidth, uint32_t newHeight) override;
-
-        GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
-        uint64 GetFrameCount() const override { return frameCount; }
-        uint32 GetFrameIndex() const { return frameIndex; }
-
-        ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
-
-        ITexture* GetBackBuffer(uint32_t index) const override
-        {
-            if (index == 0)
-                return backBuffer;
-
-            return nullptr;
-        }
-
-        uint32_t GetCurrentBackBufferIndex() const override { return 0; }
-        uint32_t GetBackBufferCount() const override { return 1; }
-        ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
-
-        TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
-        BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
-        ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
-        PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
-    };
-
+    /* Vulkan_Device */
     bool Vulkan_Device::IsAvailable()
     {
         static bool available_initialized = false;
@@ -545,7 +426,7 @@ namespace alimer::rhi
             debugUtilsCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
             debugUtilsCreateInfo.pfnUserCallback = DebugUtilsMessengerCallback;
             createInfo.pNext = &debugUtilsCreateInfo;
-        }
+    }
 
 #if defined(_DEBUG)&& defined(TODO)
         VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
@@ -601,7 +482,7 @@ namespace alimer::rhi
         {
             LOGI("	\t{}", createInfo.ppEnabledExtensionNames[i]);
         }
-    }
+}
 
     Vulkan_Device::~Vulkan_Device()
     {
@@ -1063,16 +944,53 @@ namespace alimer::rhi
 
     TextureHandle Vulkan_Device::CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
-        auto result = new Vulkan_Texture(this, nativeHandle, desc, initialData);
+        auto texture = new Vulkan_Texture();
+        texture->device = this;
+        texture->desc = desc;
 
-        if (result->handle != VK_NULL_HANDLE)
-            return TextureHandle::Create(result);
+        if (desc.mipLevels == 0)
+        {
+            texture->desc.mipLevels = (uint32_t)log2(std::max(desc.width, desc.height)) + 1;
+        }
 
-        delete result;
-        return nullptr;
+        if (nativeHandle != nullptr)
+        {
+            texture->handle = (VkImage)nativeHandle;
+            return TextureHandle::Create(texture);
+        }
+
+        VkImageCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        //createInfo.imageType = ToVulkan(desc.dimension);
+        //createInfo.format = ConvertFormat(desc.format);
+        createInfo.extent.width = desc.width;
+        createInfo.extent.height = desc.height;
+        createInfo.extent.depth = 1;
+
+        VmaAllocationCreateInfo memoryInfo = {};
+        memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkImage handle;
+        VmaAllocation allocation;
+        VmaAllocationInfo allocationInfo{};
+        VkResult result = vmaCreateImage(vk.allocator,
+            &createInfo, &memoryInfo,
+            &handle, &allocation, &allocationInfo);
+
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create image.");
+            return nullptr;
+        }
+
+        return TextureHandle::Create(texture);
     }
 
     BufferHandle Vulkan_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
+    {
+        return nullptr;
+    }
+
+    SamplerHandle Vulkan_Device::CreateSampler(const SamplerDesc& desc)
     {
         return nullptr;
     }
@@ -1101,6 +1019,6 @@ namespace alimer::rhi
         delete device;
         return nullptr;
     }
-}
+    }
 
 #endif /* defined(ALIMER_RHI_VULKAN) */

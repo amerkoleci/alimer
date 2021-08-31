@@ -140,7 +140,7 @@ namespace alimer::rhi
     DeviceHandle IDevice::Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters)
     {
 #if defined(ALIMER_RHI_D3D11)
-        return CreateD3D11Device(window, presentationParameters);
+        //return CreateD3D11Device(window, presentationParameters);
 #endif
 
 #if defined(ALIMER_RHI_D3D12)

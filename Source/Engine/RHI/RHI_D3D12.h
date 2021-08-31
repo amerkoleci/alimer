@@ -43,6 +43,33 @@ namespace alimer::rhi
         }
     };
 
+    struct D3D12_FormatsKey
+    {
+        uint32_t colorFormatsCount = 0;
+        DXGI_FORMAT colorFormats[kMaxColorAttachments] = {};
+        DXGI_FORMAT depthStencilFormat = {};
+        uint32_t sampleCount = 1;
+
+        size_t GetHash() const
+        {
+            if (hash == 0)
+            {
+                hash_combine(hash, colorFormatsCount);
+                for (uint32_t i = 0; i < colorFormatsCount; ++i)
+                {
+                    hash_combine(hash, colorFormats[i]);
+                }
+                hash_combine(hash, (uint32_t)depthStencilFormat);
+                hash_combine(hash, (uint32_t)sampleCount);
+            }
+
+            return hash;
+        }
+
+    private:
+        mutable size_t hash = 0;
+    };
+
     class D3D12_Device;
 
     class D3D12_Texture final : public RefCounter<ITexture>
@@ -101,14 +128,13 @@ namespace alimer::rhi
     {
     public:
         D3D12_Device* device = nullptr;
-        ShaderStages shaderStages = ShaderStages::None;
+        RenderPipelineDesc desc;
         ID3D12RootSignature* rootSignature = nullptr;
-        ID3D12PipelineState* handle = nullptr;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
         ~D3D12_Pipeline() override;
 
-        ID3D12PipelineState* GetPipeline() const;
+        ID3D12PipelineState* GetPipeline(const D3D12_FormatsKey& renderPass);
 
     private:
         IDevice* GetDevice() const override;
@@ -124,10 +150,13 @@ namespace alimer::rhi
         RefCountPtr<ID3D12CommandAllocator> commandAllocators[kMaxFramesInFlight];
         RefCountPtr<ID3D12GraphicsCommandList4> handle;
         RenderPassDesc currentPass = {};
+        D3D12_FormatsKey currentPassFormats = {};
 
         std::vector<D3D12_RESOURCE_BARRIER> barriers;
         D3D12_RENDER_PASS_RENDER_TARGET_DESC rtvDescs[kMaxColorAttachments] = {};
         D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS subresourceParameters[kMaxColorAttachments] = {};
+
+        D3D12_Pipeline* boundPipeline = nullptr;
 
     public:
         D3D12_CommandList(D3D12_Device* device_, CommandQueue queue_);
@@ -145,8 +174,10 @@ namespace alimer::rhi
         void EndRenderPass() override;
 
         void SetPipeline(_In_ IPipeline* pipeline) override;
-        void BindRenderPipeline(const D3D12_Pipeline* pipeline);
+
+        void BindRenderPipeline();
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
+
     };
 
     class D3D12_Device final : public RefCounter<IDevice>
@@ -304,8 +335,8 @@ namespace alimer::rhi
         uint32_t GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::D3D12; }
-        uint64 GetFrameCount() const override { return frameCount; }
-        uint32 GetFrameIndex() const { return frameIndex; }
+        uint64_t GetFrameCount() const override { return frameCount; }
+        uint32_t GetFrameIndex() const { return frameIndex; }
 
         ITexture* GetCurrentBackBuffer() const override
         {
@@ -336,6 +367,7 @@ namespace alimer::rhi
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
+        SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
 
