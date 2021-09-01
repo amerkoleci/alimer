@@ -1,7 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_RHI_VULKAN) 
+#if defined(ALIMER_RHI_VULKAN)
 #include "RHI.h"
 #include "Window.h"
 #include "Core/Log.h"
@@ -257,6 +257,60 @@ namespace alimer::rhi
 
             return indices;
         }
+
+        /* Conversion functions */
+        [[nodiscard]] constexpr VkCompareOp ToVk(CompareFunction function)
+        {
+            switch (function)
+            {
+                case CompareFunction::Never:
+                    return VK_COMPARE_OP_NEVER;
+                case CompareFunction::Less:
+                    return VK_COMPARE_OP_LESS;
+                case CompareFunction::Equal:
+                    return VK_COMPARE_OP_EQUAL;
+                case CompareFunction::LessEqual:
+                    return VK_COMPARE_OP_LESS_OR_EQUAL;
+                case CompareFunction::Greater:
+                    return VK_COMPARE_OP_GREATER;
+                case CompareFunction::NotEqual:
+                    return VK_COMPARE_OP_NOT_EQUAL;
+                case CompareFunction::GreaterEqual:
+                    return VK_COMPARE_OP_GREATER_OR_EQUAL;
+                case CompareFunction::Always:
+                    return VK_COMPARE_OP_ALWAYS;
+
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_COMPARE_OP_MAX_ENUM;
+            }
+        }
+
+        [[nodiscard]] constexpr VkStencilOp ToVk(StencilOperation op)
+        {
+            switch (op)
+            {
+                case StencilOperation::Keep:
+                    return VK_STENCIL_OP_KEEP;
+                case StencilOperation::Zero:
+                    return VK_STENCIL_OP_ZERO;
+                case StencilOperation::Replace:
+                    return VK_STENCIL_OP_REPLACE;
+                case StencilOperation::IncrementClamp:
+                    return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+                case StencilOperation::DecrementClamp:
+                    return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+                case StencilOperation::Invert:
+                    return VK_STENCIL_OP_INVERT;
+                case StencilOperation::IncrementWrap:
+                    return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+                case StencilOperation::DecrementWrap:
+                    return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_STENCIL_OP_MAX_ENUM;
+            }
+        }
     }
 
     static struct
@@ -267,7 +321,6 @@ namespace alimer::rhi
 
         VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         uint32_t graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t copyQueueFamily = VK_QUEUE_FAMILY_IGNORED;
@@ -293,7 +346,7 @@ namespace alimer::rhi
         return device;
     }
 
-    void Vulkan_Texture::ApiSetName(const std::string_view& newName)
+    void Vulkan_Texture::ApiSetName()
     {
     }
 
@@ -745,9 +798,9 @@ namespace alimer::rhi
                 vkGetPhysicalDeviceProperties2(physicalDevice, &properties2);
 
                 bool discrete = properties2.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-                if (discrete || vk.physicalDevice == VK_NULL_HANDLE)
+                if (discrete || this->physicalDevice == VK_NULL_HANDLE)
                 {
-                    vk.physicalDevice = physicalDevice;
+                    this->physicalDevice = physicalDevice;
                     if (discrete)
                     {
                         break; // if this is discrete GPU, look no further (prioritize discrete GPU)
@@ -755,19 +808,54 @@ namespace alimer::rhi
                 }
             }
 
-            if (vk.physicalDevice == VK_NULL_HANDLE)
+            if (physicalDevice == VK_NULL_HANDLE)
             {
                 LOGE("Vulkan: Failed to find a suitable GPU");
                 return false;
             }
 
-            // TODO: Init caps
+            vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
+            ALIMER_ASSERT(properties2.properties.limits.timestampComputeAndGraphics == VK_TRUE);
+            ALIMER_ASSERT(features2.features.imageCubeArray == VK_TRUE);
+            ALIMER_ASSERT(features2.features.independentBlend == VK_TRUE);
+            ALIMER_ASSERT(features2.features.geometryShader == VK_TRUE);
+            ALIMER_ASSERT(features2.features.samplerAnisotropy == VK_TRUE);
+            ALIMER_ASSERT(features2.features.shaderClipDistance == VK_TRUE);
+            ALIMER_ASSERT(features2.features.textureCompressionBC == VK_TRUE);
+            ALIMER_ASSERT(features2.features.occlusionQueryPrecise == VK_TRUE);
+
+            // Features
+            if (mesh_shader_features.meshShader == VK_TRUE &&
+                mesh_shader_features.taskShader == VK_TRUE)
+            {
+                features.meshShader = true;
+            }
+
+            if (raytracing_features.rayTracingPipeline == VK_TRUE &&
+                raytracing_query_features.rayQuery == VK_TRUE &&
+                acceleration_structure_features.accelerationStructure == VK_TRUE &&
+                features_1_2.bufferDeviceAddress == VK_TRUE
+                )
+            {
+                features.rayTracing = true;
+                //SHADER_IDENTIFIER_SIZE = raytracing_properties.shaderGroupHandleSize;
+            }
+
+            // Limits
+            limits.maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
+            limits.maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
+            limits.maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
+            limits.maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
+            limits.maxTextureArraySize = properties2.properties.limits.maxImageArrayLayers;
+            limits.minConstantBufferOffsetAlignment = static_cast<uint32_t>(properties2.properties.limits.minUniformBufferOffsetAlignment);
+            limits.maxDrawIndirectCount = properties2.properties.limits.maxDrawIndirectCount;
 
             // Find queue families:
             uint32_t queueFamilyCount = 0;
-            vkGetPhysicalDeviceQueueFamilyProperties(vk.physicalDevice, &queueFamilyCount, nullptr);
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
             std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(vk.physicalDevice, &queueFamilyCount, queueFamilies.data());
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
 
             std::vector<uint32_t> queueOffsets(queueFamilyCount);
             std::vector<std::vector<float>> queuePriorities(queueFamilyCount);
@@ -789,7 +877,7 @@ namespace alimer::rhi
                     if ((required & VK_QUEUE_GRAPHICS_BIT) != 0)
                     {
                         VkBool32 supported = VK_FALSE;
-                        if (vkGetPhysicalDeviceSurfaceSupportKHR(vk.physicalDevice, familyIndex, vk.surface, &supported) != VK_SUCCESS || !supported)
+                        if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, familyIndex, vk.surface, &supported) != VK_SUCCESS || !supported)
                             continue;
                     }
 
@@ -858,7 +946,7 @@ namespace alimer::rhi
             createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
             createInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
-            VkResult result = vkCreateDevice(vk.physicalDevice, &createInfo, nullptr, &vk.device);
+            VkResult result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &vk.device);
             if (result != VK_SUCCESS)
             {
                 VK_LOG_ERROR(result, "Cannot create device");
@@ -909,7 +997,7 @@ namespace alimer::rhi
         // Initialize Vulkan Memory Allocator helper
         {
             VmaAllocatorCreateInfo allocatorInfo = {};
-            allocatorInfo.physicalDevice = vk.physicalDevice;
+            allocatorInfo.physicalDevice = physicalDevice;
             allocatorInfo.device = vk.device;
             allocatorInfo.instance = vk.instance;
             if (features_1_2.bufferDeviceAddress)
@@ -918,6 +1006,12 @@ namespace alimer::rhi
             }
 
             VK_CHECK(vmaCreateAllocator(&allocatorInfo, &vk.allocator));
+        }
+
+        // Init default states
+        {
+            DepthStencilDesc depthStencilDesc{};
+            defaultDepthStencilState = CreateDepthStencilState(depthStencilDesc);
         }
 
         return true;
@@ -950,7 +1044,7 @@ namespace alimer::rhi
 
         if (desc.mipLevels == 0)
         {
-            texture->desc.mipLevels = (uint32_t)log2(std::max(desc.width, desc.height)) + 1;
+            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depth);
         }
 
         if (nativeHandle != nullptr)
@@ -988,6 +1082,43 @@ namespace alimer::rhi
     BufferHandle Vulkan_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
     {
         return nullptr;
+    }
+
+    DepthStencilStateHandle Vulkan_Device::CreateDepthStencilState(const DepthStencilDesc& desc)
+    {
+        auto state = new VulkanDepthStencilState();
+        state->device = this;
+        state->desc = desc;
+
+        state->vkDesc.stencilTestEnable = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        state->vkDesc.pNext = nullptr;
+        state->vkDesc.flags = 0;
+        state->vkDesc.depthTestEnable = (desc.depthCompare != CompareFunction::Always || desc.depthWriteEnable) ? VK_TRUE : VK_FALSE;
+        state->vkDesc.depthWriteEnable = desc.depthWriteEnable ? VK_TRUE : VK_FALSE;
+        state->vkDesc.depthCompareOp = ToVk(desc.depthCompare);
+        state->vkDesc.depthBoundsTestEnable = VK_FALSE;
+        state->vkDesc.stencilTestEnable = StencilTestEnabled(&desc) ? VK_TRUE : VK_FALSE;
+
+        state->vkDesc.front.failOp = ToVk(desc.frontFace.failOp);
+        state->vkDesc.front.passOp = ToVk(desc.frontFace.passOp);
+        state->vkDesc.front.depthFailOp = ToVk(desc.frontFace.depthFailOp);
+        state->vkDesc.front.compareOp = ToVk(desc.frontFace.compare);
+        state->vkDesc.front.compareMask = desc.stencilReadMask;
+        state->vkDesc.front.writeMask = desc.stencilWriteMask;
+        state->vkDesc.front.reference = 0; // The stencil reference is always dynamic
+
+        state->vkDesc.back.failOp = ToVk(desc.backFace.failOp);
+        state->vkDesc.back.passOp = ToVk(desc.backFace.passOp);
+        state->vkDesc.back.depthFailOp = ToVk(desc.backFace.depthFailOp);
+        state->vkDesc.back.compareOp = ToVk(desc.backFace.compare);
+        state->vkDesc.back.compareMask = desc.stencilReadMask;
+        state->vkDesc.back.writeMask = desc.stencilWriteMask;
+        state->vkDesc.back.reference = 0; // The stencil reference is always dynamic
+
+        state->vkDesc.minDepthBounds = 0.0f;
+        state->vkDesc.maxDepthBounds = 1.0f;
+
+        return DepthStencilStateHandle::Create(state);
     }
 
     SamplerHandle Vulkan_Device::CreateSampler(const SamplerDesc& desc)

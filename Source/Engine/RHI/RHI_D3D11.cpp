@@ -270,11 +270,11 @@ namespace alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
-        else if (arraySize + slice > desc.depthOrArraySize)
+        else if (arraySize + slice > desc.arraySize)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
 
         D3D11_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, false);
@@ -343,11 +343,11 @@ namespace alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
-        else if (arraySize + slice > desc.depthOrArraySize)
+        else if (arraySize + slice > desc.arraySize)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
 
         D3D11_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, isReadOnly);
@@ -415,9 +415,9 @@ namespace alimer::rhi
         return view;
     }
 
-    void D3D11_Texture::ApiSetName(const std::string_view& newName)
+    void D3D11_Texture::ApiSetName()
     {
-        SetDebugName(handle, newName);
+        SetDebugName(handle, name);
     }
 
     /* D3D11_Buffer */
@@ -426,25 +426,9 @@ namespace alimer::rhi
         return device;
     }
 
-    void D3D11_Buffer::ApiSetName(const std::string_view& newName)
+    void D3D11_Buffer::ApiSetName()
     {
-        SetDebugName(handle, newName);
-    }
-
-    /* D3D11_Shader */
-    void D3D11_Shader::ApiSetName(const std::string_view& newName)
-    {
-        if (VS)
-            SetDebugName(VS, newName);
-
-        if (PS)
-            SetDebugName(PS, newName);
-    }
-
-    /* D3D11_Pipeline */
-    void D3D11_Pipeline::ApiSetName(const std::string_view& newName)
-    {
-
+        SetDebugName(handle, name);
     }
 
     /* D3D11_CommandList */
@@ -526,16 +510,15 @@ namespace alimer::rhi
             if (attachment.texture == nullptr)
                 break;
 
-            auto d3d11Texture = checked_cast<D3D11_Texture*>(attachment.texture);
-            const TextureDesc& textureDesc = d3d11Texture->GetDesc();
+            auto sourceTexture = checked_cast<D3D11_Texture*>(attachment.texture);
 
             const uint32_t mipLevel = attachment.mipLevel;
             const uint32_t slice = attachment.slice;
 
-            width = Min(width, std::max(1u, textureDesc.width >> mipLevel));
-            height = Min(height, std::max(1u, textureDesc.height >> mipLevel));
+            width = Min(width, std::max(1u, sourceTexture->desc.width >> mipLevel));
+            height = Min(height, std::max(1u, sourceTexture->desc.height >> mipLevel));
 
-            RTVs[RTVCount] = d3d11Texture->GetRTV(mipLevel, slice, 1);
+            RTVs[RTVCount] = sourceTexture->GetRTV(mipLevel, slice, 1);
 
             switch (attachment.loadAction)
             {
@@ -559,13 +542,12 @@ namespace alimer::rhi
         {
             const RenderPassDepthStencilAttachment& attachment = desc.depthStencilAttachment;
 
-            auto d3d11Texture = checked_cast<D3D11_Texture*>(attachment.texture);
-            const TextureDesc& textureDesc = d3d11Texture->GetDesc();
+            auto sourceTexture = checked_cast<D3D11_Texture*>(attachment.texture);
 
-            width = Min(width, std::max(1u, textureDesc.width >> attachment.mipLevel));
-            height = Min(height, std::max(1u, textureDesc.height >> attachment.mipLevel));
+            width = Min(width, std::max(1u, sourceTexture->desc.width >> attachment.mipLevel));
+            height = Min(height, std::max(1u, sourceTexture->desc.height >> attachment.mipLevel));
 
-            DSV = d3d11Texture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
+            DSV = sourceTexture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
 
             UINT clearFlags = 0;
 
@@ -714,10 +696,18 @@ namespace alimer::rhi
 
     void D3D11_CommandList::SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer)
     {
-        ID3D11Buffer* resource =  checked_cast<D3D11_Buffer*>(buffer)->handle;
-        const UINT stride = 28;
+        D3D11_Buffer* d3dBuffer = checked_cast<D3D11_Buffer*>(buffer);
+        const UINT stride = d3dBuffer->desc.stride;
         const UINT offset = 0;
-        context->IASetVertexBuffers(index, 1, &resource, &stride, &offset);
+        context->IASetVertexBuffers(index, 1, &d3dBuffer->handle, &stride, &offset);
+    }
+
+    void D3D11_CommandList::SetIndexBuffer(const IBuffer* buffer, uint32_t offset)
+    {
+        const D3D11_Buffer* d3dBuffer = checked_cast<const D3D11_Buffer*>(buffer);
+        const DXGI_FORMAT format = d3dBuffer->desc.stride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+
+        context->IASetIndexBuffer(d3dBuffer->handle, format, offset);
     }
 
     void D3D11_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
@@ -862,12 +852,19 @@ namespace alimer::rhi
 
         commandList = std::make_unique<D3D11_CommandList>(this, context.Get());
 
+        // Init default states
+        {
+            DepthStencilDesc depthStencilDesc{};
+            defaultDepthStencilState = CreateDepthStencilState(depthStencilDesc);
+        }
+
         D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2;
         hr = device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &options2, sizeof(options2));
         if (SUCCEEDED(hr) && options2.ConservativeRasterizationTier >= D3D11_CONSERVATIVE_RASTERIZATION_TIER_1)
         {
             LOGD("CONSERVATIVE_RASTERIZATION");
         }
+
 
         // Create SwapChain
         {
@@ -1076,7 +1073,7 @@ namespace alimer::rhi
 
         DXGI_FORMAT format = result->dxgiFormat;
         UINT bindFlags = 0;
-        if (Any(desc.usage, TextureUsage::ShaderRead))
+        if (CheckBitsAny(desc.usage, TextureUsage::ShaderRead))
         {
             bindFlags |= D3D11_BIND_SHADER_RESOURCE;
 
@@ -1086,12 +1083,12 @@ namespace alimer::rhi
             }
         }
 
-        if (Any(desc.usage, TextureUsage::ShaderWrite))
+        if (CheckBitsAny(desc.usage, TextureUsage::ShaderWrite))
         {
             bindFlags |= D3D11_BIND_UNORDERED_ACCESS;
         }
 
-        if (Any(desc.usage, TextureUsage::RenderTarget))
+        if (CheckBitsAny(desc.usage, TextureUsage::RenderTarget))
         {
             if (IsDepthStencilFormat(desc.format))
             {
@@ -1116,7 +1113,7 @@ namespace alimer::rhi
                 desc2D.Width = desc.width;
                 desc2D.Height = desc.height;
                 desc2D.MipLevels = desc.mipLevels;
-                desc2D.ArraySize = desc.depthOrArraySize;
+                desc2D.ArraySize = desc.arraySize;
                 desc2D.Format = format;
                 desc2D.SampleDesc.Count = desc.sampleCount;
                 desc2D.SampleDesc.Quality = 0;
@@ -1178,7 +1175,7 @@ namespace alimer::rhi
 
         d3d11Desc.MiscFlags = 0;
         d3d11Desc.StructureByteStride = 0;
-        
+
         if ((desc.usage & BufferUsage::Constant) != 0)
         {
             d3d11Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -1234,6 +1231,39 @@ namespace alimer::rhi
         }
 
         return BufferHandle::Create(buffer);
+    }
+
+    DepthStencilStateHandle D3D11_Device::CreateDepthStencilState(const DepthStencilDesc& desc)
+    {
+        auto state = new D3D11DepthStencilState();
+        state->device = this;
+        state->desc = desc;
+
+        D3D11_DEPTH_STENCIL_DESC d3dDesc;
+        d3dDesc.DepthEnable = (desc.depthCompare != CompareFunction::Always || desc.depthWriteEnable) ? TRUE : FALSE;
+        d3dDesc.DepthWriteMask = desc.depthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+        d3dDesc.DepthFunc = ToD3D11(desc.depthCompare);
+        d3dDesc.StencilEnable = StencilTestEnabled(&desc) ? TRUE : FALSE;
+        d3dDesc.StencilReadMask = (UINT8)desc.stencilReadMask;
+        d3dDesc.StencilWriteMask = (UINT8)desc.stencilWriteMask;
+        d3dDesc.FrontFace.StencilFailOp = ToD3D11(desc.frontFace.failOp);
+        d3dDesc.FrontFace.StencilDepthFailOp = ToD3D11(desc.frontFace.depthFailOp);
+        d3dDesc.FrontFace.StencilPassOp = ToD3D11(desc.frontFace.passOp);
+        d3dDesc.FrontFace.StencilFunc = ToD3D11(desc.frontFace.compare);
+        d3dDesc.BackFace.StencilFailOp = ToD3D11(desc.backFace.failOp);
+        d3dDesc.BackFace.StencilDepthFailOp = ToD3D11(desc.backFace.depthFailOp);
+        d3dDesc.BackFace.StencilPassOp = ToD3D11(desc.backFace.passOp);
+        d3dDesc.BackFace.StencilFunc = ToD3D11(desc.backFace.compare);
+
+        const HRESULT hr = d3dDevice->CreateDepthStencilState(&d3dDesc, state->handle.GetAddressOf());
+        if (FAILED(hr))
+        {
+            delete state;
+            LOGE("Direct3D11: Failed to create DepthStencil state");
+            return nullptr;
+        }
+
+        return DepthStencilStateHandle::Create(state);
     }
 
     SamplerHandle D3D11_Device::CreateSampler(const SamplerDesc& desc)
@@ -1358,7 +1388,7 @@ namespace alimer::rhi
                 shader->bytecode.resize(byteCode.size());
                 memcpy(shader->bytecode.data(), byteCode.data(), byteCode.size());
 
-                 HRESULT res = d3dDevice->CreateVertexShader(byteCode.data(), byteCode.size(), nullptr, &shader->VS);
+                HRESULT res = d3dDevice->CreateVertexShader(byteCode.data(), byteCode.size(), nullptr, &shader->VS);
                 if (FAILED(res))
                 {
                     LOGE("Direct3D11: Failed to CreateVertexShader");
@@ -1568,7 +1598,15 @@ namespace alimer::rhi
         }
 
         pipeline->blendState = GetBlendState(desc.blendState);
-        pipeline->depthStencilState = GetDepthStencilState(desc.depthStencilState);
+        if (desc.depthStencilState != nullptr)
+        {
+            pipeline->depthStencilState = checked_cast<D3D11DepthStencilState*>(desc.depthStencilState)->handle;
+        }
+        else
+        {
+            pipeline->depthStencilState = checked_cast<D3D11DepthStencilState*>(GetDefaultDepthStencilState())->handle;
+        }
+
         pipeline->rasterizerState = GetRasterizerState(desc.rasterizerState);
 
         pipeline->primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
@@ -1615,43 +1653,6 @@ namespace alimer::rhi
 
         blendStates[hash] = blendState;
         return blendState;
-    }
-
-    ID3D11DepthStencilState* D3D11_Device::GetDepthStencilState(const DepthStencilState& state)
-    {
-        std::hash<DepthStencilState> hasher;
-        size_t hash = hasher(state);
-
-        RefCountPtr<ID3D11DepthStencilState> depthStencilState = depthStencilStates[hash];
-
-        if (depthStencilState)
-            return depthStencilState;
-
-        D3D11_DEPTH_STENCIL_DESC desc;
-        desc.DepthEnable = (state.depthCompare != CompareFunction::Always || state.depthWriteEnable) ? TRUE : FALSE;
-        desc.DepthWriteMask = state.depthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-        desc.DepthFunc = ToD3D11(state.depthCompare);
-        desc.StencilEnable = state.stencilEnable ? TRUE : FALSE;
-        desc.StencilReadMask = (UINT8)state.stencilReadMask;
-        desc.StencilWriteMask = (UINT8)state.stencilWriteMask;
-        desc.FrontFace.StencilFailOp = ToD3D11(state.frontFace.failOp);
-        desc.FrontFace.StencilDepthFailOp = ToD3D11(state.frontFace.depthFailOp);
-        desc.FrontFace.StencilPassOp = ToD3D11(state.frontFace.passOp);
-        desc.FrontFace.StencilFunc = ToD3D11(state.frontFace.compare);
-        desc.BackFace.StencilFailOp = ToD3D11(state.backFace.failOp);
-        desc.BackFace.StencilDepthFailOp = ToD3D11(state.backFace.depthFailOp);
-        desc.BackFace.StencilPassOp = ToD3D11(state.backFace.passOp);
-        desc.BackFace.StencilFunc = ToD3D11(state.backFace.compare);
-
-        const HRESULT hr = d3dDevice->CreateDepthStencilState(&desc, &depthStencilState);
-        if (FAILED(hr))
-        {
-            LOGE("Direct3D11: Failed to create DepthStencil state");
-            return nullptr;
-        }
-
-        depthStencilStates[hash] = depthStencilState;
-        return depthStencilState.Get();
     }
 
     ID3D11RasterizerState1* D3D11_Device::GetRasterizerState(const RasterizerState& state)
@@ -1824,6 +1825,6 @@ namespace alimer::rhi
         delete device;
         return nullptr;
     }
-    }
+}
 
 #endif /* defined(ALIMER_RHI_D3D11) */

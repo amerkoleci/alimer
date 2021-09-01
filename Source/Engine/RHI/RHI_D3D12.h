@@ -18,6 +18,9 @@
 #include <deque>
 #include <unordered_map>
 
+#define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+
 namespace alimer::rhi
 {
     struct D3D12_ViewKey
@@ -83,16 +86,15 @@ namespace alimer::rhi
 
         ~D3D12_Texture() override;
 
-        IDevice* GetDevice() const override;
-        const TextureDesc& GetDesc() const override { return desc; }
-        //uint64_t GetAllocatedSize() const override { return allocatedSize; }
-
         auto GetHandle() const noexcept { return handle; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1);
         D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
 
     private:
-        void ApiSetName(const std::string_view& newName) override;
+        IDevice* GetDevice() const override;
+        const TextureDesc& GetDesc() const override { return desc; }
+        //uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        void ApiSetName() override;
 
         struct ViewInfoHashFunc
         {
@@ -106,22 +108,50 @@ namespace alimer::rhi
             }
         };
 
+        std::atomic_uint32_t refCount = 1;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> shaderResourceViews;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> renderTargetViews;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> depthStencilViews;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> unorderedAccessViews;
     };
 
+    class D3D12_Buffer final : public RefCounter<IBuffer>
+    {
+    public:
+        D3D12_Device* device;
+        BufferDesc desc;
+        ID3D12Resource* handle = nullptr;
+        D3D12MA::Allocation* allocation = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
+        ~D3D12_Buffer() override;
+
+        IDevice* GetDevice() const override;
+        const BufferDesc& GetDesc() const override { return desc; }
+
+    private:
+        void ApiSetName() override;
+    };
+
     class D3D12_Shader final : public RefCounter<IShader>
     {
     public:
-        D3D12_Device* device = nullptr;
+        IDevice* device = nullptr;
         ShaderStages stage = ShaderStages::None;
         std::vector<uint8_t> bytecode;
 
-        IDevice* GetDevice() const override;
+        IDevice* GetDevice() const override { return device; }
         ShaderStages GetStage() const override { return stage; }
-        void ApiSetName(const std::string_view& newName) override;
+    };
+
+    class D3D12DepthStencilState final : public RefCounter<IDepthStencilState>
+    {
+    public:
+        IDevice* device;
+        DepthStencilDesc desc;
+        D3D12_DEPTH_STENCIL_DESC1 d3dDesc;
+
+        IDevice* GetDevice() const override { return device; }
+        const DepthStencilDesc& GetDesc() const override { return desc; }
     };
 
     class D3D12_Pipeline : public RefCounter<IPipeline>
@@ -138,7 +168,6 @@ namespace alimer::rhi
 
     private:
         IDevice* GetDevice() const override;
-        void ApiSetName(const std::string_view& newName) override;
         std::unordered_map<uint64_t, RefCountPtr<ID3D12PipelineState>> pipelines;
     };
 
@@ -177,6 +206,7 @@ namespace alimer::rhi
 
         void BindRenderPipeline();
         void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
+        void SetIndexBuffer(const IBuffer* buffer, uint32_t offset) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
 
     };
@@ -368,6 +398,7 @@ namespace alimer::rhi
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
+        DepthStencilStateHandle CreateDepthStencilState(const DepthStencilDesc& desc) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");

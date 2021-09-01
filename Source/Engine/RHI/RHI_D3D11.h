@@ -52,15 +52,15 @@ namespace alimer::rhi
 
         ~D3D11_Texture() override;
 
-        IDevice* GetDevice() const override;
-        const TextureDesc& GetDesc() const override { return desc; }
         //uint64_t GetAllocatedSize() const override { return allocatedSize; }
 
         ID3D11RenderTargetView* GetRTV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1);
         ID3D11DepthStencilView* GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
 
     private:
-        void ApiSetName(const std::string_view& newName) override;
+        IDevice* GetDevice() const override;
+        const TextureDesc& GetDesc() const override { return desc; }
+        void ApiSetName() override;
 
         struct ViewInfoHashFunc
         {
@@ -91,7 +91,7 @@ namespace alimer::rhi
         const BufferDesc& GetDesc() const override { return desc; }
 
     private:
-        void ApiSetName(const std::string_view& newName) override;
+        void ApiSetName() override;
     };
 
     class D3D11_Shader final : public RefCounter<IShader>
@@ -110,7 +110,17 @@ namespace alimer::rhi
 
         IDevice* GetDevice() const override { return device; }
         ShaderStages GetStage() const override { return stage; }
-        void ApiSetName(const std::string_view& newName) override;
+    };
+
+    class D3D11DepthStencilState final : public RefCounter<IDepthStencilState>
+    {
+    public:
+        IDevice* device;
+        DepthStencilDesc desc;
+        RefCountPtr<ID3D11DepthStencilState> handle;
+
+        IDevice* GetDevice() const override { return device; }
+        const DepthStencilDesc& GetDesc() const override { return desc; }
     };
 
     class D3D11_Pipeline : public RefCounter<IPipeline>
@@ -132,7 +142,6 @@ namespace alimer::rhi
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
         IDevice* GetDevice() const override { return device; }
-        void ApiSetName(const std::string_view& newName) override;
     };
 
     class D3D11_CommandList final : public ICommandList
@@ -158,6 +167,7 @@ namespace alimer::rhi
         void BindRenderPipeline(const D3D11_Pipeline* pipeline);
 
         void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
+        void SetIndexBuffer(const IBuffer* buffer, uint32_t offset) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
     };
 
@@ -195,6 +205,7 @@ namespace alimer::rhi
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
+        DepthStencilStateHandle CreateDepthStencilState(const DepthStencilDesc& desc) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
@@ -206,11 +217,9 @@ namespace alimer::rhi
         void GetAdapter(IDXGIAdapter1** ppAdapter);
         void HandleDeviceLost();
         ID3D11BlendState1* GetBlendState(const BlendState& state);
-        ID3D11DepthStencilState* GetDepthStencilState(const DepthStencilState& state);
         ID3D11RasterizerState1* GetRasterizerState(const RasterizerState& state);
 
         std::unordered_map<size_t, RefCountPtr<ID3D11BlendState1>> blendStates;
-        std::unordered_map<size_t, RefCountPtr<ID3D11DepthStencilState>> depthStencilStates;
         std::unordered_map<size_t, RefCountPtr<ID3D11RasterizerState1>> rasterizerStates;
 
 

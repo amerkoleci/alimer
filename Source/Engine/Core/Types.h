@@ -127,10 +127,10 @@ template <> struct Limits<type> { \
     }
 
     /// Returns whether all the set bits in bits are set in v.
-    template <typename T> inline bool All(T v, T bits) { return (v & bits) == bits; }
+    template <typename T> inline bool CheckBitsAll(T v, T bits) { return (v & bits) == bits; }
 
     /// Returns whether any of the set bits in bits are set in v.
-    template <typename T> inline bool Any(T v, T bits) { return (v & bits) != (T)0; }
+    template <typename T> inline bool CheckBitsAny(T v, T bits) { return (v & bits) != (T)0; }
 
     // A type cast that is safer than static_cast in debug builds, and is a simple static_cast in release builds.
     // Used for downcasting various ISomething* pointers to their implementation classes in the backends.

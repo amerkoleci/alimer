@@ -97,17 +97,17 @@ namespace alimer::rhi
     {
         switch (func)
         {
-        case CompareFunction::Never:        return "Never";
-        case CompareFunction::Less:         return "Less";
-        case CompareFunction::Equal:        return "Equal";
-        case CompareFunction::LessEqual:    return "LessEqual";
-        case CompareFunction::Greater:      return "Greater";
-        case CompareFunction::NotEqual:     return "NotEqual";
-        case CompareFunction::GreaterEqual: return "GreaterEqual";
-        case CompareFunction::Always:       return "Always";
-        default:
-            ALIMER_UNREACHABLE();
-            return "<Unknown>";
+            case CompareFunction::Never:        return "Never";
+            case CompareFunction::Less:         return "Less";
+            case CompareFunction::Equal:        return "Equal";
+            case CompareFunction::LessEqual:    return "LessEqual";
+            case CompareFunction::Greater:      return "Greater";
+            case CompareFunction::NotEqual:     return "NotEqual";
+            case CompareFunction::GreaterEqual: return "GreaterEqual";
+            case CompareFunction::Always:       return "Always";
+            default:
+                ALIMER_UNREACHABLE();
+                return "<Unknown>";
         }
     }
 
@@ -115,16 +115,16 @@ namespace alimer::rhi
     {
         switch (dimension)
         {
-        case TextureDimension::Texture1D:           return "Texture1D";
-        case TextureDimension::Texture1DArray:      return "Texture1DArray";
-        case TextureDimension::Texture2D:           return "Texture2D";
-        case TextureDimension::Texture2DArray:      return "Texture2DArray";
-        case TextureDimension::Texture2DMS:         return "Texture2DMS";
-        case TextureDimension::Texture2DMSArray:    return "Texture2DMSArray";
-        case TextureDimension::TextureCube:         return "TextureCube";
-        case TextureDimension::TextureCubeArray:    return "TextureCubeArray";
-        case TextureDimension::Texture3D:           return "Texture3D";
-        default:                                    return "<INVALID>";
+            case TextureDimension::Texture1D:           return "Texture1D";
+            case TextureDimension::Texture1DArray:      return "Texture1DArray";
+            case TextureDimension::Texture2D:           return "Texture2D";
+            case TextureDimension::Texture2DArray:      return "Texture2DArray";
+            case TextureDimension::Texture2DMS:         return "Texture2DMS";
+            case TextureDimension::Texture2DMSArray:    return "Texture2DMSArray";
+            case TextureDimension::TextureCube:         return "TextureCube";
+            case TextureDimension::TextureCubeArray:    return "TextureCubeArray";
+            case TextureDimension::Texture3D:           return "Texture3D";
+            default:                                    return "<INVALID>";
         }
     }
 
@@ -140,11 +140,11 @@ namespace alimer::rhi
     DeviceHandle IDevice::Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters)
     {
 #if defined(ALIMER_RHI_D3D11)
-        return CreateD3D11Device(window, presentationParameters);
+        //return CreateD3D11Device(window, presentationParameters);
 #endif
 
 #if defined(ALIMER_RHI_D3D12)
-        //return CreateD3D12Device(window, presentationParameters);
+        return CreateD3D12Device(window, presentationParameters);
 #endif
 
 #if defined(ALIMER_RHI_VULKAN)
@@ -177,6 +177,24 @@ namespace alimer::rhi
     BufferHandle IDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
         //
+        if ((desc.usage & BufferUsage::Vertex) != 0)
+        {
+            if (desc.stride == 0)
+            {
+                LOGE("Invalid buffer stride");
+                return nullptr;
+            }
+        }
+
+        if ((desc.usage & BufferUsage::Index) != 0)
+        {
+            if (desc.stride != 2 && desc.stride != 4)
+            {
+                LOGE("Invalid buffer stride");
+                return nullptr;
+            }
+        }
+
         return CreateBufferCore(desc, nullptr, initialData);
     }
 
@@ -184,7 +202,8 @@ namespace alimer::rhi
     {
         ALIMER_ASSERT(desc.width >= 1);
         ALIMER_ASSERT(desc.height >= 1);
-        ALIMER_ASSERT(desc.depthOrArraySize >= 1);
+        ALIMER_ASSERT(desc.depth >= 1);
+        ALIMER_ASSERT(desc.arraySize >= 1);
         ALIMER_ASSERT(desc.usage != TextureUsage::None);
 
         if ((desc.usage & TextureUsage::ShaderWrite) != 0)
@@ -196,7 +215,7 @@ namespace alimer::rhi
             //    return nullptr;
             //}
 
-            if (Any(desc.usage, TextureUsage::RenderTarget) && IsDepthStencilFormat(desc.format))
+            if (CheckBitsAny(desc.usage, TextureUsage::RenderTarget) && IsDepthStencilFormat(desc.format))
             {
                 LOGE("Cannot create DepthStencil texture with ShaderWrite usage");
                 return false;
@@ -206,48 +225,7 @@ namespace alimer::rhi
         return true;
     }
 
-#if TODO
-    const char* ToString(SamplerFilter filter)
-    {
-        switch (filter)
-        {
-        case SamplerFilter::Point:  return "Point";
-        case SamplerFilter::Linear: return "Linear";
-        default:
-            ALIMER_UNREACHABLE();
-            return "<Unknown>";
-        }
-    }
-
-    const char* ToString(SamplerAddressMode mode)
-    {
-        switch (mode)
-        {
-        case SamplerAddressMode::Wrap:          return "Wrap";
-        case SamplerAddressMode::Mirror:        return "Mirror";
-        case SamplerAddressMode::Clamp:         return "Clamp";
-        case SamplerAddressMode::Border:        return "Border";
-        case SamplerAddressMode::MirrorOnce:    return "MirrorOnce";
-        default:
-            ALIMER_UNREACHABLE();
-            return "<Unknown>";
-        }
-    }
-
-    const char* ToString(SamplerBorderColor borderColor)
-    {
-        switch (borderColor)
-        {
-        case SamplerBorderColor::TransparentBlack:  return "TransparentBlack";
-        case SamplerBorderColor::OpaqueBlack:       return "OpaqueBlack";
-        case SamplerBorderColor::OpaqueWhite:       return "OpaqueWhite";
-        default:
-            ALIMER_UNREACHABLE();
-            return "<Unknown>";
-        }
-    }
-
-    bool StencilTestEnabled(const DepthStencilState* depthStencil)
+    bool StencilTestEnabled(const DepthStencilDesc* depthStencil)
     {
         return depthStencil->backFace.compare != CompareFunction::Always ||
             depthStencil->backFace.failOp != StencilOperation::Keep ||
@@ -258,6 +236,62 @@ namespace alimer::rhi
             depthStencil->frontFace.depthFailOp != StencilOperation::Keep ||
             depthStencil->frontFace.passOp != StencilOperation::Keep;
     }
-#endif // TODO
+
+    uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth)
+    {
+        uint32_t numMips = 0;
+        uint32_t size = std::max(std::max(width, height), depth);
+        while (1u << numMips <= size)
+        {
+            ++numMips;
+        }
+
+        if (1u << numMips < size)
+        {
+            ++numMips;
+        }
+
+        return numMips;
+    }
+
+    const char* ToString(SamplerFilter filter)
+    {
+        switch (filter)
+        {
+            case SamplerFilter::Point:  return "Point";
+            case SamplerFilter::Linear: return "Linear";
+            default:
+                ALIMER_UNREACHABLE();
+                return "<Unknown>";
+        }
+    }
+
+    const char* ToString(SamplerAddressMode mode)
+    {
+        switch (mode)
+        {
+            case SamplerAddressMode::Wrap:          return "Wrap";
+            case SamplerAddressMode::Mirror:        return "Mirror";
+            case SamplerAddressMode::Clamp:         return "Clamp";
+            case SamplerAddressMode::Border:        return "Border";
+            case SamplerAddressMode::MirrorOnce:    return "MirrorOnce";
+            default:
+                ALIMER_UNREACHABLE();
+                return "<Unknown>";
+        }
+    }
+
+    const char* ToString(SamplerBorderColor borderColor)
+    {
+        switch (borderColor)
+        {
+            case SamplerBorderColor::TransparentBlack:  return "TransparentBlack";
+            case SamplerBorderColor::OpaqueBlack:       return "OpaqueBlack";
+            case SamplerBorderColor::OpaqueWhite:       return "OpaqueWhite";
+            default:
+                ALIMER_UNREACHABLE();
+                return "<Unknown>";
+        }
+    }
 
 }

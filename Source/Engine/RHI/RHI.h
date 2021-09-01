@@ -6,37 +6,6 @@
 #include "Core/RefCount.h"
 #include "Math/Color.h"
 
-#define RHI_DEFINE_ENUM_BITWISE_OPERATORS(T) \
-    inline constexpr T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
-    inline constexpr T& operator |= (T &a, T b) { return a = a | b; } \
-    inline constexpr T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } \
-    inline constexpr T& operator &= (T &a, T b) { return a = a & b; } \
-    inline constexpr T operator ~ (T a) { return T(~uint32_t(a)); } \
-    inline constexpr bool operator !(T a) { return uint32_t(a) == 0; } \
-    inline constexpr T operator ^ (T a, T b) { return T(uint32_t(a) ^ uint32_t(b)); } \
-    inline constexpr T& operator ^= (T &a, T b) { return a = a ^ b; } \
-    inline constexpr bool operator ==(T a, uint32_t b) { return uint32_t(a) == b; } \
-    inline constexpr bool operator !=(T a, uint32_t b) { return uint32_t(a) != b; }
-
-#if defined(RHI_SHARED_LIBRARY_BUILD)
-#   if defined(_MSC_VER)
-#       define RHI_API __declspec(dllexport)
-#   elif defined(__GNUC__)
-#       define RHI_API __attribute__((visibility("default")))
-#   else
-#       define RHI_API
-#       pragma warning "Unknown dynamic link import/export semantics."
-#   endif
-#elif defined(RHI_SHARED_LIBRARY_INCLUDE)
-#   if defined(_MSC_VER)
-#       define RHI_API __declspec(dllimport)
-#   else
-#       define RHI_API
-#   endif
-#else
-#   define RHI_API
-#endif
-
 namespace alimer
 {
     class Window;
@@ -123,7 +92,7 @@ namespace alimer::rhi
         AccelerationStructureBuildBlas = 0x00080000,
         ShadingRateSurface = 0x00100000,
     };
-    RHI_DEFINE_ENUM_BITWISE_OPERATORS(ResourceStates);
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ResourceStates);
 
     enum class Format : uint32_t
     {
@@ -244,8 +213,9 @@ namespace alimer::rhi
         ShaderWrite = 1 << 4,
         Indirect = 1 << 5,
         RayTracingAccelerationStructure = 1 << 6,
+        RayTracingShaderTable = 1 << 7,
     };
-    RHI_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
 
     enum class TextureDimension : uint32_t
     {
@@ -268,7 +238,7 @@ namespace alimer::rhi
         RenderTarget = 1 << 2,
         ShadingRate = 1 << 3,
     };
-    RHI_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
 
     enum class ShaderStages : uint32_t
     {
@@ -295,7 +265,7 @@ namespace alimer::rhi
 
         All = 0x3FFF,
     };
-    RHI_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
 
     enum class SamplerFilter : uint32_t
     {
@@ -356,7 +326,7 @@ namespace alimer::rhi
         Max
     };
 
-    enum class ColorWriteMask : uint32_t
+    enum class ColorWriteMask : uint8_t
     {
         None = 0,
         Red = 0x01,
@@ -365,7 +335,7 @@ namespace alimer::rhi
         Alpha = 0x08,
         All = 0x0F
     };
-    RHI_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
 
     enum class StencilOperation : uint32_t
     {
@@ -416,6 +386,7 @@ namespace alimer::rhi
     class ITexture;
     class ISampler;
     class IShader;
+    class IDepthStencilState;
     class IPipeline;
     class IDevice;
 
@@ -427,6 +398,37 @@ namespace alimer::rhi
         BufferUsage usage = BufferUsage::None;
         GPUResourceUsage resourceUsage = GPUResourceUsage::Default;
         Format format = Format::Undefined;
+
+        static inline BufferDesc Vertex(uint32_t count, uint32_t stride, GPUResourceUsage resourceUsage = GPUResourceUsage::Default) noexcept
+        {
+            BufferDesc desc;
+            desc.size = count * stride;
+            desc.stride = stride;
+            desc.usage = BufferUsage::Vertex;
+            desc.resourceUsage = resourceUsage;
+            return desc;
+        }
+
+        static inline BufferDesc Index(uint32_t count, bool is32Bit, GPUResourceUsage resourceUsage = GPUResourceUsage::Default) noexcept
+        {
+            BufferDesc desc;
+            desc.stride = is32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
+            desc.size = count * desc.stride;
+            desc.usage = BufferUsage::Vertex;
+            desc.resourceUsage = resourceUsage;
+            desc.format = is32Bit ? Format::R32UInt : Format::R16UInt;
+            return desc;
+        }
+
+        static inline BufferDesc Constant(uint32_t size, GPUResourceUsage resourceUsage = GPUResourceUsage::Default) noexcept
+        {
+            BufferDesc desc;
+            desc.stride = 1;
+            desc.size = size;
+            desc.usage = BufferUsage::Vertex;
+            desc.resourceUsage = resourceUsage;
+            return desc;
+        }
     };
 
     struct TextureDesc
@@ -434,11 +436,12 @@ namespace alimer::rhi
         TextureDimension dimension = TextureDimension::Texture2D;
         uint32_t width = 1;
         uint32_t height = 1;
-        uint32_t depthOrArraySize = 1;
-        Format format = Format::RGBA8UNorm;
+        uint32_t depth = 1;
+        uint32_t arraySize = 1;
         uint32_t mipLevels = 1;
-        TextureUsage usage = TextureUsage::ShaderRead;
         uint32_t sampleCount = 1;
+        Format format = Format::RGBA8UNorm;
+        TextureUsage usage = TextureUsage::ShaderRead;
         ResourceStates initialState = ResourceStates::Unknown;
 
         static inline TextureDesc Tex1D(
@@ -452,7 +455,7 @@ namespace alimer::rhi
             desc.dimension = arraySize > 1 ? TextureDimension::Texture1DArray : TextureDimension::Texture1D;
             desc.width = width;
             desc.height = 1;
-            desc.depthOrArraySize = arraySize;
+            desc.arraySize = arraySize;
             desc.mipLevels = mipLevels;
             desc.format = format;
             desc.sampleCount = 1;
@@ -481,7 +484,7 @@ namespace alimer::rhi
 
             desc.width = width;
             desc.height = height;
-            desc.depthOrArraySize = arraySize;
+            desc.arraySize = arraySize;
             desc.mipLevels = mipLevels;
             desc.format = format;
             desc.sampleCount = sampleCount;
@@ -501,7 +504,8 @@ namespace alimer::rhi
             desc.dimension = TextureDimension::Texture3D;
             desc.width = width;
             desc.height = height;
-            desc.depthOrArraySize = depth;
+            desc.depth = depth;
+            desc.arraySize = 1u;
             desc.mipLevels = mipLevels;
             desc.format = format;
             desc.sampleCount = 1;
@@ -520,7 +524,7 @@ namespace alimer::rhi
             desc.dimension = arraySize > 1 ? TextureDimension::TextureCubeArray : TextureDimension::TextureCube;
             desc.width = size;
             desc.height = size;
-            desc.depthOrArraySize = arraySize;
+            desc.arraySize = arraySize;
             desc.mipLevels = mipLevels;
             desc.format = format;
             desc.sampleCount = 1;
@@ -628,11 +632,10 @@ namespace alimer::rhi
         CompareFunction compare = CompareFunction::Always;
     };
 
-    struct DepthStencilState
+    struct DepthStencilDesc
     {
         bool depthWriteEnable = true;
         CompareFunction depthCompare = CompareFunction::Less;
-        bool stencilEnable = false;
         uint8_t stencilReadMask = 0xFF;
         uint8_t stencilWriteMask = 0xFF;
         StencilFaceState frontFace;
@@ -661,12 +664,11 @@ namespace alimer::rhi
 
         VertexLayout            vertexLayout;
         BlendState              blendState;
-        DepthStencilState       depthStencilState;
+        IDepthStencilState*     depthStencilState = nullptr;
         RasterizerState         rasterizerState;
         PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
         uint32_t                patchControlPoints = 0;
     };
-
 
     struct RenderPassColorAttachment
     {
@@ -724,8 +726,40 @@ namespace alimer::rhi
         bool isFullScreen = false;
     };
 
+    struct DeviceFeatures
+    {
+        /// Whether Ray Tracing support is available.
+        bool rayTracing = false;
+        /// Whether Mesh Shader support is available.
+        bool meshShader = false;
+    };
+
+    struct DeviceLimits
+    {
+        /// The maximum pixel size of a 1d image.
+        uint32_t maxTextureDimension1D;
+
+        /// The maximum pixel size along one axis of a 2d image.
+        uint32_t maxTextureDimension2D;
+
+        /// The maximum pixel size along one axis of a 3d image.
+        uint32_t maxTextureDimension3D;
+
+        /// The maximum pixel size along one axis of a cube image.
+        uint32_t maxTextureDimensionCube;
+
+        /// The maximum size of an image array.
+        uint32_t maxTextureArraySize;
+
+        /// The alignment required when creating buffer views
+        uint32_t minConstantBufferOffsetAlignment;
+
+        /// The maximum number of draws when doing indirect drawing.
+        uint32_t maxDrawIndirectCount = 1;
+    };
+
     /* Objects */
-    class RHI_API Object : public RefCounted
+    class ALIMER_API Object : public RefCounted
     {
     public:
         /// Destructor. 
@@ -738,56 +772,61 @@ namespace alimer::rhi
         void SetName(const std::string_view& newName)
         {
             name = newName;
-            ApiSetName(newName);
+            ApiSetName();
         }
 
     protected:
         /// Constructor.
         Object() = default;
 
-    private:
-        virtual void ApiSetName(const std::string_view& newName) = 0;
+        virtual void ApiSetName() {}
         std::string name;
     };
 
-    class RHI_API DeviceChild : public Object
+    class ALIMER_API DeviceChild : public Object
     {
     public:
         [[nodiscard]] virtual IDevice* GetDevice() const = 0;
     };
 
-    class RHI_API IResource : public DeviceChild
+    class ALIMER_API IResource : public DeviceChild
     {
     protected:
         //[[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
     };
 
-    class RHI_API IBuffer : public IResource
+    class ALIMER_API IBuffer : public IResource
     {
     public:
         [[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
     };
 
-    class RHI_API ITexture : public IResource
+    class ALIMER_API ITexture : public IResource
     {
     public:
         [[nodiscard]] virtual const TextureDesc& GetDesc() const = 0;
     };
 
-    class RHI_API ISampler : public DeviceChild
+    class ALIMER_API ISampler : public DeviceChild
     {
     public:
         [[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
         //[[nodiscard]] virtual uint32_t GetBindlessIndex() const = 0;
     };
 
-    class RHI_API IShader : public DeviceChild
+    class ALIMER_API IShader : public DeviceChild
     {
     public:
         [[nodiscard]] virtual ShaderStages GetStage() const = 0;
     };
 
-    class RHI_API IPipeline : public DeviceChild
+    class ALIMER_API IDepthStencilState : public DeviceChild
+    {
+    public:
+        [[nodiscard]] virtual const DepthStencilDesc& GetDesc() const = 0;
+    };
+
+    class ALIMER_API IPipeline : public DeviceChild
     {
     public:
     };
@@ -815,17 +854,19 @@ namespace alimer::rhi
 
         virtual void SetPipeline(_In_ IPipeline* pipeline) = 0;
         virtual void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) = 0;
+        virtual void SetIndexBuffer(const IBuffer* buffer, uint32_t offset) = 0;
         virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
     };
 
     using BufferHandle = RefCountPtr<IBuffer>;
     using TextureHandle = RefCountPtr<ITexture>;
-    using SamplerHandle = RefCountPtr<ISampler>;
     using ShaderHandle = RefCountPtr<IShader>;
+    using DepthStencilStateHandle = RefCountPtr<IDepthStencilState>;
+    using SamplerHandle = RefCountPtr<ISampler>;
     using PipelineHandle = RefCountPtr<IPipeline>;
     using DeviceHandle = RefCountPtr<IDevice>;
 
-    class RHI_API IDevice : public RefCounted
+    class ALIMER_API IDevice : public RefCounted
     {
     public:
         static DeviceHandle Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters);
@@ -834,6 +875,12 @@ namespace alimer::rhi
         virtual ICommandList* BeginFrame() = 0;
         virtual void EndFrame() = 0;
         virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
+
+        //! Returns the set of features supported by this device.
+        const DeviceFeatures& GetFeatures() const { return features; }
+
+        //! Returns the set of hardware limits for this device.
+        const DeviceLimits& GetLimits() const { return limits; }
 
         [[nodiscard]] virtual ITexture* GetCurrentBackBuffer() const = 0;
         [[nodiscard]] virtual ITexture* GetBackBuffer(uint32_t index) const = 0;
@@ -860,14 +907,19 @@ namespace alimer::rhi
         /// Create new buffer.
         [[nodiscard]] BufferHandle CreateBuffer(const BufferDesc& desc, const void* initialData);
 
-        /// Create new sampler.
-        [[nodiscard]] virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
-
         /// Create new shader.
         [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
+        /// Create new depth stencil state.
+        [[nodiscard]] virtual DepthStencilStateHandle CreateDepthStencilState(const DepthStencilDesc& desc) = 0;
+
+        /// Create new sampler.
+        [[nodiscard]] virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
+
         /// Create new render pipeline.
         [[nodiscard]] virtual PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
+
+        [[nodiscard]] IDepthStencilState* GetDefaultDepthStencilState() const { return defaultDepthStencilState.Get(); }
 
     private:
         bool VerifyTextureDesc(const TextureDesc& desc);
@@ -875,6 +927,11 @@ namespace alimer::rhi
         virtual BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) = 0;
 
     protected:
+        DeviceFeatures features{};
+        DeviceLimits limits{};
+
+        DepthStencilStateHandle defaultDepthStencilState;
+
         uint32_t backBufferWidth = 0;
         uint32_t backBufferHeight = 0;
         bool vsyncEnabled = false;
@@ -906,8 +963,8 @@ namespace alimer::rhi
         bool isSRGB : 1;
     };
 
-    RHI_API extern const FormatInfo kFormatDesc[];
-    RHI_API const FormatInfo& GetFormatInfo(Format format);
+    ALIMER_API extern const FormatInfo kFormatDesc[];
+    ALIMER_API const FormatInfo& GetFormatInfo(Format format);
 
     /// Get the number of bits per format.
     constexpr uint32_t GetFormatBytesPerBlock(Format format)
@@ -1034,9 +1091,6 @@ namespace alimer::rhi
         }
     }
 
-    RHI_API const char* ToString(CompareFunction func);
-    RHI_API const char* ToString(TextureDimension dimension);
-
     inline const char* GetVendorName(uint32_t vendorId)
     {
         switch (vendorId)
@@ -1057,6 +1111,17 @@ namespace alimer::rhi
                 return "Unknown";
         }
     }
+
+    ALIMER_API bool StencilTestEnabled(const DepthStencilDesc* depthStencil);
+
+    // Returns the number of mip levels given a texture size
+    ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
+
+    ALIMER_API const char* ToString(CompareFunction func);
+    ALIMER_API const char* ToString(TextureDimension dimension);
+    ALIMER_API const char* ToString(SamplerFilter filter);
+    ALIMER_API const char* ToString(SamplerAddressMode mode);
+    ALIMER_API const char* ToString(SamplerBorderColor borderColor);
 
     template <class T>
     void hash_combine(size_t& seed, const T& v)
@@ -1128,14 +1193,13 @@ namespace std
         }
     };
 
-    template<> struct hash<alimer::rhi::DepthStencilState>
+    template<> struct hash<alimer::rhi::DepthStencilDesc>
     {
-        std::size_t operator()(const alimer::rhi::DepthStencilState& state) const noexcept
+        std::size_t operator()(const alimer::rhi::DepthStencilDesc& state) const noexcept
         {
             size_t hash = 0;
             alimer::rhi::hash_combine(hash, state.depthWriteEnable);
             alimer::rhi::hash_combine(hash, (uint32_t)state.depthCompare);
-            alimer::rhi::hash_combine(hash, state.stencilEnable);
             alimer::rhi::hash_combine(hash, state.stencilReadMask);
             alimer::rhi::hash_combine(hash, state.stencilWriteMask);
             alimer::rhi::hash_combine(hash, state.frontFace);

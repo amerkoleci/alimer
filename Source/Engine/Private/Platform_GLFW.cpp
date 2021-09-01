@@ -90,22 +90,22 @@ namespace alimer
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-        auto decorated = Any(flags, WindowFlags::Borderless) ? GLFW_FALSE : GLFW_TRUE;
+        auto decorated = CheckBitsAny(flags, WindowFlags::Borderless) ? GLFW_FALSE : GLFW_TRUE;
         glfwWindowHint(GLFW_DECORATED, decorated);
 
-        auto resizable = Any(flags, WindowFlags::Resizable) ? GLFW_TRUE : GLFW_FALSE;
+        auto resizable = CheckBitsAny(flags, WindowFlags::Resizable) ? GLFW_TRUE : GLFW_FALSE;
         glfwWindowHint(GLFW_RESIZABLE, resizable);
 
-        auto maximized = Any(flags, WindowFlags::Maximized) ? GLFW_TRUE : GLFW_FALSE;
+        auto maximized = CheckBitsAny(flags, WindowFlags::Maximized) ? GLFW_TRUE : GLFW_FALSE;
         glfwWindowHint(GLFW_MAXIMIZED, maximized);
 
         GLFWmonitor* monitor = nullptr;
-        if (Any(flags, WindowFlags::Fullscreen))
+        if (CheckBitsAny(flags, WindowFlags::Fullscreen))
         {
             monitor = glfwGetPrimaryMonitor();
         }
 
-        if (Any(flags, WindowFlags::FullscreenDesktop))
+        if (CheckBitsAny(flags, WindowFlags::FullscreenDesktop))
         {
             monitor = glfwGetPrimaryMonitor();
             auto mode = glfwGetVideoMode(monitor);

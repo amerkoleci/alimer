@@ -453,11 +453,11 @@ namespace alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
-        else if (arraySize + slice > desc.depthOrArraySize)
+        else if (arraySize + slice > desc.arraySize)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
 
         D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, false);
@@ -525,11 +525,11 @@ namespace alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
-        else if (arraySize + slice > desc.depthOrArraySize)
+        else if (arraySize + slice > desc.arraySize)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = desc.arraySize - slice;
         }
 
         D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, isReadOnly);
@@ -596,20 +596,32 @@ namespace alimer::rhi
         return it->second;
     }
 
-    void D3D12_Texture::ApiSetName(const std::string_view& newName)
+    void D3D12_Texture::ApiSetName()
     {
-        SetDebugName(handle, newName);
+        SetDebugName(handle, name.c_str());
     }
 
-    /* D3D12_Shader */
-    void D3D12_Shader::ApiSetName(const std::string_view& newName)
+    /* D3D12_Buffer */
+    D3D12_Buffer::~D3D12_Buffer()
     {
-        ALIMER_UNUSED(newName);
+        if (handle != nullptr
+            && allocation != nullptr)
+        {
+            device->DeferDestroy(handle, allocation);
+        }
+
+        handle = nullptr;
+        allocation = nullptr;
     }
 
-    IDevice* D3D12_Shader::GetDevice() const
+    IDevice* D3D12_Buffer::GetDevice() const
     {
         return device;
+    }
+
+    void D3D12_Buffer::ApiSetName()
+    {
+        SetDebugName(handle, name);
     }
 
     /* D3D12_Pipeline */
@@ -626,11 +638,6 @@ namespace alimer::rhi
             device->DeferDestroy(it.second);
         }
         pipelines.clear();
-    }
-
-    void D3D12_Pipeline::ApiSetName(const std::string_view& newName)
-    {
-
     }
 
     IDevice* D3D12_Pipeline::GetDevice() const
@@ -660,7 +667,7 @@ namespace alimer::rhi
                 CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
                 CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK SampleMask;
                 CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterizerState;
-                CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilState;
+                CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
                 CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
                 CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
                 CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
@@ -737,24 +744,14 @@ namespace alimer::rhi
             stream.RasterizerState = rasterizerState;
 
             // DepthStencilState
-            CD3DX12_DEPTH_STENCIL_DESC d3d12DepthStencilState = {};
-            d3d12DepthStencilState.DepthEnable = (desc.depthStencilState.depthCompare != CompareFunction::Always || desc.depthStencilState.depthWriteEnable) ? TRUE : FALSE;
-            d3d12DepthStencilState.DepthWriteMask = desc.depthStencilState.depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-            d3d12DepthStencilState.DepthFunc = ToD3D12(desc.depthStencilState.depthCompare);
-            d3d12DepthStencilState.StencilEnable = FALSE;
-            d3d12DepthStencilState.StencilReadMask = desc.depthStencilState.stencilReadMask;
-            d3d12DepthStencilState.StencilWriteMask = desc.depthStencilState.stencilWriteMask;
-
-            d3d12DepthStencilState.FrontFace.StencilFailOp = ToD3D12(desc.depthStencilState.frontFace.failOp);
-            d3d12DepthStencilState.FrontFace.StencilDepthFailOp = ToD3D12(desc.depthStencilState.frontFace.depthFailOp);
-            d3d12DepthStencilState.FrontFace.StencilPassOp = ToD3D12(desc.depthStencilState.frontFace.passOp);
-            d3d12DepthStencilState.FrontFace.StencilFunc = ToD3D12(desc.depthStencilState.frontFace.compare);
-
-            d3d12DepthStencilState.BackFace.StencilFailOp = ToD3D12(desc.depthStencilState.backFace.failOp);
-            d3d12DepthStencilState.BackFace.StencilDepthFailOp = ToD3D12(desc.depthStencilState.backFace.depthFailOp);
-            d3d12DepthStencilState.BackFace.StencilPassOp = ToD3D12(desc.depthStencilState.backFace.passOp);
-            d3d12DepthStencilState.BackFace.StencilFunc = ToD3D12(desc.depthStencilState.backFace.compare);
-            stream.DepthStencilState = d3d12DepthStencilState;
+            if (desc.depthStencilState != nullptr)
+            {
+                stream.DepthStencilState = { checked_cast<D3D12DepthStencilState*>(desc.depthStencilState)->d3dDesc };
+            }
+            else
+            {
+                stream.DepthStencilState = { checked_cast<D3D12DepthStencilState*>(device->GetDefaultDepthStencilState())->d3dDesc };
+            }
 
             //stream.InputLayout = inputLayout;
             stream.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
@@ -954,13 +951,12 @@ namespace alimer::rhi
             ALIMER_ASSERT(attachment.texture);
 
             auto sourceTexture = checked_cast<D3D12_Texture*>(attachment.texture);
-            const TextureDesc& textureDesc = sourceTexture->GetDesc();
 
             const uint32_t mipLevel = attachment.mipLevel;
             const uint32_t slice = attachment.slice;
 
-            width = Min(width, std::max(1u, textureDesc.width >> mipLevel));
-            height = Min(height, std::max(1u, textureDesc.height >> mipLevel));
+            width = Min(width, std::max(1U, sourceTexture->desc.width >> mipLevel));
+            height = Min(height, std::max(1U, sourceTexture->desc.height >> mipLevel));
 
             rtvDescs[currentPassFormats.colorFormatsCount].cpuDescriptor = sourceTexture->GetRTV(mipLevel, slice, 1);
             currentPassFormats.colorFormats[currentPassFormats.colorFormatsCount] = sourceTexture->dxgiFormat;
@@ -1026,8 +1022,8 @@ namespace alimer::rhi
                 rtvDescs[i].EndingAccess.Resolve.pDstResource = resolveTexture->GetHandle();
                 rtvDescs[i].EndingAccess.Resolve.SubresourceCount = 1;
 
-                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
-                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->desc.mipLevels, sourceTexture->desc.depthOrArraySize);
+                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.arraySize);
+                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->desc.mipLevels, sourceTexture->desc.arraySize);
 
                 subresourceParameters[i].SrcSubresource = srcSubresource;
                 subresourceParameters[i].DstSubresource = dstSubresource;
@@ -1066,10 +1062,9 @@ namespace alimer::rhi
             const RenderPassDepthStencilAttachment& attachment = desc.depthStencilAttachment;
 
             auto sourceTexture = checked_cast<D3D12_Texture*>(attachment.texture);
-            const TextureDesc& textureDesc = sourceTexture->GetDesc();
 
-            width = Min(width, std::max(1u, textureDesc.width >> attachment.mipLevel));
-            height = Min(height, std::max(1u, textureDesc.height >> attachment.mipLevel));
+            width = Min(width, std::max(1u, sourceTexture->desc.width >> attachment.mipLevel));
+            height = Min(height, std::max(1u, sourceTexture->desc.height >> attachment.mipLevel));
 
             dsvDesc.cpuDescriptor = sourceTexture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
             currentPassFormats.depthStencilFormat = sourceTexture->dxgiFormat;
@@ -1193,6 +1188,26 @@ namespace alimer::rhi
 
     void D3D12_CommandList::SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer)
     {
+        const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
+        const uint32_t offset = 0;
+
+        D3D12_VERTEX_BUFFER_VIEW view;
+        view.BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
+        view.SizeInBytes = d3dBuffer->desc.size - offset;
+        view.StrideInBytes = d3dBuffer->desc.stride;
+        handle->IASetVertexBuffers(index, 1, &view);
+    }
+
+    void D3D12_CommandList::SetIndexBuffer(const IBuffer* buffer, uint32_t offset)
+    {
+        const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
+        const DXGI_FORMAT format = d3dBuffer->desc.stride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+
+        D3D12_INDEX_BUFFER_VIEW view;
+        view.BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
+        view.SizeInBytes = (UINT)(d3dBuffer->desc.size - offset);
+        view.Format = format;
+        handle->IASetIndexBuffer(&view);
     }
 
     void D3D12_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
@@ -1260,7 +1275,7 @@ namespace alimer::rhi
         }
 
         return false;
-    }
+        }
 
     D3D12_Device::D3D12_Device(ValidationMode validationMode)
     {
@@ -1478,10 +1493,22 @@ namespace alimer::rhi
             ThrowIfFailed(adapter->GetDesc1(&adapterDesc));
 
             // Init feature check
-            CD3DX12FeatureSupport features;
-            ThrowIfFailed(features.Init(d3dDevice.Get()));
+            CD3DX12FeatureSupport d3dFeatures;
+            ThrowIfFailed(d3dFeatures.Init(d3dDevice.Get()));
+            featureLevel = d3dFeatures.MaxSupportedFeatureLevel();
 
-            featureLevel = features.MaxSupportedFeatureLevel();
+            // Features
+            features.rayTracing = d3dFeatures.RaytracingTier() >= D3D12_RAYTRACING_TIER_1_0;
+            features.meshShader |= d3dFeatures.MeshShaderTier() >= D3D12_MESH_SHADER_TIER_1;
+
+            // Limits
+            limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
+            limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+            limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
+            limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
+            limits.maxTextureArraySize = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
+            limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+            limits.maxDrawIndirectCount = static_cast<uint32_t>(-1);
 
             D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
             allocatorDesc.pDevice = d3dDevice.Get();
@@ -1498,6 +1525,12 @@ namespace alimer::rhi
                 adapterDesc.DeviceId,
                 ToUtf8(adapterDesc.Description)
             );
+        }
+
+        // Init default states
+        {
+            DepthStencilDesc depthStencilDesc{};
+            defaultDepthStencilState = CreateDepthStencilState(depthStencilDesc);
         }
 
         // Create command queues + fences
@@ -1885,24 +1918,23 @@ namespace alimer::rhi
 
     TextureHandle D3D12_Device::CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
-        auto result = new D3D12_Texture();
-        result->device = this;
-        result->desc = desc;
+        auto texture = new D3D12_Texture;
+        texture->device = this;
+        texture->desc = desc;
+        texture->dxgiFormat = ToDXGIFormat(desc.format);
 
         if (desc.mipLevels == 0)
         {
-            result->desc.mipLevels = (uint32_t)log2(std::max(desc.width, desc.height)) + 1;
+            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depth);
         }
-
-        result->dxgiFormat = ToDXGIFormat(desc.format);
 
         if (nativeHandle != nullptr)
         {
-            result->handle = (ID3D12Resource*)nativeHandle;
-            return TextureHandle::Create(result);
+            texture->handle = (ID3D12Resource*)nativeHandle;
+            return TextureHandle::Create(texture);
         }
 
-        DXGI_FORMAT format = result->dxgiFormat;
+        DXGI_FORMAT format = texture->dxgiFormat;
 
         D3D12MA::ALLOCATION_DESC allocationDesc{};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
@@ -1923,7 +1955,7 @@ namespace alimer::rhi
             case TextureDimension::Texture1D:
             case TextureDimension::Texture1DArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
+                resourceDesc.DepthOrArraySize = UINT16(desc.arraySize);
                 break;
 
             case TextureDimension::Texture2D:
@@ -1933,12 +1965,12 @@ namespace alimer::rhi
             case TextureDimension::Texture2DMS:
             case TextureDimension::Texture2DMSArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
+                resourceDesc.DepthOrArraySize = UINT16(desc.arraySize);
                 break;
 
             case TextureDimension::Texture3D:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
+                resourceDesc.DepthOrArraySize = UINT16(desc.depth);
                 break;
 
             default:
@@ -1949,7 +1981,7 @@ namespace alimer::rhi
         D3D12_CLEAR_VALUE* pClearValue = nullptr;
 
         ResourceStates bestInitialState = ResourceStates::ShaderResource;
-        if (Any(desc.usage, TextureUsage::RenderTarget))
+        if (CheckBitsAny(desc.usage, TextureUsage::RenderTarget))
         {
             // Render targets and Depth/Stencil targets are always committed resources
             allocationDesc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
@@ -1960,7 +1992,7 @@ namespace alimer::rhi
             {
                 bestInitialState = ResourceStates::DepthWrite;
                 resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-                if (!Any(desc.usage, TextureUsage::ShaderRead))
+                if (!CheckBitsAny(desc.usage, TextureUsage::ShaderRead))
                 {
                     resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
                 }
@@ -1987,7 +2019,7 @@ namespace alimer::rhi
 
         // If depth and either shader read, set to typeless
         if (IsDepthFormat(desc.format)
-            && Any(desc.usage, TextureUsage::ShaderRead))
+            && CheckBitsAny(desc.usage, TextureUsage::ShaderRead))
         {
             resourceDesc.Format = GetTypelessFormatFromDepthFormat(desc.format);
             pClearValue = nullptr;
@@ -2007,26 +2039,106 @@ namespace alimer::rhi
             &resourceDesc,
             state,
             pClearValue,
-            &result->allocation,
-            IID_PPV_ARGS(&result->handle)
+            &texture->allocation,
+            IID_PPV_ARGS(&texture->handle)
         );
 
         if (FAILED(hr))
         {
-            delete result;
+            delete texture;
             return nullptr;
         }
 
-        if (result->handle)
-            return TextureHandle::Create(result);
-
-        delete result;
-        return nullptr;
+        return TextureHandle::Create(texture);
     }
 
     BufferHandle D3D12_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
     {
-        return nullptr;
+        auto buffer = new D3D12_Buffer();
+        buffer->device = this;
+        buffer->desc = desc;
+
+        UINT64 size = desc.size;
+        if ((desc.usage & BufferUsage::Constant) != 0)
+        {
+            size = AlignTo(desc.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        }
+
+        D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+        if (CheckBitsAll(desc.usage, BufferUsage::ShaderWrite))
+        {
+            resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::ShaderRead | BufferUsage::RayTracingAccelerationStructure))
+        {
+            resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+        }
+
+        const D3D12_RESOURCE_DESC& resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(size, resourceFlags);
+
+        D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+
+        D3D12MA::ALLOCATION_DESC allocationDesc = {};
+        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        //if (pDesc->Usage == USAGE_STAGING)
+        //{
+        //    if (pDesc->CPUAccessFlags & CPU_ACCESS_READ)
+        //    {
+        //        allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
+        //        resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+        //    }
+        //    else
+        //    {
+        //        allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+        //        resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+        //    }
+        //}
+
+        HRESULT hr = allocator->CreateResource(
+            &allocationDesc,
+            &resourceDesc,
+            resourceState,
+            nullptr,
+            &buffer->allocation,
+            IID_PPV_ARGS(&buffer->handle)
+        );
+
+        if (FAILED(hr))
+        {
+            delete buffer;
+            return nullptr;
+        }
+
+        buffer->gpuVirtualAddress = buffer->handle->GetGPUVirtualAddress();
+
+        return BufferHandle::Create(buffer);
+    }
+
+    DepthStencilStateHandle D3D12_Device::CreateDepthStencilState(const DepthStencilDesc& desc)
+    {
+        auto state = new D3D12DepthStencilState();
+        state->device = this;
+        state->desc = desc;
+
+        state->d3dDesc.DepthEnable = (desc.depthCompare != CompareFunction::Always || desc.depthWriteEnable) ? TRUE : FALSE;
+        state->d3dDesc.DepthWriteMask = desc.depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+        state->d3dDesc.DepthFunc = ToD3D12(desc.depthCompare);
+        state->d3dDesc.StencilEnable = StencilTestEnabled(&desc) ? TRUE : FALSE;
+        state->d3dDesc.StencilReadMask = desc.stencilReadMask;
+        state->d3dDesc.StencilWriteMask = desc.stencilWriteMask;
+
+        state->d3dDesc.FrontFace.StencilFailOp = ToD3D12(desc.frontFace.failOp);
+        state->d3dDesc.FrontFace.StencilDepthFailOp = ToD3D12(desc.frontFace.depthFailOp);
+        state->d3dDesc.FrontFace.StencilPassOp = ToD3D12(desc.frontFace.passOp);
+        state->d3dDesc.FrontFace.StencilFunc = ToD3D12(desc.frontFace.compare);
+        state->d3dDesc.BackFace.StencilFailOp = ToD3D12(desc.backFace.failOp);
+        state->d3dDesc.BackFace.StencilDepthFailOp = ToD3D12(desc.backFace.depthFailOp);
+        state->d3dDesc.BackFace.StencilPassOp = ToD3D12(desc.backFace.passOp);
+        state->d3dDesc.BackFace.StencilFunc = ToD3D12(desc.backFace.compare);
+        state->d3dDesc.DepthBoundsTestEnable = FALSE;
+
+        return DepthStencilStateHandle::Create(state);
     }
 
     SamplerHandle D3D12_Device::CreateSampler(const SamplerDesc& desc)
@@ -2292,6 +2404,6 @@ namespace alimer::rhi
         delete device;
         return nullptr;
     }
-}
+    }
 
 #endif /* defined(ALIMER_RHI_D3D11) */
