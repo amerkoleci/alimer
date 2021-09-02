@@ -36,44 +36,10 @@ public:
         vertexBuffer = rhiDevice->CreateBuffer(BufferDesc::Vertex(3, 28), vertices);
 
         static const char* shaderSource = R"(
-static const float2 g_positions[] = {
-	float2(-0.5, -0.5),
-	float2(0, 0.5),
-	float2(0.5, -0.5)
-};
-
-static const float3 g_colors[] = {
-	float3(1, 0, 0),
-	float3(0, 1, 0),
-	float3(0, 0, 1)	
-};
-
-struct PSInput 
-{ 
-    float4 Pos   : SV_POSITION; 
-    float3 Color : COLOR; 
-};
-PSInput vertex_main(in uint vertexId : SV_VertexID) 
-{
-    PSInput output;
-    output.Pos   = float4(g_positions[vertexId], 0, 1);
-    output.Color = g_colors[vertexId];
-    return output;
-}
-
-float4 pixel_main(in PSInput input) : SV_TARGET
-{
-    float4 color = float4(input.Color.rgb, 1.0);
-    return color;
-}
-)";
-
-#if TODO_VBO
-        static const char* shaderSource = R"(
 struct VSInput 
 { 
-    float3 Pos   : SV_POSITION; 
-    float4 Color : COLOR; 
+    float3 Pos   : ATTRIBUTE0; 
+    float4 Color : ATTRIBUTE1; 
 };
 
 struct PSInput 
@@ -95,7 +61,6 @@ float4 pixel_main(in PSInput input) : SV_TARGET
     return color;
 }
 )";
-#endif // 0
 
 
         vertexShader = rhiDevice->CreateShader(ShaderStages::Vertex, shaderSource, "vertex_main");
@@ -104,6 +69,11 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         RenderPipelineDesc renderPipelineDesc;
         renderPipelineDesc.vertex = vertexShader;
         renderPipelineDesc.pixel = pixelShader;
+
+        renderPipelineDesc.vertexLayout.attributes[0].format = Format::RGB32Float;
+        renderPipelineDesc.vertexLayout.attributes[1].format = Format::RGBA32Float;
+        renderPipelineDesc.colorFormats[0] = rhiDevice->GetCurrentBackBuffer()->GetDesc().format;
+        renderPipelineDesc.depthStencilFormat = rhiDevice->GetBackBufferDepthStencilTexture()->GetDesc().format;
         renderPipeline = rhiDevice->CreateRenderPipeline(renderPipelineDesc);
         return true;
     }

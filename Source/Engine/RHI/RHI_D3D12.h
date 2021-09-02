@@ -15,6 +15,7 @@
 #   include <dxgidebug.h>
 #endif
 
+#include <array>
 #include <deque>
 #include <unordered_map>
 
@@ -44,33 +45,6 @@ namespace alimer::rhi
         {
             return format == rhs.format && set == rhs.set && isReadOnlyDSV == rhs.isReadOnlyDSV;
         }
-    };
-
-    struct D3D12_FormatsKey
-    {
-        uint32_t colorFormatsCount = 0;
-        DXGI_FORMAT colorFormats[kMaxColorAttachments] = {};
-        DXGI_FORMAT depthStencilFormat = {};
-        uint32_t sampleCount = 1;
-
-        size_t GetHash() const
-        {
-            if (hash == 0)
-            {
-                hash_combine(hash, colorFormatsCount);
-                for (uint32_t i = 0; i < colorFormatsCount; ++i)
-                {
-                    hash_combine(hash, colorFormats[i]);
-                }
-                hash_combine(hash, (uint32_t)depthStencilFormat);
-                hash_combine(hash, (uint32_t)sampleCount);
-            }
-
-            return hash;
-        }
-
-    private:
-        mutable size_t hash = 0;
     };
 
     class D3D12_Device;
@@ -143,32 +117,22 @@ namespace alimer::rhi
         ShaderStages GetStage() const override { return stage; }
     };
 
-    class D3D12DepthStencilState final : public RefCounter<IDepthStencilState>
-    {
-    public:
-        IDevice* device;
-        DepthStencilDesc desc;
-        D3D12_DEPTH_STENCIL_DESC1 d3dDesc;
-
-        IDevice* GetDevice() const override { return device; }
-        const DepthStencilDesc& GetDesc() const override { return desc; }
-    };
-
     class D3D12_Pipeline : public RefCounter<IPipeline>
     {
     public:
         D3D12_Device* device = nullptr;
         RenderPipelineDesc desc;
-        ID3D12RootSignature* rootSignature = nullptr;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+        uint32_t vboSlotsUsed = 0;
+        std::array<uint32_t, kMaxVertexBufferBindings> vboStrides = {};
+
+        ID3D12RootSignature* rootSignature = nullptr;
+        ID3D12PipelineState* handle = nullptr;
 
         ~D3D12_Pipeline() override;
 
-        ID3D12PipelineState* GetPipeline(const D3D12_FormatsKey& renderPass);
-
     private:
         IDevice* GetDevice() const override;
-        std::unordered_map<uint64_t, RefCountPtr<ID3D12PipelineState>> pipelines;
     };
 
     class D3D12_CommandList final : public ICommandList
@@ -179,13 +143,14 @@ namespace alimer::rhi
         RefCountPtr<ID3D12CommandAllocator> commandAllocators[kMaxFramesInFlight];
         RefCountPtr<ID3D12GraphicsCommandList4> handle;
         RenderPassDesc currentPass = {};
-        D3D12_FormatsKey currentPassFormats = {};
 
         std::vector<D3D12_RESOURCE_BARRIER> barriers;
         D3D12_RENDER_PASS_RENDER_TARGET_DESC rtvDescs[kMaxColorAttachments] = {};
         D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS subresourceParameters[kMaxColorAttachments] = {};
 
         D3D12_Pipeline* boundPipeline = nullptr;
+        D3D12_PRIMITIVE_TOPOLOGY currentPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+        std::array<D3D12_VERTEX_BUFFER_VIEW, kMaxVertexBufferBindings> currentVbos = {};
 
     public:
         D3D12_CommandList(D3D12_Device* device_, CommandQueue queue_);
@@ -204,11 +169,35 @@ namespace alimer::rhi
 
         void SetPipeline(_In_ IPipeline* pipeline) override;
 
-        void BindRenderPipeline();
         void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
         void SetIndexBuffer(const IBuffer* buffer, uint32_t offset) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
 
+        void BindRenderPipeline();
+        void FlushDraw();
+    };
+
+    struct D3D12CopyAllocator final
+    {
+        D3D12_Device* device = nullptr;
+        RefCountPtr<ID3D12CommandQueue> queue;
+        std::mutex locker;
+
+        struct CopyCMD
+        {
+            RefCountPtr<ID3D12CommandAllocator> commandAllocator;
+            RefCountPtr<ID3D12GraphicsCommandList> commandList;
+            RefCountPtr<ID3D12Fence> fence;
+            BufferHandle uploadBuffer;
+            void* data = nullptr;
+            ID3D12Resource* uploadResource = nullptr;
+        };
+        std::vector<CopyCMD> freeList;
+
+        D3D12CopyAllocator(D3D12_Device* device);
+        ~D3D12CopyAllocator();
+        CopyCMD Allocate(uint32_t size);
+        void Submit(CopyCMD cmd);
     };
 
     class D3D12_Device final : public RefCounter<IDevice>
@@ -236,6 +225,8 @@ namespace alimer::rhi
             ID3D12CommandList* submitCommandLists[kMaxCommandLists] = {};
             uint32_t submitCount = 0;
         } queues[(uint8_t)CommandQueue::Count];
+
+        std::unique_ptr<D3D12CopyAllocator> copyAllocator;
 
         struct DescriptorAllocator
         {
@@ -398,12 +389,10 @@ namespace alimer::rhi
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
-        DepthStencilStateHandle CreateDepthStencilState(const DepthStencilDesc& desc) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
-
-        PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
+        PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
 
     private:
 

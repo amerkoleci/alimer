@@ -852,12 +852,6 @@ namespace alimer::rhi
 
         commandList = std::make_unique<D3D11_CommandList>(this, context.Get());
 
-        // Init default states
-        {
-            DepthStencilDesc depthStencilDesc{};
-            defaultDepthStencilState = CreateDepthStencilState(depthStencilDesc);
-        }
-
         D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2;
         hr = device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &options2, sizeof(options2));
         if (SUCCEEDED(hr) && options2.ConservativeRasterizationTier >= D3D11_CONSERVATIVE_RASTERIZATION_TIER_1)
@@ -1233,39 +1227,6 @@ namespace alimer::rhi
         return BufferHandle::Create(buffer);
     }
 
-    DepthStencilStateHandle D3D11_Device::CreateDepthStencilState(const DepthStencilDesc& desc)
-    {
-        auto state = new D3D11DepthStencilState();
-        state->device = this;
-        state->desc = desc;
-
-        D3D11_DEPTH_STENCIL_DESC d3dDesc;
-        d3dDesc.DepthEnable = (desc.depthCompare != CompareFunction::Always || desc.depthWriteEnable) ? TRUE : FALSE;
-        d3dDesc.DepthWriteMask = desc.depthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-        d3dDesc.DepthFunc = ToD3D11(desc.depthCompare);
-        d3dDesc.StencilEnable = StencilTestEnabled(&desc) ? TRUE : FALSE;
-        d3dDesc.StencilReadMask = (UINT8)desc.stencilReadMask;
-        d3dDesc.StencilWriteMask = (UINT8)desc.stencilWriteMask;
-        d3dDesc.FrontFace.StencilFailOp = ToD3D11(desc.frontFace.failOp);
-        d3dDesc.FrontFace.StencilDepthFailOp = ToD3D11(desc.frontFace.depthFailOp);
-        d3dDesc.FrontFace.StencilPassOp = ToD3D11(desc.frontFace.passOp);
-        d3dDesc.FrontFace.StencilFunc = ToD3D11(desc.frontFace.compare);
-        d3dDesc.BackFace.StencilFailOp = ToD3D11(desc.backFace.failOp);
-        d3dDesc.BackFace.StencilDepthFailOp = ToD3D11(desc.backFace.depthFailOp);
-        d3dDesc.BackFace.StencilPassOp = ToD3D11(desc.backFace.passOp);
-        d3dDesc.BackFace.StencilFunc = ToD3D11(desc.backFace.compare);
-
-        const HRESULT hr = d3dDevice->CreateDepthStencilState(&d3dDesc, state->handle.GetAddressOf());
-        if (FAILED(hr))
-        {
-            delete state;
-            LOGE("Direct3D11: Failed to create DepthStencil state");
-            return nullptr;
-        }
-
-        return DepthStencilStateHandle::Create(state);
-    }
-
     SamplerHandle D3D11_Device::CreateSampler(const SamplerDesc& desc)
     {
         return nullptr;
@@ -1560,7 +1521,7 @@ namespace alimer::rhi
     }
 #endif
 
-    PipelineHandle D3D11_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    PipelineHandle D3D11_Device::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
     {
         RefCountPtr<D3D11_Pipeline> pipeline = RefCountPtr<D3D11_Pipeline>::Create(new D3D11_Pipeline());
         pipeline->device = this;
@@ -1598,15 +1559,7 @@ namespace alimer::rhi
         }
 
         pipeline->blendState = GetBlendState(desc.blendState);
-        if (desc.depthStencilState != nullptr)
-        {
-            pipeline->depthStencilState = checked_cast<D3D11DepthStencilState*>(desc.depthStencilState)->handle;
-        }
-        else
-        {
-            pipeline->depthStencilState = checked_cast<D3D11DepthStencilState*>(GetDefaultDepthStencilState())->handle;
-        }
-
+        pipeline->depthStencilState = GetDepthStencilState(desc.depthStencilState);
         pipeline->rasterizerState = GetRasterizerState(desc.rasterizerState);
 
         pipeline->primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
@@ -1653,6 +1606,43 @@ namespace alimer::rhi
 
         blendStates[hash] = blendState;
         return blendState;
+    }
+
+    ID3D11DepthStencilState* D3D11_Device::GetDepthStencilState(const DepthStencilState& state)
+    {
+        std::hash<DepthStencilState> hasher;
+        size_t hash = hasher(state);
+
+        RefCountPtr<ID3D11DepthStencilState> depthStencilState = depthStencilStates[hash];
+
+        if (depthStencilState)
+            return depthStencilState;
+
+        D3D11_DEPTH_STENCIL_DESC desc;
+        desc.DepthEnable = (state.depthCompare != CompareFunction::Always || state.depthWriteEnable) ? TRUE : FALSE;
+        desc.DepthWriteMask = state.depthWriteEnable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+        desc.DepthFunc = ToD3D11(state.depthCompare);
+        desc.StencilEnable = StencilTestEnabled(&state) ? TRUE : FALSE;
+        desc.StencilReadMask = (UINT8)state.stencilReadMask;
+        desc.StencilWriteMask = (UINT8)state.stencilWriteMask;
+        desc.FrontFace.StencilFailOp = ToD3D11(state.frontFace.failOp);
+        desc.FrontFace.StencilDepthFailOp = ToD3D11(state.frontFace.depthFailOp);
+        desc.FrontFace.StencilPassOp = ToD3D11(state.frontFace.passOp);
+        desc.FrontFace.StencilFunc = ToD3D11(state.frontFace.compare);
+        desc.BackFace.StencilFailOp = ToD3D11(state.backFace.failOp);
+        desc.BackFace.StencilDepthFailOp = ToD3D11(state.backFace.depthFailOp);
+        desc.BackFace.StencilPassOp = ToD3D11(state.backFace.passOp);
+        desc.BackFace.StencilFunc = ToD3D11(state.backFace.compare);
+
+        const HRESULT hr = d3dDevice->CreateDepthStencilState(&desc, &depthStencilState);
+        if (FAILED(hr))
+        {
+            LOGE("Direct3D11: Failed to create DepthStencil state");
+            return nullptr;
+        }
+
+        depthStencilStates[hash] = depthStencilState;
+        return depthStencilState.Get();
     }
 
     ID3D11RasterizerState1* D3D11_Device::GetRasterizerState(const RasterizerState& state)

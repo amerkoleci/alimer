@@ -1008,12 +1008,6 @@ namespace alimer::rhi
             VK_CHECK(vmaCreateAllocator(&allocatorInfo, &vk.allocator));
         }
 
-        // Init default states
-        {
-            DepthStencilDesc depthStencilDesc{};
-            defaultDepthStencilState = CreateDepthStencilState(depthStencilDesc);
-        }
-
         return true;
     }
 
@@ -1084,43 +1078,6 @@ namespace alimer::rhi
         return nullptr;
     }
 
-    DepthStencilStateHandle Vulkan_Device::CreateDepthStencilState(const DepthStencilDesc& desc)
-    {
-        auto state = new VulkanDepthStencilState();
-        state->device = this;
-        state->desc = desc;
-
-        state->vkDesc.stencilTestEnable = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        state->vkDesc.pNext = nullptr;
-        state->vkDesc.flags = 0;
-        state->vkDesc.depthTestEnable = (desc.depthCompare != CompareFunction::Always || desc.depthWriteEnable) ? VK_TRUE : VK_FALSE;
-        state->vkDesc.depthWriteEnable = desc.depthWriteEnable ? VK_TRUE : VK_FALSE;
-        state->vkDesc.depthCompareOp = ToVk(desc.depthCompare);
-        state->vkDesc.depthBoundsTestEnable = VK_FALSE;
-        state->vkDesc.stencilTestEnable = StencilTestEnabled(&desc) ? VK_TRUE : VK_FALSE;
-
-        state->vkDesc.front.failOp = ToVk(desc.frontFace.failOp);
-        state->vkDesc.front.passOp = ToVk(desc.frontFace.passOp);
-        state->vkDesc.front.depthFailOp = ToVk(desc.frontFace.depthFailOp);
-        state->vkDesc.front.compareOp = ToVk(desc.frontFace.compare);
-        state->vkDesc.front.compareMask = desc.stencilReadMask;
-        state->vkDesc.front.writeMask = desc.stencilWriteMask;
-        state->vkDesc.front.reference = 0; // The stencil reference is always dynamic
-
-        state->vkDesc.back.failOp = ToVk(desc.backFace.failOp);
-        state->vkDesc.back.passOp = ToVk(desc.backFace.passOp);
-        state->vkDesc.back.depthFailOp = ToVk(desc.backFace.depthFailOp);
-        state->vkDesc.back.compareOp = ToVk(desc.backFace.compare);
-        state->vkDesc.back.compareMask = desc.stencilReadMask;
-        state->vkDesc.back.writeMask = desc.stencilWriteMask;
-        state->vkDesc.back.reference = 0; // The stencil reference is always dynamic
-
-        state->vkDesc.minDepthBounds = 0.0f;
-        state->vkDesc.maxDepthBounds = 1.0f;
-
-        return DepthStencilStateHandle::Create(state);
-    }
-
     SamplerHandle Vulkan_Device::CreateSampler(const SamplerDesc& desc)
     {
         return nullptr;
@@ -1131,8 +1088,35 @@ namespace alimer::rhi
         return nullptr;
     }
 
-    PipelineHandle Vulkan_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    PipelineHandle Vulkan_Device::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
     {
+        // DepthStencilState
+        VkPipelineDepthStencilStateCreateInfo depthStencilState{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+        depthStencilState.depthTestEnable = (desc.depthStencilState.depthCompare != CompareFunction::Always || desc.depthStencilState.depthWriteEnable) ? VK_TRUE : VK_FALSE;
+        depthStencilState.depthWriteEnable = desc.depthStencilState.depthWriteEnable ? VK_TRUE : VK_FALSE;
+        depthStencilState.depthCompareOp = ToVk(desc.depthStencilState.depthCompare);
+        depthStencilState.depthBoundsTestEnable = VK_FALSE;
+        depthStencilState.stencilTestEnable = StencilTestEnabled(&desc.depthStencilState) ? VK_TRUE : VK_FALSE;
+
+        depthStencilState.front.failOp = ToVk(desc.depthStencilState.frontFace.failOp);
+        depthStencilState.front.passOp = ToVk(desc.depthStencilState.frontFace.passOp);
+        depthStencilState.front.depthFailOp = ToVk(desc.depthStencilState.frontFace.depthFailOp);
+        depthStencilState.front.compareOp = ToVk(desc.depthStencilState.frontFace.compare);
+        depthStencilState.front.compareMask = desc.depthStencilState.stencilReadMask;
+        depthStencilState.front.writeMask = desc.depthStencilState.stencilWriteMask;
+        depthStencilState.front.reference = 0; // The stencil reference is always dynamic
+
+        depthStencilState.back.failOp = ToVk(desc.depthStencilState.backFace.failOp);
+        depthStencilState.back.passOp = ToVk(desc.depthStencilState.backFace.passOp);
+        depthStencilState.back.depthFailOp = ToVk(desc.depthStencilState.backFace.depthFailOp);
+        depthStencilState.back.compareOp = ToVk(desc.depthStencilState.backFace.compare);
+        depthStencilState.back.compareMask = desc.depthStencilState.stencilReadMask;
+        depthStencilState.back.writeMask = desc.depthStencilState.stencilWriteMask;
+        depthStencilState.back.reference = 0; // The stencil reference is always dynamic
+
+        depthStencilState.minDepthBounds = 0.0f;
+        depthStencilState.maxDepthBounds = 1.0f;
+
         return nullptr;
     }
 

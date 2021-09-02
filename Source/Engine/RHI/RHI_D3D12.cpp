@@ -16,7 +16,6 @@
 #include <d3dcompiler.h>
 #endif
 
-#include <array>
 
 namespace alimer::rhi
 {
@@ -72,6 +71,10 @@ namespace alimer::rhi
             case Format::RGBA16UInt:       return DXGI_FORMAT_R16G16B16A16_UINT;
             case Format::RGBA16SInt:       return DXGI_FORMAT_R16G16B16A16_SINT;
             case Format::RGBA16Float:      return DXGI_FORMAT_R16G16B16A16_FLOAT;
+                // 95-Bit formats
+            case Format::RGB32UInt:         return DXGI_FORMAT_R32G32B32_UINT;
+            case Format::RGB32SInt:         return DXGI_FORMAT_R32G32B32_SINT;
+            case Format::RGB32Float:        return DXGI_FORMAT_R32G32B32_FLOAT;
                 // 128-Bit formats
             case Format::RGBA32UInt:       return DXGI_FORMAT_R32G32B32A32_UINT;
             case Format::RGBA32SInt:       return DXGI_FORMAT_R32G32B32A32_SINT;
@@ -148,10 +151,10 @@ namespace alimer::rhi
             }
         }
 
-        inline void SetDebugName(ID3D12Resource* resource, const std::string_view& name)
+        inline void SetDebugName(ID3D12Object* object, const std::string_view& name)
         {
             auto wideName = ToUtf16(name);
-            ThrowIfFailed(resource->SetName(wideName.c_str()));
+            ThrowIfFailed(object->SetName(wideName.c_str()));
         }
 
         [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(Format format)
@@ -633,182 +636,13 @@ namespace alimer::rhi
             rootSignature = nullptr;
         }
 
-        for (auto it : pipelines)
-        {
-            device->DeferDestroy(it.second);
-        }
-        pipelines.clear();
+        device->DeferDestroy(handle);
+        handle = nullptr;
     }
 
     IDevice* D3D12_Pipeline::GetDevice() const
     {
         return device;
-    }
-
-    ID3D12PipelineState* D3D12_Pipeline::GetPipeline(const D3D12_FormatsKey& renderPass)
-    {
-        uint32_t sampleCount = 1;
-        size_t hash = 0;
-        hash_combine(hash, (uint32_t)PrimitiveTopology::TriangleList);
-        hash_combine(hash, renderPass.GetHash());
-
-        auto it = pipelines.find(hash);
-        if (it == pipelines.end())
-        {
-            // Not found, create new one
-            struct PSO_STREAM
-            {
-                CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE rootSignature;
-                CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-                CD3DX12_PIPELINE_STATE_STREAM_HS HS;
-                CD3DX12_PIPELINE_STATE_STREAM_DS DS;
-                CD3DX12_PIPELINE_STATE_STREAM_GS GS;
-                CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-                CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
-                CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK SampleMask;
-                CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterizerState;
-                CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
-                CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-                CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
-                CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-                CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-                CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-                CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
-            } stream = {};
-
-            stream.rootSignature = rootSignature;
-
-            D3D12_Shader* shader = checked_cast<D3D12_Shader*>(desc.vertex);
-            if (shader != nullptr)
-            {
-                stream.VS = { shader->bytecode.data(), shader->bytecode.size() };
-            }
-
-            shader = checked_cast<D3D12_Shader*>(desc.hull);
-            if (shader != nullptr)
-            {
-                stream.HS = { shader->bytecode.data(), shader->bytecode.size() };
-            }
-
-            shader = checked_cast<D3D12_Shader*>(desc.domain);
-            if (shader != nullptr)
-            {
-                stream.DS = { shader->bytecode.data(), shader->bytecode.size() };
-            }
-
-            shader = checked_cast<D3D12_Shader*>(desc.geometry);
-            if (shader != nullptr)
-            {
-                stream.GS = { shader->bytecode.data(), shader->bytecode.size() };
-            }
-
-            shader = checked_cast<D3D12_Shader*>(desc.pixel);
-            if (shader != nullptr)
-            {
-                stream.PS = { shader->bytecode.data(), shader->bytecode.size() };
-            }
-
-            // Blend State and SampleMask
-            CD3DX12_BLEND_DESC blendState = {};
-            blendState.AlphaToCoverageEnable = desc.blendState.alphaToCoverageEnable;
-            blendState.IndependentBlendEnable = desc.blendState.independentBlendEnable;
-            for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
-            {
-                const RenderTargetBlendState& renderTarget = desc.blendState.renderTargets[i];
-                blendState.RenderTarget[i].BlendEnable = renderTarget.blendEnable ? TRUE : FALSE;
-                blendState.RenderTarget[i].SrcBlend = D3D12Blend(renderTarget.srcBlend);
-                blendState.RenderTarget[i].DestBlend = D3D12Blend(renderTarget.destBlend);
-                blendState.RenderTarget[i].BlendOp = D3D12BlendOperation(renderTarget.blendOp);
-                blendState.RenderTarget[i].SrcBlendAlpha = D3D12AlphaBlend(renderTarget.srcBlendAlpha);
-                blendState.RenderTarget[i].DestBlendAlpha = D3D12AlphaBlend(renderTarget.destBlendAlpha);
-                blendState.RenderTarget[i].BlendOpAlpha = D3D12BlendOperation(renderTarget.blendOpAlpha);
-                blendState.RenderTarget[i].RenderTargetWriteMask = D3D12RenderTargetWriteMask(renderTarget.writeMask);
-                blendState.RenderTarget[i].LogicOpEnable = false;
-                blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-            }
-            stream.BlendState = blendState;
-            stream.SampleMask = UINT_MAX; // pipeline->GetSampleMask();
-
-            CD3DX12_RASTERIZER_DESC rasterizerState = {};
-            rasterizerState.FillMode = ToD3D12(desc.rasterizerState.fillMode);
-            rasterizerState.CullMode = ToD3D12(desc.rasterizerState.cullMode);
-            rasterizerState.FrontCounterClockwise = (desc.rasterizerState.frontFace == FaceWinding::CounterClockwise) ? TRUE : FALSE;
-            rasterizerState.DepthBias = FloorToInt(desc.rasterizerState.depthBias * (float)(1 << 24));;
-            rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
-            rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.depthBiasSlopeScale;
-            rasterizerState.DepthClipEnable = TRUE;
-            rasterizerState.MultisampleEnable = sampleCount > 1 ? TRUE : FALSE;
-            rasterizerState.AntialiasedLineEnable = FALSE;
-            rasterizerState.ForcedSampleCount = 0;
-            rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-            stream.RasterizerState = rasterizerState;
-
-            // DepthStencilState
-            if (desc.depthStencilState != nullptr)
-            {
-                stream.DepthStencilState = { checked_cast<D3D12DepthStencilState*>(desc.depthStencilState)->d3dDesc };
-            }
-            else
-            {
-                stream.DepthStencilState = { checked_cast<D3D12DepthStencilState*>(device->GetDefaultDepthStencilState())->d3dDesc };
-            }
-
-            //stream.InputLayout = inputLayout;
-            stream.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-
-            primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
-            switch (desc.primitiveTopology)
-            {
-                case PrimitiveTopology::PointList:
-                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-                    break;
-                case PrimitiveTopology::LineList:
-                case PrimitiveTopology::LineStrip:
-                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
-                    break;
-                case PrimitiveTopology::TriangleList:
-                case PrimitiveTopology::TriangleStrip:
-                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-                    break;
-                case PrimitiveTopology::PatchList:
-                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-                    break;
-                default:
-                    stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-                    break;
-            }
-
-            D3D12_RT_FORMAT_ARRAY RTVFormats{};
-            for (uint32_t i = 0; i < renderPass.colorFormatsCount; ++i)
-            {
-                ALIMER_ASSERT(renderPass.colorFormats[i] != DXGI_FORMAT_UNKNOWN);
-                RTVFormats.RTFormats[RTVFormats.NumRenderTargets++] = renderPass.colorFormats[i];
-            }
-            stream.RTVFormats = RTVFormats;
-            stream.DSVFormat = renderPass.depthStencilFormat;
-
-            DXGI_SAMPLE_DESC sampleDesc = {};
-            sampleDesc.Count = sampleCount;
-            sampleDesc.Quality = 0;
-            stream.SampleDesc = sampleDesc;
-
-            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
-            streamDesc.pPipelineStateSubobjectStream = &stream;
-            streamDesc.SizeInBytes = sizeof(stream);
-
-            ID3D12PipelineState* newPipeline;
-            const HRESULT hr = device->GetD3DDevice()->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&newPipeline));
-            if (FAILED(hr))
-            {
-                LOGE("Failed to create RenderPipeline");
-                return nullptr;
-            }
-
-            pipelines[hash] = newPipeline;
-            return newPipeline;
-        }
-
-        return it->second;
     }
 
     /* D3D12_CommandList */
@@ -843,8 +677,9 @@ namespace alimer::rhi
         //handle->SetDescriptorHeaps(arraysize(heaps), heaps);
 
         boundPipeline = nullptr;
+        currentPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+        currentVbos = {};
         currentPass = {};
-        currentPassFormats = {};
     }
 
     ID3D12CommandList* D3D12_CommandList::Commit()
@@ -939,11 +774,11 @@ namespace alimer::rhi
     void D3D12_CommandList::BeginRenderPass(const RenderPassDesc& desc)
     {
         currentPass = desc;
+
+        uint32_t numRenderTargets = 0;
         uint32_t width = UINT32_MAX;
         uint32_t height = UINT32_MAX;
         const D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES;
-
-        currentPassFormats = {};
 
         for (uint32_t i = 0; i < desc.colorAttachmentCount; i++)
         {
@@ -958,8 +793,7 @@ namespace alimer::rhi
             width = Min(width, std::max(1U, sourceTexture->desc.width >> mipLevel));
             height = Min(height, std::max(1U, sourceTexture->desc.height >> mipLevel));
 
-            rtvDescs[currentPassFormats.colorFormatsCount].cpuDescriptor = sourceTexture->GetRTV(mipLevel, slice, 1);
-            currentPassFormats.colorFormats[currentPassFormats.colorFormatsCount] = sourceTexture->dxgiFormat;
+            rtvDescs[numRenderTargets].cpuDescriptor = sourceTexture->GetRTV(mipLevel, slice, 1);
 
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -1037,7 +871,7 @@ namespace alimer::rhi
                 // RESOLVE_MODE_AVERAGE is only valid for non-integer formats.
                 switch (GetFormatKind(resolveTexture->desc.format))
                 {
-                    case PixelFormatKind::Integer:
+                    case FormatKind::Integer:
                         rtvDescs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MAX;
                         break;
                     default:
@@ -1051,7 +885,7 @@ namespace alimer::rhi
                 rtvDescs[i].EndingAccess.Resolve.PreserveResolveSource = attachment.storeAction == StoreAction::Store;
             }
 
-            currentPassFormats.colorFormatsCount++;
+            numRenderTargets++;
         }
 
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsvDesc{};
@@ -1067,7 +901,6 @@ namespace alimer::rhi
             height = Min(height, std::max(1u, sourceTexture->desc.height >> attachment.mipLevel));
 
             dsvDesc.cpuDescriptor = sourceTexture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
-            currentPassFormats.depthStencilFormat = sourceTexture->dxgiFormat;
 
             switch (attachment.depthLoadAction)
             {
@@ -1130,7 +963,7 @@ namespace alimer::rhi
             }
         }
 
-        handle->BeginRenderPass(currentPassFormats.colorFormatsCount, rtvDescs, hasDepthStencil ? &dsvDesc : nullptr, renderPassFlags);
+        handle->BeginRenderPass(numRenderTargets, rtvDescs, hasDepthStencil ? &dsvDesc : nullptr, renderPassFlags);
 
         // The viewport and scissor default to cover all of the attachments
         const D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
@@ -1169,33 +1002,35 @@ namespace alimer::rhi
         }
 
         currentPass = {};
-        currentPassFormats = {};
     }
 
     void D3D12_CommandList::SetPipeline(_In_ IPipeline* pipeline)
     {
         boundPipeline = checked_cast<D3D12_Pipeline*>(pipeline);
+        BindRenderPipeline();
     }
 
     void D3D12_CommandList::BindRenderPipeline()
     {
         handle->SetGraphicsRootSignature(boundPipeline->rootSignature);
+        handle->SetPipelineState(boundPipeline->handle);
 
-        ID3D12PipelineState* pipelineState = boundPipeline->GetPipeline(currentPassFormats);
-        handle->SetPipelineState(pipelineState);
-        handle->IASetPrimitiveTopology(boundPipeline->primitiveTopology);
+        if (currentPrimitiveTopology != boundPipeline->primitiveTopology)
+        {
+            currentPrimitiveTopology = boundPipeline->primitiveTopology;
+            handle->IASetPrimitiveTopology(currentPrimitiveTopology);
+        }
     }
 
     void D3D12_CommandList::SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer)
     {
-        const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
-        const uint32_t offset = 0;
+        ALIMER_ASSERT(index < kMaxVertexBufferBindings);
 
-        D3D12_VERTEX_BUFFER_VIEW view;
-        view.BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
-        view.SizeInBytes = d3dBuffer->desc.size - offset;
-        view.StrideInBytes = d3dBuffer->desc.stride;
-        handle->IASetVertexBuffers(index, 1, &view);
+        const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
+        uint64_t offset = 0;
+
+        currentVbos[index].BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
+        currentVbos[index].SizeInBytes = (UINT)(buffer->GetDesc().size - offset);
     }
 
     void D3D12_CommandList::SetIndexBuffer(const IBuffer* buffer, uint32_t offset)
@@ -1210,11 +1045,127 @@ namespace alimer::rhi
         handle->IASetIndexBuffer(&view);
     }
 
+    void D3D12_CommandList::FlushDraw()
+    {
+        uint32_t startSlot = 0;
+        uint32_t endSlot = 0;
+        for (uint32_t slot = 0; slot < boundPipeline->vboSlotsUsed; ++slot)
+        {
+            startSlot = Min(startSlot, slot);
+            endSlot = Max(endSlot, slot + 1);
+            currentVbos[slot].StrideInBytes = boundPipeline->vboStrides[slot];
+        }
+
+        handle->IASetVertexBuffers(startSlot, endSlot, currentVbos.data());
+    }
+
     void D3D12_CommandList::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
     {
-        BindRenderPipeline();
+        FlushDraw();
 
         handle->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+    }
+
+    /* D3D12CopyAllocator */
+    D3D12CopyAllocator::D3D12CopyAllocator(D3D12_Device* device_)
+        : device(device_)
+    {
+        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+        queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        queueDesc.NodeMask = 0;
+        ThrowIfFailed(device->GetD3DDevice()->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue)));
+    }
+
+    D3D12CopyAllocator::~D3D12CopyAllocator()
+    {
+        // Create fence and wait on it.
+        RefCountPtr<ID3D12Fence> fence;
+        ThrowIfFailed(device->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+        ThrowIfFailed(queue->Signal(fence.Get(), 1));
+        ThrowIfFailed(fence->SetEventOnCompletion(1, nullptr));
+    }
+
+    D3D12CopyAllocator::CopyCMD D3D12CopyAllocator::Allocate(uint32_t size)
+    {
+        locker.lock();
+
+        // create a new command list if there are no free ones:
+        if (freeList.empty())
+        {
+            CopyCMD cmd;
+
+            HRESULT hr = device->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&cmd.commandAllocator));
+            assert(SUCCEEDED(hr));
+            hr = device->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, cmd.commandAllocator.Get(), nullptr, IID_PPV_ARGS(&cmd.commandList));
+            assert(SUCCEEDED(hr));
+
+            ThrowIfFailed(cmd.commandList->Close());
+            ThrowIfFailed(device->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&cmd.fence)));
+
+            freeList.push_back(cmd);
+        }
+
+        CopyCMD cmd = freeList.back();
+        if (cmd.uploadBuffer != nullptr &&
+            cmd.uploadBuffer->GetDesc().size < size)
+        {
+            // Try to search for a staging buffer that can fit the request:
+            for (size_t i = 0; i < freeList.size(); ++i)
+            {
+                if (freeList[i].uploadBuffer->GetDesc().size >= size)
+                {
+                    cmd = freeList[i];
+                    std::swap(freeList[i], freeList.back());
+                    break;
+                }
+            }
+        }
+        freeList.pop_back();
+        locker.unlock();
+
+        // If no buffer was found that fits the data, create one:
+        if (cmd.uploadBuffer == nullptr ||
+            cmd.uploadBuffer->GetDesc().size < size)
+        {
+            BufferDesc uploadBufferDesc;
+            uploadBufferDesc.size = NextPowerOfTwo(size);
+            uploadBufferDesc.resourceUsage = GPUResourceUsage::StagingUpload;
+            cmd.uploadBuffer = device->CreateBuffer(uploadBufferDesc, nullptr);
+            ALIMER_ASSERT(cmd.uploadBuffer != nullptr);
+
+            cmd.uploadResource = checked_cast<D3D12_Buffer*>(cmd.uploadBuffer.Get())->handle;
+            CD3DX12_RANGE readRange(0, 0);
+            ThrowIfFailed(cmd.uploadResource->Map(0, &readRange, &cmd.data));
+        }
+
+        // Reset and begin command list
+        ThrowIfFailed(cmd.commandAllocator->Reset());
+        ThrowIfFailed(cmd.commandList->Reset(cmd.commandAllocator.Get(), nullptr));
+
+        return cmd;
+    }
+
+    void D3D12CopyAllocator::Submit(CopyCMD cmd)
+    {
+        HRESULT hr;
+
+        cmd.commandList->Close();
+        ID3D12CommandList* commandlists[] = {
+            cmd.commandList.Get()
+        };
+        queue->ExecuteCommandLists(1, commandlists);
+        hr = queue->Signal(cmd.fence.Get(), 1);
+        assert(SUCCEEDED(hr));
+        hr = cmd.fence->SetEventOnCompletion(1, nullptr);
+        assert(SUCCEEDED(hr));
+        hr = cmd.fence->Signal(0);
+        assert(SUCCEEDED(hr));
+
+        locker.lock();
+        freeList.push_back(cmd);
+        locker.unlock();
     }
 
     /* D3D12_Device */
@@ -1275,7 +1226,7 @@ namespace alimer::rhi
         }
 
         return false;
-        }
+    }
 
     D3D12_Device::D3D12_Device(ValidationMode validationMode)
     {
@@ -1346,14 +1297,16 @@ namespace alimer::rhi
 
     D3D12_Device::~D3D12_Device()
     {
+        WaitIdle();
         shuttingDown = true;
+
+        copyAllocator.reset();
 
         // CPU Descriptor Heaps
         resourceDescriptorAllocator.Shutdown();
         samplerDescriptorAllocator.Shutdown();
         rtvDescriptorAllocator.Shutdown();
         dsvDescriptorAllocator.Shutdown();
-
 
         for (size_t i = 0; i < backBuffers.size(); ++i)
         {
@@ -1527,12 +1480,6 @@ namespace alimer::rhi
             );
         }
 
-        // Init default states
-        {
-            DepthStencilDesc depthStencilDesc{};
-            defaultDepthStencilState = CreateDepthStencilState(depthStencilDesc);
-        }
-
         // Create command queues + fences
         {
             D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -1548,6 +1495,9 @@ namespace alimer::rhi
             ThrowIfFailed(d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queues[(uint8_t)CommandQueue::Compute].queue)));
             ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(&queues[(uint8_t)CommandQueue::Compute].fence)));
         }
+
+        // Init copy allocator.
+        copyAllocator = std::make_unique<D3D12CopyAllocator>(this);
 
         // Descriptor allocators
         {
@@ -1620,7 +1570,19 @@ namespace alimer::rhi
 
     void D3D12_Device::WaitIdle()
     {
-        // TODO:
+        RefCountPtr<ID3D12Fence> fence;
+        ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+
+        for (auto& queue : queues)
+        {
+            ThrowIfFailed(queue.queue->Signal(fence.Get(), 1));
+
+            if (fence->GetCompletedValue() < 1)
+            {
+                ThrowIfFailed(fence->SetEventOnCompletion(1, nullptr));
+            }
+            fence->Signal(0);
+        }
     }
 
     void D3D12_Device::DeferDestroy(IUnknown* resource, D3D12MA::Allocation* allocation)
@@ -2075,25 +2037,30 @@ namespace alimer::rhi
             resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
 
-        const D3D12_RESOURCE_DESC& resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(size, resourceFlags);
+        D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(size, resourceFlags);
 
         D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
 
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-        //if (pDesc->Usage == USAGE_STAGING)
-        //{
-        //    if (pDesc->CPUAccessFlags & CPU_ACCESS_READ)
-        //    {
-        //        allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
-        //        resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
-        //    }
-        //    else
-        //    {
-        //        allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-        //        resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
-        //    }
-        //}
+        switch (desc.resourceUsage)
+        {
+            case GPUResourceUsage::Dynamic:
+            case GPUResourceUsage::StagingUpload:
+                allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+                resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+                //mappable = true;
+                break;
+            case GPUResourceUsage::StagingReadback:
+                allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
+                resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+                //mappable = true;
+                resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+                break;
+            default:
+                allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+                break;
+        }
 
         HRESULT hr = allocator->CreateResource(
             &allocationDesc,
@@ -2112,33 +2079,25 @@ namespace alimer::rhi
 
         buffer->gpuVirtualAddress = buffer->handle->GetGPUVirtualAddress();
 
+        // Copy data on request.
+        if (initialData != nullptr)
+        {
+            auto cmd = copyAllocator->Allocate(desc.size);
+
+            memcpy(cmd.data, initialData, desc.size);
+
+            cmd.commandList->CopyBufferRegion(
+                buffer->handle,
+                0,
+                cmd.uploadResource,
+                0,
+                desc.size
+            );
+
+            copyAllocator->Submit(cmd);
+        }
+
         return BufferHandle::Create(buffer);
-    }
-
-    DepthStencilStateHandle D3D12_Device::CreateDepthStencilState(const DepthStencilDesc& desc)
-    {
-        auto state = new D3D12DepthStencilState();
-        state->device = this;
-        state->desc = desc;
-
-        state->d3dDesc.DepthEnable = (desc.depthCompare != CompareFunction::Always || desc.depthWriteEnable) ? TRUE : FALSE;
-        state->d3dDesc.DepthWriteMask = desc.depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-        state->d3dDesc.DepthFunc = ToD3D12(desc.depthCompare);
-        state->d3dDesc.StencilEnable = StencilTestEnabled(&desc) ? TRUE : FALSE;
-        state->d3dDesc.StencilReadMask = desc.stencilReadMask;
-        state->d3dDesc.StencilWriteMask = desc.stencilWriteMask;
-
-        state->d3dDesc.FrontFace.StencilFailOp = ToD3D12(desc.frontFace.failOp);
-        state->d3dDesc.FrontFace.StencilDepthFailOp = ToD3D12(desc.frontFace.depthFailOp);
-        state->d3dDesc.FrontFace.StencilPassOp = ToD3D12(desc.frontFace.passOp);
-        state->d3dDesc.FrontFace.StencilFunc = ToD3D12(desc.frontFace.compare);
-        state->d3dDesc.BackFace.StencilFailOp = ToD3D12(desc.backFace.failOp);
-        state->d3dDesc.BackFace.StencilDepthFailOp = ToD3D12(desc.backFace.depthFailOp);
-        state->d3dDesc.BackFace.StencilPassOp = ToD3D12(desc.backFace.passOp);
-        state->d3dDesc.BackFace.StencilFunc = ToD3D12(desc.backFace.compare);
-        state->d3dDesc.DepthBoundsTestEnable = FALSE;
-
-        return DepthStencilStateHandle::Create(state);
     }
 
     SamplerHandle D3D12_Device::CreateSampler(const SamplerDesc& desc)
@@ -2259,7 +2218,7 @@ namespace alimer::rhi
     }
 #endif
 
-    PipelineHandle D3D12_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    PipelineHandle D3D12_Device::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
     {
         RefCountPtr<D3D12_Pipeline> pipeline = RefCountPtr<D3D12_Pipeline>::Create(new D3D12_Pipeline());
         pipeline->device = this;
@@ -2289,7 +2248,207 @@ namespace alimer::rhi
             d3dDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&pipeline->rootSignature))
         );
 
+
+        // Not found, create new one
+        struct PSO_STREAM
+        {
+            CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE rootSignature;
+            CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+            CD3DX12_PIPELINE_STATE_STREAM_HS HS;
+            CD3DX12_PIPELINE_STATE_STREAM_DS DS;
+            CD3DX12_PIPELINE_STATE_STREAM_GS GS;
+            CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+            CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
+            CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK SampleMask;
+            CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterizerState;
+            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
+            CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+            CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
+            CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+            CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+            CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
+        } stream = {};
+
+        stream.rootSignature = pipeline->rootSignature;
+
+        D3D12_Shader* shader = checked_cast<D3D12_Shader*>(desc.vertex);
+        if (shader != nullptr)
+        {
+            stream.VS = { shader->bytecode.data(), shader->bytecode.size() };
+        }
+
+        shader = checked_cast<D3D12_Shader*>(desc.hull);
+        if (shader != nullptr)
+        {
+            stream.HS = { shader->bytecode.data(), shader->bytecode.size() };
+        }
+
+        shader = checked_cast<D3D12_Shader*>(desc.domain);
+        if (shader != nullptr)
+        {
+            stream.DS = { shader->bytecode.data(), shader->bytecode.size() };
+        }
+
+        shader = checked_cast<D3D12_Shader*>(desc.geometry);
+        if (shader != nullptr)
+        {
+            stream.GS = { shader->bytecode.data(), shader->bytecode.size() };
+        }
+
+        shader = checked_cast<D3D12_Shader*>(desc.pixel);
+        if (shader != nullptr)
+        {
+            stream.PS = { shader->bytecode.data(), shader->bytecode.size() };
+        }
+
+        // Blend State and SampleMask
+        CD3DX12_BLEND_DESC blendState = {};
+        blendState.AlphaToCoverageEnable = desc.blendState.alphaToCoverageEnable;
+        blendState.IndependentBlendEnable = desc.blendState.independentBlendEnable;
+        for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
+        {
+            const RenderTargetBlendState& renderTarget = desc.blendState.renderTargets[i];
+            blendState.RenderTarget[i].BlendEnable = renderTarget.blendEnable ? TRUE : FALSE;
+            blendState.RenderTarget[i].SrcBlend = D3D12Blend(renderTarget.srcBlend);
+            blendState.RenderTarget[i].DestBlend = D3D12Blend(renderTarget.destBlend);
+            blendState.RenderTarget[i].BlendOp = D3D12BlendOperation(renderTarget.blendOp);
+            blendState.RenderTarget[i].SrcBlendAlpha = D3D12AlphaBlend(renderTarget.srcBlendAlpha);
+            blendState.RenderTarget[i].DestBlendAlpha = D3D12AlphaBlend(renderTarget.destBlendAlpha);
+            blendState.RenderTarget[i].BlendOpAlpha = D3D12BlendOperation(renderTarget.blendOpAlpha);
+            blendState.RenderTarget[i].RenderTargetWriteMask = D3D12RenderTargetWriteMask(renderTarget.writeMask);
+            blendState.RenderTarget[i].LogicOpEnable = false;
+            blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
+        }
+        stream.BlendState = blendState;
+        stream.SampleMask = UINT_MAX; // pipeline->GetSampleMask();
+
+        CD3DX12_RASTERIZER_DESC rasterizerState = {};
+        rasterizerState.FillMode = ToD3D12(desc.rasterizerState.fillMode);
+        rasterizerState.CullMode = ToD3D12(desc.rasterizerState.cullMode);
+        rasterizerState.FrontCounterClockwise = (desc.rasterizerState.frontFace == FaceWinding::CounterClockwise) ? TRUE : FALSE;
+        rasterizerState.DepthBias = FloorToInt(desc.rasterizerState.depthBias * (float)(1 << 24));;
+        rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
+        rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.depthBiasSlopeScale;
+        rasterizerState.DepthClipEnable = TRUE;
+        rasterizerState.MultisampleEnable = static_cast<uint32_t>(desc.sampleCount) > 1 ? TRUE : FALSE;
+        rasterizerState.AntialiasedLineEnable = FALSE;
+        rasterizerState.ForcedSampleCount = 0;
+        rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+        stream.RasterizerState = rasterizerState;
+
+        // DepthStencilState
+        CD3DX12_DEPTH_STENCIL_DESC1 depthStencilState = {};
+        depthStencilState.DepthEnable = (desc.depthStencilState.depthCompare != CompareFunction::Always || desc.depthStencilState.depthWriteEnable) ? TRUE : FALSE;
+        depthStencilState.DepthWriteMask = desc.depthStencilState.depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+        depthStencilState.DepthFunc = ToD3D12(desc.depthStencilState.depthCompare);
+        depthStencilState.StencilEnable = StencilTestEnabled(&desc.depthStencilState) ? TRUE : FALSE;
+        depthStencilState.StencilReadMask = desc.depthStencilState.stencilReadMask;
+        depthStencilState.StencilWriteMask = desc.depthStencilState.stencilWriteMask;
+
+        depthStencilState.FrontFace.StencilFailOp = ToD3D12(desc.depthStencilState.frontFace.failOp);
+        depthStencilState.FrontFace.StencilDepthFailOp = ToD3D12(desc.depthStencilState.frontFace.depthFailOp);
+        depthStencilState.FrontFace.StencilPassOp = ToD3D12(desc.depthStencilState.frontFace.passOp);
+        depthStencilState.FrontFace.StencilFunc = ToD3D12(desc.depthStencilState.frontFace.compare);
+        depthStencilState.BackFace.StencilFailOp = ToD3D12(desc.depthStencilState.backFace.failOp);
+        depthStencilState.BackFace.StencilDepthFailOp = ToD3D12(desc.depthStencilState.backFace.depthFailOp);
+        depthStencilState.BackFace.StencilPassOp = ToD3D12(desc.depthStencilState.backFace.passOp);
+        depthStencilState.BackFace.StencilFunc = ToD3D12(desc.depthStencilState.backFace.compare);
+        depthStencilState.DepthBoundsTestEnable = FALSE;
+
+        stream.DepthStencilState = depthStencilState;
+
+        // InputLayout
+        std::vector<D3D12_INPUT_ELEMENT_DESC> elements;
+        D3D12_INPUT_LAYOUT_DESC inputLayout = {};
+
+        for (uint32_t location = 0; location < kMaxVertexAttributes; location++)
+        {
+            const VertexAttribute* attribute = &desc.vertexLayout.attributes[location];
+            if (attribute->format == Format::Undefined)
+                continue;
+
+            auto& element = elements.emplace_back();;
+            element.SemanticName = "ATTRIBUTE";
+            element.SemanticIndex = location;
+            element.Format = ToDXGIFormat(attribute->format);
+            element.InputSlot = attribute->bufferIndex;
+            element.AlignedByteOffset = attribute->offset;
+
+            if (desc.vertexLayout.buffers[attribute->bufferIndex].stepRate == VertexStepRate::Vertex)
+            {
+                element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                element.InstanceDataStepRate = 0;
+            }
+            else
+            {
+                element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+                element.InstanceDataStepRate = 1;
+            }
+
+            pipeline->vboSlotsUsed = Max(attribute->bufferIndex + 1, pipeline->vboSlotsUsed);
+            pipeline->vboStrides[attribute->bufferIndex] = desc.vertexLayout.buffers[attribute->bufferIndex].stride;
+            inputLayout.NumElements++;
+        }
+
+        inputLayout.pInputElementDescs = elements.data();
+        stream.InputLayout = inputLayout;
+        stream.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+
         pipeline->primitiveTopology = ConvertPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
+        switch (desc.primitiveTopology)
+        {
+            case PrimitiveTopology::PointList:
+                stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+                break;
+            case PrimitiveTopology::LineList:
+            case PrimitiveTopology::LineStrip:
+                stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+                break;
+            case PrimitiveTopology::TriangleList:
+            case PrimitiveTopology::TriangleStrip:
+                stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+                break;
+            case PrimitiveTopology::PatchList:
+                stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+                break;
+            default:
+                stream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+                break;
+        }
+
+        D3D12_RT_FORMAT_ARRAY RTVFormats{};
+        for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
+        {
+            if (desc.colorFormats[i] == Format::Undefined)
+                continue;
+
+            RTVFormats.RTFormats[RTVFormats.NumRenderTargets++] = ToDXGIFormat(desc.colorFormats[i]);
+        }
+        stream.RTVFormats = RTVFormats;
+        stream.DSVFormat = ToDXGIFormat(desc.depthStencilFormat);
+
+        DXGI_SAMPLE_DESC sampleDesc = {};
+        sampleDesc.Count = static_cast<UINT>(desc.sampleCount);
+        sampleDesc.Quality = 0;
+        stream.SampleDesc = sampleDesc;
+
+        D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
+        streamDesc.pPipelineStateSubobjectStream = &stream;
+        streamDesc.SizeInBytes = sizeof(stream);
+
+        hr = d3dDevice->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&pipeline->handle));
+        if (FAILED(hr))
+        {
+            LOGE("Failed to create RenderPipeline");
+            return nullptr;
+        }
+
+        if (!desc.label.empty())
+        {
+            SetDebugName(pipeline->handle, desc.label);
+        }
+
         return pipeline;
     }
 
@@ -2404,6 +2563,6 @@ namespace alimer::rhi
         delete device;
         return nullptr;
     }
-    }
+}
 
 #endif /* defined(ALIMER_RHI_D3D11) */

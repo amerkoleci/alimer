@@ -17,7 +17,7 @@ namespace alimer::rhi
     static constexpr uint32_t kMaxFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
     static constexpr uint32_t kMaxViewportsAndScissors = 8;
-    static constexpr uint32_t kMaxVertexBufferBindings = 4;
+    static constexpr uint32_t kMaxVertexBufferBindings = 8;
     static constexpr uint32_t kMaxVertexAttributes = 16;
     static constexpr uint32_t kMaxVertexAttributeOffset = 2047u;
     static constexpr uint32_t kMaxVertexBufferStride = 2048u;
@@ -145,6 +145,10 @@ namespace alimer::rhi
         RGBA16UInt,
         RGBA16SInt,
         RGBA16Float,
+        // 96-Bit formats
+        RGB32UInt,
+        RGB32SInt,
+        RGB32Float,
         // 128-Bit formats
         RGBA32UInt,
         RGBA32SInt,
@@ -178,6 +182,17 @@ namespace alimer::rhi
         Dynamic,
         StagingUpload,
         StagingReadback,
+    };
+
+    /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
+    enum class SampleCount : uint32_t
+    {
+        Count1 = 1,
+        Count2 = 2,
+        Count4 = 4,
+        Count8 = 8,
+        Count16 = 16,
+        Count32 = 32,
     };
 
     enum class CompareFunction : uint32_t
@@ -386,7 +401,6 @@ namespace alimer::rhi
     class ITexture;
     class ISampler;
     class IShader;
-    class IDepthStencilState;
     class IPipeline;
     class IDevice;
 
@@ -632,7 +646,7 @@ namespace alimer::rhi
         CompareFunction compare = CompareFunction::Always;
     };
 
-    struct DepthStencilDesc
+    struct DepthStencilState
     {
         bool depthWriteEnable = true;
         CompareFunction depthCompare = CompareFunction::Less;
@@ -654,6 +668,7 @@ namespace alimer::rhi
 
     struct RenderPipelineDesc
     {
+        std::string label;
         IShader* vertex = nullptr;
         IShader* hull = nullptr;
         IShader* domain = nullptr;
@@ -664,10 +679,13 @@ namespace alimer::rhi
 
         VertexLayout            vertexLayout;
         BlendState              blendState;
-        IDepthStencilState*     depthStencilState = nullptr;
+        DepthStencilState       depthStencilState;
         RasterizerState         rasterizerState;
         PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
         uint32_t                patchControlPoints = 0;
+        Format                  colorFormats[kMaxColorAttachments] = {};
+        Format                  depthStencilFormat = Format::Undefined;
+        SampleCount             sampleCount = SampleCount::Count1;
     };
 
     struct RenderPassColorAttachment
@@ -820,12 +838,6 @@ namespace alimer::rhi
         [[nodiscard]] virtual ShaderStages GetStage() const = 0;
     };
 
-    class ALIMER_API IDepthStencilState : public DeviceChild
-    {
-    public:
-        [[nodiscard]] virtual const DepthStencilDesc& GetDesc() const = 0;
-    };
-
     class ALIMER_API IPipeline : public DeviceChild
     {
     public:
@@ -861,7 +873,6 @@ namespace alimer::rhi
     using BufferHandle = RefCountPtr<IBuffer>;
     using TextureHandle = RefCountPtr<ITexture>;
     using ShaderHandle = RefCountPtr<IShader>;
-    using DepthStencilStateHandle = RefCountPtr<IDepthStencilState>;
     using SamplerHandle = RefCountPtr<ISampler>;
     using PipelineHandle = RefCountPtr<IPipeline>;
     using DeviceHandle = RefCountPtr<IDevice>;
@@ -910,27 +921,21 @@ namespace alimer::rhi
         /// Create new shader.
         [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
-        /// Create new depth stencil state.
-        [[nodiscard]] virtual DepthStencilStateHandle CreateDepthStencilState(const DepthStencilDesc& desc) = 0;
-
         /// Create new sampler.
         [[nodiscard]] virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
 
         /// Create new render pipeline.
-        [[nodiscard]] virtual PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
-
-        [[nodiscard]] IDepthStencilState* GetDefaultDepthStencilState() const { return defaultDepthStencilState.Get(); }
+        [[nodiscard]] PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc);
 
     private:
         bool VerifyTextureDesc(const TextureDesc& desc);
         virtual TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
         virtual BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) = 0;
+        virtual PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) = 0;
 
     protected:
         DeviceFeatures features{};
         DeviceLimits limits{};
-
-        DepthStencilStateHandle defaultDepthStencilState;
 
         uint32_t backBufferWidth = 0;
         uint32_t backBufferHeight = 0;
@@ -938,7 +943,7 @@ namespace alimer::rhi
     };
 
     /* Helper methods */
-    enum class PixelFormatKind
+    enum class FormatKind
     {
         Integer,
         Normalized,
@@ -952,7 +957,7 @@ namespace alimer::rhi
         const std::string name;
         uint8_t bytesPerBlock;
         uint8_t blockSize;
-        PixelFormatKind kind;
+        FormatKind kind;
         bool hasRed : 1;
         bool hasGreen : 1;
         bool hasBlue : 1;
@@ -1027,7 +1032,7 @@ namespace alimer::rhi
     }
 
     /// Get the format Type
-    constexpr PixelFormatKind GetFormatKind(Format format)
+    constexpr FormatKind GetFormatKind(Format format)
     {
         ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
         return kFormatDesc[(uint32_t)format].kind;
@@ -1112,7 +1117,11 @@ namespace alimer::rhi
         }
     }
 
-    ALIMER_API bool StencilTestEnabled(const DepthStencilDesc* depthStencil);
+    ALIMER_API uint32_t GetVertexFormatNumComponents(Format format);
+    ALIMER_API uint32_t GetVertexFormatComponentSize(Format format);
+    ALIMER_API uint32_t GetVertexFormatSize(Format format);
+
+    ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
     // Returns the number of mip levels given a texture size
     ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
@@ -1193,9 +1202,9 @@ namespace std
         }
     };
 
-    template<> struct hash<alimer::rhi::DepthStencilDesc>
+    template<> struct hash<alimer::rhi::DepthStencilState>
     {
-        std::size_t operator()(const alimer::rhi::DepthStencilDesc& state) const noexcept
+        std::size_t operator()(const alimer::rhi::DepthStencilState& state) const noexcept
         {
             size_t hash = 0;
             alimer::rhi::hash_combine(hash, state.depthWriteEnable);

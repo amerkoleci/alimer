@@ -68,17 +68,6 @@ namespace alimer::rhi
         void ApiSetName() override;
     };
 
-    class VulkanDepthStencilState final : public RefCounter<IDepthStencilState>
-    {
-    public:
-        IDevice* device;
-        DepthStencilDesc desc;
-        VkPipelineDepthStencilStateCreateInfo vkDesc;
-
-        IDevice* GetDevice() const override { return device; }
-        const DepthStencilDesc& GetDesc() const override { return desc; }
-    };
-
     class Vulkan_Device final : public RefCounter<IDevice>
     {
     private:
@@ -121,10 +110,9 @@ namespace alimer::rhi
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
-        DepthStencilStateHandle CreateDepthStencilState(const DepthStencilDesc& desc) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
-        PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc) override;
+        PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
 
     private:
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
