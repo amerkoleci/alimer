@@ -17,7 +17,7 @@ namespace Alimer
             Texture,
         };
 
-        [[nodiscard]] u64 GetAllocatedSize() const { return allocatedSize; }
+        [[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
 
     protected:
         /// Constructor.
@@ -28,7 +28,6 @@ namespace Alimer
         }
 
         Type type;
-        u64 allocatedSize{ 0 };
     };
 }
 

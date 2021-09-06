@@ -62,12 +62,11 @@ namespace Alimer
         Count
     };
 
-    enum class GPUResourceUsage : uint32_t
+    enum class HeapType : uint32_t
     {
         Default,
-        Dynamic,
-        StagingUpload,
-        StagingReadback,
+        Upload,
+        Readback,
     };
 
     enum class ResourceStates : uint32_t
@@ -258,6 +257,9 @@ namespace Alimer
                 return "Unknown";
         }
     }
+
+    // Returns the number of mip levels given a texture size
+    ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
 
     ALIMER_API uint32_t GetVertexFormatNumComponents(VertexFormat format);
     ALIMER_API uint32_t GetVertexFormatComponentSize(VertexFormat format);

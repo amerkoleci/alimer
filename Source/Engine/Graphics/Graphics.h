@@ -9,7 +9,7 @@
 
 namespace Alimer
 {
-    struct BufferCreateInfo;
+    struct BufferDesc;
     struct TextureDesc;
     struct TextureData;
     class Window;
@@ -63,7 +63,7 @@ namespace Alimer
 
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
-        virtual BufferRef CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData) = 0;
+        virtual BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) = 0;
         virtual rhi::PipelineHandle CreateRenderPipelineCore(const rhi::RenderPipelineDesc& desc) = 0;
 
     protected:

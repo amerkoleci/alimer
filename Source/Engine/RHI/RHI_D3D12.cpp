@@ -16,7 +16,6 @@
 #include <d3dcompiler.h>
 #endif
 
-
 namespace Alimer::rhi
 {
     namespace
@@ -528,11 +527,11 @@ namespace Alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = depthOrArraySize - slice;
         }
-        else if (arraySize + slice > desc.depthOrArraySize)
+        else if (arraySize + slice > depthOrArraySize)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = depthOrArraySize - slice;
         }
 
         D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), PixelFormat::Undefined, false);
@@ -543,7 +542,7 @@ namespace Alimer::rhi
             D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
             viewDesc.Format = ToDXGIFormat(key.format);
 
-            switch (desc.dimension)  // NOLINT(clang-diagnostic-switch-enum)
+            switch (dimension)  // NOLINT(clang-diagnostic-switch-enum)
             {
                 case TextureDimension::Texture1D:
                     viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
@@ -582,7 +581,7 @@ namespace Alimer::rhi
                     viewDesc.Texture3D.WSize = arraySize;
                     break;
                 default:
-                    LOGE("Texture has unsupported dimension for RTV: {}", ToString(desc.dimension));
+                    LOGE("Texture has unsupported dimension for RTV: {}", ToString(dimension));
                     return {};
             }
 
@@ -600,11 +599,11 @@ namespace Alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = depthOrArraySize - slice;
         }
-        else if (arraySize + slice > desc.depthOrArraySize)
+        else if (arraySize + slice > depthOrArraySize)
         {
-            arraySize = desc.depthOrArraySize - slice;
+            arraySize = depthOrArraySize - slice;
         }
 
         D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), PixelFormat::Undefined, isReadOnly);
@@ -614,7 +613,7 @@ namespace Alimer::rhi
         {
             //we haven't seen this one before
             D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
-            viewDesc.Format = ToDXGIFormat(desc.format);
+            viewDesc.Format = ToDXGIFormat(format);
             viewDesc.Flags = D3D12_DSV_FLAG_NONE;
 
             if (isReadOnly)
@@ -624,7 +623,7 @@ namespace Alimer::rhi
                     viewDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
             }
 
-            switch (desc.dimension)  // NOLINT(clang-diagnostic-switch-enum)
+            switch (dimension)  // NOLINT(clang-diagnostic-switch-enum)
             {
                 case TextureDimension::Texture1D:
                     viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
@@ -657,7 +656,7 @@ namespace Alimer::rhi
                     viewDesc.Texture2DMSArray.ArraySize = arraySize;
                     break;
                 default:
-                    LOGE("Texture has unsupported dimension for DSV: {}", ToString(desc.dimension));
+                    LOGE("Texture has unsupported dimension for DSV: {}", ToString(dimension));
                     return {};
             }
 
@@ -672,8 +671,8 @@ namespace Alimer::rhi
     }
 
     /* D3D12_Buffer */
-    D3D12_Buffer::D3D12_Buffer(const BufferCreateInfo& createInfo)
-        : Buffer(createInfo)
+    D3D12_Buffer::D3D12_Buffer(const BufferDesc& desc)
+        : Buffer(desc)
     {
     }
 
@@ -700,6 +699,11 @@ namespace Alimer::rhi
 
         device->DeferDestroy(handle);
         handle = nullptr;
+    }
+
+    inline const D3D12_Buffer* ToD3D12(const Buffer* resource)
+    {
+        return checked_cast<const D3D12_Buffer*>(resource);
     }
 
     /* D3D12_CommandList */
@@ -847,8 +851,8 @@ namespace Alimer::rhi
             const uint32_t mipLevel = attachment.mipLevel;
             const uint32_t slice = attachment.slice;
 
-            width = Min(width, std::max(1U, sourceTexture->desc.width >> mipLevel));
-            height = Min(height, std::max(1U, sourceTexture->desc.height >> mipLevel));
+            width = Min(width, sourceTexture->GetWidth(mipLevel));
+            height = Min(height, sourceTexture->GetHeight(mipLevel));
 
             rtvDescs[numRenderTargets].cpuDescriptor = sourceTexture->GetRTV(mipLevel, slice, 1);
 
@@ -913,8 +917,8 @@ namespace Alimer::rhi
                 rtvDescs[i].EndingAccess.Resolve.pDstResource = resolveTexture->GetHandle();
                 rtvDescs[i].EndingAccess.Resolve.SubresourceCount = 1;
 
-                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
-                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->desc.mipLevels, sourceTexture->desc.depthOrArraySize);
+                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->GetMipLevels(), resolveTexture->GetArraySize());
+                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->GetMipLevels(), sourceTexture->GetArraySize());
 
                 subresourceParameters[i].SrcSubresource = srcSubresource;
                 subresourceParameters[i].DstSubresource = dstSubresource;
@@ -926,7 +930,7 @@ namespace Alimer::rhi
                 rtvDescs[i].EndingAccess.Resolve.Format = resolveTexture->dxgiFormat;
 
                 // RESOLVE_MODE_AVERAGE is only valid for non-integer formats.
-                switch (GetFormatKind(resolveTexture->desc.format))
+                switch (GetFormatKind(resolveTexture->GetFormat()))
                 {
                     case PixelFormatKind::Integer:
                         rtvDescs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MAX;
@@ -954,8 +958,8 @@ namespace Alimer::rhi
 
             auto sourceTexture = checked_cast<D3D12_Texture*>(attachment.texture);
 
-            width = Min(width, std::max(1u, sourceTexture->desc.width >> attachment.mipLevel));
-            height = Min(height, std::max(1u, sourceTexture->desc.height >> attachment.mipLevel));
+            width = Min(width, sourceTexture->GetWidth(attachment.mipLevel));
+            height = Min(height, sourceTexture->GetHeight(attachment.mipLevel));
 
             dsvDesc.cpuDescriptor = sourceTexture->GetDSV(attachment.mipLevel, attachment.slice, 1, desc.depthStencilAttachment.depthStencilReadOnly);
 
@@ -1086,7 +1090,7 @@ namespace Alimer::rhi
         const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
         uint64_t offset = 0;
 
-        currentVbos[index].BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
+        currentVbos[index].BufferLocation = d3dBuffer->deviceAddress + offset;
         currentVbos[index].SizeInBytes = (UINT)(buffer->GetSize() - offset);
     }
 
@@ -1096,7 +1100,7 @@ namespace Alimer::rhi
         const DXGI_FORMAT format = (indexType == IndexType::UInt32) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
         D3D12_INDEX_BUFFER_VIEW view;
-        view.BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
+        view.BufferLocation = d3dBuffer->deviceAddress + offset;
         view.SizeInBytes = (UINT)(d3dBuffer->GetSize() - offset);
         view.Format = format;
         handle->IASetIndexBuffer(&view);
@@ -1166,7 +1170,7 @@ namespace Alimer::rhi
 
             ThrowIfFailed(
                 device->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, cmd.commandAllocator.Get(), nullptr, IID_PPV_ARGS(&cmd.commandList))
-                );
+            );
 
             ThrowIfFailed(cmd.commandList->Close());
             ThrowIfFailed(device->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&cmd.fence)));
@@ -1196,15 +1200,11 @@ namespace Alimer::rhi
         if (cmd.uploadBuffer == nullptr ||
             cmd.uploadBuffer->GetSize() < size)
         {
-            BufferCreateInfo uploadBufferDesc;
+            BufferDesc uploadBufferDesc;
             uploadBufferDesc.size = NextPowerOfTwo(size);
-            uploadBufferDesc.resourceUsage = GPUResourceUsage::StagingUpload;
-            cmd.uploadBuffer = device->CreateBuffer(uploadBufferDesc, nullptr);
+            uploadBufferDesc.heapType = HeapType::Upload;
+            cmd.uploadBuffer = Buffer::Create(uploadBufferDesc, nullptr);
             ALIMER_ASSERT(cmd.uploadBuffer != nullptr);
-
-            cmd.uploadResource = checked_cast<D3D12_Buffer*>(cmd.uploadBuffer.Get())->handle;
-            CD3DX12_RANGE readRange(0, 0);
-            ThrowIfFailed(cmd.uploadResource->Map(0, &readRange, &cmd.data));
         }
 
         // Reset and begin command list
@@ -1954,13 +1954,7 @@ namespace Alimer::rhi
     {
         auto texture = new D3D12_Texture(desc);
         texture->device = this;
-        texture->desc = desc;
         texture->dxgiFormat = ToDXGIFormat(desc.format);
-
-        if (desc.mipLevels == 0)
-        {
-            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depthOrArraySize);
-        }
 
         if (nativeHandle != nullptr)
         {
@@ -1978,7 +1972,7 @@ namespace Alimer::rhi
         resourceDesc.Width = desc.width;
         resourceDesc.Height = desc.height;
         resourceDesc.DepthOrArraySize = 1;
-        resourceDesc.MipLevels = desc.mipLevels;
+        resourceDesc.MipLevels = texture->GetMipLevels();
         resourceDesc.Format = ToDXGIFormat(desc.format);
         resourceDesc.SampleDesc.Count = desc.sampleCount;
         resourceDesc.SampleDesc.Quality = 0;
@@ -2093,51 +2087,45 @@ namespace Alimer::rhi
         return TextureRef::Create(texture);
     }
 
-    BufferRef D3D12_Device::CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData)
+    BufferRef D3D12_Device::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
-        auto buffer = new D3D12_Buffer(createInfo);
+        RefCountPtr<D3D12_Buffer> buffer = RefCountPtr<D3D12_Buffer>::Create(new D3D12_Buffer(desc));
         buffer->device = this;
 
-        UINT64 size = createInfo.size;
-        if ((createInfo.usage & BufferUsage::Constant) != 0)
+        UINT64 size = desc.size;
+        if ((desc.usage & BufferUsage::Constant) != 0)
         {
-            size = AlignTo(createInfo.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+            size = AlignTo(desc.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-        if (CheckBitsAll(createInfo.usage, BufferUsage::ShaderWrite))
+        if (CheckBitsAll(desc.usage, BufferUsage::ShaderWrite))
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        if (CheckBitsAny(createInfo.usage, BufferUsage::ShaderRead | BufferUsage::RayTracingAccelerationStructure))
+        if (CheckBitsAny(desc.usage, BufferUsage::ShaderRead | BufferUsage::RayTracingAccelerationStructure))
         {
             resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
 
         D3D12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(size, resourceFlags);
 
-        D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
 
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-        switch (createInfo.resourceUsage)
+        D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+
+        if (desc.heapType == HeapType::Upload)
         {
-            case GPUResourceUsage::Dynamic:
-            case GPUResourceUsage::StagingUpload:
-                allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-                resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
-                //mappable = true;
-                break;
-            case GPUResourceUsage::StagingReadback:
-                allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
-                resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
-                //mappable = true;
-                resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-                break;
-            default:
-                allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-                break;
+            allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+            resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+        }
+        else if (desc.heapType == HeapType::Readback)
+        {
+            allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
+            resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+            resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
 
         HRESULT hr = allocator->CreateResource(
@@ -2151,31 +2139,46 @@ namespace Alimer::rhi
 
         if (FAILED(hr))
         {
-            delete buffer;
             return nullptr;
         }
 
-        buffer->gpuVirtualAddress = buffer->handle->GetGPUVirtualAddress();
+        if (desc.label)
+        {
+            SetDebugName(buffer->handle, desc.label);
+        }
+
+        d3dDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, nullptr, nullptr, nullptr, &buffer->allocatedSize);
+        buffer->deviceAddress = buffer->handle->GetGPUVirtualAddress();
+
+        if (desc.heapType == HeapType::Upload)
+        {
+            D3D12_RANGE readRange = {};
+            ThrowIfFailed(buffer->handle->Map(0, &readRange, reinterpret_cast<void**>(&buffer->mappedData)));
+        }
+        else if (desc.heapType == HeapType::Readback)
+        {
+            ThrowIfFailed(buffer->handle->Map(0, nullptr, reinterpret_cast<void**>(&buffer->mappedData)));
+        }
 
         // Copy data on request.
         if (initialData != nullptr)
         {
-            auto cmd = copyAllocator->Allocate(createInfo.size);
+            auto cmd = copyAllocator->Allocate(desc.size);
 
-            memcpy(cmd.data, initialData, createInfo.size);
+            memcpy(cmd.uploadBuffer->MappedData(), initialData, desc.size);
 
             cmd.commandList->CopyBufferRegion(
                 buffer->handle,
                 0,
-                cmd.uploadResource,
+                ToD3D12(cmd.uploadBuffer.Get())->handle,
                 0,
-                createInfo.size
+                desc.size
             );
 
             copyAllocator->Submit(cmd);
         }
 
-        return BufferRef::Create(buffer);
+        return buffer;
     }
 
     SamplerHandle D3D12_Device::CreateSampler(const SamplerDesc& desc)
@@ -2642,6 +2645,6 @@ namespace Alimer::rhi
 
         return gGraphics().IsInitialized();
     }
-}
+    }
 
 #endif /* defined(ALIMER_RHI_D3D12) */

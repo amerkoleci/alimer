@@ -12,7 +12,6 @@ namespace Alimer
 
 namespace Alimer::rhi
 {
-    
     /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
     enum class SampleCount : uint32_t
     {
@@ -442,8 +441,7 @@ namespace Alimer::rhi
     /* Helper methods */
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
-    // Returns the number of mip levels given a texture size
-    ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
+    
 
     ALIMER_API const char* ToString(CompareFunction func);
     ALIMER_API const char* ToString(SamplerFilter filter);

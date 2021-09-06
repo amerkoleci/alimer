@@ -54,16 +54,34 @@ namespace Alimer::rhi
 
     class Vulkan_Device;
 
+    class Vulkan_Buffer final : public Buffer
+    {
+    public:
+        Vulkan_Device* device;
+        VkBuffer handle = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        VkDeviceAddress deviceAddress = 0;
+        uint8_t* mappedData = nullptr;
+        u64 allocatedSize{ 0 };
+
+        Vulkan_Buffer(const BufferDesc& desc);
+        ~Vulkan_Buffer() override;
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        uint64_t GetDeviceAddress() const override { return deviceAddress; }
+        uint8_t* MappedData() const override { return mappedData; }
+    };
+
     class Vulkan_Texture final : public Texture
     {
     public:
         Vulkan_Device* device;
-        TextureDesc desc;
         VkImage handle = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
+        u64 allocatedSize{ 0 };
 
-        Vulkan_Texture(const TextureDesc& info);
+        Vulkan_Texture(const TextureDesc& desc);
         ~Vulkan_Texture() override;
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
     };
 
     class Vulkan_Device final : public Graphics
@@ -107,7 +125,7 @@ namespace Alimer::rhi
         Texture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
-        BufferRef CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData) override;
+        BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;

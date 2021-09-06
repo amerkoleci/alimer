@@ -55,14 +55,15 @@ namespace Alimer::rhi
     {
     public:
         D3D12_Device* device;
-        TextureDesc desc;
         DXGI_FORMAT dxgiFormat;
         ID3D12Resource* handle = nullptr;
         D3D12MA::Allocation* allocation = nullptr;
+        u64 allocatedSize{ 0 };
 
         D3D12_Texture(const TextureDesc& info);
         ~D3D12_Texture() override;
 
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
         auto GetHandle() const noexcept { return handle; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1);
         D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
@@ -95,10 +96,16 @@ namespace Alimer::rhi
         D3D12_Device* device;
         ID3D12Resource* handle = nullptr;
         D3D12MA::Allocation* allocation = nullptr;
-        D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
+        D3D12_GPU_VIRTUAL_ADDRESS deviceAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
+        uint8_t* mappedData = nullptr;
+        u64 allocatedSize{ 0 };
 
-        D3D12_Buffer(const BufferCreateInfo& createInfo);
+        D3D12_Buffer(const BufferDesc& desc);
         ~D3D12_Buffer() override;
+
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        uint64_t GetDeviceAddress() const override { return deviceAddress; }
+        uint8_t* MappedData() const override { return mappedData; }
     };
 
     class D3D12_Shader final : public IShader
@@ -182,8 +189,6 @@ namespace Alimer::rhi
             RefCountPtr<ID3D12GraphicsCommandList> commandList;
             RefCountPtr<ID3D12Fence> fence;
             BufferRef uploadBuffer;
-            void* data = nullptr;
-            ID3D12Resource* uploadResource = nullptr;
         };
         std::vector<CopyCMD> freeList;
 
@@ -378,7 +383,7 @@ namespace Alimer::rhi
         Texture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
-        BufferRef CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData) override;
+        BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");

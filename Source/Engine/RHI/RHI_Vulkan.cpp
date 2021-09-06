@@ -10,7 +10,6 @@
 #include "vk_mem_alloc.h"
 #include <optional>
 
-
 namespace Alimer::rhi
 {
     namespace
@@ -336,9 +335,19 @@ namespace Alimer::rhi
 
     extern VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
 
+    /* Vulkan_Buffer */
+    Vulkan_Buffer::Vulkan_Buffer(const BufferDesc& desc)
+        : Buffer(desc)
+    {
+    }
+
+    Vulkan_Buffer::~Vulkan_Buffer()
+    {
+    }
+
     /* Vulkan_Texture */
-    Vulkan_Texture::Vulkan_Texture(const TextureDesc& info)
-        : Texture(info)
+    Vulkan_Texture::Vulkan_Texture(const TextureDesc& desc)
+        : Texture(desc)
     {
     }
 
@@ -1030,12 +1039,6 @@ namespace Alimer::rhi
     {
         auto texture = new Vulkan_Texture(desc);
         texture->device = this;
-        texture->desc = desc;
-
-        if (desc.mipLevels == 0)
-        {
-            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depthOrArraySize);
-        }
 
         if (nativeHandle != nullptr)
         {
@@ -1049,6 +1052,7 @@ namespace Alimer::rhi
         createInfo.extent.width = desc.width;
         createInfo.extent.height = desc.height;
         createInfo.extent.depth = 1;
+        createInfo.mipLevels = texture->GetMipLevels();
 
         VmaAllocationCreateInfo memoryInfo = {};
         memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -1069,9 +1073,142 @@ namespace Alimer::rhi
         return TextureRef::Create(texture);
     }
 
-    BufferRef Vulkan_Device::CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData)
+    BufferRef Vulkan_Device::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
-        return nullptr;
+        RefCountPtr<Vulkan_Buffer> buffer = RefCountPtr<Vulkan_Buffer>::Create(new Vulkan_Buffer(desc));
+        buffer->device = this;
+
+        VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        bufferInfo.size = desc.size;
+        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        if (CheckBitsAny(desc.usage, BufferUsage::Vertex))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::Index))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::Constant))
+        {
+            // Align the buffer size to multiples of the dynamic uniform buffer minimum size
+            //uint64_t minAlignment = caps.limits.minUniformBufferOffsetAlignment;
+            //bufferInfo.size = AlignTo(bufferInfo.size, minAlignment);
+            bufferInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::ShaderRead))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::ShaderWrite))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::Indirect))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::RayTracingAccelerationStructure))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+        }
+
+        if (vk.bufferDeviceAddress)
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        }
+
+        if (CheckBitsAny(desc.usage, BufferUsage::RayTracingShaderTable))
+        {
+            bufferInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        }
+
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.flags = 0;
+        allocInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+        if (desc.heapType == HeapType::Default)
+        {
+            allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+            allocInfo.requiredFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        }
+        else if (desc.heapType == HeapType::Upload)
+        {
+            allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+            bufferInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            allocInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            allocInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        }
+        else if (desc.heapType == HeapType::Readback)
+        {
+            allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            allocInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+            bufferInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+
+        uint32_t sharingIndices[3];
+        if (vk.graphicsQueueFamily != vk.computeQueueFamily
+            || vk.graphicsQueueFamily != vk.copyQueueFamily)
+        {
+            // For buffers, always just use CONCURRENT access modes,
+            // so we don't have to deal with acquire/release barriers in async compute.
+            bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+
+            sharingIndices[bufferInfo.queueFamilyIndexCount++] = vk.graphicsQueueFamily;
+
+            if (vk.graphicsQueueFamily != vk.computeQueueFamily)
+            {
+                sharingIndices[bufferInfo.queueFamilyIndexCount++] = vk.computeQueueFamily;
+            }
+
+            if (vk.graphicsQueueFamily != vk.copyQueueFamily
+                && vk.computeQueueFamily != vk.copyQueueFamily)
+            {
+                sharingIndices[bufferInfo.queueFamilyIndexCount++] = vk.copyQueueFamily;
+            }
+
+            bufferInfo.pQueueFamilyIndices = sharingIndices;
+        }
+
+        VmaAllocationInfo allocationInfo{};
+        VkResult result = vmaCreateBuffer(vk.allocator,
+            &bufferInfo, &allocInfo,
+            &buffer->handle,
+            &buffer->allocation,
+            &allocationInfo);
+
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create buffer.");
+            return nullptr;
+        }
+
+        if (desc.heapType == HeapType::Upload || desc.heapType == HeapType::Readback)
+        {
+            buffer->mappedData = static_cast<uint8_t*>(allocationInfo.pMappedData);
+        }
+
+        if (bufferInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+        {
+            VkBufferDeviceAddressInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+            info.buffer = buffer->handle;
+            buffer->deviceAddress = vkGetBufferDeviceAddress(vk.device, &info);
+        }
+
+        // Issue data copy on request:
+        if (initialData != nullptr)
+        {
+        }
+
+        return buffer;
     }
 
     SamplerHandle Vulkan_Device::CreateSampler(const SamplerDesc& desc)

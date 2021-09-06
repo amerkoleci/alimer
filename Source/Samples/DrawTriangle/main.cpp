@@ -39,15 +39,8 @@ public:
             0, 1, 2,    /* first triangle */
             0, 2, 3,    /* second triangle */
         };
-        BufferCreateInfo bufferDesc;
-        bufferDesc.size = sizeof(vertices);
-        //bufferDesc.stride = 28;
-        bufferDesc.usage = BufferUsage::Vertex;
-        vertexBuffer = Buffer::Create(bufferDesc, vertices);
-
-        bufferDesc.size = sizeof(indices);
-        bufferDesc.usage = BufferUsage::Index;
-        indexBuffer = Buffer::Create(bufferDesc, indices);
+        vertexBuffer = Buffer::Create(vertices, sizeof(vertices), BufferUsage::Vertex, "VertexBuffer");
+        indexBuffer = Buffer::Create(indices, sizeof(indices), BufferUsage::Index);
 
         static const char* shaderSource = R"(
 struct VSInput 

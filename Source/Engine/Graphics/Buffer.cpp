@@ -7,27 +7,38 @@
 
 namespace Alimer
 {
-    Buffer::Buffer(const BufferCreateInfo& createInfo)
+    Buffer::Buffer(const BufferDesc& desc)
         : GraphicsResource(Type::Buffer)
-        , usage(createInfo.usage)
-        , size(createInfo.size)
+        , usage(desc.usage)
+        , size(desc.size)
     {
 
     }
 
-    BufferRef Buffer::Create(const BufferCreateInfo& createInfo, const void* initialData)
+    BufferRef Buffer::Create(const BufferDesc& desc, const void* initialData)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
-        ALIMER_ASSERT(createInfo.size > 0);
+        ALIMER_ASSERT(desc.size > 0);
 
         static constexpr uint64_t kMaxBufferSize = 128u * 1024u * 1024u;
 
-        if (createInfo.size > kMaxBufferSize)
+        if (desc.size > kMaxBufferSize)
         {
-            LOGE("Buffer size too large (size {})", createInfo.size);
+            LOGE("Buffer size too large (size {})", desc.size);
             return nullptr;
         }
 
-        return gGraphics().CreateBuffer(createInfo, initialData);
+        return gGraphics().CreateBuffer(desc, initialData);
+    }
+
+
+    BufferRef Buffer::Create(const void* data, uint64_t size, BufferUsage usage, const char* label)
+    {
+        BufferDesc desc;
+        desc.label = label;
+        desc.size = size;
+        desc.usage = usage;
+
+        return Create(desc, data);
     }
 }
