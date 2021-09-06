@@ -2,13 +2,14 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 #include <Alimer.h>
-using namespace alimer;
-using namespace alimer::rhi;
+using namespace Alimer;
+using namespace Alimer::rhi;
 
 class HelloWorldApp final : public Application
 {
 private:
     BufferHandle vertexBuffer;
+    BufferHandle indexBuffer;
     ShaderHandle vertexShader;
     ShaderHandle pixelShader;
     PipelineHandle renderPipeline;
@@ -29,11 +30,24 @@ public:
     {
         const float vertices[] = {
             /* positions            colors */
-             0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
-             0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
+            -0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
+             0.5f,  0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+             0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f,     1.0f, 1.0f, 0.0f, 1.0f,
         };
-        vertexBuffer = rhiDevice->CreateBuffer(BufferDesc::Vertex(3, 28), vertices);
+        const uint16_t indices[] = {
+            0, 1, 2,    /* first triangle */
+            0, 2, 3,    /* second triangle */
+        };
+        BufferDesc bufferDesc;
+        bufferDesc.size = sizeof(vertices);
+        bufferDesc.stride = 28;
+        bufferDesc.usage = BufferUsage::Vertex;
+        vertexBuffer = rhiDevice->CreateBuffer(bufferDesc, vertices);
+
+        bufferDesc.size = sizeof(indices);
+        bufferDesc.usage = BufferUsage::Index;
+        indexBuffer = rhiDevice->CreateBuffer(bufferDesc, indices);
 
         static const char* shaderSource = R"(
 struct VSInput 
@@ -81,8 +95,9 @@ float4 pixel_main(in PSInput input) : SV_TARGET
     void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
     {
         commandList->SetVertexBuffer(0, vertexBuffer);
+        commandList->SetIndexBuffer(indexBuffer, 0, IndexType::UInt16);
         commandList->SetPipeline(renderPipeline);
-        commandList->Draw(0, 3);
+        commandList->DrawIndexed(6);
     }
 };
 

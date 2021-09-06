@@ -22,7 +22,7 @@
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
-namespace alimer::rhi
+namespace Alimer::rhi
 {
     struct D3D12_ViewKey
     {
@@ -34,7 +34,7 @@ namespace alimer::rhi
         {
         }
 
-        D3D12_ViewKey(const TextureSubresourceSet& set_, alimer::rhi::Format format_, bool isReadOnlyDSV_ = false)
+        D3D12_ViewKey(const TextureSubresourceSet& set_, Format format_, bool isReadOnlyDSV_ = false)
             : set(set_)
             , format(format_)
             , isReadOnlyDSV(isReadOnlyDSV_)
@@ -75,9 +75,9 @@ namespace alimer::rhi
             std::size_t operator()(const D3D12_ViewKey& key) const
             {
                 size_t hash = 0;
-                alimer::rhi::hash_combine(hash, static_cast<uint32_t>(key.format));
-                alimer::rhi::hash_combine(hash, key.set);
-                alimer::rhi::hash_combine(hash, key.isReadOnlyDSV);
+                Alimer::rhi::hash_combine(hash, static_cast<uint32_t>(key.format));
+                Alimer::rhi::hash_combine(hash, key.set);
+                Alimer::rhi::hash_combine(hash, key.isReadOnlyDSV);
                 return hash;
             }
         };
@@ -170,8 +170,9 @@ namespace alimer::rhi
         void SetPipeline(_In_ IPipeline* pipeline) override;
 
         void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
-        void SetIndexBuffer(const IBuffer* buffer, uint32_t offset) override;
+        void SetIndexBuffer(const IBuffer* buffer, uint64_t offset, IndexType indexType) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
+        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, int32_t baseVertex, uint32_t baseInstance) override;
 
         void BindRenderPipeline();
         void FlushDraw();
@@ -315,7 +316,7 @@ namespace alimer::rhi
 
         RefCountPtr<IDXGISwapChain3> swapChain;
         std::vector<TextureHandle> backBuffers;
-        Format depthStencilFormat = Format::Undefined;
+        PixelFormat depthStencilFormat = PixelFormat::Undefined;
         TextureHandle depthStencilTexture;
 
         // Destroy logic

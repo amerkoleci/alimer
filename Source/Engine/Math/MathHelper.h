@@ -14,7 +14,7 @@
 #	pragma warning(disable : 4702) // unreachable code
 #endif
 
-namespace alimer
+namespace Alimer
 {
     static constexpr float Pi = 3.1415926535897932f;
     static constexpr float TwoPi = 6.28318530718f;
@@ -135,9 +135,6 @@ namespace alimer
 
     /// Round value to nearest integer.
     template <typename T> inline T Round(T x) { return round(x); }
-
-    constexpr inline uint32_t Kilobytes(uint32_t value) { return (value * 1024); }
-    constexpr inline uint32_t Megabytes(uint32_t value) { return (value * 1024 * 1024); }
 }
 
 #ifdef _MSC_VER

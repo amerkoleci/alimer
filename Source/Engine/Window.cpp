@@ -3,7 +3,7 @@
 
 #include "Window.h"
 
-namespace alimer
+namespace Alimer
 {
     Window::Window(const std::string_view& title, int32_t width, int32_t height, WindowFlags flags)
         : Window(title, Int2{ Centered, Centered }, Int2{ width, height }, flags)

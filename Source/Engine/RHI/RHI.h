@@ -4,61 +4,15 @@
 #pragma once
 
 #include "Core/RefCount.h"
-#include "Math/Color.h"
+#include "Graphics/GraphicsDefs.h"
 
-namespace alimer
+namespace Alimer
 {
     class Window;
 }
 
-namespace alimer::rhi
+namespace Alimer::rhi
 {
-    /* Constants */
-    static constexpr uint32_t kMaxFramesInFlight = 2;
-    static constexpr uint32_t kMaxColorAttachments = 8;
-    static constexpr uint32_t kMaxViewportsAndScissors = 8;
-    static constexpr uint32_t kMaxVertexBufferBindings = 8;
-    static constexpr uint32_t kMaxVertexAttributes = 16;
-    static constexpr uint32_t kMaxVertexAttributeOffset = 2047u;
-    static constexpr uint32_t kMaxVertexBufferStride = 2048u;
-    static constexpr uint32_t kMaxCommandLists = 32u;
-    //static constexpr uint32_t kMaxUniformBufferBindings = 14;
-    //static constexpr uint32_t kMaxDescriptorBindings = 32;
-    //static constexpr uint32_t kMaxUniformBufferSize = 16 * 1024;
-    //static constexpr uint32_t kInvalidBindlessIndex = static_cast<uint32_t>(-1);
-
-    static constexpr uint32_t kAllMipLevels = static_cast<uint32_t>(-1);
-    static constexpr uint32_t kAllArraySlices = static_cast<uint32_t>(-1);
-
-    static constexpr uint32_t KnownVendorId_AMD = 0x1002;
-    static constexpr uint32_t KnownVendorId_Intel = 0x8086;
-    static constexpr uint32_t KnownVendorId_Nvidia = 0x10DE;
-    static constexpr uint32_t KnownVendorId_Microsoft = 0x1414;
-    static constexpr uint32_t KnownVendorId_ARM = 0x13B5;
-    static constexpr uint32_t KnownVendorId_ImgTec = 0x1010;
-    static constexpr uint32_t KnownVendorId_Qualcomm = 0x5143;
-
-    /* Enums */
-    enum class ValidationMode : uint32_t
-    {
-        /// No validation is enabled.
-        Disabled,
-        /// Print warnings and errors
-        Enabled,
-        /// Print all warnings, errors and info messages
-        Verbose,
-        /// Enable GPU-based validation
-        GPU
-    };
-
-    enum class GraphicsAPI : uint8_t
-    {
-        D3D11,
-        D3D12,
-        Vulkan
-    };
-
-
     enum class CommandQueue : uint8_t
     {
         Graphics = 0,
@@ -207,17 +161,6 @@ namespace alimer::rhi
         Always,
     };
 
-    enum class PrimitiveTopology : uint32_t
-    {
-        PointList,
-        LineList,
-        LineStrip,
-        TriangleList,
-        TriangleStrip,
-        PatchList,
-        Count
-    };
-
     enum class BufferUsage : uint32_t
     {
         None = 0,
@@ -302,13 +245,6 @@ namespace alimer::rhi
         TransparentBlack = 0,
         OpaqueBlack,
         OpaqueWhite,
-    };
-
-
-    enum class VertexStepRate : uint32_t
-    {
-        Vertex = 0,
-        Instance
     };
 
     enum class BlendFactor : uint32_t
@@ -422,27 +358,6 @@ namespace alimer::rhi
             desc.resourceUsage = resourceUsage;
             return desc;
         }
-
-        static inline BufferDesc Index(uint32_t count, bool is32Bit, GPUResourceUsage resourceUsage = GPUResourceUsage::Default) noexcept
-        {
-            BufferDesc desc;
-            desc.stride = is32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
-            desc.size = count * desc.stride;
-            desc.usage = BufferUsage::Vertex;
-            desc.resourceUsage = resourceUsage;
-            desc.format = is32Bit ? Format::R32UInt : Format::R16UInt;
-            return desc;
-        }
-
-        static inline BufferDesc Constant(uint32_t size, GPUResourceUsage resourceUsage = GPUResourceUsage::Default) noexcept
-        {
-            BufferDesc desc;
-            desc.stride = 1;
-            desc.size = size;
-            desc.usage = BufferUsage::Vertex;
-            desc.resourceUsage = resourceUsage;
-            return desc;
-        }
     };
 
     struct TextureDesc
@@ -454,12 +369,12 @@ namespace alimer::rhi
         uint32_t arraySize = 1;
         uint32_t mipLevels = 1;
         uint32_t sampleCount = 1;
-        Format format = Format::RGBA8UNorm;
+        PixelFormat format = PixelFormat::RGBA8UNorm;
         TextureUsage usage = TextureUsage::ShaderRead;
         ResourceStates initialState = ResourceStates::Unknown;
 
         static inline TextureDesc Tex1D(
-            Format format,
+            PixelFormat format,
             uint32_t width,
             uint32_t arraySize = 1,
             uint32_t mipLevels = 1,
@@ -478,7 +393,7 @@ namespace alimer::rhi
         }
 
         static inline TextureDesc Tex2D(
-            Format format,
+            PixelFormat format,
             uint32_t width,
             uint32_t height,
             uint32_t arraySize = 1,
@@ -507,7 +422,7 @@ namespace alimer::rhi
         }
 
         static inline TextureDesc Tex3D(
-            Format format,
+            PixelFormat format,
             uint32_t width,
             uint32_t height,
             uint32_t depth,
@@ -528,7 +443,7 @@ namespace alimer::rhi
         }
 
         static inline TextureDesc TexCube(
-            Format format,
+            PixelFormat format,
             uint32_t size,
             uint32_t mipLevels = 1,
             uint32_t arraySize = 1,
@@ -683,8 +598,8 @@ namespace alimer::rhi
         RasterizerState         rasterizerState;
         PrimitiveTopology       primitiveTopology = PrimitiveTopology::TriangleList;
         uint32_t                patchControlPoints = 0;
-        Format                  colorFormats[kMaxColorAttachments] = {};
-        Format                  depthStencilFormat = Format::Undefined;
+        PixelFormat             colorFormats[kMaxColorAttachments] = {};
+        PixelFormat             depthStencilFormat = PixelFormat::Undefined;
         SampleCount             sampleCount = SampleCount::Count1;
     };
 
@@ -730,50 +645,6 @@ namespace alimer::rhi
         uint32_t colorAttachmentCount = 0;
         RenderPassColorAttachment colorAttachments[kMaxColorAttachments] = {};
         RenderPassDepthStencilAttachment depthStencilAttachment;
-    };
-
-    struct PresentationParameters
-    {
-        ValidationMode validationMode = ValidationMode::Disabled;
-
-        uint32_t backBufferWidth = 0;
-        uint32_t backBufferHeight = 0;
-        uint32_t backBufferCount = 3;
-        Format depthStencilFormat = Format::Depth32Float;
-        bool vsyncEnabled = false;
-        bool isFullScreen = false;
-    };
-
-    struct DeviceFeatures
-    {
-        /// Whether Ray Tracing support is available.
-        bool rayTracing = false;
-        /// Whether Mesh Shader support is available.
-        bool meshShader = false;
-    };
-
-    struct DeviceLimits
-    {
-        /// The maximum pixel size of a 1d image.
-        uint32_t maxTextureDimension1D;
-
-        /// The maximum pixel size along one axis of a 2d image.
-        uint32_t maxTextureDimension2D;
-
-        /// The maximum pixel size along one axis of a 3d image.
-        uint32_t maxTextureDimension3D;
-
-        /// The maximum pixel size along one axis of a cube image.
-        uint32_t maxTextureDimensionCube;
-
-        /// The maximum size of an image array.
-        uint32_t maxTextureArraySize;
-
-        /// The alignment required when creating buffer views
-        uint32_t minConstantBufferOffsetAlignment;
-
-        /// The maximum number of draws when doing indirect drawing.
-        uint32_t maxDrawIndirectCount = 1;
     };
 
     /* Objects */
@@ -866,8 +737,9 @@ namespace alimer::rhi
 
         virtual void SetPipeline(_In_ IPipeline* pipeline) = 0;
         virtual void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) = 0;
-        virtual void SetIndexBuffer(const IBuffer* buffer, uint32_t offset) = 0;
+        virtual void SetIndexBuffer(const IBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
         virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
+        virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0, int32_t baseVertex = 0, uint32_t baseInstance = 0) = 0;
     };
 
     using BufferHandle = RefCountPtr<IBuffer>;
@@ -880,7 +752,7 @@ namespace alimer::rhi
     class ALIMER_API IDevice : public RefCounted
     {
     public:
-        static DeviceHandle Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters);
+        static DeviceHandle Create(_In_ Alimer::Window* window, const PresentationParameters& presentationParameters);
 
         virtual void WaitIdle() = 0;
         virtual ICommandList* BeginFrame() = 0;
@@ -1144,91 +1016,91 @@ namespace alimer::rhi
 
 namespace std
 {
-    template<> struct hash<alimer::rhi::TextureSubresourceSet>
+    template<> struct hash<Alimer::rhi::TextureSubresourceSet>
     {
-        std::size_t operator()(const alimer::rhi::TextureSubresourceSet& set) const noexcept
+        std::size_t operator()(const Alimer::rhi::TextureSubresourceSet& set) const noexcept
         {
             size_t hash = 0;
-            alimer::rhi::hash_combine(hash, set.baseMipLevel);
-            alimer::rhi::hash_combine(hash, set.numMipLevels);
-            alimer::rhi::hash_combine(hash, set.baseArraySlice);
-            alimer::rhi::hash_combine(hash, set.numArraySlices);
+            Alimer::HashCombine(hash, set.baseMipLevel);
+            Alimer::HashCombine(hash, set.numMipLevels);
+            Alimer::HashCombine(hash, set.baseArraySlice);
+            Alimer::HashCombine(hash, set.numArraySlices);
             return hash;
         }
     };
 
-    template<> struct hash<alimer::rhi::RenderTargetBlendState>
+    template<> struct hash<Alimer::rhi::RenderTargetBlendState>
     {
-        std::size_t operator()(const alimer::rhi::RenderTargetBlendState& state) const noexcept
+        std::size_t operator()(const Alimer::rhi::RenderTargetBlendState& state) const noexcept
         {
             size_t hash = 0;
-            alimer::rhi::hash_combine(hash, state.blendEnable);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlend);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.destBlend);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.blendOp);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlendAlpha);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.destBlendAlpha);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.blendOpAlpha);
-            alimer::rhi::hash_combine(hash, (uint8_t)state.writeMask);
+            Alimer::rhi::hash_combine(hash, state.blendEnable);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlend);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.destBlend);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.blendOp);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlendAlpha);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.destBlendAlpha);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.blendOpAlpha);
+            Alimer::rhi::hash_combine(hash, (uint8_t)state.writeMask);
             return hash;
         }
     };
 
-    template<> struct hash<alimer::rhi::BlendState>
+    template<> struct hash<Alimer::rhi::BlendState>
     {
-        std::size_t operator()(const alimer::rhi::BlendState& state) const noexcept
+        std::size_t operator()(const Alimer::rhi::BlendState& state) const noexcept
         {
             size_t hash = 0;
-            alimer::rhi::hash_combine(hash, state.alphaToCoverageEnable);
-            alimer::rhi::hash_combine(hash, state.independentBlendEnable);
+            Alimer::rhi::hash_combine(hash, state.alphaToCoverageEnable);
+            Alimer::rhi::hash_combine(hash, state.independentBlendEnable);
             for (const auto& target : state.renderTargets)
             {
-                alimer::rhi::hash_combine(hash, target);
+                Alimer::rhi::hash_combine(hash, target);
             }
             return hash;
         }
     };
 
-    template<> struct hash<alimer::rhi::StencilFaceState>
+    template<> struct hash<Alimer::rhi::StencilFaceState>
     {
-        std::size_t operator()(const alimer::rhi::StencilFaceState& state) const noexcept
+        std::size_t operator()(const Alimer::rhi::StencilFaceState& state) const noexcept
         {
             size_t hash = 0;
-            alimer::rhi::hash_combine(hash, (uint32_t)state.failOp);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.passOp);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.depthFailOp);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.compare);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.failOp);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.passOp);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.depthFailOp);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.compare);
             return hash;
         }
     };
 
-    template<> struct hash<alimer::rhi::DepthStencilState>
+    template<> struct hash<Alimer::rhi::DepthStencilState>
     {
-        std::size_t operator()(const alimer::rhi::DepthStencilState& state) const noexcept
+        std::size_t operator()(const Alimer::rhi::DepthStencilState& state) const noexcept
         {
             size_t hash = 0;
-            alimer::rhi::hash_combine(hash, state.depthWriteEnable);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.depthCompare);
-            alimer::rhi::hash_combine(hash, state.stencilReadMask);
-            alimer::rhi::hash_combine(hash, state.stencilWriteMask);
-            alimer::rhi::hash_combine(hash, state.frontFace);
-            alimer::rhi::hash_combine(hash, state.backFace);
+            Alimer::rhi::hash_combine(hash, state.depthWriteEnable);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.depthCompare);
+            Alimer::rhi::hash_combine(hash, state.stencilReadMask);
+            Alimer::rhi::hash_combine(hash, state.stencilWriteMask);
+            Alimer::rhi::hash_combine(hash, state.frontFace);
+            Alimer::rhi::hash_combine(hash, state.backFace);
             return hash;
         }
     };
 
-    template<> struct hash<alimer::rhi::RasterizerState>
+    template<> struct hash<Alimer::rhi::RasterizerState>
     {
-        std::size_t operator()(const alimer::rhi::RasterizerState& state) const noexcept
+        std::size_t operator()(const Alimer::rhi::RasterizerState& state) const noexcept
         {
             size_t hash = 0;
-            alimer::rhi::hash_combine(hash, (uint32_t)state.cullMode);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
-            alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
-            alimer::rhi::hash_combine(hash, state.fillMode);
-            alimer::rhi::hash_combine(hash, state.depthBias);
-            alimer::rhi::hash_combine(hash, state.depthBiasSlopeScale);
-            alimer::rhi::hash_combine(hash, state.depthBiasClamp);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.cullMode);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
+            Alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
+            Alimer::rhi::hash_combine(hash, state.fillMode);
+            Alimer::rhi::hash_combine(hash, state.depthBias);
+            Alimer::rhi::hash_combine(hash, state.depthBiasSlopeScale);
+            Alimer::rhi::hash_combine(hash, state.depthBiasClamp);
             return hash;
         }
     };

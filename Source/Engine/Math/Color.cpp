@@ -4,7 +4,7 @@
 #include "Math/Color.h"
 #include <spdlog/fmt/fmt.h>
 
-namespace alimer
+namespace Alimer
 {
     std::string Color::ToString() const
     {

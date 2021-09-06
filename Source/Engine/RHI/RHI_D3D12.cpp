@@ -1,7 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_RHI_D3D11)
+#if defined(ALIMER_RHI_D3D12)
 #include "Window.h"
 #include "Core/StringUtils.h"
 #include "Core/Log.h"
@@ -17,7 +17,7 @@
 #endif
 
 
-namespace alimer::rhi
+namespace Alimer::rhi
 {
     DXGI_FORMAT ToDXGIFormat(Format format)
     {
@@ -157,17 +157,100 @@ namespace alimer::rhi
             ThrowIfFailed(object->SetName(wideName.c_str()));
         }
 
-        [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(Format format)
+        [[nodiscard]] constexpr DXGI_FORMAT ToDXGIFormat(PixelFormat format)
         {
             switch (format)
             {
-                case Format::Depth16UNorm:
+                // 8-bit formats
+                case PixelFormat::R8UNorm:  return DXGI_FORMAT_R8_UNORM;
+                case PixelFormat::R8SNorm:  return DXGI_FORMAT_R8_SNORM;
+                case PixelFormat::R8UInt:   return DXGI_FORMAT_R8_UINT;
+                case PixelFormat::R8SInt:   return DXGI_FORMAT_R8_SINT;
+                    // 16-bit formats
+                case PixelFormat::R16UNorm:     return DXGI_FORMAT_R16_UNORM;
+                case PixelFormat::R16SNorm:     return DXGI_FORMAT_R16_SNORM;
+                case PixelFormat::R16UInt:      return DXGI_FORMAT_R16_UINT;
+                case PixelFormat::R16SInt:      return DXGI_FORMAT_R16_SINT;
+                case PixelFormat::R16Float:     return DXGI_FORMAT_R16_FLOAT;
+                case PixelFormat::RG8UNorm:     return DXGI_FORMAT_R8G8_UNORM;
+                case PixelFormat::RG8SNorm:     return DXGI_FORMAT_R8G8_SNORM;
+                case PixelFormat::RG8UInt:      return DXGI_FORMAT_R8G8_UINT;
+                case PixelFormat::RG8SInt:      return DXGI_FORMAT_R8G8_SINT;
+                    // Packed 16-Bit Pixel Formats
+                case PixelFormat::BGRA4UNorm:       return DXGI_FORMAT_B4G4R4A4_UNORM;
+                case PixelFormat::B5G6R5UNorm:      return DXGI_FORMAT_B5G6R5_UNORM;
+                case PixelFormat::B5G5R5A1UNorm:    return DXGI_FORMAT_B5G5R5A1_UNORM;
+                    // 32-bit formats
+                case PixelFormat::R32UInt:          return DXGI_FORMAT_R32_UINT;
+                case PixelFormat::R32SInt:          return DXGI_FORMAT_R32_SINT;
+                case PixelFormat::R32Float:         return DXGI_FORMAT_R32_FLOAT;
+                case PixelFormat::RG16UNorm:        return DXGI_FORMAT_R16G16_UNORM;
+                case PixelFormat::RG16SNorm:        return DXGI_FORMAT_R16G16_SNORM;
+                case PixelFormat::RG16UInt:         return DXGI_FORMAT_R16G16_UINT;
+                case PixelFormat::RG16SInt:         return DXGI_FORMAT_R16G16_SINT;
+                case PixelFormat::RG16Float:        return DXGI_FORMAT_R16G16_FLOAT;
+                case PixelFormat::RGBA8UNorm:       return DXGI_FORMAT_R8G8B8A8_UNORM;
+                case PixelFormat::RGBA8UNormSrgb:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+                case PixelFormat::RGBA8SNorm:       return DXGI_FORMAT_R8G8B8A8_SNORM;
+                case PixelFormat::RGBA8UInt:        return DXGI_FORMAT_R8G8B8A8_UINT;
+                case PixelFormat::RGBA8SInt:        return DXGI_FORMAT_R8G8B8A8_SINT;
+                case PixelFormat::BGRA8UNorm:       return DXGI_FORMAT_B8G8R8A8_UNORM;
+                case PixelFormat::BGRA8UNormSrgb:   return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+                    // Packed 32-Bit formats
+                case PixelFormat::RGB10A2UNorm:     return DXGI_FORMAT_R10G10B10A2_UNORM;
+                case PixelFormat::RG11B10Float:     return DXGI_FORMAT_R11G11B10_FLOAT;
+                case PixelFormat::RGB9E5Float:      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+                    // 64-Bit formats
+                case PixelFormat::RG32UInt:         return DXGI_FORMAT_R32G32_UINT;
+                case PixelFormat::RG32SInt:         return DXGI_FORMAT_R32G32_SINT;
+                case PixelFormat::RG32Float:        return DXGI_FORMAT_R32G32_FLOAT;
+                case PixelFormat::RGBA16UNorm:      return DXGI_FORMAT_R16G16B16A16_UNORM;
+                case PixelFormat::RGBA16SNorm:      return DXGI_FORMAT_R16G16B16A16_SNORM;
+                case PixelFormat::RGBA16UInt:       return DXGI_FORMAT_R16G16B16A16_UINT;
+                case PixelFormat::RGBA16SInt:       return DXGI_FORMAT_R16G16B16A16_SINT;
+                case PixelFormat::RGBA16Float:      return DXGI_FORMAT_R16G16B16A16_FLOAT;
+                    // 128-Bit formats
+                case PixelFormat::RGBA32UInt:       return DXGI_FORMAT_R32G32B32A32_UINT;
+                case PixelFormat::RGBA32SInt:       return DXGI_FORMAT_R32G32B32A32_SINT;
+                case PixelFormat::RGBA32Float:      return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                    // Depth-stencil formats
+                case PixelFormat::Depth16UNorm:			return DXGI_FORMAT_D16_UNORM;
+                case PixelFormat::Depth32Float:			return DXGI_FORMAT_D32_FLOAT;
+                case PixelFormat::Depth24UNormStencil8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+                case PixelFormat::Depth32FloatStencil8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+                    // Compressed BC formats
+                case PixelFormat::BC1UNorm:         return DXGI_FORMAT_BC1_UNORM;
+                case PixelFormat::BC1UNormSrgb:     return DXGI_FORMAT_BC1_UNORM_SRGB;
+                case PixelFormat::BC2UNorm:         return DXGI_FORMAT_BC2_UNORM;
+                case PixelFormat::BC2UNormSrgb:     return DXGI_FORMAT_BC2_UNORM_SRGB;
+                case PixelFormat::BC3UNorm:         return DXGI_FORMAT_BC3_UNORM;
+                case PixelFormat::BC3UNormSrgb:     return DXGI_FORMAT_BC3_UNORM_SRGB;
+                case PixelFormat::BC4SNorm:         return DXGI_FORMAT_BC4_SNORM;
+                case PixelFormat::BC4UNorm:         return DXGI_FORMAT_BC4_UNORM;
+                case PixelFormat::BC5SNorm:         return DXGI_FORMAT_BC5_SNORM;
+                case PixelFormat::BC5UNorm:         return DXGI_FORMAT_BC5_UNORM;
+                case PixelFormat::BC6HUFloat:       return DXGI_FORMAT_BC6H_UF16;
+                case PixelFormat::BC6HSFloat:       return DXGI_FORMAT_BC6H_SF16;
+                case PixelFormat::BC7UNorm:         return DXGI_FORMAT_BC7_UNORM;
+                case PixelFormat::BC7UNormSrgb:     return DXGI_FORMAT_BC7_UNORM_SRGB;
+
+                default:
+                    ALIMER_UNREACHABLE();
+                    return DXGI_FORMAT_UNKNOWN;
+            }
+        }
+
+        [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(PixelFormat format)
+        {
+            switch (format)
+            {
+                case PixelFormat::Depth16UNorm:
                     return DXGI_FORMAT_R16_TYPELESS;
-                case Format::Depth32Float:
+                case PixelFormat::Depth32Float:
                     return DXGI_FORMAT_R32_TYPELESS;
-                case Format::Depth24UNormStencil8:
+                case PixelFormat::Depth24UNormStencil8:
                     return DXGI_FORMAT_R24G8_TYPELESS;
-                case Format::Depth32FloatStencil8:
+                case PixelFormat::Depth32FloatStencil8:
                     return DXGI_FORMAT_R32G8X24_TYPELESS;
 
                 default:
@@ -871,7 +954,7 @@ namespace alimer::rhi
                 // RESOLVE_MODE_AVERAGE is only valid for non-integer formats.
                 switch (GetFormatKind(resolveTexture->desc.format))
                 {
-                    case FormatKind::Integer:
+                    case PixelFormatKind::Integer:
                         rtvDescs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_MAX;
                         break;
                     default:
@@ -1033,10 +1116,10 @@ namespace alimer::rhi
         currentVbos[index].SizeInBytes = (UINT)(buffer->GetDesc().size - offset);
     }
 
-    void D3D12_CommandList::SetIndexBuffer(const IBuffer* buffer, uint32_t offset)
+    void D3D12_CommandList::SetIndexBuffer(const IBuffer* buffer, uint64_t offset, IndexType indexType)
     {
         const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
-        const DXGI_FORMAT format = d3dBuffer->desc.stride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+        const DXGI_FORMAT format = (indexType == IndexType::UInt32) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
@@ -1064,6 +1147,13 @@ namespace alimer::rhi
         FlushDraw();
 
         handle->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+    }
+
+    void D3D12_CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, int32_t baseVertex, uint32_t baseInstance)
+    {
+        FlushDraw();
+
+        handle->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, baseInstance);
     }
 
     /* D3D12CopyAllocator */
@@ -1794,7 +1884,7 @@ namespace alimer::rhi
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
 
-        const TextureDesc backBufferTextureDesc = TextureDesc::Tex2D(Format::BGRA8UNorm,
+        const TextureDesc backBufferTextureDesc = TextureDesc::Tex2D(PixelFormat::BGRA8UNorm,
             swapChainDesc.Width, swapChainDesc.Height, 1, 1, TextureUsage::RenderTarget
         );
 
@@ -1810,7 +1900,7 @@ namespace alimer::rhi
         backBufferWidth = swapChainDesc.Width;
         backBufferHeight = swapChainDesc.Height;
 
-        if (depthStencilFormat != Format::Undefined)
+        if (depthStencilFormat != PixelFormat::Undefined)
         {
             TextureDesc depthStencilTextureDesc = TextureDesc::Tex2D(depthStencilFormat, backBufferWidth, backBufferHeight, 1, 1, TextureUsage::RenderTarget);
             depthStencilTextureDesc.initialState = ResourceStates::DepthWrite;
@@ -2420,7 +2510,7 @@ namespace alimer::rhi
         D3D12_RT_FORMAT_ARRAY RTVFormats{};
         for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
         {
-            if (desc.colorFormats[i] == Format::Undefined)
+            if (desc.colorFormats[i] == PixelFormat::Undefined)
                 continue;
 
             RTVFormats.RTFormats[RTVFormats.NumRenderTargets++] = ToDXGIFormat(desc.colorFormats[i]);
@@ -2547,7 +2637,7 @@ namespace alimer::rhi
         // TODO
     }
 
-    DeviceHandle CreateD3D12Device(alimer::Window* window, const PresentationParameters& presentationParameters)
+    DeviceHandle CreateD3D12Device(Alimer::Window* window, const PresentationParameters& presentationParameters)
     {
         if (!D3D12_Device::IsAvailable())
         {
@@ -2565,4 +2655,4 @@ namespace alimer::rhi
     }
 }
 
-#endif /* defined(ALIMER_RHI_D3D11) */
+#endif /* defined(ALIMER_RHI_D3D12) */

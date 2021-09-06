@@ -7,7 +7,7 @@
 #include <functional>
 #include <map>
 
-namespace alimer
+namespace Alimer
 {
 	template <typename... Args>
 	class Signal final

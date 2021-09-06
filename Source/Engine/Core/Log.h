@@ -8,7 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
-namespace alimer
+namespace Alimer
 {
     enum class LogLevel : uint32_t
     {

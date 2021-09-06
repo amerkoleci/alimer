@@ -6,9 +6,8 @@
 #include "Window.h"
 #include "RHI/RHI.h"
 
-namespace alimer
+namespace Alimer
 {
-
     struct Settings
     {
         std::string title = "Alimer";

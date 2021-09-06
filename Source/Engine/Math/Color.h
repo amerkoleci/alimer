@@ -7,12 +7,12 @@
 //#include "Math/Vector4.h"
 
 #if defined(__GNUC__) && !defined(__MINGW32__)
-#define ALIMER_SELECT_ANY __attribute__((weak))
+#   define ALIMER_SELECT_ANY __attribute__((weak))
 #else
-#define ALIMER_SELECT_ANY __declspec(selectany)
+#   define ALIMER_SELECT_ANY __declspec(selectany)
 #endif
 
-namespace alimer
+namespace Alimer
 {
     /// Class specifying a floating-point RGBA color.
     struct ALIMER_API Color
@@ -269,9 +269,9 @@ namespace alimer
 
 namespace std
 {
-    template<> struct hash<alimer::Color>
+    template<> struct hash<Alimer::Color>
     {
-        size_t operator()(const alimer::Color& value) const noexcept
+        size_t operator()(const Alimer::Color& value) const noexcept
         {
             return value.ToHash();
         }

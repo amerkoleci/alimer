@@ -9,7 +9,7 @@
 
 using namespace std;
 
-namespace alimer
+namespace Alimer
 {
 #ifdef _WIN32
     string ToUtf8(const wchar_t* wstr, size_t len)

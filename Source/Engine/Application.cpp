@@ -5,7 +5,7 @@
 #include "Core/Log.h"
 #include "Math/Color.h"
 
-namespace alimer
+namespace Alimer
 {
     namespace
     {
@@ -61,9 +61,9 @@ namespace alimer
         }
 
         // Init graphics module
-        rhi::PresentationParameters presentationParameters = {};
+        PresentationParameters presentationParameters = {};
 #if ALIMER_DEBUG
-        presentationParameters.validationMode = rhi::ValidationMode::Enabled;
+        presentationParameters.validationMode = ValidationMode::Enabled;
 #endif
 
         rhiDevice = rhi::IDevice::Create(window.get(), presentationParameters);

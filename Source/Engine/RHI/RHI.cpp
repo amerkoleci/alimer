@@ -5,7 +5,7 @@
 #include "Window.h"
 #include "Core/Log.h"
 
-namespace alimer::rhi
+namespace Alimer::rhi
 {
     const FormatInfo kFormatDesc[] = {
         //        format                    name                bytes blk         kind               red   green   blue  alpha  depth  stencl signed  srgb
@@ -130,14 +130,14 @@ namespace alimer::rhi
 
     /* IDevice */
 #if defined(ALIMER_RHI_D3D11)
-    extern DeviceHandle CreateD3D11Device(alimer::Window* window, const PresentationParameters& presentationParameters);
+    extern DeviceHandle CreateD3D11Device(Alimer::Window* window, const PresentationParameters& presentationParameters);
 #endif
 
 #if defined(ALIMER_RHI_D3D12)
-    extern DeviceHandle CreateD3D12Device(alimer::Window* window, const PresentationParameters& presentationParameters);
+    extern DeviceHandle CreateD3D12Device(Alimer::Window* window, const PresentationParameters& presentationParameters);
 #endif
 
-    DeviceHandle IDevice::Create(_In_ alimer::Window* window, const PresentationParameters& presentationParameters)
+    DeviceHandle IDevice::Create(_In_ Alimer::Window* window, const PresentationParameters& presentationParameters)
     {
 #if defined(ALIMER_RHI_D3D11)
         //return CreateD3D11Device(window, presentationParameters);
@@ -176,23 +176,12 @@ namespace alimer::rhi
 
     BufferHandle IDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
-        //
-        if ((desc.usage & BufferUsage::Vertex) != 0)
-        {
-            if (desc.stride == 0)
-            {
-                LOGE("Invalid buffer stride");
-                return nullptr;
-            }
-        }
+        static constexpr uint64_t c_maxBytes = 128 * 1024u * 1024u;
 
-        if ((desc.usage & BufferUsage::Index) != 0)
+        if (desc.size > c_maxBytes)
         {
-            if (desc.stride != 2 && desc.stride != 4)
-            {
-                LOGE("Invalid buffer stride");
-                return nullptr;
-            }
+            LOGE("Buffer size too large (size {})", desc.size);
+            return nullptr;
         }
 
         return CreateBufferCore(desc, nullptr, initialData);

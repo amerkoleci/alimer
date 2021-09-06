@@ -5,7 +5,7 @@
 
 #include <utility>
 
-namespace alimer
+namespace Alimer
 {
     template<class T>
     class Module

@@ -11,7 +11,7 @@
 
 #define LOGGER_FORMAT "[%^%l%$] %v"
 
-namespace alimer
+namespace Alimer
 {
     namespace
     {

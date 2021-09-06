@@ -22,7 +22,7 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-namespace alimer
+namespace Alimer
 {
     namespace
     {
@@ -228,7 +228,7 @@ namespace alimer
 }
 
 #if defined(ALIMER_RHI_VULKAN)
-namespace alimer::rhi
+namespace Alimer::rhi
 {
     VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface)
     {

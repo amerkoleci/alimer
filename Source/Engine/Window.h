@@ -6,7 +6,7 @@
 #include "Core/Types.h"
 #include "Core/Signal.h"
 
-namespace alimer
+namespace Alimer
 {
     enum class WindowFlags
     {

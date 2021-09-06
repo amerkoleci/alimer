@@ -63,6 +63,7 @@ define_engine_source_files(
   Core
   Math
   IO
+  Graphics
   RHI
 )
 
@@ -112,11 +113,6 @@ target_link_libraries(${TARGET_NAME} PUBLIC
 )
 
 # RHI defines
-if (ALIMER_RHI_D3D11)
-  target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_D3D11)
-  target_link_libraries(${TARGET_NAME} PRIVATE d3d11 dxgi dxguid D3DCompiler)
-endif()
-
 if (ALIMER_RHI_D3D12)
   target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_D3D12)
   target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)

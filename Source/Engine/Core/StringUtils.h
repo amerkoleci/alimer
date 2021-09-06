@@ -5,7 +5,7 @@
 
 #include "Core/Types.h"
 
-namespace alimer
+namespace Alimer
 {
 #ifdef _WIN32
     ALIMER_API std::string ToUtf8(const wchar_t* wstr, size_t len);

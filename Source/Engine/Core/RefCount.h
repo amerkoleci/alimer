@@ -5,7 +5,7 @@
 
 #include "Core/Types.h"
 
-namespace alimer
+namespace Alimer
 {
     /// Base class for intrusively reference counted objects that can be pointed to with RefPtr. These are noncopyable and non-assignable.
     class ALIMER_API RefCounted

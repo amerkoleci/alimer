@@ -11,7 +11,7 @@
 #include <optional>
 
 
-namespace alimer::rhi
+namespace Alimer::rhi
 {
     namespace
     {
@@ -1120,7 +1120,7 @@ namespace alimer::rhi
         return nullptr;
     }
 
-    DeviceHandle CreateVulkanDevice(alimer::Window* window, const PresentationParameters& presentationParameters)
+    DeviceHandle CreateVulkanDevice(Alimer::Window* window, const PresentationParameters& presentationParameters)
     {
         if (!Vulkan_Device::IsAvailable())
             return nullptr;

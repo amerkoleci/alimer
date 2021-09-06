@@ -3,7 +3,7 @@
 
 #include "Core/RefCount.h"
 
-namespace alimer
+namespace Alimer
 {
 	
 }

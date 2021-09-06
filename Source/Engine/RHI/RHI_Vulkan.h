@@ -11,7 +11,7 @@
 
 #include <unordered_map>
 
-namespace alimer::rhi
+namespace Alimer::rhi
 {
     [[nodiscard]] constexpr const char* ToString(VkResult result)
     {
@@ -126,8 +126,8 @@ namespace alimer::rhi
 		VkResult err = x; \
 		if (err) \
 		{ \
-			LOGE("Detected Vulkan error: {}", alimer::rhi::ToString(err)); \
+			LOGE("Detected Vulkan error: {}", Alimer::rhi::ToString(err)); \
 		} \
 	} while (0)
 
-#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, alimer::rhi::ToString(result));
+#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, Alimer::rhi::ToString(result));
