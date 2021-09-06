@@ -1,0 +1,81 @@
+// Copyright © Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+
+#pragma once
+
+#include "Core/Module.h"
+#include "RHI/RHI.h"
+#include "Graphics/GraphicsDefs.h"
+
+namespace Alimer
+{
+    struct BufferCreateInfo;
+    struct TextureDesc;
+    struct TextureData;
+    class Window;
+
+    /// Defines a Graphics module class.
+    class ALIMER_API Graphics : public Module<Graphics>
+    {
+        friend class Buffer;
+        friend class Texture;
+
+    public:
+        virtual ~Graphics() = default;
+
+        static bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
+
+        virtual void WaitIdle() = 0;
+        virtual rhi::ICommandList* BeginFrame() = 0;
+        virtual void EndFrame() = 0;
+        virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
+
+        //! Returns the set of features supported by this device.
+        const DeviceFeatures& GetFeatures() const { return features; }
+
+        //! Returns the set of hardware limits for this device.
+        const DeviceLimits& GetLimits() const { return limits; }
+
+        [[nodiscard]] virtual Texture* GetCurrentBackBuffer() const = 0;
+        [[nodiscard]] virtual Texture* GetBackBuffer(uint32_t index) const = 0;
+        [[nodiscard]] virtual uint32_t GetCurrentBackBufferIndex() const = 0;
+        [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
+        [[nodiscard]] virtual Texture* GetBackBufferDepthStencilTexture() const = 0;
+
+        [[nodiscard]] virtual uint64_t GetFrameCount() const = 0;
+
+        // Returns the API kind that the RHI backend is running on top of.
+        virtual GraphicsAPI GetGraphicsAPI() const = 0;
+
+        /// Return backbuffer width.
+        [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
+        /// Return backbuffer height.
+        [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
+
+        /// Create new shader.
+        [[nodiscard]] virtual rhi::ShaderHandle CreateShader(rhi::ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
+
+        /// Create new sampler.
+        [[nodiscard]] virtual rhi::SamplerHandle CreateSampler(const rhi::SamplerDesc& desc) = 0;
+
+        /// Create new render pipeline.
+        [[nodiscard]] rhi::PipelineHandle CreateRenderPipeline(const rhi::RenderPipelineDesc& desc);
+
+    private:
+        virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
+        virtual BufferRef CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData) = 0;
+        virtual rhi::PipelineHandle CreateRenderPipelineCore(const rhi::RenderPipelineDesc& desc) = 0;
+
+    protected:
+        DeviceFeatures features{};
+        DeviceLimits limits{};
+
+        uint32_t backBufferWidth = 0;
+        uint32_t backBufferHeight = 0;
+        bool vsyncEnabled = false;
+    };
+
+    /** Provides easier access to graphics module. */
+    ALIMER_API Graphics& gGraphics();
+}
+

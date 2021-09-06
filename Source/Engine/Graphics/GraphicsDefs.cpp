@@ -5,47 +5,47 @@
 
 namespace Alimer
 {
-    uint32_t GetVertexFormatNumComponents(VertexElementFormat format)
+    uint32_t GetVertexFormatNumComponents(VertexFormat format)
     {
         switch (format)
         {
-            case VertexElementFormat::Float:
-            case VertexElementFormat::UInt:
-            case VertexElementFormat::Int:
+            case VertexFormat::Float:
+            case VertexFormat::UInt:
+            case VertexFormat::Int:
                 return 1;
 
-            case VertexElementFormat::UChar2:
-            case VertexElementFormat::Char2:
-            case VertexElementFormat::UChar2Norm:
-            case VertexElementFormat::Char2Norm:
-            case VertexElementFormat::UShort2:
-            case VertexElementFormat::Short2:
-            case VertexElementFormat::UShort2Norm:
-            case VertexElementFormat::Short2Norm:
-            case VertexElementFormat::Half2:
-            case VertexElementFormat::Float2:
-            case VertexElementFormat::UInt2:
-            case VertexElementFormat::Int2:
+            case VertexFormat::UChar2:
+            case VertexFormat::Char2:
+            case VertexFormat::UChar2Norm:
+            case VertexFormat::Char2Norm:
+            case VertexFormat::UShort2:
+            case VertexFormat::Short2:
+            case VertexFormat::UShort2Norm:
+            case VertexFormat::Short2Norm:
+            case VertexFormat::Half2:
+            case VertexFormat::Float2:
+            case VertexFormat::UInt2:
+            case VertexFormat::Int2:
                 return 2;
 
-            case VertexElementFormat::Float3:
-            case VertexElementFormat::UInt3:
-            case VertexElementFormat::Int3:
+            case VertexFormat::Float3:
+            case VertexFormat::UInt3:
+            case VertexFormat::Int3:
                 return 3;
 
-            case VertexElementFormat::UChar4:
-            case VertexElementFormat::Char4:
-            case VertexElementFormat::UChar4Norm:
-            case VertexElementFormat::Char4Norm:
-            case VertexElementFormat::UShort4:
-            case VertexElementFormat::Short4:
-            case VertexElementFormat::UShort4Norm:
-            case VertexElementFormat::Short4Norm:
-            case VertexElementFormat::Half4:
-            case VertexElementFormat::Float4:
-            case VertexElementFormat::UInt4:
-            case VertexElementFormat::Int4:
-            case VertexElementFormat::RGB10A2Unorm:
+            case VertexFormat::UChar4:
+            case VertexFormat::Char4:
+            case VertexFormat::UChar4Norm:
+            case VertexFormat::Char4Norm:
+            case VertexFormat::UShort4:
+            case VertexFormat::Short4:
+            case VertexFormat::UShort4Norm:
+            case VertexFormat::Short4Norm:
+            case VertexFormat::Half4:
+            case VertexFormat::Float4:
+            case VertexFormat::UInt4:
+            case VertexFormat::Int4:
+            case VertexFormat::RGB10A2Unorm:
                 return 4;
 
             default:
@@ -54,46 +54,46 @@ namespace Alimer
         }
     }
 
-    uint32_t GetVertexFormatComponentSize(VertexElementFormat format)
+    uint32_t GetVertexFormatComponentSize(VertexFormat format)
     {
         switch (format)
         {
-            case VertexElementFormat::UChar2:
-            case VertexElementFormat::UChar4:
-            case VertexElementFormat::Char2:
-            case VertexElementFormat::Char4:
-            case VertexElementFormat::UChar2Norm:
-            case VertexElementFormat::UChar4Norm:
-            case VertexElementFormat::Char2Norm:
-            case VertexElementFormat::Char4Norm:
+            case VertexFormat::UChar2:
+            case VertexFormat::UChar4:
+            case VertexFormat::Char2:
+            case VertexFormat::Char4:
+            case VertexFormat::UChar2Norm:
+            case VertexFormat::UChar4Norm:
+            case VertexFormat::Char2Norm:
+            case VertexFormat::Char4Norm:
                 return sizeof(char);
 
-            case VertexElementFormat::UShort2:
-            case VertexElementFormat::UShort4:
-            case VertexElementFormat::UShort2Norm:
-            case VertexElementFormat::UShort4Norm:
-            case VertexElementFormat::Short2:
-            case VertexElementFormat::Short4:
-            case VertexElementFormat::Short2Norm:
-            case VertexElementFormat::Short4Norm:
-            case VertexElementFormat::Half2:
-            case VertexElementFormat::Half4:
+            case VertexFormat::UShort2:
+            case VertexFormat::UShort4:
+            case VertexFormat::UShort2Norm:
+            case VertexFormat::UShort4Norm:
+            case VertexFormat::Short2:
+            case VertexFormat::Short4:
+            case VertexFormat::Short2Norm:
+            case VertexFormat::Short4Norm:
+            case VertexFormat::Half2:
+            case VertexFormat::Half4:
                 return sizeof(uint16_t);
 
-            case VertexElementFormat::Float:
-            case VertexElementFormat::Float2:
-            case VertexElementFormat::Float3:
-            case VertexElementFormat::Float4:
+            case VertexFormat::Float:
+            case VertexFormat::Float2:
+            case VertexFormat::Float3:
+            case VertexFormat::Float4:
                 return sizeof(float);
-            case VertexElementFormat::UInt:
-            case VertexElementFormat::UInt2:
-            case VertexElementFormat::UInt3:
-            case VertexElementFormat::UInt4:
-            case VertexElementFormat::Int:
-            case VertexElementFormat::Int2:
-            case VertexElementFormat::Int3:
-            case VertexElementFormat::Int4:
-            case VertexElementFormat::RGB10A2Unorm:
+            case VertexFormat::UInt:
+            case VertexFormat::UInt2:
+            case VertexFormat::UInt3:
+            case VertexFormat::UInt4:
+            case VertexFormat::Int:
+            case VertexFormat::Int2:
+            case VertexFormat::Int3:
+            case VertexFormat::Int4:
+            case VertexFormat::RGB10A2Unorm:
                 return sizeof(int32_t);
 
             default:
@@ -101,7 +101,7 @@ namespace Alimer
         }
     }
 
-    uint32_t GetVertexFormatSize(VertexElementFormat format)
+    uint32_t GetVertexFormatSize(VertexFormat format)
     {
         return GetVertexFormatNumComponents(format) * GetVertexFormatComponentSize(format);
     }

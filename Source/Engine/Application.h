@@ -4,7 +4,12 @@
 #pragma once
 
 #include "Window.h"
-#include "RHI/RHI.h"
+#include "Graphics/GraphicsDefs.h"
+
+namespace Alimer::rhi
+{
+    class ICommandList;
+}
 
 namespace Alimer
 {
@@ -59,7 +64,6 @@ namespace Alimer
         virtual void EndRun() {}
 
         std::unique_ptr<Window> window;
-        rhi::DeviceHandle rhiDevice;
 
     private:
         // Internal lifecycle methods

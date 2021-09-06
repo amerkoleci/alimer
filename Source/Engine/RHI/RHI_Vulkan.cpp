@@ -337,16 +337,12 @@ namespace Alimer::rhi
     extern VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
 
     /* Vulkan_Texture */
+    Vulkan_Texture::Vulkan_Texture(const TextureDesc& info)
+        : Texture(info)
+    {
+    }
+
     Vulkan_Texture::~Vulkan_Texture()
-    {
-    }
-
-    IDevice* Vulkan_Texture::GetDevice() const
-    {
-        return device;
-    }
-
-    void Vulkan_Texture::ApiSetName()
     {
     }
 
@@ -479,7 +475,7 @@ namespace Alimer::rhi
             debugUtilsCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
             debugUtilsCreateInfo.pfnUserCallback = DebugUtilsMessengerCallback;
             createInfo.pNext = &debugUtilsCreateInfo;
-    }
+        }
 
 #if defined(_DEBUG)&& defined(TODO)
         VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
@@ -535,7 +531,7 @@ namespace Alimer::rhi
         {
             LOGI("	\t{}", createInfo.ppEnabledExtensionNames[i]);
         }
-}
+    }
 
     Vulkan_Device::~Vulkan_Device()
     {
@@ -1030,21 +1026,21 @@ namespace Alimer::rhi
 
     }
 
-    TextureHandle Vulkan_Device::CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
+    TextureRef Vulkan_Device::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
-        auto texture = new Vulkan_Texture();
+        auto texture = new Vulkan_Texture(desc);
         texture->device = this;
         texture->desc = desc;
 
         if (desc.mipLevels == 0)
         {
-            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depth);
+            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depthOrArraySize);
         }
 
         if (nativeHandle != nullptr)
         {
             texture->handle = (VkImage)nativeHandle;
-            return TextureHandle::Create(texture);
+            return TextureRef::Create(texture);
         }
 
         VkImageCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -1070,10 +1066,10 @@ namespace Alimer::rhi
             return nullptr;
         }
 
-        return TextureHandle::Create(texture);
+        return TextureRef::Create(texture);
     }
 
-    BufferHandle Vulkan_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
+    BufferRef Vulkan_Device::CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData)
     {
         return nullptr;
     }
@@ -1120,20 +1116,22 @@ namespace Alimer::rhi
         return nullptr;
     }
 
-    DeviceHandle CreateVulkanDevice(Alimer::Window* window, const PresentationParameters& presentationParameters)
+    bool InitializeVulkanBackend(Window* window, const PresentationParameters& presentationParameters)
     {
         if (!Vulkan_Device::IsAvailable())
-            return nullptr;
-
-        auto device = new Vulkan_Device(presentationParameters.validationMode != ValidationMode::Disabled);
-        if (device->Initialize(window, presentationParameters))
         {
-            return DeviceHandle::Create(device);
+            return false;
         }
 
-        delete device;
-        return nullptr;
+        auto device = new Vulkan_Device(presentationParameters.validationMode != ValidationMode::Disabled);
+        if (!device->Initialize(window, presentationParameters))
+        {
+            return false;
+        }
+
+        gGraphics().Start(device);
+        return gGraphics().IsInitialized();
     }
-    }
+}
 
 #endif /* defined(ALIMER_RHI_VULKAN) */

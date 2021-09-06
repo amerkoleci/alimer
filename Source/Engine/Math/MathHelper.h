@@ -84,6 +84,19 @@ namespace Alimer
         return ++value;
     }
 
+    /// Round up to next power of two.
+    constexpr uint64_t NextPowerOfTwo(uint64_t value)
+    {
+        // http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+        --value;
+        value |= value >> 1u;
+        value |= value >> 2u;
+        value |= value >> 4u;
+        value |= value >> 8u;
+        value |= value >> 16u;
+        return ++value;
+    }
+
     /// Round up or down to the closest power of two.
     inline uint32_t ClosestPowerOfTwo(uint32_t value)
     {

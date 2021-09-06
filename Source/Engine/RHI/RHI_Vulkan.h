@@ -3,7 +3,9 @@
 
 #pragma once
 
-#include "RHI.h"
+#include "Graphics/Graphics.h"
+#include "Graphics/Buffer.h"
+#include "Graphics/Texture.h"
 #include "PlatformInclude.h"
 #include "volk.h"
 #include "vk_mem_alloc.h"
@@ -52,7 +54,7 @@ namespace Alimer::rhi
 
     class Vulkan_Device;
 
-    class Vulkan_Texture final : public RefCounter<ITexture>
+    class Vulkan_Texture final : public Texture
     {
     public:
         Vulkan_Device* device;
@@ -60,20 +62,16 @@ namespace Alimer::rhi
         VkImage handle = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
 
+        Vulkan_Texture(const TextureDesc& info);
         ~Vulkan_Texture() override;
-
-    private:
-        IDevice* GetDevice() const override;
-        const TextureDesc& GetDesc() const override { return desc; }
-        void ApiSetName() override;
     };
 
-    class Vulkan_Device final : public RefCounter<IDevice>
+    class Vulkan_Device final : public Graphics
     {
     private:
-        TextureHandle backBuffer;
-        Format depthStencilFormat = Format::Undefined;
-        TextureHandle depthStencilTexture;
+        TextureRef backBuffer;
+        PixelFormat depthStencilFormat = PixelFormat::Undefined;
+        TextureRef depthStencilTexture;
 
         uint64_t frameCount = 0;
         uint32_t frameIndex = 0;
@@ -94,9 +92,9 @@ namespace Alimer::rhi
         uint64_t GetFrameCount() const override { return frameCount; }
         uint32_t GetFrameIndex() const { return frameIndex; }
 
-        ITexture* GetCurrentBackBuffer() const override { return backBuffer; }
+        Texture* GetCurrentBackBuffer() const override { return backBuffer; }
 
-        ITexture* GetBackBuffer(uint32_t index) const override
+        Texture* GetBackBuffer(uint32_t index) const override
         {
             if (index == 0)
                 return backBuffer;
@@ -106,10 +104,10 @@ namespace Alimer::rhi
 
         uint32_t GetCurrentBackBufferIndex() const override { return 0; }
         uint32_t GetBackBufferCount() const override { return 1; }
-        ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
+        Texture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
-        TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
-        BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
+        TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
+        BufferRef CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;

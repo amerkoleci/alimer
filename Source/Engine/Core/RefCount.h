@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include <atomic>
 
 namespace Alimer
 {
@@ -15,14 +16,17 @@ namespace Alimer
         virtual ~RefCounted() = default;
 
     public:
-        virtual uint32_t AddRef() = 0;
-        virtual uint32_t Release() = 0;
+        uint32_t AddRef();
+        uint32_t Release();
 
         // Non-copyable and non-movable
         RefCounted(const RefCounted&) = delete;
         RefCounted(const RefCounted&&) = delete;
         RefCounted& operator=(const RefCounted&) = delete;
         RefCounted& operator=(const RefCounted&&) = delete;
+
+    private:
+        std::atomic_uint32_t refCount = 1;
     };
 
     template <typename T>
@@ -245,27 +249,6 @@ namespace Alimer
             RefCountPtr<T> Ptr;
             Ptr.Attach(other);
             return Ptr;
-        }
-    };
-
-    template<class T>
-    class RefCounter : public T
-    {
-    private:
-        std::atomic_uint32_t refCount = 1;
-    public:
-        virtual uint32_t AddRef() override
-        {
-            return ++refCount;
-        }
-
-        virtual uint32_t Release() override
-        {
-            uint32_t result = --refCount;
-            if (result == 0) {
-                delete this;
-            }
-            return result;
         }
     };
 }

@@ -8,5 +8,10 @@
 // RHI
 #include "RHI/RHI.h"
 
+// Graphics
+#include "Graphics/Buffer.h"
+#include "Graphics/Texture.h"
+#include "Graphics/Graphics.h"
+
 // Application
 #include "Application.h"

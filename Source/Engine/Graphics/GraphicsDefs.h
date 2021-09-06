@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "Core/RefCount.h"
 #include "Graphics/PixelFormat.h"
 #include "Math/Color.h"
 
@@ -53,7 +54,50 @@ namespace Alimer
         GPU
     };
 
-    enum class PrimitiveTopology : u32
+    enum class CommandQueue : u8
+    {
+        Graphics = 0,
+        Compute,
+
+        Count
+    };
+
+    enum class GPUResourceUsage : uint32_t
+    {
+        Default,
+        Dynamic,
+        StagingUpload,
+        StagingReadback,
+    };
+
+    enum class ResourceStates : uint32_t
+    {
+        Unknown = 0,
+        Common = 0x00000001,
+        ConstantBuffer = 0x00000002,
+        VertexBuffer = 0x00000004,
+        IndexBuffer = 0x00000008,
+        IndirectArgument = 0x00000010,
+        ShaderResource = 0x00000020,
+        UnorderedAccess = 0x00000040,
+        RenderTarget = 0x00000080,
+        DepthWrite = 0x00000100,
+        DepthRead = 0x00000200,
+        StreamOut = 0x00000400,
+        CopyDest = 0x00000800,
+        CopySource = 0x00001000,
+        ResolveDest = 0x00002000,
+        ResolveSource = 0x00004000,
+        Present = 0x00008000,
+        AccelerationStructureRead = 0x00010000,
+        AccelerationStructureWrite = 0x00020000,
+        AccelerationStructureBuildInput = 0x00040000,
+        AccelerationStructureBuildBlas = 0x00080000,
+        ShadingRateSurface = 0x00100000,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ResourceStates);
+
+    enum class PrimitiveTopology : uint32_t
     {
         PointList,
         LineList,
@@ -64,7 +108,7 @@ namespace Alimer
         Count
     };
 
-    enum class VertexElementUsage : u32
+    enum class VertexElementUsage : uint32_t
     {
         Position,
         Normal,
@@ -84,8 +128,9 @@ namespace Alimer
         Count
     };
 
-    enum class VertexElementFormat : uint32_t
+    enum class VertexFormat : uint32_t
     {
+        Undefined = 0,
         UChar2,
         UChar4,
         Char2,
@@ -131,10 +176,17 @@ namespace Alimer
         UInt32
     };
 
+    /* Forward declarations */
+    class Buffer;
+    class Texture;
+
+    using BufferRef = RefCountPtr<Buffer>;
+    using TextureRef = RefCountPtr<Texture>;
+
     /* Structs */
     struct VertexElement
     {
-        VertexElementFormat format = VertexElementFormat::Float3;
+        VertexFormat format = VertexFormat::Float3;
         VertexElementUsage usage = VertexElementUsage::Position;
         uint32_t offset = 0;
         uint32_t bufferIndex = 0;
@@ -207,8 +259,8 @@ namespace Alimer
         }
     }
 
-    ALIMER_API uint32_t GetVertexFormatNumComponents(VertexElementFormat format);
-    ALIMER_API uint32_t GetVertexFormatComponentSize(VertexElementFormat format);
-    ALIMER_API uint32_t GetVertexFormatSize(VertexElementFormat format);
+    ALIMER_API uint32_t GetVertexFormatNumComponents(VertexFormat format);
+    ALIMER_API uint32_t GetVertexFormatComponentSize(VertexFormat format);
+    ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
 }
 

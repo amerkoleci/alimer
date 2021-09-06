@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "Core/RefCount.h"
 #include "Graphics/GraphicsDefs.h"
 
 namespace Alimer
@@ -13,131 +12,7 @@ namespace Alimer
 
 namespace Alimer::rhi
 {
-    enum class CommandQueue : uint8_t
-    {
-        Graphics = 0,
-        Compute,
-
-        Count
-    };
-
-    enum class ResourceStates : uint32_t
-    {
-        Unknown = 0,
-        Common = 0x00000001,
-        ConstantBuffer = 0x00000002,
-        VertexBuffer = 0x00000004,
-        IndexBuffer = 0x00000008,
-        IndirectArgument = 0x00000010,
-        ShaderResource = 0x00000020,
-        UnorderedAccess = 0x00000040,
-        RenderTarget = 0x00000080,
-        DepthWrite = 0x00000100,
-        DepthRead = 0x00000200,
-        StreamOut = 0x00000400,
-        CopyDest = 0x00000800,
-        CopySource = 0x00001000,
-        ResolveDest = 0x00002000,
-        ResolveSource = 0x00004000,
-        Present = 0x00008000,
-        AccelerationStructureRead = 0x00010000,
-        AccelerationStructureWrite = 0x00020000,
-        AccelerationStructureBuildInput = 0x00040000,
-        AccelerationStructureBuildBlas = 0x00080000,
-        ShadingRateSurface = 0x00100000,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ResourceStates);
-
-    enum class Format : uint32_t
-    {
-        Undefined = 0,
-        // 8-bit formats
-        R8UNorm,
-        R8SNorm,
-        R8UInt,
-        R8SInt,
-        // 16-bit formats
-        R16UNorm,
-        R16SNorm,
-        R16UInt,
-        R16SInt,
-        R16Float,
-        RG8UNorm,
-        RG8SNorm,
-        RG8UInt,
-        RG8SInt,
-        // Packed 16-Bit Pixel Formats
-        BGRA4UNorm,
-        B5G6R5UNorm,
-        B5G5R5A1UNorm,
-        // 32-bit formats
-        R32UInt,
-        R32SInt,
-        R32Float,
-        RG16UNorm,
-        RG16SNorm,
-        RG16UInt,
-        RG16SInt,
-        RG16Float,
-        RGBA8UNorm,
-        RGBA8UNormSrgb,
-        RGBA8SNorm,
-        RGBA8UInt,
-        RGBA8SInt,
-        BGRA8UNorm,
-        BGRA8UNormSrgb,
-        // Packed 32-Bit formats
-        RGB10A2UNorm,
-        RG11B10Float,
-        RGB9E5Float,
-        // 64-Bit formats
-        RG32UInt,
-        RG32SInt,
-        RG32Float,
-        RGBA16UNorm,
-        RGBA16SNorm,
-        RGBA16UInt,
-        RGBA16SInt,
-        RGBA16Float,
-        // 96-Bit formats
-        RGB32UInt,
-        RGB32SInt,
-        RGB32Float,
-        // 128-Bit formats
-        RGBA32UInt,
-        RGBA32SInt,
-        RGBA32Float,
-        // Depth-stencil formats
-        Depth16UNorm,
-        Depth32Float,
-        Depth24UNormStencil8,
-        Depth32FloatStencil8,
-        // Compressed BC formats
-        BC1UNorm,
-        BC1UNormSrgb,
-        BC2UNorm,
-        BC2UNormSrgb,
-        BC3UNorm,
-        BC3UNormSrgb,
-        BC4UNorm,
-        BC4SNorm,
-        BC5UNorm,
-        BC5SNorm,
-        BC6HUFloat,
-        BC6HSFloat,
-        BC7UNorm,
-        BC7UNormSrgb,
-        Count,
-    };
-
-    enum class GPUResourceUsage : uint32_t
-    {
-        Default,
-        Dynamic,
-        StagingUpload,
-        StagingReadback,
-    };
-
+    
     /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
     enum class SampleCount : uint32_t
     {
@@ -160,43 +35,6 @@ namespace Alimer::rhi
         GreaterEqual,
         Always,
     };
-
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Constant = 1 << 2,
-        ShaderRead = 1 << 3,
-        ShaderWrite = 1 << 4,
-        Indirect = 1 << 5,
-        RayTracingAccelerationStructure = 1 << 6,
-        RayTracingShaderTable = 1 << 7,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
-
-    enum class TextureDimension : uint32_t
-    {
-        Texture1D,
-        Texture1DArray,
-        Texture2D,
-        Texture2DArray,
-        Texture2DMS,
-        Texture2DMSArray,
-        TextureCube,
-        TextureCubeArray,
-        Texture3D
-    };
-
-    enum class TextureUsage : uint32_t
-    {
-        None,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
-        RenderTarget = 1 << 2,
-        ShadingRate = 1 << 3,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
 
     enum class ShaderStages : uint32_t
     {
@@ -333,135 +171,11 @@ namespace Alimer::rhi
     };
 
     /* Forward declarations */
-    class IBuffer;
-    class ITexture;
     class ISampler;
     class IShader;
     class IPipeline;
-    class IDevice;
 
     /* Structs */
-    struct BufferDesc
-    {
-        uint32_t size = 0;
-        uint32_t stride = 0;
-        BufferUsage usage = BufferUsage::None;
-        GPUResourceUsage resourceUsage = GPUResourceUsage::Default;
-        Format format = Format::Undefined;
-
-        static inline BufferDesc Vertex(uint32_t count, uint32_t stride, GPUResourceUsage resourceUsage = GPUResourceUsage::Default) noexcept
-        {
-            BufferDesc desc;
-            desc.size = count * stride;
-            desc.stride = stride;
-            desc.usage = BufferUsage::Vertex;
-            desc.resourceUsage = resourceUsage;
-            return desc;
-        }
-    };
-
-    struct TextureDesc
-    {
-        TextureDimension dimension = TextureDimension::Texture2D;
-        uint32_t width = 1;
-        uint32_t height = 1;
-        uint32_t depth = 1;
-        uint32_t arraySize = 1;
-        uint32_t mipLevels = 1;
-        uint32_t sampleCount = 1;
-        PixelFormat format = PixelFormat::RGBA8UNorm;
-        TextureUsage usage = TextureUsage::ShaderRead;
-        ResourceStates initialState = ResourceStates::Unknown;
-
-        static inline TextureDesc Tex1D(
-            PixelFormat format,
-            uint32_t width,
-            uint32_t arraySize = 1,
-            uint32_t mipLevels = 1,
-            TextureUsage usage = TextureUsage::ShaderRead) noexcept
-        {
-            TextureDesc desc;
-            desc.dimension = arraySize > 1 ? TextureDimension::Texture1DArray : TextureDimension::Texture1D;
-            desc.width = width;
-            desc.height = 1;
-            desc.arraySize = arraySize;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = 1;
-            desc.usage = usage;
-            return desc;
-        }
-
-        static inline TextureDesc Tex2D(
-            PixelFormat format,
-            uint32_t width,
-            uint32_t height,
-            uint32_t arraySize = 1,
-            uint32_t mipLevels = 1,
-            TextureUsage usage = TextureUsage::ShaderRead,
-            uint32_t sampleCount = 1) noexcept
-        {
-            TextureDesc desc;
-            if (sampleCount > 1)
-            {
-                desc.dimension = arraySize > 1 ? TextureDimension::Texture2DMSArray : TextureDimension::Texture2DMS;
-            }
-            else
-            {
-                desc.dimension = arraySize > 1 ? TextureDimension::Texture2DArray : TextureDimension::Texture2D;
-            }
-
-            desc.width = width;
-            desc.height = height;
-            desc.arraySize = arraySize;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = sampleCount;
-            desc.usage = usage;
-            return desc;
-        }
-
-        static inline TextureDesc Tex3D(
-            PixelFormat format,
-            uint32_t width,
-            uint32_t height,
-            uint32_t depth,
-            uint32_t mipLevels = 1,
-            TextureUsage usage = TextureUsage::ShaderRead) noexcept
-        {
-            TextureDesc desc;
-            desc.dimension = TextureDimension::Texture3D;
-            desc.width = width;
-            desc.height = height;
-            desc.depth = depth;
-            desc.arraySize = 1u;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = 1;
-            desc.usage = usage;
-            return desc;
-        }
-
-        static inline TextureDesc TexCube(
-            PixelFormat format,
-            uint32_t size,
-            uint32_t mipLevels = 1,
-            uint32_t arraySize = 1,
-            TextureUsage usage = TextureUsage::ShaderRead) noexcept
-        {
-            TextureDesc desc;
-            desc.dimension = arraySize > 1 ? TextureDimension::TextureCubeArray : TextureDimension::TextureCube;
-            desc.width = size;
-            desc.height = size;
-            desc.arraySize = arraySize;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = 1;
-            desc.usage = usage;
-            return desc;
-        }
-    };
-
     struct SamplerDesc
     {
         SamplerFilter minFilter = SamplerFilter::Point;
@@ -476,13 +190,6 @@ namespace Alimer::rhi
         float minLod = 0.0f;
         float maxLod = FLT_MAX;
         SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
-    };
-
-    struct TextureData
-    {
-        const void* pData = nullptr;
-        uint32_t    rowPitch = 0;
-        uint32_t    slicePitch = 0;
     };
 
     struct TextureSubresourceSet
@@ -521,8 +228,7 @@ namespace Alimer::rhi
 
     struct VertexAttribute
     {
-        //VertexFormat format = VertexFormat::Undefined;
-        Format format = Format::Undefined;
+        VertexFormat format = VertexFormat::Undefined;
         uint32_t offset = 0;
         uint32_t bufferIndex = 0;
     };
@@ -605,11 +311,11 @@ namespace Alimer::rhi
 
     struct RenderPassColorAttachment
     {
-        ITexture* texture = nullptr;
+        Texture* texture = nullptr;
         uint32_t mipLevel = 0;
         uint32_t slice = 0;
 
-        ITexture* resolveTexture = nullptr;
+        Texture* resolveTexture = nullptr;
         uint32_t resolveLevel = 0;
         uint32_t resolveSlice = 0;
         LoadAction loadAction = LoadAction::Discard;
@@ -623,11 +329,11 @@ namespace Alimer::rhi
 
     struct RenderPassDepthStencilAttachment
     {
-        ITexture* texture = nullptr;
+        Texture* texture = nullptr;
         uint32_t mipLevel = 0;
         uint32_t slice = 0;
 
-        ITexture* resolveTexture = nullptr;
+        Texture* resolveTexture = nullptr;
         uint32_t resolveLevel = 0;
         uint32_t resolveSlice = 0;
 
@@ -675,25 +381,12 @@ namespace Alimer::rhi
     class ALIMER_API DeviceChild : public Object
     {
     public:
-        [[nodiscard]] virtual IDevice* GetDevice() const = 0;
     };
 
     class ALIMER_API IResource : public DeviceChild
     {
     protected:
         //[[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
-    };
-
-    class ALIMER_API IBuffer : public IResource
-    {
-    public:
-        [[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
-    };
-
-    class ALIMER_API ITexture : public IResource
-    {
-    public:
-        [[nodiscard]] virtual const TextureDesc& GetDesc() const = 0;
     };
 
     class ALIMER_API ISampler : public DeviceChild
@@ -736,270 +429,23 @@ namespace Alimer::rhi
         virtual void EndRenderPass() = 0;
 
         virtual void SetPipeline(_In_ IPipeline* pipeline) = 0;
-        virtual void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) = 0;
-        virtual void SetIndexBuffer(const IBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
+        virtual void SetVertexBuffer(uint32_t index, const Buffer* buffer) = 0;
+        virtual void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexType indexType) = 0;
         virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0, int32_t baseVertex = 0, uint32_t baseInstance = 0) = 0;
     };
 
-    using BufferHandle = RefCountPtr<IBuffer>;
-    using TextureHandle = RefCountPtr<ITexture>;
     using ShaderHandle = RefCountPtr<IShader>;
     using SamplerHandle = RefCountPtr<ISampler>;
     using PipelineHandle = RefCountPtr<IPipeline>;
-    using DeviceHandle = RefCountPtr<IDevice>;
-
-    class ALIMER_API IDevice : public RefCounted
-    {
-    public:
-        static DeviceHandle Create(_In_ Alimer::Window* window, const PresentationParameters& presentationParameters);
-
-        virtual void WaitIdle() = 0;
-        virtual ICommandList* BeginFrame() = 0;
-        virtual void EndFrame() = 0;
-        virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
-
-        //! Returns the set of features supported by this device.
-        const DeviceFeatures& GetFeatures() const { return features; }
-
-        //! Returns the set of hardware limits for this device.
-        const DeviceLimits& GetLimits() const { return limits; }
-
-        [[nodiscard]] virtual ITexture* GetCurrentBackBuffer() const = 0;
-        [[nodiscard]] virtual ITexture* GetBackBuffer(uint32_t index) const = 0;
-        [[nodiscard]] virtual uint32_t GetCurrentBackBufferIndex() const = 0;
-        [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
-        [[nodiscard]] virtual ITexture* GetBackBufferDepthStencilTexture() const = 0;
-
-        [[nodiscard]] virtual uint64_t GetFrameCount() const = 0;
-
-        // Returns the API kind that the RHI backend is running on top of.
-        virtual GraphicsAPI GetGraphicsAPI() const = 0;
-
-        /// Return backbuffer width.
-        [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
-        /// Return backbuffer height.
-        [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
-
-        /// Create new texture.
-        TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
-
-        /// Create new texture from external handle.
-        TextureHandle CreateExternalTexture(void* nativeHandle, const TextureDesc& desc);
-
-        /// Create new buffer.
-        [[nodiscard]] BufferHandle CreateBuffer(const BufferDesc& desc, const void* initialData);
-
-        /// Create new shader.
-        [[nodiscard]] virtual ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
-
-        /// Create new sampler.
-        [[nodiscard]] virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
-
-        /// Create new render pipeline.
-        [[nodiscard]] PipelineHandle CreateRenderPipeline(const RenderPipelineDesc& desc);
-
-    private:
-        bool VerifyTextureDesc(const TextureDesc& desc);
-        virtual TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
-        virtual BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) = 0;
-        virtual PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) = 0;
-
-    protected:
-        DeviceFeatures features{};
-        DeviceLimits limits{};
-
-        uint32_t backBufferWidth = 0;
-        uint32_t backBufferHeight = 0;
-        bool vsyncEnabled = false;
-    };
 
     /* Helper methods */
-    enum class FormatKind
-    {
-        Integer,
-        Normalized,
-        Float,
-        DepthStencil
-    };
-
-    struct FormatInfo
-    {
-        Format format;
-        const std::string name;
-        uint8_t bytesPerBlock;
-        uint8_t blockSize;
-        FormatKind kind;
-        bool hasRed : 1;
-        bool hasGreen : 1;
-        bool hasBlue : 1;
-        bool hasAlpha : 1;
-        bool hasDepth : 1;
-        bool hasStencil : 1;
-        bool isSigned : 1;
-        bool isSRGB : 1;
-    };
-
-    ALIMER_API extern const FormatInfo kFormatDesc[];
-    ALIMER_API const FormatInfo& GetFormatInfo(Format format);
-
-    /// Get the number of bits per format.
-    constexpr uint32_t GetFormatBytesPerBlock(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].bytesPerBlock;
-    }
-
-    constexpr uint32_t GetFormatBlockSize(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].blockSize;
-    }
-
-    /// Check if the format has a depth component
-    constexpr bool IsDepthFormat(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].hasDepth;
-    }
-
-    /// Check if the format has a stencil component
-    constexpr bool IsStencilFormat(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].hasStencil;
-    }
-
-    /// Check if the format has depth or stencil components
-    constexpr bool IsDepthStencilFormat(Format format)
-    {
-        return IsDepthFormat(format) || IsStencilFormat(format);
-    }
-
-    /// Check if the format is a compressed format
-    constexpr bool IsBlockCompressedFormat(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-
-        switch (format)
-        {
-            case Format::BC1UNorm:
-            case Format::BC1UNormSrgb:
-            case Format::BC2UNorm:
-            case Format::BC2UNormSrgb:
-            case Format::BC3UNorm:
-            case Format::BC3UNormSrgb:
-            case Format::BC4UNorm:
-            case Format::BC4SNorm:
-            case Format::BC5UNorm:
-            case Format::BC5SNorm:
-            case Format::BC6HUFloat:
-            case Format::BC6HSFloat:
-            case Format::BC7UNorm:
-            case Format::BC7UNormSrgb:
-                return true;
-        }
-
-        return false;
-    }
-
-    /// Get the format Type
-    constexpr FormatKind GetFormatKind(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].kind;
-    }
-
-    constexpr const std::string& ToString(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].name;
-    }
-
-    /// Check if a format represents sRGB color space.
-    constexpr bool IsSrgbFormat(Format format)
-    {
-        ALIMER_ASSERT(kFormatDesc[(uint32_t)format].format == format);
-        return kFormatDesc[(uint32_t)format].isSRGB;
-    }
-
-    /// Convert a SRGB format to linear. If the format is already linear no conversion will be made.
-    constexpr Format SRGBToLinearFormat(Format format)
-    {
-        switch (format)
-        {
-            case Format::BC1UNormSrgb:
-                return Format::BC1UNorm;
-            case Format::BC2UNormSrgb:
-                return Format::BC2UNorm;
-            case Format::BC3UNormSrgb:
-                return Format::BC3UNorm;
-            case Format::BGRA8UNormSrgb:
-                return Format::BGRA8UNorm;
-            case Format::RGBA8UNormSrgb:
-                return Format::RGBA8UNorm;
-            case Format::BC7UNormSrgb:
-                return Format::BC7UNorm;
-            default:
-                ALIMER_ASSERT(IsSrgbFormat(format) == false);
-                return format;
-        }
-    }
-
-    /// Convert an linear format to sRGB. If the format doesn't have a matching sRGB format no conversion will be made.
-    constexpr Format LinearToSRGBFormat(Format format)
-    {
-        switch (format)
-        {
-            case Format::BC1UNorm:
-                return Format::BC1UNormSrgb;
-            case Format::BC2UNorm:
-                return Format::BC2UNormSrgb;
-            case Format::BC3UNorm:
-                return Format::BC3UNormSrgb;
-            case Format::BGRA8UNorm:
-                return Format::BGRA8UNormSrgb;
-            case Format::RGBA8UNorm:
-                return Format::RGBA8UNormSrgb;
-            case Format::BC7UNorm:
-                return Format::BC7UNormSrgb;
-            default:
-                return format;
-        }
-    }
-
-    inline const char* GetVendorName(uint32_t vendorId)
-    {
-        switch (vendorId)
-        {
-            case KnownVendorId_AMD:
-                return "AMD";
-            case KnownVendorId_ImgTec:
-                return "IMAGINATION";
-            case KnownVendorId_Nvidia:
-                return "Nvidia";
-            case KnownVendorId_ARM:
-                return "ARM";
-            case KnownVendorId_Qualcomm:
-                return "Qualcom";
-            case KnownVendorId_Intel:
-                return "Intel";
-            default:
-                return "Unknown";
-        }
-    }
-
-    ALIMER_API uint32_t GetVertexFormatNumComponents(Format format);
-    ALIMER_API uint32_t GetVertexFormatComponentSize(Format format);
-    ALIMER_API uint32_t GetVertexFormatSize(Format format);
-
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
     // Returns the number of mip levels given a texture size
     ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
 
     ALIMER_API const char* ToString(CompareFunction func);
-    ALIMER_API const char* ToString(TextureDimension dimension);
     ALIMER_API const char* ToString(SamplerFilter filter);
     ALIMER_API const char* ToString(SamplerAddressMode mode);
     ALIMER_API const char* ToString(SamplerBorderColor borderColor);

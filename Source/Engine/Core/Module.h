@@ -21,16 +21,26 @@ namespace Alimer
             return _Instance();
         }
 
-        template<typename Derived, typename ...Args>
-        static void Start(Args &&...args)
-        {
-            _Instance() = new Derived(std::forward<Args>(args)...);
-        }
-
         template<typename ...Args>
         static void Start(Args &&...args)
         {
             _Instance() = new T(std::forward<Args>(args)...);
+        }
+
+        template<typename Derived, typename ...Args>
+        static void Start(Args &&...args)
+        {
+            static_assert((std::is_base_of<Module<T>, Derived>::value), "Specified type is not a valid Asset.");
+
+            _Instance() = new Derived(std::forward<Args>(args)...);
+        }
+
+        template<typename Derived>
+        static void Start(Derived* instance)
+        {
+            static_assert((std::is_base_of<Module<T>, Derived>::value), "Specified type is not a valid Asset.");
+
+            _Instance() = instance;
         }
 
         void Shutdown()

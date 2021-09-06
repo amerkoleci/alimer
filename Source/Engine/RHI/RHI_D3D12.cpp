@@ -19,93 +19,6 @@
 
 namespace Alimer::rhi
 {
-    DXGI_FORMAT ToDXGIFormat(Format format)
-    {
-        switch (format)
-        {
-            // 8-bit formats
-            case Format::R8UNorm:  return DXGI_FORMAT_R8_UNORM;
-            case Format::R8SNorm:  return DXGI_FORMAT_R8_SNORM;
-            case Format::R8UInt:   return DXGI_FORMAT_R8_UINT;
-            case Format::R8SInt:   return DXGI_FORMAT_R8_SINT;
-                // 16-bit formats
-            case Format::R16UNorm:     return DXGI_FORMAT_R16_UNORM;
-            case Format::R16SNorm:     return DXGI_FORMAT_R16_SNORM;
-            case Format::R16UInt:      return DXGI_FORMAT_R16_UINT;
-            case Format::R16SInt:      return DXGI_FORMAT_R16_SINT;
-            case Format::R16Float:     return DXGI_FORMAT_R16_FLOAT;
-            case Format::RG8UNorm:     return DXGI_FORMAT_R8G8_UNORM;
-            case Format::RG8SNorm:     return DXGI_FORMAT_R8G8_SNORM;
-            case Format::RG8UInt:      return DXGI_FORMAT_R8G8_UINT;
-            case Format::RG8SInt:      return DXGI_FORMAT_R8G8_SINT;
-                // Packed 16-Bit Pixel Formats
-            case Format::BGRA4UNorm:       return DXGI_FORMAT_B4G4R4A4_UNORM;
-            case Format::B5G6R5UNorm:      return DXGI_FORMAT_B5G6R5_UNORM;
-            case Format::B5G5R5A1UNorm:    return DXGI_FORMAT_B5G5R5A1_UNORM;
-                // 32-bit formats
-            case Format::R32UInt:          return DXGI_FORMAT_R32_UINT;
-            case Format::R32SInt:          return DXGI_FORMAT_R32_SINT;
-            case Format::R32Float:         return DXGI_FORMAT_R32_FLOAT;
-            case Format::RG16UNorm:        return DXGI_FORMAT_R16G16_UNORM;
-            case Format::RG16SNorm:        return DXGI_FORMAT_R16G16_SNORM;
-            case Format::RG16UInt:         return DXGI_FORMAT_R16G16_UINT;
-            case Format::RG16SInt:         return DXGI_FORMAT_R16G16_SINT;
-            case Format::RG16Float:        return DXGI_FORMAT_R16G16_FLOAT;
-            case Format::RGBA8UNorm:       return DXGI_FORMAT_R8G8B8A8_UNORM;
-            case Format::RGBA8UNormSrgb:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-            case Format::RGBA8SNorm:       return DXGI_FORMAT_R8G8B8A8_SNORM;
-            case Format::RGBA8UInt:        return DXGI_FORMAT_R8G8B8A8_UINT;
-            case Format::RGBA8SInt:        return DXGI_FORMAT_R8G8B8A8_SINT;
-            case Format::BGRA8UNorm:       return DXGI_FORMAT_B8G8R8A8_UNORM;
-            case Format::BGRA8UNormSrgb:   return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-                // Packed 32-Bit formats
-            case Format::RGB10A2UNorm:     return DXGI_FORMAT_R10G10B10A2_UNORM;
-            case Format::RG11B10Float:     return DXGI_FORMAT_R11G11B10_FLOAT;
-            case Format::RGB9E5Float:      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
-                // 64-Bit formats
-            case Format::RG32UInt:         return DXGI_FORMAT_R32G32_UINT;
-            case Format::RG32SInt:         return DXGI_FORMAT_R32G32_SINT;
-            case Format::RG32Float:        return DXGI_FORMAT_R32G32_FLOAT;
-            case Format::RGBA16UNorm:      return DXGI_FORMAT_R16G16B16A16_UNORM;
-            case Format::RGBA16SNorm:      return DXGI_FORMAT_R16G16B16A16_SNORM;
-            case Format::RGBA16UInt:       return DXGI_FORMAT_R16G16B16A16_UINT;
-            case Format::RGBA16SInt:       return DXGI_FORMAT_R16G16B16A16_SINT;
-            case Format::RGBA16Float:      return DXGI_FORMAT_R16G16B16A16_FLOAT;
-                // 95-Bit formats
-            case Format::RGB32UInt:         return DXGI_FORMAT_R32G32B32_UINT;
-            case Format::RGB32SInt:         return DXGI_FORMAT_R32G32B32_SINT;
-            case Format::RGB32Float:        return DXGI_FORMAT_R32G32B32_FLOAT;
-                // 128-Bit formats
-            case Format::RGBA32UInt:       return DXGI_FORMAT_R32G32B32A32_UINT;
-            case Format::RGBA32SInt:       return DXGI_FORMAT_R32G32B32A32_SINT;
-            case Format::RGBA32Float:      return DXGI_FORMAT_R32G32B32A32_FLOAT;
-                // Depth-stencil formats
-            case Format::Depth16UNorm:			return DXGI_FORMAT_D16_UNORM;
-            case Format::Depth32Float:			return DXGI_FORMAT_D32_FLOAT;
-            case Format::Depth24UNormStencil8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-            case Format::Depth32FloatStencil8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-                // Compressed BC formats
-            case Format::BC1UNorm:         return DXGI_FORMAT_BC1_UNORM;
-            case Format::BC1UNormSrgb:     return DXGI_FORMAT_BC1_UNORM_SRGB;
-            case Format::BC2UNorm:         return DXGI_FORMAT_BC2_UNORM;
-            case Format::BC2UNormSrgb:     return DXGI_FORMAT_BC2_UNORM_SRGB;
-            case Format::BC3UNorm:         return DXGI_FORMAT_BC3_UNORM;
-            case Format::BC3UNormSrgb:     return DXGI_FORMAT_BC3_UNORM_SRGB;
-            case Format::BC4SNorm:         return DXGI_FORMAT_BC4_SNORM;
-            case Format::BC4UNorm:         return DXGI_FORMAT_BC4_UNORM;
-            case Format::BC5SNorm:         return DXGI_FORMAT_BC5_SNORM;
-            case Format::BC5UNorm:         return DXGI_FORMAT_BC5_UNORM;
-            case Format::BC6HUFloat:       return DXGI_FORMAT_BC6H_UF16;
-            case Format::BC6HSFloat:       return DXGI_FORMAT_BC6H_SF16;
-            case Format::BC7UNorm:         return DXGI_FORMAT_BC7_UNORM;
-            case Format::BC7UNormSrgb:     return DXGI_FORMAT_BC7_UNORM_SRGB;
-
-            default:
-                ALIMER_UNREACHABLE();
-                return DXGI_FORMAT_UNKNOWN;
-        }
-    }
-
     namespace
     {
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -256,6 +169,82 @@ namespace Alimer::rhi
                 default:
                     ALIMER_ASSERT(IsDepthFormat(format) == false);
                     return ToDXGIFormat(format);
+            }
+        }
+
+        [[nodiscard]] constexpr DXGI_FORMAT ToDXGIFormat(VertexFormat format)
+        {
+            switch (format)
+            {
+                case VertexFormat::UChar2:
+                    return DXGI_FORMAT_R8G8_UINT;
+                case VertexFormat::UChar4:
+                    return DXGI_FORMAT_R8G8B8A8_UINT;
+                case VertexFormat::Char2:
+                    return DXGI_FORMAT_R8G8_SINT;
+                case VertexFormat::Char4:
+                    return DXGI_FORMAT_R8G8B8A8_SINT;
+                case VertexFormat::UChar2Norm:
+                    return DXGI_FORMAT_R8G8_UNORM;
+                case VertexFormat::UChar4Norm:
+                    return DXGI_FORMAT_R8G8B8A8_UNORM;
+                case VertexFormat::Char2Norm:
+                    return DXGI_FORMAT_R8G8_SNORM;
+                case VertexFormat::Char4Norm:
+                    return DXGI_FORMAT_R8G8B8A8_SNORM;
+                case VertexFormat::UShort2:
+                    return DXGI_FORMAT_R16G16_UINT;
+                case VertexFormat::UShort4:
+                    return DXGI_FORMAT_R16G16B16A16_UINT;
+                case VertexFormat::Short2:
+                    return DXGI_FORMAT_R16G16_SINT;
+                case VertexFormat::Short4:
+                    return DXGI_FORMAT_R16G16B16A16_SINT;
+                case VertexFormat::UShort2Norm:
+                    return DXGI_FORMAT_R16G16_UNORM;
+                case VertexFormat::UShort4Norm:
+                    return DXGI_FORMAT_R16G16B16A16_UNORM;
+                case VertexFormat::Short2Norm:
+                    return DXGI_FORMAT_R16G16_SNORM;
+                case VertexFormat::Short4Norm:
+                    return DXGI_FORMAT_R16G16B16A16_SNORM;
+                case VertexFormat::Half2:
+                    return DXGI_FORMAT_R16G16_FLOAT;
+                case VertexFormat::Half4:
+                    return DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+                case VertexFormat::Float:
+                    return DXGI_FORMAT_R32_FLOAT;
+                case VertexFormat::Float2:
+                    return DXGI_FORMAT_R32G32_FLOAT;
+                case VertexFormat::Float3:
+                    return DXGI_FORMAT_R32G32B32_FLOAT;
+                case VertexFormat::Float4:
+                    return DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+                case VertexFormat::UInt:
+                    return DXGI_FORMAT_R32_UINT;
+                case VertexFormat::UInt2:
+                    return DXGI_FORMAT_R32G32_UINT;
+                case VertexFormat::UInt3:
+                    return DXGI_FORMAT_R32G32B32_UINT;
+                case VertexFormat::UInt4:
+                    return DXGI_FORMAT_R32G32B32A32_UINT;
+
+                case VertexFormat::Int:
+                    return DXGI_FORMAT_R32_SINT;
+                case VertexFormat::Int2:
+                    return DXGI_FORMAT_R32G32_SINT;
+                case VertexFormat::Int3:
+                    return DXGI_FORMAT_R32G32B32_SINT;
+                case VertexFormat::Int4:
+                    return DXGI_FORMAT_R32G32B32A32_SINT;
+
+                case VertexFormat::RGB10A2Unorm:
+                    return DXGI_FORMAT_R10G10B10A2_UNORM;
+
+                default:
+                    ALIMER_UNREACHABLE();
             }
         }
 
@@ -491,6 +480,11 @@ namespace Alimer::rhi
     }
 
     /* D3D12_Texture */
+    D3D12_Texture::D3D12_Texture(const TextureDesc& info)
+        : Texture(info)
+    {
+    }
+
     D3D12_Texture::~D3D12_Texture()
     {
         for (auto it : shaderResourceViews)
@@ -530,23 +524,18 @@ namespace Alimer::rhi
         allocation = nullptr;
     }
 
-    IDevice* D3D12_Texture::GetDevice() const
-    {
-        return device;
-    }
-
     D3D12_CPU_DESCRIPTOR_HANDLE D3D12_Texture::GetRTV(uint32_t mipLevel, uint32_t slice, uint32_t arraySize)
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.arraySize - slice;
+            arraySize = desc.depthOrArraySize - slice;
         }
-        else if (arraySize + slice > desc.arraySize)
+        else if (arraySize + slice > desc.depthOrArraySize)
         {
-            arraySize = desc.arraySize - slice;
+            arraySize = desc.depthOrArraySize - slice;
         }
 
-        D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, false);
+        D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), PixelFormat::Undefined, false);
 
         auto it = renderTargetViews.find(key);
         if (it == renderTargetViews.end())
@@ -611,14 +600,14 @@ namespace Alimer::rhi
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = desc.arraySize - slice;
+            arraySize = desc.depthOrArraySize - slice;
         }
-        else if (arraySize + slice > desc.arraySize)
+        else if (arraySize + slice > desc.depthOrArraySize)
         {
-            arraySize = desc.arraySize - slice;
+            arraySize = desc.depthOrArraySize - slice;
         }
 
-        D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), Format::Undefined, isReadOnly);
+        D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), PixelFormat::Undefined, isReadOnly);
 
         auto it = depthStencilViews.find(key);
         if (it == depthStencilViews.end())
@@ -682,12 +671,12 @@ namespace Alimer::rhi
         return it->second;
     }
 
-    void D3D12_Texture::ApiSetName()
+    /* D3D12_Buffer */
+    D3D12_Buffer::D3D12_Buffer(const BufferCreateInfo& createInfo)
+        : Buffer(createInfo)
     {
-        SetDebugName(handle, name.c_str());
     }
 
-    /* D3D12_Buffer */
     D3D12_Buffer::~D3D12_Buffer()
     {
         if (handle != nullptr
@@ -698,16 +687,6 @@ namespace Alimer::rhi
 
         handle = nullptr;
         allocation = nullptr;
-    }
-
-    IDevice* D3D12_Buffer::GetDevice() const
-    {
-        return device;
-    }
-
-    void D3D12_Buffer::ApiSetName()
-    {
-        SetDebugName(handle, name);
     }
 
     /* D3D12_Pipeline */
@@ -721,11 +700,6 @@ namespace Alimer::rhi
 
         device->DeferDestroy(handle);
         handle = nullptr;
-    }
-
-    IDevice* D3D12_Pipeline::GetDevice() const
-    {
-        return device;
     }
 
     /* D3D12_CommandList */
@@ -939,8 +913,8 @@ namespace Alimer::rhi
                 rtvDescs[i].EndingAccess.Resolve.pDstResource = resolveTexture->GetHandle();
                 rtvDescs[i].EndingAccess.Resolve.SubresourceCount = 1;
 
-                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.arraySize);
-                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->desc.mipLevels, sourceTexture->desc.arraySize);
+                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->desc.mipLevels, resolveTexture->desc.depthOrArraySize);
+                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->desc.mipLevels, sourceTexture->desc.depthOrArraySize);
 
                 subresourceParameters[i].SrcSubresource = srcSubresource;
                 subresourceParameters[i].DstSubresource = dstSubresource;
@@ -1105,7 +1079,7 @@ namespace Alimer::rhi
         }
     }
 
-    void D3D12_CommandList::SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer)
+    void D3D12_CommandList::SetVertexBuffer(uint32_t index, const Buffer* buffer)
     {
         ALIMER_ASSERT(index < kMaxVertexBufferBindings);
 
@@ -1113,17 +1087,17 @@ namespace Alimer::rhi
         uint64_t offset = 0;
 
         currentVbos[index].BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
-        currentVbos[index].SizeInBytes = (UINT)(buffer->GetDesc().size - offset);
+        currentVbos[index].SizeInBytes = (UINT)(buffer->GetSize() - offset);
     }
 
-    void D3D12_CommandList::SetIndexBuffer(const IBuffer* buffer, uint64_t offset, IndexType indexType)
+    void D3D12_CommandList::SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexType indexType)
     {
         const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
         const DXGI_FORMAT format = (indexType == IndexType::UInt32) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = d3dBuffer->gpuVirtualAddress + offset;
-        view.SizeInBytes = (UINT)(d3dBuffer->desc.size - offset);
+        view.SizeInBytes = (UINT)(d3dBuffer->GetSize() - offset);
         view.Format = format;
         handle->IASetIndexBuffer(&view);
     }
@@ -1177,7 +1151,7 @@ namespace Alimer::rhi
         ThrowIfFailed(fence->SetEventOnCompletion(1, nullptr));
     }
 
-    D3D12CopyAllocator::CopyCMD D3D12CopyAllocator::Allocate(uint32_t size)
+    D3D12CopyAllocator::CopyCMD D3D12CopyAllocator::Allocate(u64 size)
     {
         locker.lock();
 
@@ -1186,10 +1160,13 @@ namespace Alimer::rhi
         {
             CopyCMD cmd;
 
-            HRESULT hr = device->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&cmd.commandAllocator));
-            assert(SUCCEEDED(hr));
-            hr = device->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, cmd.commandAllocator.Get(), nullptr, IID_PPV_ARGS(&cmd.commandList));
-            assert(SUCCEEDED(hr));
+            ThrowIfFailed(
+                device->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&cmd.commandAllocator))
+            );
+
+            ThrowIfFailed(
+                device->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, cmd.commandAllocator.Get(), nullptr, IID_PPV_ARGS(&cmd.commandList))
+                );
 
             ThrowIfFailed(cmd.commandList->Close());
             ThrowIfFailed(device->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&cmd.fence)));
@@ -1199,12 +1176,12 @@ namespace Alimer::rhi
 
         CopyCMD cmd = freeList.back();
         if (cmd.uploadBuffer != nullptr &&
-            cmd.uploadBuffer->GetDesc().size < size)
+            cmd.uploadBuffer->GetSize() < size)
         {
             // Try to search for a staging buffer that can fit the request:
             for (size_t i = 0; i < freeList.size(); ++i)
             {
-                if (freeList[i].uploadBuffer->GetDesc().size >= size)
+                if (freeList[i].uploadBuffer->GetSize() >= size)
                 {
                     cmd = freeList[i];
                     std::swap(freeList[i], freeList.back());
@@ -1217,9 +1194,9 @@ namespace Alimer::rhi
 
         // If no buffer was found that fits the data, create one:
         if (cmd.uploadBuffer == nullptr ||
-            cmd.uploadBuffer->GetDesc().size < size)
+            cmd.uploadBuffer->GetSize() < size)
         {
-            BufferDesc uploadBufferDesc;
+            BufferCreateInfo uploadBufferDesc;
             uploadBufferDesc.size = NextPowerOfTwo(size);
             uploadBufferDesc.resourceUsage = GPUResourceUsage::StagingUpload;
             cmd.uploadBuffer = device->CreateBuffer(uploadBufferDesc, nullptr);
@@ -1894,7 +1871,7 @@ namespace Alimer::rhi
             RefCountPtr<ID3D12Resource> d3d12BackBuffer;
             ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&d3d12BackBuffer)));
 
-            backBuffers[i] = CreateExternalTexture(d3d12BackBuffer.Get(), backBufferTextureDesc);
+            backBuffers[i] = Texture::CreateExternal(d3d12BackBuffer.Get(), backBufferTextureDesc);
         }
 
         backBufferWidth = swapChainDesc.Width;
@@ -1904,7 +1881,7 @@ namespace Alimer::rhi
         {
             TextureDesc depthStencilTextureDesc = TextureDesc::Tex2D(depthStencilFormat, backBufferWidth, backBufferHeight, 1, 1, TextureUsage::RenderTarget);
             depthStencilTextureDesc.initialState = ResourceStates::DepthWrite;
-            depthStencilTexture = CreateTexture(depthStencilTextureDesc);
+            depthStencilTexture = Texture::Create(depthStencilTextureDesc);
         }
     }
 
@@ -1968,22 +1945,27 @@ namespace Alimer::rhi
         }
     }
 
-    TextureHandle D3D12_Device::CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
+    Texture* D3D12_Device::GetCurrentBackBuffer() const
     {
-        auto texture = new D3D12_Texture;
+        return backBuffers[swapChain->GetCurrentBackBufferIndex()].Get();
+    }
+
+    TextureRef D3D12_Device::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
+    {
+        auto texture = new D3D12_Texture(desc);
         texture->device = this;
         texture->desc = desc;
         texture->dxgiFormat = ToDXGIFormat(desc.format);
 
         if (desc.mipLevels == 0)
         {
-            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depth);
+            texture->desc.mipLevels = CalculateMipLevels(desc.width, desc.height, desc.depthOrArraySize);
         }
 
         if (nativeHandle != nullptr)
         {
             texture->handle = (ID3D12Resource*)nativeHandle;
-            return TextureHandle::Create(texture);
+            return TextureRef::Create(texture);
         }
 
         DXGI_FORMAT format = texture->dxgiFormat;
@@ -1995,6 +1977,7 @@ namespace Alimer::rhi
         resourceDesc.Alignment = 0;
         resourceDesc.Width = desc.width;
         resourceDesc.Height = desc.height;
+        resourceDesc.DepthOrArraySize = 1;
         resourceDesc.MipLevels = desc.mipLevels;
         resourceDesc.Format = ToDXGIFormat(desc.format);
         resourceDesc.SampleDesc.Count = desc.sampleCount;
@@ -2007,7 +1990,7 @@ namespace Alimer::rhi
             case TextureDimension::Texture1D:
             case TextureDimension::Texture1DArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.arraySize);
+                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             case TextureDimension::Texture2D:
@@ -2017,12 +2000,12 @@ namespace Alimer::rhi
             case TextureDimension::Texture2DMS:
             case TextureDimension::Texture2DMSArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.arraySize);
+                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             case TextureDimension::Texture3D:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depth);
+                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             default:
@@ -2101,28 +2084,33 @@ namespace Alimer::rhi
             return nullptr;
         }
 
-        return TextureHandle::Create(texture);
+
+        //if (desc.label)
+        //{
+            //SetDebugName(handle, name.c_str());
+        //}
+
+        return TextureRef::Create(texture);
     }
 
-    BufferHandle D3D12_Device::CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData)
+    BufferRef D3D12_Device::CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData)
     {
-        auto buffer = new D3D12_Buffer();
+        auto buffer = new D3D12_Buffer(createInfo);
         buffer->device = this;
-        buffer->desc = desc;
 
-        UINT64 size = desc.size;
-        if ((desc.usage & BufferUsage::Constant) != 0)
+        UINT64 size = createInfo.size;
+        if ((createInfo.usage & BufferUsage::Constant) != 0)
         {
-            size = AlignTo(desc.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+            size = AlignTo(createInfo.size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-        if (CheckBitsAll(desc.usage, BufferUsage::ShaderWrite))
+        if (CheckBitsAll(createInfo.usage, BufferUsage::ShaderWrite))
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::ShaderRead | BufferUsage::RayTracingAccelerationStructure))
+        if (CheckBitsAny(createInfo.usage, BufferUsage::ShaderRead | BufferUsage::RayTracingAccelerationStructure))
         {
             resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
@@ -2133,7 +2121,7 @@ namespace Alimer::rhi
 
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-        switch (desc.resourceUsage)
+        switch (createInfo.resourceUsage)
         {
             case GPUResourceUsage::Dynamic:
             case GPUResourceUsage::StagingUpload:
@@ -2172,22 +2160,22 @@ namespace Alimer::rhi
         // Copy data on request.
         if (initialData != nullptr)
         {
-            auto cmd = copyAllocator->Allocate(desc.size);
+            auto cmd = copyAllocator->Allocate(createInfo.size);
 
-            memcpy(cmd.data, initialData, desc.size);
+            memcpy(cmd.data, initialData, createInfo.size);
 
             cmd.commandList->CopyBufferRegion(
                 buffer->handle,
                 0,
                 cmd.uploadResource,
                 0,
-                desc.size
+                createInfo.size
             );
 
             copyAllocator->Submit(cmd);
         }
 
-        return BufferHandle::Create(buffer);
+        return BufferRef::Create(buffer);
     }
 
     SamplerHandle D3D12_Device::CreateSampler(const SamplerDesc& desc)
@@ -2202,7 +2190,6 @@ namespace Alimer::rhi
             return nullptr;
 
         RefCountPtr<D3D12_Shader> shader = RefCountPtr<D3D12_Shader>::Create(new D3D12_Shader());
-        shader->device = this;
         shader->bytecode.resize(byteCode.size());
         memcpy(shader->bytecode.data(), byteCode.data(), byteCode.size());
         return shader;
@@ -2455,7 +2442,7 @@ namespace Alimer::rhi
         for (uint32_t location = 0; location < kMaxVertexAttributes; location++)
         {
             const VertexAttribute* attribute = &desc.vertexLayout.attributes[location];
-            if (attribute->format == Format::Undefined)
+            if (attribute->format == VertexFormat::Undefined)
                 continue;
 
             auto& element = elements.emplace_back();;
@@ -2637,21 +2624,23 @@ namespace Alimer::rhi
         // TODO
     }
 
-    DeviceHandle CreateD3D12Device(Alimer::Window* window, const PresentationParameters& presentationParameters)
+    bool InitializeD3D12Backend(Window* window, const PresentationParameters& presentationParameters)
     {
         if (!D3D12_Device::IsAvailable())
         {
-            return nullptr;
+            return false;
         }
 
         auto device = new D3D12_Device(presentationParameters.validationMode);
-        if (device->Initialize(window, presentationParameters))
+        gGraphics().Start(device);
+        if (!device->Initialize(window, presentationParameters))
         {
-            return DeviceHandle::Create(device);
+            device = nullptr;
+            gGraphics().Start(device);
+            return false;
         }
 
-        delete device;
-        return nullptr;
+        return gGraphics().IsInitialized();
     }
 }
 

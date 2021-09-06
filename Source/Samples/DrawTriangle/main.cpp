@@ -8,8 +8,8 @@ using namespace Alimer::rhi;
 class HelloWorldApp final : public Application
 {
 private:
-    BufferHandle vertexBuffer;
-    BufferHandle indexBuffer;
+    BufferRef vertexBuffer;
+    BufferRef indexBuffer;
     ShaderHandle vertexShader;
     ShaderHandle pixelShader;
     PipelineHandle renderPipeline;
@@ -39,15 +39,15 @@ public:
             0, 1, 2,    /* first triangle */
             0, 2, 3,    /* second triangle */
         };
-        BufferDesc bufferDesc;
+        BufferCreateInfo bufferDesc;
         bufferDesc.size = sizeof(vertices);
-        bufferDesc.stride = 28;
+        //bufferDesc.stride = 28;
         bufferDesc.usage = BufferUsage::Vertex;
-        vertexBuffer = rhiDevice->CreateBuffer(bufferDesc, vertices);
+        vertexBuffer = Buffer::Create(bufferDesc, vertices);
 
         bufferDesc.size = sizeof(indices);
         bufferDesc.usage = BufferUsage::Index;
-        indexBuffer = rhiDevice->CreateBuffer(bufferDesc, indices);
+        indexBuffer = Buffer::Create(bufferDesc, indices);
 
         static const char* shaderSource = R"(
 struct VSInput 
@@ -77,18 +77,18 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 )";
 
 
-        vertexShader = rhiDevice->CreateShader(ShaderStages::Vertex, shaderSource, "vertex_main");
-        pixelShader = rhiDevice->CreateShader(ShaderStages::Pixel, shaderSource, "pixel_main");
+        vertexShader = gGraphics().CreateShader(ShaderStages::Vertex, shaderSource, "vertex_main");
+        pixelShader = gGraphics().CreateShader(ShaderStages::Pixel, shaderSource, "pixel_main");
 
         RenderPipelineDesc renderPipelineDesc;
         renderPipelineDesc.vertex = vertexShader;
         renderPipelineDesc.pixel = pixelShader;
 
-        renderPipelineDesc.vertexLayout.attributes[0].format = Format::RGB32Float;
-        renderPipelineDesc.vertexLayout.attributes[1].format = Format::RGBA32Float;
-        renderPipelineDesc.colorFormats[0] = rhiDevice->GetCurrentBackBuffer()->GetDesc().format;
-        renderPipelineDesc.depthStencilFormat = rhiDevice->GetBackBufferDepthStencilTexture()->GetDesc().format;
-        renderPipeline = rhiDevice->CreateRenderPipeline(renderPipelineDesc);
+        renderPipelineDesc.vertexLayout.attributes[0].format = VertexFormat::Float3;
+        renderPipelineDesc.vertexLayout.attributes[1].format = VertexFormat::Float4;
+        renderPipelineDesc.colorFormats[0] = gGraphics().GetCurrentBackBuffer()->GetFormat();
+        renderPipelineDesc.depthStencilFormat = gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
+        renderPipeline = gGraphics().CreateRenderPipeline(renderPipelineDesc);
         return true;
     }
 

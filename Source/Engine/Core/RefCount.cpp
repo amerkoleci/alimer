@@ -5,5 +5,17 @@
 
 namespace Alimer
 {
-	
+    uint32_t RefCounted::AddRef()
+    {
+        return ++refCount;
+    }
+
+    uint32_t RefCounted::Release()
+    {
+        uint32_t result = --refCount;
+        if (result == 0) {
+            delete this;
+        }
+        return result;
+    }
 }

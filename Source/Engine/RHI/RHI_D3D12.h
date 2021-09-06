@@ -3,7 +3,9 @@
 
 #pragma once
 
-#include "RHI.h"
+#include "Graphics/Graphics.h"
+#include "Graphics/Buffer.h"
+#include "Graphics/Texture.h"
 #include "PlatformInclude.h"
 #include <dxgi1_6.h>
 
@@ -26,7 +28,7 @@ namespace Alimer::rhi
 {
     struct D3D12_ViewKey
     {
-        Format format = Format::Undefined;
+        PixelFormat format = PixelFormat::Undefined;
         TextureSubresourceSet set;
         bool isReadOnlyDSV = false;
 
@@ -34,7 +36,7 @@ namespace Alimer::rhi
         {
         }
 
-        D3D12_ViewKey(const TextureSubresourceSet& set_, Format format_, bool isReadOnlyDSV_ = false)
+        D3D12_ViewKey(const TextureSubresourceSet& set_, PixelFormat format_, bool isReadOnlyDSV_ = false)
             : set(set_)
             , format(format_)
             , isReadOnlyDSV(isReadOnlyDSV_)
@@ -49,7 +51,7 @@ namespace Alimer::rhi
 
     class D3D12_Device;
 
-    class D3D12_Texture final : public RefCounter<ITexture>
+    class D3D12_Texture final : public Texture
     {
     public:
         D3D12_Device* device;
@@ -58,6 +60,7 @@ namespace Alimer::rhi
         ID3D12Resource* handle = nullptr;
         D3D12MA::Allocation* allocation = nullptr;
 
+        D3D12_Texture(const TextureDesc& info);
         ~D3D12_Texture() override;
 
         auto GetHandle() const noexcept { return handle; }
@@ -65,10 +68,7 @@ namespace Alimer::rhi
         D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
 
     private:
-        IDevice* GetDevice() const override;
-        const TextureDesc& GetDesc() const override { return desc; }
         //uint64_t GetAllocatedSize() const override { return allocatedSize; }
-        void ApiSetName() override;
 
         struct ViewInfoHashFunc
         {
@@ -89,38 +89,31 @@ namespace Alimer::rhi
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> unorderedAccessViews;
     };
 
-    class D3D12_Buffer final : public RefCounter<IBuffer>
+    class D3D12_Buffer final : public Buffer
     {
     public:
         D3D12_Device* device;
-        BufferDesc desc;
         ID3D12Resource* handle = nullptr;
         D3D12MA::Allocation* allocation = nullptr;
         D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
+
+        D3D12_Buffer(const BufferCreateInfo& createInfo);
         ~D3D12_Buffer() override;
-
-        IDevice* GetDevice() const override;
-        const BufferDesc& GetDesc() const override { return desc; }
-
-    private:
-        void ApiSetName() override;
     };
 
-    class D3D12_Shader final : public RefCounter<IShader>
+    class D3D12_Shader final : public IShader
     {
     public:
-        IDevice* device = nullptr;
         ShaderStages stage = ShaderStages::None;
         std::vector<uint8_t> bytecode;
 
-        IDevice* GetDevice() const override { return device; }
         ShaderStages GetStage() const override { return stage; }
     };
 
-    class D3D12_Pipeline : public RefCounter<IPipeline>
+    class D3D12_Pipeline : public IPipeline
     {
     public:
-        D3D12_Device* device = nullptr;
+        D3D12_Device* device;
         RenderPipelineDesc desc;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
         uint32_t vboSlotsUsed = 0;
@@ -132,7 +125,6 @@ namespace Alimer::rhi
         ~D3D12_Pipeline() override;
 
     private:
-        IDevice* GetDevice() const override;
     };
 
     class D3D12_CommandList final : public ICommandList
@@ -169,8 +161,8 @@ namespace Alimer::rhi
 
         void SetPipeline(_In_ IPipeline* pipeline) override;
 
-        void SetVertexBuffer(uint32_t index, _In_ IBuffer* buffer) override;
-        void SetIndexBuffer(const IBuffer* buffer, uint64_t offset, IndexType indexType) override;
+        void SetVertexBuffer(uint32_t index, const Buffer* buffer) override;
+        void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexType indexType) override;
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, int32_t baseVertex, uint32_t baseInstance) override;
 
@@ -189,7 +181,7 @@ namespace Alimer::rhi
             RefCountPtr<ID3D12CommandAllocator> commandAllocator;
             RefCountPtr<ID3D12GraphicsCommandList> commandList;
             RefCountPtr<ID3D12Fence> fence;
-            BufferHandle uploadBuffer;
+            BufferRef uploadBuffer;
             void* data = nullptr;
             ID3D12Resource* uploadResource = nullptr;
         };
@@ -197,11 +189,11 @@ namespace Alimer::rhi
 
         D3D12CopyAllocator(D3D12_Device* device);
         ~D3D12CopyAllocator();
-        CopyCMD Allocate(uint32_t size);
+        CopyCMD Allocate(u64 size);
         void Submit(CopyCMD cmd);
     };
 
-    class D3D12_Device final : public RefCounter<IDevice>
+    class D3D12_Device final : public Graphics
     {
     private:
         DWORD dxgiFactoryFlags = 0;
@@ -315,9 +307,9 @@ namespace Alimer::rhi
         uint32_t frameIndex = 0;
 
         RefCountPtr<IDXGISwapChain3> swapChain;
-        std::vector<TextureHandle> backBuffers;
+        std::vector<TextureRef> backBuffers;
         PixelFormat depthStencilFormat = PixelFormat::Undefined;
-        TextureHandle depthStencilTexture;
+        TextureRef depthStencilTexture;
 
         // Destroy logic
         bool shuttingDown = false;
@@ -361,12 +353,9 @@ namespace Alimer::rhi
         uint64_t GetFrameCount() const override { return frameCount; }
         uint32_t GetFrameIndex() const { return frameIndex; }
 
-        ITexture* GetCurrentBackBuffer() const override
-        {
-            return backBuffers[swapChain->GetCurrentBackBufferIndex()].Get();
-        }
+        Texture* GetCurrentBackBuffer() const override;
 
-        ITexture* GetBackBuffer(uint32_t index) const override
+        Texture* GetBackBuffer(uint32_t index) const override
         {
             if (index < backBuffers.size())
             {
@@ -386,10 +375,10 @@ namespace Alimer::rhi
             return swapChainDesc.BufferCount;
         }
 
-        ITexture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
+        Texture* GetBackBufferDepthStencilTexture() const override { return depthStencilTexture; }
 
-        TextureHandle CreateTextureCore(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
-        BufferHandle CreateBufferCore(const BufferDesc& desc, void* nativeHandle, const void* initialData) override;
+        TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
+        BufferRef CreateBuffer(const BufferCreateInfo& createInfo, const void* initialData) override;
         SamplerHandle CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
