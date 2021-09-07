@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Graphics/GraphicsResource.h"
+#include <vector>
 
 namespace Alimer
 {
@@ -34,6 +35,38 @@ namespace Alimer
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
 
+    struct ShaderReflection
+    {
+        struct InputElement
+        {
+            VertexFormat format = VertexFormat::Undefined;
+            std::string semanticName;
+            size_t semanticIndex;
+        };
+
+        enum class ResourceBindType : u32
+        {
+            Unknown,
+            ConstantBuffer,
+            ShaderResource,
+            UnorderedAccess,
+            Sampler
+        };
+
+        struct Resource
+        {
+            std::string name;
+            ResourceBindType type;
+            uint32_t set;
+            uint32_t binding;
+            uint32_t arraySize;
+            uint32_t size;
+        };
+
+        std::vector<InputElement> inputElements;
+        std::vector<Resource> resources;
+    };
+
     class ALIMER_API Shader : public RefCounted
     {
     public:
@@ -43,11 +76,16 @@ namespace Alimer
         /// Create new shader.
         [[nodiscard]] static ShaderRef Create(ShaderStages stage, const void* bytecode, size_t bytecodeLength);
 
+        const ShaderReflection& GetReflection() const { return reflection; }
+        size_t GetReflectionHash() const { return reflectionHash; }
+
     protected:
         /// Constructor.
         Shader(ShaderStages stage);
 
         ShaderStages stage;
+        ShaderReflection reflection;
+        size_t reflectionHash = 0;
     };
 }
 

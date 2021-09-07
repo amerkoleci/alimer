@@ -8,50 +8,11 @@
 
 namespace Alimer
 {
-
-
-    enum class VertexFormat : uint32_t
-    {
-        Undefined = 0,
-        UChar2,
-        UChar4,
-        Char2,
-        Char4,
-        UChar2Norm,
-        UChar4Norm,
-        Char2Norm,
-        Char4Norm,
-        UShort2,
-        UShort4,
-        Short2,
-        Short4,
-        UShort2Norm,
-        UShort4Norm,
-        Short2Norm,
-        Short4Norm,
-        Half2,
-        Half4,
-        Float,
-        Float2,
-        Float3,
-        Float4,
-        UInt,
-        UInt2,
-        UInt3,
-        UInt4,
-        Int,
-        Int2,
-        Int3,
-        Int4,
-        RGB10A2Unorm
-    };
-
     enum class VertexStepRate : uint32_t
     {
         Vertex = 0,
         Instance
     };
-
 
     enum class BlendFactor : uint32_t
     {

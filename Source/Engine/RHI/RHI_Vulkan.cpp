@@ -256,6 +256,15 @@ namespace Alimer
             return indices;
         }
 
+        static_assert(sizeof(Alimer::Viewport) == sizeof(VkViewport), "Size mismatch");
+        static_assert(offsetof(Alimer::Viewport, x) == offsetof(VkViewport, x), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, y) == offsetof(VkViewport, y), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, width) == offsetof(VkViewport, width), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, height) == offsetof(VkViewport, height), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(VkViewport, minDepth), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(VkViewport, maxDepth), "Layout mismatch");
+
+
         /* Conversion functions */
         [[nodiscard]] constexpr VkCompareOp ToVk(CompareFunction function)
         {

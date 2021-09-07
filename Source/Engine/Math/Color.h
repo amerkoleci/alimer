@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Math/MathHelper.h"
-//#include "Math/Vector4.h"
+#include "Math/Vector4.h"
 
 #if defined(__GNUC__) && !defined(__MINGW32__)
 #   define ALIMER_SELECT_ANY __attribute__((weak))
@@ -18,14 +18,22 @@ namespace Alimer
     struct ALIMER_API Color
     {
     public:
-        /// Specifies the red component of the color.
-        float r;
-        /// Specifies the green component of the color.
-        float g;
-        /// Specifies the blue component of the color.
-        float b;
-        /// Specifies the alpha component of the color.
-        float a;
+        union
+        {
+            struct
+            {
+                /// Specifies the red component of the color.
+                float r;
+                /// Specifies the green component of the color.
+                float g;
+                /// Specifies the blue component of the color.
+                float b;
+                /// Specifies the alpha component of the color.
+                float a;
+            };
+
+            float data[4];
+        };
 
         /// Constructor.
         Color() noexcept
@@ -100,14 +108,11 @@ namespace Alimer
 
         operator const float* () const noexcept { return &r; }
 
-        /// Return float data.
-        const float* Data() const { return &r; }
-
         /// Return RGB as a three-dimensional vector.
-        //Vector3 ToVector3() const { return Vector3(r, g, b); }
+        Vector3 ToVector3() const { return Vector3(r, g, b); }
 
         /// Return RGBA as a four-dimensional vector.
-        //Vector4 ToVector4() const { return Vector4(r, g, b, a); }
+        Vector4 ToVector4() const { return Vector4(r, g, b, a); }
 
         /// Return as string.
         std::string ToString() const;

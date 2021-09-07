@@ -8,7 +8,8 @@
 #include "RHI_D3D12.h"
 
 #include "directx/d3dx12.h"
-//#include "directx/dxcapi.h"
+
+#include <dxcapi.h>
 #include "directx/d3d12shader.h"
 #include <pix.h>
 
@@ -35,6 +36,13 @@ namespace Alimer
         static constexpr IID DXGI_DEBUG_ALL = { 0xe48ae283, 0xda80, 0x490b, {0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8} };
         static constexpr IID DXGI_DEBUG_DXGI = { 0x25cddaa4, 0xb1c6, 0x47e1, {0xac, 0x3e, 0x98, 0x87, 0x5b, 0x5a, 0x2e, 0x2a} };
 #endif
+        static_assert(sizeof(Alimer::Viewport) == sizeof(D3D12_VIEWPORT), "Size mismatch");
+        static_assert(offsetof(Alimer::Viewport, x) == offsetof(D3D12_VIEWPORT, TopLeftX), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, y) == offsetof(D3D12_VIEWPORT, TopLeftY), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, width) == offsetof(D3D12_VIEWPORT, Width), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, height) == offsetof(D3D12_VIEWPORT, Height), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(D3D12_VIEWPORT, MinDepth), "Layout mismatch");
+        static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(D3D12_VIEWPORT, MaxDepth), "Layout mismatch");
 
         constexpr const char* ToString(D3D_FEATURE_LEVEL value)
         {
@@ -502,7 +510,72 @@ namespace Alimer
                     ALIMER_UNREACHABLE();
             }
         }
+
+        [[nodiscard]] constexpr VertexFormat GetFormatFromComponetType(D3D_REGISTER_COMPONENT_TYPE componentType, unsigned int componentsCount)
+        {
+            if (componentsCount == 1)
+            {
+                switch (componentType)
+                {
+                    case D3D_REGISTER_COMPONENT_UINT32:
+                        return VertexFormat::UInt;
+                    case D3D_REGISTER_COMPONENT_SINT32:
+                        return VertexFormat::Int;
+                    case D3D_REGISTER_COMPONENT_FLOAT32:
+                        return VertexFormat::Float;
+                    default:
+                        break;
+                }
+            }
+            else if (componentsCount <= 3)
+            {
+                switch (componentType)
+                {
+                    case D3D_REGISTER_COMPONENT_UINT32:
+                        return VertexFormat::UInt2;
+                    case D3D_REGISTER_COMPONENT_SINT32:
+                        return VertexFormat::Int2;
+                    case D3D_REGISTER_COMPONENT_FLOAT32:
+                        return VertexFormat::Float2;
+                    default:
+                        break;
+                }
+            }
+            else if (componentsCount <= 7)
+            {
+                switch (componentType)
+                {
+                    case D3D_REGISTER_COMPONENT_UINT32:
+                        return VertexFormat::UInt3;
+                    case D3D_REGISTER_COMPONENT_SINT32:
+                        return VertexFormat::Int3;
+                    case D3D_REGISTER_COMPONENT_FLOAT32:
+                        return VertexFormat::Float3;
+                    default:
+                        break;
+                }
+            }
+            else if (componentsCount <= 15)
+            {
+                switch (componentType)
+                {
+                    case D3D_REGISTER_COMPONENT_UINT32:
+                        return VertexFormat::UInt4;
+                    case D3D_REGISTER_COMPONENT_SINT32:
+                        return VertexFormat::Int4;
+                    case D3D_REGISTER_COMPONENT_FLOAT32:
+                        return VertexFormat::Float4;
+                    default:
+                        break;
+                }
+            }
+
+            // error, unknown dxgi format
+            return VertexFormat::Undefined;
+        }
     }
+
+    extern IDxcUtils* dxcUtils;
 
     /* D3D12_Texture */
     D3D12_Texture::D3D12_Texture(const TextureDesc& info)
@@ -568,7 +641,7 @@ namespace Alimer
             D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
             viewDesc.Format = ToDXGIFormat(key.format);
 
-            switch (dimension) 
+            switch (dimension)
             {
                 case TextureDimension::Texture1D:
                     if (GetArraySize() > 1)
@@ -756,9 +829,90 @@ namespace Alimer
     }
 
     /* D3D12_Shader */
-    D3D12_Shader::D3D12_Shader(ShaderStages stage)
+    D3D12_Shader::D3D12_Shader(ShaderStages stage, const void* bytecode_, size_t bytecodeLength)
         : Shader(stage)
     {
+        bytecode.resize(bytecodeLength);
+        memcpy(bytecode.data(), bytecode_, bytecodeLength);
+
+        DxcBuffer ReflectionData;
+        ReflectionData.Encoding = DXC_CP_ACP;
+        ReflectionData.Ptr = bytecode.data();
+        ReflectionData.Size = bytecode.size();
+
+        RefCountPtr<ID3D12ShaderReflection> shaderReflection;
+        ThrowIfFailed(dxcUtils->CreateReflection(&ReflectionData, IID_PPV_ARGS(&shaderReflection)));
+
+        D3D12_SHADER_DESC shaderDesc;
+        ThrowIfFailed(shaderReflection->GetDesc(&shaderDesc));
+
+        if (stage == ShaderStages::Vertex)
+        {
+            reflection.inputElements.reserve(shaderDesc.InputParameters);
+            for (uint32_t i = 0; i < shaderDesc.InputParameters; ++i)
+            {
+                D3D12_SIGNATURE_PARAMETER_DESC parameterDesc;
+
+                ThrowIfFailed(shaderReflection->GetInputParameterDesc(i, &parameterDesc));
+                reflection.inputElements.push_back({ GetFormatFromComponetType(parameterDesc.ComponentType, parameterDesc.Mask), parameterDesc.SemanticName, parameterDesc.SemanticIndex });
+            }
+        }
+
+        reflectionHash = 0;
+        for (UINT i = 0; i < shaderDesc.BoundResources; i++)
+        {
+            D3D12_SHADER_INPUT_BIND_DESC bindingDesc;
+            ThrowIfFailed(shaderReflection->GetResourceBindingDesc(i, &bindingDesc));
+
+            D3D12_SHADER_BUFFER_DESC bufferDesc = {};
+            if (bindingDesc.Type == D3D_SIT_CBUFFER)
+            {
+                auto shaderReflectionConstantBuffer = shaderReflection->GetConstantBufferByIndex(i);
+                ThrowIfFailed(shaderReflectionConstantBuffer->GetDesc(&bufferDesc));
+            }
+
+            ShaderReflection::ResourceBindType type = ShaderReflection::ResourceBindType::Unknown;
+            switch (bindingDesc.Type)
+            {
+                case D3D_SIT_CBUFFER:
+                    type = ShaderReflection::ResourceBindType::ConstantBuffer;
+                    break;
+
+                case D3D_SIT_TBUFFER:
+                    type = ShaderReflection::ResourceBindType::ShaderResource;
+                    break;
+
+                case D3D_SIT_TEXTURE:
+                    type = ShaderReflection::ResourceBindType::ShaderResource;
+                    break;
+                case D3D_SIT_SAMPLER:
+                    type = ShaderReflection::ResourceBindType::Sampler;
+                    break;
+                case D3D_SIT_UAV_RWTYPED:
+                    type = ShaderReflection::ResourceBindType::UnorderedAccess;
+                    break;
+                case D3D_SIT_STRUCTURED:
+                    type = ShaderReflection::ResourceBindType::ShaderResource;
+                    break;
+                case D3D_SIT_UAV_RWSTRUCTURED:
+                    type = ShaderReflection::ResourceBindType::UnorderedAccess;
+                    break;
+                case D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
+                    type = ShaderReflection::ResourceBindType::UnorderedAccess;
+                    break;
+                default:
+                    ALIMER_UNREACHABLE();
+                    break;
+            }
+
+            reflection.resources.push_back({ bindingDesc.Name, type, bindingDesc.Space, bindingDesc.BindPoint, bindingDesc.BindCount, bufferDesc.Size });
+
+            HashCombine(reflectionHash, (u32)reflection.resources.back().type);
+            HashCombine(reflectionHash, (u32)reflection.resources.back().set);
+            HashCombine(reflectionHash, (u32)reflection.resources.back().binding);
+            HashCombine(reflectionHash, (u32)reflection.resources.back().arraySize);
+            HashCombine(reflectionHash, (u32)reflection.resources.back().size);
+        }
     }
 
     /* D3D12_Pipeline */
@@ -1105,11 +1259,13 @@ namespace Alimer
         handle->BeginRenderPass(numRenderTargets, rtvDescs, hasDepthStencil ? &dsvDesc : nullptr, renderPassFlags);
 
         // The viewport and scissor default to cover all of the attachments
-        const D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        const Viewport viewport(static_cast<float>(width), static_cast<float>(height));
         const D3D12_RECT scissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+        const float blendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
 
-        handle->RSSetViewports(1, &viewport);
+        SetViewport(viewport);
         handle->RSSetScissorRects(1, &scissorRect);
+        SetBlendColor(blendFactor);
 
         boundPipeline = nullptr;
     }
@@ -1141,6 +1297,61 @@ namespace Alimer
         }
 
         currentPass = {};
+    }
+
+    //void D3D12_CommandList::SetViewport(const Rect& rect)
+    //{
+    //    SetViewport(Viewport(rect));
+    //}
+
+    void D3D12_CommandList::SetViewport(const Viewport& viewport)
+    {
+        handle->RSSetViewports(1, (D3D12_VIEWPORT*)&viewport);
+    }
+
+    void D3D12_CommandList::SetViewports(const Viewport* viewports, uint32_t count)
+    {
+        handle->RSSetViewports(count, (D3D12_VIEWPORT*)viewports);
+    }
+
+    //void D3D12_CommandList::SetScissorRect(const Rect& rect)
+    //{
+    //    D3D12_RECT d3dScissorRect;
+    //    d3dScissorRect.left = LONG(rect.x);
+    //    d3dScissorRect.top = LONG(rect.y);
+    //    d3dScissorRect.right = LONG(rect.x + rect.width);
+    //    d3dScissorRect.bottom = LONG(rect.y + rect.height);
+    //    handle->RSSetScissorRects(1, &d3dScissorRect);
+    //}
+    //
+    //void D3D12_CommandList::SetScissorRects(const Rect* rects, uint32_t count)
+    //{
+    //    ALIMER_ASSERT(count <= kMaxViewportsAndScissors);
+    //
+    //    D3D12_RECT d3dScissorRects[kMaxViewportsAndScissors];
+    //    for (uint32_t i = 0; i < count; i += 1)
+    //    {
+    //        d3dScissorRects[i].left = LONG(rects[i].x);
+    //        d3dScissorRects[i].top = LONG(rects[i].y);
+    //        d3dScissorRects[i].right = LONG(rects[i].x + rects[i].width);
+    //        d3dScissorRects[i].bottom = LONG(rects[i].y + rects[i].height);
+    //    }
+    //    handle->RSSetScissorRects(count, d3dScissorRects);
+    //}
+
+    void D3D12_CommandList::SetStencilReference(uint32_t value)
+    {
+        handle->OMSetStencilRef(value);
+    }
+
+    void D3D12_CommandList::SetBlendColor(const Color& color)
+    {
+        handle->OMSetBlendFactor(color.data);
+    }
+
+    void D3D12_CommandList::SetBlendColor(const float blendColor[4])
+    {
+        handle->OMSetBlendFactor(blendColor);
     }
 
     void D3D12_CommandList::SetPipeline(_In_ Pipeline* pipeline)
@@ -2434,10 +2645,7 @@ namespace Alimer
 
     ShaderRef D3D12_Device::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
     {
-        RefCountPtr<D3D12_Shader> shader = RefCountPtr<D3D12_Shader>::Create(new D3D12_Shader(stage));
-        shader->bytecode.resize(bytecodeLength);
-        memcpy(shader->bytecode.data(), bytecode, bytecodeLength);
-        return shader;
+        return ShaderRef::Create(new D3D12_Shader(stage, bytecode, bytecodeLength));
     }
 
     PipelineRef D3D12_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
@@ -2449,12 +2657,29 @@ namespace Alimer
         std::vector<D3D12_ROOT_PARAMETER1> rootParameters;
         std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers;
 
-        // CBV
-        D3D12_ROOT_PARAMETER1& rootParameter = rootParameters.emplace_back();
-        rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        rootParameter.Descriptor.ShaderRegister = 0;
-        rootParameter.Descriptor.RegisterSpace = 0;
+        const auto MatchShaderBindings = [&](Shader* shader)
+        {
+            if (!shader)
+            {
+                return;
+            }
+
+            for (const auto& resource : shader->GetReflection().resources)
+            {
+                if (resource.type == ShaderReflection::ResourceBindType::ConstantBuffer)
+                {
+                    pipeline->descriptorCBVParameterIndex = (uint32_t)rootParameters.size();
+                    D3D12_ROOT_PARAMETER1& rootParameter = rootParameters.emplace_back();
+                    rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+                    rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+                    rootParameter.Descriptor.ShaderRegister = resource.binding;
+                    rootParameter.Descriptor.RegisterSpace = resource.set;
+                }
+            }
+        };
+
+        MatchShaderBindings(desc.vertex);
+        MatchShaderBindings(desc.pixel);
 
         D3D12_ROOT_SIGNATURE_DESC1 rootSigDesc = {};
         rootSigDesc.NumParameters = (UINT)rootParameters.size();
@@ -2504,10 +2729,8 @@ namespace Alimer
         stream.rootSignature = pipeline->rootSignature;
 
         D3D12_Shader* shader = checked_cast<D3D12_Shader*>(desc.vertex);
-        if (shader != nullptr)
-        {
-            stream.VS = { shader->bytecode.data(), shader->bytecode.size() };
-        }
+        stream.VS = { shader->bytecode.data(), shader->bytecode.size() };
+        
 
         shader = checked_cast<D3D12_Shader*>(desc.hull);
         if (shader != nullptr)
@@ -2796,6 +3019,6 @@ namespace Alimer
 
         return gGraphics().IsInitialized();
     }
-    }
+}
 
 #endif /* defined(ALIMER_RHI_D3D12) */

@@ -127,8 +127,7 @@ namespace Alimer
     class D3D12_Shader final : public Shader
     {
     public:
-        D3D12_Shader(ShaderStages stage);
-        ShaderStages stage = ShaderStages::None;
+        D3D12_Shader(ShaderStages stage, const void* bytecode, size_t bytecodeLength);
         std::vector<uint8_t> bytecode;
     };
 
@@ -142,6 +141,10 @@ namespace Alimer
 
         ID3D12RootSignature* rootSignature = nullptr;
         ID3D12PipelineState* handle = nullptr;
+
+        u32 descriptorCBVParameterIndex = -1;
+        u32 descriptorTableRootParameterIndex = -1;
+        u32 descriptorPushConstantParameterIndex = -1;
 
         D3D12_Pipeline(Type type);
         ~D3D12_Pipeline() override;
@@ -180,6 +183,17 @@ namespace Alimer
         void BeginDefaultRenderPass(const Color& clearColor, bool clearDepth = true, bool clearStencil = true, float depth = 1.0f, uint8_t stencil = 0) override;
         void BeginRenderPass(const RenderPassDesc& desc) override;
         void EndRenderPass() override;
+
+        //void SetViewport(const Rect& rect) override;
+        void SetViewport(const Viewport& viewport) override;
+        void SetViewports(const Viewport* viewports, uint32_t count) override;
+
+        //void SetScissorRect(const Rect& rect) override;
+        //void SetScissorRects(const Rect* rects, uint32_t count) override;
+
+        void SetStencilReference(uint32_t value) override;
+        void SetBlendColor(const Color& color) override;
+        void SetBlendColor(const float blendColor[4]) override;
 
         void SetPipeline(_In_ Pipeline* pipeline) override;
 

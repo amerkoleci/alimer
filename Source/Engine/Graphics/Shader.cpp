@@ -15,6 +15,8 @@
 namespace Alimer
 {
 #if defined(_WIN32)
+    IDxcUtils* dxcUtils = nullptr;
+
     namespace
     {
         using Microsoft::WRL::ComPtr;
@@ -70,7 +72,7 @@ namespace Alimer
             return shaderProfile;
         }
 
-        static IDxcUtils* dxcUtils = nullptr;
+        
         static IDxcCompiler3* dxcCompiler = nullptr;
 
         inline ShaderRef CompileDXIL(ShaderStages stage, const std::string& source, const std::string& entryPoint)

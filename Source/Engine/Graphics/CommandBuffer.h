@@ -4,10 +4,10 @@
 #pragma once
 
 #include "Graphics/Buffer.h"
+#include "Math/Viewport.h"
 
 namespace Alimer
 {
-
     struct RenderPassColorAttachment
     {
         Texture* texture = nullptr;
@@ -85,6 +85,17 @@ namespace Alimer
         virtual void BeginDefaultRenderPass(const Color& clearColor, bool clearDepth = true, bool clearStencil = true, float depth = 1.0f, uint8_t stencil = 0) = 0;
         virtual void BeginRenderPass(const RenderPassDesc& desc) = 0;
         virtual void EndRenderPass() = 0;
+
+        //virtual void SetViewport(const Rect& rect) = 0;
+        virtual void SetViewport(const Viewport& viewport) = 0;
+        virtual void SetViewports(const Viewport* viewports, uint32_t count) = 0;
+
+        //virtual void SetScissorRect(const Rect& rect) = 0;
+        //virtual void SetScissorRects(const Rect* rects, uint32_t count) = 0;
+
+        virtual void SetStencilReference(uint32_t value) = 0;
+        virtual void SetBlendColor(const Color& color) = 0;
+        virtual void SetBlendColor(const float blendColor[4]) = 0;
 
         virtual void SetPipeline(_In_ Pipeline* pipeline) = 0;
         virtual void SetVertexBuffer(uint32_t index, const Buffer* buffer) = 0;
