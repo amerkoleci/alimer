@@ -112,8 +112,9 @@ namespace Alimer
         CommandBuffer* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) override;
 
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
-        uint64_t GetFrameCount() const override { return frameCount; }
-        uint32_t GetFrameIndex() const { return frameIndex; }
+        ShaderFormat GetShaderFormat() const override { return ShaderFormat::SPIRV; }
+        u64 GetFrameCount() const override { return frameCount; }
+        u32 GetFrameIndex() const { return frameIndex; }
 
         Texture* GetCurrentBackBuffer() const override { return backBuffer; }
 
@@ -132,7 +133,7 @@ namespace Alimer
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
         SamplerRef CreateSampler(const SamplerDesc& desc) override;
-        ShaderRef CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
+        ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength) override;
         PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:

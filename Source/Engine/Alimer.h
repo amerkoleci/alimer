@@ -5,6 +5,15 @@
 
 #include "Core/Types.h"
 
+// Math
+#include "Math/Vector2.h"
+#include "Math/Vector3.h"
+#include "Math/Vector4.h"
+#include "Math/Quaternion.h"
+#include "Math/Color.h"
+//#include "Math/Rect.h"
+#include "Math/Matrix4x4.h"
+
 // Graphics
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"

@@ -40,6 +40,9 @@ namespace Alimer
         /// Create new shader.
         [[nodiscard]] static ShaderRef Create(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
 
+        /// Create new shader.
+        [[nodiscard]] static ShaderRef Create(ShaderStages stage, const void* bytecode, size_t bytecodeLength);
+
     protected:
         /// Constructor.
         Shader(ShaderStages stage);

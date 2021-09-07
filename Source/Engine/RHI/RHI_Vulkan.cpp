@@ -1248,7 +1248,7 @@ namespace Alimer
         return nullptr;
     }
 
-    ShaderRef Vulkan_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    ShaderRef Vulkan_Device::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
     {
         return nullptr;
     }

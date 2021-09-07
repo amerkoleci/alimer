@@ -4,12 +4,28 @@
 #include <Alimer.h>
 using namespace Alimer;
 
+struct DrawData
+{
+    Matrix4x4 world;
+};
+
+struct CameraData
+{
+    Matrix4x4 view;
+    Matrix4x4 projection;
+    Matrix4x4 viewProjection;
+};
+
 class HelloWorldApp final : public Application
 {
 private:
     BufferRef vertexBuffer;
     BufferRef indexBuffer;
     PipelineRef renderPipeline;
+
+    float rotationX = 0.0f;
+    float rotationY = 0.0f;
+
 
 public:
     HelloWorldApp()
@@ -25,16 +41,46 @@ public:
 
     bool Initialize(int argc, const char* argv[]) override
     {
-        const float vertices[] = {
-            /* positions            colors */
-            -0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
-             0.5f,  0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
-             0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f,     1.0f, 1.0f, 0.0f, 1.0f,
+        float vertices[] = {
+            /* pos                  color                       uvs */
+            -1.0f, -1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     0.0f, 0.0f,
+             1.0f, -1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     1.0f, 1.0f,
+            -1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f, -1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     0.0f, 0.0f,
+             1.0f, -1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     1.0f, 1.0f,
+            -1.0f,  1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f, -1.0f, -1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     0.0f, 0.0f,
+            -1.0f,  1.0f, -1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     1.0f, 0.0f,
+            -1.0f,  1.0f,  1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     1.0f, 1.0f,
+            -1.0f, -1.0f,  1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     0.0f, 1.0f,
+
+             1.0f, -1.0f, -1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     0.0f, 0.0f,
+             1.0f,  1.0f, -1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     1.0f, 1.0f,
+             1.0f, -1.0f,  1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f, -1.0f, -1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     0.0f, 0.0f,
+            -1.0f, -1.0f,  1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     1.0f, 0.0f,
+             1.0f, -1.0f,  1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     1.0f, 1.0f,
+             1.0f, -1.0f, -1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     0.0f, 0.0f,
+            -1.0f,  1.0f,  1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     1.0f, 1.0f,
+             1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     0.0f, 1.0f
         };
-        const uint16_t indices[] = {
-            0, 1, 2,    /* first triangle */
-            0, 2, 3,    /* second triangle */
+
+        uint16_t indices[] = {
+            0, 1, 2,  0, 2, 3,
+            6, 5, 4,  7, 6, 4,
+            8, 9, 10,  8, 10, 11,
+            14, 13, 12,  15, 14, 12,
+            16, 17, 18,  16, 18, 19,
+            22, 21, 20, 23, 22, 20
         };
         vertexBuffer = Buffer::Create(vertices, sizeof(vertices), BufferUsage::Vertex, "VertexBuffer");
         indexBuffer = Buffer::Create(indices, sizeof(indices), BufferUsage::Index);
@@ -45,20 +91,32 @@ public:
         static const char* shaderSource = R"(
 struct VSInput 
 { 
-    float3 Pos   : ATTRIBUTE0; 
-    float4 Color : ATTRIBUTE1; 
+    float3 Position : ATTRIBUTE0;
+    float4 Color : ATTRIBUTE1;
+    float2 TexCoord : ATTRIBUTE2;
 };
 
 struct PSInput 
 { 
-    float4 Pos   : SV_POSITION; 
-    float4 Color : COLOR; 
+    float4 Position : SV_POSITION;
+    float4 Color : COLOR;
+    float2 TexCoord : TEXCOORD0;
 };
+
+struct DrawData
+{
+    float4x4 world;
+};
+
+ConstantBuffer<DrawData> draw : register(b0);
+
 PSInput vertex_main(in VSInput input) 
 {
     PSInput output;
-    output.Pos   = float4(input.Pos, 1);
-    output.Color = input.Color;
+    float4x4 worldViewProjection = draw.world; // mul(camera.viewProjection, draw.world);
+    output.Position = mul(worldViewProjection, float4(input.Position, 1));
+    output.Color    = input.Color;
+    output.TexCoord = input.TexCoord;
     return output;
 }
 
@@ -78,6 +136,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
         renderPipelineDesc.vertexLayout.attributes[0].format = VertexFormat::Float3;
         renderPipelineDesc.vertexLayout.attributes[1].format = VertexFormat::Float4;
+        renderPipelineDesc.vertexLayout.attributes[2].format = VertexFormat::Float2;
         renderPipelineDesc.colorFormats[0] = gGraphics().GetCurrentBackBuffer()->GetFormat();
         renderPipelineDesc.depthStencilFormat = gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
         renderPipeline = Pipeline::Create(renderPipelineDesc);
@@ -86,10 +145,27 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
     void OnDraw([[maybe_unused]] CommandBuffer* commandBuffer) override
     {
+        //time += (float)GetElapsedSeconds();
+        rotationX += 0.01f;
+        rotationY += 0.02f;
+
+        DrawData drawData;
+        drawData.world = Matrix4x4::Multiply(Matrix4x4::CreateRotationX(rotationX), Matrix4x4::CreateRotationY(rotationY));
+
+        CameraData cameraData;
+
+        auto size = GetWindow()->GetSize();
+        cameraData.view = Matrix4x4::CreateLookAt(Vector3(0, 0, 5), Vector3::Zero, Vector3::UnitY);
+        cameraData.projection = Matrix4x4::CreatePerspectiveFieldOfView(PiOver4, (float)size.x / size.y, 0.1f, 100.0f);
+        cameraData.viewProjection = Matrix4x4::Multiply(cameraData.view, cameraData.projection);
+
+        drawData.world = Matrix4x4::Multiply(drawData.world, cameraData.viewProjection);
+
         commandBuffer->SetVertexBuffer(0, vertexBuffer.Get());
         commandBuffer->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
         commandBuffer->SetPipeline(renderPipeline.Get());
-        commandBuffer->DrawIndexed(6);
+        commandBuffer->BindConstantBufferData(drawData, 0);
+        commandBuffer->DrawIndexed(36);
     }
 };
 

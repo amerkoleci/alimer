@@ -30,4 +30,14 @@ namespace Alimer
 
         Closed(this);
     }
+
+    void Window::SetPosition(int32_t x, int32_t y)
+    {
+        SetPosition(Int2{ x, y });
+    }
+
+    void Window::SetSize(int32_t width, int32_t height)
+    {
+        SetSize(Int2{ width, height });
+    }
 }

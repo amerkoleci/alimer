@@ -49,10 +49,13 @@ namespace Alimer
         [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
         [[nodiscard]] virtual Texture* GetBackBufferDepthStencilTexture() const = 0;
 
-        [[nodiscard]] virtual uint64_t GetFrameCount() const = 0;
+        [[nodiscard]] virtual u64 GetFrameCount() const = 0;
+        [[nodiscard]] virtual u32 GetFrameIndex() const = 0;
 
         // Returns the API kind that the RHI backend is running on top of.
         virtual GraphicsAPI GetGraphicsAPI() const = 0;
+
+        virtual ShaderFormat GetShaderFormat() const = 0;
 
         /// Return backbuffer width.
         [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
@@ -63,7 +66,7 @@ namespace Alimer
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
         virtual BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) = 0;
         virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
-        virtual ShaderRef CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
+        virtual ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength) = 0;
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
 
     protected:

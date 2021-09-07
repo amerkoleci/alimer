@@ -18,7 +18,7 @@ namespace Alimer
     static constexpr u32 kMaxVertexAttributeOffset = 2047u;
     static constexpr u32 kMaxVertexBufferStride = 2048u;
     static constexpr u32 kMaxCommandLists = 32u;
-    //static constexpr uint32_t kMaxUniformBufferBindings = 14;
+    static constexpr u32 kMaxUniformBufferBindings = 14;
     //static constexpr uint32_t kMaxDescriptorBindings = 32;
     //static constexpr uint32_t kMaxUniformBufferSize = 16 * 1024;
 
@@ -40,6 +40,12 @@ namespace Alimer
         D3D11,
         D3D12,
         Vulkan
+    };
+
+    enum class ShaderFormat : uint8_t
+    {
+        DXIL,
+        SPIRV
     };
 
     enum class ValidationMode : uint32_t

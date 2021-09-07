@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Graphics/GraphicsResource.h"
+#include "Graphics/Buffer.h"
 
 namespace Alimer
 {
@@ -52,6 +52,19 @@ namespace Alimer
         RenderPassDepthStencilAttachment depthStencilAttachment;
     };
 
+    struct GPUAllocation
+    {
+        /// The buffer associated with this memory.
+        Buffer* buffer = nullptr;
+
+        /// Offset from start of buffer resource.
+        uint64_t offset = 0;
+        /// Reserved size of this allocation.
+        uint64_t size = 0;
+        /// The CPU-writeable address.
+        uint8_t* data = nullptr;
+    };
+
     class ALIMER_API CommandBuffer
     {
     protected:
@@ -78,6 +91,31 @@ namespace Alimer
         virtual void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexType indexType) = 0;
         virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0, int32_t baseVertex = 0, uint32_t baseInstance = 0) = 0;
+
+        GPUAllocation AllocateGPU(uint64_t size, uint64_t alignment);
+
+        void BindConstantBuffer(uint32_t binding, const Buffer* buffer);
+        void BindConstantBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range);
+        void BindConstantBufferData(uint32_t binding, uint32_t size, const void* data);
+
+        template<typename T>
+        void BindConstantBufferData(const T& data, uint32_t binding)
+        {
+            GPUAllocation allocation = AllocateGPU(sizeof(T), 256);
+            std::memcpy(allocation.data, &data, sizeof(T));
+            BindConstantBufferCore(binding , allocation.buffer, allocation.offset, allocation.size);
+        }
+
+    private:
+        virtual void BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) = 0;
+
+        struct FrameAllocator
+        {
+            BufferRef buffer;
+            // Current offset, it increases on every allocation
+            uint64_t currentOffset = 0;
+            uint64_t frameIndex = 0;
+        } frameAllocators[kMaxFramesInFlight];
     };
 }
 

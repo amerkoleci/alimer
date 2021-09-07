@@ -5,6 +5,7 @@
 
 #include "Core/Types.h"
 #include "Core/Signal.h"
+#include "Math/Vector2.h"
 
 namespace Alimer
 {
@@ -19,12 +20,6 @@ namespace Alimer
         Maximized = 1 << 5,
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(WindowFlags);
-
-    struct Int2
-    {
-        int32_t x;
-        int32_t y;
-    };
 
     struct WindowImpl;
 
@@ -57,6 +52,14 @@ namespace Alimer
         void SetTitle(const std::string_view& newTitle);
 
         [[nodiscard]] bool IsMinimized() const;
+
+        void SetPosition(int32_t x, int32_t y);
+        void SetPosition(const Int2& pos);
+        [[nodiscard]] Int2 GetPosition() const;
+
+        [[nodiscard]] Int2 GetSize() const;
+        void SetSize(int32_t width, int32_t height);
+        void SetSize(const Int2& size);
 
         [[nodiscard]] WindowImpl* GetImpl() const { return impl.get(); }
 

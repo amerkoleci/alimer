@@ -188,6 +188,8 @@ namespace Alimer
         void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) override;
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, int32_t baseVertex, uint32_t baseInstance) override;
 
+        void BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) override;
+
         void BindRenderPipeline();
         void FlushDraw();
     };
@@ -402,8 +404,9 @@ namespace Alimer
         ID3D12DescriptorHeap* GetSamplerDescriptorHeap() const { return samplerHeap.handle.Get(); }
 
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::D3D12; }
-        uint64_t GetFrameCount() const override { return frameCount; }
-        uint32_t GetFrameIndex() const { return frameIndex; }
+        ShaderFormat GetShaderFormat() const override { return ShaderFormat::DXIL; }
+        u64 GetFrameCount() const override { return frameCount; }
+        u32 GetFrameIndex() const override { return frameIndex; }
 
         Texture* GetCurrentBackBuffer() const override;
 
@@ -432,16 +435,9 @@ namespace Alimer
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
         SamplerRef CreateSampler(const SamplerDesc& desc) override;
-        ShaderRef CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
-        std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
+        ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength) override;
         PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:
-
-#if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-        bool D3DCompiler_LoadFailed = false;
-        HINSTANCE D3DCompiler = nullptr;
-        bool LoadShaderCompiler();
-#endif
     };
 }

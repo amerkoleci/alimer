@@ -12,10 +12,6 @@
 #include "directx/d3d12shader.h"
 #include <pix.h>
 
-#if !defined(ALIMER_DISABLE_SHADER_COMPILER)
-#include <d3dcompiler.h>
-#endif
-
 namespace Alimer
 {
     namespace
@@ -38,10 +34,6 @@ namespace Alimer
         // Declare debug guids to avoid linking with "dxguid.lib"
         static constexpr IID DXGI_DEBUG_ALL = { 0xe48ae283, 0xda80, 0x490b, {0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8} };
         static constexpr IID DXGI_DEBUG_DXGI = { 0x25cddaa4, 0xb1c6, 0x47e1, {0xac, 0x3e, 0x98, 0x87, 0x5b, 0x5a, 0x2e, 0x2a} };
-#endif
-
-#if !defined(ALIMER_DISABLE_SHADER_COMPILER) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-        pD3DCompile D3DCompile;
 #endif
 
         constexpr const char* ToString(D3D_FEATURE_LEVEL value)
@@ -1220,6 +1212,13 @@ namespace Alimer
         handle->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, baseInstance);
     }
 
+    void D3D12_CommandList::BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
+    {
+        const D3D12_Buffer* d3dBuffer = checked_cast<const D3D12_Buffer*>(buffer);
+
+        handle->SetGraphicsRootConstantBufferView(0, d3dBuffer->deviceAddress + offset);
+    }
+
     /* D3D12CopyAllocator */
     D3D12CopyAllocator::D3D12CopyAllocator(D3D12_Device* device_)
         : device(device_)
@@ -1460,6 +1459,15 @@ namespace Alimer
         samplerDescriptorAllocator.Shutdown();
         rtvDescriptorAllocator.Shutdown();
         dsvDescriptorAllocator.Shutdown();
+
+        // Destroy create command lists (per queue)
+        for (uint8_t queue = 0; queue < (uint8_t)CommandQueue::Count; ++queue)
+        {
+            for (u32 cmd = 0; cmd < kMaxCommandLists; cmd++)
+            {
+                commandLists[cmd][queue].reset();
+            }
+        }
 
         for (size_t i = 0; i < backBuffers.size(); ++i)
         {
@@ -2424,128 +2432,35 @@ namespace Alimer
         return sampler;
     }
 
-    ShaderRef D3D12_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    ShaderRef D3D12_Device::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
     {
-        auto byteCode = CompileShader(stage, source, entryPoint);
-        if (byteCode.empty())
-            return nullptr;
-
         RefCountPtr<D3D12_Shader> shader = RefCountPtr<D3D12_Shader>::Create(new D3D12_Shader(stage));
-        shader->bytecode.resize(byteCode.size());
-        memcpy(shader->bytecode.data(), byteCode.data(), byteCode.size());
+        shader->bytecode.resize(bytecodeLength);
+        memcpy(shader->bytecode.data(), bytecode, bytecodeLength);
         return shader;
     }
-
-    std::vector<uint8_t> D3D12_Device::CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
-    {
-#if defined(ALIMER_DISABLE_SHADER_COMPILER)
-        return {};
-#else
-        if (!LoadShaderCompiler())
-            return {};
-
-        UINT compileFlags = D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR;
-
-#ifdef _DEBUG
-        compileFlags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_DEBUG;
-#else
-        compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
-#endif
-
-        std::string profile;
-        switch (stage)
-        {
-            // clang-format off
-            case ShaderStages::Vertex:           profile = "vs"; break;
-            case ShaderStages::Hull:             profile = "hs"; break;
-            case ShaderStages::Domain:           profile = "ds"; break;
-            case ShaderStages::Geometry:         profile = "gs"; break;
-            case ShaderStages::Pixel:            profile = "ps"; break;
-            case ShaderStages::Compute:          profile = "cs"; break;
-            default:
-                ALIMER_UNREACHABLE();
-                return {};
-        }
-
-        const uint32_t shaderModelMajor = 5;
-        const uint32_t shaderModelMinor = 0;
-
-        profile += "_";
-        profile += std::to_string(shaderModelMajor);
-        profile += "_";
-        profile += std::to_string(shaderModelMinor);
-
-        RefCountPtr<ID3DBlob> output;
-        RefCountPtr<ID3DBlob> errors_or_warnings;
-
-        HRESULT hr = D3DCompile(
-            source.c_str(),                     /* pSrcData */
-            source.length(),                    /* SrcDataSize */
-            nullptr,                            /* pSourceName */
-            NULL,                               /* pDefines */
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,  /* pInclude */
-            entryPoint.c_str(),                 /* pEntryPoint */
-            profile.c_str(),                    /* pTarget */
-            compileFlags,                       /* Flags1 */
-            0,                                  /* Flags2 */
-            &output,                            /* ppCode */
-            &errors_or_warnings);               /* ppErrorMsgs */
-
-        if (errors_or_warnings)
-        {
-            LOGE((LPCSTR)errors_or_warnings->GetBufferPointer());
-        }
-
-        if (FAILED(hr))
-        {
-            return {};
-        }
-
-        std::vector<uint8_t> byteCode(output->GetBufferSize());
-        //shader->bytecode.resize(byteCode.size());
-        memcpy(byteCode.data(), output->GetBufferPointer(), output->GetBufferSize());
-        return byteCode;
-#endif
-    }
-
-#if !defined(ALIMER_DISABLE_SHADER_COMPILER)
-    bool D3D12_Device::LoadShaderCompiler()
-    {
-#if (defined(WINAPI_FAMILY_PARTITION) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
-        return true;
-#else
-        /* load DLL on demand */
-        if (D3DCompiler == nullptr && !D3DCompiler_LoadFailed)
-        {
-            D3DCompiler = LoadLibraryW(L"D3DCompiler_47.dll");
-            if (D3DCompiler == nullptr)
-            {
-                /* don't attempt to load missing DLL in the future */
-                LOGD("Direct3D11: Failed to load D3DCompiler_47.dll!");
-                D3DCompiler_LoadFailed = true;
-                return false;
-            }
-
-            /* look up function pointers */
-            D3DCompile = (pD3DCompile)(void*)GetProcAddress(D3DCompiler, "D3DCompile");
-            ALIMER_ASSERT(D3DCompile != nullptr);
-        }
-
-        return D3DCompiler != nullptr;
-#endif
-    }
-#endif
 
     PipelineRef D3D12_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
         RefCountPtr<D3D12_Pipeline> pipeline = RefCountPtr<D3D12_Pipeline>::Create(new D3D12_Pipeline(Pipeline::Type::RenderPipeline));
         pipeline->device = this;
 
+        std::vector<D3D12_DESCRIPTOR_RANGE1> descriptorRanges;
+        std::vector<D3D12_ROOT_PARAMETER1> rootParameters;
+        std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers;
+
+        // CBV
+        D3D12_ROOT_PARAMETER1& rootParameter = rootParameters.emplace_back();
+        rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        rootParameter.Descriptor.ShaderRegister = 0;
+        rootParameter.Descriptor.RegisterSpace = 0;
+
         D3D12_ROOT_SIGNATURE_DESC1 rootSigDesc = {};
-        rootSigDesc.NumParameters = 0;
-        rootSigDesc.pParameters = nullptr;
-        rootSigDesc.NumStaticSamplers = 0;
-        rootSigDesc.pStaticSamplers = nullptr;
+        rootSigDesc.NumParameters = (UINT)rootParameters.size();
+        rootSigDesc.pParameters = rootParameters.data();
+        rootSigDesc.NumStaticSamplers = (UINT)staticSamplers.size();
+        rootSigDesc.pStaticSamplers = staticSamplers.data();
         rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRSDesc = {};
@@ -2675,7 +2590,7 @@ namespace Alimer
         stream.DepthStencilState = depthStencilState;
 
         // InputLayout
-        std::vector<D3D12_INPUT_ELEMENT_DESC> elements;
+        std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
         D3D12_INPUT_LAYOUT_DESC inputLayout = {};
 
         for (uint32_t location = 0; location < kMaxVertexAttributes; location++)
@@ -2684,7 +2599,7 @@ namespace Alimer
             if (attribute->format == VertexFormat::Undefined)
                 continue;
 
-            auto& element = elements.emplace_back();;
+            auto& element = inputElements.emplace_back();;
             element.SemanticName = "ATTRIBUTE";
             element.SemanticIndex = location;
             element.Format = ToDXGIFormat(attribute->format);
@@ -2704,10 +2619,10 @@ namespace Alimer
 
             pipeline->vboSlotsUsed = Max(attribute->bufferIndex + 1, pipeline->vboSlotsUsed);
             pipeline->vboStrides[attribute->bufferIndex] = desc.vertexLayout.buffers[attribute->bufferIndex].stride;
-            inputLayout.NumElements++;
         }
 
-        inputLayout.pInputElementDescs = elements.data();
+        inputLayout.pInputElementDescs = inputElements.data();
+        inputLayout.NumElements = static_cast<UINT>(inputElements.size());
         stream.InputLayout = inputLayout;
         stream.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
 
