@@ -53,7 +53,7 @@ namespace Alimer
         [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
 
         /// Create new shader.
-        [[nodiscard]] virtual rhi::ShaderHandle CreateShader(rhi::ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
+        [[nodiscard]] virtual rhi::ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
         /// Create new sampler.
         [[nodiscard]] virtual rhi::SamplerHandle CreateSampler(const rhi::SamplerDesc& desc) = 0;

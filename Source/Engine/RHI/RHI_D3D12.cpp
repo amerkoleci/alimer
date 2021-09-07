@@ -542,46 +542,61 @@ namespace Alimer::rhi
             D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
             viewDesc.Format = ToDXGIFormat(key.format);
 
-            switch (dimension)  // NOLINT(clang-diagnostic-switch-enum)
+            switch (dimension) 
             {
                 case TextureDimension::Texture1D:
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-                    viewDesc.Texture1D.MipSlice = mipLevel;
-                    break;
-                case TextureDimension::Texture1DArray:
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-                    viewDesc.Texture1DArray.MipSlice = mipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = slice;
-                    viewDesc.Texture1DArray.ArraySize = arraySize;
+                    if (GetArraySize() > 1)
+                    {
+                        viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+                        viewDesc.Texture1DArray.MipSlice = mipLevel;
+                        viewDesc.Texture1DArray.FirstArraySlice = slice;
+                        viewDesc.Texture1DArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+                        viewDesc.Texture1D.MipSlice = mipLevel;
+                    }
                     break;
                 case TextureDimension::Texture2D:
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-                    viewDesc.Texture2D.MipSlice = mipLevel;
-                    break;
-                case TextureDimension::Texture2DArray:
-                case TextureDimension::TextureCube:
-                case TextureDimension::TextureCubeArray:
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-                    viewDesc.Texture2DArray.MipSlice = mipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = slice;
-                    viewDesc.Texture2DArray.ArraySize = arraySize;
-                    break;
-                case TextureDimension::Texture2DMS:
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-                    break;
-                case TextureDimension::Texture2DMSArray:
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = slice;
-                    viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                    if (GetArraySize() > 1)
+                    {
+                        if (GetSampleCount() > 1)
+                        {
+                            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                            viewDesc.Texture2DMSArray.FirstArraySlice = slice;
+                            viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                        }
+                        else
+                        {
+                            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                            viewDesc.Texture2DArray.MipSlice = mipLevel;
+                            viewDesc.Texture2DArray.FirstArraySlice = slice;
+                            viewDesc.Texture2DArray.ArraySize = arraySize;
+                            viewDesc.Texture2DArray.PlaneSlice = 0;
+                        }
+                    }
+                    else
+                    {
+                        if (GetSampleCount() > 1)
+                        {
+                            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+                        }
+                        else
+                        {
+                            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                            viewDesc.Texture2D.MipSlice = mipLevel;
+                        }
+                    }
                     break;
                 case TextureDimension::Texture3D:
                     viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
                     viewDesc.Texture3D.MipSlice = mipLevel;
                     viewDesc.Texture3D.FirstWSlice = slice;
-                    viewDesc.Texture3D.WSize = arraySize;
+                    viewDesc.Texture3D.WSize = -1;
                     break;
                 default:
-                    LOGE("Texture has unsupported dimension for RTV: {}", ToString(dimension));
+                    LOGE("Texture has unsupported dimension for RTV");
                     return {};
             }
 
@@ -626,37 +641,51 @@ namespace Alimer::rhi
             switch (dimension)  // NOLINT(clang-diagnostic-switch-enum)
             {
                 case TextureDimension::Texture1D:
-                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
-                    viewDesc.Texture1D.MipSlice = mipLevel;
-                    break;
-                case TextureDimension::Texture1DArray:
-                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
-                    viewDesc.Texture1DArray.MipSlice = mipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = slice;
-                    viewDesc.Texture1DArray.ArraySize = arraySize;
+                    if (GetArraySize() > 1)
+                    {
+                        viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+                        viewDesc.Texture1DArray.MipSlice = mipLevel;
+                        viewDesc.Texture1DArray.FirstArraySlice = slice;
+                        viewDesc.Texture1DArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+                        viewDesc.Texture1D.MipSlice = mipLevel;
+                    }
                     break;
                 case TextureDimension::Texture2D:
-                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-                    viewDesc.Texture2D.MipSlice = mipLevel;
-                    break;
-                case TextureDimension::Texture2DArray:
-                case TextureDimension::TextureCube:
-                case TextureDimension::TextureCubeArray:
-                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-                    viewDesc.Texture2DArray.MipSlice = mipLevel;
-                    viewDesc.Texture2DArray.ArraySize = slice;
-                    viewDesc.Texture2DArray.FirstArraySlice = arraySize;
-                    break;
-                case TextureDimension::Texture2DMS:
-                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
-                    break;
-                case TextureDimension::Texture2DMSArray:
-                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = slice;
-                    viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                    if (GetArraySize() > 1)
+                    {
+                        if (GetSampleCount() > 1)
+                        {
+                            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                            viewDesc.Texture2DMSArray.FirstArraySlice = slice;
+                            viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                        }
+                        else
+                        {
+                            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+                            viewDesc.Texture2DArray.MipSlice = mipLevel;
+                            viewDesc.Texture2DArray.FirstArraySlice = slice;
+                            viewDesc.Texture2DArray.ArraySize = arraySize;
+                        }
+                    }
+                    else
+                    {
+                        if (GetSampleCount() > 1)
+                        {
+                            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+                        }
+                        else
+                        {
+                            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+                            viewDesc.Texture2D.MipSlice = mipLevel;
+                        }
+                    }
                     break;
                 default:
-                    LOGE("Texture has unsupported dimension for DSV: {}", ToString(dimension));
+                    LOGE("Texture has unsupported dimension for DSV");
                     return {};
             }
 
@@ -1982,17 +2011,17 @@ namespace Alimer::rhi
         switch (desc.dimension)
         {
             case TextureDimension::Texture1D:
-            case TextureDimension::Texture1DArray:
+            //case TextureDimension::Texture1DArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
                 resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             case TextureDimension::Texture2D:
-            case TextureDimension::Texture2DArray:
-            case TextureDimension::TextureCube:
-            case TextureDimension::TextureCubeArray:
-            case TextureDimension::Texture2DMS:
-            case TextureDimension::Texture2DMSArray:
+            //case TextureDimension::Texture2DArray:
+            //case TextureDimension::TextureCube:
+            //case TextureDimension::TextureCubeArray:
+            //case TextureDimension::Texture2DMS:
+            //case TextureDimension::Texture2DMSArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
                 resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
@@ -2411,7 +2440,7 @@ namespace Alimer::rhi
         rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
         rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.depthBiasSlopeScale;
         rasterizerState.DepthClipEnable = TRUE;
-        rasterizerState.MultisampleEnable = static_cast<uint32_t>(desc.sampleCount) > 1 ? TRUE : FALSE;
+        rasterizerState.MultisampleEnable = desc.sampleCount > 1 ? TRUE : FALSE;
         rasterizerState.AntialiasedLineEnable = FALSE;
         rasterizerState.ForcedSampleCount = 0;
         rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
@@ -2509,7 +2538,7 @@ namespace Alimer::rhi
         stream.DSVFormat = ToDXGIFormat(desc.depthStencilFormat);
 
         DXGI_SAMPLE_DESC sampleDesc = {};
-        sampleDesc.Count = static_cast<UINT>(desc.sampleCount);
+        sampleDesc.Count = desc.sampleCount;
         sampleDesc.Quality = 0;
         stream.SampleDesc = sampleDesc;
 

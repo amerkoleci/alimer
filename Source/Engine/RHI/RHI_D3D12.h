@@ -76,9 +76,9 @@ namespace Alimer::rhi
             std::size_t operator()(const D3D12_ViewKey& key) const
             {
                 size_t hash = 0;
-                Alimer::rhi::hash_combine(hash, static_cast<uint32_t>(key.format));
-                Alimer::rhi::hash_combine(hash, key.set);
-                Alimer::rhi::hash_combine(hash, key.isReadOnlyDSV);
+                Alimer::HashCombine(hash, static_cast<u32>(key.format));
+                Alimer::HashCombine(hash, key.set);
+                Alimer::HashCombine(hash, key.isReadOnlyDSV);
                 return hash;
             }
         };

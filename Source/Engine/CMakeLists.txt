@@ -126,6 +126,9 @@ if (ALIMER_RHI_METAL)
   target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_METAL)
 endif()
 
+if (WIN32 AND NOT (WINDOWS_STORE))
+	target_link_libraries(${TARGET_NAME} PRIVATE dxc)
+endif ()
 
 # Compiler-specific setup
 if(MSVC)

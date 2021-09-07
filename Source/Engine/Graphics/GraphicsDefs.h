@@ -54,7 +54,7 @@ namespace Alimer
         GPU
     };
 
-    enum class CommandQueue : u8
+    enum class CommandQueue : uint8_t
     {
         Graphics = 0,
         Compute,
@@ -96,6 +96,18 @@ namespace Alimer
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ResourceStates);
 
+    enum class CompareFunction : uint32_t
+    {
+        Never,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always,
+    };
+
     enum class PrimitiveTopology : uint32_t
     {
         PointList,
@@ -107,24 +119,125 @@ namespace Alimer
         Count
     };
 
-    enum class VertexElementUsage : uint32_t
+    enum class ShaderStages : uint32_t
     {
-        Position,
-        Normal,
-        Tangent,
-        Color,
-        TexCoord0,
-        TexCoord1,
-        TexCoord2,
-        TexCoord3,
-        TexCoord4,
-        TexCoord5,
-        TexCoord6,
-        TexCoord7,
-        BlendWeight,
-        BlendIndices,
+        None = 0x0000,
 
-        Count
+        Compute = 0x0020,
+
+        Vertex = 0x0001,
+        Hull = 0x0002,
+        Domain = 0x0004,
+        Geometry = 0x0008,
+        Pixel = 0x0010,
+        Amplification = 0x0040,
+        Mesh = 0x0080,
+        AllGraphics = 0x00FE,
+
+        RayGeneration = 0x0100,
+        AnyHit = 0x0200,
+        ClosestHit = 0x0400,
+        Miss = 0x0800,
+        Intersection = 0x1000,
+        Callable = 0x2000,
+        AllRayTracing = 0x3F00,
+
+        All = 0x3FFF,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+
+    enum class SamplerFilter : uint32_t
+    {
+        Point,
+        Linear
+    };
+
+    enum class SamplerAddressMode : uint32_t
+    {
+        Wrap = 0,
+        Mirror,
+        Clamp,
+        Border,
+        MirrorOnce,
+    };
+
+    enum class SamplerBorderColor : uint32_t
+    {
+        TransparentBlack = 0,
+        OpaqueBlack,
+        OpaqueWhite,
+    };
+
+    enum class BlendFactor : uint32_t
+    {
+        Zero,
+        One,
+        SourceColor,
+        OneMinusSourceColor,
+        SourceAlpha,
+        OneMinusSourceAlpha,
+        DestinationColor,
+        OneMinusDestinationColor,
+        DestinationAlpha,
+        OneMinusDestinationAlpha,
+        SourceAlphaSaturated,
+        BlendColor,
+        OneMinusBlendColor,
+        Source1Color,
+        OneMinusSource1Color,
+        Source1Alpha,
+        OneMinusSource1Alpha,
+    };
+
+    enum class BlendOperation : uint32_t
+    {
+        Add,
+        Subtract,
+        ReverseSubtract,
+        Min,
+        Max
+    };
+
+    enum class ColorWriteMask : uint8_t
+    {
+        None = 0,
+        Red = 0x01,
+        Green = 0x02,
+        Blue = 0x04,
+        Alpha = 0x08,
+        All = 0x0F
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
+
+    enum class StencilOperation : uint32_t
+    {
+        Keep,
+        Zero,
+        Replace,
+        IncrementClamp,
+        DecrementClamp,
+        Invert,
+        IncrementWrap,
+        DecrementWrap,
+    };
+
+    enum class FillMode : uint32_t
+    {
+        Solid,
+        Wireframe,
+    };
+
+    enum class CullMode : uint32_t
+    {
+        None,
+        Front,
+        Back
+    };
+
+    enum class FaceWinding : uint32_t
+    {
+        Clockwise,
+        CounterClockwise,
     };
 
     enum class VertexFormat : uint32_t
@@ -175,6 +288,19 @@ namespace Alimer
         UInt32
     };
 
+    enum class LoadAction : uint32_t
+    {
+        Clear,
+        Load,
+        Discard,
+    };
+
+    enum class StoreAction : uint32_t
+    {
+        Store,
+        Discard,
+    };
+
     /* Forward declarations */
     class Buffer;
     class Texture;
@@ -183,15 +309,6 @@ namespace Alimer
     using TextureRef = RefCountPtr<Texture>;
 
     /* Structs */
-    struct VertexElement
-    {
-        VertexFormat format = VertexFormat::Float3;
-        VertexElementUsage usage = VertexElementUsage::Position;
-        uint32_t offset = 0;
-        uint32_t bufferIndex = 0;
-        VertexStepRate stepRate = VertexStepRate::Vertex;
-    };
-
     struct PresentationParameters
     {
         ValidationMode validationMode = ValidationMode::Disabled;

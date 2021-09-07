@@ -10,13 +10,7 @@ namespace Alimer
     enum class TextureDimension : uint32_t
     {
         Texture1D,
-        Texture1DArray,
         Texture2D,
-        Texture2DArray,
-        Texture2DMS,
-        Texture2DMSArray,
-        TextureCube,
-        TextureCubeArray,
         Texture3D
     };
 
@@ -50,7 +44,7 @@ namespace Alimer
             TextureUsage usage = TextureUsage::ShaderRead) noexcept
         {
             TextureDesc desc;
-            desc.dimension = arraySize > 1 ? TextureDimension::Texture1DArray : TextureDimension::Texture1D;
+            desc.dimension = TextureDimension::Texture1D;
             desc.width = width;
             desc.height = 1;
             desc.depthOrArraySize = arraySize;
@@ -71,15 +65,7 @@ namespace Alimer
             uint32_t sampleCount = 1) noexcept
         {
             TextureDesc desc;
-            if (sampleCount > 1)
-            {
-                desc.dimension = arraySize > 1 ? TextureDimension::Texture2DMSArray : TextureDimension::Texture2DMS;
-            }
-            else
-            {
-                desc.dimension = arraySize > 1 ? TextureDimension::Texture2DArray : TextureDimension::Texture2D;
-            }
-
+            desc.dimension = TextureDimension::Texture2D;
             desc.width = width;
             desc.height = height;
             desc.depthOrArraySize = arraySize;
@@ -118,10 +104,10 @@ namespace Alimer
             TextureUsage usage = TextureUsage::ShaderRead) noexcept
         {
             TextureDesc desc;
-            desc.dimension = arraySize > 1 ? TextureDimension::TextureCubeArray : TextureDimension::TextureCube;
+            desc.dimension = TextureDimension::Texture2D;
             desc.width = size;
             desc.height = size;
-            desc.depthOrArraySize = arraySize;
+            desc.depthOrArraySize = 6 * arraySize;
             desc.mipLevels = mipLevels;
             desc.format = format;
             desc.sampleCount = 1;
@@ -172,7 +158,5 @@ namespace Alimer
         PixelFormat format;
         TextureUsage usage;
     };
-
-    ALIMER_API const char* ToString(TextureDimension dimension);
 }
 

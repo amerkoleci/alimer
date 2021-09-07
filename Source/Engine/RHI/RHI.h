@@ -12,162 +12,7 @@ namespace Alimer
 
 namespace Alimer::rhi
 {
-    /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
-    enum class SampleCount : uint32_t
-    {
-        Count1 = 1,
-        Count2 = 2,
-        Count4 = 4,
-        Count8 = 8,
-        Count16 = 16,
-        Count32 = 32,
-    };
-
-    enum class CompareFunction : uint32_t
-    {
-        Never,
-        Less,
-        Equal,
-        LessEqual,
-        Greater,
-        NotEqual,
-        GreaterEqual,
-        Always,
-    };
-
-    enum class ShaderStages : uint32_t
-    {
-        None = 0x0000,
-
-        Compute = 0x0020,
-
-        Vertex = 0x0001,
-        Hull = 0x0002,
-        Domain = 0x0004,
-        Geometry = 0x0008,
-        Pixel = 0x0010,
-        Amplification = 0x0040,
-        Mesh = 0x0080,
-        AllGraphics = 0x00FE,
-
-        RayGeneration = 0x0100,
-        AnyHit = 0x0200,
-        ClosestHit = 0x0400,
-        Miss = 0x0800,
-        Intersection = 0x1000,
-        Callable = 0x2000,
-        AllRayTracing = 0x3F00,
-
-        All = 0x3FFF,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
-
-    enum class SamplerFilter : uint32_t
-    {
-        Point,
-        Linear
-    };
-
-    enum class SamplerAddressMode : uint32_t
-    {
-        Wrap = 0,
-        Mirror,
-        Clamp,
-        Border,
-        MirrorOnce,
-    };
-
-    enum class SamplerBorderColor : uint32_t
-    {
-        TransparentBlack = 0,
-        OpaqueBlack,
-        OpaqueWhite,
-    };
-
-    enum class BlendFactor : uint32_t
-    {
-        Zero,
-        One,
-        SourceColor,
-        OneMinusSourceColor,
-        SourceAlpha,
-        OneMinusSourceAlpha,
-        DestinationColor,
-        OneMinusDestinationColor,
-        DestinationAlpha,
-        OneMinusDestinationAlpha,
-        SourceAlphaSaturated,
-        BlendColor,
-        OneMinusBlendColor,
-        Source1Color,
-        OneMinusSource1Color,
-        Source1Alpha,
-        OneMinusSource1Alpha,
-    };
-
-    enum class BlendOperation : uint32_t
-    {
-        Add,
-        Subtract,
-        ReverseSubtract,
-        Min,
-        Max
-    };
-
-    enum class ColorWriteMask : uint8_t
-    {
-        None = 0,
-        Red = 0x01,
-        Green = 0x02,
-        Blue = 0x04,
-        Alpha = 0x08,
-        All = 0x0F
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
-
-    enum class StencilOperation : uint32_t
-    {
-        Keep,
-        Zero,
-        Replace,
-        IncrementClamp,
-        DecrementClamp,
-        Invert,
-        IncrementWrap,
-        DecrementWrap,
-    };
-
-    enum class FillMode : uint32_t
-    {
-        Solid,
-        Wireframe,
-    };
-
-    enum class CullMode : uint32_t
-    {
-        None,
-        Front,
-        Back
-    };
-
-    enum class FaceWinding : uint32_t
-    {
-        Clockwise,
-        CounterClockwise,
-    };
-
-    enum class LoadAction : uint32_t
-    {
-        Clear,
-        Load,
-        Discard,
-    };
-
-    enum class StoreAction : uint32_t
-    {
-        Store,
-        Discard,
-    };
+    
 
     /* Forward declarations */
     class ISampler;
@@ -305,7 +150,7 @@ namespace Alimer::rhi
         uint32_t                patchControlPoints = 0;
         PixelFormat             colorFormats[kMaxColorAttachments] = {};
         PixelFormat             depthStencilFormat = PixelFormat::Undefined;
-        SampleCount             sampleCount = SampleCount::Count1;
+        uint32_t                sampleCount = 1;
     };
 
     struct RenderPassColorAttachment
@@ -377,31 +222,26 @@ namespace Alimer::rhi
         std::string name;
     };
 
-    class ALIMER_API DeviceChild : public Object
-    {
-    public:
-    };
-
-    class ALIMER_API IResource : public DeviceChild
+    class ALIMER_API IResource : public Object
     {
     protected:
         //[[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
     };
 
-    class ALIMER_API ISampler : public DeviceChild
+    class ALIMER_API ISampler : public Object
     {
     public:
         [[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
         //[[nodiscard]] virtual uint32_t GetBindlessIndex() const = 0;
     };
 
-    class ALIMER_API IShader : public DeviceChild
+    class ALIMER_API IShader : public Object
     {
     public:
         [[nodiscard]] virtual ShaderStages GetStage() const = 0;
     };
 
-    class ALIMER_API IPipeline : public DeviceChild
+    class ALIMER_API IPipeline : public Object
     {
     public:
     };
@@ -441,19 +281,10 @@ namespace Alimer::rhi
     /* Helper methods */
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
-    
-
     ALIMER_API const char* ToString(CompareFunction func);
     ALIMER_API const char* ToString(SamplerFilter filter);
     ALIMER_API const char* ToString(SamplerAddressMode mode);
     ALIMER_API const char* ToString(SamplerBorderColor borderColor);
-
-    template <class T>
-    void hash_combine(size_t& seed, const T& v)
-    {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
 }
 
 #undef RHI_DEFINE_ENUM_BITWISE_OPERATORS
@@ -469,82 +300,6 @@ namespace std
             Alimer::HashCombine(hash, set.numMipLevels);
             Alimer::HashCombine(hash, set.baseArraySlice);
             Alimer::HashCombine(hash, set.numArraySlices);
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::rhi::RenderTargetBlendState>
-    {
-        std::size_t operator()(const Alimer::rhi::RenderTargetBlendState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::rhi::hash_combine(hash, state.blendEnable);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlend);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.destBlend);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.blendOp);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.srcBlendAlpha);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.destBlendAlpha);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.blendOpAlpha);
-            Alimer::rhi::hash_combine(hash, (uint8_t)state.writeMask);
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::rhi::BlendState>
-    {
-        std::size_t operator()(const Alimer::rhi::BlendState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::rhi::hash_combine(hash, state.alphaToCoverageEnable);
-            Alimer::rhi::hash_combine(hash, state.independentBlendEnable);
-            for (const auto& target : state.renderTargets)
-            {
-                Alimer::rhi::hash_combine(hash, target);
-            }
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::rhi::StencilFaceState>
-    {
-        std::size_t operator()(const Alimer::rhi::StencilFaceState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.failOp);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.passOp);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.depthFailOp);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.compare);
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::rhi::DepthStencilState>
-    {
-        std::size_t operator()(const Alimer::rhi::DepthStencilState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::rhi::hash_combine(hash, state.depthWriteEnable);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.depthCompare);
-            Alimer::rhi::hash_combine(hash, state.stencilReadMask);
-            Alimer::rhi::hash_combine(hash, state.stencilWriteMask);
-            Alimer::rhi::hash_combine(hash, state.frontFace);
-            Alimer::rhi::hash_combine(hash, state.backFace);
-            return hash;
-        }
-    };
-
-    template<> struct hash<Alimer::rhi::RasterizerState>
-    {
-        std::size_t operator()(const Alimer::rhi::RasterizerState& state) const noexcept
-        {
-            size_t hash = 0;
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.cullMode);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
-            Alimer::rhi::hash_combine(hash, (uint32_t)state.frontFace);
-            Alimer::rhi::hash_combine(hash, state.fillMode);
-            Alimer::rhi::hash_combine(hash, state.depthBias);
-            Alimer::rhi::hash_combine(hash, state.depthBiasSlopeScale);
-            Alimer::rhi::hash_combine(hash, state.depthBiasClamp);
             return hash;
         }
     };

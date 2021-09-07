@@ -100,3 +100,12 @@ if(ALIMER_RHI_VULKAN)
     target_include_directories(spirv-reflect PUBLIC ${SPIRV_REFLECT_DIR})
     set_property(TARGET spirv-reflect PROPERTY FOLDER "ThirdParty")
 endif()
+
+if (WIN32 AND NOT (WINDOWS_STORE))
+    add_library(dxc INTERFACE)
+    set(DXC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dxc/include)
+    target_sources(dxc INTERFACE 
+        ${DXC_INCLUDE_DIR}/dxcapi.h
+    )
+    target_include_directories(dxc INTERFACE ${DXC_INCLUDE_DIR})
+endif ()

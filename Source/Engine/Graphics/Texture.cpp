@@ -73,21 +73,4 @@ namespace Alimer
 
         return gGraphics().CreateTexture(info, nativeHandle, nullptr);
     }
-
-    const char* ToString(TextureDimension dimension)
-    {
-        switch (dimension)
-        {
-            case TextureDimension::Texture1D:           return "Texture1D";
-            case TextureDimension::Texture1DArray:      return "Texture1DArray";
-            case TextureDimension::Texture2D:           return "Texture2D";
-            case TextureDimension::Texture2DArray:      return "Texture2DArray";
-            case TextureDimension::Texture2DMS:         return "Texture2DMS";
-            case TextureDimension::Texture2DMSArray:    return "Texture2DMSArray";
-            case TextureDimension::TextureCube:         return "TextureCube";
-            case TextureDimension::TextureCubeArray:    return "TextureCubeArray";
-            case TextureDimension::Texture3D:           return "Texture3D";
-            default:                                    return "<INVALID>";
-        }
-    }
 }
