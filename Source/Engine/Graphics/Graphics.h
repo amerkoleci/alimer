@@ -4,8 +4,7 @@
 #pragma once
 
 #include "Core/Module.h"
-#include "RHI/RHI.h"
-#include "Graphics/GraphicsDefs.h"
+#include "Graphics/CommandBuffer.h"
 
 namespace Alimer
 {
@@ -14,6 +13,7 @@ namespace Alimer
     struct TextureData;
     struct SamplerDesc;
     struct RenderPipelineDesc;
+    enum class ShaderStages : uint32_t;
     class Window;
 
     /// Defines a Graphics module class.
@@ -31,7 +31,7 @@ namespace Alimer
         static bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
 
         virtual void WaitIdle() = 0;
-        virtual rhi::ICommandList* BeginFrame() = 0;
+        virtual bool BeginFrame() = 0;
         virtual void EndFrame() = 0;
         virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
 
@@ -40,6 +40,8 @@ namespace Alimer
 
         //! Returns the set of hardware limits for this device.
         const DeviceLimits& GetLimits() const { return limits; }
+
+        [[nodiscard]] virtual CommandBuffer* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) = 0;
 
         [[nodiscard]] virtual Texture* GetCurrentBackBuffer() const = 0;
         [[nodiscard]] virtual Texture* GetBackBuffer(uint32_t index) const = 0;

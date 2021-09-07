@@ -9,6 +9,133 @@
 namespace Alimer
 {
 
+
+    enum class VertexFormat : uint32_t
+    {
+        Undefined = 0,
+        UChar2,
+        UChar4,
+        Char2,
+        Char4,
+        UChar2Norm,
+        UChar4Norm,
+        Char2Norm,
+        Char4Norm,
+        UShort2,
+        UShort4,
+        Short2,
+        Short4,
+        UShort2Norm,
+        UShort4Norm,
+        Short2Norm,
+        Short4Norm,
+        Half2,
+        Half4,
+        Float,
+        Float2,
+        Float3,
+        Float4,
+        UInt,
+        UInt2,
+        UInt3,
+        UInt4,
+        Int,
+        Int2,
+        Int3,
+        Int4,
+        RGB10A2Unorm
+    };
+
+    enum class VertexStepRate : uint32_t
+    {
+        Vertex = 0,
+        Instance
+    };
+
+
+    enum class BlendFactor : uint32_t
+    {
+        Zero,
+        One,
+        SourceColor,
+        OneMinusSourceColor,
+        SourceAlpha,
+        OneMinusSourceAlpha,
+        DestinationColor,
+        OneMinusDestinationColor,
+        DestinationAlpha,
+        OneMinusDestinationAlpha,
+        SourceAlphaSaturated,
+        BlendColor,
+        OneMinusBlendColor,
+        Source1Color,
+        OneMinusSource1Color,
+        Source1Alpha,
+        OneMinusSource1Alpha,
+    };
+
+    enum class BlendOperation : uint32_t
+    {
+        Add,
+        Subtract,
+        ReverseSubtract,
+        Min,
+        Max
+    };
+
+    enum class ColorWriteMask : uint8_t
+    {
+        None = 0,
+        Red = 0x01,
+        Green = 0x02,
+        Blue = 0x04,
+        Alpha = 0x08,
+        All = 0x0F
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
+
+    enum class StencilOperation : uint32_t
+    {
+        Keep,
+        Zero,
+        Replace,
+        IncrementClamp,
+        DecrementClamp,
+        Invert,
+        IncrementWrap,
+        DecrementWrap,
+    };
+
+    enum class FillMode : uint32_t
+    {
+        Solid,
+        Wireframe,
+    };
+
+    enum class CullMode : uint32_t
+    {
+        None,
+        Front,
+        Back
+    };
+
+    enum class FaceWinding : uint32_t
+    {
+        Clockwise,
+        CounterClockwise,
+    };
+
+    enum class PrimitiveTopology : uint32_t
+    {
+        PointList,
+        LineList,
+        LineStrip,
+        TriangleList,
+        TriangleStrip,
+        PatchList,
+        Count
+    };
+
     struct VertexBufferLayout
     {
         uint32_t stride = 0;
@@ -118,6 +245,9 @@ namespace Alimer
         Type type;
     };
 
+    ALIMER_API uint32_t GetVertexFormatNumComponents(VertexFormat format);
+    ALIMER_API uint32_t GetVertexFormatComponentSize(VertexFormat format);
+    ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 }
 

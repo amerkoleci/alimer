@@ -16,7 +16,7 @@
 
 #include <unordered_map>
 
-namespace Alimer::rhi
+namespace Alimer
 {
     [[nodiscard]] constexpr const char* ToString(VkResult result)
     {
@@ -105,9 +105,11 @@ namespace Alimer::rhi
 
         bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
         void WaitIdle() override;
-        ICommandList* BeginFrame() override;
+        bool BeginFrame() override;
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
+
+        CommandBuffer* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) override;
 
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
         uint64_t GetFrameCount() const override { return frameCount; }
@@ -145,8 +147,8 @@ namespace Alimer::rhi
 		VkResult err = x; \
 		if (err) \
 		{ \
-			LOGE("Detected Vulkan error: {}", Alimer::rhi::ToString(err)); \
+			LOGE("Detected Vulkan error: {}", Alimer::ToString(err)); \
 		} \
 	} while (0)
 
-#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, Alimer::rhi::ToString(result));
+#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, Alimer::ToString(result));

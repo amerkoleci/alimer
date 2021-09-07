@@ -3,7 +3,6 @@
 
 #include <Alimer.h>
 using namespace Alimer;
-using namespace Alimer::rhi;
 
 class HelloWorldApp final : public Application
 {
@@ -85,12 +84,12 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         return true;
     }
 
-    void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
+    void OnDraw([[maybe_unused]] CommandBuffer* commandBuffer) override
     {
-        commandList->SetVertexBuffer(0, vertexBuffer.Get());
-        commandList->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
-        commandList->SetPipeline(renderPipeline.Get());
-        commandList->DrawIndexed(6);
+        commandBuffer->SetVertexBuffer(0, vertexBuffer.Get());
+        commandBuffer->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
+        commandBuffer->SetPipeline(renderPipeline.Get());
+        commandBuffer->DrawIndexed(6);
     }
 };
 

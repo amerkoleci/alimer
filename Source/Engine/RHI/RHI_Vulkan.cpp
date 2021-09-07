@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #if defined(ALIMER_RHI_VULKAN)
-#include "RHI.h"
 #include "Window.h"
 #include "Core/Log.h"
 #include "RHI_Vulkan.h"
@@ -10,7 +9,7 @@
 #include "vk_mem_alloc.h"
 #include <optional>
 
-namespace Alimer::rhi
+namespace Alimer
 {
     namespace
     {
@@ -1021,9 +1020,9 @@ namespace Alimer::rhi
         VK_CHECK(vkDeviceWaitIdle(vk.device));
     }
 
-    ICommandList* Vulkan_Device::BeginFrame()
+    bool Vulkan_Device::BeginFrame()
     {
-        return nullptr;
+        return true;
     }
 
     void Vulkan_Device::EndFrame()
@@ -1033,6 +1032,11 @@ namespace Alimer::rhi
     void Vulkan_Device::Resize(uint32_t newWidth, uint32_t newHeight)
     {
 
+    }
+
+    CommandBuffer* Vulkan_Device::BeginCommandBuffer(CommandQueue queue)
+    {
+        return nullptr;
     }
 
     TextureRef Vulkan_Device::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)

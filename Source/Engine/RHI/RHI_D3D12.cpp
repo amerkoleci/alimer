@@ -16,7 +16,7 @@
 #include <d3dcompiler.h>
 #endif
 
-namespace Alimer::rhi
+namespace Alimer
 {
     namespace
     {
@@ -1799,7 +1799,7 @@ namespace Alimer::rhi
         ReleaseSRWLockExclusive(&destroyMutex);
     }
 
-    ICommandList* D3D12_Device::BeginCommandList(CommandQueue queue)
+    CommandBuffer* D3D12_Device::BeginCommandBuffer(CommandQueue queue)
     {
         uint8_t cmd = commandListCount.fetch_add(1);
 
@@ -1884,11 +1884,11 @@ namespace Alimer::rhi
         }
     }
 
-    ICommandList* D3D12_Device::BeginFrame()
+    bool D3D12_Device::BeginFrame()
     {
         if (deviceLost)
         {
-            return nullptr;
+            return false;
         }
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -1903,7 +1903,7 @@ namespace Alimer::rhi
         }
 #endif
 
-        return BeginCommandList();
+        return true;
     }
 
     void D3D12_Device::EndFrame()

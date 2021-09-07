@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "Graphics/GraphicsDefs.h"
+#include "Graphics/GraphicsResource.h"
 
-namespace Alimer::rhi
+namespace Alimer
 {
-    /* Structs */
+
     struct RenderPassColorAttachment
     {
         Texture* texture = nullptr;
@@ -52,20 +52,18 @@ namespace Alimer::rhi
         RenderPassDepthStencilAttachment depthStencilAttachment;
     };
 
-    /* Objects */
-
-    class ALIMER_API ICommandList
+    class ALIMER_API CommandBuffer
     {
     protected:
-        ICommandList() = default;
-        virtual ~ICommandList() = default;
+        CommandBuffer() = default;
+        virtual ~CommandBuffer() = default;
 
     public:
         // Non-copyable and non-movable
-        ICommandList(const ICommandList&) = delete;
-        ICommandList(const ICommandList&&) = delete;
-        ICommandList& operator=(const ICommandList&) = delete;
-        ICommandList& operator=(const ICommandList&&) = delete;
+        CommandBuffer(const CommandBuffer&) = delete;
+        CommandBuffer(const CommandBuffer&&) = delete;
+        CommandBuffer& operator=(const CommandBuffer&) = delete;
+        CommandBuffer& operator=(const CommandBuffer&&) = delete;
 
         virtual void PushDebugGroup(const std::string_view& name) = 0;
         virtual void PopDebugGroup() = 0;

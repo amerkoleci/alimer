@@ -6,11 +6,6 @@
 #include "Window.h"
 #include "Graphics/GraphicsDefs.h"
 
-namespace Alimer::rhi
-{
-    class ICommandList;
-}
-
 namespace Alimer
 {
     struct Settings
@@ -58,10 +53,13 @@ namespace Alimer
         virtual bool Initialize(int argc, const char* argv[]) { return true; }
 
         virtual void Update();
-        virtual void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) {}
+        virtual void OnDraw([[maybe_unused]] CommandBuffer* commandBuffer) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}
+
+        virtual bool BeginDraw();
+        virtual void EndDraw();
 
         std::unique_ptr<Window> window;
 
@@ -77,6 +75,7 @@ namespace Alimer
         void Render();
 
         bool running{ false };
+        bool exitRequested{ false };
     };
 }
 

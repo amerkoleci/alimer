@@ -9,6 +9,7 @@
 #include "Graphics/Sampler.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Pipeline.h"
+#include "Graphics/CommandBuffer.h"
 #include "PlatformInclude.h"
 #include <dxgi1_6.h>
 
@@ -27,7 +28,7 @@
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
-namespace Alimer::rhi
+namespace Alimer
 {
     struct D3D12_ViewKey
     {
@@ -148,7 +149,7 @@ namespace Alimer::rhi
     private:
     };
 
-    class D3D12_CommandList final : public ICommandList
+    class D3D12_CommandList final : public CommandBuffer
     {
     private:
         D3D12_Device* device;
@@ -376,10 +377,10 @@ namespace Alimer::rhi
         void WaitIdle() override;
         void DeferDestroy(IUnknown* resource, D3D12MA::Allocation* allocation = nullptr);
 
-        ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics);
+        CommandBuffer* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) override;
         void SubmitCommandLists();
 
-        ICommandList* BeginFrame() override;
+        bool BeginFrame() override;
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
         void AfterReset();

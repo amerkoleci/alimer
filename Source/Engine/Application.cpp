@@ -112,28 +112,32 @@ namespace Alimer
     {
     }
 
+    bool Application::BeginDraw()
+    {
+        return gGraphics().BeginFrame();
+    }
+
+    void Application::EndDraw()
+    {
+        gGraphics().EndFrame();
+    }
+
     void Application::Render()
     {
         // Don't try to render anything before the first Update or rendering is not allowed
-        if (//rhiDevice->GetFrameCount() > 0 &&
-            !window->IsMinimized()
-            )
+        if (!exitRequested &&
+            !window->IsMinimized() &&
+            BeginDraw())
         {
             // Custom application draw.
-            rhi::ICommandList* commandList = gGraphics().BeginFrame();
-            if (commandList == nullptr)
-            {
-                // Cannot draw
-                return;
-            }
+            CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
+            commandBuffer->PushDebugGroup("Frame");
+            commandBuffer->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
 
-            commandList->PushDebugGroup("Frame");
-            commandList->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
+            OnDraw(commandBuffer);
 
-            OnDraw(commandList);
-
-            commandList->EndRenderPass();
-            commandList->PopDebugGroup();
+            commandBuffer->EndRenderPass();
+            commandBuffer->PopDebugGroup();
             gGraphics().EndFrame();
         }
     }

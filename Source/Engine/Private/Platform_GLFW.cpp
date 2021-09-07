@@ -228,7 +228,7 @@ namespace Alimer
 }
 
 #if defined(ALIMER_RHI_VULKAN)
-namespace Alimer::rhi
+namespace Alimer
 {
     VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface)
     {

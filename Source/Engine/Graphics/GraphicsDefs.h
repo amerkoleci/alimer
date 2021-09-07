@@ -108,158 +108,6 @@ namespace Alimer
         Always,
     };
 
-    enum class PrimitiveTopology : uint32_t
-    {
-        PointList,
-        LineList,
-        LineStrip,
-        TriangleList,
-        TriangleStrip,
-        PatchList,
-        Count
-    };
-
-    enum class ShaderStages : uint32_t
-    {
-        None = 0x0000,
-
-        Compute = 0x0020,
-
-        Vertex = 0x0001,
-        Hull = 0x0002,
-        Domain = 0x0004,
-        Geometry = 0x0008,
-        Pixel = 0x0010,
-        Amplification = 0x0040,
-        Mesh = 0x0080,
-        AllGraphics = 0x00FE,
-
-        RayGeneration = 0x0100,
-        AnyHit = 0x0200,
-        ClosestHit = 0x0400,
-        Miss = 0x0800,
-        Intersection = 0x1000,
-        Callable = 0x2000,
-        AllRayTracing = 0x3F00,
-
-        All = 0x3FFF,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
-
-    enum class BlendFactor : uint32_t
-    {
-        Zero,
-        One,
-        SourceColor,
-        OneMinusSourceColor,
-        SourceAlpha,
-        OneMinusSourceAlpha,
-        DestinationColor,
-        OneMinusDestinationColor,
-        DestinationAlpha,
-        OneMinusDestinationAlpha,
-        SourceAlphaSaturated,
-        BlendColor,
-        OneMinusBlendColor,
-        Source1Color,
-        OneMinusSource1Color,
-        Source1Alpha,
-        OneMinusSource1Alpha,
-    };
-
-    enum class BlendOperation : uint32_t
-    {
-        Add,
-        Subtract,
-        ReverseSubtract,
-        Min,
-        Max
-    };
-
-    enum class ColorWriteMask : uint8_t
-    {
-        None = 0,
-        Red = 0x01,
-        Green = 0x02,
-        Blue = 0x04,
-        Alpha = 0x08,
-        All = 0x0F
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ColorWriteMask);
-
-    enum class StencilOperation : uint32_t
-    {
-        Keep,
-        Zero,
-        Replace,
-        IncrementClamp,
-        DecrementClamp,
-        Invert,
-        IncrementWrap,
-        DecrementWrap,
-    };
-
-    enum class FillMode : uint32_t
-    {
-        Solid,
-        Wireframe,
-    };
-
-    enum class CullMode : uint32_t
-    {
-        None,
-        Front,
-        Back
-    };
-
-    enum class FaceWinding : uint32_t
-    {
-        Clockwise,
-        CounterClockwise,
-    };
-
-    enum class VertexFormat : uint32_t
-    {
-        Undefined = 0,
-        UChar2,
-        UChar4,
-        Char2,
-        Char4,
-        UChar2Norm,
-        UChar4Norm,
-        Char2Norm,
-        Char4Norm,
-        UShort2,
-        UShort4,
-        Short2,
-        Short4,
-        UShort2Norm,
-        UShort4Norm,
-        Short2Norm,
-        Short4Norm,
-        Half2,
-        Half4,
-        Float,
-        Float2,
-        Float3,
-        Float4,
-        UInt,
-        UInt2,
-        UInt3,
-        UInt4,
-        Int,
-        Int2,
-        Int3,
-        Int4,
-        RGB10A2Unorm
-    };
-
-    enum class VertexStepRate : uint32_t
-    {
-        Vertex = 0,
-        Instance
-    };
-
     enum class IndexType : uint32_t
     {
         UInt16 = 0,
@@ -285,6 +133,7 @@ namespace Alimer
     class Sampler;
     class Shader;
     class Pipeline;
+    class CommandBuffer;
 
     using BufferRef = RefCountPtr<Buffer>;
     using TextureRef = RefCountPtr<Texture>;
@@ -361,10 +210,6 @@ namespace Alimer
 
     // Returns the number of mip levels given a texture size
     ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
-
-    ALIMER_API uint32_t GetVertexFormatNumComponents(VertexFormat format);
-    ALIMER_API uint32_t GetVertexFormatComponentSize(VertexFormat format);
-    ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
 
     ALIMER_API const char* ToString(CompareFunction func);
 }
