@@ -122,4 +122,22 @@ namespace Alimer
     {
         return GetVertexFormatNumComponents(format) * GetVertexFormatComponentSize(format);
     }
+
+    const char* ToString(CompareFunction func)
+    {
+        switch (func)
+        {
+            case CompareFunction::Never:        return "Never";
+            case CompareFunction::Less:         return "Less";
+            case CompareFunction::Equal:        return "Equal";
+            case CompareFunction::LessEqual:    return "LessEqual";
+            case CompareFunction::Greater:      return "Greater";
+            case CompareFunction::NotEqual:     return "NotEqual";
+            case CompareFunction::GreaterEqual: return "GreaterEqual";
+            case CompareFunction::Always:       return "Always";
+            default:
+                ALIMER_UNREACHABLE();
+                return "<Unknown>";
+        }
+    }
 }

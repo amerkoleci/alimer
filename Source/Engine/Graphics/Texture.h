@@ -123,6 +123,34 @@ namespace Alimer
         uint32_t    slicePitch = 0;
     };
 
+    struct TextureSubresourceSet
+    {
+        uint32_t baseMipLevel = 0;
+        uint32_t numMipLevels = 1;
+        uint32_t baseArraySlice = 0;
+        uint32_t numArraySlices = 1;
+
+        TextureSubresourceSet() = default;
+
+        TextureSubresourceSet(uint32_t baseMipLevel, uint32_t numMipLevels, uint32_t baseArraySlice, uint32_t numArraySlices)
+            : baseMipLevel{ baseMipLevel }
+            , numMipLevels{ numMipLevels }
+            , baseArraySlice{ baseArraySlice }
+            , numArraySlices{ numArraySlices }
+        {
+        }
+
+        bool operator ==(const TextureSubresourceSet& other) const
+        {
+            return baseMipLevel == other.baseMipLevel &&
+                numMipLevels == other.numMipLevels &&
+                baseArraySlice == other.baseArraySlice &&
+                numArraySlices == other.numArraySlices;
+        }
+        bool operator !=(const TextureSubresourceSet& other) const { return !(*this == other); }
+    };
+    static const TextureSubresourceSet AllSubresources = TextureSubresourceSet(0, kAllMipLevels, 0, kAllArraySlices);
+
     class ALIMER_API Texture : public GraphicsResource
     {
     public:
@@ -160,3 +188,18 @@ namespace Alimer
     };
 }
 
+namespace std
+{
+    template<> struct hash<Alimer::TextureSubresourceSet>
+    {
+        std::size_t operator()(const Alimer::TextureSubresourceSet& set) const noexcept
+        {
+            size_t hash = 0;
+            Alimer::HashCombine(hash, set.baseMipLevel);
+            Alimer::HashCombine(hash, set.numMipLevels);
+            Alimer::HashCombine(hash, set.baseArraySlice);
+            Alimer::HashCombine(hash, set.numArraySlices);
+            return hash;
+        }
+    };
+}

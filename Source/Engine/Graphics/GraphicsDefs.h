@@ -146,7 +146,6 @@ namespace Alimer
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
 
-
     enum class BlendFactor : uint32_t
     {
         Zero,
@@ -284,10 +283,14 @@ namespace Alimer
     class Buffer;
     class Texture;
     class Sampler;
+    class Shader;
+    class Pipeline;
 
     using BufferRef = RefCountPtr<Buffer>;
     using TextureRef = RefCountPtr<Texture>;
     using SamplerRef = RefCountPtr<Sampler>;
+    using ShaderRef = RefCountPtr<Shader>;
+    using PipelineRef = RefCountPtr<Pipeline>;
 
     /* Structs */
     struct PresentationParameters
@@ -362,5 +365,7 @@ namespace Alimer
     ALIMER_API uint32_t GetVertexFormatNumComponents(VertexFormat format);
     ALIMER_API uint32_t GetVertexFormatComponentSize(VertexFormat format);
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
+
+    ALIMER_API const char* ToString(CompareFunction func);
 }
 

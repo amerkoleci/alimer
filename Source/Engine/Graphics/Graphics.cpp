@@ -34,47 +34,6 @@ namespace Alimer
         return false;
     }
 
-    PipelineHandle Graphics::CreateRenderPipeline(const RenderPipelineDesc& desc)
-    {
-        RenderPipelineDesc descDef = desc;
-
-        uint32_t autoOffsets[kMaxVertexBufferBindings] = {};
-
-        bool useAutoOffset = true;
-        for (uint32_t index = 0; index < kMaxVertexAttributes; index++)
-        {
-            // To use computed offsets, all attribute offsets must be 0.
-            if (desc.vertexLayout.attributes[index].offset != 0) {
-                useAutoOffset = false;
-                break;
-            }
-        }
-
-        for (uint32_t index = 0; index < kMaxVertexAttributes; index++)
-        {
-            VertexAttribute* attribute = &descDef.vertexLayout.attributes[index];
-            if (attribute->format == VertexFormat::Undefined) {
-                continue;
-            }
-
-            ALIMER_ASSERT(attribute->bufferIndex < kMaxVertexBufferBindings);
-            if (useAutoOffset) {
-                attribute->offset = autoOffsets[attribute->bufferIndex];
-            }
-            autoOffsets[attribute->bufferIndex] += GetVertexFormatSize(attribute->format);
-        }
-
-        // Compute vertex strides if needed.
-        for (uint32_t index = 0; index < kMaxVertexBufferBindings; index++)
-        {
-            VertexBufferLayout* layout = &descDef.vertexLayout.buffers[index];
-            if (layout->stride == 0) {
-                layout->stride = autoOffsets[index];
-            }
-        }
-
-        return CreateRenderPipelineCore(descDef);
-    }
 
     Graphics& gGraphics()
     {

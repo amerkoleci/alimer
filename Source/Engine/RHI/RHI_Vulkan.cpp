@@ -1047,12 +1047,40 @@ namespace Alimer::rhi
         }
 
         VkImageCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-        //createInfo.imageType = ToVulkan(desc.dimension);
+
+        switch (desc.dimension)
+        {
+            case TextureDimension::Texture1D:
+                createInfo.imageType = VK_IMAGE_TYPE_1D;
+                createInfo.extent = { desc.width, 1, 1 };
+                createInfo.arrayLayers = desc.depthOrArraySize;
+                break;
+
+            case TextureDimension::Texture2D:
+                createInfo.imageType = VK_IMAGE_TYPE_2D;
+                createInfo.extent = { desc.width, desc.height, 1 };
+                createInfo.arrayLayers = desc.depthOrArraySize;
+
+                if (desc.depthOrArraySize >= 6 && desc.width == desc.height)
+                {
+                    createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+                }
+                break;
+
+            case TextureDimension::Texture3D:
+                createInfo.imageType = VK_IMAGE_TYPE_3D;
+                createInfo.extent = { desc.width, desc.height, desc.depthOrArraySize };
+                createInfo.arrayLayers = 1u;
+                break;
+
+            default:
+                break;
+        }
+
         //createInfo.format = ConvertFormat(desc.format);
-        createInfo.extent.width = desc.width;
-        createInfo.extent.height = desc.height;
-        createInfo.extent.depth = 1;
         createInfo.mipLevels = texture->GetMipLevels();
+
+       
 
         VmaAllocationCreateInfo memoryInfo = {};
         memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -1216,12 +1244,12 @@ namespace Alimer::rhi
         return nullptr;
     }
 
-    ShaderHandle Vulkan_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    ShaderRef Vulkan_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
     {
         return nullptr;
     }
 
-    PipelineHandle Vulkan_Device::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
+    PipelineRef Vulkan_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
         // DepthStencilState
         VkPipelineDepthStencilStateCreateInfo depthStencilState{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };

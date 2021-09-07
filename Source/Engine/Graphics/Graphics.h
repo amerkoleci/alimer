@@ -13,6 +13,7 @@ namespace Alimer
     struct TextureDesc;
     struct TextureData;
     struct SamplerDesc;
+    struct RenderPipelineDesc;
     class Window;
 
     /// Defines a Graphics module class.
@@ -21,6 +22,8 @@ namespace Alimer
         friend class Buffer;
         friend class Texture;
         friend class Sampler;
+        friend class Shader;
+        friend class Pipeline;
 
     public:
         virtual ~Graphics() = default;
@@ -54,18 +57,12 @@ namespace Alimer
         /// Return backbuffer height.
         [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
 
-        /// Create new shader.
-        [[nodiscard]] virtual rhi::ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
-
-        
-        /// Create new render pipeline.
-        [[nodiscard]] rhi::PipelineHandle CreateRenderPipeline(const rhi::RenderPipelineDesc& desc);
-
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
         virtual BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) = 0;
         virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
-        virtual rhi::PipelineHandle CreateRenderPipelineCore(const rhi::RenderPipelineDesc& desc) = 0;
+        virtual ShaderRef CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
+        virtual PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
 
     protected:
         DeviceFeatures features{};

@@ -221,9 +221,9 @@ install (FILES
 )
 
 if (NOT ANDROID)
-	foreach(dir Assets)
-		install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${dir} DESTINATION bin/)
-	endforeach()
+	#foreach(dir Assets)
+	#	install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${dir} DESTINATION bin/)
+	#endforeach()
 
 	# DLLs
 	if(WIN32 AND NOT (WINDOWS_STORE))

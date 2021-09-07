@@ -10,9 +10,7 @@ class HelloWorldApp final : public Application
 private:
     BufferRef vertexBuffer;
     BufferRef indexBuffer;
-    ShaderHandle vertexShader;
-    ShaderHandle pixelShader;
-    PipelineHandle renderPipeline;
+    PipelineRef renderPipeline;
 
 public:
     HelloWorldApp()
@@ -72,9 +70,8 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 }
 )";
 
-
-        vertexShader = gGraphics().CreateShader(ShaderStages::Vertex, shaderSource, "vertex_main");
-        pixelShader = gGraphics().CreateShader(ShaderStages::Pixel, shaderSource, "pixel_main");
+        ShaderRef vertexShader = Shader::Create(ShaderStages::Vertex, shaderSource, "vertex_main");
+        ShaderRef pixelShader = Shader::Create(ShaderStages::Pixel, shaderSource, "pixel_main");
 
         RenderPipelineDesc renderPipelineDesc;
         renderPipelineDesc.vertex = vertexShader;
@@ -84,15 +81,15 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         renderPipelineDesc.vertexLayout.attributes[1].format = VertexFormat::Float4;
         renderPipelineDesc.colorFormats[0] = gGraphics().GetCurrentBackBuffer()->GetFormat();
         renderPipelineDesc.depthStencilFormat = gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
-        renderPipeline = gGraphics().CreateRenderPipeline(renderPipelineDesc);
+        renderPipeline = Pipeline::Create(renderPipelineDesc);
         return true;
     }
 
     void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
     {
-        commandList->SetVertexBuffer(0, vertexBuffer);
-        commandList->SetIndexBuffer(indexBuffer, 0, IndexType::UInt16);
-        commandList->SetPipeline(renderPipeline);
+        commandList->SetVertexBuffer(0, vertexBuffer.Get());
+        commandList->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
+        commandList->SetPipeline(renderPipeline.Get());
         commandList->DrawIndexed(6);
     }
 };

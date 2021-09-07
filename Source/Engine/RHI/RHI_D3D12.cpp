@@ -763,7 +763,18 @@ namespace Alimer::rhi
         device->FreeBindlessSampler(bindlessIndex);
     }
 
+    /* D3D12_Shader */
+    D3D12_Shader::D3D12_Shader(ShaderStages stage)
+        : Shader(stage)
+    {
+    }
+
     /* D3D12_Pipeline */
+    D3D12_Pipeline::D3D12_Pipeline(Type type)
+        : Pipeline(type)
+    {
+    }
+
     D3D12_Pipeline::~D3D12_Pipeline()
     {
         if (rootSignature != nullptr)
@@ -806,11 +817,11 @@ namespace Alimer::rhi
         ThrowIfFailed(commandAllocators[frameIndex]->Reset());
         ThrowIfFailed(handle->Reset(commandAllocators[frameIndex].Get(), nullptr));
 
-        //ID3D12DescriptorHeap* heaps[2] = {
-        //    descriptorheap_res.heap_GPU.Get(),
-        //    descriptorheap_sam.heap_GPU.Get()
-        //};
-        //handle->SetDescriptorHeaps(arraysize(heaps), heaps);
+        ID3D12DescriptorHeap* heaps[2] = {
+            device->GetResourceDescriptorHeap(),
+            device->GetSamplerDescriptorHeap()
+        };
+        handle->SetDescriptorHeaps(_countof(heaps), heaps);
 
         boundPipeline = nullptr;
         currentPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
@@ -1140,7 +1151,7 @@ namespace Alimer::rhi
         currentPass = {};
     }
 
-    void D3D12_CommandList::SetPipeline(_In_ IPipeline* pipeline)
+    void D3D12_CommandList::SetPipeline(_In_ Pipeline* pipeline)
     {
         boundPipeline = checked_cast<D3D12_Pipeline*>(pipeline);
         BindRenderPipeline();
@@ -1943,14 +1954,13 @@ namespace Alimer::rhi
                 }
 
                 // Descriptor heaps' progress is recorded by the GPU:
-                //descriptorheap_res.fenceValue = descriptorheap_res.allocationOffset.load();
-                //hr = queues[QUEUE_GRAPHICS].queue->Signal(descriptorheap_res.fence.Get(), descriptorheap_res.fenceValue);
-                //assert(SUCCEEDED(hr));
-                //descriptorheap_res.cached_completedValue = descriptorheap_res.fence->GetCompletedValue();
-                //descriptorheap_sam.fenceValue = descriptorheap_sam.allocationOffset.load();
-                //hr = queues[QUEUE_GRAPHICS].queue->Signal(descriptorheap_sam.fence.Get(), descriptorheap_sam.fenceValue);
-                //assert(SUCCEEDED(hr));
-                //descriptorheap_sam.cached_completedValue = descriptorheap_sam.fence->GetCompletedValue();
+                resourceHeap.fenceValue = resourceHeap.allocationOffset.load();
+                ThrowIfFailed(GetGraphicsQueue()->Signal(resourceHeap.fence.Get(), resourceHeap.fenceValue));
+                resourceHeap.cachedCompletedValue = resourceHeap.fence->GetCompletedValue();
+
+                samplerHeap.fenceValue = samplerHeap.allocationOffset.load();
+                ThrowIfFailed(GetGraphicsQueue()->Signal(samplerHeap.fence.Get(), samplerHeap.fenceValue));
+                samplerHeap.cachedCompletedValue = samplerHeap.fence->GetCompletedValue();
 
                 ProcessDeletionQueue();
             }
@@ -2141,7 +2151,7 @@ namespace Alimer::rhi
         resourceDesc.Alignment = 0;
         resourceDesc.Width = desc.width;
         resourceDesc.Height = desc.height;
-        resourceDesc.DepthOrArraySize = 1;
+        resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
         resourceDesc.MipLevels = texture->GetMipLevels();
         resourceDesc.Format = ToDXGIFormat(desc.format);
         resourceDesc.SampleDesc.Count = desc.sampleCount;
@@ -2152,24 +2162,15 @@ namespace Alimer::rhi
         switch (desc.dimension)
         {
             case TextureDimension::Texture1D:
-            //case TextureDimension::Texture1DArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             case TextureDimension::Texture2D:
-            //case TextureDimension::Texture2DArray:
-            //case TextureDimension::TextureCube:
-            //case TextureDimension::TextureCubeArray:
-            //case TextureDimension::Texture2DMS:
-            //case TextureDimension::Texture2DMSArray:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             case TextureDimension::Texture3D:
                 resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
-                resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
                 break;
 
             default:
@@ -2423,13 +2424,13 @@ namespace Alimer::rhi
         return sampler;
     }
 
-    ShaderHandle D3D12_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
+    ShaderRef D3D12_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)
     {
         auto byteCode = CompileShader(stage, source, entryPoint);
         if (byteCode.empty())
             return nullptr;
 
-        RefCountPtr<D3D12_Shader> shader = RefCountPtr<D3D12_Shader>::Create(new D3D12_Shader());
+        RefCountPtr<D3D12_Shader> shader = RefCountPtr<D3D12_Shader>::Create(new D3D12_Shader(stage));
         shader->bytecode.resize(byteCode.size());
         memcpy(shader->bytecode.data(), byteCode.data(), byteCode.size());
         return shader;
@@ -2535,11 +2536,10 @@ namespace Alimer::rhi
     }
 #endif
 
-    PipelineHandle D3D12_Device::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
+    PipelineRef D3D12_Device::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
-        RefCountPtr<D3D12_Pipeline> pipeline = RefCountPtr<D3D12_Pipeline>::Create(new D3D12_Pipeline());
+        RefCountPtr<D3D12_Pipeline> pipeline = RefCountPtr<D3D12_Pipeline>::Create(new D3D12_Pipeline(Pipeline::Type::RenderPipeline));
         pipeline->device = this;
-        pipeline->desc = desc;
 
         D3D12_ROOT_SIGNATURE_DESC1 rootSigDesc = {};
         rootSigDesc.NumParameters = 0;
@@ -2564,7 +2564,6 @@ namespace Alimer::rhi
         ThrowIfFailed(
             d3dDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&pipeline->rootSignature))
         );
-
 
         // Not found, create new one
         struct PSO_STREAM

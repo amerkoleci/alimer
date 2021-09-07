@@ -7,6 +7,8 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Sampler.h"
+#include "Graphics/Shader.h"
+#include "Graphics/Pipeline.h"
 #include "PlatformInclude.h"
 #include "volk.h"
 #include "vk_mem_alloc.h"
@@ -128,8 +130,8 @@ namespace Alimer::rhi
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
         SamplerRef CreateSampler(const SamplerDesc& desc) override;
-        ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
-        PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
+        ShaderRef CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
+        PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;

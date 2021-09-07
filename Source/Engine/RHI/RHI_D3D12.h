@@ -7,6 +7,8 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Sampler.h"
+#include "Graphics/Shader.h"
+#include "Graphics/Pipeline.h"
 #include "PlatformInclude.h"
 #include <dxgi1_6.h>
 
@@ -121,20 +123,18 @@ namespace Alimer::rhi
         u32 GetBindlessIndex() const override { return bindlessIndex; }
     };
 
-    class D3D12_Shader final : public IShader
+    class D3D12_Shader final : public Shader
     {
     public:
+        D3D12_Shader(ShaderStages stage);
         ShaderStages stage = ShaderStages::None;
         std::vector<uint8_t> bytecode;
-
-        ShaderStages GetStage() const override { return stage; }
     };
 
-    class D3D12_Pipeline : public IPipeline
+    class D3D12_Pipeline : public Pipeline
     {
     public:
         D3D12_Device* device;
-        RenderPipelineDesc desc;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
         uint32_t vboSlotsUsed = 0;
         std::array<uint32_t, kMaxVertexBufferBindings> vboStrides = {};
@@ -142,6 +142,7 @@ namespace Alimer::rhi
         ID3D12RootSignature* rootSignature = nullptr;
         ID3D12PipelineState* handle = nullptr;
 
+        D3D12_Pipeline(Type type);
         ~D3D12_Pipeline() override;
 
     private:
@@ -179,7 +180,7 @@ namespace Alimer::rhi
         void BeginRenderPass(const RenderPassDesc& desc) override;
         void EndRenderPass() override;
 
-        void SetPipeline(_In_ IPipeline* pipeline) override;
+        void SetPipeline(_In_ Pipeline* pipeline) override;
 
         void SetVertexBuffer(uint32_t index, const Buffer* buffer) override;
         void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexType indexType) override;
@@ -396,6 +397,9 @@ namespace Alimer::rhi
         void FreeBindlessResource(uint32_t index);
         void FreeBindlessSampler(uint32_t index);
 
+        ID3D12DescriptorHeap* GetResourceDescriptorHeap() const { return resourceHeap.handle.Get(); }
+        ID3D12DescriptorHeap* GetSamplerDescriptorHeap() const { return samplerHeap.handle.Get(); }
+
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::D3D12; }
         uint64_t GetFrameCount() const override { return frameCount; }
         uint32_t GetFrameIndex() const { return frameIndex; }
@@ -427,9 +431,9 @@ namespace Alimer::rhi
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
         SamplerRef CreateSampler(const SamplerDesc& desc) override;
-        ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
+        ShaderRef CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
-        PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
+        PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) override;
 
     private:
 
