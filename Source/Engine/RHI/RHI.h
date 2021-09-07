@@ -1,41 +1,17 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
 
 #include "Graphics/GraphicsDefs.h"
 
-namespace Alimer
-{
-    class Window;
-}
-
 namespace Alimer::rhi
 {
-    
-
     /* Forward declarations */
-    class ISampler;
     class IShader;
     class IPipeline;
 
     /* Structs */
-    struct SamplerDesc
-    {
-        SamplerFilter minFilter = SamplerFilter::Point;
-        SamplerFilter magFilter = SamplerFilter::Point;
-        SamplerFilter mipmapFilter = SamplerFilter::Point;
-        SamplerAddressMode addressModeU = SamplerAddressMode::Clamp;
-        SamplerAddressMode addressModeV = SamplerAddressMode::Clamp;
-        SamplerAddressMode addressModeW = SamplerAddressMode::Clamp;
-        float mipLodBias = 0.0f;
-        uint16_t maxAnisotropy = 1;
-        CompareFunction compare = CompareFunction::Never;
-        float minLod = 0.0f;
-        float maxLod = FLT_MAX;
-        SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
-    };
-
     struct TextureSubresourceSet
     {
         uint32_t baseMipLevel = 0;
@@ -228,13 +204,6 @@ namespace Alimer::rhi
         //[[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
     };
 
-    class ALIMER_API ISampler : public Object
-    {
-    public:
-        [[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
-        //[[nodiscard]] virtual uint32_t GetBindlessIndex() const = 0;
-    };
-
     class ALIMER_API IShader : public Object
     {
     public:
@@ -275,16 +244,12 @@ namespace Alimer::rhi
     };
 
     using ShaderHandle = RefCountPtr<IShader>;
-    using SamplerHandle = RefCountPtr<ISampler>;
     using PipelineHandle = RefCountPtr<IPipeline>;
 
     /* Helper methods */
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
     ALIMER_API const char* ToString(CompareFunction func);
-    ALIMER_API const char* ToString(SamplerFilter filter);
-    ALIMER_API const char* ToString(SamplerAddressMode mode);
-    ALIMER_API const char* ToString(SamplerBorderColor borderColor);
 }
 
 #undef RHI_DEFINE_ENUM_BITWISE_OPERATORS

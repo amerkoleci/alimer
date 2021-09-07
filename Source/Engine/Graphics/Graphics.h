@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -12,6 +12,7 @@ namespace Alimer
     struct BufferDesc;
     struct TextureDesc;
     struct TextureData;
+    struct SamplerDesc;
     class Window;
 
     /// Defines a Graphics module class.
@@ -19,6 +20,7 @@ namespace Alimer
     {
         friend class Buffer;
         friend class Texture;
+        friend class Sampler;
 
     public:
         virtual ~Graphics() = default;
@@ -55,15 +57,14 @@ namespace Alimer
         /// Create new shader.
         [[nodiscard]] virtual rhi::ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") = 0;
 
-        /// Create new sampler.
-        [[nodiscard]] virtual rhi::SamplerHandle CreateSampler(const rhi::SamplerDesc& desc) = 0;
-
+        
         /// Create new render pipeline.
         [[nodiscard]] rhi::PipelineHandle CreateRenderPipeline(const rhi::RenderPipelineDesc& desc);
 
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
         virtual BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) = 0;
+        virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
         virtual rhi::PipelineHandle CreateRenderPipelineCore(const rhi::RenderPipelineDesc& desc) = 0;
 
     protected:

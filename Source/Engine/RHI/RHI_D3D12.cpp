@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #if defined(ALIMER_RHI_D3D12)
@@ -331,6 +331,40 @@ namespace Alimer::rhi
                 default:
                     ALIMER_UNREACHABLE();
                     return static_cast<D3D12_COMPARISON_FUNC>(0);
+            }
+        }
+
+        [[nodiscard]] constexpr D3D12_FILTER_TYPE ToD3D12(SamplerFilter value)
+        {
+            switch (value)
+            {
+                case SamplerFilter::Point:
+                    return D3D12_FILTER_TYPE_POINT;
+                case SamplerFilter::Linear:
+                    return D3D12_FILTER_TYPE_LINEAR;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return D3D12_FILTER_TYPE_POINT;
+            }
+        }
+
+        [[nodiscard]] constexpr D3D12_TEXTURE_ADDRESS_MODE ToD3D12(SamplerAddressMode mode)
+        {
+            switch (mode)
+            {
+                case SamplerAddressMode::Wrap:
+                    return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+                case SamplerAddressMode::Mirror:
+                    return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+                case SamplerAddressMode::Clamp:
+                    return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+                case SamplerAddressMode::Border:
+                    return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+                case SamplerAddressMode::MirrorOnce:
+                    return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             }
         }
 
@@ -715,6 +749,18 @@ namespace Alimer::rhi
 
         handle = nullptr;
         allocation = nullptr;
+    }
+
+    /* D3D12_Sampler */
+    D3D12_Sampler::D3D12_Sampler(const SamplerDesc& desc)
+        : Sampler(desc)
+    {
+    }
+
+    D3D12_Sampler::~D3D12_Sampler()
+    {
+        device->FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, descriptor);
+        device->FreeBindlessSampler(bindlessIndex);
     }
 
     /* D3D12_Pipeline */
@@ -1464,7 +1510,6 @@ namespace Alimer::rhi
             }
         }
 
-#if TODO
         while (!destroyedBindlessResources.empty())
         {
             if (destroyedBindlessResources.front().second + kMaxFramesInFlight < frameCount)
@@ -1492,7 +1537,6 @@ namespace Alimer::rhi
                 break;
             }
         }
-#endif // TODO
 
         ReleaseSRWLockExclusive(&destroyMutex);
     }
@@ -1611,6 +1655,45 @@ namespace Alimer::rhi
                 {
                     ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&queues[queue].frameFence[i])));
                 }
+            }
+        }
+
+        // Shader visible descriptor resource heap and bindless.
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+            heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            heapDesc.NumDescriptors = 1000000; // tier 1 limit
+            ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&resourceHeap.handle)));
+
+            resourceHeap.CPUStart = resourceHeap.handle->GetCPUDescriptorHandleForHeapStart();
+            resourceHeap.GPUStart = resourceHeap.handle->GetGPUDescriptorHandleForHeapStart();
+
+            ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(&resourceHeap.fence)));
+            resourceHeap.fenceValue = resourceHeap.fence->GetCompletedValue();
+
+            for (u32 i = 0; i < kD3D12BindlessResourceCapacity; ++i)
+            {
+                freeBindlessResources.push_back(kD3D12BindlessResourceCapacity - i - 1);
+            }
+        }
+
+        // Shader visible descriptor sampler heap and bindless.
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+            heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+            heapDesc.NumDescriptors = 2048; // tier 1 limit
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&samplerHeap.handle)));
+            samplerHeap.CPUStart = samplerHeap.handle->GetCPUDescriptorHandleForHeapStart();
+            samplerHeap.GPUStart = samplerHeap.handle->GetGPUDescriptorHandleForHeapStart();
+
+            ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(&samplerHeap.fence)));
+            samplerHeap.fenceValue = samplerHeap.fence->GetCompletedValue();
+
+            for (uint32_t i = 0; i < kD3D12BindlessSamplerCapacity; ++i)
+            {
+                freeBindlessSamplers.push_back(kD3D12BindlessSamplerCapacity - i - 1);
             }
         }
 
@@ -1974,6 +2057,64 @@ namespace Alimer::rhi
         }
     }
 
+    uint32_t D3D12_Device::AllocateBindlessResource(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+    {
+        AcquireSRWLockExclusive(&destroyMutex);
+        if (!freeBindlessResources.empty())
+        {
+            uint32_t index = freeBindlessResources.back();
+            freeBindlessResources.pop_back();
+            ReleaseSRWLockExclusive(&destroyMutex);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE dstBindless = resourceHeap.CPUStart;
+            dstBindless.ptr += index * GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            d3dDevice->CopyDescriptorsSimple(1, dstBindless, handle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            return index;
+        }
+
+        ReleaseSRWLockExclusive(&destroyMutex);
+        return {};
+    }
+
+    uint32_t D3D12_Device::AllocateBindlessSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+    {
+        AcquireSRWLockExclusive(&destroyMutex);
+        if (!freeBindlessSamplers.empty())
+        {
+            uint32_t index = freeBindlessSamplers.back();
+            freeBindlessSamplers.pop_back();
+            ReleaseSRWLockExclusive(&destroyMutex);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE dstBindless = samplerHeap.CPUStart;
+            dstBindless.ptr += index * GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+            d3dDevice->CopyDescriptorsSimple(1, dstBindless, handle, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+            return index;
+        }
+
+        ReleaseSRWLockExclusive(&destroyMutex);
+        return {};
+    }
+
+    void D3D12_Device::FreeBindlessResource(uint32_t index)
+    {
+        if (index != kInvalidBindlessIndex)
+        {
+            AcquireSRWLockExclusive(&destroyMutex);
+            destroyedBindlessResources.push_back(std::make_pair(index, frameCount));
+            ReleaseSRWLockExclusive(&destroyMutex);
+        }
+    }
+
+    void D3D12_Device::FreeBindlessSampler(uint32_t index)
+    {
+        if (index != kInvalidBindlessIndex)
+        {
+            AcquireSRWLockExclusive(&destroyMutex);
+            destroyedBindlessSamplers.push_back(std::make_pair(index, frameCount));
+            ReleaseSRWLockExclusive(&destroyMutex);
+        }
+    }
+
     Texture* D3D12_Device::GetCurrentBackBuffer() const
     {
         return backBuffers[swapChain->GetCurrentBackBufferIndex()].Get();
@@ -2210,9 +2351,76 @@ namespace Alimer::rhi
         return buffer;
     }
 
-    SamplerHandle D3D12_Device::CreateSampler(const SamplerDesc& desc)
+    SamplerRef D3D12_Device::CreateSampler(const SamplerDesc& desc)
     {
-        return nullptr;
+        RefCountPtr<D3D12_Sampler> sampler = RefCountPtr<D3D12_Sampler>::Create(new D3D12_Sampler(desc));
+        sampler->device = this;
+
+        const D3D12_FILTER_TYPE minFilter = ToD3D12(desc.minFilter);
+        const D3D12_FILTER_TYPE magFilter = ToD3D12(desc.magFilter);
+        const D3D12_FILTER_TYPE mipFilter = ToD3D12(desc.mipmapFilter);
+
+        D3D12_FILTER_REDUCTION_TYPE reduction = desc.compare == CompareFunction::Never
+            ? D3D12_FILTER_REDUCTION_TYPE_STANDARD
+            : D3D12_FILTER_REDUCTION_TYPE_COMPARISON;
+
+        D3D12_SAMPLER_DESC samplerDesc{};
+
+        // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
+        if (desc.maxAnisotropy > 1)
+        {
+            samplerDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reduction);
+        }
+        else
+        {
+            samplerDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipFilter, reduction);
+        }
+
+        samplerDesc.AddressU = ToD3D12(desc.addressModeU);
+        samplerDesc.AddressV = ToD3D12(desc.addressModeV);
+        samplerDesc.AddressW = ToD3D12(desc.addressModeW);
+        samplerDesc.MipLODBias = desc.mipLodBias;
+        samplerDesc.MaxAnisotropy = Min<UINT>(desc.maxAnisotropy, 16u);
+        if (desc.compare != CompareFunction::Never)
+        {
+            samplerDesc.ComparisonFunc = ToD3D12(desc.compare);
+        }
+        else
+        {
+            samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+        }
+
+        switch (desc.borderColor)
+        {
+            case SamplerBorderColor::OpaqueBlack:
+                samplerDesc.BorderColor[0] = 0.0f;
+                samplerDesc.BorderColor[1] = 0.0f;
+                samplerDesc.BorderColor[2] = 0.0f;
+                samplerDesc.BorderColor[3] = 1.0f;
+                break;
+
+            case SamplerBorderColor::OpaqueWhite:
+                samplerDesc.BorderColor[0] = 1.0f;
+                samplerDesc.BorderColor[1] = 1.0f;
+                samplerDesc.BorderColor[2] = 1.0f;
+                samplerDesc.BorderColor[3] = 1.0f;
+                break;
+            default:
+                samplerDesc.BorderColor[0] = 0.0f;
+                samplerDesc.BorderColor[1] = 0.0f;
+                samplerDesc.BorderColor[2] = 0.0f;
+                samplerDesc.BorderColor[3] = 0.0f;
+                break;
+        }
+
+        samplerDesc.MinLOD = desc.minLod;
+        samplerDesc.MaxLOD = desc.maxLod;
+
+        sampler->descriptor = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+        d3dDevice->CreateSampler(&samplerDesc, sampler->descriptor);
+        sampler->bindlessIndex = AllocateBindlessSampler(sampler->descriptor);
+
+        return sampler;
     }
 
     ShaderHandle D3D12_Device::CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint)

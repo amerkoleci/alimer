@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -6,6 +6,7 @@
 #include "Graphics/Graphics.h"
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
+#include "Graphics/Sampler.h"
 #include "PlatformInclude.h"
 #include <dxgi1_6.h>
 
@@ -106,6 +107,18 @@ namespace Alimer::rhi
         uint64_t GetAllocatedSize() const override { return allocatedSize; }
         uint64_t GetDeviceAddress() const override { return deviceAddress; }
         uint8_t* MappedData() const override { return mappedData; }
+    };
+
+    class D3D12_Sampler final : public Sampler
+    {
+    public:
+        D3D12_Device* device;
+        D3D12_CPU_DESCRIPTOR_HANDLE descriptor = {};
+        u32 bindlessIndex = kInvalidBindlessIndex;
+
+        D3D12_Sampler(const SamplerDesc& desc);
+        ~D3D12_Sampler() override;
+        u32 GetBindlessIndex() const override { return bindlessIndex; }
     };
 
     class D3D12_Shader final : public IShader
@@ -295,6 +308,30 @@ namespace Alimer::rhi
         DescriptorAllocator rtvDescriptorAllocator;
         DescriptorAllocator dsvDescriptorAllocator;
 
+        struct DescriptorHeap
+        {
+            RefCountPtr<ID3D12DescriptorHeap> handle;
+            D3D12_CPU_DESCRIPTOR_HANDLE CPUStart;
+            D3D12_GPU_DESCRIPTOR_HANDLE GPUStart;
+
+            // CPU status:
+            std::atomic_uint64_t allocationOffset{ 0 };
+
+            // GPU status:
+            RefCountPtr<ID3D12Fence> fence;
+            uint64_t fenceValue = 0;
+            uint64_t cachedCompletedValue = 0;
+        };
+        DescriptorHeap resourceHeap;
+        DescriptorHeap samplerHeap;
+
+        std::vector<u32> freeBindlessResources;
+        std::vector<u32> freeBindlessSamplers;
+
+        // Bindless
+        static constexpr u32 kD3D12BindlessResourceCapacity = 500000;
+        static constexpr u32 kD3D12BindlessSamplerCapacity = 256;
+
         struct CommandListMetadata
         {
             CommandQueue queue = {};
@@ -354,6 +391,11 @@ namespace Alimer::rhi
         void FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_CPU_DESCRIPTOR_HANDLE handle);
         uint32_t GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
+        uint32_t AllocateBindlessResource(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+        uint32_t AllocateBindlessSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+        void FreeBindlessResource(uint32_t index);
+        void FreeBindlessSampler(uint32_t index);
+
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::D3D12; }
         uint64_t GetFrameCount() const override { return frameCount; }
         uint32_t GetFrameIndex() const { return frameIndex; }
@@ -384,7 +426,7 @@ namespace Alimer::rhi
 
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
-        SamplerHandle CreateSampler(const SamplerDesc& desc) override;
+        SamplerRef CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         std::vector<uint8_t> CompileShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
         PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;

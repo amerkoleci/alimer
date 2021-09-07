@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Graphics/GraphicsDefs.h"

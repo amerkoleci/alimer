@@ -1,4 +1,4 @@
-// Copyright (c) Amer Koleci and contributors.
+// Copyright (c) Amer Koleci.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 #include <Alimer.h>
@@ -41,6 +41,9 @@ public:
         };
         vertexBuffer = Buffer::Create(vertices, sizeof(vertices), BufferUsage::Vertex, "VertexBuffer");
         indexBuffer = Buffer::Create(indices, sizeof(indices), BufferUsage::Index);
+
+        SamplerDesc samplerDesc;
+        auto test = Sampler::Create(samplerDesc);
 
         static const char* shaderSource = R"(
 struct VSInput 

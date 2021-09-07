@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "RHI.h"
@@ -37,44 +37,5 @@ namespace Alimer::rhi
             depthStencil->frontFace.passOp != StencilOperation::Keep;
     }
 
-    const char* ToString(SamplerFilter filter)
-    {
-        switch (filter)
-        {
-            case SamplerFilter::Point:  return "Point";
-            case SamplerFilter::Linear: return "Linear";
-            default:
-                ALIMER_UNREACHABLE();
-                return "<Unknown>";
-        }
-    }
-
-    const char* ToString(SamplerAddressMode mode)
-    {
-        switch (mode)
-        {
-            case SamplerAddressMode::Wrap:          return "Wrap";
-            case SamplerAddressMode::Mirror:        return "Mirror";
-            case SamplerAddressMode::Clamp:         return "Clamp";
-            case SamplerAddressMode::Border:        return "Border";
-            case SamplerAddressMode::MirrorOnce:    return "MirrorOnce";
-            default:
-                ALIMER_UNREACHABLE();
-                return "<Unknown>";
-        }
-    }
-
-    const char* ToString(SamplerBorderColor borderColor)
-    {
-        switch (borderColor)
-        {
-            case SamplerBorderColor::TransparentBlack:  return "TransparentBlack";
-            case SamplerBorderColor::OpaqueBlack:       return "OpaqueBlack";
-            case SamplerBorderColor::OpaqueWhite:       return "OpaqueWhite";
-            default:
-                ALIMER_UNREACHABLE();
-                return "<Unknown>";
-        }
-    }
-
+    
 }

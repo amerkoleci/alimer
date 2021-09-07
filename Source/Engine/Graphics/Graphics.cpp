@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Graphics/Graphics.h"
@@ -15,7 +15,6 @@ namespace Alimer::rhi
 #if defined(ALIMER_RHI_VULKAN)
     extern bool InitializeVulkanBackend(Window* window, const PresentationParameters& presentationParameters);
 #endif
-
 }
 
 using namespace Alimer::rhi;
@@ -26,6 +25,10 @@ namespace Alimer
     {
 #if defined(ALIMER_RHI_D3D12)
         return InitializeD3D12Backend(window, presentationParameters);
+#endif
+
+#if defined(ALIMER_RHI_VULKAN)
+        //return InitializeVulkanBackend(window, presentationParameters);
 #endif
 
         return false;

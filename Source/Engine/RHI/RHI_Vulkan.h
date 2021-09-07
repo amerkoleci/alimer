@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -6,6 +6,7 @@
 #include "Graphics/Graphics.h"
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
+#include "Graphics/Sampler.h"
 #include "PlatformInclude.h"
 #include "volk.h"
 #include "vk_mem_alloc.h"
@@ -126,7 +127,7 @@ namespace Alimer::rhi
 
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) override;
-        SamplerHandle CreateSampler(const SamplerDesc& desc) override;
+        SamplerRef CreateSampler(const SamplerDesc& desc) override;
         ShaderHandle CreateShader(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main") override;
         PipelineHandle CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
 

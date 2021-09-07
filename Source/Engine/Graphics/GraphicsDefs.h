@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -146,27 +146,6 @@ namespace Alimer
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
 
-    enum class SamplerFilter : uint32_t
-    {
-        Point,
-        Linear
-    };
-
-    enum class SamplerAddressMode : uint32_t
-    {
-        Wrap = 0,
-        Mirror,
-        Clamp,
-        Border,
-        MirrorOnce,
-    };
-
-    enum class SamplerBorderColor : uint32_t
-    {
-        TransparentBlack = 0,
-        OpaqueBlack,
-        OpaqueWhite,
-    };
 
     enum class BlendFactor : uint32_t
     {
@@ -304,9 +283,11 @@ namespace Alimer
     /* Forward declarations */
     class Buffer;
     class Texture;
+    class Sampler;
 
     using BufferRef = RefCountPtr<Buffer>;
     using TextureRef = RefCountPtr<Texture>;
+    using SamplerRef = RefCountPtr<Sampler>;
 
     /* Structs */
     struct PresentationParameters

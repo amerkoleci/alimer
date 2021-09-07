@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -11,6 +11,7 @@
 // Graphics
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
+#include "Graphics/Sampler.h"
 #include "Graphics/Graphics.h"
 
 // Application

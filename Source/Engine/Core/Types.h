@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -29,6 +29,9 @@ namespace Alimer
     using f64 = double;
     using isize = intptr_t;
     using usize = uintptr_t;
+
+    using string = std::string;
+    using string_view = std::string_view;
 
     //---------------------------------------------
     // Limits
