@@ -175,72 +175,52 @@ namespace Alimer
         {
             switch (format)
             {
-                case VertexFormat::UChar2:
-                    return DXGI_FORMAT_R8G8_UINT;
-                case VertexFormat::UChar4:
-                    return DXGI_FORMAT_R8G8B8A8_UINT;
-                case VertexFormat::Char2:
-                    return DXGI_FORMAT_R8G8_SINT;
-                case VertexFormat::Char4:
-                    return DXGI_FORMAT_R8G8B8A8_SINT;
-                case VertexFormat::UChar2Norm:
-                    return DXGI_FORMAT_R8G8_UNORM;
-                case VertexFormat::UChar4Norm:
-                    return DXGI_FORMAT_R8G8B8A8_UNORM;
-                case VertexFormat::Char2Norm:
-                    return DXGI_FORMAT_R8G8_SNORM;
-                case VertexFormat::Char4Norm:
-                    return DXGI_FORMAT_R8G8B8A8_SNORM;
-                case VertexFormat::UShort2:
-                    return DXGI_FORMAT_R16G16_UINT;
-                case VertexFormat::UShort4:
-                    return DXGI_FORMAT_R16G16B16A16_UINT;
-                case VertexFormat::Short2:
-                    return DXGI_FORMAT_R16G16_SINT;
-                case VertexFormat::Short4:
-                    return DXGI_FORMAT_R16G16B16A16_SINT;
-                case VertexFormat::UShort2Norm:
-                    return DXGI_FORMAT_R16G16_UNORM;
-                case VertexFormat::UShort4Norm:
-                    return DXGI_FORMAT_R16G16B16A16_UNORM;
-                case VertexFormat::Short2Norm:
-                    return DXGI_FORMAT_R16G16_SNORM;
-                case VertexFormat::Short4Norm:
-                    return DXGI_FORMAT_R16G16B16A16_SNORM;
-                case VertexFormat::Half2:
-                    return DXGI_FORMAT_R16G16_FLOAT;
-                case VertexFormat::Half4:
-                    return DXGI_FORMAT_R16G16B16A16_FLOAT;
+                case VertexFormat::UByte:           return DXGI_FORMAT_R8_UINT;
+                case VertexFormat::UByte2:          return DXGI_FORMAT_R8G8_UINT;
+                case VertexFormat::UByte4:          return DXGI_FORMAT_R8G8B8A8_UINT;
+                case VertexFormat::Byte:            return DXGI_FORMAT_R8_SINT;
+                case VertexFormat::Byte2:           return DXGI_FORMAT_R8G8_SINT;
+                case VertexFormat::Byte4:           return DXGI_FORMAT_R8G8B8A8_SINT;
+                case VertexFormat::UByteNorm:       return DXGI_FORMAT_R8_UNORM;
+                case VertexFormat::UByte2Norm:      return DXGI_FORMAT_R8G8_UNORM;
+                case VertexFormat::UByte4Norm:      return DXGI_FORMAT_R8G8B8A8_UNORM;
+                case VertexFormat::ByteNorm:        return DXGI_FORMAT_R8_SNORM;
+                case VertexFormat::Byte2Norm:       return DXGI_FORMAT_R8G8_SNORM;
+                case VertexFormat::Byte4Norm:       return DXGI_FORMAT_R8G8B8A8_SNORM;
 
-                case VertexFormat::Float:
-                    return DXGI_FORMAT_R32_FLOAT;
-                case VertexFormat::Float2:
-                    return DXGI_FORMAT_R32G32_FLOAT;
-                case VertexFormat::Float3:
-                    return DXGI_FORMAT_R32G32B32_FLOAT;
-                case VertexFormat::Float4:
-                    return DXGI_FORMAT_R32G32B32A32_FLOAT;
+                case VertexFormat::UShort:          return DXGI_FORMAT_R16_UINT;
+                case VertexFormat::UShort2:         return DXGI_FORMAT_R16G16_UINT;
+                case VertexFormat::UShort4:         return DXGI_FORMAT_R16G16B16A16_UINT;
+                case VertexFormat::Short:           return DXGI_FORMAT_R16_SINT;
+                case VertexFormat::Short2:          return DXGI_FORMAT_R16G16_SINT;
+                case VertexFormat::Short4:          return DXGI_FORMAT_R16G16B16A16_SINT;
+                case VertexFormat::UShortNorm:      return DXGI_FORMAT_R16_UNORM;
+                case VertexFormat::UShort2Norm:     return DXGI_FORMAT_R16G16_UNORM;
+                case VertexFormat::UShort4Norm:     return DXGI_FORMAT_R16G16B16A16_UNORM;
+                case VertexFormat::ShortNorm:       return DXGI_FORMAT_R16_SNORM;
+                case VertexFormat::Short2Norm:      return DXGI_FORMAT_R16G16_SNORM;
+                case VertexFormat::Short4Norm:      return DXGI_FORMAT_R16G16B16A16_SNORM;
 
-                case VertexFormat::UInt:
-                    return DXGI_FORMAT_R32_UINT;
-                case VertexFormat::UInt2:
-                    return DXGI_FORMAT_R32G32_UINT;
-                case VertexFormat::UInt3:
-                    return DXGI_FORMAT_R32G32B32_UINT;
-                case VertexFormat::UInt4:
-                    return DXGI_FORMAT_R32G32B32A32_UINT;
+                case VertexFormat::Half:            return DXGI_FORMAT_R16_FLOAT;
+                case VertexFormat::Half2:           return DXGI_FORMAT_R16G16_FLOAT;
+                case VertexFormat::Half4:           return DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-                case VertexFormat::Int:
-                    return DXGI_FORMAT_R32_SINT;
-                case VertexFormat::Int2:
-                    return DXGI_FORMAT_R32G32_SINT;
-                case VertexFormat::Int3:
-                    return DXGI_FORMAT_R32G32B32_SINT;
-                case VertexFormat::Int4:
-                    return DXGI_FORMAT_R32G32B32A32_SINT;
+                case VertexFormat::Float:           return DXGI_FORMAT_R32_FLOAT;
+                case VertexFormat::Float2:          return DXGI_FORMAT_R32G32_FLOAT;
+                case VertexFormat::Float3:          return DXGI_FORMAT_R32G32B32_FLOAT;
+                case VertexFormat::Float4:          return DXGI_FORMAT_R32G32B32A32_FLOAT;
 
-                case VertexFormat::RGB10A2Unorm:
-                    return DXGI_FORMAT_R10G10B10A2_UNORM;
+                case VertexFormat::UInt:            return DXGI_FORMAT_R32_UINT;
+                case VertexFormat::UInt2:           return DXGI_FORMAT_R32G32_UINT;
+                case VertexFormat::UInt3:           return DXGI_FORMAT_R32G32B32_UINT;
+                case VertexFormat::UInt4:           return DXGI_FORMAT_R32G32B32A32_UINT;
+
+                case VertexFormat::Int:             return DXGI_FORMAT_R32_SINT;
+                case VertexFormat::Int2:            return DXGI_FORMAT_R32G32_SINT;
+                case VertexFormat::Int3:            return DXGI_FORMAT_R32G32B32_SINT;
+                case VertexFormat::Int4:            return DXGI_FORMAT_R32G32B32A32_SINT;
+
+                case VertexFormat::RGB10A2Unorm:    return DXGI_FORMAT_R10G10B10A2_UNORM;
 
                 default:
                     ALIMER_UNREACHABLE();
@@ -578,13 +558,14 @@ namespace Alimer
     extern IDxcUtils* dxcUtils;
 
     /* D3D12_Texture */
-    D3D12_Texture::D3D12_Texture(const TextureDesc& info)
-        : Texture(info)
+    D3D12_Texture::D3D12_Texture(const TextureDesc& desc)
+        : Texture(desc)
     {
     }
 
     D3D12_Texture::~D3D12_Texture()
     {
+        DestroyViews();
         for (auto it : shaderResourceViews)
         {
             device->FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, it.second);
@@ -622,15 +603,20 @@ namespace Alimer
         allocation = nullptr;
     }
 
+    std::unique_ptr<TextureView> D3D12_Texture::CreateView(const TextureViewDesc& desc)
+    {
+        return std::make_unique<D3D12TextureView>(this, desc);
+    }
+
     D3D12_CPU_DESCRIPTOR_HANDLE D3D12_Texture::GetRTV(uint32_t mipLevel, uint32_t slice, uint32_t arraySize)
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = depthOrArraySize - slice;
+            arraySize = GetArrayLayers() - slice;
         }
-        else if (arraySize + slice > depthOrArraySize)
+        else if (arraySize + slice > GetArrayLayers())
         {
-            arraySize = depthOrArraySize - slice;
+            arraySize = GetArrayLayers() - slice;
         }
 
         D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), PixelFormat::Undefined, false);
@@ -644,7 +630,7 @@ namespace Alimer
             switch (dimension)
             {
                 case TextureDimension::Texture1D:
-                    if (GetArraySize() > 1)
+                    if (GetArrayLayers() > 1)
                     {
                         viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
                         viewDesc.Texture1DArray.MipSlice = mipLevel;
@@ -658,7 +644,7 @@ namespace Alimer
                     }
                     break;
                 case TextureDimension::Texture2D:
-                    if (GetArraySize() > 1)
+                    if (GetArrayLayers() > 1)
                     {
                         if (GetSampleCount() > 1)
                         {
@@ -713,11 +699,11 @@ namespace Alimer
     {
         if (arraySize == kAllArraySlices)
         {
-            arraySize = depthOrArraySize - slice;
+            arraySize = GetArrayLayers() - slice;
         }
-        else if (arraySize + slice > depthOrArraySize)
+        else if (arraySize + slice > GetArrayLayers())
         {
-            arraySize = depthOrArraySize - slice;
+            arraySize = GetArrayLayers() - slice;
         }
 
         D3D12_ViewKey key(TextureSubresourceSet(mipLevel, 1, slice, arraySize), PixelFormat::Undefined, isReadOnly);
@@ -740,7 +726,7 @@ namespace Alimer
             switch (dimension)  // NOLINT(clang-diagnostic-switch-enum)
             {
                 case TextureDimension::Texture1D:
-                    if (GetArraySize() > 1)
+                    if (GetArrayLayers() > 1)
                     {
                         viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
                         viewDesc.Texture1DArray.MipSlice = mipLevel;
@@ -754,7 +740,7 @@ namespace Alimer
                     }
                     break;
                 case TextureDimension::Texture2D:
-                    if (GetArraySize() > 1)
+                    if (GetArrayLayers() > 1)
                     {
                         if (GetSampleCount() > 1)
                         {
@@ -796,6 +782,31 @@ namespace Alimer
         }
 
         return it->second;
+    }
+
+    /* D3D12TextureView */
+    D3D12TextureView::D3D12TextureView(_In_ D3D12_Texture* texture, const TextureViewDesc& desc_)
+        : TextureView(texture, desc_)
+        , device(texture->device)
+    {
+        dxgiFormat = ToDXGIFormat(desc.format);
+
+        const TextureUsage usage = texture->GetUsage();
+        if (CheckBitsAny(usage, TextureUsage::RenderTarget))
+        {
+            if (!IsDepthStencilFormat(desc.format))
+            {
+                rtv = device->CreateRenderTargetView(texture->GetHandle(), desc);
+            }
+            else
+            {
+                //readWriteDSV = CreateDSV(texture->GetHandle(), false, false);
+            }
+        }
+    }
+
+    D3D12TextureView::~D3D12TextureView()
+    {
     }
 
     /* D3D12_Buffer */
@@ -1149,8 +1160,8 @@ namespace Alimer
                 rtvDescs[i].EndingAccess.Resolve.pDstResource = resolveTexture->GetHandle();
                 rtvDescs[i].EndingAccess.Resolve.SubresourceCount = 1;
 
-                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->GetMipLevels(), resolveTexture->GetArraySize());
-                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->GetMipLevels(), sourceTexture->GetArraySize());
+                uint32_t dstSubresource = D3D12CalcSubresource(attachment.resolveLevel, attachment.resolveSlice, 0, resolveTexture->GetMipLevels(), resolveTexture->GetArrayLayers());
+                uint32_t srcSubresource = D3D12CalcSubresource(attachment.mipLevel, attachment.slice, 0, sourceTexture->GetMipLevels(), sourceTexture->GetArrayLayers());
 
                 subresourceParameters[i].SrcSubresource = srcSubresource;
                 subresourceParameters[i].DstSubresource = dstSubresource;
@@ -1833,6 +1844,20 @@ namespace Alimer
             limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
             limits.maxDrawIndirectCount = static_cast<uint32_t>(-1);
 
+            /* see: https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_format_support */
+            UINT formatSupport = 0;
+            for (u32 fmt = static_cast<u32>(PixelFormat::Undefined) + 1; fmt < static_cast<u32>(PixelFormat::Count); fmt++)
+            {
+                D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { ToDXGIFormat((PixelFormat)fmt), D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE };
+
+                if (formatSupport.Format == DXGI_FORMAT_UNKNOWN)
+                    continue;
+
+                HRESULT hr = d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
+                if (FAILED(hr))
+                    continue;
+            }
+
             D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
             allocatorDesc.pDevice = d3dDevice.Get();
             allocatorDesc.pAdapter = adapter.Get();
@@ -2286,6 +2311,18 @@ namespace Alimer
         }
     }
 
+    D3D12_CPU_DESCRIPTOR_HANDLE D3D12_Device::CreateRenderTargetView(ID3D12Resource* resource, const TextureViewDesc& desc)
+    {
+        D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
+        viewDesc.Format = ToDXGIFormat(desc.format);
+
+        // TODO
+
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        d3dDevice->CreateRenderTargetView(resource, &viewDesc, rtv);
+        return rtv;
+    }
+
     uint32_t D3D12_Device::AllocateBindlessResource(D3D12_CPU_DESCRIPTOR_HANDLE handle)
     {
         AcquireSRWLockExclusive(&destroyMutex);
@@ -2370,8 +2407,8 @@ namespace Alimer
         resourceDesc.Alignment = 0;
         resourceDesc.Width = desc.width;
         resourceDesc.Height = desc.height;
-        resourceDesc.DepthOrArraySize = UINT16(desc.depthOrArraySize);
-        resourceDesc.MipLevels = texture->GetMipLevels();
+        resourceDesc.DepthOrArraySize = static_cast<UINT16>(desc.depthOrArrayLayers);
+        resourceDesc.MipLevels = static_cast<UINT16>(texture->GetMipLevels());
         resourceDesc.Format = ToDXGIFormat(desc.format);
         resourceDesc.SampleDesc.Count = desc.sampleCount;
         resourceDesc.SampleDesc.Quality = 0;

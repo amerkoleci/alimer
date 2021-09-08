@@ -363,6 +363,11 @@ namespace Alimer
     {
     }
 
+    std::unique_ptr<TextureView> Vulkan_Texture::CreateView(const TextureViewDesc& desc)
+    {
+        return nullptr;
+    }
+
     /* Vulkan_Device */
     bool Vulkan_Device::IsAvailable()
     {
@@ -1060,21 +1065,23 @@ namespace Alimer
         }
 
         VkImageCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        createInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
         switch (desc.dimension)
         {
             case TextureDimension::Texture1D:
                 createInfo.imageType = VK_IMAGE_TYPE_1D;
                 createInfo.extent = { desc.width, 1, 1 };
-                createInfo.arrayLayers = desc.depthOrArraySize;
+                createInfo.arrayLayers = desc.depthOrArrayLayers;
                 break;
 
             case TextureDimension::Texture2D:
+                createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
                 createInfo.imageType = VK_IMAGE_TYPE_2D;
                 createInfo.extent = { desc.width, desc.height, 1 };
-                createInfo.arrayLayers = desc.depthOrArraySize;
+                createInfo.arrayLayers = desc.depthOrArrayLayers;
 
-                if (desc.depthOrArraySize >= 6 && desc.width == desc.height)
+                if (desc.depthOrArrayLayers >= 6 && desc.width == desc.height)
                 {
                     createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                 }
@@ -1082,7 +1089,7 @@ namespace Alimer
 
             case TextureDimension::Texture3D:
                 createInfo.imageType = VK_IMAGE_TYPE_3D;
-                createInfo.extent = { desc.width, desc.height, desc.depthOrArraySize };
+                createInfo.extent = { desc.width, desc.height, desc.depthOrArrayLayers };
                 createInfo.arrayLayers = 1u;
                 break;
 

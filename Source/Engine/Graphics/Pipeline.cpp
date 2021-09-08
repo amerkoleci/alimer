@@ -61,15 +61,24 @@ namespace Alimer
     {
         switch (format)
         {
+            case VertexFormat::UByte:
+            case VertexFormat::Byte:
+            case VertexFormat::UByteNorm:
+            case VertexFormat::ByteNorm:
+            case VertexFormat::UShort:
+            case VertexFormat::Short:
+            case VertexFormat::UShortNorm:
+            case VertexFormat::ShortNorm:
+            case VertexFormat::Half:
             case VertexFormat::Float:
             case VertexFormat::UInt:
             case VertexFormat::Int:
                 return 1;
 
-            case VertexFormat::UChar2:
-            case VertexFormat::Char2:
-            case VertexFormat::UChar2Norm:
-            case VertexFormat::Char2Norm:
+            case VertexFormat::UByte2:
+            case VertexFormat::Byte2:
+            case VertexFormat::UByte2Norm:
+            case VertexFormat::Byte2Norm:
             case VertexFormat::UShort2:
             case VertexFormat::Short2:
             case VertexFormat::UShort2Norm:
@@ -85,10 +94,10 @@ namespace Alimer
             case VertexFormat::Int3:
                 return 3;
 
-            case VertexFormat::UChar4:
-            case VertexFormat::Char4:
-            case VertexFormat::UChar4Norm:
-            case VertexFormat::Char4Norm:
+            case VertexFormat::UByte4:
+            case VertexFormat::Byte4:
+            case VertexFormat::UByte4Norm:
+            case VertexFormat::Byte4Norm:
             case VertexFormat::UShort4:
             case VertexFormat::Short4:
             case VertexFormat::UShort4Norm:
@@ -110,24 +119,33 @@ namespace Alimer
     {
         switch (format)
         {
-            case VertexFormat::UChar2:
-            case VertexFormat::UChar4:
-            case VertexFormat::Char2:
-            case VertexFormat::Char4:
-            case VertexFormat::UChar2Norm:
-            case VertexFormat::UChar4Norm:
-            case VertexFormat::Char2Norm:
-            case VertexFormat::Char4Norm:
+            case VertexFormat::UByte:
+            case VertexFormat::UByte2:
+            case VertexFormat::UByte4:
+            case VertexFormat::Byte:
+            case VertexFormat::Byte2:
+            case VertexFormat::Byte4:
+            case VertexFormat::UByteNorm:
+            case VertexFormat::UByte2Norm:
+            case VertexFormat::UByte4Norm:
+            case VertexFormat::ByteNorm:
+            case VertexFormat::Byte2Norm:
+            case VertexFormat::Byte4Norm:
                 return sizeof(char);
 
+            case VertexFormat::UShort:
             case VertexFormat::UShort2:
             case VertexFormat::UShort4:
-            case VertexFormat::UShort2Norm:
-            case VertexFormat::UShort4Norm:
+            case VertexFormat::Short:
             case VertexFormat::Short2:
             case VertexFormat::Short4:
+            case VertexFormat::UShortNorm:
+            case VertexFormat::UShort2Norm:
+            case VertexFormat::UShort4Norm:
+            case VertexFormat::ShortNorm:
             case VertexFormat::Short2Norm:
             case VertexFormat::Short4Norm:
+            case VertexFormat::Half:
             case VertexFormat::Half2:
             case VertexFormat::Half4:
                 return sizeof(uint16_t);

@@ -117,22 +117,31 @@ namespace Alimer
     enum class VertexFormat : uint32_t
     {
         Undefined = 0,
-        UChar2,
-        UChar4,
-        Char2,
-        Char4,
-        UChar2Norm,
-        UChar4Norm,
-        Char2Norm,
-        Char4Norm,
+        UByte,
+        UByte2,
+        UByte4,
+        Byte,
+        Byte2,
+        Byte4,
+        UByteNorm,
+        UByte2Norm,
+        UByte4Norm,
+        ByteNorm,
+        Byte2Norm,
+        Byte4Norm,
+        UShort,
         UShort2,
         UShort4,
+        Short,
         Short2,
         Short4,
+        UShortNorm,
         UShort2Norm,
         UShort4Norm,
+        ShortNorm,
         Short2Norm,
         Short4Norm,
+        Half,
         Half2,
         Half4,
         Float,
@@ -172,6 +181,7 @@ namespace Alimer
     /* Forward declarations */
     class Buffer;
     class Texture;
+    class TextureView;
     class Sampler;
     class Shader;
     class Pipeline;

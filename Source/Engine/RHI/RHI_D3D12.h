@@ -64,7 +64,7 @@ namespace Alimer
         D3D12MA::Allocation* allocation = nullptr;
         u64 allocatedSize{ 0 };
 
-        D3D12_Texture(const TextureDesc& info);
+        D3D12_Texture(const TextureDesc& desc);
         ~D3D12_Texture() override;
 
         uint64_t GetAllocatedSize() const override { return allocatedSize; }
@@ -73,6 +73,7 @@ namespace Alimer
         D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint32_t mipLevel = 0, uint32_t slice = 0, uint32_t arraySize = 1, bool isReadOnly = false);
 
     private:
+        std::unique_ptr<TextureView> CreateView(const TextureViewDesc& desc) override;
         //uint64_t GetAllocatedSize() const override { return allocatedSize; }
 
         struct ViewInfoHashFunc
@@ -87,11 +88,21 @@ namespace Alimer
             }
         };
 
-        std::atomic_uint32_t refCount = 1;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> shaderResourceViews;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> renderTargetViews;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> depthStencilViews;
         std::unordered_map<D3D12_ViewKey, D3D12_CPU_DESCRIPTOR_HANDLE, ViewInfoHashFunc> unorderedAccessViews;
+    };
+
+    class D3D12TextureView final : public TextureView
+    {
+    public:
+        D3D12_Device* device;
+        DXGI_FORMAT dxgiFormat;
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv{};
+
+        D3D12TextureView(_In_ D3D12_Texture* texture, const TextureViewDesc& desc);
+        ~D3D12TextureView() override;
     };
 
     class D3D12_Buffer final : public Buffer
@@ -409,10 +420,13 @@ namespace Alimer
         void FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_CPU_DESCRIPTOR_HANDLE handle);
         uint32_t GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
+        D3D12_CPU_DESCRIPTOR_HANDLE CreateRenderTargetView(ID3D12Resource* resource, const TextureViewDesc& desc);
+
         uint32_t AllocateBindlessResource(D3D12_CPU_DESCRIPTOR_HANDLE handle);
         uint32_t AllocateBindlessSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle);
         void FreeBindlessResource(uint32_t index);
         void FreeBindlessSampler(uint32_t index);
+
 
         ID3D12DescriptorHeap* GetResourceDescriptorHeap() const { return resourceHeap.handle.Get(); }
         ID3D12DescriptorHeap* GetSamplerDescriptorHeap() const { return samplerHeap.handle.Get(); }

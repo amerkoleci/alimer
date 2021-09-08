@@ -85,6 +85,9 @@ namespace Alimer
         Vulkan_Texture(const TextureDesc& desc);
         ~Vulkan_Texture() override;
         uint64_t GetAllocatedSize() const override { return allocatedSize; }
+
+    private:
+        std::unique_ptr<TextureView> CreateView(const TextureViewDesc& desc) override;
     };
 
     class Vulkan_Device final : public Graphics
