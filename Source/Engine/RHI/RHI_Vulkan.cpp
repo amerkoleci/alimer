@@ -866,7 +866,8 @@ namespace Alimer
             limits.maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
             limits.maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
             limits.maxTextureArraySize = properties2.properties.limits.maxImageArrayLayers;
-            limits.minConstantBufferOffsetAlignment = static_cast<uint32_t>(properties2.properties.limits.minUniformBufferOffsetAlignment);
+            limits.minConstantBufferOffsetAlignment = properties2.properties.limits.minUniformBufferOffsetAlignment;
+            limits.minStorageBufferOffsetAlignment = properties2.properties.limits.minStorageBufferOffsetAlignment;
             limits.maxDrawIndirectCount = properties2.properties.limits.maxDrawIndirectCount;
 
             // Find queue families:

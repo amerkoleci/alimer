@@ -1842,6 +1842,7 @@ namespace Alimer
             limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
             limits.maxTextureArraySize = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
             limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+            limits.minStorageBufferOffsetAlignment = 16;
             limits.maxDrawIndirectCount = static_cast<uint32_t>(-1);
 
             /* see: https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_format_support */

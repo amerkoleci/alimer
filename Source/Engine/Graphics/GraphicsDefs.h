@@ -231,8 +231,11 @@ namespace Alimer
         /// The maximum size of an image array.
         uint32_t maxTextureArraySize;
 
-        /// The alignment required when creating buffer views
-        uint32_t minConstantBufferOffsetAlignment;
+        /// The alignment required for constant buffers.
+        uint64_t minConstantBufferOffsetAlignment;
+
+        /// The alignment required for storage buffers.
+        uint64_t minStorageBufferOffsetAlignment;
 
         /// The maximum number of draws when doing indirect drawing.
         uint32_t maxDrawIndirectCount = 1;

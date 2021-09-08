@@ -1,17 +1,121 @@
 // Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Math/Matrix4x4.h"
+#include "Math/Matrix.h"
 #include <spdlog/fmt/fmt.h>
 
 namespace Alimer
 {
-    const Matrix4x4 Matrix4x4::Zero = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    /* Float3x3 */
+    const Float3x3 Float3x3::Zero = {
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+    };
+    const Float3x3 Float3x3::Identity = {
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
+    };
+
+    Float3x3::Float3x3(_In_reads_(9) const float* pData) noexcept
+    {
+        ALIMER_ASSERT(pData != nullptr);
+
+        m11 = pData[0];
+        m12 = pData[1];
+        m13 = pData[2];
+
+        m21 = pData[3];
+        m22 = pData[4];
+        m23 = pData[5];
+
+        m31 = pData[6];
+        m32 = pData[7];
+        m33 = pData[8];
+    }
+
+    bool Float3x3::operator==(const Float3x3& rhs) const
+    {
+        const float* leftData = reinterpret_cast<const float*>(this);
+        const float* rightData = reinterpret_cast<const float*>(&rhs);
+        for (u32 i = 0; i < 12; ++i)
+        {
+            if (leftData[i] != rightData[i])
+                return false;
+        }
+
+        return true;
+    }
+
+    bool Float3x3::operator!=(const Float3x3& rhs) const
+    {
+        const float* leftData = reinterpret_cast<const float*>(this);
+        const float* rightData = reinterpret_cast<const float*>(&rhs);
+        for (u32 i = 0; i < 12; ++i)
+        {
+            if (leftData[i] != rightData[i])
+                return false;
+        }
+
+        return false;
+    }
+
+    std::string Float3x3::ToString() const
+    {
+        return fmt::format("{} {} {} {} {} {} {} {} {}",
+            m11, m12, m13,
+            m21, m22, m23,
+            m31, m32, m33);
+    }
+
+    /* Float3x4 */
+    const Float3x4 Float3x4::Zero = {
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f
+    };
+    const Float3x4 Float3x4::Identity = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f
+    };
+
+    Float3x4::Float3x4(_In_reads_(12) const float* data) noexcept
+    {
+        ALIMER_ASSERT(data != nullptr);
+
+        m11 = data[0];
+        m12 = data[1];
+        m13 = data[2];
+        m14 = data[3];
+
+        m21 = data[4];
+        m22 = data[5];
+        m23 = data[6];
+        m24 = data[7];
+
+        m31 = data[8];
+        m32 = data[9];
+        m33 = data[10];
+        m34 = data[11];
+    }
+
+    std::string Float3x4::ToString() const
+    {
+        return fmt::format("{} {} {} {} {} {} {} {} {} {} {} {}",
+            m11, m12, m13, m14,
+            m21, m22, m23, m24,
+            m31, m32, m33, m34);
+    }
+
+    /* Float4x4 */
+    const Float4x4 Float4x4::Zero = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
                                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-    const Matrix4x4 Matrix4x4::Identity = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    const Float4x4 Float4x4::Identity = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
                                            0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
-    Matrix4x4::Matrix4x4(const float* data) noexcept
+    Float4x4::Float4x4(_In_reads_(16) const float* data) noexcept
     {
         ALIMER_ASSERT(data != nullptr);
 
@@ -36,15 +140,14 @@ namespace Alimer
         m[3][3] = data[15];
     }
 
-    Matrix4x4 Matrix4x4::CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float zNearPlane, float zFarPlane) noexcept
+    Float4x4 Float4x4::CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float zNearPlane, float zFarPlane) noexcept
     {
-        Matrix4x4 result;
+        Float4x4 result;
         CreatePerspectiveFieldOfView(fieldOfView, aspectRatio, zNearPlane, zFarPlane, &result);
         return result;
     }
 
-    void Matrix4x4::CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float zNearPlane,
-        float zFarPlane, Matrix4x4* result)
+    void Float4x4::CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float zNearPlane, float zFarPlane, Float4x4* result)
     {
         ALIMER_ASSERT(result);
         ALIMER_ASSERT(zFarPlane != zNearPlane);
@@ -74,7 +177,7 @@ namespace Alimer
         result->m44 = 0.0f;
     }
 
-    void Matrix4x4::CreateOrthographic(float width, float height, float zNearPlane, float zFarPlane, Matrix4x4* result)
+    void Float4x4::CreateOrthographic(float width, float height, float zNearPlane, float zFarPlane, Float4x4* result)
     {
         ALIMER_ASSERT(result);
         result->m11 = 2.0f / width;
@@ -98,8 +201,7 @@ namespace Alimer
         result->m44 = 1.0f;
     }
 
-    void Matrix4x4::CreateOrthographicOffCenter(float left, float right, float bottom, float top, float zNearPlane,
-        float zFarPlane, Matrix4x4* result)
+    void Float4x4::CreateOrthographicOffCenter(float left, float right, float bottom, float top, float zNearPlane, float zFarPlane, Float4x4* result)
     {
         ALIMER_ASSERT(result);
         ALIMER_ASSERT(right != left);
@@ -121,14 +223,14 @@ namespace Alimer
         result->m44 = 1.0f;
     }
 
-    Matrix4x4 Matrix4x4::CreateLookAt(const Vector3& position, const Vector3& target, const Vector3& up) noexcept
+    Float4x4 Float4x4::CreateLookAt(const Vector3& position, const Vector3& target, const Vector3& up) noexcept
     {
-        Matrix4x4 result;
+        Float4x4 result;
         CreateLookAt(position, target, up, &result);
         return result;
     }
 
-    void Matrix4x4::CreateLookAt(const Vector3& position, const Vector3& target, const Vector3& up, Matrix4x4* result)
+    void Float4x4::CreateLookAt(const Vector3& position, const Vector3& target, const Vector3& up, Float4x4* result)
     {
         ALIMER_ASSERT(result);
 
@@ -157,8 +259,7 @@ namespace Alimer
         result->m44 = 1.0f;
     }
 
-
-    Matrix4x4 Matrix4x4::CreateRotationX(float radians) noexcept
+    Float4x4 Float4x4::CreateRotationX(float radians) noexcept
     {
         float c = (float)cos(radians);
         float s = (float)sin(radians);
@@ -167,7 +268,7 @@ namespace Alimer
         // [  0  c  s  0 ]
         // [  0 -s  c  0 ]
         // [  0  0  0  1 ]
-        Matrix4x4 result;
+        Float4x4 result;
         result.m11 = 1.0f;
         result.m12 = 0.0f;
         result.m13 = 0.0f;
@@ -188,7 +289,7 @@ namespace Alimer
         return result;
     }
 
-    Matrix4x4 Matrix4x4::CreateRotationY(float radians) noexcept
+    Float4x4 Float4x4::CreateRotationY(float radians) noexcept
     {
         float c = (float)cos(radians);
         float s = (float)sin(radians);
@@ -197,7 +298,7 @@ namespace Alimer
         // [  0  1  0  0 ]
         // [  s  0  c  0 ]
         // [  0  0  0  1 ]
-        Matrix4x4 result;
+        Float4x4 result;
         result.m11 = c;
         result.m12 = 0.0f;
         result.m13 = -s;
@@ -218,7 +319,7 @@ namespace Alimer
         return result;
     }
 
-    Matrix4x4 Matrix4x4::CreateRotationZ(float radians) noexcept
+    Float4x4 Float4x4::CreateRotationZ(float radians) noexcept
     {
         const float c = (float)cos(radians);
         const float s = (float)sin(radians);
@@ -227,7 +328,7 @@ namespace Alimer
         // [ -s  c  0  0 ]
         // [  0  0  1  0 ]
         // [  0  0  0  1 ]
-        Matrix4x4 result;
+        Float4x4 result;
         result.m11 = c;
         result.m12 = s;
         result.m13 = 0.0f;
@@ -248,14 +349,14 @@ namespace Alimer
         return result;
     }
 
-    Matrix4x4 Matrix4x4::Multiply(const Matrix4x4& value1, const Matrix4x4& value2) noexcept
+    Float4x4 Float4x4::Multiply(const Float4x4& value1, const Float4x4& value2) noexcept
     {
-        Matrix4x4 result;
-        Matrix4x4::Multiply(value1, value2, &result);
+        Float4x4 result;
+        Float4x4::Multiply(value1, value2, &result);
         return result;
     }
 
-    void Matrix4x4::Multiply(const Matrix4x4& value1, const Matrix4x4& value2, Matrix4x4* result)
+    void Float4x4::Multiply(const Float4x4& value1, const Float4x4& value2, Float4x4* result)
     {
         ALIMER_ASSERT(result);
 
@@ -284,23 +385,12 @@ namespace Alimer
         result->m44 = value1.m41 * value2.m14 + value1.m42 * value2.m24 + value1.m43 * value2.m34 + value1.m44 * value2.m44;
     }
 
-    std::string Matrix4x4::ToString() const
+    std::string Float4x4::ToString() const
     {
         return fmt::format("{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
             m11, m12, m13, m14,
             m21, m22, m23, m24,
             m31, m32, m33, m34,
             m41, m42, m43, m44);
-    }
-
-    size_t Matrix4x4::ToHash() const
-    {
-        size_t hash = 0;
-        Alimer::HashCombine(hash,
-            m11, m12, m13, m14,
-            m21, m22, m23, m24,
-            m31, m32, m33, m34,
-            m41, m42, m43, m44);
-        return hash;
     }
 }

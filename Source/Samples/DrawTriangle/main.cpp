@@ -6,14 +6,14 @@ using namespace Alimer;
 
 struct DrawData
 {
-    Matrix4x4 world;
+    float4x4 world;
 };
 
 struct CameraData
 {
-    Matrix4x4 view;
-    Matrix4x4 projection;
-    Matrix4x4 viewProjection;
+    float4x4 view;
+    float4x4 projection;
+    float4x4 viewProjection;
 };
 
 class HelloWorldApp final : public Application
@@ -150,16 +150,16 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         rotationY += 0.02f;
 
         DrawData drawData;
-        drawData.world = Matrix4x4::Multiply(Matrix4x4::CreateRotationX(rotationX), Matrix4x4::CreateRotationY(rotationY));
+        drawData.world = Float4x4::Multiply(Float4x4::CreateRotationX(rotationX), Float4x4::CreateRotationY(rotationY));
 
         CameraData cameraData;
 
         auto size = GetWindow()->GetSize();
-        cameraData.view = Matrix4x4::CreateLookAt(Vector3(0, 0, 5), Vector3::Zero, Vector3::UnitY);
-        cameraData.projection = Matrix4x4::CreatePerspectiveFieldOfView(PiOver4, (float)size.x / size.y, 0.1f, 100.0f);
-        cameraData.viewProjection = Matrix4x4::Multiply(cameraData.view, cameraData.projection);
+        cameraData.view = Float4x4::CreateLookAt(Vector3(0, 0, 5), Vector3::Zero, Vector3::UnitY);
+        cameraData.projection = Float4x4::CreatePerspectiveFieldOfView(PiOver4, (float)size.x / size.y, 0.1f, 100.0f);
+        cameraData.viewProjection = Float4x4::Multiply(cameraData.view, cameraData.projection);
 
-        drawData.world = Matrix4x4::Multiply(drawData.world, cameraData.viewProjection);
+        drawData.world = Float4x4::Multiply(drawData.world, cameraData.viewProjection);
 
         commandBuffer->SetVertexBuffer(0, vertexBuffer.Get());
         commandBuffer->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
