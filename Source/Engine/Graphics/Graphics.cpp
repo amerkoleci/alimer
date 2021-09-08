@@ -1,6 +1,8 @@
 // Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#include "AlimerConfig.h"
+#include "Private/GraphicsBackend.h"
 #include "Graphics/Graphics.h"
 #include "Graphics/Texture.h"
 #include "Core/Log.h"
@@ -15,6 +17,11 @@ namespace Alimer
 #if defined(ALIMER_RHI_VULKAN)
     extern bool InitializeVulkanBackend(Window* window, const PresentationParameters& presentationParameters);
 #endif
+
+    Graphics::Graphics()
+        : impl(std::make_unique<GraphicsImpl>())
+    {
+    }
 
     bool Graphics::Initialize(_In_ Window* window, const PresentationParameters& presentationParameters)
     {

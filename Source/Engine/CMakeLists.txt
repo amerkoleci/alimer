@@ -47,7 +47,11 @@ endmacro()
 # Define target name
 set (TARGET_NAME Alimer)
 
+# Configure file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
+
 # Add root-level files
+set (HEADER_FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
 file (GLOB HEADER_FILES *.h)
 file (GLOB SOURCE_FILES *.c *.cpp)
 source_group("" FILES ${HEADER_FILES})
@@ -99,31 +103,18 @@ target_include_directories(${TARGET_NAME} PUBLIC
   $<INSTALL_INTERFACE:${INSTALL_THIRDPARTY_DIR}>
 )
 
-# Compile defines
-target_compile_definitions(${TARGET_NAME} PUBLIC
-  $<IF:$<BOOL:${ALIMER_PROFILING}>,ALIMER_PROFILING=1,ALIMER_PROFILING=0>
-  $<IF:$<BOOL:${ALIMER_NETWORK}>,ALIMER_NETWORK=1,ALIMER_NETWORK=0>
-  $<IF:$<BOOL:${ALIMER_AUDIO}>,ALIMER_AUDIO=1,ALIMER_AUDIO=0>
-  $<IF:$<BOOL:${ALIMER_PHYSICS}>,ALIMER_PHYSICS=1,ALIMER_PHYSICS=0>
-)
-
 target_link_libraries(${TARGET_NAME} PUBLIC
   #stb
   spdlog
 )
 
-# RHI defines
-if (ALIMER_RHI_D3D12)
-  target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_D3D12)
+# Graphics Backend
+if (ALIMER_VULKAN)
+  target_link_libraries(${TARGET_NAME} PRIVATE volk vma spirv-reflect)
+endif()
+
+if (ALIMER_D3D12)
   target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
-endif()
-
-if (ALIMER_RHI_VULKAN)
-  target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_VULKAN)
-endif()
-
-if (ALIMER_RHI_METAL)
-  target_compile_definitions(${TARGET_NAME} PUBLIC ALIMER_RHI_METAL)
 endif()
 
 if (WIN32 AND NOT (WINDOWS_STORE))
@@ -163,10 +154,6 @@ if(NOT (EMSCRIPTEN OR ANDROID))
   target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_PLATFORM_GLFW)
   target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 endif ()
-
-if (ALIMER_RHI_VULKAN)
-  target_link_libraries(${TARGET_NAME} PRIVATE volk vma spirv-reflect)
-endif()
 
 # SDK installation
 install(TARGETS ${TARGET_NAME}

@@ -16,6 +16,8 @@ namespace Alimer
     enum class ShaderStages : uint32_t;
     class Window;
 
+    struct GraphicsImpl;
+
     /// Defines a Graphics module class.
     class ALIMER_API Graphics : public Module<Graphics>
     {
@@ -26,6 +28,7 @@ namespace Alimer
         friend class Pipeline;
 
     public:
+        Graphics();
         virtual ~Graphics() = default;
 
         static bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
@@ -62,6 +65,8 @@ namespace Alimer
         /// Return backbuffer height.
         [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
 
+        [[nodiscard]] GraphicsImpl* GetImpl() const { return impl.get(); }
+
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
         virtual BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) = 0;
@@ -70,6 +75,7 @@ namespace Alimer
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
 
     protected:
+        std::unique_ptr<GraphicsImpl> impl;
         DeviceFeatures features{};
         DeviceLimits limits{};
 

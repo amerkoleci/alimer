@@ -55,6 +55,11 @@ namespace Alimer
         }
     }
 
+    struct GraphicsImpl final
+    {
+
+    };
+
     class Vulkan_Device;
 
     class Vulkan_Buffer final : public Buffer

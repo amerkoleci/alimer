@@ -1,0 +1,46 @@
+// Copyright © Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+
+#pragma once
+
+/* Version */
+#define ALIMER_VERSION_MAJOR   @ALIMER_VERSION_MAJOR@
+#define ALIMER_VERSION_MINOR   @ALIMER_VERSION_MINOR@
+#define ALIMER_VERSION_PATCH   @ALIMER_VERSION_PATCH@
+#define ALIMER_VERSION_STR     "@ALIMER_VERSION_MAJOR@.@ALIMER_VERSION_MINOR@.@ALIMER_VERSION_PATCH@"
+#define ALIMER_VERSION_ALIAS   "@ALIMER_VERSION_ALIAS@"
+
+/* Repository info */
+#define ALIMER_REVISION_ID      @ALIMER_REVISION_ID@
+#define ALIMER_SHORT_CHANGE_SET @ALIMER_SHORT_CHANGE_SET@
+#define ALIMER_CHANGE_SET       @ALIMER_CHANGE_SET@
+#define ALIMER_CHANGE_SET_DATE  "@ALIMER_CHANGE_SET_DATE@"
+
+/* Build configuration */
+#cmakedefine ALIMER_PROFILING
+#cmakedefine ALIMER_NETWORK
+#cmakedefine ALIMER_AUDIO
+#cmakedefine ALIMER_PHYSICS
+
+/* Graphics API */
+#cmakedefine ALIMER_VULKAN
+#cmakedefine ALIMER_D3D12
+
+#ifdef _WIN32
+#   ifdef _MSC_VER
+#       pragma warning(disable: 4251)
+#       pragma warning(disable: 4275)
+#   endif
+
+#   if ALIMER_EXPORTS
+#       define ALIMER_API __declspec(dllexport)
+#   elif ALIMER_IMPORTS
+#       define ALIMER_API __declspec(dllimport)
+#   else
+#       define ALIMER_API
+#   endif
+#elif ALIMER_EXPORTS || ALIMER_IMPORTS
+#   define ALIMER_API __attribute__((visibility("default")))
+#else
+#   define ALIMER_API
+#endif
