@@ -14,7 +14,7 @@ add_subdirectory(spdlog EXCLUDE_FROM_ALL)
 set_property(TARGET spdlog PROPERTY FOLDER "ThirdParty")
 
 # Graphics backend dependencies
-if(ALIMER_VULKAN)
+if(ALIMER_RHI_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)
     set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
@@ -78,7 +78,7 @@ if(ALIMER_VULKAN)
     set_property(TARGET spirv-reflect PROPERTY FOLDER "ThirdParty")
 endif()
 
-if (ALIMER_D3D12)
+if (ALIMER_RHI_D3D12)
     add_library(DirectX-Headers INTERFACE)
     set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
     target_sources(DirectX-Headers INTERFACE 

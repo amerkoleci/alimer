@@ -23,8 +23,9 @@
 #cmakedefine ALIMER_PHYSICS
 
 /* Graphics API */
-#cmakedefine ALIMER_VULKAN
-#cmakedefine ALIMER_D3D12
+#cmakedefine ALIMER_RHI_D3D12
+#cmakedefine ALIMER_RHI_VULKAN
+#cmakedefine ALIMER_RHI_METAL
 
 #ifdef _WIN32
 #   ifdef _MSC_VER

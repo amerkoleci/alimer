@@ -143,7 +143,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         return true;
     }
 
-    void OnDraw([[maybe_unused]] CommandBuffer* commandBuffer) override
+    void OnDraw([[maybe_unused]] RHI::ICommandList* commandList) override
     {
         //time += (float)GetElapsedSeconds();
         rotationX += 0.01f;
@@ -161,11 +161,11 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
         drawData.world = Float4x4::Multiply(drawData.world, cameraData.viewProjection);
 
-        commandBuffer->SetVertexBuffer(0, vertexBuffer.Get());
-        commandBuffer->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
-        commandBuffer->SetPipeline(renderPipeline.Get());
-        commandBuffer->BindConstantBufferData(drawData, 0);
-        commandBuffer->DrawIndexed(36);
+        //commandList->SetVertexBuffer(0, vertexBuffer.Get());
+        //commandList->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
+        //commandList->SetPipeline(renderPipeline.Get());
+        //commandList->BindConstantBufferData(drawData, 0);
+        //commandList->DrawIndexed(36);
     }
 };
 

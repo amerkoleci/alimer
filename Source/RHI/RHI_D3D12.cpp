@@ -1,7 +1,7 @@
 // Copyright © Amer Koleci.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_RHI_D3D12)
+#if defined(ALIMER_RHI_D3D12) && defined(TODO)
 #include "Window.h"
 #include "Core/StringUtils.h"
 #include "Core/Log.h"

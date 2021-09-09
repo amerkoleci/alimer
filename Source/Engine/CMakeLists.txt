@@ -68,7 +68,6 @@ define_engine_source_files(
   Math
   IO
   Graphics
-  RHI
 )
 
 define_engine_source_files(Private NO_INSTALL)
@@ -106,16 +105,8 @@ target_include_directories(${TARGET_NAME} PUBLIC
 target_link_libraries(${TARGET_NAME} PUBLIC
   #stb
   spdlog
+  RHI
 )
-
-# Graphics Backend
-if (ALIMER_VULKAN)
-  target_link_libraries(${TARGET_NAME} PRIVATE volk vma spirv-reflect)
-endif()
-
-if (ALIMER_D3D12)
-  target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
-endif()
 
 if (WIN32 AND NOT (WINDOWS_STORE))
 	target_link_libraries(${TARGET_NAME} PRIVATE dxc)

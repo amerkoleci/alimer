@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Window.h"
-#include "Graphics/GraphicsDefs.h"
+#include "RHI.h"
 
 namespace Alimer
 {
@@ -53,7 +53,7 @@ namespace Alimer
         virtual bool Initialize(int argc, const char* argv[]) { return true; }
 
         virtual void Update();
-        virtual void OnDraw([[maybe_unused]] CommandBuffer* commandBuffer) {}
+        virtual void OnDraw([[maybe_unused]] RHI::ICommandList* commandList) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}
@@ -62,6 +62,7 @@ namespace Alimer
         virtual void EndDraw();
 
         std::unique_ptr<Window> window;
+        RHI::DeviceHandle rhiDevice;
 
     private:
         // Internal lifecycle methods

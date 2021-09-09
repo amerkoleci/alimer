@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Application.h"
-#include "Graphics/Graphics.h"
 #include "Core/Log.h"
 
 namespace Alimer
@@ -35,8 +34,8 @@ namespace Alimer
     Application::~Application()
     {
         // Shutdown modules.
-        gGraphics().WaitIdle();
-        gGraphics().Shutdown();
+        //gGraphics().WaitIdle();
+        rhiDevice.Reset();
         //gAssets().Shutdown();
         window.reset();
         gLog().Shutdown();
@@ -61,12 +60,13 @@ namespace Alimer
         }
 
         // Init graphics module
-        PresentationParameters presentationParameters = {};
+        RHI::ValidationMode validationMode = RHI::ValidationMode::Disabled;
 #if ALIMER_DEBUG
-        presentationParameters.validationMode = ValidationMode::Enabled;
+        validationMode = RHI::ValidationMode::Enabled;
 #endif
 
-        if (!Graphics::Initialize(window.get(), presentationParameters))
+        rhiDevice = RHI::CreateDevice(RHI::GraphicsAPI::Vulkan, validationMode);
+        if (!rhiDevice)
         {
             return false;
         }
@@ -102,7 +102,7 @@ namespace Alimer
         }
 
         // Wait for pending GPU operations before shutdown.
-        gGraphics().WaitIdle();
+        //gGraphics().WaitIdle();
 
         running = false;
         return 0;
@@ -114,12 +114,12 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return gGraphics().BeginFrame();
+        return true; // gGraphics().BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        gGraphics().EndFrame();
+        //gGraphics().EndFrame();
     }
 
     void Application::Render()
@@ -130,15 +130,15 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
-            commandBuffer->PushDebugGroup("Frame");
-            commandBuffer->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
-
-            OnDraw(commandBuffer);
-
-            commandBuffer->EndRenderPass();
-            commandBuffer->PopDebugGroup();
-            gGraphics().EndFrame();
+            //CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
+            //commandBuffer->PushDebugGroup("Frame");
+            //commandBuffer->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
+            //
+            //OnDraw(commandBuffer);
+            //
+            //commandBuffer->EndRenderPass();
+            //commandBuffer->PopDebugGroup();
+            //gGraphics().EndFrame();
         }
     }
 }
