@@ -82,6 +82,7 @@ public:
             16, 17, 18,  16, 18, 19,
             22, 21, 20, 23, 22, 20
         };
+#if TODO
         vertexBuffer = Buffer::Create(vertices, sizeof(vertices), BufferUsage::Vertex, "VertexBuffer");
         indexBuffer = Buffer::Create(indices, sizeof(indices), BufferUsage::Index);
 
@@ -140,6 +141,8 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         renderPipelineDesc.colorFormats[0] = gGraphics().GetCurrentBackBuffer()->GetFormat();
         renderPipelineDesc.depthStencilFormat = gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
         renderPipeline = Pipeline::Create(renderPipelineDesc);
+#endif // TODO
+
         return true;
     }
 

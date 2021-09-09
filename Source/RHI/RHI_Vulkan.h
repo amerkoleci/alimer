@@ -13,59 +13,47 @@
 
 namespace RHI
 {
-    [[nodiscard]] constexpr const char* ToString(VkResult result)
-    {
-        switch (result)
-        {
-#define STR(r)   \
-	case VK_##r: \
-		return #r
-            STR(SUCCESS);
-            STR(NOT_READY);
-            STR(TIMEOUT);
-            STR(EVENT_SET);
-            STR(EVENT_RESET);
-            STR(INCOMPLETE);
-            STR(ERROR_OUT_OF_HOST_MEMORY);
-            STR(ERROR_OUT_OF_DEVICE_MEMORY);
-            STR(ERROR_INITIALIZATION_FAILED);
-            STR(ERROR_DEVICE_LOST);
-            STR(ERROR_MEMORY_MAP_FAILED);
-            STR(ERROR_LAYER_NOT_PRESENT);
-            STR(ERROR_EXTENSION_NOT_PRESENT);
-            STR(ERROR_FEATURE_NOT_PRESENT);
-            STR(ERROR_INCOMPATIBLE_DRIVER);
-            STR(ERROR_TOO_MANY_OBJECTS);
-            STR(ERROR_FORMAT_NOT_SUPPORTED);
-            STR(ERROR_SURFACE_LOST_KHR);
-            STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-            STR(SUBOPTIMAL_KHR);
-            STR(ERROR_OUT_OF_DATE_KHR);
-            STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-            STR(ERROR_VALIDATION_FAILED_EXT);
-            STR(ERROR_INVALID_SHADER_NV);
-#undef STR
-            default:
-                return "UNKNOWN_ERROR";
-        }
-    }
-
     class VulkanDevice final : public IDevice
     {
     public:
         VulkanDevice(ValidationMode validationMode);
+        ~VulkanDevice() override;
+
+    private:
+        bool debugUtils = false;
+        VkInstance instance = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
+
+        VkPhysicalDeviceProperties2 properties2 = {};
+        VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
+        VkPhysicalDeviceVulkan12Properties properties_1_2 = {};
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties = {};
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragment_shading_rate_properties = {};
+        VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
+
+        VkPhysicalDeviceFeatures2 features2 = {};
+        VkPhysicalDeviceVulkan11Features features_1_1 = {};
+        VkPhysicalDeviceVulkan12Features features_1_2 = {};
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = {};
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_features = {};
+        VkPhysicalDeviceRayQueryFeaturesKHR raytracing_query_features = {};
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features = {};
+        VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_features = {};
+
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+        std::vector<VkQueueFamilyProperties> physicalDeviceQueueFamilies;
+
+        uint32_t graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t computeFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t copyFamily = VK_QUEUE_FAMILY_IGNORED;
+        std::vector<uint32_t> queueFamilies; // Unique queue families
+
+        VkDevice device = VK_NULL_HANDLE;
+        VkQueue graphicsQueue = VK_NULL_HANDLE;
+        VkQueue computeQueue = VK_NULL_HANDLE;
+        VkQueue copyQueue = VK_NULL_HANDLE;
+
+        VmaAllocator allocator = VK_NULL_HANDLE;
     };
 }
-
-/// Helper macro to test the result of Vulkan calls which can return an error.
-#define VK_CHECK(x) \
-	do \
-	{ \
-		VkResult err = x; \
-		if (err) \
-		{ \
-			LOGE("Detected Vulkan error: {}", Alimer::ToString(err)); \
-		} \
-	} while (0)
-
-#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, Alimer::ToString(result));

@@ -36,8 +36,33 @@
 #   define RHI_API
 #endif
 
+#if defined(_MSC_VER)
+#   define RHI_CALL __cdecl
+#else
+#   define RHI_CALL
+#endif
+
 namespace RHI
 {
+    static constexpr uint32_t kMaxFramesInFlight = 2;
+    static constexpr uint32_t kMaxColorAttachments = 8;
+    static constexpr uint32_t kMaxViewportsAndScissors = 8;
+    static constexpr uint32_t kMaxVertexBufferBindings = 8;
+    static constexpr uint32_t kMaxVertexAttributes = 16;
+    static constexpr uint32_t kMaxVertexAttributeOffset = 2047u;
+    static constexpr uint32_t kMaxVertexBufferStride = 2048u;
+    static constexpr uint32_t kMaxCommandLists = 32u;
+    static constexpr uint32_t kMaxUniformBufferBindings = 14;
+    static constexpr uint32_t kMaxLogMessageSize = 1024;
+
+    static constexpr uint32_t KnownVendorId_AMD = 0x1002;
+    static constexpr uint32_t KnownVendorId_Intel = 0x8086;
+    static constexpr uint32_t KnownVendorId_Nvidia = 0x10DE;
+    static constexpr uint32_t KnownVendorId_Microsoft = 0x1414;
+    static constexpr uint32_t KnownVendorId_ARM = 0x13B5;
+    static constexpr uint32_t KnownVendorId_ImgTec = 0x1010;
+    static constexpr uint32_t KnownVendorId_Qualcomm = 0x5143;
+
     enum class GraphicsAPI : uint32_t
     {
         Direct3D12,
@@ -54,6 +79,65 @@ namespace RHI
         Verbose,
         /// Enable GPU-based validation
         GPU
+    };
+
+    enum class LogLevel : uint32_t
+    {
+        Info = 0,
+        Warn,
+        Debug,
+        Error
+    };
+
+    /* Logging */
+    typedef void (RHI_CALL* LogFunction)(LogLevel level, const char* message);
+
+    RHI_API void SetLogFunction(LogFunction function);
+    RHI_API void LogInfo(const char* format, ...);
+    RHI_API void LogDebug(const char* format, ...);
+    RHI_API void LogWarn(const char* format, ...);
+    RHI_API void LogError(const char* format, ...);
+
+    /* Structs */
+    struct DeviceFeatures
+    {
+        /// Whether tessellation support is available.
+        bool tessellation = false;
+        /// Whether Ray Tracing support is available.
+        bool rayTracing = false;
+        /// Whether Mesh Shader support is available.
+        bool meshShader = false;
+        /// Whether VariableRate shading support is available.
+        bool variableRateShading = false;
+        /// Whether VariableRate shading Tier2 support is available.
+        bool variableRateShadingTier2 = false;
+    };
+
+    struct DeviceLimits
+    {
+        /// The maximum pixel size of a 1d image.
+        uint32_t maxTextureDimension1D;
+
+        /// The maximum pixel size along one axis of a 2d image.
+        uint32_t maxTextureDimension2D;
+
+        /// The maximum pixel size along one axis of a 3d image.
+        uint32_t maxTextureDimension3D;
+
+        /// The maximum pixel size along one axis of a cube image.
+        uint32_t maxTextureDimensionCube;
+
+        /// The maximum size of an image array.
+        uint32_t maxTextureArraySize;
+
+        /// The alignment required for constant buffers.
+        uint64_t minConstantBufferOffsetAlignment;
+
+        /// The alignment required for storage buffers.
+        uint64_t minStorageBufferOffsetAlignment;
+
+        /// The maximum number of draws when doing indirect drawing.
+        uint32_t maxDrawIndirectCount = 1;
     };
 
     class RHI_API IResource
@@ -320,11 +404,23 @@ namespace RHI
     class RHI_API IDevice : public IResource
     {
     public:
+        /// Returns the set of features supported by this device.
+        const DeviceFeatures& GetFeatures() const { return features; }
+
+        /// Returns the set of hardware limits for this device.
+        const DeviceLimits& GetLimits() const { return limits; }
+
+    protected:
+        DeviceFeatures features{};
+        DeviceLimits limits{};
     };
 
     using DeviceHandle = RefCountPtr<IDevice>;
 
     RHI_API DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode = ValidationMode::Disabled);
+
+    /* Helper methods */
+    RHI_API const char* GetVendorName(uint32_t vendorId);
 }
 
 #undef RHI_ENUM_CLASS_FLAG_OPERATORS

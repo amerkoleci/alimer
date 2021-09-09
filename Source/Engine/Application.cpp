@@ -16,6 +16,27 @@ namespace Alimer
             static_cast<Application*>(arg)->Tick();
         }
 #endif
+
+        static inline void RHILogFunction(RHI::LogLevel level, const char* message)
+        {
+            switch (level)
+            {
+                case RHI::LogLevel::Info:
+                    LOGI("RHI: {}", message);
+                    break;
+                case RHI::LogLevel::Warn:
+                    LOGW("RHI: {}", message);
+                    break;
+                case RHI::LogLevel::Debug:
+                    LOGD("RHI: {}", message);
+                    break;
+                case RHI::LogLevel::Error:
+                    LOGE("RHI: {}", message);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
 
@@ -25,6 +46,8 @@ namespace Alimer
 
          // Init log first.
         gLog().Start();
+
+        RHI::SetLogFunction(RHILogFunction);
 
         PlatformConstruct();
 

@@ -26,14 +26,6 @@ namespace Alimer
     static constexpr u32 kAllMipLevels = static_cast<u32>(-1);
     static constexpr u32 kAllArraySlices = static_cast<u32>(-1);
 
-    static constexpr u32 KnownVendorId_AMD = 0x1002;
-    static constexpr u32 KnownVendorId_Intel = 0x8086;
-    static constexpr u32 KnownVendorId_Nvidia = 0x10DE;
-    static constexpr u32 KnownVendorId_Microsoft = 0x1414;
-    static constexpr u32 KnownVendorId_ARM = 0x13B5;
-    static constexpr u32 KnownVendorId_ImgTec = 0x1010;
-    static constexpr u32 KnownVendorId_Qualcomm = 0x5143;
-
     /* Enums */
     enum class GraphicsAPI : uint8_t
     {
@@ -242,27 +234,7 @@ namespace Alimer
     };
 
     /* Helper methods */
-    inline const char* GetVendorName(uint32_t vendorId)
-    {
-        switch (vendorId)
-        {
-            case KnownVendorId_AMD:
-                return "AMD";
-            case KnownVendorId_ImgTec:
-                return "IMAGINATION";
-            case KnownVendorId_Nvidia:
-                return "Nvidia";
-            case KnownVendorId_ARM:
-                return "ARM";
-            case KnownVendorId_Qualcomm:
-                return "Qualcom";
-            case KnownVendorId_Intel:
-                return "Intel";
-            default:
-                return "Unknown";
-        }
-    }
-
+    
     // Returns the number of mip levels given a texture size
     ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
 
