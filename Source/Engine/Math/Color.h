@@ -60,15 +60,15 @@ namespace Alimer
         {
         }
 
-        //explicit Color(const Vector3& vector) noexcept
-        //    : r(vector.x), g(vector.y), b(vector.z), a(1.0f)
-        //{
-        //}
-        //
-        //explicit Color(const Vector4& vector) noexcept
-        //    : r(vector.x), g(vector.y), b(vector.z), a(vector.w)
-        //{
-        //}
+        explicit Color(const Vector3& vector) noexcept
+            : r(vector.x), g(vector.y), b(vector.z), a(1.0f)
+        {
+        }
+        
+        explicit Color(const Vector4& vector) noexcept
+            : r(vector.x), g(vector.y), b(vector.z), a(vector.w)
+        {
+        }
 
         explicit Color(_In_reads_(4) const float* data) noexcept
             : r(data[0]), g(data[1]), b(data[2]), a(data[3])
@@ -119,6 +119,8 @@ namespace Alimer
 
         /// Return hash value of the color.
         size_t ToHash() const;
+
+        static const Color CornflowerBlue;
     };
 
     /// Multiply Color with a scalar.
@@ -145,7 +147,7 @@ namespace Alimer
         extern const ALIMER_SELECT_ANY Color Chartreuse = { 0.498039246f, 1.0f, 0.0f, 1.0f };
         extern const ALIMER_SELECT_ANY Color Chocolate = { 0.823529482f, 0.411764741f, 0.117647067f, 1.0f };
         extern const ALIMER_SELECT_ANY Color Coral = { 1.0f, 0.498039246f, 0.313725501f, 1.0f };
-        extern const ALIMER_SELECT_ANY Color CornflowerBlue = { 0.392156899f, 0.584313750f, 0.929411829f, 1.0f };
+        
         extern const ALIMER_SELECT_ANY Color Cornsilk = { 1.0f, 0.972549081f, 0.862745166f, 1.0f };
         extern const ALIMER_SELECT_ANY Color Crimson = { 0.862745166f, 0.078431375f, 0.235294133f, 1.0f };
         extern const ALIMER_SELECT_ANY Color Cyan = { 0.0f, 1.0f, 1.0f, 1.0f };

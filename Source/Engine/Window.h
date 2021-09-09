@@ -6,6 +6,7 @@
 #include "Core/Types.h"
 #include "Core/Signal.h"
 #include "Math/Vector2.h"
+#include "RHI.h"
 
 namespace Alimer
 {
@@ -61,6 +62,7 @@ namespace Alimer
         void SetSize(int32_t width, int32_t height);
         void SetSize(const Int2& size);
 
+        [[nodiscard]] RHI::ISwapChain* GetSwapChain() const { return swapChain.Get(); }
         [[nodiscard]] WindowImpl* GetImpl() const { return impl.get(); }
 
     private:
@@ -68,11 +70,13 @@ namespace Alimer
 
         void Destroy();
         void OnClosed();
+        void CreateSwapChain();
+
+        std::unique_ptr<WindowImpl> impl;
 
         bool isClosing{ false };
         std::string title;
-
-        std::unique_ptr<WindowImpl> impl;
+        RHI::SwapChainHandle swapChain;
     };
 }
 

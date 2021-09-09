@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Application.h"
+#include "Math/Color.h"
 #include "Core/Log.h"
 
 namespace Alimer
@@ -39,6 +40,7 @@ namespace Alimer
         }
     }
 
+    RHI::DeviceHandle GRHIDevice;
 
     Application::Application()
     {
@@ -57,8 +59,8 @@ namespace Alimer
     Application::~Application()
     {
         // Shutdown modules.
-        rhiDevice->WaitIdle();
-        rhiDevice.Reset();
+        GRHIDevice->WaitIdle();
+        GRHIDevice.Reset();
         //gAssets().Shutdown();
         window.reset();
         gLog().Shutdown();
@@ -88,8 +90,8 @@ namespace Alimer
         validationMode = RHI::ValidationMode::Enabled;
 #endif
 
-        rhiDevice = RHI::CreateDevice(RHI::GraphicsAPI::Vulkan, validationMode);
-        if (!rhiDevice)
+        GRHIDevice = RHI::CreateDevice(RHI::GraphicsAPI::Vulkan, validationMode);
+        if (!GRHIDevice)
         {
             return false;
         }
@@ -125,7 +127,7 @@ namespace Alimer
         }
 
         // Wait for pending GPU operations before shutdown.
-        rhiDevice->WaitIdle();
+        GRHIDevice->WaitIdle();
 
         running = false;
         return 0;
@@ -137,12 +139,12 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return rhiDevice->BeginFrame();
+        return GRHIDevice->BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        rhiDevice->EndFrame();
+        GRHIDevice->EndFrame();
     }
 
     void Application::Render()
@@ -153,13 +155,14 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            RHI::ICommandList* commandList = rhiDevice->BeginCommandList();
+            RHI::ICommandList* commandList = GRHIDevice->BeginCommandList();
             commandList->PushDebugGroup("Frame");
-            //commandBuffer->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
-            //
-            //OnDraw(commandBuffer);
-            //
-            //commandBuffer->EndRenderPass();
+
+            commandList->BeginRenderPass(window->GetSwapChain(), Color::CornflowerBlue);
+            
+            OnDraw(commandList);
+            
+            commandList->EndRenderPass();
             commandList->PopDebugGroup();
             EndDraw();
         }

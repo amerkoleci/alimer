@@ -95,6 +95,20 @@ namespace RHI
     }
 
     /* Implementation */
+    TextureHandle IDevice::CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData)
+    {
+        assert(descriptor);
+
+        return CreateTextureCore(descriptor, initialData);
+    }
+
+    SwapChainHandle IDevice::CreateSwapChain(void* windowHandle, const SwapChainDescriptor* descriptor)
+    {
+        assert(descriptor);
+
+        return CreateSwapChainCore(windowHandle, descriptor);
+    }
+
     DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode)
     {
 #if defined(ALIMER_RHI_VULKAN)

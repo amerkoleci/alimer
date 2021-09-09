@@ -6,6 +6,8 @@
 
 namespace Alimer
 {
+    const Color Color::CornflowerBlue = { 0.392156899f, 0.584313750f, 0.929411829f, 1.0f };
+
     std::string Color::ToString() const
     {
         return fmt::format("{} {} {} {}", r, g, b, a);

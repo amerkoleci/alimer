@@ -233,6 +233,11 @@ namespace Alimer
     {
         ALIMER_ASSERT(impl->window);
 
+        if (!swapChain)
+        {
+            CreateSwapChain();
+        }
+
         glfwShowWindow(impl->window);
     }
 

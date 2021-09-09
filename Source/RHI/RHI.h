@@ -103,6 +103,164 @@ namespace RHI
         Error
     };
 
+    /// Defines texture format.
+    enum class TextureFormat : uint32_t
+    {
+        Undefined = 0,
+        // 8-bit formats
+        R8Unorm,
+        R8Snorm,
+        R8Uint,
+        R8Sint,
+        // 16-bit formats
+        R16Unorm,
+        R16Snorm,
+        R16Uint,
+        R16Sint,
+        R16Float,
+        RG8Unorm,
+        RG8Snorm,
+        RG8Uint,
+        RG8Sint,
+        // Packed 16-Bit Pixel Formats
+        BGRA4Unorm,
+        B5G6R5Unorm,
+        B5G5R5A1Unorm,
+        // 32-bit formats
+        R32Uint,
+        R32Sint,
+        R32Float,
+        RG16Unorm,
+        RG16Snorm,
+        RG16Uint,
+        RG16Sint,
+        RG16Float,
+        RGBA8Unorm,
+        RGBA8UnormSrgb,
+        RGBA8Snorm,
+        RGBA8Uint,
+        RGBA8Sint,
+        BGRA8Unorm,
+        BGRA8UnormSrgb,
+        // Packed 32-Bit formats
+        RGB10A2Unorm,
+        RG11B10Float,
+        RGB9E5Float,
+        // 64-Bit formats
+        RG32Uint,
+        RG32Sint,
+        RG32Float,
+        RGBA16Unorm,
+        RGBA16Snorm,
+        RGBA16Uint,
+        RGBA16Sint,
+        RGBA16Float,
+        // 128-Bit formats
+        RGBA32Uint,
+        RGBA32Sint,
+        RGBA32Float,
+        // Depth-stencil formats
+        Depth16Unorm,
+        Depth32Float,
+        Depth24UnormStencil8,
+        Depth32FloatStencil8,
+        // Compressed BC formats
+        BC1RGBAUnorm,
+        BC1RGBAUnormSrgb,
+        BC2RGBAUnorm,
+        BC2RGBAUnormSrgb,
+        BC3RGBAUnorm,
+        BC3RGBAUnormSrgb,
+        BC4RUnorm,
+        BC4RSnorm,
+        BC5RGUnorm,
+        BC5RGSnorm,
+        BC6HRGBFloat,
+        BC6HRGBUFloat,
+        BC7RGBAUnorm,
+        BC7RGBAUnormSrgb,
+        // EAC/ETC compressed formats
+        ETC2RGB8Unorm,
+        ETC2RGB8UnormSrgb,
+        ETC2RGB8A1Unorm,
+        ETC2RGB8A1UnormSrgb,
+        ETC2RGBA8Unorm,
+        ETC2RGBA8UnormSrgb,
+        EACR11Unorm,
+        EACR11Snorm,
+        EACRG11Unorm,
+        EACRG11Snorm,
+        // ASTC compressed formats
+        ASTC4x4Unorm,
+        ASTC4x4UnormSrgb,
+        ASTC5x4Unorm,
+        ASTC5x4UnormSrgb,
+        ASTC5x5Unorm,
+        ASTC5x5UnormSrgb,
+        ASTC6x5Unorm,
+        ASTC6x5UnormSrgb,
+        ASTC6x6Unorm,
+        ASTC6x6UnormSrgb,
+        ASTC8x5Unorm,
+        ASTC8x5UnormSrgb,
+        ASTC8x6Unorm,
+        ASTC8x6UnormSrgb,
+        ASTC8x8Unorm,
+        ASTC8x8UnormSrgb,
+        ASTC10x5Unorm,
+        ASTC10x5UnormSrgb,
+        ASTC10x6Unorm,
+        ASTC10x6UnormSrgb,
+        ASTC10x8Unorm,
+        ASTC10x8UnormSrgb,
+        ASTC10x10Unorm,
+        ASTC10x10UnormSrgb,
+        ASTC12x10Unorm,
+        ASTC12x10UnormSrgb,
+        ASTC12x12Unorm,
+        ASTC12x12UnormSrgb,
+
+        Count
+    };
+
+    enum class TextureDimension : uint32_t
+    {
+        Texture1D,
+        Texture2D,
+        Texture3D,
+    };
+
+    enum class TextureUsage : uint32_t
+    {
+        None = 0,
+        ShaderRead = 1 << 0,
+        ShaderWrite = 1 << 1,
+        RenderTarget = 1 << 2,
+        ShadingRate = 1 << 3,
+    };
+    RHI_ENUM_CLASS_FLAG_OPERATORS(TextureUsage);
+
+    enum class LoadAction : uint32_t
+    {
+        Clear,
+        Load,
+        Discard,
+    };
+
+    enum class StoreAction : uint32_t
+    {
+        Store,
+        Discard,
+    };
+
+    enum class PresentMode : uint32_t
+    {
+        Immediate = 0,
+        Mailbox,
+        Fifo,
+    };
+
+
     /* Logging */
     typedef void (RHI_CALL* LogFunction)(LogLevel level, const char* message);
 
@@ -117,6 +275,35 @@ namespace RHI
     {
         uint64_t size = 0;
         const char* label = nullptr;
+    };
+
+    struct TextureDescriptor
+    {
+        const char* label = nullptr;
+        TextureUsage usage = TextureUsage::ShaderRead;
+        TextureDimension dimension = TextureDimension::Texture2D;
+        uint32_t width = 1;
+        uint32_t height = 1;
+        uint32_t depthOrArrayLayers = 1;
+        TextureFormat format = TextureFormat::BGRA8Unorm;
+        uint32_t mipLevelCount = 1;
+        uint32_t sampleCount = 1;
+    };
+
+    struct TextureData
+    {
+        const void* pData = nullptr;
+        uint32_t    rowPitch = 0;
+        uint32_t    slicePitch = 0;
+    };
+
+    struct SwapChainDescriptor
+    {
+        const char* label = nullptr;
+        uint32_t width;
+        uint32_t height;
+        TextureFormat format = TextureFormat::BGRA8UnormSrgb;
+        PresentMode presentMode = PresentMode::Fifo;
     };
 
     struct DeviceFeatures
@@ -416,6 +603,22 @@ namespace RHI
         }
     };
 
+    class IBuffer : public IResource
+    {
+    public:
+    };
+
+    class ITexture : public IResource
+    {
+    public:
+    };
+
+    class ISwapChain : public IResource
+    {
+    public:
+        virtual bool Resize(uint32_t width, uint32_t height) = 0;
+    };
+
     class RHI_API ICommandList
     {
     protected:
@@ -433,15 +636,14 @@ namespace RHI
         virtual void PushDebugGroup(const char* name) = 0;
         virtual void PopDebugGroup() = 0;
         virtual void InsertDebugMarker(const char* name) = 0;
-    };
 
-    class IBuffer : public IResource
-    {
-    public:
-        [[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
+        virtual void BeginRenderPass(const ISwapChain* swapChain, const float clearColor[4]) = 0;
+        virtual void EndRenderPass() = 0;
     };
 
     using BufferHandle = RefCountPtr<IBuffer>;
+    using TextureHandle = RefCountPtr<ITexture>;
+    using SwapChainHandle = RefCountPtr<ISwapChain>;
 
     class RHI_API IDevice : public IResource
     {
@@ -451,6 +653,10 @@ namespace RHI
         virtual void EndFrame() = 0;
 
         [[nodiscard]] virtual ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) = 0;
+
+        [[nodiscard]] TextureHandle CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData);
+        
+        [[nodiscard]] SwapChainHandle CreateSwapChain(void* windowHandle, const SwapChainDescriptor* descriptor);
 
         /// Returns the set of features supported by this device.
         const DeviceFeatures& GetFeatures() const { return features; }
@@ -462,6 +668,10 @@ namespace RHI
 
         [[nodiscard]] virtual uint64_t GetFrameCount() const { return frameCount; }
         [[nodiscard]] virtual uint32_t GetFrameIndex() const { return frameIndex; }
+
+    private:
+        virtual TextureHandle CreateTextureCore(const TextureDescriptor* descriptor, const TextureData* initialData) = 0;
+        virtual SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* descriptor) = 0;
 
     protected:
         DeviceFeatures features{};
@@ -477,6 +687,7 @@ namespace RHI
 
     /* Helper methods */
     RHI_API const char* GetVendorName(uint32_t vendorId);
+
 }
 
 #undef RHI_ENUM_CLASS_FLAG_OPERATORS

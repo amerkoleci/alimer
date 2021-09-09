@@ -62,7 +62,6 @@ namespace Alimer
         virtual void EndDraw();
 
         std::unique_ptr<Window> window;
-        RHI::DeviceHandle rhiDevice;
 
     private:
         // Internal lifecycle methods
@@ -78,6 +77,8 @@ namespace Alimer
         bool running{ false };
         bool exitRequested{ false };
     };
+
+    extern ALIMER_API RHI::DeviceHandle GRHIDevice;
 }
 
 #if !defined(ALIMER_DEFINE_APPLICATION)

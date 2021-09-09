@@ -17,8 +17,58 @@ namespace RHI
 {
     class VulkanDevice;
 
+    class VulkanBuffer final : public IBuffer
+    {
+    public:
+        VulkanDevice* device = nullptr;
+        uint64_t size = 0;
+    };
+
+    class VulkanTexture final : public ITexture
+    {
+    public:
+        VulkanDevice* device = nullptr;
+    };
+
+    class VulkanSwapChain final : public ISwapChain
+    {
+    public:
+        VulkanDevice* device = nullptr;
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        VkSwapchainKHR handle = VK_NULL_HANDLE;
+        VkExtent2D size = {};
+        TextureFormat format = TextureFormat::BGRA8UnormSrgb;
+        PresentMode presentMode = PresentMode::Fifo;
+        uint32_t imageCount = 0;
+        
+
+        //mutable bool needAcquire = true;
+        mutable uint32_t backBufferIndex = 0;
+        std::vector<RefCountPtr<VulkanTexture>> backBufferTextures;
+        std::vector<VkImageView> swapChainImageViews;
+
+        ~VulkanSwapChain() override;
+        void Destroy(bool destroyHandle);
+        bool Resize(uint32_t width, uint32_t height) override;
+        VkImageView AcquireNextImage() const;
+        void AfterPresent(VkResult result) const;
+
+        VkSemaphore GetImageAvailableSemaphore() const noexcept { return imageAvailableSemaphores[semaphoreIndex]; }
+        VkSemaphore GetRenderCompleteSemaphore() const noexcept { return renderCompleteSemaphores[semaphoreIndex]; }
+
+    private:
+        std::vector<VkSemaphore> imageAvailableSemaphores;
+        std::vector<VkSemaphore> renderCompleteSemaphores;
+        std::vector<VkFence> imageAcquiredFences;
+        mutable std::vector<bool> imageAcquiredFenceSubmitted;
+        mutable uint32_t semaphoreIndex = 0;
+        bool isMinimized = false;
+    };
+
     class VulkanCommandList final : public ICommandList
     {
+        friend class VulkanDevice;
+
     public:
         VulkanDevice* device;
         CommandQueue queue;
@@ -33,11 +83,15 @@ namespace RHI
         void PushDebugGroup(const char* name) override;
         void PopDebugGroup() override;
         void InsertDebugMarker(const char* name) override;
+        void BeginRenderPass(const ISwapChain* swapChain, const float clearColor[4]) override;
+        void EndRenderPass() override;
 
     private:
         VkCommandPool commandPools[kMaxFramesInFlight];
         VkCommandBuffer commandBuffers[kMaxFramesInFlight];
         VkCommandBuffer commandBuffer; // Active command buffer
+        bool insideRenderPass = false;
+        std::vector<const VulkanSwapChain*> swapChains;
 
         struct DescriptorBinder
         {
@@ -73,7 +127,64 @@ namespace RHI
         VkCommandPool commandPool = VK_NULL_HANDLE;
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         uint64_t target = 0;
-        BufferHandle uploadBuffer;
+        RefCountPtr<VulkanBuffer> uploadBuffer;
+    };
+
+
+    template <class T>
+    void hash_combine(size_t& seed, const T& v)
+    {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+
+    struct VulkanAttachmentDescription
+    {
+        TextureFormat format;
+        LoadAction loadAction;
+        StoreAction storeAction;
+    };
+
+    struct VulkanRenderPassKey
+    {
+        uint32_t colorAttachmentCount = 0;
+        VulkanAttachmentDescription colorAttachments[kMaxColorAttachments] = {};
+        VulkanAttachmentDescription depthStencilAttachment = {};
+        uint32_t sampleCount = 1;
+
+        size_t GetHash() const
+        {
+            if (hash == 0)
+            {
+                hash_combine(hash, colorAttachmentCount);
+                hash_combine(hash, (uint32_t)sampleCount);
+                hash_combine(hash, (uint32_t)depthStencilAttachment.format);
+                hash_combine(hash, (uint32_t)depthStencilAttachment.loadAction);
+                hash_combine(hash, (uint32_t)depthStencilAttachment.storeAction);
+
+                for (uint32_t i = 0; i < colorAttachmentCount; ++i)
+                {
+                    hash_combine(hash, (uint32_t)colorAttachments[i].format);
+                    hash_combine(hash, (uint32_t)colorAttachments[i].loadAction);
+                    hash_combine(hash, (uint32_t)colorAttachments[i].storeAction);
+                }
+            }
+
+            return hash;
+        }
+
+    private:
+        mutable size_t hash = 0;
+    };
+
+    struct VulkanFboKey
+    {
+        VkRenderPass renderPass;
+        uint32_t attachmentCount = 0;
+        VkImageView attachments[kMaxColorAttachments + 1] = {};
+        uint32_t width;
+        uint32_t height;
+        uint32_t layers;
     };
 
     class VulkanDevice final : public IDevice
@@ -90,6 +201,16 @@ namespace RHI
         ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) override;
         void SubmitCommandLists();
         void ProcessDeletionQueue();
+
+        TextureHandle CreateTextureCore(const TextureDescriptor* descriptor, const TextureData* initialData) override;
+        SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* descriptor) override;
+
+        VkInstance GetInstance() const { return instance; }
+        VkPhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
+        VkDevice GetHandle() const { return device; }
+
+        VkRenderPass GetVkRenderPass(const VulkanRenderPassKey& key);
+        VkFramebuffer GetVkFramebuffer(uint64_t hash, const VulkanFboKey& key);
 
     private:
         bool debugUtils = false;
@@ -151,7 +272,8 @@ namespace RHI
         {
             VkQueue queue = VK_NULL_HANDLE;
             VkSemaphore semaphore = VK_NULL_HANDLE;
-            std::vector<VkSwapchainKHR> submit_swapchains;
+            std::vector<const VulkanSwapChain*> submit_swapchains;
+            std::vector<VkSwapchainKHR> submitVkSwapchains;
             std::vector<uint32_t> submit_swapChainImageIndices;
             std::vector<VkPipelineStageFlags> submit_waitStages;
             std::vector<VkSemaphore> submit_waitSemaphores;
@@ -189,11 +311,16 @@ namespace RHI
                     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
                     presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
                     presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
-                    presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
-                    presentInfo.pSwapchains = submit_swapchains.data();
+                    presentInfo.swapchainCount = (uint32_t)submitVkSwapchains.size();
+                    presentInfo.pSwapchains = submitVkSwapchains.data();
                     presentInfo.pImageIndices = submit_swapChainImageIndices.data();
                     res = vkQueuePresentKHR(queue, &presentInfo);
                     assert(res == VK_SUCCESS);
+
+                    for (auto& swapchain : submit_swapchains)
+                    {
+                        swapchain->AfterPresent(res);
+                    }
                 }
 
                 submit_swapchains.clear();
@@ -260,6 +387,13 @@ namespace RHI
         {
             return commandLists[cmd][(uint8_t)commandListMeta[cmd].queue].get();
         }
+
+        /* Caches */
+        std::mutex renderPassCacheMutex;
+        std::unordered_map<size_t, VkRenderPass> renderPassCache;
+
+        std::mutex framebufferCacheMutex;
+        std::unordered_map<size_t, VkFramebuffer> framebufferCache;
 
         /* Deletion queue */
         std::mutex destroyMutex;

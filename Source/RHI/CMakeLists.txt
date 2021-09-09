@@ -28,5 +28,3 @@ endif()
 if (ALIMER_RHI_METAL)
   target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_RHI_METAL)
 endif()
-
-set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "ThirdParty")
