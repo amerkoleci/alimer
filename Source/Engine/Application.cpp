@@ -57,7 +57,7 @@ namespace Alimer
     Application::~Application()
     {
         // Shutdown modules.
-        //gGraphics().WaitIdle();
+        rhiDevice->WaitIdle();
         rhiDevice.Reset();
         //gAssets().Shutdown();
         window.reset();
@@ -125,7 +125,7 @@ namespace Alimer
         }
 
         // Wait for pending GPU operations before shutdown.
-        //gGraphics().WaitIdle();
+        rhiDevice->WaitIdle();
 
         running = false;
         return 0;
@@ -137,12 +137,12 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return true; // gGraphics().BeginFrame();
+        return rhiDevice->BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        //gGraphics().EndFrame();
+        rhiDevice->EndFrame();
     }
 
     void Application::Render()
@@ -153,15 +153,15 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            //CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
-            //commandBuffer->PushDebugGroup("Frame");
+            RHI::ICommandList* commandList = rhiDevice->BeginCommandList();
+            commandList->PushDebugGroup("Frame");
             //commandBuffer->BeginDefaultRenderPass(Colors::CornflowerBlue, true, false);
             //
             //OnDraw(commandBuffer);
             //
             //commandBuffer->EndRenderPass();
-            //commandBuffer->PopDebugGroup();
-            //gGraphics().EndFrame();
+            commandList->PopDebugGroup();
+            EndDraw();
         }
     }
 }

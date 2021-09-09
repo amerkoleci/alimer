@@ -63,7 +63,7 @@ namespace RHI
     static constexpr uint32_t KnownVendorId_ImgTec = 0x1010;
     static constexpr uint32_t KnownVendorId_Qualcomm = 0x5143;
 
-    enum class GraphicsAPI : uint32_t
+    enum class GraphicsAPI : uint8_t
     {
         Direct3D12,
         Vulkan
@@ -79,6 +79,20 @@ namespace RHI
         Verbose,
         /// Enable GPU-based validation
         GPU
+    };
+
+    enum class ShaderFormat : uint8_t
+    {
+        DXIL,
+        SPIRV
+    };
+
+    enum class CommandQueue : uint8_t
+    {
+        Graphics = 0,
+        Compute,
+
+        Count
     };
 
     enum class LogLevel : uint32_t
@@ -99,6 +113,12 @@ namespace RHI
     RHI_API void LogError(const char* format, ...);
 
     /* Structs */
+    struct BufferDesc
+    {
+        uint64_t size = 0;
+        const char* label = nullptr;
+    };
+
     struct DeviceFeatures
     {
         /// Whether tessellation support is available.
@@ -396,23 +416,59 @@ namespace RHI
         }
     };
 
-    class RHI_API ICommandList : public IResource
+    class RHI_API ICommandList
+    {
+    protected:
+        ICommandList() = default;
+
+    public:
+        virtual ~ICommandList() = default;
+
+        // Non-copyable and non-movable
+        ICommandList(const ICommandList&) = delete;
+        ICommandList(const ICommandList&&) = delete;
+        ICommandList& operator=(const ICommandList&) = delete;
+        ICommandList& operator=(const ICommandList&&) = delete;
+
+        virtual void PushDebugGroup(const char* name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(const char* name) = 0;
+    };
+
+    class IBuffer : public IResource
     {
     public:
+        [[nodiscard]] virtual const BufferDesc& GetDesc() const = 0;
     };
+
+    using BufferHandle = RefCountPtr<IBuffer>;
 
     class RHI_API IDevice : public IResource
     {
     public:
+        virtual void WaitIdle() = 0;
+        virtual bool BeginFrame() = 0;
+        virtual void EndFrame() = 0;
+
+        [[nodiscard]] virtual ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) = 0;
+
         /// Returns the set of features supported by this device.
         const DeviceFeatures& GetFeatures() const { return features; }
 
         /// Returns the set of hardware limits for this device.
         const DeviceLimits& GetLimits() const { return limits; }
 
+        ShaderFormat GetShaderFormat() const { return shaderFormat; }
+
+        [[nodiscard]] virtual uint64_t GetFrameCount() const { return frameCount; }
+        [[nodiscard]] virtual uint32_t GetFrameIndex() const { return frameIndex; }
+
     protected:
         DeviceFeatures features{};
         DeviceLimits limits{};
+        ShaderFormat shaderFormat{};
+        uint64_t frameCount = 0;
+        uint32_t frameIndex = 0;
     };
 
     using DeviceHandle = RefCountPtr<IDevice>;

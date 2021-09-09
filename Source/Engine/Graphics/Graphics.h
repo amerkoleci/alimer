@@ -42,8 +42,6 @@ namespace Alimer
         //! Returns the set of hardware limits for this device.
         const DeviceLimits& GetLimits() const { return limits; }
 
-        [[nodiscard]] virtual CommandBuffer* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) = 0;
-
         [[nodiscard]] virtual Texture* GetCurrentBackBuffer() const = 0;
         [[nodiscard]] virtual Texture* GetBackBuffer(uint32_t index) const = 0;
         [[nodiscard]] virtual uint32_t GetCurrentBackBufferIndex() const = 0;
@@ -53,10 +51,7 @@ namespace Alimer
         [[nodiscard]] virtual u64 GetFrameCount() const = 0;
         [[nodiscard]] virtual u32 GetFrameIndex() const = 0;
 
-        // Returns the API kind that the RHI backend is running on top of.
-        virtual GraphicsAPI GetGraphicsAPI() const = 0;
-
-        virtual ShaderFormat GetShaderFormat() const = 0;
+        
 
         /// Return backbuffer width.
         [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }

@@ -78,10 +78,7 @@ namespace Alimer
         CommandBuffer& operator=(const CommandBuffer&) = delete;
         CommandBuffer& operator=(const CommandBuffer&&) = delete;
 
-        virtual void PushDebugGroup(const std::string_view& name) = 0;
-        virtual void PopDebugGroup() = 0;
-        virtual void InsertDebugMarker(const std::string_view& name) = 0;
-
+      
         virtual void BeginDefaultRenderPass(const Color& clearColor, bool clearDepth = true, bool clearStencil = true, float depth = 1.0f, uint8_t stencil = 0) = 0;
         virtual void BeginRenderPass(const RenderPassDesc& desc) = 0;
         virtual void EndRenderPass() = 0;

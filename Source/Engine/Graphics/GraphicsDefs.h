@@ -27,38 +27,7 @@ namespace Alimer
     static constexpr u32 kAllArraySlices = static_cast<u32>(-1);
 
     /* Enums */
-    enum class GraphicsAPI : uint8_t
-    {
-        D3D11,
-        D3D12,
-        Vulkan
-    };
-
-    enum class ShaderFormat : uint8_t
-    {
-        DXIL,
-        SPIRV
-    };
-
-    enum class ValidationMode : uint32_t
-    {
-        /// No validation is enabled.
-        Disabled,
-        /// Print warnings and errors
-        Enabled,
-        /// Print all warnings, errors and info messages
-        Verbose,
-        /// Enable GPU-based validation
-        GPU
-    };
-
-    enum class CommandQueue : uint8_t
-    {
-        Graphics = 0,
-        Compute,
-
-        Count
-    };
+    
 
     enum class HeapType : uint32_t
     {
@@ -188,8 +157,6 @@ namespace Alimer
     /* Structs */
     struct PresentationParameters
     {
-        ValidationMode validationMode = ValidationMode::Disabled;
-
         uint32_t backBufferWidth = 0;
         uint32_t backBufferHeight = 0;
         uint32_t backBufferCount = 3;

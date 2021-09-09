@@ -146,24 +146,24 @@ namespace Alimer
             //    args.push_back(L"-D"); args.push_back(wDefine.c_str());
             //}
 
-            switch (gGraphics().GetShaderFormat())
-            {
-                case ShaderFormat::DXIL:
-                    args.push_back(L"-D"); args.push_back(L"DXIL");
-                    break;
-                case ShaderFormat::SPIRV:
-                    args.push_back(L"-D"); args.push_back(L"SPIRV");
-                    args.push_back(L"-spirv");
-                    args.push_back(L"-fspv-target-env=vulkan1.2");
-                    args.push_back(L"-fvk-use-dx-layout");
-                    args.push_back(L"-fvk-use-dx-position-w");
-
-                    //args.push_back(L"-fvk-b-shift"); args.push_back(L"0"); args.push_back(L"0");
-                    //args.push_back(L"-fvk-t-shift"); args.push_back(L"1000"); args.push_back(L"0");
-                    //args.push_back(L"-fvk-u-shift"); args.push_back(L"2000"); args.push_back(L"0");
-                    //args.push_back(L"-fvk-s-shift"); args.push_back(L"3000"); args.push_back(L"0");
-                    break;
-            }
+            //switch (gGraphics().GetShaderFormat())
+            //{
+            //    case RHI:ShaderFormat::DXIL:
+            //        args.push_back(L"-D"); args.push_back(L"DXIL");
+            //        break;
+            //    case ShaderFormat::SPIRV:
+            //        args.push_back(L"-D"); args.push_back(L"SPIRV");
+            //        args.push_back(L"-spirv");
+            //        args.push_back(L"-fspv-target-env=vulkan1.2");
+            //        args.push_back(L"-fvk-use-dx-layout");
+            //        args.push_back(L"-fvk-use-dx-position-w");
+            //
+            //        //args.push_back(L"-fvk-b-shift"); args.push_back(L"0"); args.push_back(L"0");
+            //        //args.push_back(L"-fvk-t-shift"); args.push_back(L"1000"); args.push_back(L"0");
+            //        //args.push_back(L"-fvk-u-shift"); args.push_back(L"2000"); args.push_back(L"0");
+            //        //args.push_back(L"-fvk-s-shift"); args.push_back(L"3000"); args.push_back(L"0");
+            //        break;
+            //}
 
             //std::string fullPath = GetPath(options.fileName);
             //if (!fullPath.empty())

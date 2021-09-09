@@ -564,6 +564,8 @@ namespace RHI
             limits.minStorageBufferOffsetAlignment = properties2.properties.limits.minStorageBufferOffsetAlignment;
             limits.maxDrawIndirectCount = properties2.properties.limits.maxDrawIndirectCount;
 
+            shaderFormat = ShaderFormat::SPIRV;
+
             // Find queue families
             uint32_t queueFamilyCount = 0;
             vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
@@ -681,11 +683,265 @@ namespace RHI
 
             VK_CHECK(vmaCreateAllocator(&allocatorInfo, &allocator));
         }
+
+        // Queues
+        {
+            queues[(uint8_t)CommandQueue::Graphics].queue = graphicsQueue;
+            queues[(uint8_t)CommandQueue::Compute].queue = computeQueue;
+
+            VkSemaphoreTypeCreateInfo timelineCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
+            timelineCreateInfo.pNext = nullptr;
+            timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+            timelineCreateInfo.initialValue = 0;
+
+            VkSemaphoreCreateInfo createInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+            createInfo.pNext = &timelineCreateInfo;
+            createInfo.flags = 0;
+
+            VK_CHECK(vkCreateSemaphore(device, &createInfo, nullptr, &queues[(uint8_t)CommandQueue::Graphics].semaphore));
+            VK_CHECK(vkCreateSemaphore(device, &createInfo, nullptr, &queues[(uint8_t)CommandQueue::Compute].semaphore));
+        }
+
+        copyAllocator.Init(this);
+
+        // Create frame resources:
+        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
+        {
+            for (uint8_t queue = 0; queue < (uint8_t)CommandQueue::Count; ++queue)
+            {
+                VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+                VK_CHECK(vkCreateFence(device, &fenceInfo, nullptr, &frames[i].fence[queue]));
+            }
+
+            // Create resources for transition command buffer:
+            {
+                VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+                poolInfo.queueFamilyIndex = graphicsFamily;
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+                VK_CHECK(vkCreateCommandPool(device, &poolInfo, nullptr, &frames[i].initCommandPool));
+
+                VkCommandBufferAllocateInfo commandBufferInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+                commandBufferInfo.commandBufferCount = 1;
+                commandBufferInfo.commandPool = frames[i].initCommandPool;
+                commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+                VK_CHECK(vkAllocateCommandBuffers(device, &commandBufferInfo, &frames[i].initCommandBuffer));
+
+                VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+                beginInfo.pInheritanceInfo = nullptr; // Optional
+
+                VK_CHECK(vkBeginCommandBuffer(frames[i].initCommandBuffer, &beginInfo));
+            }
+        }
+
+        // Create default null descriptors:
+        {
+            VkBufferCreateInfo bufferInfo = {};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = 4;
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            bufferInfo.flags = 0;
+
+            VmaAllocationCreateInfo allocInfo = {};
+            allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+            VK_CHECK(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &nullBuffer, &nullBufferAllocation, nullptr));
+
+            VkBufferViewCreateInfo viewInfo = {};
+            viewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+            viewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            viewInfo.range = VK_WHOLE_SIZE;
+            viewInfo.buffer = nullBuffer;
+            VK_CHECK(vkCreateBufferView(device, &viewInfo, nullptr, &nullBufferView));
+        }
+        {
+            VkImageCreateInfo imageInfo = {};
+            imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            imageInfo.extent.width = 1;
+            imageInfo.extent.height = 1;
+            imageInfo.extent.depth = 1;
+            imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+            imageInfo.arrayLayers = 1;
+            imageInfo.mipLevels = 1;
+            imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+            imageInfo.flags = 0;
+
+            VmaAllocationCreateInfo allocInfo = {};
+            allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+            imageInfo.imageType = VK_IMAGE_TYPE_1D;
+            VK_CHECK(vmaCreateImage(allocator, &imageInfo, &allocInfo, &nullImage1D, &nullImageAllocation1D, nullptr));
+
+            imageInfo.imageType = VK_IMAGE_TYPE_2D;
+            imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+            imageInfo.arrayLayers = 6;
+            VK_CHECK(vmaCreateImage(allocator, &imageInfo, &allocInfo, &nullImage2D, &nullImageAllocation2D, nullptr));
+
+            imageInfo.imageType = VK_IMAGE_TYPE_3D;
+            imageInfo.flags = 0;
+            imageInfo.arrayLayers = 1;
+            VK_CHECK(vmaCreateImage(allocator, &imageInfo, &allocInfo, &nullImage3D, &nullImageAllocation3D, nullptr));
+
+            // Transitions:
+            initLocker.lock();
+            {
+                VkImageMemoryBarrier barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = imageInfo.initialLayout;
+                barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = nullImage1D;
+                barrier.subresourceRange.layerCount = 1;
+                vkCmdPipelineBarrier(
+                    GetFrameResources().initCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+                barrier.image = nullImage2D;
+                barrier.subresourceRange.layerCount = 6;
+                vkCmdPipelineBarrier(
+                    GetFrameResources().initCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+                barrier.image = nullImage3D;
+                barrier.subresourceRange.layerCount = 1;
+                vkCmdPipelineBarrier(
+                    GetFrameResources().initCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+            }
+            submit_inits = true;
+            initLocker.unlock();
+
+            VkImageViewCreateInfo viewInfo = {};
+            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseArrayLayer = 0;
+            viewInfo.subresourceRange.layerCount = 1;
+            viewInfo.subresourceRange.baseMipLevel = 0;
+            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+
+            viewInfo.image = nullImage1D;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView1D));
+
+            viewInfo.image = nullImage1D;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView1DArray));
+
+            viewInfo.image = nullImage2D;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView2D));
+
+            viewInfo.image = nullImage2D;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView2DArray));
+
+            viewInfo.image = nullImage2D;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+            viewInfo.subresourceRange.layerCount = 6;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageViewCube));
+
+            viewInfo.image = nullImage2D;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+            viewInfo.subresourceRange.layerCount = 6;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageViewCubeArray));
+
+            viewInfo.image = nullImage3D;
+            viewInfo.subresourceRange.layerCount = 1;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView3D));
+
+            VkSamplerCreateInfo samplerInfo { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+            VK_CHECK(vkCreateSampler(device, &samplerInfo, nullptr, &nullSampler));
+        }
+
+        //TIMESTAMP_FREQUENCY = uint64_t(1.0 / double(properties2.properties.limits.timestampPeriod) * 1000 * 1000 * 1000);
+
+        // Dynamic PSO states:
+        psoDynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+        psoDynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+        psoDynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+        psoDynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
+        if (features.variableRateShading)
+        {
+            psoDynamicStates.push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
+        }
+
+        dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicStateInfo.dynamicStateCount = (uint32_t)psoDynamicStates.size();
+        dynamicStateInfo.pDynamicStates = psoDynamicStates.data();
     }
 
     VulkanDevice::~VulkanDevice()
     {
         VK_CHECK(vkDeviceWaitIdle(device));
+
+        for (uint8_t queue = 0; queue < (uint8_t)CommandQueue::Count; ++queue)
+        {
+            vkDestroySemaphore(device, queues[queue].semaphore, nullptr);
+            for (uint32_t cmd = 0; cmd < kMaxCommandLists; ++cmd)
+            {
+                commandLists[cmd][queue].reset();
+            }
+        }
+
+        // Frame resources
+        for (auto& frame : frames)
+        {
+            for (uint8_t queue = 0; queue < (uint8_t)CommandQueue::Count; ++queue)
+            {
+                vkDestroyFence(device, frame.fence[queue], nullptr);
+                
+            }
+            vkDestroyCommandPool(device, frame.initCommandPool, nullptr);
+        }
+
+        copyAllocator.Shutdown();
+
+        // Null resources
+        {
+            vmaDestroyBuffer(allocator, nullBuffer, nullBufferAllocation);
+            vkDestroyBufferView(device, nullBufferView, nullptr);
+            vmaDestroyImage(allocator, nullImage1D, nullImageAllocation1D);
+            vmaDestroyImage(allocator, nullImage2D, nullImageAllocation2D);
+            vmaDestroyImage(allocator, nullImage3D, nullImageAllocation3D);
+            vkDestroyImageView(device, nullImageView1D, nullptr);
+            vkDestroyImageView(device, nullImageView1DArray, nullptr);
+            vkDestroyImageView(device, nullImageView2D, nullptr);
+            vkDestroyImageView(device, nullImageView2DArray, nullptr);
+            vkDestroyImageView(device, nullImageViewCube, nullptr);
+            vkDestroyImageView(device, nullImageViewCubeArray, nullptr);
+            vkDestroyImageView(device, nullImageView3D, nullptr);
+            vkDestroySampler(device, nullSampler, nullptr);
+        }
 
         if (allocator != VK_NULL_HANDLE)
         {
@@ -716,6 +972,453 @@ namespace RHI
         {
             vkDestroyInstance(instance, nullptr);
         }
+    }
+
+    void VulkanDevice::WaitIdle()
+    {
+        VK_CHECK(vkDeviceWaitIdle(device));
+    }
+
+    bool VulkanDevice::BeginFrame()
+    {
+        commandListCount.store(0);
+        return true;
+    }
+
+    void VulkanDevice::EndFrame()
+    {
+        SubmitCommandLists();
+    }
+
+    ICommandList* VulkanDevice::BeginCommandList(CommandQueue queue)
+    {
+        uint8_t cmd = commandListCount.fetch_add(1);
+        assert(cmd < kMaxCommandLists);
+        commandListMeta[cmd].queue = queue;
+        commandListMeta[cmd].waits.clear();
+
+        if (GetCommandList(cmd) == nullptr)
+        {
+            commandLists[cmd][(uint8_t)queue] = std::make_unique<VulkanCommandList>(this, queue, cmd);
+        }
+
+        GetCommandList(cmd)->Reset(frameIndex);
+
+        return GetCommandList(cmd);
+    }
+
+    void VulkanDevice::SubmitCommandLists()
+    {
+        initLocker.lock();
+
+        // Submit current frame.
+        {
+            auto& frame = GetFrameResources();
+
+            CommandQueue submitQueue = CommandQueue::Count;
+
+            // Transitions:
+            if (submit_inits)
+            {
+                VK_CHECK(vkEndCommandBuffer(frame.initCommandBuffer));
+            }
+
+            // Sync with copy queue
+            uint64_t copySyncFence = copyAllocator.Flush();
+
+            uint8_t cmd_last = commandListCount.load();
+            commandListCount.store(0);
+            for (uint8_t cmd = 0; cmd < cmd_last; ++cmd)
+            {
+                VK_CHECK(vkEndCommandBuffer(GetCommandList(cmd)->GetHandle()));
+
+                const CommandListMetadata& meta = commandListMeta[cmd];
+                if (submitQueue == CommandQueue::Count) // start first batch
+                {
+                    submitQueue = meta.queue;
+                }
+
+                if (copySyncFence > 0) // sync up with copyallocator before first submit
+                {
+                    queues[(uint8_t)submitQueue].submit_waitStages.push_back(VK_PIPELINE_STAGE_TRANSFER_BIT);
+                    queues[(uint8_t)submitQueue].submit_waitSemaphores.push_back(copyAllocator.semaphore);
+                    queues[(uint8_t)submitQueue].submit_waitValues.push_back(copySyncFence);
+                    copySyncFence = 0;
+                }
+
+                if (submitQueue != meta.queue || !meta.waits.empty()) // new queue type or wait breaks submit batch
+                {
+                    // New batch signals its last cmd:
+                    queues[(uint8_t)submitQueue].submit_signalSemaphores.push_back(queues[(uint8_t)submitQueue].semaphore);
+                    queues[(uint8_t)submitQueue].submit_signalValues.push_back(kMaxFramesInFlight * kMaxCommandLists + (uint64_t)cmd);
+                    queues[(uint8_t)submitQueue].Submit(VK_NULL_HANDLE);
+                    submitQueue = meta.queue;
+
+                    for (auto& wait : meta.waits)
+                    {
+                        // record wait for signal on a previous submit:
+                        const CommandListMetadata& wait_meta = commandListMeta[wait];
+                        queues[(uint8_t)submitQueue].submit_waitStages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+                        queues[(uint8_t)submitQueue].submit_waitSemaphores.push_back(queues[(uint8_t)wait_meta.queue].semaphore);
+                        queues[(uint8_t)submitQueue].submit_waitValues.push_back(kMaxFramesInFlight * kMaxCommandLists + (uint64_t)wait);
+                    }
+                }
+
+                if (submit_inits)
+                {
+                    queues[(uint8_t)submitQueue].submit_cmds.push_back(frame.initCommandBuffer);
+                    submit_inits = false;
+                }
+
+#if TODO
+                for (auto& swapchain : prev_swapchains[cmd])
+                {
+                    auto internal_state = to_internal(swapchain);
+
+                    queues[submit_queue].submit_swapchains.push_back(internal_state->swapChain);
+                    queues[submit_queue].submit_swapChainImageIndices.push_back(internal_state->swapChainImageIndex);
+                    queues[submit_queue].submit_waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+                    queues[submit_queue].submit_waitSemaphores.push_back(internal_state->swapchainAcquireSemaphore);
+                    queues[submit_queue].submit_waitValues.push_back(0); // not a timeline semaphore
+                    queues[submit_queue].submit_signalSemaphores.push_back(internal_state->swapchainReleaseSemaphore);
+                    queues[submit_queue].submit_signalValues.push_back(0); // not a timeline semaphore
+                }
+
+#endif // TODO
+                queues[(uint8_t)submitQueue].submit_cmds.push_back(GetCommandList(cmd)->GetHandle());
+            }
+
+            // Final submits with fences
+            for (uint8_t queue = 0; queue < (uint8_t)CommandQueue::Count; ++queue)
+            {
+                queues[queue].Submit(frame.fence[queue]);
+            }
+        }
+
+        frameCount++;
+        frameIndex = frameCount % kMaxFramesInFlight;
+
+        // Begin next frame
+        {
+            auto& frame = GetFrameResources();
+
+            // Initiate stalling CPU when GPU is not yet finished with next frame:
+            if (frameCount >= kMaxFramesInFlight)
+            {
+                for (uint8_t queue = 0; queue < (uint8_t)CommandQueue::Count; ++queue)
+                {
+                    VK_CHECK(vkWaitForFences(device, 1, &frame.fence[queue], VK_TRUE, UINT64_MAX));
+                    VK_CHECK(vkResetFences(device, 1, &frame.fence[queue]));
+                }
+            }
+
+            ProcessDeletionQueue();
+
+            // Restart transition command buffers:
+            {
+                VK_CHECK(vkResetCommandPool(device, frame.initCommandPool, 0));
+
+                VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+                VK_CHECK(vkBeginCommandBuffer(frame.initCommandBuffer, &beginInfo));
+            }
+        }
+
+        submit_inits = false;
+        initLocker.unlock();
+    }
+
+    void VulkanDevice::ProcessDeletionQueue()
+    {
+        destroyMutex.lock();
+        while (!destroyedImages.empty())
+        {
+            if (destroyedImages.front().second + kMaxFramesInFlight < frameCount)
+            {
+                auto item = destroyedImages.front();
+                destroyedImages.pop_front();
+                vmaDestroyImage(allocator, item.first.first, item.first.second);
+            }
+            else
+            {
+                break;
+            }
+        }
+        destroyMutex.unlock();
+    }
+
+    /* CopyAllocator */
+    void VulkanDevice::CopyAllocator::Init(VulkanDevice* device_)
+    {
+        device = device_;
+
+        VkSemaphoreTypeCreateInfo timelineSemaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
+        timelineSemaphoreInfo.pNext = nullptr;
+        timelineSemaphoreInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+        timelineSemaphoreInfo.initialValue = 0;
+
+        VkSemaphoreCreateInfo semaphoreInfo = {};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        semaphoreInfo.pNext = &timelineSemaphoreInfo;
+        semaphoreInfo.flags = 0;
+
+        VK_CHECK(vkCreateSemaphore(device->device, &semaphoreInfo, nullptr, &semaphore));
+    }
+
+    void VulkanDevice::CopyAllocator::Shutdown()
+    {
+        VK_CHECK(vkQueueWaitIdle(device->copyQueue));
+        for (auto& x : freeList)
+        {
+            vkDestroyCommandPool(device->device, x.commandPool, nullptr);
+        }
+
+        vkDestroySemaphore(device->device, semaphore, nullptr);
+    }
+
+    VulkanCopyContext VulkanDevice::CopyAllocator::Allocate(uint64_t size)
+    {
+        locker.lock();
+
+        // create a new command list if there are no free ones:
+        if (freeList.empty())
+        {
+            VulkanCopyContext context;
+
+            VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+            poolInfo.queueFamilyIndex = device->copyFamily;
+            poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            VK_CHECK(vkCreateCommandPool(device->device, &poolInfo, nullptr, &context.commandPool));
+
+            VkCommandBufferAllocateInfo allocateInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+            allocateInfo.commandPool = context.commandPool;
+            allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocateInfo.commandBufferCount = 1;
+            VK_CHECK(vkAllocateCommandBuffers(device->device, &allocateInfo, &context.commandBuffer));
+
+            freeList.push_back(context);
+        }
+
+        VulkanCopyContext context = freeList.back();
+        if (context.uploadBuffer == nullptr ||
+            context.uploadBuffer->GetDesc().size < size)
+        {
+            // Try to search for a staging buffer that can fit the request:
+            for (size_t i = 0; i < freeList.size(); ++i)
+            {
+                if (freeList[i].uploadBuffer->GetDesc().size >= size)
+                {
+                    context = freeList[i];
+                    std::swap(freeList[i], freeList.back());
+                    break;
+                }
+            }
+        }
+        freeList.pop_back();
+        locker.unlock();
+
+        // If no buffer was found that fits the data, create one:
+        if (context.uploadBuffer == nullptr ||
+            context.uploadBuffer->GetDesc().size < size)
+        {
+            //BufferDesc uploadBufferDesc;
+            //uploadBufferDesc.size = wiMath::GetNextPowerOfTwo((uint32_t)staging_size);
+            //uploadBufferDesc.usage = USAGE_UPLOAD;
+            //bool upload_success = device->CreateBuffer(&uploaddesc, nullptr, &cmd.uploadbuffer);
+            //assert(upload_success);
+        }
+
+        // begin command list in valid state:
+        VK_CHECK(vkResetCommandPool(device->device, context.commandPool, 0));
+
+        VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        beginInfo.pInheritanceInfo = nullptr;
+
+        VK_CHECK(vkBeginCommandBuffer(context.commandBuffer, &beginInfo));
+
+        return context;
+    }
+
+    void VulkanDevice::CopyAllocator::Submit(VulkanCopyContext context)
+    {
+        VK_CHECK(vkEndCommandBuffer(context.commandBuffer));
+
+        // It was very slow in Vulkan to submit the copies immediately
+        //	In Vulkan, the submit is not thread safe, so it had to be locked
+        //	Instead, the submits are batched and performed in flush() function
+        locker.lock();
+        context.target = ++fenceValue;
+        workList.push_back(context);
+        submit_cmds.push_back(context.commandBuffer);
+        submit_wait = std::max(submit_wait, context.target);
+        locker.unlock();
+    }
+
+    uint64_t VulkanDevice::CopyAllocator::Flush()
+    {
+        locker.lock();
+        if (!submit_cmds.empty())
+        {
+            VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+            timelineInfo.pNext = nullptr;
+            timelineInfo.waitSemaphoreValueCount = 0;
+            timelineInfo.pWaitSemaphoreValues = nullptr;
+            timelineInfo.signalSemaphoreValueCount = 1;
+            timelineInfo.pSignalSemaphoreValues = &submit_wait;
+
+            VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+            submitInfo.pNext = &timelineInfo;
+            submitInfo.waitSemaphoreCount = 0;
+            submitInfo.commandBufferCount = (uint32_t)submit_cmds.size();
+            submitInfo.pCommandBuffers = submit_cmds.data();
+            submitInfo.pSignalSemaphores = &semaphore;
+            submitInfo.signalSemaphoreCount = 1;
+
+            VK_CHECK(vkQueueSubmit(device->copyQueue, 1, &submitInfo, VK_NULL_HANDLE));
+
+            submit_cmds.clear();
+        }
+
+        // free up the finished command lists:
+        uint64_t completedFenceValue;
+        VK_CHECK(vkGetSemaphoreCounterValue(device->device, semaphore, &completedFenceValue));
+        for (size_t i = 0; i < workList.size(); ++i)
+        {
+            if (workList[i].target <= completedFenceValue)
+            {
+                freeList.push_back(workList[i]);
+                workList[i] = workList.back();
+                workList.pop_back();
+                i--;
+            }
+        }
+
+        uint64_t value = submit_wait;
+        submit_wait = 0;
+        locker.unlock();
+
+        return value;
+    }
+
+    /* VulkanCommandList */
+    VulkanCommandList::VulkanCommandList(VulkanDevice* device_, CommandQueue queue_, uint8_t index_)
+        : device(device_)
+        , queue(queue_)
+        , index(index_)
+    {
+        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
+        {
+            VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+            switch (queue)
+            {
+                case CommandQueue::Graphics:
+                    poolInfo.queueFamilyIndex = device->graphicsFamily;
+                    break;
+                case CommandQueue::Compute:
+                    poolInfo.queueFamilyIndex = device->computeFamily;
+                    break;
+                default:
+                    assert(0); // queue type not handled
+                    break;
+            }
+            poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            VK_CHECK(vkCreateCommandPool(device->device, &poolInfo, nullptr, &commandPools[i]));
+
+            VkCommandBufferAllocateInfo allocateInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+            allocateInfo.commandPool = commandPools[i];
+            allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocateInfo.commandBufferCount = 1;
+            VK_CHECK(vkAllocateCommandBuffers(device->device, &allocateInfo, &commandBuffers[i]));
+        }
+
+        commandBuffer = commandBuffers[0];
+    }
+
+    VulkanCommandList::~VulkanCommandList()
+    {
+        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
+        {
+            vkFreeCommandBuffers(device->device, commandPools[i], 1, &commandBuffers[i]);
+            vkDestroyCommandPool(device->device, commandPools[i], nullptr);
+        }
+    }
+
+    VkCommandBuffer VulkanCommandList::GetHandle() const
+    {
+        return commandBuffers[device->GetFrameIndex()];
+    }
+
+    void VulkanCommandList::Reset(uint32_t frameIndex)
+    {
+        VK_CHECK(vkResetCommandPool(device->device, commandPools[frameIndex], 0));
+
+        VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        VK_CHECK(vkBeginCommandBuffer(commandBuffers[frameIndex], &beginInfo));
+
+        commandBuffer = commandBuffers[frameIndex];
+
+        // Reset descriptor allocators
+        //binders[frameIndex].Reset();
+
+        if (queue == CommandQueue::Graphics)
+        {
+            VkRect2D scissors[kMaxViewportsAndScissors];
+            for (uint32_t i = 0; i < kMaxViewportsAndScissors; ++i)
+            {
+                scissors[i].offset.x = 0;
+                scissors[i].offset.y = 0;
+                scissors[i].extent.width = 65535;
+                scissors[i].extent.height = 65535;
+            }
+            vkCmdSetScissor(commandBuffer, 0, kMaxViewportsAndScissors, scissors);
+
+            float blendConstants[] = { 0.0f, 0.0f, 0.0f, 0.0f, };
+            vkCmdSetBlendConstants(commandBuffer, blendConstants);
+        }
+    }
+
+    void VulkanCommandList::PushDebugGroup(const char* name)
+    {
+        if (!device->debugUtils)
+            return;
+
+        VkDebugUtilsLabelEXT utilsLabel;
+        utilsLabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+        utilsLabel.pNext = nullptr;
+        utilsLabel.pLabelName = name;
+        utilsLabel.color[0] = 0.0;
+        utilsLabel.color[1] = 0.0;
+        utilsLabel.color[2] = 0.0;
+        utilsLabel.color[3] = 1.0;
+
+        vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &utilsLabel);
+    }
+
+    void VulkanCommandList::PopDebugGroup()
+    {
+        if (!device->debugUtils)
+            return;
+
+        vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+    }
+
+    void VulkanCommandList::InsertDebugMarker(const char* name)
+    {
+        if (!device->debugUtils)
+            return;
+
+        VkDebugUtilsLabelEXT utilsLabel;
+        utilsLabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+        utilsLabel.pNext = nullptr;
+        utilsLabel.pLabelName = name;
+        utilsLabel.color[0] = 0.0;
+        utilsLabel.color[1] = 0.0;
+        utilsLabel.color[2] = 0.0;
+        utilsLabel.color[3] = 1.0;
+        vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &utilsLabel);
     }
 }
 

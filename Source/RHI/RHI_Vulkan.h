@@ -9,15 +9,87 @@
 #include "vk_mem_alloc.h"
 #include "spirv_reflect.h"
 
+#include <mutex>
+#include <deque>
 #include <unordered_map>
 
 namespace RHI
 {
+    class VulkanDevice;
+
+    class VulkanCommandList final : public ICommandList
+    {
+    public:
+        VulkanDevice* device;
+        CommandQueue queue;
+        uint8_t index;
+
+        VulkanCommandList(VulkanDevice* device_, CommandQueue queue_, uint8_t index_);
+        ~VulkanCommandList() override;
+
+        VkCommandBuffer GetHandle() const;
+
+        void Reset(uint32_t frameIndex);
+        void PushDebugGroup(const char* name) override;
+        void PopDebugGroup() override;
+        void InsertDebugMarker(const char* name) override;
+
+    private:
+        VkCommandPool commandPools[kMaxFramesInFlight];
+        VkCommandBuffer commandBuffers[kMaxFramesInFlight];
+        VkCommandBuffer commandBuffer; // Active command buffer
+
+        struct DescriptorBinder
+        {
+            VulkanDevice* device;
+            VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+            uint32_t poolSize = 256;
+
+            std::vector<VkWriteDescriptorSet> descriptorWrites;
+            std::vector<VkDescriptorBufferInfo> bufferInfos;
+            std::vector<VkDescriptorImageInfo> imageInfos;
+            std::vector<VkBufferView> texelBufferViews;
+            std::vector<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructureViews;
+            bool dirty = false;
+
+            //GPUBuffer CBV[DESCRIPTORBINDER_CBV_COUNT];
+            //uint64_t CBV_offset[DESCRIPTORBINDER_CBV_COUNT];
+            //GPUResource SRV[DESCRIPTORBINDER_SRV_COUNT];
+            //int SRV_index[DESCRIPTORBINDER_SRV_COUNT];
+            //GPUResource UAV[DESCRIPTORBINDER_UAV_COUNT];
+            //int UAV_index[DESCRIPTORBINDER_UAV_COUNT];
+            //Sampler SAM[DESCRIPTORBINDER_SAMPLER_COUNT];
+
+            void Init(VulkanDevice* device_);
+            void Shutdown();
+            void Reset();
+            void Flush(bool graphics);
+        };
+        DescriptorBinder binders[kMaxFramesInFlight];
+    };
+
+    struct VulkanCopyContext
+    {
+        VkCommandPool commandPool = VK_NULL_HANDLE;
+        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+        uint64_t target = 0;
+        BufferHandle uploadBuffer;
+    };
+
     class VulkanDevice final : public IDevice
     {
+        friend class VulkanCommandList;
+
     public:
         VulkanDevice(ValidationMode validationMode);
         ~VulkanDevice() override;
+
+        void WaitIdle() override;
+        bool BeginFrame() override;
+        void EndFrame() override;
+        ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) override;
+        void SubmitCommandLists();
+        void ProcessDeletionQueue();
 
     private:
         bool debugUtils = false;
@@ -55,5 +127,142 @@ namespace RHI
         VkQueue copyQueue = VK_NULL_HANDLE;
 
         VmaAllocator allocator = VK_NULL_HANDLE;
+
+        /* Null resource to bind */
+        VkBuffer		nullBuffer = VK_NULL_HANDLE;
+        VmaAllocation	nullBufferAllocation = VK_NULL_HANDLE;
+        VkBufferView	nullBufferView = VK_NULL_HANDLE;
+        VkSampler		nullSampler = VK_NULL_HANDLE;
+        VmaAllocation	nullImageAllocation1D = VK_NULL_HANDLE;
+        VmaAllocation	nullImageAllocation2D = VK_NULL_HANDLE;
+        VmaAllocation	nullImageAllocation3D = VK_NULL_HANDLE;
+        VkImage			nullImage1D = VK_NULL_HANDLE;
+        VkImage			nullImage2D = VK_NULL_HANDLE;
+        VkImage			nullImage3D = VK_NULL_HANDLE;
+        VkImageView		nullImageView1D = VK_NULL_HANDLE;
+        VkImageView		nullImageView1DArray = VK_NULL_HANDLE;
+        VkImageView		nullImageView2D = VK_NULL_HANDLE;
+        VkImageView		nullImageView2DArray = VK_NULL_HANDLE;
+        VkImageView		nullImageViewCube = VK_NULL_HANDLE;
+        VkImageView		nullImageViewCubeArray = VK_NULL_HANDLE;
+        VkImageView		nullImageView3D = VK_NULL_HANDLE;
+
+        struct Queue
+        {
+            VkQueue queue = VK_NULL_HANDLE;
+            VkSemaphore semaphore = VK_NULL_HANDLE;
+            std::vector<VkSwapchainKHR> submit_swapchains;
+            std::vector<uint32_t> submit_swapChainImageIndices;
+            std::vector<VkPipelineStageFlags> submit_waitStages;
+            std::vector<VkSemaphore> submit_waitSemaphores;
+            std::vector<uint64_t> submit_waitValues;
+            std::vector<VkSemaphore> submit_signalSemaphores;
+            std::vector<uint64_t> submit_signalValues;
+            std::vector<VkCommandBuffer> submit_cmds;
+
+            void Submit(VkFence fence)
+            {
+                VkTimelineSemaphoreSubmitInfo timelineInfo = {};
+                timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+                timelineInfo.pNext = nullptr;
+                timelineInfo.waitSemaphoreValueCount = (uint32_t)submit_waitValues.size();
+                timelineInfo.pWaitSemaphoreValues = submit_waitValues.data();
+                timelineInfo.signalSemaphoreValueCount = (uint32_t)submit_signalValues.size();
+                timelineInfo.pSignalSemaphoreValues = submit_signalValues.data();
+
+                VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+                submitInfo.pNext = &timelineInfo;
+                submitInfo.waitSemaphoreCount = (uint32_t)submit_waitSemaphores.size();
+                submitInfo.pWaitSemaphores = submit_waitSemaphores.data();
+                submitInfo.pWaitDstStageMask = submit_waitStages.data();
+                submitInfo.commandBufferCount = (uint32_t)submit_cmds.size();
+                submitInfo.pCommandBuffers = submit_cmds.data();
+                submitInfo.signalSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
+                submitInfo.pSignalSemaphores = submit_signalSemaphores.data();
+
+                VkResult res = vkQueueSubmit(queue, 1, &submitInfo, fence);
+                assert(res == VK_SUCCESS);
+
+                if (!submit_swapchains.empty())
+                {
+                    VkPresentInfoKHR presentInfo = {};
+                    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+                    presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
+                    presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
+                    presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
+                    presentInfo.pSwapchains = submit_swapchains.data();
+                    presentInfo.pImageIndices = submit_swapChainImageIndices.data();
+                    res = vkQueuePresentKHR(queue, &presentInfo);
+                    assert(res == VK_SUCCESS);
+                }
+
+                submit_swapchains.clear();
+                submit_swapChainImageIndices.clear();
+                submit_waitStages.clear();
+                submit_waitSemaphores.clear();
+                submit_waitValues.clear();
+                submit_signalSemaphores.clear();
+                submit_signalValues.clear();
+                submit_cmds.clear();
+            }
+
+        } queues[(uint8_t)CommandQueue::Count];
+
+        struct CopyAllocator
+        {
+            VulkanDevice* device = nullptr;
+            VkSemaphore semaphore = VK_NULL_HANDLE;
+            uint64_t fenceValue = 0;
+            std::mutex locker;
+
+            std::vector<VulkanCopyContext> freeList; // available
+            std::vector<VulkanCopyContext> workList; // in progress
+            std::vector<VkCommandBuffer> submit_cmds; // for next submit
+            uint64_t submit_wait = 0; // last submit wait value
+
+            void Init(VulkanDevice* device);
+            void Shutdown();
+            VulkanCopyContext Allocate(uint64_t size);
+            void Submit(VulkanCopyContext context);
+            uint64_t Flush();
+        };
+        mutable CopyAllocator copyAllocator;
+
+        mutable std::mutex initLocker;
+        mutable bool submit_inits = false;
+
+        struct FrameResources
+        {
+            VkFence fence[(uint8_t)CommandQueue::Count] = {};
+
+            VkCommandPool initCommandPool = VK_NULL_HANDLE;
+            VkCommandBuffer initCommandBuffer = VK_NULL_HANDLE;
+
+        };
+        FrameResources frames[kMaxFramesInFlight] = {};
+        const FrameResources& GetFrameResources() const { return frames[GetFrameIndex()]; }
+        FrameResources& GetFrameResources() { return frames[GetFrameIndex()]; }
+
+        std::vector<VkDynamicState> psoDynamicStates;
+        VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
+
+        /* Command queues*/
+        std::atomic_uint8_t commandListCount{ 0 };
+        struct CommandListMetadata
+        {
+            CommandQueue queue = {};
+            std::vector<uint8_t> waits;
+        } commandListMeta[kMaxCommandLists];
+
+        std::unique_ptr<VulkanCommandList> commandLists[kMaxCommandLists][(uint8_t)CommandQueue::Count] = {};
+
+        VulkanCommandList* GetCommandList(uint8_t cmd)
+        {
+            return commandLists[cmd][(uint8_t)commandListMeta[cmd].queue].get();
+        }
+
+        /* Deletion queue */
+        std::mutex destroyMutex;
+        std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> destroyedImages;
     };
 }
