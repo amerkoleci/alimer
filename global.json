@@ -1,0 +1,9 @@
+{
+    "sdk": {
+        "version": "5.0.x"
+    },
+    "msbuild-sdks": {
+        "MSBuild.Sdk.Extras": "3.0.23",
+        "Microsoft.Build.NoTargets": "2.0.1"
+    }
+}

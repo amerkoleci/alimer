@@ -19,7 +19,7 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 
     <Company>Amer Koleci</Company>
-    <Copyright>Copyright © 2021 Amer Koleci</Copyright>
+    <Copyright>Copyright © 2021 Amer Koleci and Contributors</Copyright>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/amerkoleci/vortice</RepositoryUrl>

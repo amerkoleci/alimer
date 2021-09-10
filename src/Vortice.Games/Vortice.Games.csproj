@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <TargetFrameworks>net5.0</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net5.0-windows;</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net5.0-windows10.0.19041.0;</TargetFrameworks>
     <RootNamespace>Vortice</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' or '$(TargetFramework)' == 'net6.0' ">
-    <PackageReference Include="ppy.SDL2-CS" Version="1.0.346-alpha" />
+    <PackageReference Include="ppy.SDL2-CS" Version="1.0.452-alpha" />
   </ItemGroup>
 
   <ItemGroup>
