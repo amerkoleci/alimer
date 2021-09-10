@@ -27,14 +27,6 @@ namespace Alimer
     static constexpr u32 kAllArraySlices = static_cast<u32>(-1);
 
     /* Enums */
-    
-
-    enum class HeapType : uint32_t
-    {
-        Default,
-        Upload,
-        Readback,
-    };
 
     enum class ResourceStates : uint32_t
     {
@@ -140,7 +132,6 @@ namespace Alimer
     };
 
     /* Forward declarations */
-    class Buffer;
     class Texture;
     class TextureView;
     class Sampler;
@@ -148,7 +139,6 @@ namespace Alimer
     class Pipeline;
     class CommandBuffer;
 
-    using BufferRef = RefCountPtr<Buffer>;
     using TextureRef = RefCountPtr<Texture>;
     using SamplerRef = RefCountPtr<Sampler>;
     using ShaderRef = RefCountPtr<Shader>;
@@ -201,9 +191,6 @@ namespace Alimer
     };
 
     /* Helper methods */
-    
-    // Returns the number of mip levels given a texture size
-    ALIMER_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
 
     ALIMER_API const char* ToString(CompareFunction func);
 }

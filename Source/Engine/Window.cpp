@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Window.h"
-#include "Application.h"
 
 namespace Alimer
 {
@@ -38,7 +37,7 @@ namespace Alimer
         swapChainDesc.width = GetSize().x;
         swapChainDesc.height = GetSize().y;
 
-        swapChain = GRHIDevice->CreateSwapChain(GetPlatformHandle(), &swapChainDesc);
+        swapChain = RHI::GRHIDevice->CreateSwapChain(GetPlatformHandle(), &swapChainDesc);
     }
 
     void Window::SetPosition(int32_t x, int32_t y)

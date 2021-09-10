@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "AlimerConfig.h"
 #include "PlatformDef.h"
 #include <stddef.h>
 #include <stdint.h>

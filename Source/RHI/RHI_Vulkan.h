@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -22,12 +22,31 @@ namespace RHI
     public:
         VulkanDevice* device = nullptr;
         uint64_t size = 0;
+        BufferUsage usage = BufferUsage::None;
+        VkBuffer handle = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        uint64_t allocatedSize = 0;
+        VkDeviceAddress deviceAddress = 0;
+        uint8_t* mappedData = nullptr;
+
+        ~VulkanBuffer() override;
+        uint64_t GetSize() const override { return size; }
+        BufferUsage GetUsage() const override { return usage; }
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        uint64_t GetDeviceAddress() const override { return deviceAddress; }
+        uint8_t* MappedData() const { return mappedData; }
     };
 
     class VulkanTexture final : public ITexture
     {
     public:
         VulkanDevice* device = nullptr;
+        VkImage handle = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        uint64_t allocatedSize = 0;
+
+        ~VulkanTexture() override;
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
     };
 
     class VulkanSwapChain final : public ISwapChain
@@ -37,7 +56,7 @@ namespace RHI
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkSwapchainKHR handle = VK_NULL_HANDLE;
         VkExtent2D size = {};
-        TextureFormat format = TextureFormat::BGRA8UnormSrgb;
+        TextureFormat colorFormat = TextureFormat::BGRA8UnormSrgb;
         PresentMode presentMode = PresentMode::Fifo;
         uint32_t imageCount = 0;
         
@@ -127,7 +146,7 @@ namespace RHI
         VkCommandPool commandPool = VK_NULL_HANDLE;
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         uint64_t target = 0;
-        RefCountPtr<VulkanBuffer> uploadBuffer;
+        BufferHandle uploadBuffer;
     };
 
 
@@ -200,17 +219,22 @@ namespace RHI
         void EndFrame() override;
         ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) override;
         void SubmitCommandLists();
+
+        void DeferDestroy(VkImage texture, VmaAllocation allocation);
+        void DeferDestroy(VkImageView view);
+        void DeferDestroy(VkBuffer buffer, VmaAllocation allocation);
         void ProcessDeletionQueue();
 
-        TextureHandle CreateTextureCore(const TextureDescriptor* descriptor, const TextureData* initialData) override;
-        SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* descriptor) override;
+        TextureHandle CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData) override;
+        BufferHandle CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
+        SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* desc) override;
 
         VkInstance GetInstance() const { return instance; }
         VkPhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
         VkDevice GetHandle() const { return device; }
 
-        VkRenderPass GetVkRenderPass(const VulkanRenderPassKey& key);
-        VkFramebuffer GetVkFramebuffer(uint64_t hash, const VulkanFboKey& key);
+        VkRenderPass GetRenderPass(const VulkanRenderPassKey& key);
+        VkFramebuffer GetFramebuffer(uint64_t hash, const VulkanFboKey& key);
 
     private:
         bool debugUtils = false;
@@ -275,6 +299,7 @@ namespace RHI
             std::vector<const VulkanSwapChain*> submit_swapchains;
             std::vector<VkSwapchainKHR> submitVkSwapchains;
             std::vector<uint32_t> submit_swapChainImageIndices;
+            std::vector<VkResult> submit_swapChainResults;
             std::vector<VkPipelineStageFlags> submit_waitStages;
             std::vector<VkSemaphore> submit_waitSemaphores;
             std::vector<uint64_t> submit_waitValues;
@@ -314,17 +339,20 @@ namespace RHI
                     presentInfo.swapchainCount = (uint32_t)submitVkSwapchains.size();
                     presentInfo.pSwapchains = submitVkSwapchains.data();
                     presentInfo.pImageIndices = submit_swapChainImageIndices.data();
+                    presentInfo.pResults = submit_swapChainResults.data();
                     res = vkQueuePresentKHR(queue, &presentInfo);
                     assert(res == VK_SUCCESS);
 
-                    for (auto& swapchain : submit_swapchains)
+                    for (size_t i = 0; i < submit_swapchains.size(); ++i)
                     {
-                        swapchain->AfterPresent(res);
+                        submit_swapchains[i]->AfterPresent(submit_swapChainResults[i]);
                     }
                 }
 
                 submit_swapchains.clear();
+                submitVkSwapchains.clear();
                 submit_swapChainImageIndices.clear();
+                submit_swapChainResults.clear();
                 submit_waitStages.clear();
                 submit_waitSemaphores.clear();
                 submit_waitValues.clear();
@@ -398,5 +426,7 @@ namespace RHI
         /* Deletion queue */
         std::mutex destroyMutex;
         std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> destroyedImages;
+        std::deque<std::pair<VkImageView, uint64_t>> destroyedImageViews;
+        std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> destroyedBuffers;
     };
 }

@@ -18,10 +18,6 @@ namespace Alimer
         , format(info.format)
         , usage(info.usage)
     {
-        if (mipLevels == 0)
-        {
-            mipLevels = CalculateMipLevels(width, height, GetDepth());
-        }
     }
 
     void Texture::DestroyViews()

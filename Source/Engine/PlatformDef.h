@@ -324,25 +324,6 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 #define ALIMER_CALL_MEMBER(obj, pmf) ((obj).*(pmf))
 #define ALIMER_STATIC_ASSERT(x) static_assert(x, #x)
 
-#ifdef _WIN32
-#   ifdef _MSC_VER
-#       pragma warning(disable: 4251)
-#       pragma warning(disable: 4275)
-#   endif
-
-#   if ALIMER_EXPORTS
-#       define ALIMER_API __declspec(dllexport)
-#   elif ALIMER_IMPORTS
-#       define ALIMER_API __declspec(dllimport)
-#   else
-#       define ALIMER_API
-#   endif
-#elif ALIMER_EXPORTS || ALIMER_IMPORTS
-#   define ALIMER_API __attribute__((visibility("default")))
-#else
-#   define ALIMER_API
-#endif
-
 /* SAL annotations */
 #ifndef _MSC_VER
 #   define _In_

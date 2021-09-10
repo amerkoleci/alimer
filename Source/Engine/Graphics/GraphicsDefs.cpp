@@ -5,23 +5,7 @@
 
 namespace Alimer
 {
-    uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth)
-    {
-        uint32_t numMips = 0;
-        uint32_t size = std::max(std::max(width, height), depth);
-        while (1u << numMips <= size)
-        {
-            ++numMips;
-        }
-
-        if (1u << numMips < size)
-        {
-            ++numMips;
-        }
-
-        return numMips;
-    }
-
+    
     const char* ToString(CompareFunction func)
     {
         switch (func)

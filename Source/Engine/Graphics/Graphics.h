@@ -8,7 +8,6 @@
 
 namespace Alimer
 {
-    struct BufferDesc;
     struct TextureDesc;
     struct TextureData;
     struct SamplerDesc;
@@ -19,7 +18,6 @@ namespace Alimer
     /// Defines a Graphics module class.
     class ALIMER_API Graphics : public Module<Graphics>
     {
-        friend class Buffer;
         friend class Texture;
         friend class Sampler;
         friend class Shader;
@@ -60,7 +58,6 @@ namespace Alimer
 
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
-        virtual BufferRef CreateBuffer(const BufferDesc& desc, const void* initialData) = 0;
         virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
         virtual ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength) = 0;
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;

@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "Graphics/Buffer.h"
+#include "RHI.h"
+#include "Graphics/Texture.h"
 #include "Math/Viewport.h"
 
 namespace Alimer
@@ -55,7 +56,7 @@ namespace Alimer
     struct GPUAllocation
     {
         /// The buffer associated with this memory.
-        Buffer* buffer = nullptr;
+        RHI::BufferHandle buffer = nullptr;
 
         /// Offset from start of buffer resource.
         uint64_t offset = 0;
@@ -95,15 +96,15 @@ namespace Alimer
         virtual void SetBlendColor(const float blendColor[4]) = 0;
 
         virtual void SetPipeline(_In_ Pipeline* pipeline) = 0;
-        virtual void SetVertexBuffer(uint32_t index, const Buffer* buffer) = 0;
-        virtual void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexType indexType) = 0;
+        virtual void SetVertexBuffer(uint32_t index, const RHI::IBuffer* buffer) = 0;
+        virtual void SetIndexBuffer(const RHI::IBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
         virtual void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0, int32_t baseVertex = 0, uint32_t baseInstance = 0) = 0;
 
         GPUAllocation AllocateGPU(uint64_t size, uint64_t alignment);
 
-        void BindConstantBuffer(uint32_t binding, const Buffer* buffer);
-        void BindConstantBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range);
+        void BindConstantBuffer(uint32_t binding, const RHI::IBuffer* buffer);
+        void BindConstantBuffer(uint32_t binding, const RHI::IBuffer* buffer, uint64_t offset, uint64_t range);
         void BindConstantBufferData(uint32_t binding, uint32_t size, const void* data);
 
         template<typename T>
@@ -115,11 +116,11 @@ namespace Alimer
         }
 
     private:
-        virtual void BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) = 0;
+        virtual void BindConstantBufferCore(uint32_t binding, const RHI::IBuffer* buffer, uint64_t offset, uint64_t range) = 0;
 
         struct FrameAllocator
         {
-            BufferRef buffer;
+            RHI::BufferHandle buffer;
             // Current offset, it increases on every allocation
             uint64_t currentOffset = 0;
             uint64_t frameIndex = 0;

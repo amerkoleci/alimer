@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "AlimerConfig.h"
 #include "Core/Types.h"
 
 // Math
@@ -15,7 +16,6 @@
 #include "Math/Matrix.h"
 
 // Graphics
-#include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Sampler.h"
 #include "Graphics/Shader.h"

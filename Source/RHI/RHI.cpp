@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "RHI.h"
@@ -94,25 +94,69 @@ namespace RHI
         }
     }
 
+    uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth)
+    {
+        uint32_t numMips = 0;
+        uint32_t size = std::max(std::max(width, height), depth);
+        while (1u << numMips <= size)
+        {
+            ++numMips;
+        }
+
+        if (1u << numMips < size)
+        {
+            ++numMips;
+        }
+
+        return numMips;
+    }
+
     /* Implementation */
-    TextureHandle IDevice::CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData)
+    TextureHandle IDevice::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
     {
-        assert(descriptor);
-
-        return CreateTextureCore(descriptor, initialData);
+        return CreateTextureCore(desc, nullptr, initialData);
     }
 
-    SwapChainHandle IDevice::CreateSwapChain(void* windowHandle, const SwapChainDescriptor* descriptor)
+    TextureHandle IDevice::CreateExternalTexture(const void* handle, const TextureDesc& desc)
     {
-        assert(descriptor);
+        assert(handle);
 
-        return CreateSwapChainCore(windowHandle, descriptor);
+        return CreateTextureCore(desc, handle, nullptr);
     }
+
+    BufferHandle IDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
+    {
+        assert(desc.size > 0);
+
+        static constexpr uint64_t kMaxBufferSize = 128u * 1024u * 1024u;
+
+        if (desc.size > kMaxBufferSize)
+        {
+            LogError("Buffer size too large (size %d)", desc.size);
+            return nullptr;
+        }
+
+        return CreateBufferCore(desc, initialData);
+    }
+
+    SwapChainHandle IDevice::CreateSwapChain(void* windowHandle, const SwapChainDescriptor* desc)
+    {
+        assert(desc);
+
+        return CreateSwapChainCore(windowHandle, desc);
+    }
+
+    RHI::DeviceHandle GRHIDevice = nullptr;
 
     DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode)
     {
+        if (GRHIDevice != nullptr)
+            return GRHIDevice;
+
 #if defined(ALIMER_RHI_VULKAN)
-        return DeviceHandle::Create(new VulkanDevice(validationMode));
+        GRHIDevice = DeviceHandle::Create(new VulkanDevice(validationMode));
 #endif
+
+        return GRHIDevice;
     }
 }

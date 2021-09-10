@@ -6,10 +6,6 @@
 //#include "Platform/Window.h"
 #include "Core/Log.h"
 
-#if defined(ALIMER_RHI_VULKAN)
-#include "volk.h"
-#endif
-
 #define GLFW_INCLUDE_NONE
 #if ALIMER_PLATFORM_WINDOWS
 #   define GLFW_EXPOSE_NATIVE_WIN32
@@ -135,7 +131,20 @@ namespace Alimer
 
     bool Application::PlatformSetup(const Settings& settings)
     {
-        window = std::make_unique<Window>(settings.title, settings.width, settings.height);
+        WindowFlags windowFlags = WindowFlags::None;
+        if (settings.fullscreen)
+        {
+            windowFlags = WindowFlags::Fullscreen;
+        }
+        else
+        {
+            if (settings.resizable)
+            {
+                windowFlags |= WindowFlags::Resizable;
+            }
+        }
+
+        window = std::make_unique<Window>(settings.title, settings.width, settings.height, windowFlags);
 
         LOGI("Successfully initialized platform!");
         return true;
@@ -144,16 +153,6 @@ namespace Alimer
     void Application::PlatformUpdate()
     {
         glfwPollEvents();
-    }
-
-    void Application::RequestExit()
-    {
-        window->Close();
-    }
-
-    bool Application::IsExitRequested() const
-    {
-        return window->ShouldClose();
     }
 
     /* Window */
@@ -277,6 +276,9 @@ namespace Alimer
 
     bool Window::IsMinimized() const
     {
+        if (glfwWindowShouldClose(impl->window) == GLFW_TRUE)
+            return true;
+
         int width = 0, height = 0;
         glfwGetFramebufferSize(impl->window, &width, &height);
         return width == 0 || height == 0;
@@ -336,15 +338,5 @@ namespace Alimer
 #endif
     }
 }
-
-#if defined(ALIMER_RHI_VULKAN)
-namespace Alimer
-{
-    VkResult CreateWindowSurface(VkInstance instance, Window* window, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface)
-    {
-        return glfwCreateWindowSurface(instance, window->GetImpl()->window, allocator, surface);
-    }
-}
-#endif
 
 #endif /* defined(ALIMER_PLATFORM_GLFW) */

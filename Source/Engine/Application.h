@@ -22,7 +22,7 @@ namespace Alimer
     {
     public:
         /// Occurs when the game is about to exit.
-        Signal<int32_t> Exiting;
+        //Signal<int32_t> Exiting;
 
         /// Destructor.
         virtual ~Application();
@@ -37,7 +37,7 @@ namespace Alimer
         void RequestExit();
 
         /// Checks whether exit was requested.
-        [[nodiscard]] bool IsExitRequested() const;
+        [[nodiscard]] bool IsExitRequested() const { return exiting; }
         [[nodiscard]] Window* GetWindow() const { return window.get(); }
 
     protected:
@@ -75,10 +75,9 @@ namespace Alimer
         void Render();
 
         bool running{ false };
-        bool exitRequested{ false };
+        bool exiting{ false };
+        bool paused{ false };
     };
-
-    extern ALIMER_API RHI::DeviceHandle GRHIDevice;
 }
 
 #if !defined(ALIMER_DEFINE_APPLICATION)

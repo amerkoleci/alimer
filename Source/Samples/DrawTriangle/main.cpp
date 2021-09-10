@@ -3,6 +3,7 @@
 
 #include <Alimer.h>
 using namespace Alimer;
+using namespace RHI;
 
 struct DrawData
 {
@@ -19,8 +20,8 @@ struct CameraData
 class HelloWorldApp final : public Application
 {
 private:
-    BufferRef vertexBuffer;
-    BufferRef indexBuffer;
+    RHI::BufferHandle vertexBuffer;
+    RHI::BufferHandle indexBuffer;
     PipelineRef renderPipeline;
 
     float rotationX = 0.0f;
@@ -82,10 +83,18 @@ public:
             16, 17, 18,  16, 18, 19,
             22, 21, 20, 23, 22, 20
         };
-#if TODO
-        vertexBuffer = Buffer::Create(vertices, sizeof(vertices), BufferUsage::Vertex, "VertexBuffer");
-        indexBuffer = Buffer::Create(indices, sizeof(indices), BufferUsage::Index);
+        RHI::BufferDesc bufferDesc;
+        bufferDesc.size = sizeof(vertices);
+        bufferDesc.usage = RHI::BufferUsage::Vertex;
+        bufferDesc.label = "VertexBuffer";
+        vertexBuffer = GRHIDevice->CreateBuffer(bufferDesc, vertices);
 
+        bufferDesc.size = sizeof(indices);
+        bufferDesc.usage = RHI::BufferUsage::Index;
+        bufferDesc.label = "IndexBuffer";
+        indexBuffer = GRHIDevice->CreateBuffer(bufferDesc, indices);
+
+#if TODO
         SamplerDesc samplerDesc;
         auto test = Sampler::Create(samplerDesc);
 

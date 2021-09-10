@@ -34,12 +34,12 @@ namespace Alimer
             //    size *= 2u;
             //}
 
-            BufferDesc bufferDesc{};
+            RHI::BufferDesc bufferDesc{};
             bufferDesc.label = "FrameAllocator - Buffer";
-            bufferDesc.usage = BufferUsage::Vertex | BufferUsage::Index | BufferUsage::Constant | BufferUsage::ShaderRead;
+            bufferDesc.usage = RHI::BufferUsage::Vertex | RHI::BufferUsage::Index | RHI::BufferUsage::Uniform | RHI::BufferUsage::ShaderRead;
             bufferDesc.size = alignedSize;
-            bufferDesc.heapType = HeapType::Upload;
-            allocator.buffer = Buffer::Create(bufferDesc);
+            bufferDesc.heapType = RHI::HeapType::Upload;
+            //allocator.buffer = Buffer::Create(bufferDesc);
             allocator.currentOffset = 0;
         }
 
@@ -55,14 +55,14 @@ namespace Alimer
         return allocation;
     }
 
-    void CommandBuffer::BindConstantBuffer(uint32_t binding, const Buffer* buffer)
+    void CommandBuffer::BindConstantBuffer(uint32_t binding, const RHI::IBuffer* buffer)
     {
         ALIMER_ASSERT(binding < kMaxUniformBufferBindings);
 
         BindConstantBufferCore(binding, buffer, 0, buffer->GetSize());
     }
 
-    void CommandBuffer::BindConstantBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
+    void CommandBuffer::BindConstantBuffer(uint32_t binding, const RHI::IBuffer* buffer, uint64_t offset, uint64_t range)
     {
         ALIMER_ASSERT(binding < kMaxUniformBufferBindings);
 

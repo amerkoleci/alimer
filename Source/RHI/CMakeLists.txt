@@ -14,6 +14,13 @@ set(RHI_FILES
 add_library(${TARGET_NAME} STATIC ${RHI_FILES})
 target_include_directories(${TARGET_NAME} PUBLIC ${RHI_DIR})
 
+if (ALIMER_BUILD_SHARED)
+  target_compile_definitions(${TARGET_NAME}
+    PRIVATE RHI_SHARED_LIBRARY_BUILD=1
+  	#PUBLIC RHI_SHARED_LIBRARY_INCLUDE=1
+  )
+endif()
+
 # RHI defines
 if (ALIMER_RHI_D3D12)
   target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_RHI_D3D12)

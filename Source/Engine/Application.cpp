@@ -5,6 +5,8 @@
 #include "Math/Color.h"
 #include "Core/Log.h"
 
+using namespace RHI;
+
 namespace Alimer
 {
     namespace
@@ -39,8 +41,6 @@ namespace Alimer
             }
         }
     }
-
-    RHI::DeviceHandle GRHIDevice;
 
     Application::Application()
     {
@@ -120,7 +120,7 @@ namespace Alimer
             return 1;
         }
 
-        while (!IsExitRequested())
+        while (!window->ShouldClose())
         {
             PlatformUpdate();
             Render();
@@ -131,6 +131,20 @@ namespace Alimer
 
         running = false;
         return 0;
+    }
+
+    void Application::RequestExit()
+    {
+        exiting = true;
+        paused = true;
+
+        if (running)
+        {
+            window->Close();
+            //OnExit(exitCode);
+
+            running = false;
+        }
     }
 
     void Application::Update()
@@ -150,7 +164,7 @@ namespace Alimer
     void Application::Render()
     {
         // Don't try to render anything before the first Update or rendering is not allowed
-        if (!exitRequested &&
+        if (!exiting &&
             !window->IsMinimized() &&
             BeginDraw())
         {

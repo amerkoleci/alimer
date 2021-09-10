@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -38,6 +38,7 @@
 
 #if defined(_MSC_VER)
 #   define RHI_CALL __cdecl
+#   pragma warning(disable: 4251)
 #else
 #   define RHI_CALL
 #endif
@@ -101,6 +102,13 @@ namespace RHI
         Warn,
         Debug,
         Error
+    };
+
+    enum class HeapType : uint32_t
+    {
+        Default,
+        Upload,
+        Readback,
     };
 
     /// Defines texture format.
@@ -223,23 +231,6 @@ namespace RHI
         Count
     };
 
-    enum class TextureDimension : uint32_t
-    {
-        Texture1D,
-        Texture2D,
-        Texture3D,
-    };
-
-    enum class TextureUsage : uint32_t
-    {
-        None = 0,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
-        RenderTarget = 1 << 2,
-        ShadingRate = 1 << 3,
-    };
-    RHI_ENUM_CLASS_FLAG_OPERATORS(TextureUsage);
-
     enum class LoadAction : uint32_t
     {
         Clear,
@@ -271,16 +262,54 @@ namespace RHI
     RHI_API void LogError(const char* format, ...);
 
     /* Structs */
+    enum class BufferUsage : uint32_t
+    {
+        None = 0,
+        CopySrc = 1 << 0,
+        CopyDst = 1 << 1,
+        Vertex = 1 << 2,
+        Index = 1 << 3,
+        Uniform = 1 << 4,
+        ShaderRead = 1 << 5,
+        ShaderWrite = 1 << 6,
+        Indirect = 1 << 7,
+        RayTracingAccelerationStructure = 1 << 8,
+        RayTracingShaderTable = 1 << 9,
+    };
+    RHI_ENUM_CLASS_FLAG_OPERATORS(BufferUsage);
+
     struct BufferDesc
     {
         uint64_t size = 0;
+        BufferUsage usage = BufferUsage::None;
+        HeapType heapType = HeapType::Default;
+        uintptr_t handle = 0;
         const char* label = nullptr;
     };
 
-    struct TextureDescriptor
+    enum class TextureDimension : uint32_t
+    {
+        Texture1D,
+        Texture2D,
+        Texture3D,
+    };
+
+    enum class TextureUsage : uint32_t
+    {
+        None = 0,
+        CopySrc = 1 << 0,
+        CopyDst = 1 << 1,
+        Sampled = 1 << 2,
+        Storage = 1 << 3,
+        RenderTarget = 1 << 4,
+        ShadingRate = 1 << 5,
+    };
+    RHI_ENUM_CLASS_FLAG_OPERATORS(TextureUsage);
+
+    struct TextureDesc
     {
         const char* label = nullptr;
-        TextureUsage usage = TextureUsage::ShaderRead;
+        TextureUsage usage = TextureUsage::Sampled;
         TextureDimension dimension = TextureDimension::Texture2D;
         uint32_t width = 1;
         uint32_t height = 1;
@@ -288,6 +317,85 @@ namespace RHI
         TextureFormat format = TextureFormat::BGRA8Unorm;
         uint32_t mipLevelCount = 1;
         uint32_t sampleCount = 1;
+
+        static inline TextureDesc Tex1D(
+            TextureFormat format,
+            uint32_t width,
+            uint32_t arrayLayers = 1,
+            uint32_t mipLevelCount = 1,
+            TextureUsage usage = TextureUsage::Sampled) noexcept
+        {
+            TextureDesc desc;
+            desc.dimension = TextureDimension::Texture1D;
+            desc.width = width;
+            desc.height = 1;
+            desc.depthOrArrayLayers = arrayLayers;
+            desc.mipLevelCount = mipLevelCount;
+            desc.format = format;
+            desc.sampleCount = 1;
+            desc.usage = usage;
+            return desc;
+        }
+
+        static inline TextureDesc Tex2D(
+            TextureFormat format,
+            uint32_t width,
+            uint32_t height,
+            uint32_t arrayLayers = 1,
+            uint32_t mipLevelCount = 1,
+            TextureUsage usage = TextureUsage::Sampled,
+            uint32_t sampleCount = 1) noexcept
+        {
+            TextureDesc desc;
+            desc.dimension = TextureDimension::Texture2D;
+            desc.width = width;
+            desc.height = height;
+            desc.depthOrArrayLayers = arrayLayers;
+            desc.mipLevelCount = mipLevelCount;
+            desc.format = format;
+            desc.sampleCount = sampleCount;
+            desc.usage = usage;
+            return desc;
+        }
+
+        static inline TextureDesc Tex3D(
+            TextureFormat format,
+            uint32_t width,
+            uint32_t height,
+            uint32_t depth,
+            uint32_t mipLevelCount = 1,
+            TextureUsage usage = TextureUsage::Sampled) noexcept
+        {
+            TextureDesc desc;
+            desc.dimension = TextureDimension::Texture3D;
+            desc.width = width;
+            desc.height = height;
+            desc.depthOrArrayLayers = depth;
+            desc.mipLevelCount = mipLevelCount;
+            desc.format = format;
+            desc.sampleCount = 1;
+            desc.usage = usage;
+            return desc;
+        }
+
+        static inline TextureDesc TexCube(
+            TextureFormat format,
+            uint32_t size,
+            uint32_t mipLevelCount = 1,
+            uint32_t arrayLayers = 1,
+            TextureUsage usage = TextureUsage::Sampled) noexcept
+        {
+            TextureDesc desc;
+            desc.dimension = TextureDimension::Texture2D;
+            desc.width = size;
+            desc.height = size;
+            desc.depthOrArrayLayers = 6 * arrayLayers;
+            desc.mipLevelCount = mipLevelCount;
+            desc.format = format;
+            desc.sampleCount = 1;
+            desc.usage = usage;
+            return desc;
+        }
     };
 
     struct TextureData
@@ -603,17 +711,25 @@ namespace RHI
         }
     };
 
-    class IBuffer : public IResource
+    class RHI_API IBuffer : public IResource
     {
     public:
+        [[nodiscard]] virtual uint64_t GetSize() const = 0;
+        [[nodiscard]] virtual BufferUsage GetUsage() const = 0;
+
+        [[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
+        [[nodiscard]] virtual uint64_t GetDeviceAddress() const = 0;
+
+        [[nodiscard]] virtual uint8_t* MappedData() const = 0;
     };
 
-    class ITexture : public IResource
+    class RHI_API ITexture : public IResource
     {
     public:
+        [[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
     };
 
-    class ISwapChain : public IResource
+    class RHI_API ISwapChain : public IResource
     {
     public:
         virtual bool Resize(uint32_t width, uint32_t height) = 0;
@@ -654,9 +770,17 @@ namespace RHI
 
         [[nodiscard]] virtual ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) = 0;
 
-        [[nodiscard]] TextureHandle CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData);
-        
-        [[nodiscard]] SwapChainHandle CreateSwapChain(void* windowHandle, const SwapChainDescriptor* descriptor);
+        /// Create new Texture.
+        [[nodiscard]] TextureHandle CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
+
+        /// Create new Texture.
+        [[nodiscard]] TextureHandle CreateExternalTexture(const void* handle, const TextureDesc& desc);
+
+        /// Create new Buffer.
+        [[nodiscard]] BufferHandle CreateBuffer(const BufferDesc& desc, const void* initialData);
+
+        /// Create new SwapChain.
+        [[nodiscard]] SwapChainHandle CreateSwapChain(void* windowHandle, const SwapChainDescriptor* desc);
 
         /// Returns the set of features supported by this device.
         const DeviceFeatures& GetFeatures() const { return features; }
@@ -670,8 +794,9 @@ namespace RHI
         [[nodiscard]] virtual uint32_t GetFrameIndex() const { return frameIndex; }
 
     private:
-        virtual TextureHandle CreateTextureCore(const TextureDescriptor* descriptor, const TextureData* initialData) = 0;
-        virtual SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* descriptor) = 0;
+        virtual TextureHandle CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData) = 0;
+        virtual BufferHandle CreateBufferCore(const BufferDesc& desc, const void* initialData) = 0;
+        virtual SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* desc) = 0;
 
     protected:
         DeviceFeatures features{};
@@ -683,11 +808,15 @@ namespace RHI
 
     using DeviceHandle = RefCountPtr<IDevice>;
 
+    extern RHI_API DeviceHandle GRHIDevice;
+
     RHI_API DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode = ValidationMode::Disabled);
 
     /* Helper methods */
     RHI_API const char* GetVendorName(uint32_t vendorId);
 
+    // Returns the number of mip levels given a texture size
+    RHI_API uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth = 1);
 }
 
 #undef RHI_ENUM_CLASS_FLAG_OPERATORS
