@@ -1880,14 +1880,7 @@ namespace rhi
         createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 
-        if ((desc.usage & TextureUsage::CopySrc) != 0)
-        {
-            createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
-        if ((desc.usage & TextureUsage::CopyDst) != 0)
-        {
-            createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        }
+        createInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         if ((desc.usage & TextureUsage::Sampled) != 0)
         {
             createInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -2106,16 +2099,8 @@ namespace rhi
 
         VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.size = desc.size;
-        createInfo.usage = 0;
+        createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-        if ((desc.usage & BufferUsage::CopySrc) != 0)
-        {
-            createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
-        if ((desc.usage & BufferUsage::CopyDst) != 0)
-        {
-            createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        }
         if ((desc.usage & BufferUsage::Vertex) != 0)
         {
             createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -2130,7 +2115,7 @@ namespace rhi
         }
         if ((desc.usage & BufferUsage::ShaderRead) != 0)
         {
-            createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT  | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         }
         if ((desc.usage & BufferUsage::ShaderWrite) != 0)
         {
@@ -2176,7 +2161,6 @@ namespace rhi
                 memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
                 memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-                createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
                 break;
             case HeapType::Readback:
                 memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;

@@ -236,16 +236,14 @@ namespace rhi
     enum class BufferUsage : uint32_t
     {
         None = 0,
-        CopySrc = 1 << 0,
-        CopyDst = 1 << 1,
-        Vertex = 1 << 2,
-        Index = 1 << 3,
-        Uniform = 1 << 4,
-        ShaderRead = 1 << 5,
-        ShaderWrite = 1 << 6,
-        Indirect = 1 << 7,
-        RayTracingAccelerationStructure = 1 << 8,
-        RayTracingShaderTable = 1 << 9,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        ShaderRead = 1 << 3,
+        ShaderWrite = 1 << 4,
+        Indirect = 1 << 5,
+        RayTracingAccelerationStructure = 1 << 6,
+        RayTracingShaderTable = 1 << 7,
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
 
@@ -268,12 +266,10 @@ namespace rhi
     enum class TextureUsage : uint32_t
     {
         None = 0,
-        CopySrc = 1 << 0,
-        CopyDst = 1 << 1,
-        Sampled = 1 << 2,
-        Storage = 1 << 3,
-        RenderTarget = 1 << 4,
-        ShadingRate = 1 << 5,
+        Sampled = 1 << 0,
+        Storage = 1 << 1,
+        RenderTarget = 1 << 2,
+        ShadingRate = 1 << 3,
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
 
