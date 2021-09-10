@@ -8,19 +8,14 @@ namespace Vortice.Graphics
 {
     public abstract class SwapChain : GraphicsResource
     {
-        protected SwapChain(GraphicsDevice device, in SwapChainSurface surface, in SwapChainDescriptor descriptor)
+        protected SwapChain(GraphicsDevice device, in SwapChainDescriptor descriptor)
             : base(device)
         {
-            Guard.IsNotNull(surface, nameof(surface));
-
-            Surface = surface;
             Size = descriptor.Size;
             ColorFormat = descriptor.ColorFormat;
             PresentMode = descriptor.PresentMode;
             IsFullscreen = descriptor.IsFullscreen;
         }
-
-        public SwapChainSurface Surface { get; }
 
         public Size Size { get; protected set; }
 

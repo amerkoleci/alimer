@@ -1,61 +1,49 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop;
-using static TerraFX.Interop.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.D3D12MA_ALLOCATION_FLAGS;
-using static TerraFX.Interop.D3D12_TEXTURE_LAYOUT;
+using Vortice.Direct3D12;
+using Vortice.DXGI;
 
 namespace Vortice.Graphics.D3D12
 {
     public unsafe class TextureD3D12 : Texture
     {
-        private ComPtr<ID3D12Resource> resource;
-        private UniquePtr<D3D12MA_Allocation> allocation;
-
         public TextureD3D12(GraphicsDeviceD3D12 device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
-            D3D12MA_ALLOCATION_DESC allocationDesc = default;
-            allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-            allocationDesc.Flags = D3D12MA_ALLOCATION_FLAG_NONE;
-
-            D3D12_RESOURCE_DESC resourceDesc = new D3D12_RESOURCE_DESC()
+            ResourceDescription resourceDesc = new()
             {
                 Dimension = descriptor.Dimension.ToD3D12(),
                 Alignment = 0u,
                 Width = (ulong)descriptor.Width,
-                Height = (uint)descriptor.Height,
+                Height = descriptor.Height,
                 DepthOrArraySize = (ushort)descriptor.DepthOrArraySize,
                 MipLevels = (ushort)descriptor.MipLevels,
                 Format = descriptor.Format.ToDXGIFormat(),
-                SampleDesc = new DXGI_SAMPLE_DESC(descriptor.SampleCount.ToD3D12(), 0),
-                Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
-                Flags = D3D12_RESOURCE_FLAG_NONE
+                SampleDescription = new SampleDescription(descriptor.SampleCount.ToD3D12(), 0),
+                Layout = TextureLayout.Unknown,
+                Flags = ResourceFlags.None
             };
 
-            //if ((descriptor.Usage & TextureUsage.Storage) == TextureUsage.Storage)
-            //{
-            //    description.Flags |= ResourceFlags.AllowUnorderedAccess;
-            //}
+            if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
+            {
+                resourceDesc.Flags |= ResourceFlags.AllowUnorderedAccess;
+            }
 
-#if TODO
             ResourceStates state = ResourceStates.Common;
             ClearValue clearValue = default;
             ClearValue? optimizedClearValue = null;
             if ((descriptor.Usage & TextureUsage.RenderTarget) == TextureUsage.RenderTarget)
             {
-                clearValue.Format = description.Format;
+                clearValue.Format = resourceDesc.Format;
 
                 if (descriptor.Format.IsDepthStencilFormat())
                 {
                     state = ResourceStates.DepthWrite;
-                    description.Flags |= ResourceFlags.AllowDepthStencil;
-                    if ((descriptor.Usage & TextureUsage.Sampled) == TextureUsage.None)
+                    resourceDesc.Flags |= ResourceFlags.AllowDepthStencil;
+                    if ((descriptor.Usage & TextureUsage.ShaderRead) == TextureUsage.None)
                     {
-                        description.Flags |= ResourceFlags.DenyShaderResource;
+                        resourceDesc.Flags |= ResourceFlags.DenyShaderResource;
                     }
 
                     clearValue.DepthStencil.Depth = 1.0f;
@@ -63,7 +51,7 @@ namespace Vortice.Graphics.D3D12
                 else
                 {
                     state = ResourceStates.RenderTarget;
-                    description.Flags |= ResourceFlags.AllowRenderTarget;
+                    resourceDesc.Flags |= ResourceFlags.AllowRenderTarget;
                 }
 
                 optimizedClearValue = clearValue;
@@ -72,38 +60,33 @@ namespace Vortice.Graphics.D3D12
             // If depth and either sampled or storage, set to typeless
             if (descriptor.Format.IsDepthFormat())
             {
-                if ((descriptor.Usage & TextureUsage.Sampled) == TextureUsage.Sampled
-                    || (descriptor.Usage & TextureUsage.Storage) == TextureUsage.Storage)
+                if ((descriptor.Usage & TextureUsage.ShaderRead) != 0
+                    || (descriptor.Usage & TextureUsage.ShaderWrite) != 0)
                 {
-                    description.Format = descriptor.Format.GetTypelessFormatFromDepthFormat();
+                    resourceDesc.Format = descriptor.Format.GetTypelessFormatFromDepthFormat();
                     optimizedClearValue = null;
                 }
             }
-#endif
 
-            HRESULT hr = device.Allocator->CreateResource(
-                &allocationDesc,
-                &resourceDesc,
-                State,
-                null,
-                allocation.GetAddressOf(),
-                null,
-                null);
-
-            hr.Assert();
+            Handle = device.NativeDevice.CreateCommittedResource<ID3D12Resource>(
+                HeapProperties.DefaultHeapProperties,
+                HeapFlags.None,
+                resourceDesc,
+                state,
+                optimizedClearValue);
         }
 
-        public ID3D12Resource* Resource => resource;
+        public ID3D12Resource Handle { get; }
 
-        public D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
+        //public D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                resource.Dispose();
-                allocation.Dispose();
+                Handle.Dispose();
+                //allocation.Dispose();
             }
         }
     }

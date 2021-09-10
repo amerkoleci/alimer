@@ -12,10 +12,13 @@ namespace Vortice.Graphics
         {
             Guard.IsNotNull(device, nameof(device));
 
-            GraphicsDevice = device;
+            Device = device;
         }
 
-        public GraphicsDevice GraphicsDevice { get; }
+        /// <summary>
+        /// Get the <see cref="GraphicsDevice"/> object that created the resource.
+        /// </summary>
+        public GraphicsDevice Device { get; }
 
         /// <summary>
         /// Finalizes an instance of the <see cref="GraphicsResource" /> class.

@@ -65,6 +65,7 @@ namespace Vortice
         {
             if (dispose && !IsDisposed)
             {
+                View.SwapChain?.Dispose();
                 GraphicsDevice?.Dispose();
 
                 Disposed?.Invoke(this, EventArgs.Empty);

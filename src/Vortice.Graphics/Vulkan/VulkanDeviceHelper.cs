@@ -64,10 +64,28 @@ namespace Vortice.Graphics.Vulkan
 
                 // TODO: Check if suitable
 
-                    return new GraphicsDeviceVulkan(physicalDevice);
+                return new GraphicsDeviceVulkan(physicalDevice);
             }
 
             throw new GraphicsException("Vulkan: No suitable GPU found");
+        }
+
+        public static VkSurfaceKHR CreateSurface(in SwapChainSurface surface)
+        {
+            VkSurfaceKHR result = VkSurfaceKHR.Null;
+            if (surface is SwapChainSurfaceWin32 surfaceWin32)
+            {
+                var surfaceCreateInfo = new VkWin32SurfaceCreateInfoKHR
+                {
+                    sType = VkStructureType.Win32SurfaceCreateInfoKHR,
+                    hinstance = surfaceWin32.Hinstance,
+                    hwnd = surfaceWin32.Hwnd
+                };
+
+                vkCreateWin32SurfaceKHR(Instance.Value, &surfaceCreateInfo, null, out result).CheckResult();
+            }
+
+            return result;
         }
     }
 }

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFrameworks>net5.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!--<TreatWarningsAsErrors>true</TreatWarningsAsErrors>-->
     <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
@@ -15,9 +15,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Toolkit.Diagnostics" Version="7.1.0-rc1" />
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.20348-beta1" Condition="'$(ExcludeD3D12)' != 'true'" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta2" Condition="'$(ExcludeD3D12)' != 'true'" />
-    <PackageReference Include="Vortice.Vulkan" Version="1.3.34" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.Direct3D12" Version="$(VorticeWindowsVersion)" Condition="'$(ExcludeD3D12)' != 'true'" />
+    <PackageReference Include="Vortice.Vulkan" Version="$(VorticeVulkanVersion)" Condition="'$(ExcludeVulkan)' != 'true'" />
   </ItemGroup>
 
 </Project>
