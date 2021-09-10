@@ -13,7 +13,7 @@
 #include <deque>
 #include <unordered_map>
 
-namespace RHI
+namespace rhi
 {
     class VulkanDevice;
 
@@ -63,7 +63,7 @@ namespace RHI
 
         //mutable bool needAcquire = true;
         mutable uint32_t backBufferIndex = 0;
-        std::vector<RefCountPtr<VulkanTexture>> backBufferTextures;
+        std::vector<Alimer::RefCountPtr<VulkanTexture>> backBufferTextures;
         std::vector<VkImageView> swapChainImageViews;
 
         ~VulkanSwapChain() override;
@@ -227,7 +227,7 @@ namespace RHI
 
         TextureHandle CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData) override;
         BufferHandle CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
-        SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* desc) override;
+        SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDesc& desc) override;
 
         VkInstance GetInstance() const { return instance; }
         VkPhysicalDevice GetPhysicalDevice() const { return physicalDevice; }

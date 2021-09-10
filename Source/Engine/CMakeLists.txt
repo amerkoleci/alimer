@@ -67,6 +67,7 @@ define_engine_source_files(
   Core
   Math
   IO
+  RHI
   Graphics
 )
 
@@ -105,7 +106,6 @@ target_include_directories(${TARGET_NAME} PUBLIC
 target_link_libraries(${TARGET_NAME} PUBLIC
   #stb
   spdlog
-  RHI
 )
 
 if (WIN32 AND NOT (WINDOWS_STORE))
@@ -145,6 +145,15 @@ if(NOT (EMSCRIPTEN OR ANDROID))
   target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_PLATFORM_GLFW)
   target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 endif ()
+
+# RHI defines
+if (ALIMER_RHI_D3D12)
+  target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
+endif()
+
+if (ALIMER_RHI_VULKAN)
+  target_link_libraries(${TARGET_NAME} PRIVATE volk vma spirv-reflect)
+endif()
 
 # SDK installation
 install(TARGETS ${TARGET_NAME}

@@ -1,6 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#include "AlimerConfig.h"
 #if defined(ALIMER_RHI_D3D12) && defined(TODO)
 #include "Window.h"
 #include "Core/StringUtils.h"
@@ -13,7 +14,7 @@
 #include "directx/d3d12shader.h"
 #include <pix.h>
 
-namespace Alimer
+namespace rhi
 {
     namespace
     {

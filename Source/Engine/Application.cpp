@@ -5,7 +5,7 @@
 #include "Math/Color.h"
 #include "Core/Log.h"
 
-using namespace RHI;
+using namespace rhi;
 
 namespace Alimer
 {
@@ -19,27 +19,6 @@ namespace Alimer
             static_cast<Application*>(arg)->Tick();
         }
 #endif
-
-        static inline void RHILogFunction(RHI::LogLevel level, const char* message)
-        {
-            switch (level)
-            {
-                case RHI::LogLevel::Info:
-                    LOGI("RHI: {}", message);
-                    break;
-                case RHI::LogLevel::Warn:
-                    LOGW("RHI: {}", message);
-                    break;
-                case RHI::LogLevel::Debug:
-                    LOGD("RHI: {}", message);
-                    break;
-                case RHI::LogLevel::Error:
-                    LOGE("RHI: {}", message);
-                    break;
-                default:
-                    break;
-            }
-        }
     }
 
     Application::Application()
@@ -48,8 +27,6 @@ namespace Alimer
 
          // Init log first.
         gLog().Start();
-
-        RHI::SetLogFunction(RHILogFunction);
 
         PlatformConstruct();
 
@@ -85,12 +62,12 @@ namespace Alimer
         }
 
         // Init graphics module
-        RHI::ValidationMode validationMode = RHI::ValidationMode::Disabled;
+        ValidationMode validationMode = ValidationMode::Disabled;
 #if ALIMER_DEBUG
-        validationMode = RHI::ValidationMode::Enabled;
+        validationMode = ValidationMode::Enabled;
 #endif
 
-        GRHIDevice = RHI::CreateDevice(RHI::GraphicsAPI::Vulkan, validationMode);
+        GRHIDevice = rhi::CreateDevice(GraphicsAPI::Vulkan, validationMode);
         if (!GRHIDevice)
         {
             return false;
@@ -169,7 +146,7 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            RHI::ICommandList* commandList = GRHIDevice->BeginCommandList();
+            ICommandList* commandList = GRHIDevice->BeginCommandList();
             commandList->PushDebugGroup("Frame");
 
             commandList->BeginRenderPass(window->GetSwapChain(), Color::CornflowerBlue);

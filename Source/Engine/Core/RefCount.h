@@ -16,8 +16,8 @@ namespace Alimer
         virtual ~RefCounted() = default;
 
     public:
-        uint32_t AddRef();
-        uint32_t Release();
+        virtual uint32_t AddRef();
+        virtual uint32_t Release();
 
         // Non-copyable and non-movable
         RefCounted(const RefCounted&) = delete;

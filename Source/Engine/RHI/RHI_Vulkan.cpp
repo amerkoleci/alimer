@@ -1,14 +1,16 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#include "AlimerConfig.h"
 #if defined(ALIMER_RHI_VULKAN) 
 #include "RHI_Vulkan.h"
+#include "Core/Log.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 #include <array>
 #include <set>
 
-namespace RHI
+namespace rhi
 {
     namespace
     {
@@ -73,11 +75,11 @@ namespace RHI
             // Log debug messge
             if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
             {
-                LogWarn("Vulkan - %s: %s", messageTypeStr.c_str(), pCallbackData->pMessage);
+                LOGW("Vulkan - {}: {}", messageTypeStr.c_str(), pCallbackData->pMessage);
             }
             else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
             {
-                LogError("Vulkan - %s: %s", messageTypeStr.c_str(), pCallbackData->pMessage);
+                LOGE("Vulkan - {}: {}", messageTypeStr.c_str(), pCallbackData->pMessage);
             }
 
             return VK_FALSE;
@@ -100,7 +102,7 @@ namespace RHI
 
                 if (!found)
                 {
-                    LogWarn("Validation Layer '%s' not found", layer);
+                    LOGW("Validation Layer '{}' not found", layer);
                     return false;
                 }
             }
@@ -138,14 +140,14 @@ namespace RHI
                     return validation_layers;
                 }
 
-                LogWarn("Couldn't enable validation layers (see log for error) - falling back");
+                LOGW("Couldn't enable validation layers (see log for error) - falling back");
             }
 
             // Else return nothing
             return {};
         }
 
-        bool CheckExtensionSupport(const char* checkExtension, const std::vector<VkExtensionProperties>& availableExtensions)
+        inline bool CheckExtensionSupport(const char* checkExtension, const std::vector<VkExtensionProperties>& availableExtensions)
         {
             for (const auto& availableExtension : availableExtensions)
             {
@@ -157,8 +159,6 @@ namespace RHI
 
             return false;
         }
-
-
 
         [[nodiscard]] constexpr VkFormat VulkanImageFormat(TextureFormat format)
         {
@@ -437,11 +437,11 @@ namespace RHI
 		VkResult err = x; \
 		if (err) \
 		{ \
-			LogError("Detected Vulkan error: %s", ToString(err)); \
+			LOGE("Detected Vulkan error: {}", ToString(err)); \
 		} \
 	} while (0)
 
-#define VK_LOG_ERROR(result, message) LogError("Vulkan: %s, error: %s", message, ToString(result));
+#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, ToString(result));
 
     constexpr uint64_t NextPowerOfTwo(uint64_t value)
     {
@@ -785,14 +785,14 @@ namespace RHI
         VkResult result = volkInitialize();
         if (result != VK_SUCCESS)
         {
-            LogError("Failed to initialize volk");
+            LOGE("Failed to initialize volk");
             return;
         }
 
         const uint32_t instanceVersion = volkGetInstanceVersion();
         if (instanceVersion < VK_API_VERSION_1_2)
         {
-            LogError("Vulkan version 1.2 is required");
+            LOGE("Vulkan version 1.2 is required");
             return;
         }
 
@@ -931,7 +931,7 @@ namespace RHI
                 }
             }
 
-            LogDebug("Created VkInstance with version: %d.%d.%d",
+            LOGI("Created VkInstance with version: {}.{}.{}",
                 VK_VERSION_MAJOR(appInfo.apiVersion),
                 VK_VERSION_MINOR(appInfo.apiVersion),
                 VK_VERSION_PATCH(appInfo.apiVersion)
@@ -939,18 +939,18 @@ namespace RHI
 
             if (createInfo.enabledLayerCount)
             {
-                LogDebug("Enabled %d Validation Layers:", createInfo.enabledLayerCount);
+                LOGI("Enabled {} Validation Layers:", createInfo.enabledLayerCount);
 
                 for (uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
                 {
-                    LogDebug("	\t%s", createInfo.ppEnabledLayerNames[i]);
+                    LOGI("	\t{}", createInfo.ppEnabledLayerNames[i]);
                 }
             }
 
-            LogDebug("Enabled %d Instance Extensions:", createInfo.enabledExtensionCount);
+            LOGI("Enabled {} Instance Extensions:", createInfo.enabledExtensionCount);
             for (uint32_t i = 0; i < createInfo.enabledExtensionCount; ++i)
             {
-                LogDebug("	\t%s", createInfo.ppEnabledExtensionNames[i]);
+                LOGI("	\t{}", createInfo.ppEnabledExtensionNames[i]);
             }
         }
 
@@ -961,7 +961,7 @@ namespace RHI
 
             if (deviceCount == 0)
             {
-                LogError("Failed to find GPUs with Vulkan support!");
+                LOGE("Failed to find GPUs with Vulkan support!");
                 return;
             }
 
@@ -1099,7 +1099,7 @@ namespace RHI
 
             if (physicalDevice == VK_NULL_HANDLE)
             {
-                LogError("Failed to find a suitable GPU!");
+                LOGE("Failed to find a suitable GPU!");
                 return;
             }
 
@@ -1258,23 +1258,23 @@ namespace RHI
             vkGetDeviceQueue(device, computeFamily, 0, &computeQueue);
             vkGetDeviceQueue(device, copyFamily, 0, &copyQueue);
 
-            LogDebug("Vendor : %s", GetVendorName(properties2.properties.vendorID));
-            LogDebug("Name   : %s", properties2.properties.deviceName);
-            LogDebug("Type   : %s", kDeviceTypes[properties2.properties.deviceType]);
-            LogDebug("API    : %d.%d.%d",
+            LOGI("Vendor : {}", GetVendorName(properties2.properties.vendorID));
+            LOGI("Name   : {}", properties2.properties.deviceName);
+            LOGI("Type   : {}", kDeviceTypes[properties2.properties.deviceType]);
+            LOGI("API    : {}.{}.{}",
                 VK_VERSION_MAJOR(properties2.properties.apiVersion),
                 VK_VERSION_MINOR(properties2.properties.apiVersion),
                 VK_VERSION_PATCH(properties2.properties.apiVersion)
             );
-            LogDebug("Driver : %d.%d.%d",
+            LOGI("Driver : {}.{}.{}",
                 VK_VERSION_MAJOR(properties2.properties.driverVersion),
                 VK_VERSION_MINOR(properties2.properties.driverVersion),
                 VK_VERSION_PATCH(properties2.properties.driverVersion)
             );
-            LogDebug("Enabled %d Device Extensions:", createInfo.enabledExtensionCount);
+            LOGI("Enabled {} Device Extensions:", createInfo.enabledExtensionCount);
             for (uint32_t i = 0; i < createInfo.enabledExtensionCount; ++i)
             {
-                LogDebug("	\t%s", createInfo.ppEnabledExtensionNames[i]);
+                LOGI("	\t{}", createInfo.ppEnabledExtensionNames[i]);
             }
         }
 
@@ -1582,7 +1582,7 @@ namespace RHI
 
             if (stats.total.usedBytes > 0)
             {
-                LogInfo("Total device memory leaked: {} bytes.", stats.total.usedBytes);
+                LOGI("Total device memory leaked: {} bytes.", stats.total.usedBytes);
             }
 
             vmaDestroyAllocator(allocator);
@@ -1825,7 +1825,7 @@ namespace RHI
 
     TextureHandle VulkanDevice::CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData)
     {
-        RefCountPtr<VulkanTexture> texture = RefCountPtr<VulkanTexture>::Create(new VulkanTexture());
+        Alimer::RefCountPtr<VulkanTexture> texture = Alimer::RefCountPtr<VulkanTexture>::Create(new VulkanTexture());
         texture->device = this;
 
         if (handle != nullptr)
@@ -2093,7 +2093,7 @@ namespace RHI
 
     BufferHandle VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
     {
-        RefCountPtr<VulkanBuffer> buffer = RefCountPtr<VulkanBuffer>::Create(new VulkanBuffer());
+        Alimer::RefCountPtr<VulkanBuffer> buffer = Alimer::RefCountPtr<VulkanBuffer>::Create(new VulkanBuffer());
         buffer->device = this;
         buffer->size = desc.size;
         buffer->usage = desc.usage;
@@ -2320,14 +2320,14 @@ namespace RHI
         return buffer;
     }
 
-    SwapChainHandle VulkanDevice::CreateSwapChainCore(void* windowHandle, const SwapChainDescriptor* desc)
+    SwapChainHandle VulkanDevice::CreateSwapChainCore(void* windowHandle, const SwapChainDesc& desc)
     {
-        RefCountPtr<VulkanSwapChain> swapChain = RefCountPtr<VulkanSwapChain>::Create(new VulkanSwapChain());
+        Alimer::RefCountPtr<VulkanSwapChain> swapChain = Alimer::RefCountPtr<VulkanSwapChain>::Create(new VulkanSwapChain());
         swapChain->device = this;
-        swapChain->size.width = desc->width;
-        swapChain->size.height = desc->height;
-        swapChain->colorFormat = desc->format;
-        swapChain->presentMode = desc->presentMode;
+        swapChain->size.width = desc.width;
+        swapChain->size.height = desc.height;
+        swapChain->colorFormat = desc.format;
+        swapChain->presentMode = desc.presentMode;
 
         VkResult result = VK_SUCCESS;
 
@@ -2376,7 +2376,7 @@ namespace RHI
             return nullptr;
         }
 
-        if (!swapChain->Resize(desc->width, desc->height))
+        if (!swapChain->Resize(desc.width, desc.height))
         {
             return nullptr;
         }

@@ -7,71 +7,10 @@
 #include "RHI_Vulkan.h"
 #endif
 
-#include <cstdio>
-#include <cstdarg>
+#include "Core/Log.h"
 
-namespace RHI
+namespace rhi
 {
-    /* Loggin */
-    static LogFunction s_LogFunc = nullptr;
-
-    void SetLogFunction(LogFunction function)
-    {
-        s_LogFunc = function;
-    }
-
-    void LogInfo(const char* format, ...)
-    {
-        if (!s_LogFunc)
-            return;
-
-        char msg[kMaxLogMessageSize];
-        va_list args;
-        va_start(args, format);
-        vsnprintf(msg, sizeof(msg), format, args);
-        va_end(args);
-        s_LogFunc(LogLevel::Info, msg);
-    }
-
-    void LogDebug(const char* format, ...)
-    {
-        if (!s_LogFunc)
-            return;
-
-        char msg[kMaxLogMessageSize];
-        va_list args;
-        va_start(args, format);
-        vsnprintf(msg, sizeof(msg), format, args);
-        va_end(args);
-        s_LogFunc(LogLevel::Debug, msg);
-    }
-
-    void LogWarn(const char* format, ...)
-    {
-        if (!s_LogFunc)
-            return;
-
-        char msg[kMaxLogMessageSize];
-        va_list args;
-        va_start(args, format);
-        vsnprintf(msg, sizeof(msg), format, args);
-        va_end(args);
-        s_LogFunc(LogLevel::Warn, msg);
-    }
-
-    void LogError(const char* format, ...)
-    {
-        if (!s_LogFunc)
-            return;
-
-        char msg[kMaxLogMessageSize];
-        va_list args;
-        va_start(args, format);
-        vsnprintf(msg, sizeof(msg), format, args);
-        va_end(args);
-        s_LogFunc(LogLevel::Error, msg);
-    }
-
     /* Helper methods */
     const char* GetVendorName(uint32_t vendorId)
     {
@@ -132,21 +71,19 @@ namespace RHI
 
         if (desc.size > kMaxBufferSize)
         {
-            LogError("Buffer size too large (size %d)", desc.size);
+            LOGE("Buffer size too large (size {})", desc.size);
             return nullptr;
         }
 
         return CreateBufferCore(desc, initialData);
     }
 
-    SwapChainHandle IDevice::CreateSwapChain(void* windowHandle, const SwapChainDescriptor* desc)
+    SwapChainHandle IDevice::CreateSwapChain(void* windowHandle, const SwapChainDesc& desc)
     {
-        assert(desc);
-
         return CreateSwapChainCore(windowHandle, desc);
     }
 
-    RHI::DeviceHandle GRHIDevice = nullptr;
+    DeviceHandle GRHIDevice = nullptr;
 
     DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode)
     {

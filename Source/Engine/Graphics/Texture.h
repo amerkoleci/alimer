@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "RHI/RHI.h"
 #include "Graphics/GraphicsResource.h"
 #include <unordered_map>
 
@@ -47,7 +48,7 @@ namespace Alimer
         uint32_t sampleCount = 1;
         PixelFormat format = PixelFormat::RGBA8UNorm;
         TextureUsage usage = TextureUsage::ShaderRead;
-        ResourceStates initialState = ResourceStates::Unknown;
+        rhi::ResourceStates initialState = rhi::ResourceStates::Unknown;
 
         static inline TextureDesc Tex1D(
             PixelFormat format,
