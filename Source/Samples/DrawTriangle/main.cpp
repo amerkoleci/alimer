@@ -1,4 +1,4 @@
-// Copyright (c) Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 #include <Alimer.h>

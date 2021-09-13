@@ -1,15 +1,14 @@
-// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
 
 #include "AlimerConfig.h"
 #include "PlatformDef.h"
-#include <stddef.h>
-#include <stdint.h>
-#include <float.h>
+#include <cstddef>
+#include <cstdint>
 #include <limits.h>
-#include <assert.h>
+#include <cassert>
 #include <type_traits>
 #include <mutex>
 #include <memory>

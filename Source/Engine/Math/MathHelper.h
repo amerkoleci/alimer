@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -65,11 +65,8 @@ namespace Alimer
     /// Check whether a floating point value is positive or negative infinity.
     template <typename T> inline bool IsInf(T value) { return std::isinf(value); }
 
-    template <typename T> inline constexpr bool IsPowerOfTwo(T x)
-    {
-        static_assert(std::is_integral<T>::value, "IsPowerOfTwo must be called on an integer type.");
-        return (x & (x - 1)) == 0 && (x != 0);
-    }
+    template <typename T>
+    constexpr bool IsPowerOf2(T x) noexcept { return ((x != 0) && !(x & (x - 1))); }
 
     /// Round up to next power of two.
     constexpr uint32_t NextPowerOfTwo(uint32_t value)
@@ -94,6 +91,7 @@ namespace Alimer
         value |= value >> 4u;
         value |= value >> 8u;
         value |= value >> 16u;
+        value |= value >> 32;
         return ++value;
     }
 
@@ -105,26 +103,29 @@ namespace Alimer
         return (value - prev) > (next - value) ? next : prev;
     }
 
-    constexpr uint32_t AlignTo(uint32_t value, uint32_t alignment)
+    // Helpers for aligning values by a power of 2
+    template<typename T>
+    inline T AlignDown(T size, size_t alignment) noexcept
     {
-        ALIMER_ASSERT(alignment > 0);
-        return ((value + alignment - 1) / alignment) * alignment;
+        if (alignment > 0)
+        {
+            ALIMER_ASSERT(((alignment - 1) & alignment) == 0);
+            auto mask = static_cast<T>(alignment - 1);
+            return size & ~mask;
+        }
+        return size;
     }
 
-    constexpr uint64_t AlignTo(uint64_t value, uint64_t alignment)
+    template<typename T>
+    inline T AlignUp(T size, size_t alignment) noexcept
     {
-        ALIMER_ASSERT(alignment > 0);
-        return ((value + alignment - 1) / alignment) * alignment;
-    }
-
-    constexpr uint32_t AlignUpWithMask(uint32_t value, uint32_t mask)
-    {
-        return ((value + mask) & ~mask);
-    }
-
-    constexpr uint64_t AlignUpWithMask(uint64_t value, uint64_t mask)
-    {
-        return ((value + mask) & ~mask);
+        if (alignment > 0)
+        {
+            ALIMER_ASSERT(((alignment - 1) & alignment) == 0);
+            auto mask = static_cast<T>(alignment - 1);
+            return (size + mask) & ~mask;
+        }
+        return size;
     }
 
     /// Return a representation of the specified floating-point value as a single format bit layout.

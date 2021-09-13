@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Graphics/CommandBuffer.h"
@@ -14,7 +14,7 @@ namespace Alimer
         ALIMER_ASSERT(size > 0 && "Allocation size must be greater than zero");
 
         // Align the allocation
-        const uint64_t alignedSize = AlignTo(size, alignment);
+        const uint64_t alignedSize = AlignUp(size, alignment);
 
         const u32 frameIndex = gGraphics().GetFrameIndex();
         const u64 frameCount = gGraphics().GetFrameCount();

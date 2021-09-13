@@ -118,7 +118,7 @@ if(MSVC)
   target_compile_options(${TARGET_NAME} PRIVATE /W3 /WX)
 
   # Multiprocessor compiler
-  #target_compile_options(${TARGET_NAME} PRIVATE /MP)
+  target_compile_options(${TARGET_NAME} PRIVATE /MP)
 
   target_compile_options(${TARGET_NAME} PRIVATE /fp:fast)
   target_compile_options(${TARGET_NAME} PRIVATE /permissive- /JMC- /Zc:__cplusplus)
