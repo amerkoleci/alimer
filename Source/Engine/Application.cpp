@@ -53,9 +53,15 @@ namespace Alimer
     bool Application::InitBeforeRun(int argc, const char* argv[])
     {
         // Defaults
-        Settings settings = SetupSettings();
+        settings = SetupSettings();
 
-        if (!PlatformSetup(settings))
+        if (settings.graphicsApi == GraphicsAPI::Default)
+        {
+            // TODO: Handle best API per platform (Windows -> D3D11 etc)
+            settings.graphicsApi = GraphicsAPI::OpenGL;
+        }
+
+        if (!PlatformSetup())
         {
             return false;
         }
@@ -135,6 +141,11 @@ namespace Alimer
     void Application::EndDraw()
     {
         gGraphics().EndFrame();
+
+        if (settings.graphicsApi == GraphicsAPI::OpenGL)
+        {
+            window->SwapBuffers();
+        }
     }
 
     void Application::Render()

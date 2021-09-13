@@ -214,23 +214,23 @@ message(STATUS "  Audio           ${ALIMER_AUDIO}")
 message(STATUS "  Physics         ${ALIMER_PHYSICS}")
 
 if (ALIMER_GRAPHICS_D3D11)
-  message(STATUS "  Graphics Backend:   Direct3D11 (ALIMER_RHI_D3D11)")
+  message(STATUS "  Graphics Backend:   Direct3D11 (ALIMER_GRAPHICS_D3D11)")
 endif()
 
 if (ALIMER_RHI_D3D12)
-  message(STATUS "  Graphics Backend:   Direct3D12 (ALIMER_RHI_D3D12)")
+  message(STATUS "  Graphics Backend:   Direct3D12 (ALIMER_GRAPHICS_D3D12)")
 endif()
 
 if (ALIMER_GRAPHICS_GL)
-  message(STATUS "  Graphics Backend:   OpenGL (ALIMER_RHI_GL)")
+  message(STATUS "  Graphics Backend:   OpenGL (ALIMER_GRAPHICS_GL)")
 endif()
 
 if (ALIMER_RHI_VULKAN)
-  message(STATUS "  Graphics Backend:   Vulkan (ALIMER_RHI_VULKAN)")
+  message(STATUS "  Graphics Backend:   Vulkan (ALIMER_GRAPHICS_VULKAN)")
 endif()
 
 if (ALIMER_RHI_METAL)
-  message(STATUS "  Graphics Backend:   Metal (ALIMER_RHI_METAL)")
+  message(STATUS "  Graphics Backend:   Metal (ALIMER_GRAPHICS_METAL)")
 endif()
 
 # Install files

@@ -26,24 +26,6 @@ namespace Alimer::rhi
     static constexpr uint32_t KnownVendorId_ImgTec = 0x1010;
     static constexpr uint32_t KnownVendorId_Qualcomm = 0x5143;
 
-    enum class GraphicsAPI : uint8_t
-    {
-        Direct3D12,
-        Vulkan
-    };
-
-    enum class ValidationMode : uint32_t
-    {
-        /// No validation is enabled.
-        Disabled,
-        /// Print warnings and errors
-        Enabled,
-        /// Print all warnings, errors and info messages
-        Verbose,
-        /// Enable GPU-based validation
-        GPU
-    };
-
     enum class ShaderFormat : uint8_t
     {
         DXIL,
@@ -534,8 +516,6 @@ namespace Alimer::rhi
     using DeviceHandle = RefCountPtr<IDevice>;
 
     extern ALIMER_API DeviceHandle GRHIDevice;
-
-    ALIMER_API DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode = ValidationMode::Disabled);
 
     /* Helper methods */
     ALIMER_API const char* GetVendorName(uint32_t vendorId);

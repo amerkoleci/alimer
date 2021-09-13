@@ -154,7 +154,11 @@ if(NOT (EMSCRIPTEN OR ANDROID))
   target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 endif ()
 
-# RHI defines
+# Graphics backend dependencies 
+if (ALIMER_GRAPHICS_GL)
+  target_link_libraries(${TARGET_NAME} PRIVATE glad)
+endif()
+
 if (ALIMER_GRAPHICS_D3D12)
   target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
 endif()

@@ -84,16 +84,4 @@ namespace Alimer::rhi
     }
 
     DeviceHandle GRHIDevice = nullptr;
-
-    DeviceHandle CreateDevice(GraphicsAPI api, ValidationMode validationMode)
-    {
-        if (GRHIDevice != nullptr)
-            return GRHIDevice;
-
-#if defined(ALIMER_RHI_VULKAN)
-        GRHIDevice = DeviceHandle::Create(new VulkanDevice(validationMode));
-#endif
-
-        return GRHIDevice;
-    }
 }

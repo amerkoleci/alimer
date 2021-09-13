@@ -15,6 +15,9 @@ namespace Alimer
         int32_t     height = 800;
         bool        resizable = true;
         bool        fullscreen = false;
+
+        GraphicsAPI graphicsApi = GraphicsAPI::Default;
+        ValidationMode validationMode = ValidationMode::Disabled;
     };
 
     /// Class that provides graphics initialization, application logic, and rendering code.
@@ -62,6 +65,7 @@ namespace Alimer
         virtual void EndDraw();
 
         std::unique_ptr<Window> window;
+        Settings settings{};
 
     private:
         // Internal lifecycle methods
@@ -69,7 +73,7 @@ namespace Alimer
 
         void PlatformConstruct();
         void PlatformShutdown();
-        bool PlatformSetup(const Settings& settings);
+        bool PlatformSetup();
         void PlatformUpdate();
 
         void Render();

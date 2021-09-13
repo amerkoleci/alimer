@@ -27,6 +27,29 @@ namespace Alimer
     static constexpr u32 kAllArraySlices = static_cast<u32>(-1);
 
     /* Enums */
+    enum class GraphicsAPI : uint8_t
+    {
+        Default = 0,
+        D3D11,
+        D3D12,
+        OpenGL,
+        Vulkan,
+        Metal,
+        Null
+    };
+
+    enum class ValidationMode : uint32_t
+    {
+        /// No validation is enabled.
+        Disabled,
+        /// Print warnings and errors
+        Enabled,
+        /// Print all warnings, errors and info messages
+        Verbose,
+        /// Enable GPU-based validation
+        GPU
+    };
+
     enum class CompareFunction : uint32_t
     {
         Never,

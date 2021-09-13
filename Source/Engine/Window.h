@@ -18,6 +18,7 @@ namespace Alimer
         Resizable = 1 << 3,
         Minimized = 1 << 4,
         Maximized = 1 << 5,
+        OpenGL = 1 << 6,
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(WindowFlags);
 
@@ -60,6 +61,8 @@ namespace Alimer
         [[nodiscard]] Int2 GetSize() const;
         void SetSize(int32_t width, int32_t height);
         void SetSize(const Int2& size);
+
+        void SwapBuffers();
 
         [[nodiscard]] WindowImpl* GetImpl() const { return impl.get(); }
 
