@@ -27,8 +27,6 @@ namespace Alimer
     static constexpr u32 kAllArraySlices = static_cast<u32>(-1);
 
     /* Enums */
-
-
     enum class CompareFunction : uint32_t
     {
         Never,

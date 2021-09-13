@@ -5,7 +5,6 @@
 
 namespace Alimer
 {
-    
     const char* ToString(CompareFunction func)
     {
         switch (func)

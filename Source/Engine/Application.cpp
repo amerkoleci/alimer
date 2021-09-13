@@ -2,10 +2,9 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Application.h"
+#include "Graphics/Graphics.h"
 #include "Math/Color.h"
 #include "Core/Log.h"
-
-using namespace Alimer::rhi;
 
 namespace Alimer
 {
@@ -36,8 +35,8 @@ namespace Alimer
     Application::~Application()
     {
         // Shutdown modules.
-        GRHIDevice->WaitIdle();
-        GRHIDevice.Reset();
+        gGraphics().WaitIdle();
+        gGraphics().Shutdown();
         //gAssets().Shutdown();
         window.reset();
         gLog().Shutdown();
@@ -62,13 +61,13 @@ namespace Alimer
         }
 
         // Init graphics module
-        ValidationMode validationMode = ValidationMode::Disabled;
+        PresentationParameters presentationParameters = {};
+        //ValidationMode validationMode = ValidationMode::Disabled;
 #if ALIMER_DEBUG
-        validationMode = ValidationMode::Enabled;
+        //validationMode = ValidationMode::Enabled;
 #endif
 
-        GRHIDevice = rhi::CreateDevice(GraphicsAPI::Vulkan, validationMode);
-        if (!GRHIDevice)
+        if (!Graphics::Initialize(*window, presentationParameters))
         {
             return false;
         }
@@ -104,7 +103,7 @@ namespace Alimer
         }
 
         // Wait for pending GPU operations before shutdown.
-        GRHIDevice->WaitIdle();
+        gGraphics().WaitIdle();
 
         running = false;
         return 0;
@@ -130,12 +129,12 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return GRHIDevice->BeginFrame();
+        return gGraphics().BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        GRHIDevice->EndFrame();
+        gGraphics().EndFrame();
     }
 
     void Application::Render()
@@ -146,15 +145,14 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            ICommandList* commandList = GRHIDevice->BeginCommandList();
-            commandList->PushDebugGroup("Frame");
-
-            commandList->BeginRenderPass(window->GetSwapChain(), Color::CornflowerBlue);
+            //ICommandList* commandList = GRHIDevice->BeginCommandList();
+            //commandList->PushDebugGroup("Frame");
+            //commandList->BeginRenderPass(window->GetSwapChain(), Color::CornflowerBlue);
             
-            OnDraw(commandList);
+            //OnDraw(commandList);
             
-            commandList->EndRenderPass();
-            commandList->PopDebugGroup();
+            //commandList->EndRenderPass();
+            //commandList->PopDebugGroup();
             EndDraw();
         }
     }

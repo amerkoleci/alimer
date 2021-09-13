@@ -73,6 +73,14 @@ define_engine_source_files(
 
 define_engine_source_files(Private NO_INSTALL)
 
+if (ALIMER_GRAPHICS_D3D11)
+  define_engine_source_files(Graphics/D3D11 NO_INSTALL)
+endif()
+
+if (ALIMER_GRAPHICS_GL)
+  define_engine_source_files(Graphics/GL NO_INSTALL)
+endif()
+
 # GLFW
 if(NOT (EMSCRIPTEN OR ANDROID))
   define_engine_source_files(Platform/GLFW NO_INSTALL)
@@ -147,11 +155,11 @@ if(NOT (EMSCRIPTEN OR ANDROID))
 endif ()
 
 # RHI defines
-if (ALIMER_RHI_D3D12)
+if (ALIMER_GRAPHICS_D3D12)
   target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
 endif()
 
-if (ALIMER_RHI_VULKAN)
+if (ALIMER_GRAPHICS_VULKAN)
   target_link_libraries(${TARGET_NAME} PRIVATE volk vma spirv-reflect)
 endif()
 

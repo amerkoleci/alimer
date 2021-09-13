@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.// Copyright © Amer Koleci.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #pragma once
@@ -24,10 +24,9 @@ namespace Alimer
         friend class Pipeline;
 
     public:
-        Graphics();
         virtual ~Graphics() = default;
 
-        static bool Initialize(_In_ Window* window, const PresentationParameters& presentationParameters);
+        static bool Initialize(Window& window, const PresentationParameters& presentationParameters);
 
         virtual void WaitIdle() = 0;
         virtual bool BeginFrame() = 0;
@@ -46,15 +45,13 @@ namespace Alimer
         [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
         [[nodiscard]] virtual Texture* GetBackBufferDepthStencilTexture() const = 0;
 
-        [[nodiscard]] virtual u64 GetFrameCount() const = 0;
-        [[nodiscard]] virtual u32 GetFrameIndex() const = 0;
-
-        
+        [[nodiscard]] u64 GetFrameCount() const { return frameCount; }
+        [[nodiscard]] u32 GetFrameIndex() const { return frameIndex; }
 
         /// Return backbuffer width.
-        [[nodiscard]] uint32_t GetBackBufferWidth() const { return backBufferWidth; }
+        [[nodiscard]] u32 GetBackBufferWidth() const { return backBufferWidth; }
         /// Return backbuffer height.
-        [[nodiscard]] uint32_t GetBackBufferHeight() const { return backBufferHeight; }
+        [[nodiscard]] u32 GetBackBufferHeight() const { return backBufferHeight; }
 
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
@@ -63,12 +60,17 @@ namespace Alimer
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
 
     protected:
+        Graphics(Window& window);
+
+        Window& window;
         DeviceFeatures features{};
         DeviceLimits limits{};
 
-        uint32_t backBufferWidth = 0;
-        uint32_t backBufferHeight = 0;
+        u32 backBufferWidth = 0;
+        u32 backBufferHeight = 0;
         bool vsyncEnabled = false;
+        u64 frameCount = 0;
+        u32 frameIndex = 0;
     };
 
     /** Provides easier access to graphics module. */

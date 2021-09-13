@@ -231,12 +231,6 @@ namespace Alimer
     void Window::Show()
     {
         ALIMER_ASSERT(impl->window);
-
-        if (!swapChain)
-        {
-            CreateSwapChain();
-        }
-
         glfwShowWindow(impl->window);
     }
 

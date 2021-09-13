@@ -83,6 +83,7 @@ public:
             16, 17, 18,  16, 18, 19,
             22, 21, 20, 23, 22, 20
         };
+#if TODO
         BufferDesc bufferDesc;
         bufferDesc.size = sizeof(vertices);
         bufferDesc.usage = BufferUsage::Vertex;
@@ -94,7 +95,6 @@ public:
         bufferDesc.label = "IndexBuffer";
         indexBuffer = GRHIDevice->CreateBuffer(bufferDesc, indices);
 
-#if TODO
         SamplerDesc samplerDesc;
         auto test = Sampler::Create(samplerDesc);
 
@@ -155,7 +155,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         return true;
     }
 
-    void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) override
+    void OnDraw(/* [[maybe_unused]] rhi::ICommandList* commandList*/) override
     {
         //time += (float)GetElapsedSeconds();
         rotationX += 0.01f;

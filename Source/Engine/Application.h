@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Window.h"
-#include "RHI/RHI.h"
+#include "Graphics/GraphicsDefs.h"
 
 namespace Alimer
 {
@@ -53,7 +53,7 @@ namespace Alimer
         virtual bool Initialize(int argc, const char* argv[]) { return true; }
 
         virtual void Update();
-        virtual void OnDraw([[maybe_unused]] rhi::ICommandList* commandList) {}
+        virtual void OnDraw(/* [[maybe_unused]] rhi::ICommandList* commandList*/) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}
