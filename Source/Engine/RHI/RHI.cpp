@@ -9,7 +9,7 @@
 
 #include "Core/Log.h"
 
-namespace rhi
+namespace Alimer::rhi
 {
     /* Helper methods */
     const char* GetVendorName(uint32_t vendorId)

@@ -3,7 +3,7 @@
 
 #include "Window.h"
 
-using namespace rhi;
+using namespace Alimer::rhi;
 
 namespace Alimer
 {

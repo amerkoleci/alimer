@@ -5,7 +5,7 @@
 #include "Math/Color.h"
 #include "Core/Log.h"
 
-using namespace rhi;
+using namespace Alimer::rhi;
 
 namespace Alimer
 {

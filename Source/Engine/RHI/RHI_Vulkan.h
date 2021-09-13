@@ -13,7 +13,7 @@
 #include <deque>
 #include <unordered_map>
 
-namespace rhi
+namespace Alimer::rhi
 {
     class VulkanDevice;
 
@@ -58,24 +58,26 @@ namespace rhi
         VkExtent2D size = {};
         TextureFormat colorFormat = TextureFormat::BGRA8UnormSrgb;
         PresentMode presentMode = PresentMode::Fifo;
+
+        ~VulkanSwapChain() override;
+        void Destroy(bool destroyHandle);
+        bool Resize(uint32_t width, uint32_t height) override;
+        void Recreate();
+        VkImageView AcquireNextImage() const;
+        void AfterPresent(VkResult result);
+
+        uint32_t GetBackBufferIndex() const noexcept { return backBufferIndex; }
+        VkSemaphore GetImageAvailableSemaphore() const noexcept { return imageAvailableSemaphores[semaphoreIndex]; }
+        VkSemaphore GetRenderCompleteSemaphore() const noexcept { return renderCompleteSemaphores[semaphoreIndex]; }
+
+    private:
         uint32_t imageCount = 0;
-        
 
         //mutable bool needAcquire = true;
         mutable uint32_t backBufferIndex = 0;
         std::vector<Alimer::RefCountPtr<VulkanTexture>> backBufferTextures;
         std::vector<VkImageView> swapChainImageViews;
 
-        ~VulkanSwapChain() override;
-        void Destroy(bool destroyHandle);
-        bool Resize(uint32_t width, uint32_t height) override;
-        VkImageView AcquireNextImage() const;
-        void AfterPresent(VkResult result) const;
-
-        VkSemaphore GetImageAvailableSemaphore() const noexcept { return imageAvailableSemaphores[semaphoreIndex]; }
-        VkSemaphore GetRenderCompleteSemaphore() const noexcept { return renderCompleteSemaphores[semaphoreIndex]; }
-
-    private:
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderCompleteSemaphores;
         std::vector<VkFence> imageAcquiredFences;
@@ -102,7 +104,7 @@ namespace rhi
         void PushDebugGroup(const char* name) override;
         void PopDebugGroup() override;
         void InsertDebugMarker(const char* name) override;
-        void BeginRenderPass(const ISwapChain* swapChain, const float clearColor[4]) override;
+        void BeginRenderPass(ISwapChain* swapChain, const float clearColor[4]) override;
         void EndRenderPass() override;
 
     private:
@@ -110,7 +112,7 @@ namespace rhi
         VkCommandBuffer commandBuffers[kMaxFramesInFlight];
         VkCommandBuffer commandBuffer; // Active command buffer
         bool insideRenderPass = false;
-        std::vector<const VulkanSwapChain*> swapChains;
+        std::vector<VulkanSwapChain*> swapChains;
 
         struct DescriptorBinder
         {
@@ -296,7 +298,7 @@ namespace rhi
         {
             VkQueue queue = VK_NULL_HANDLE;
             VkSemaphore semaphore = VK_NULL_HANDLE;
-            std::vector<const VulkanSwapChain*> submit_swapchains;
+            std::vector<VulkanSwapChain*> submit_swapchains;
             std::vector<VkSwapchainKHR> submitVkSwapchains;
             std::vector<uint32_t> submit_swapChainImageIndices;
             std::vector<VkResult> submit_swapChainResults;
@@ -340,8 +342,7 @@ namespace rhi
                     presentInfo.pSwapchains = submitVkSwapchains.data();
                     presentInfo.pImageIndices = submit_swapChainImageIndices.data();
                     presentInfo.pResults = submit_swapChainResults.data();
-                    res = vkQueuePresentKHR(queue, &presentInfo);
-                    assert(res == VK_SUCCESS);
+                    vkQueuePresentKHR(queue, &presentInfo);
 
                     for (size_t i = 0; i < submit_swapchains.size(); ++i)
                     {

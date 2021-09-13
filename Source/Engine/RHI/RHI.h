@@ -5,7 +5,7 @@
 
 #include "Core/RefCount.h"
 
-namespace rhi
+namespace Alimer::rhi
 {
     static constexpr uint32_t kMaxFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
@@ -422,7 +422,7 @@ namespace rhi
         uint32_t maxDrawIndirectCount = 1;
     };
 
-    class ALIMER_API IResource : public Alimer::RefCounted
+    class ALIMER_API IResource : public RefCounted
     {
     public:
         enum class Type
@@ -454,7 +454,7 @@ namespace rhi
         Type GetType() const override final { return Type::Texture; }
     };
 
-    class ALIMER_API ISwapChain : public Alimer::RefCounted
+    class ALIMER_API ISwapChain : public RefCounted
     {
     public:
         virtual bool Resize(uint32_t width, uint32_t height) = 0;
@@ -478,15 +478,15 @@ namespace rhi
         virtual void PopDebugGroup() = 0;
         virtual void InsertDebugMarker(const char* name) = 0;
 
-        virtual void BeginRenderPass(const ISwapChain* swapChain, const float clearColor[4]) = 0;
+        virtual void BeginRenderPass(ISwapChain* swapChain, const float clearColor[4]) = 0;
         virtual void EndRenderPass() = 0;
     };
 
-    using BufferHandle = Alimer::RefCountPtr<IBuffer>;
-    using TextureHandle = Alimer::RefCountPtr<ITexture>;
-    using SwapChainHandle = Alimer::RefCountPtr<ISwapChain>;
+    using BufferHandle = RefCountPtr<IBuffer>;
+    using TextureHandle = RefCountPtr<ITexture>;
+    using SwapChainHandle = RefCountPtr<ISwapChain>;
 
-    class ALIMER_API IDevice : public Alimer::RefCounted
+    class ALIMER_API IDevice : public RefCounted
     {
     public:
         virtual void WaitIdle() = 0;
@@ -531,7 +531,7 @@ namespace rhi
         uint32_t frameIndex = 0;
     };
 
-    using DeviceHandle = Alimer::RefCountPtr<IDevice>;
+    using DeviceHandle = RefCountPtr<IDevice>;
 
     extern ALIMER_API DeviceHandle GRHIDevice;
 

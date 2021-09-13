@@ -5,7 +5,7 @@
 #include "Graphics/Texture.h"
 #include "Graphics/Graphics.h"
 #include "Core/Log.h"
-using namespace rhi;
+using namespace Alimer::rhi;
 
 namespace Alimer
 {

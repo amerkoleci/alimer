@@ -10,7 +10,7 @@
 #include <array>
 #include <set>
 
-namespace rhi
+namespace Alimer::rhi
 {
     namespace
     {
@@ -642,8 +642,7 @@ namespace rhi
             oldSwapchain = VK_NULL_HANDLE;
         }
 
-        width = info.imageExtent.width;
-        height = info.imageExtent.height;
+        size = info.imageExtent;
         if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
         {
             colorFormat = TextureFormat::BGRA8Unorm;
@@ -722,6 +721,23 @@ namespace rhi
         return true;
     }
 
+    void VulkanSwapChain::Recreate()
+    {
+        VkSurfaceCapabilitiesKHR caps;
+        VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->GetPhysicalDevice(), surface, &caps));
+
+        // Don't create swapchain when window is minimized
+        if (caps.currentExtent.width == 0 ||
+            caps.currentExtent.height == 0)
+        {
+            isMinimized = true;
+            return;
+        }
+
+        Destroy(false);
+        Resize(caps.currentExtent.width, caps.currentExtent.height);
+    }
+
     VkImageView VulkanSwapChain::AcquireNextImage() const
     {
         //if (!needAcquire)
@@ -760,12 +776,12 @@ namespace rhi
         return swapChainImageViews[backBufferIndex];
     }
 
-    void VulkanSwapChain::AfterPresent(VkResult result) const
+    void VulkanSwapChain::AfterPresent(VkResult result)
     {
         if (result == VK_ERROR_OUT_OF_DATE_KHR ||
             result == VK_SUBOPTIMAL_KHR)
         {
-            //Recreate();
+            Recreate();
             semaphoreIndex = imageCount - 1;
         }
         else if (result != VK_SUCCESS)
@@ -1707,7 +1723,7 @@ namespace rhi
                 {
                     queues[(uint8_t)submitQueue].submit_swapchains.push_back(swapchain);
                     queues[(uint8_t)submitQueue].submitVkSwapchains.push_back(swapchain->handle);
-                    queues[(uint8_t)submitQueue].submit_swapChainImageIndices.push_back(swapchain->backBufferIndex);
+                    queues[(uint8_t)submitQueue].submit_swapChainImageIndices.push_back(swapchain->GetBackBufferIndex());
                     queues[(uint8_t)submitQueue].submit_swapChainResults.push_back(VK_SUCCESS);
                     queues[(uint8_t)submitQueue].submit_waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
                     queues[(uint8_t)submitQueue].submit_waitSemaphores.push_back(swapchain->GetImageAvailableSemaphore());
@@ -1825,7 +1841,7 @@ namespace rhi
 
     TextureHandle VulkanDevice::CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData)
     {
-        Alimer::RefCountPtr<VulkanTexture> texture = Alimer::RefCountPtr<VulkanTexture>::Create(new VulkanTexture());
+        RefCountPtr<VulkanTexture> texture = RefCountPtr<VulkanTexture>::Create(new VulkanTexture());
         texture->device = this;
 
         if (handle != nullptr)
@@ -2086,7 +2102,7 @@ namespace rhi
 
     BufferHandle VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
     {
-        Alimer::RefCountPtr<VulkanBuffer> buffer = Alimer::RefCountPtr<VulkanBuffer>::Create(new VulkanBuffer());
+        RefCountPtr<VulkanBuffer> buffer = RefCountPtr<VulkanBuffer>::Create(new VulkanBuffer());
         buffer->device = this;
         buffer->size = desc.size;
         buffer->usage = desc.usage;
@@ -2306,7 +2322,7 @@ namespace rhi
 
     SwapChainHandle VulkanDevice::CreateSwapChainCore(void* windowHandle, const SwapChainDesc& desc)
     {
-        Alimer::RefCountPtr<VulkanSwapChain> swapChain = Alimer::RefCountPtr<VulkanSwapChain>::Create(new VulkanSwapChain());
+        RefCountPtr<VulkanSwapChain> swapChain = RefCountPtr<VulkanSwapChain>::Create(new VulkanSwapChain());
         swapChain->device = this;
         swapChain->size.width = desc.width;
         swapChain->size.height = desc.height;
@@ -2792,9 +2808,9 @@ namespace rhi
         vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &utilsLabel);
     }
 
-    void VulkanCommandList::BeginRenderPass(const ISwapChain* swapChain, const float clearColor[4])
+    void VulkanCommandList::BeginRenderPass(ISwapChain* swapChain, const float clearColor[4])
     {
-        const VulkanSwapChain* vkSwapChain = static_cast<const VulkanSwapChain*>(swapChain);
+        VulkanSwapChain* vkSwapChain = checked_cast<VulkanSwapChain*>(swapChain);
 
         VkImageView imageView = vkSwapChain->AcquireNextImage();
         if (imageView == VK_NULL_HANDLE)

@@ -3,7 +3,7 @@
 
 #include <Alimer.h>
 using namespace Alimer;
-using namespace rhi;
+using namespace Alimer::rhi;
 
 struct DrawData
 {

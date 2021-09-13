@@ -14,7 +14,7 @@
 #include "directx/d3d12shader.h"
 #include <pix.h>
 
-namespace rhi
+namespace Alimer::rhi
 {
     namespace
     {
