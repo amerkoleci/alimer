@@ -11,6 +11,79 @@ using namespace std;
 
 namespace Alimer
 {
+    namespace
+    {
+        std::vector<std::string> SplitInternal(const std::string& str, const char* delim, bool allow_empty)
+        {
+            if (str.empty())
+                return {};
+
+            std::vector<std::string> ret;
+
+            size_t start_index = 0;
+            size_t index = 0;
+            while ((index = str.find_first_of(delim, start_index)) != std::string::npos)
+            {
+                if (allow_empty || index > start_index)
+                    ret.push_back(str.substr(start_index, index - start_index));
+                start_index = index + 1;
+
+                if (allow_empty && (index == str.size() - 1))
+                    ret.emplace_back();
+            }
+
+            if (start_index < str.size())
+                ret.push_back(str.substr(start_index));
+            return ret;
+        }
+    }
+
+    std::vector<std::string> Split(const std::string& str, const char* delim)
+    {
+        return SplitInternal(str, delim, true);
+    }
+
+    std::vector<std::string> SplitNoEmpty(const std::string& str, const char* delim)
+    {
+        return SplitInternal(str, delim, false);
+    }
+
+    string ToLower(const string& str)
+    {
+        std::string result;
+        for (const char& ch : str)
+        {
+            result += static_cast<char>(::tolower(ch));
+        }
+
+        return result;
+    }
+
+    string ToUpper(const string& str)
+    {
+        std::string result;
+        for (const char& ch : str)
+        {
+            result += static_cast<char>(::toupper(ch));
+        }
+
+        return result;
+    }
+
+    string ReplaceAll(const string& source, const string& replaceWhat, const string& replaceWithWhat)
+    {
+        string result = source;
+        string::size_type pos = 0;
+        while (1)
+        {
+            pos = result.find(replaceWhat, pos);
+            if (pos == string::npos) break;
+            result.replace(pos, replaceWhat.size(), replaceWithWhat);
+            pos += replaceWithWhat.size();
+        }
+        return result;
+    }
+
 #ifdef _WIN32
     string ToUtf8(const wchar_t* wstr, size_t len)
     {

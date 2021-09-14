@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Core/Module.h"
+#include "Core/Signal.h"
 #include "Graphics/CommandBuffer.h"
 #include <set>
 
@@ -20,6 +21,7 @@ namespace Alimer
     {
         ValidationMode validationMode = ValidationMode::Disabled;
 
+        bool srgb = false;
         PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
         bool vsyncEnabled = false;
         bool isFullScreen = false;
@@ -34,6 +36,12 @@ namespace Alimer
         friend class Pipeline;
 
     public:
+        /// Occurs when the device is lost.
+        Signal<> DeviceLost;
+
+        /// Occurs when the device is restored after being lost.
+        Signal<> DeviceRestored;
+
         virtual ~Graphics() = default;
 
         [[nodiscard]] static std::set<GraphicsAPI> GetAvailableBackends();

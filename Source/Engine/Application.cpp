@@ -50,7 +50,7 @@ namespace Alimer
         return g_currentApp;
     }
 
-    bool Application::InitBeforeRun(int argc, const char* argv[])
+    bool Application::InitBeforeRun()
     {
         // Defaults
         settings = SetupSettings();
@@ -80,7 +80,7 @@ namespace Alimer
         window->Show();
 
         // TODO: Setup rest
-        if (!Initialize(argc, argv))
+        if (!Initialize())
         {
             return false;
         }
@@ -88,14 +88,14 @@ namespace Alimer
         return true;
     }
 
-    int Application::Run(int argc, const char* argv[])
+    int Application::Run()
     {
         if (running)
         {
             return EXIT_SUCCESS;
         }
 
-        if (!InitBeforeRun(argc, argv))
+        if (!InitBeforeRun())
         {
             return 1;
         }

@@ -147,7 +147,7 @@ elseif(ANDROID)
     set(ALIMER_BUILD_SHARED ON CACHE BOOL "Always enable shared library on (ANDROID)" FORCE)
 endif ()
 
-# RHI backends
+# Graphics backends
 set(ALIMER_ENABLE_D3D11 OFF)
 set(ALIMER_ENABLE_D3D12 OFF)
 set(ALIMER_ENABLE_METAL OFF)
@@ -185,12 +185,6 @@ endif()
 set (INSTALL_BASE_INCLUDE_DIR include)
 set (INSTALL_INCLUDE_DIR ${INSTALL_BASE_INCLUDE_DIR}/Alimer)
 set (INSTALL_THIRDPARTY_DIR ${INSTALL_INCLUDE_DIR}/ThirdParty)
-
-# Compiler-specific setup
-if(MSVC)
-  #set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:console /ENTRY:wWinMainCRTStartup")
-  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:windows /ENTRY:wWinMainCRTStartup")
-endif ()
 
 # Source
 add_subdirectory(Source)
@@ -247,19 +241,19 @@ if (NOT ANDROID)
 	#endforeach()
 
 	# DLLs
-	if(WIN32 AND NOT (WINDOWS_STORE))
-		set(DXIL_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxil.dll")
-		set(DXCOMPILER_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxcompiler.dll")
-
-		foreach(config ${CMAKE_CONFIGURATION_TYPES})
-			file (COPY ${DXIL_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
-			file (COPY ${DXCOMPILER_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
-		endforeach()
-
-		install (FILES
-			${DXIL_LIBRARY}
-			${DXCOMPILER_LIBRARY}
-			DESTINATION bin
-		)
-	endif ()
+	#if(WIN32 AND NOT (WINDOWS_STORE))
+	#	set(DXIL_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxil.dll")
+	#	set(DXCOMPILER_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxcompiler.dll")
+    #
+	#	foreach(config ${CMAKE_CONFIGURATION_TYPES})
+	#		file (COPY ${DXIL_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
+	#		file (COPY ${DXCOMPILER_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
+	#	endforeach()
+    #
+	#	install (FILES
+	#		${DXIL_LIBRARY}
+	#		${DXCOMPILER_LIBRARY}
+	#		DESTINATION bin
+	#	)
+	#endif ()
 endif ()

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "Core/CommandLine.h"
 #include "Window.h"
 #include "Graphics/GraphicsDefs.h"
 
@@ -33,7 +34,7 @@ namespace Alimer
         static Application* GetCurrent();
 
         /// Setups all subsystem and run's platform main loop.
-        int32_t Run(int argc, const char* argv[]);
+        int32_t Run();
 
         /// Request the application to exit.
         void RequestExit();
@@ -52,7 +53,7 @@ namespace Alimer
             return Settings();
         }
 
-        virtual bool Initialize(int argc, const char* argv[]) { return true; }
+        virtual bool Initialize() { return true; }
 
         virtual void Update();
         virtual void OnDraw(/* [[maybe_unused]] rhi::ICommandList* commandList*/) {}
@@ -68,7 +69,7 @@ namespace Alimer
 
     private:
         // Internal lifecycle methods
-        bool InitBeforeRun(int argc, const char* argv[]);
+        bool InitBeforeRun();
 
         void PlatformConstruct();
         void PlatformShutdown();
@@ -84,10 +85,25 @@ namespace Alimer
 }
 
 #if !defined(ALIMER_DEFINE_APPLICATION)
+
+#if ALIMER_PLATFORM_WINDOWS && !defined(ALIMER_WIN32_CONSOLE)
+#include "PlatformInclude.h"
 #define ALIMER_DEFINE_APPLICATION(class_name) \
-int main(int argc, const char* argv[]) \
-{  \
+int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow) \
+{ \
+    UNREFERENCED_PARAMETER(hPrevInstance); \
+    UNREFERENCED_PARAMETER(lpCmdLine); \
+    Alimer::CommandLine::Parse(GetCommandLine());\
     class_name app;\
-    return app.Run(argc, argv); \
+    return app.Run(); \
 }
+#else
+#define ALIMER_DEFINE_APPLICATION(class_name) \
+int main(int argc, char** argv) \
+{ \
+    Alimer::CommandLine::Parse(argc, argv);\
+    class_name app;\
+    return app.Run(); \
+}
+#endif
 #endif

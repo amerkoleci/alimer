@@ -78,13 +78,13 @@ namespace Alimer
         }
     }
 
-    D3D11Graphics::D3D11Graphics(Window& window,  const GraphicsCreateInfo& createInfo)
+    D3D11Graphics::D3D11Graphics(Window& window, const GraphicsCreateInfo& createInfo)
         : Graphics(window)
         , validationMode(createInfo.validationMode)
     {
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-        HMODULE dxgiDLL = LoadLibraryExW(L"dxgi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-        HMODULE d3d11DLL = LoadLibraryExW(L"d3d11.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        dxgiDLL = LoadLibraryExW(L"dxgi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        d3d11DLL = LoadLibraryExW(L"d3d11.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
         if (dxgiDLL == nullptr ||
             d3d11DLL == nullptr)
@@ -224,7 +224,7 @@ namespace Alimer
                 }
             }
 
-            ThrowIfFailed(device.As(&d3dDevice));
+            ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3dDevice)));
             ThrowIfFailed(context.As(&d3dContext));
             //ThrowIfFailed(context.As(&m_d3dAnnotation));
 
@@ -256,11 +256,14 @@ namespace Alimer
             limits.maxDrawIndirectCount = static_cast<uint32_t>(-1);
         }
 
+        backBufferRTVFormat = createInfo.srgb ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
+        depthBufferFormat = ToDXGIFormat(createInfo.depthStencilFormat);
+
         // Create SwapChain
         {
             swapChainDesc = {};
-            swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-            swapChainDesc.BufferUsage = DXGI_USAGE_SHADER_INPUT | DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            swapChainDesc.Format = backBufferFormat;
+            swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
             swapChainDesc.BufferCount = kMaxFramesInFlight;
             swapChainDesc.SampleDesc.Count = 1;
             swapChainDesc.SampleDesc.Quality = 0;
@@ -279,7 +282,7 @@ namespace Alimer
 
             // Create a SwapChain from a Win32 window.
             ThrowIfFailed(dxgiFactory->CreateSwapChainForHwnd(
-                d3dDevice.Get(),
+                d3dDevice,
                 static_cast<HWND>(window.GetPlatformHandle()),
                 &swapChainDesc,
                 &fullScreenDesc,
@@ -299,25 +302,38 @@ namespace Alimer
 
     D3D11Graphics::~D3D11Graphics()
     {
+        depthStencilView.Reset();
+        backBufferView.Reset();
+        backBuffer.Reset();
+        depthStencilTexture.Reset();
         swapChain.Reset();
+        d3dContext->Flush();
         d3dContext.Reset();
 
+        const ULONG refCount = d3dDevice->Release();
 #ifdef _DEBUG
+        if (refCount)
         {
-            ComPtr<ID3D11Debug> d3dDebug;
-            if (SUCCEEDED(d3dDevice.As(&d3dDebug)))
-            {
-                d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_IGNORE_INTERNAL);
-            }
-        }
-#endif
+            LOGD("There are {} unreleased references left on the D3D device!", refCount);
 
-        d3dDevice.Reset();
+            ID3D11Debug* d3d11Debug = nullptr;
+            if (SUCCEEDED(d3dDevice->QueryInterface(IID_PPV_ARGS(&d3d11Debug))))
+            {
+                d3d11Debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+                d3d11Debug->Release();
+            }
+
+        }
+#else
+        (void)refCount; // avoid warning
+#endif
+        d3dDevice = nullptr;
+
         dxgiFactory.Reset();
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-        //FreeLibrary(d3d11DLL);
-       // FreeLibrary(dxgiDLL);
+        FreeLibrary(dxgiDLL);
+        FreeLibrary(d3d11DLL);
 #endif
     }
 
@@ -423,16 +439,146 @@ namespace Alimer
 
     void D3D11Graphics::AfterReset()
     {
+        // Handle color space settings for HDR
+        UpdateColorSpace();
+
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
 
         backBufferWidth = swapChainDesc.Width;
         backBufferHeight = swapChainDesc.Height;
+
+        // Create a render target view of the swap chain back buffer.
+        ThrowIfFailed(swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.ReleaseAndGetAddressOf())));
+
+        D3D11_TEXTURE2D_DESC textureDesc;
+        backBuffer->GetDesc(&textureDesc);
+
+        D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
+        renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+        renderTargetViewDesc.Format = backBufferRTVFormat;
+
+        ThrowIfFailed(d3dDevice->CreateRenderTargetView(
+            backBuffer.Get(),
+            &renderTargetViewDesc,
+            backBufferView.ReleaseAndGetAddressOf()
+        ));
+
+        if (depthBufferFormat != DXGI_FORMAT_UNKNOWN)
+        {
+            // Create a depth stencil view for use with 3D rendering if needed.
+            D3D11_TEXTURE2D_DESC depthStencilDesc = {};
+            depthStencilDesc.Width = backBufferWidth;
+            depthStencilDesc.Height = backBufferHeight;
+            depthStencilDesc.MipLevels = 1;
+            depthStencilDesc.ArraySize = 1;
+            depthStencilDesc.Format = depthBufferFormat;
+            depthStencilDesc.SampleDesc.Count = 1;
+            depthStencilDesc.SampleDesc.Quality = 0;
+            depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+            depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+            ThrowIfFailed(d3dDevice->CreateTexture2D(&depthStencilDesc, nullptr, depthStencilTexture.ReleaseAndGetAddressOf()));
+
+            D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
+            depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+            depthStencilViewDesc.Format = depthBufferFormat;
+            ThrowIfFailed(d3dDevice->CreateDepthStencilView(depthStencilTexture.Get(), &depthStencilViewDesc, depthStencilView.ReleaseAndGetAddressOf()));
+        }
+    }
+
+    void D3D11Graphics::UpdateColorSpace()
+    {
+        colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+
+        bool isDisplayHDR10 = false;
+
+        if (swapChain)
+        {
+            ComPtr<IDXGIOutput> output;
+            if (SUCCEEDED(swapChain->GetContainingOutput(output.GetAddressOf())))
+            {
+                ComPtr<IDXGIOutput6> output6;
+                if (SUCCEEDED(output.As(&output6)))
+                {
+                    DXGI_OUTPUT_DESC1 desc;
+                    ThrowIfFailed(output6->GetDesc1(&desc));
+
+                    if (desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
+                    {
+                        // Display output is HDR10.
+                        isDisplayHDR10 = true;
+                    }
+                }
+            }
+        }
+
+        if (isDisplayHDR10)
+        {
+            switch (backBufferFormat)
+            {
+            case DXGI_FORMAT_R10G10B10A2_UNORM:
+                // The application creates the HDR10 signal.
+                colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+                break;
+
+            case DXGI_FORMAT_R16G16B16A16_FLOAT:
+                // The system creates the HDR10 signal; application uses linear values.
+                colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        ComPtr<IDXGISwapChain3> swapChain3;
+        if (SUCCEEDED(swapChain.As(&swapChain3)))
+        {
+            UINT colorSpaceSupport = 0;
+            if (SUCCEEDED(swapChain3->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport))
+                && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
+            {
+                ThrowIfFailed(swapChain3->SetColorSpace1(colorSpace));
+            }
+        }
     }
 
     void D3D11Graphics::HandleDeviceLost()
     {
-        // TODO:
+        // Signal lost
+        DeviceLost.Emit();
+
+        depthStencilView.Reset();
+        backBufferView.Reset();
+        backBuffer.Reset();
+        depthStencilTexture.Reset();
+        swapChain.Reset();
+        d3dContext.Reset();
+        //d3dAnnotation.Reset();
+
+        const ULONG refCount = d3dDevice->Release();
+#ifdef _DEBUG
+        if (refCount)
+        {
+            LOGD("There are {} unreleased references left on the D3D device!", refCount);
+
+            ID3D11Debug* d3d11Debug = nullptr;
+            if (SUCCEEDED(d3dDevice->QueryInterface(IID_PPV_ARGS(&d3d11Debug))))
+            {
+                d3d11Debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+                d3d11Debug->Release();
+            }
+
+        }
+#else
+        (void)refCount; // avoid warning
+#endif
+        d3dDevice = nullptr;
+        dxgiFactory.Reset();
+
+        // Signal restored
+        DeviceRestored.Emit();
     }
 
     void D3D11Graphics::WaitIdle()
@@ -503,7 +649,45 @@ namespace Alimer
 
     void D3D11Graphics::Resize(uint32_t newWidth, uint32_t newHeight)
     {
+        // Clear the previous window size specific context.
+        ID3D11RenderTargetView* nullViews[] = { nullptr };
+        d3dContext->OMSetRenderTargets(static_cast<UINT>(std::size(nullViews)), nullViews, nullptr);
+        backBufferView.Reset();
+        depthStencilView.Reset();
+        backBuffer.Reset();
+        depthStencilTexture.Reset();
+        d3dContext->Flush();
 
+        // If the swap chain already exists, resize it.
+        HRESULT hr = swapChain->ResizeBuffers(
+            0,
+            newWidth,
+            newHeight,
+            DXGI_FORMAT_UNKNOWN,
+            tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+        );
+
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+        {
+#ifdef _DEBUG
+            char buff[64] = {};
+            sprintf_s(buff, "Device Lost on ResizeBuffers: Reason code 0x%08X\n",
+                static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? d3dDevice->GetDeviceRemovedReason() : hr));
+            OutputDebugStringA(buff);
+#endif
+            // If the device was removed for any reason, a new device and swap chain will need to be created.
+            HandleDeviceLost();
+
+            // Everything is set up now. Do not continue execution of this method. HandleDeviceLost will reenter this method
+            // and correctly set up the new device.
+            return;
+        }
+        else
+        {
+            ThrowIfFailed(hr);
+        }
+
+        AfterReset();
     }
 
     TextureRef D3D11Graphics::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)

@@ -11,6 +11,11 @@ function(add_sample sample_name)
   endif ()
   target_link_libraries(${sample_name} Alimer)
 
+  if(WIN32)
+    set_target_properties(${sample_name} PROPERTIES LINK_FLAGS_DEBUG "/ENTRY:wWinMainCRTStartup /SUBSYSTEM:console")
+    set_target_properties(${sample_name} PROPERTIES LINK_FLAGS "/ENTRY:wWinMainCRTStartup /SUBSYSTEM:windows")
+  endif ()
+
   if (MSVC)
     set_property(TARGET ${sample_name} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${ALIMER_ROOT_DIR}")
   endif ()

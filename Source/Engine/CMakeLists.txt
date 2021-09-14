@@ -142,6 +142,10 @@ if(MSVC)
   if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.26)
     target_compile_options(${TARGET_NAME} PRIVATE /Zc:preprocessor /wd5104 /wd5105)
   endif()
+
+  # Edit and Continue
+  #target_compile_options(${TARGET_NAME} PRIVATE "$<$<CONFIG:DEBUG>:/ZI>")
+  #target_link_options(${TARGET_NAME} PRIVATE "/SAFESEH:NO")
 else()
   target_compile_options(${TARGET_NAME} PUBLIC
     -fno-exceptions

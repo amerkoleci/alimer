@@ -40,7 +40,7 @@ public:
         return settings;
     }
 
-    bool Initialize(int argc, const char* argv[]) override
+    bool Initialize() override
     {
         float vertices[] = {
             /* pos                  color                       uvs */
