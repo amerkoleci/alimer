@@ -169,11 +169,11 @@ else()
 endif ()
 
 option(ALIMER_GRAPHICS_D3D11 "Enable compilation of the D3D11 backend" ${ALIMER_ENABLE_D3D11})
-option(ALIMER_RHI_D3D12 "Enable compilation of the D3D12 backend" ${ALIMER_ENABLE_D3D12})
+option(ALIMER_GRAPHICS_D3D12 "Enable compilation of the D3D12 backend" ${ALIMER_ENABLE_D3D12})
 option(ALIMER_GRAPHICS_GL "Enable compilation of the OpenGL backend" ${ALIMER_ENABLE_GL})
-option(ALIMER_RHI_VULKAN "Enable compilation of the Vulkan backend" ${ALIMER_ENABLE_VULKAN})
-option(ALIMER_RHI_METAL "Enable compilation of the Metal backend" ${ALIMER_ENABLE_METAL})
-option(ALIMER_RHI_NULL "Enable compilation of the Null backend" ON)
+option(ALIMER_GRAPHICS_VULKAN "Enable compilation of the Vulkan backend" ${ALIMER_ENABLE_VULKAN})
+option(ALIMER_GRAPHICS_METAL "Enable compilation of the Metal backend" ${ALIMER_ENABLE_METAL})
+option(ALIMER_GRAPHICS_NULL "Enable compilation of the Null backend" ON)
 
 if (ANDROID OR IOS OR EMSCRIPTEN)
 	set(ALIMER_BUILD_EDITOR OFF CACHE INTERNAL "Disable Build tools" FORCE)
@@ -217,7 +217,7 @@ if (ALIMER_GRAPHICS_D3D11)
   message(STATUS "  Graphics Backend:   Direct3D11 (ALIMER_GRAPHICS_D3D11)")
 endif()
 
-if (ALIMER_RHI_D3D12)
+if (ALIMER_GRAPHICS_D3D12)
   message(STATUS "  Graphics Backend:   Direct3D12 (ALIMER_GRAPHICS_D3D12)")
 endif()
 
@@ -225,11 +225,11 @@ if (ALIMER_GRAPHICS_GL)
   message(STATUS "  Graphics Backend:   OpenGL (ALIMER_GRAPHICS_GL)")
 endif()
 
-if (ALIMER_RHI_VULKAN)
+if (ALIMER_GRAPHICS_VULKAN)
   message(STATUS "  Graphics Backend:   Vulkan (ALIMER_GRAPHICS_VULKAN)")
 endif()
 
-if (ALIMER_RHI_METAL)
+if (ALIMER_GRAPHICS_METAL)
   message(STATUS "  Graphics Backend:   Metal (ALIMER_GRAPHICS_METAL)")
 endif()
 
