@@ -44,21 +44,6 @@ namespace Alimer::rhi
         return CreateTextureCore(desc, handle, nullptr);
     }
 
-    BufferHandle IDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
-    {
-        assert(desc.size > 0);
-
-        static constexpr uint64_t kMaxBufferSize = 128u * 1024u * 1024u;
-
-        if (desc.size > kMaxBufferSize)
-        {
-            LOGE("Buffer size too large (size {})", desc.size);
-            return nullptr;
-        }
-
-        return CreateBufferCore(desc, initialData);
-    }
-
     SwapChainHandle IDevice::CreateSwapChain(void* windowHandle, const SwapChainDesc& desc)
     {
         return CreateSwapChainCore(windowHandle, desc);

@@ -16,6 +16,7 @@
 #include "Math/Matrix.h"
 
 // Graphics
+#include "Graphics/GraphicsBuffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Sampler.h"
 #include "Graphics/Shader.h"

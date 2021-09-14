@@ -16,6 +16,11 @@
 
 namespace Alimer
 {
-    
+    struct GL_Buffer final
+    {
+        GLuint id = 0;
+
+        ~GL_Buffer();
+    };
 }
 

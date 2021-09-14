@@ -23,6 +23,7 @@ namespace Alimer
         CommandContext* GetImmediateContext() const override;
 
     private:
+        bool CreateBuffer(const BufferDesc* desc, const void* initialData, GPUBuffer* pBuffer) const override;
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         SamplerRef CreateSampler(const SamplerDesc& desc)  override;
         ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)  override;

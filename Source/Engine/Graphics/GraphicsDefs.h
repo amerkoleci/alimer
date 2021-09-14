@@ -172,6 +172,20 @@ namespace Alimer
         Discard,
     };
 
+    enum class BufferUsage : uint32_t
+    {
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        ShaderRead = 1 << 3,
+        ShaderWrite = 1 << 4,
+        Indirect = 1 << 5,
+        RayTracingAccelerationStructure = 1 << 6,
+        RayTracingShaderTable = 1 << 7,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
+
     /* Forward declarations */
     class Texture;
     class TextureView;
@@ -184,6 +198,23 @@ namespace Alimer
     using SamplerRef = RefCountPtr<Sampler>;
     using ShaderRef = RefCountPtr<Shader>;
     using PipelineRef = RefCountPtr<Pipeline>;
+
+    /* GPU handles */
+    struct GraphicsDeviceChild
+    {
+        std::shared_ptr<void> internalState;
+        inline bool IsValid() const { return internalState.get() != nullptr; }
+    };
+
+    struct GPUResource : public GraphicsDeviceChild
+    {
+
+    };
+
+    struct GPUBuffer : public GPUResource
+    {
+    };
+
 
     /* Structs */
     struct GraphicsAdapterInfo
@@ -232,6 +263,15 @@ namespace Alimer
 
         /// The maximum number of draws when doing indirect drawing.
         uint32_t maxDrawIndirectCount = 1;
+    };
+
+    struct BufferDesc
+    {
+        uint64_t size = 0;
+        BufferUsage usage = BufferUsage::None;
+        //HeapType heapType = HeapType::Default;
+        uintptr_t handle = 0;
+        const char* label = nullptr;
     };
 
     /* Helper methods */

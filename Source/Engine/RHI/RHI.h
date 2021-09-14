@@ -207,28 +207,6 @@ namespace Alimer::rhi
     };
 
     /* Structs */
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        ShaderRead = 1 << 3,
-        ShaderWrite = 1 << 4,
-        Indirect = 1 << 5,
-        RayTracingAccelerationStructure = 1 << 6,
-        RayTracingShaderTable = 1 << 7,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
-
-    struct BufferDesc
-    {
-        uint64_t size = 0;
-        BufferUsage usage = BufferUsage::None;
-        HeapType heapType = HeapType::Default;
-        uintptr_t handle = 0;
-        const char* label = nullptr;
-    };
 
     enum class TextureDimension : uint32_t
     {
@@ -409,19 +387,6 @@ namespace Alimer::rhi
         [[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
     };
 
-    class ALIMER_API IBuffer : public IResource
-    {
-    public:
-        Type GetType() const override final { return Type::Buffer; }
-
-        [[nodiscard]] virtual uint64_t GetSize() const = 0;
-        [[nodiscard]] virtual BufferUsage GetUsage() const = 0;
-
-        [[nodiscard]] virtual uint64_t GetDeviceAddress() const = 0;
-
-        [[nodiscard]] virtual uint8_t* MappedData() const = 0;
-    };
-
     class ALIMER_API ITexture : public IResource
     {
     public:
@@ -456,7 +421,6 @@ namespace Alimer::rhi
         virtual void EndRenderPass() = 0;
     };
 
-    using BufferHandle = RefCountPtr<IBuffer>;
     using TextureHandle = RefCountPtr<ITexture>;
     using SwapChainHandle = RefCountPtr<ISwapChain>;
 
@@ -475,9 +439,6 @@ namespace Alimer::rhi
         /// Create new Texture.
         [[nodiscard]] TextureHandle CreateExternalTexture(const void* handle, const TextureDesc& desc);
 
-        /// Create new Buffer.
-        [[nodiscard]] BufferHandle CreateBuffer(const BufferDesc& desc, const void* initialData);
-
         /// Create new SwapChain.
         [[nodiscard]] SwapChainHandle CreateSwapChain(void* windowHandle, const SwapChainDesc& desc);
 
@@ -494,7 +455,6 @@ namespace Alimer::rhi
 
     private:
         virtual TextureHandle CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData) = 0;
-        virtual BufferHandle CreateBufferCore(const BufferDesc& desc, const void* initialData) = 0;
         virtual SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDesc& desc) = 0;
 
     protected:

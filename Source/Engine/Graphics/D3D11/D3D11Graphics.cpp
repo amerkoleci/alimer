@@ -702,6 +702,11 @@ namespace Alimer
         AfterReset();
     }
 
+    bool D3D11GraphicsDevice::CreateBuffer(const BufferDesc* desc, const void* initialData, GPUBuffer* pBuffer) const
+    {
+        return false;
+    }
+
     TextureRef D3D11GraphicsDevice::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
         return nullptr;

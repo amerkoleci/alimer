@@ -53,18 +53,18 @@ namespace Alimer
         RenderPassDepthStencilAttachment depthStencilAttachment;
     };
 
-    struct GPUAllocation
-    {
-        /// The buffer associated with this memory.
-        rhi::BufferHandle buffer = nullptr;
-
-        /// Offset from start of buffer resource.
-        uint64_t offset = 0;
-        /// Reserved size of this allocation.
-        uint64_t size = 0;
-        /// The CPU-writeable address.
-        uint8_t* data = nullptr;
-    };
+    //struct GPUAllocation
+    //{
+    //    /// The buffer associated with this memory.
+    //    rhi::BufferHandle buffer = nullptr;
+    //
+    //    /// Offset from start of buffer resource.
+    //    uint64_t offset = 0;
+    //    /// Reserved size of this allocation.
+    //    uint64_t size = 0;
+    //    /// The CPU-writeable address.
+    //    uint8_t* data = nullptr;
+    //};
 
     class ALIMER_API CommandContext
     {
@@ -121,13 +121,13 @@ namespace Alimer
     private:
         //virtual void BindConstantBufferCore(uint32_t binding, const rhi::IBuffer* buffer, uint64_t offset, uint64_t range) = 0;
 
-        struct FrameAllocator
-        {
-            rhi::BufferHandle buffer;
-            // Current offset, it increases on every allocation
-            uint64_t currentOffset = 0;
-            uint64_t frameIndex = 0;
-        } frameAllocators[kMaxFramesInFlight];
+        //struct FrameAllocator
+        //{
+        //    rhi::BufferHandle buffer;
+        //    // Current offset, it increases on every allocation
+        //    uint64_t currentOffset = 0;
+        //    uint64_t frameIndex = 0;
+        //} frameAllocators[kMaxFramesInFlight];
     };
 }
 

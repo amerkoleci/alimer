@@ -20,8 +20,8 @@ struct CameraData
 class HelloWorldApp final : public Application
 {
 private:
-    BufferHandle vertexBuffer;
-    BufferHandle indexBuffer;
+    GraphicsBuffer vertexBuffer;
+    //BufferHandle indexBuffer;
     PipelineRef renderPipeline;
 
     float rotationX = 0.0f;
@@ -37,60 +37,25 @@ public:
     {
         Settings settings;
         settings.title = "Hello World";
-        //settings.graphicsApi = GraphicsAPI::OpenGL;
+        settings.graphicsApi = GraphicsAPI::OpenGL;
         return settings;
     }
 
     bool Initialize() override
     {
-        float vertices[] = {
-            /* pos                  color                       uvs */
-            -1.0f, -1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     0.0f, 0.0f,
-             1.0f, -1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     1.0f, 0.0f,
-             1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     1.0f, 1.0f,
-            -1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     0.0f, 1.0f,
-
-            -1.0f, -1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     0.0f, 0.0f,
-             1.0f, -1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     1.0f, 0.0f,
-             1.0f,  1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     1.0f, 1.0f,
-            -1.0f,  1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     0.0f, 1.0f,
-
-            -1.0f, -1.0f, -1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     0.0f, 0.0f,
-            -1.0f,  1.0f, -1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     1.0f, 0.0f,
-            -1.0f,  1.0f,  1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     1.0f, 1.0f,
-            -1.0f, -1.0f,  1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     0.0f, 1.0f,
-
-             1.0f, -1.0f, -1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     0.0f, 0.0f,
-             1.0f,  1.0f, -1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     1.0f, 0.0f,
-             1.0f,  1.0f,  1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     1.0f, 1.0f,
-             1.0f, -1.0f,  1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     0.0f, 1.0f,
-
-            -1.0f, -1.0f, -1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     0.0f, 0.0f,
-            -1.0f, -1.0f,  1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     1.0f, 0.0f,
-             1.0f, -1.0f,  1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     1.0f, 1.0f,
-             1.0f, -1.0f, -1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     0.0f, 1.0f,
-
-            -1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     0.0f, 0.0f,
-            -1.0f,  1.0f,  1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     1.0f, 0.0f,
-             1.0f,  1.0f,  1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     1.0f, 1.0f,
-             1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     0.0f, 1.0f
+        const float vertices[] = {
+            /* positions            colors */
+             0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
+             0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
         };
-
-        uint16_t indices[] = {
-            0, 1, 2,  0, 2, 3,
-            6, 5, 4,  7, 6, 4,
-            8, 9, 10,  8, 10, 11,
-            14, 13, 12,  15, 14, 12,
-            16, 17, 18,  16, 18, 19,
-            22, 21, 20, 23, 22, 20
-        };
-#if TODO
         BufferDesc bufferDesc;
         bufferDesc.size = sizeof(vertices);
         bufferDesc.usage = BufferUsage::Vertex;
         bufferDesc.label = "VertexBuffer";
-        vertexBuffer = GRHIDevice->CreateBuffer(bufferDesc, vertices);
+        vertexBuffer.Create(bufferDesc, vertices);
 
+#if TODO
         bufferDesc.size = sizeof(indices);
         bufferDesc.usage = BufferUsage::Index;
         bufferDesc.label = "IndexBuffer";

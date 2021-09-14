@@ -70,6 +70,11 @@ namespace Alimer
 #endif
     }
 
+    GL_Buffer::~GL_Buffer()
+    {
+        glDeleteBuffers(1, &id);
+    }
+
     GLGraphicsDevice::GLGraphicsDevice(Window& window, const GraphicsCreateInfo& createInfo)
         : Graphics(window)
     {
@@ -120,6 +125,20 @@ namespace Alimer
     void GLGraphicsDevice::Resize(uint32_t newWidth, uint32_t newHeight)
     {
 
+    }
+
+    bool GLGraphicsDevice::CreateBuffer(const BufferDesc* desc, const void* initialData, GPUBuffer* pBuffer) const
+    {
+        auto internalState = std::make_shared<GL_Buffer>();
+        pBuffer->internalState = internalState;
+
+        glGenBuffers(1, &internalState->id);
+        glBindBuffer(GL_ARRAY_BUFFER, internalState->id);
+        glBufferData(GL_ARRAY_BUFFER, desc->size, initialData, GL_STATIC_DRAW);
+
+        //auto mMappedData = glMapBufferRange(GL_ARRAY_BUFFER, 0, desc->size, GL_MAP_WRITE_BIT);
+
+        return true;
     }
 
     TextureRef GLGraphicsDevice::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)

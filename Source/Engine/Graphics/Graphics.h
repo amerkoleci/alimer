@@ -10,11 +10,13 @@
 
 namespace Alimer
 {
+    struct BufferDesc;
     struct TextureDesc;
     struct TextureData;
     struct SamplerDesc;
     struct RenderPipelineDesc;
     enum class ShaderStages : uint32_t;
+    class GraphicsBuffer;
     class Window;
 
     struct GraphicsCreateInfo
@@ -30,6 +32,8 @@ namespace Alimer
     /// Defines a Graphics module class.
     class ALIMER_API Graphics : public Module<Graphics>
     {
+        friend class GraphicsBuffer;
+
         friend class Texture;
         friend class Sampler;
         friend class Shader;
@@ -72,6 +76,8 @@ namespace Alimer
         [[nodiscard]] u32 GetBackBufferWidth() const { return backBufferWidth; }
         /// Return backbuffer height.
         [[nodiscard]] u32 GetBackBufferHeight() const { return backBufferHeight; }
+
+        virtual bool CreateBuffer(const BufferDesc* desc, const void* initialData, GPUBuffer* pBuffer) const = 0;
 
     private:
         virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
