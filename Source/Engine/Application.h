@@ -17,7 +17,6 @@ namespace Alimer
         bool        fullscreen = false;
 
         GraphicsAPI graphicsApi = GraphicsAPI::Default;
-        ValidationMode validationMode = ValidationMode::Disabled;
     };
 
     /// Class that provides graphics initialization, application logic, and rendering code.

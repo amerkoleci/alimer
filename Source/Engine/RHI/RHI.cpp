@@ -12,26 +12,7 @@
 namespace Alimer::rhi
 {
     /* Helper methods */
-    const char* GetVendorName(uint32_t vendorId)
-    {
-        switch (vendorId)
-        {
-            case KnownVendorId_AMD:
-                return "AMD";
-            case KnownVendorId_ImgTec:
-                return "IMAGINATION";
-            case KnownVendorId_Nvidia:
-                return "Nvidia";
-            case KnownVendorId_ARM:
-                return "ARM";
-            case KnownVendorId_Qualcomm:
-                return "Qualcom";
-            case KnownVendorId_Intel:
-                return "Intel";
-            default:
-                return "Unknown";
-        }
-    }
+    
 
     uint32_t CalculateMipLevels(uint32_t width, uint32_t height, uint32_t depth)
     {

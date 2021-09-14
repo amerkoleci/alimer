@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Graphics/GraphicsDefs.h"
-
+#include "PlatformInclude.h"
 #if ALIMER_PLATFORM_EMSCRIPTEN
 #   include <GLES3/gl3.h>
 #   include <GLES2/gl2ext.h>

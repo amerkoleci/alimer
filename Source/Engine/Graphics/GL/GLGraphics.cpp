@@ -69,7 +69,7 @@ namespace Alimer
 #endif
     }
 
-    GLGraphics::GLGraphics(Window& window, const PresentationParameters& presentationParameters)
+    GLGraphics::GLGraphics(Window& window, const GraphicsCreateInfo& createInfo)
         : Graphics(window)
     {
         // Core in version 4.3 or GLES 3.2
@@ -94,8 +94,8 @@ namespace Alimer
 
     bool GLGraphics::BeginFrame()
     {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        const float clearColor[4] = { 0.2f, 0.3f, 0.3f, 1.0f };
+        glClearBufferfv(GL_COLOR, 0, clearColor);
 
         return true;
     }

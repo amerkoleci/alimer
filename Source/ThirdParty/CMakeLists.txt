@@ -19,7 +19,7 @@ if (ALIMER_GRAPHICS_GL)
   set_property(TARGET glad PROPERTY FOLDER "ThirdParty")
 endif()
 
-if(ALIMER_RHI_VULKAN)
+if(ALIMER_GRAPHICS_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)
     set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
@@ -83,7 +83,7 @@ if(ALIMER_RHI_VULKAN)
     set_property(TARGET spirv-reflect PROPERTY FOLDER "ThirdParty")
 endif()
 
-if (ALIMER_RHI_D3D12)
+if (ALIMER_GRAPHICS_D3D12)
     add_library(DirectX-Headers INTERFACE)
     set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
     target_sources(DirectX-Headers INTERFACE 

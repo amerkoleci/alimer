@@ -5,6 +5,57 @@
 
 namespace Alimer
 {
+    const char* GetVendorName(uint32_t vendorId)
+    {
+        switch (vendorId)
+        {
+        case KnownVendorId_AMD:
+            return "AMD";
+        case KnownVendorId_ImgTec:
+            return "IMAGINATION";
+        case KnownVendorId_Nvidia:
+            return "Nvidia";
+        case KnownVendorId_ARM:
+            return "ARM";
+        case KnownVendorId_Qualcomm:
+            return "Qualcom";
+        case KnownVendorId_Intel:
+            return "Intel";
+        default:
+            return "Unknown";
+        }
+    }
+
+    GPUVendorId VendorIdToAdapterVendor(uint32_t vendorId)
+    {
+        switch (vendorId)
+        {
+        case KnownVendorId_Nvidia:
+            return GPUVendorId::NVIDIA;
+        case KnownVendorId_AMD:
+            return GPUVendorId::AMD;
+        case KnownVendorId_Intel:
+            return GPUVendorId::INTEL;
+        case KnownVendorId_ARM:
+            return GPUVendorId::ARM;
+        case KnownVendorId_Qualcomm:
+            return GPUVendorId::QUALCOMM;
+        case KnownVendorId_ImgTec:
+            return GPUVendorId::IMGTECH;
+        case KnownVendorId_Microsoft:
+            return GPUVendorId::MSFT;
+        case KnownVendorId_Apple:
+            return GPUVendorId::APPLE;
+        case KnownVendorId_Mesa:
+            return GPUVendorId::MESA;
+        case KnownVendorId_BROADCOM:
+            return GPUVendorId::BROADCOM;
+        
+        default:
+            return GPUVendorId::Unknown;
+        }
+    }
+
     const char* ToString(CompareFunction func)
     {
         switch (func)

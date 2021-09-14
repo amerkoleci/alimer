@@ -4,7 +4,7 @@
 
 **Alimer** is a cross-platform 2D and 3D Game Engine.
 
-Note that **Alimer** is undergoing active developement. Please report all spotted bugs in the [issue tracker](https://github.com/amerkolec/alimer/issues).
+Note that **Alimer** is undergoing active developement. Please report all spotted bugs in the [issue tracker](https://github.com/amerkoleci/alimer/issues).
 
 ## License
 

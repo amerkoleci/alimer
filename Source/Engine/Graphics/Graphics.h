@@ -5,6 +5,7 @@
 
 #include "Core/Module.h"
 #include "Graphics/CommandBuffer.h"
+#include <set>
 
 namespace Alimer
 {
@@ -14,6 +15,15 @@ namespace Alimer
     struct RenderPipelineDesc;
     enum class ShaderStages : uint32_t;
     class Window;
+
+    struct GraphicsCreateInfo
+    {
+        ValidationMode validationMode = ValidationMode::Disabled;
+
+        PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
+        bool vsyncEnabled = false;
+        bool isFullScreen = false;
+    };
 
     /// Defines a Graphics module class.
     class ALIMER_API Graphics : public Module<Graphics>
@@ -26,17 +36,23 @@ namespace Alimer
     public:
         virtual ~Graphics() = default;
 
-        static bool Initialize(Window& window, const PresentationParameters& presentationParameters);
+        [[nodiscard]] static std::set<GraphicsAPI> GetAvailableBackends();
+        [[nodiscard]] static GraphicsAPI GetBestPlatformAPI();
+
+        [[nodiscard]] static bool Initialize(GraphicsAPI api, Window& window, const GraphicsCreateInfo& createInfo);
 
         virtual void WaitIdle() = 0;
         virtual bool BeginFrame() = 0;
         virtual void EndFrame() = 0;
         virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
 
-        //! Returns the set of features supported by this device.
+        /// Returns the set of features supported by this device.
+        const GraphicsAdapterInfo& GetAdapterInfo() const { return adapterInfo; }
+
+        /// Returns the set of features supported by this device.
         const DeviceFeatures& GetFeatures() const { return features; }
 
-        //! Returns the set of hardware limits for this device.
+        /// Returns the set of hardware limits for this device.
         const DeviceLimits& GetLimits() const { return limits; }
 
         [[nodiscard]] virtual Texture* GetCurrentBackBuffer() const = 0;
@@ -63,6 +79,7 @@ namespace Alimer
         Graphics(Window& window);
 
         Window& window;
+        GraphicsAdapterInfo adapterInfo{};
         DeviceFeatures features{};
         DeviceLimits limits{};
 

@@ -22,10 +22,48 @@ namespace Alimer
     {
     }
 
-    bool Graphics::Initialize(Window& window, const PresentationParameters& presentationParameters)
+    std::set<GraphicsAPI> Graphics::GetAvailableBackends()
     {
+        static std::set<GraphicsAPI> availableDrivers;
+
+        if (availableDrivers.empty())
+        {
+            availableDrivers.insert(GraphicsAPI::Null);
+
+#if defined(ALIMER_GRAPHICS_D3D11)
+            availableDrivers.insert(GraphicsAPI::D3D11);
+#endif
+
 #if defined(ALIMER_GRAPHICS_GL)
-        gGraphics().Start(new GLGraphics(window, presentationParameters));
+            availableDrivers.insert(GraphicsAPI::OpenGL);
+#endif
+
+#if defined(ALIMER_GRAPHICS_METAL)
+            if (MetalGraphics::IsAvailable())
+                availableDrivers.insert(GraphicsAPI::Metal);
+#endif
+        }
+
+        return availableDrivers;
+    }
+
+    GraphicsAPI Graphics::GetBestPlatformAPI()
+    {
+#if defined(ALIMER_GRAPHICS_D3D11)
+        return GraphicsAPI::D3D11;
+#endif
+
+        return GraphicsAPI::OpenGL;
+    }
+
+    bool Graphics::Initialize(GraphicsAPI api, Window& window, const GraphicsCreateInfo& createInfo)
+    {
+#if defined(ALIMER_GRAPHICS_D3D11)
+        gGraphics().Start(new D3D11Graphics(window, createInfo));
+
+#endif
+#if defined(ALIMER_GRAPHICS_GL)
+        //gGraphics().Start(new GLGraphics(window, presentationParameters));
 #endif
 
         return gGraphics().IsInitialized();

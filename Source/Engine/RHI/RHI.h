@@ -18,14 +18,6 @@ namespace Alimer::rhi
     static constexpr uint32_t kMaxUniformBufferBindings = 14;
     static constexpr uint32_t kMaxLogMessageSize = 1024;
 
-    static constexpr uint32_t KnownVendorId_AMD = 0x1002;
-    static constexpr uint32_t KnownVendorId_Intel = 0x8086;
-    static constexpr uint32_t KnownVendorId_Nvidia = 0x10DE;
-    static constexpr uint32_t KnownVendorId_Microsoft = 0x1414;
-    static constexpr uint32_t KnownVendorId_ARM = 0x13B5;
-    static constexpr uint32_t KnownVendorId_ImgTec = 0x1010;
-    static constexpr uint32_t KnownVendorId_Qualcomm = 0x5143;
-
     enum class ShaderFormat : uint8_t
     {
         DXIL,

@@ -57,8 +57,8 @@ namespace Alimer
 
         if (settings.graphicsApi == GraphicsAPI::Default)
         {
-            // TODO: Handle best API per platform (Windows -> D3D11 etc)
-            settings.graphicsApi = GraphicsAPI::OpenGL;
+            // Detect best API per platform
+            settings.graphicsApi = Graphics::GetBestPlatformAPI();
         }
 
         if (!PlatformSetup())
@@ -67,13 +67,11 @@ namespace Alimer
         }
 
         // Init graphics module
-        PresentationParameters presentationParameters = {};
-        //ValidationMode validationMode = ValidationMode::Disabled;
+        GraphicsCreateInfo graphicsCreateInfo = {};
 #if ALIMER_DEBUG
-        //validationMode = ValidationMode::Enabled;
+        graphicsCreateInfo.validationMode = ValidationMode::Enabled;
 #endif
-
-        if (!Graphics::Initialize(*window, presentationParameters))
+        if (!Graphics::Initialize(settings.graphicsApi, *window, graphicsCreateInfo))
         {
             return false;
         }

@@ -11,13 +11,17 @@ namespace Alimer
     class D3D11Graphics final : public Graphics
     {
     public:
-        D3D11Graphics(Window& window, const PresentationParameters& presentationParameters);
+        D3D11Graphics(Window& window, const GraphicsCreateInfo& createInfo);
         ~D3D11Graphics() override;
 
         void WaitIdle() override;
         bool BeginFrame() override;
         void EndFrame() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
+
+        auto GetD3DDevice() const noexcept { return d3dDevice.Get(); }
+        auto GetD3DDeviceContext() const noexcept { return d3dContext.Get(); }
+        auto GetDXGIFactory() const noexcept { return dxgiFactory.Get(); }
 
         Texture* GetCurrentBackBuffer() const override
         {
@@ -45,14 +49,31 @@ namespace Alimer
         }
 
     private:
+        void CreateFactory();
+        void GetAdapter(IDXGIAdapter1** ppAdapter);
+        void AfterReset();
+        void HandleDeviceLost();
+
         TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) override;
         SamplerRef CreateSampler(const SamplerDesc& desc)  override;
         ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)  override;
         PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc)  override;
 
-        ComPtr<ID3D11Device1> device;
-        ComPtr<ID3D11DeviceContext1> immediateContext;
+        ValidationMode validationMode;
+
+        ComPtr<IDXGIFactory2> dxgiFactory;
+        bool tearingSupported{ false };
+
+        ComPtr<ID3D11Device1> d3dDevice;
+        ComPtr<ID3D11DeviceContext1> d3dContext;
+        D3D_FEATURE_LEVEL featureLevel{};
         bool deviceLost{ false };
+
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullScreenDesc = {};
+#endif
+        ComPtr<IDXGISwapChain1> swapChain;
     };
 }
 

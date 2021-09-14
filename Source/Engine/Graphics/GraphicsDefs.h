@@ -10,6 +10,17 @@
 namespace Alimer
 {
     /* Constants */
+    static constexpr u32 KnownVendorId_Nvidia = 0x010DE;
+    static constexpr u32 KnownVendorId_AMD = 0x01002;
+    static constexpr u32 KnownVendorId_Intel = 0x08086;
+    static constexpr u32 KnownVendorId_ARM = 0x013B5;
+    static constexpr u32 KnownVendorId_Qualcomm = 0x05143;
+    static constexpr u32 KnownVendorId_ImgTec = 0x01010;
+    static constexpr u32 KnownVendorId_Microsoft = 0x01414;
+    static constexpr u32 KnownVendorId_Apple = 0x0106B;
+    static constexpr u32 KnownVendorId_Mesa = 0x10005;
+    static constexpr u32 KnownVendorId_BROADCOM = 0x014e4;
+
     static constexpr u32 kMaxFramesInFlight = 2;
     static constexpr u32 kMaxColorAttachments = 8;
     static constexpr u32 kMaxViewportsAndScissors = 8;
@@ -48,6 +59,41 @@ namespace Alimer
         Verbose,
         /// Enable GPU-based validation
         GPU
+    };
+
+    enum class GPUAdapterType : uint8_t
+    {
+        Unknown,
+        Software,
+        Integrated,
+        Discrete,
+    };
+
+    enum class GPUVendorId : uint8_t
+    {
+        /// Adapter vendor is unknown
+        Unknown = 0,
+        /// Adapter vendor is NVidia
+        NVIDIA,
+        /// Adapter vendor is AMD
+        AMD,
+        /// Adapter vendor is Intel
+        INTEL,
+        /// Adapter vendor is ARM
+        ARM,
+        /// Adapter vendor is Qualcomm
+        QUALCOMM,
+        /// Adapter vendor is Imagination Technologies
+        IMGTECH,
+        /// Adapter vendor is Microsoft (software rasterizer)
+        MSFT,
+        /// Adapter vendor is Apple
+        APPLE,
+        /// Adapter vendor is Mesa (software rasterizer)
+        MESA,
+        /// Adapter vendor is Broadcom (Raspberry Pi)
+        BROADCOM,
+
     };
 
     enum class CompareFunction : uint32_t
@@ -140,14 +186,17 @@ namespace Alimer
     using PipelineRef = RefCountPtr<Pipeline>;
 
     /* Structs */
-    struct PresentationParameters
+    struct GraphicsAdapterInfo
     {
-        uint32_t backBufferWidth = 0;
-        uint32_t backBufferHeight = 0;
-        uint32_t backBufferCount = 3;
-        PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
-        bool vsyncEnabled = false;
-        bool isFullScreen = false;
+        std::string name;
+        GPUAdapterType type = GPUAdapterType::Unknown;
+        /// Adapter type
+        /// Adapter vendor
+        GPUVendorId vendor = GPUVendorId::Unknown;
+        /// The PCI ID of the hardware vendor (if available).
+        u32 vendorId = 0;
+        /// The PCI ID of the hardware device (if available).
+        u32 deviceId = 0;
     };
 
     struct DeviceFeatures
@@ -186,6 +235,8 @@ namespace Alimer
     };
 
     /* Helper methods */
+    ALIMER_API const char* GetVendorName(uint32_t vendorId);
+    ALIMER_API GPUVendorId VendorIdToAdapterVendor(uint32_t vendorId);
 
     ALIMER_API const char* ToString(CompareFunction func);
 }

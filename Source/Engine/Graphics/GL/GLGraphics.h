@@ -12,7 +12,7 @@ namespace Alimer
     {
 
     public:
-        GLGraphics(Window& window, const PresentationParameters& presentationParameters);
+        GLGraphics(Window& window, const GraphicsCreateInfo& createInfo);
         ~GLGraphics() override;
 
         void WaitIdle() override;
