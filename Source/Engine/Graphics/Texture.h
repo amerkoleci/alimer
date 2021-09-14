@@ -46,7 +46,7 @@ namespace Alimer
         uint32_t depthOrArrayLayers = 1;
         uint32_t mipLevels = 1;
         uint32_t sampleCount = 1;
-        PixelFormat format = PixelFormat::RGBA8UNorm;
+        PixelFormat format = PixelFormat::RGBA8Unorm;
         TextureUsage usage = TextureUsage::ShaderRead;
         rhi::ResourceStates initialState = rhi::ResourceStates::Unknown;
 

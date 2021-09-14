@@ -4,19 +4,16 @@
 #pragma once
 
 #define NOMINMAX
-#include "RHI.h"
-#include "volk.h"
-#include "vk_mem_alloc.h"
-#include "spirv_reflect.h"
-
+#include "VulkanBackend.h"
 #include <mutex>
 #include <deque>
 #include <unordered_map>
 
-namespace Alimer::rhi
+namespace Alimer
 {
-    class VulkanDevice;
+    class VulkanGraphics;
 
+#if TODO
     class VulkanBuffer final : public IBuffer
     {
     public:
@@ -430,4 +427,6 @@ namespace Alimer::rhi
         std::deque<std::pair<VkImageView, uint64_t>> destroyedImageViews;
         std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> destroyedBuffers;
     };
+#endif // TODO
+
 }

@@ -1,16 +1,14 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "AlimerConfig.h"
-#if defined(ALIMER_RHI_VULKAN) 
-#include "RHI_Vulkan.h"
+#include "VulkanGraphics.h"
 #include "Core/Log.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 #include <array>
 #include <set>
 
-namespace Alimer::rhi
+namespace Alimer
 {
     namespace
     {
@@ -22,42 +20,7 @@ namespace Alimer::rhi
             "CPU"
         };
 
-        [[nodiscard]] constexpr const char* ToString(VkResult result)
-        {
-            switch (result)
-            {
-#define STR(r)   \
-	case VK_##r: \
-		return #r
-                STR(SUCCESS);
-                STR(NOT_READY);
-                STR(TIMEOUT);
-                STR(EVENT_SET);
-                STR(EVENT_RESET);
-                STR(INCOMPLETE);
-                STR(ERROR_OUT_OF_HOST_MEMORY);
-                STR(ERROR_OUT_OF_DEVICE_MEMORY);
-                STR(ERROR_INITIALIZATION_FAILED);
-                STR(ERROR_DEVICE_LOST);
-                STR(ERROR_MEMORY_MAP_FAILED);
-                STR(ERROR_LAYER_NOT_PRESENT);
-                STR(ERROR_EXTENSION_NOT_PRESENT);
-                STR(ERROR_FEATURE_NOT_PRESENT);
-                STR(ERROR_INCOMPATIBLE_DRIVER);
-                STR(ERROR_TOO_MANY_OBJECTS);
-                STR(ERROR_FORMAT_NOT_SUPPORTED);
-                STR(ERROR_SURFACE_LOST_KHR);
-                STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-                STR(SUBOPTIMAL_KHR);
-                STR(ERROR_OUT_OF_DATE_KHR);
-                STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-                STR(ERROR_VALIDATION_FAILED_EXT);
-                STR(ERROR_INVALID_SHADER_NV);
-#undef STR
-                default:
-                    return "UNKNOWN_ERROR";
-            }
-        }
+        
 
         VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessengerCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -160,161 +123,7 @@ namespace Alimer::rhi
             return false;
         }
 
-        [[nodiscard]] constexpr VkFormat VulkanImageFormat(TextureFormat format)
-        {
-            switch (format)
-            {
-                // 8-bit formats
-                case TextureFormat::R8Unorm:        return VK_FORMAT_R8_UNORM;
-                case TextureFormat::R8Snorm:        return VK_FORMAT_R8_SNORM;
-                case TextureFormat::R8Uint:         return VK_FORMAT_R8_UINT;
-                case TextureFormat::R8Sint:         return VK_FORMAT_R8_SINT;
-                    // 16-bit formats
-                case TextureFormat::R16Unorm:       return VK_FORMAT_R16_UNORM;
-                case TextureFormat::R16Snorm:       return VK_FORMAT_R16_SNORM;
-                case TextureFormat::R16Uint:        return VK_FORMAT_R16_UINT;
-                case TextureFormat::R16Sint:        return VK_FORMAT_R16_SINT;
-                case TextureFormat::R16Float:       return VK_FORMAT_R16_SFLOAT;
-                case TextureFormat::RG8Unorm:       return VK_FORMAT_R8G8_UNORM;
-                case TextureFormat::RG8Snorm:       return VK_FORMAT_R8G8_SNORM;
-                case TextureFormat::RG8Uint:        return VK_FORMAT_R8G8_UINT;
-                case TextureFormat::RG8Sint:        return VK_FORMAT_R8G8_SINT;
-                    // Packed 16-Bit Pixel Formats
-                case TextureFormat::BGRA4Unorm:     return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
-                case TextureFormat::B5G6R5Unorm:    return VK_FORMAT_B5G6R5_UNORM_PACK16;
-                case TextureFormat::B5G5R5A1Unorm:  return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
-                    // 32-bit formats
-                case TextureFormat::R32Uint:        return VK_FORMAT_R32_UINT;
-                case TextureFormat::R32Sint:        return VK_FORMAT_R32_SINT;
-                case TextureFormat::R32Float:       return VK_FORMAT_R32_SFLOAT;
-                case TextureFormat::RG16Unorm:      return VK_FORMAT_R16G16_UNORM;
-                case TextureFormat::RG16Snorm:      return VK_FORMAT_R16G16_SNORM;
-                case TextureFormat::RG16Uint:       return VK_FORMAT_R16G16_UINT;
-                case TextureFormat::RG16Sint:       return VK_FORMAT_R16G16_SINT;
-                case TextureFormat::RG16Float:      return VK_FORMAT_R16G16_SFLOAT;
-                case TextureFormat::RGBA8Unorm:     return VK_FORMAT_R8G8B8A8_UNORM;
-                case TextureFormat::RGBA8UnormSrgb: return VK_FORMAT_R8G8B8A8_SRGB;
-                case TextureFormat::RGBA8Snorm:     return VK_FORMAT_R8G8B8A8_SNORM;
-                case TextureFormat::RGBA8Uint:      return VK_FORMAT_R8G8B8A8_UINT;
-                case TextureFormat::RGBA8Sint:      return VK_FORMAT_R8G8B8A8_SINT;
-                case TextureFormat::BGRA8Unorm:     return VK_FORMAT_B8G8R8A8_UNORM;
-                case TextureFormat::BGRA8UnormSrgb: return VK_FORMAT_B8G8R8A8_SRGB;
-                    // Packed 32-Bit formats
-                case TextureFormat::RGB10A2Unorm:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-                case TextureFormat::RG11B10Float:   return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-                case TextureFormat::RGB9E5Float:    return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
-                    // 64-Bit formats
-                case TextureFormat::RG32Uint:       return VK_FORMAT_R32G32_UINT;
-                case TextureFormat::RG32Sint:       return VK_FORMAT_R32G32_SINT;
-                case TextureFormat::RG32Float:      return VK_FORMAT_R32G32_SFLOAT;
-                case TextureFormat::RGBA16Unorm:    return VK_FORMAT_R16G16B16A16_UNORM;
-                case TextureFormat::RGBA16Snorm:    return VK_FORMAT_R16G16B16A16_SNORM;
-                case TextureFormat::RGBA16Uint:     return VK_FORMAT_R16G16B16A16_UINT;
-                case TextureFormat::RGBA16Sint:     return VK_FORMAT_R16G16B16A16_SINT;
-                case TextureFormat::RGBA16Float:    return VK_FORMAT_R16G16B16A16_SFLOAT;
-                    // 128-Bit formats
-                case TextureFormat::RGBA32Uint:     return VK_FORMAT_R32G32B32A32_UINT;
-                case TextureFormat::RGBA32Sint:     return VK_FORMAT_R32G32B32A32_SINT;
-                case TextureFormat::RGBA32Float:    return VK_FORMAT_R32G32B32A32_SFLOAT;
-                    // Depth-stencil formats
-                case TextureFormat::Depth16Unorm:   return VK_FORMAT_D16_UNORM;
-                case TextureFormat::Depth32Float:   return VK_FORMAT_D32_SFLOAT;
-                case TextureFormat::Depth24UnormStencil8: return VK_FORMAT_D24_UNORM_S8_UINT;
-                case TextureFormat::Depth32FloatStencil8: return VK_FORMAT_D32_SFLOAT_S8_UINT;
-                    // Compressed BC formats
-                case TextureFormat::BC1RGBAUnorm:       return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-                case TextureFormat::BC1RGBAUnormSrgb:   return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
-                case TextureFormat::BC2RGBAUnorm:       return VK_FORMAT_BC2_UNORM_BLOCK;
-                case TextureFormat::BC2RGBAUnormSrgb:   return VK_FORMAT_BC2_SRGB_BLOCK;
-                case TextureFormat::BC3RGBAUnorm:       return VK_FORMAT_BC3_UNORM_BLOCK;
-                case TextureFormat::BC3RGBAUnormSrgb:   return VK_FORMAT_BC3_SRGB_BLOCK;
-                case TextureFormat::BC4RUnorm:          return VK_FORMAT_BC4_UNORM_BLOCK;
-                case TextureFormat::BC4RSnorm:          return VK_FORMAT_BC4_SNORM_BLOCK;
-                case TextureFormat::BC5RGUnorm:         return VK_FORMAT_BC5_UNORM_BLOCK;
-                case TextureFormat::BC5RGSnorm:         return VK_FORMAT_BC5_SNORM_BLOCK;
-                case TextureFormat::BC6HRGBFloat:       return VK_FORMAT_BC6H_SFLOAT_BLOCK;
-                case TextureFormat::BC6HRGBUFloat:      return VK_FORMAT_BC6H_UFLOAT_BLOCK;
-                case TextureFormat::BC7RGBAUnorm:       return VK_FORMAT_BC7_UNORM_BLOCK;
-                case TextureFormat::BC7RGBAUnormSrgb:   return VK_FORMAT_BC7_SRGB_BLOCK;
-                    // EAC/ETC compressed formats
-                case TextureFormat::ETC2RGB8Unorm:          return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
-                case TextureFormat::ETC2RGB8UnormSrgb:      return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
-                case TextureFormat::ETC2RGB8A1Unorm:        return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
-                case TextureFormat::ETC2RGB8A1UnormSrgb:    return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
-                case TextureFormat::ETC2RGBA8Unorm:         return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
-                case TextureFormat::ETC2RGBA8UnormSrgb:     return VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
-                case TextureFormat::EACR11Unorm:
-                    return VK_FORMAT_EAC_R11_UNORM_BLOCK;
-                case TextureFormat::EACR11Snorm:
-                    return VK_FORMAT_EAC_R11_SNORM_BLOCK;
-                case TextureFormat::EACRG11Unorm:
-                    return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
-                case TextureFormat::EACRG11Snorm:
-                    return VK_FORMAT_EAC_R11G11_SNORM_BLOCK;
-                    // ASTC compressed formats
-                case TextureFormat::ASTC4x4Unorm:
-                    return VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
-                case TextureFormat::ASTC4x4UnormSrgb:
-                    return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
-                case TextureFormat::ASTC5x4Unorm:
-                    return VK_FORMAT_ASTC_5x4_UNORM_BLOCK;
-                case TextureFormat::ASTC5x4UnormSrgb:
-                    return VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
-                case TextureFormat::ASTC5x5Unorm:
-                    return VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
-                case TextureFormat::ASTC5x5UnormSrgb:
-                    return VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
-                case TextureFormat::ASTC6x5Unorm:
-                    return VK_FORMAT_ASTC_6x5_UNORM_BLOCK;
-                case TextureFormat::ASTC6x5UnormSrgb:
-                    return VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
-                case TextureFormat::ASTC6x6Unorm:
-                    return VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
-                case TextureFormat::ASTC6x6UnormSrgb:
-                    return VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
-                case TextureFormat::ASTC8x5Unorm:
-                    return VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
-                case TextureFormat::ASTC8x5UnormSrgb:
-                    return VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
-                case TextureFormat::ASTC8x6Unorm:
-                    return VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
-                case TextureFormat::ASTC8x6UnormSrgb:
-                    return VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
-                case TextureFormat::ASTC8x8Unorm:
-                    return VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-                case TextureFormat::ASTC8x8UnormSrgb:
-                    return VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
-                case TextureFormat::ASTC10x5Unorm:
-                    return VK_FORMAT_ASTC_10x5_UNORM_BLOCK;
-                case TextureFormat::ASTC10x5UnormSrgb:
-                    return VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
-                case TextureFormat::ASTC10x6Unorm:
-                    return VK_FORMAT_ASTC_10x6_UNORM_BLOCK;
-                case TextureFormat::ASTC10x6UnormSrgb:
-                    return VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
-                case TextureFormat::ASTC10x8Unorm:
-                    return VK_FORMAT_ASTC_10x8_UNORM_BLOCK;
-                case TextureFormat::ASTC10x8UnormSrgb:
-                    return VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
-                case TextureFormat::ASTC10x10Unorm:
-                    return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
-                case TextureFormat::ASTC10x10UnormSrgb:
-                    return VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
-                case TextureFormat::ASTC12x10Unorm:
-                    return VK_FORMAT_ASTC_12x10_UNORM_BLOCK;
-                case TextureFormat::ASTC12x10UnormSrgb:
-                    return VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
-                case TextureFormat::ASTC12x12Unorm:
-                    return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
-                case TextureFormat::ASTC12x12UnormSrgb:
-                    return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
-
-                default:
-                case TextureFormat::Undefined:
-                    return VK_FORMAT_UNDEFINED;
-            }
-        }
-
+        
         struct SwapChainSupportDetails
         {
             std::vector<VkSurfaceFormatKHR> formats;
@@ -340,12 +149,12 @@ namespace Alimer::rhi
 
         inline VkSurfaceFormatKHR QuerySurfaceFormat(
             const std::vector<VkSurfaceFormatKHR>& available_formats,
-            TextureFormat format)
+            PixelFormat format)
         {
             if (available_formats.size() == 1 && available_formats[0].format == VK_FORMAT_UNDEFINED)
                 return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 
-            const VkFormat vkFormat = VulkanImageFormat(format);
+            const VkFormat vkFormat = ToVulkan(format);
 
             for (const auto& available_format : available_formats)
             {
@@ -399,21 +208,20 @@ namespace Alimer::rhi
             }
         }
 
-
-        [[nodiscard]] constexpr VkPresentModeKHR ToVulkanPresentMode(PresentMode mode)
-        {
-            switch (mode)
-            {
-                case PresentMode::Fifo:
-                    return VK_PRESENT_MODE_FIFO_KHR;
-                case PresentMode::Immediate:
-                    return VK_PRESENT_MODE_IMMEDIATE_KHR;
-                case PresentMode::Mailbox:
-                    return VK_PRESENT_MODE_MAILBOX_KHR;
-                default:
-                    return VK_PRESENT_MODE_FIFO_KHR;
-            }
-        }
+        //[[nodiscard]] constexpr VkPresentModeKHR ToVulkanPresentMode(PresentMode mode)
+        //{
+        //    switch (mode)
+        //    {
+        //        case PresentMode::Fifo:
+        //            return VK_PRESENT_MODE_FIFO_KHR;
+        //        case PresentMode::Immediate:
+        //            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        //        case PresentMode::Mailbox:
+        //            return VK_PRESENT_MODE_MAILBOX_KHR;
+        //        default:
+        //            return VK_PRESENT_MODE_FIFO_KHR;
+        //    }
+        //}
 
         [[nodiscard]] constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
         {
@@ -430,31 +238,7 @@ namespace Alimer::rhi
         }
     }
 
-    /// Helper macro to test the result of Vulkan calls which can return an error.
-#define VK_CHECK(x) \
-	do \
-	{ \
-		VkResult err = x; \
-		if (err) \
-		{ \
-			LOGE("Detected Vulkan error: {}", ToString(err)); \
-		} \
-	} while (0)
-
-#define VK_LOG_ERROR(result, message) LOGE("Vulkan: {}, error: {}", message, ToString(result));
-
-    constexpr uint64_t NextPowerOfTwo(uint64_t value)
-    {
-        // http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-        --value;
-        value |= value >> 1u;
-        value |= value >> 2u;
-        value |= value >> 4u;
-        value |= value >> 8u;
-        value |= value >> 16u;
-        return ++value;
-    }
-
+#if TODO
     const VulkanBuffer* ToVk(const IBuffer* resource)
     {
         return static_cast<const VulkanBuffer*>(resource);
@@ -1862,32 +1646,32 @@ namespace Alimer::rhi
 
         switch (desc.dimension)
         {
-            case TextureDimension::Texture1D:
-                createInfo.imageType = VK_IMAGE_TYPE_1D;
-                createInfo.extent = { desc.width, 1, 1 };
-                createInfo.arrayLayers = desc.depthOrArrayLayers;
-                break;
+        case TextureDimension::Texture1D:
+            createInfo.imageType = VK_IMAGE_TYPE_1D;
+            createInfo.extent = { desc.width, 1, 1 };
+            createInfo.arrayLayers = desc.depthOrArrayLayers;
+            break;
 
-            case TextureDimension::Texture2D:
-                createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
-                createInfo.imageType = VK_IMAGE_TYPE_2D;
-                createInfo.extent = { desc.width, desc.height, 1 };
-                createInfo.arrayLayers = desc.depthOrArrayLayers;
+        case TextureDimension::Texture2D:
+            createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+            createInfo.imageType = VK_IMAGE_TYPE_2D;
+            createInfo.extent = { desc.width, desc.height, 1 };
+            createInfo.arrayLayers = desc.depthOrArrayLayers;
 
-                if (desc.depthOrArrayLayers >= 6 && desc.width == desc.height)
-                {
-                    createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-                }
-                break;
+            if (desc.depthOrArrayLayers >= 6 && desc.width == desc.height)
+            {
+                createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+            }
+            break;
 
-            case TextureDimension::Texture3D:
-                createInfo.imageType = VK_IMAGE_TYPE_3D;
-                createInfo.extent = { desc.width, desc.height, desc.depthOrArrayLayers };
-                createInfo.arrayLayers = 1u;
-                break;
+        case TextureDimension::Texture3D:
+            createInfo.imageType = VK_IMAGE_TYPE_3D;
+            createInfo.extent = { desc.width, desc.height, desc.depthOrArrayLayers };
+            createInfo.arrayLayers = 1u;
+            break;
 
-            default:
-                break;
+        default:
+            break;
         }
 
         //createInfo.format = ConvertFormat(desc.format);
@@ -2172,24 +1956,24 @@ namespace Alimer::rhi
 
         switch (desc.heapType)
         {
-            case HeapType::Upload:
-                memoryInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-                memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-                memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-                memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-                break;
-            case HeapType::Readback:
-                memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-                memoryInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-                createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-                break;
+        case HeapType::Upload:
+            memoryInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+            memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+            break;
+        case HeapType::Readback:
+            memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            memoryInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            break;
 
-            case HeapType::Default:
-            default:
-                memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-                memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-                createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-                break;
+        case HeapType::Default:
+        default:
+            memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+            memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            break;
         }
 
         VmaAllocationInfo allocationInfo{};
@@ -2205,7 +1989,7 @@ namespace Alimer::rhi
 
         if (createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
         {
-            VkBufferDeviceAddressInfo addressInfo { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+            VkBufferDeviceAddressInfo addressInfo{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
             addressInfo.buffer = buffer->handle;
             buffer->deviceAddress = vkGetBufferDeviceAddress(device, &addressInfo);
         }
@@ -2697,15 +2481,15 @@ namespace Alimer::rhi
             VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
             switch (queue)
             {
-                case CommandQueue::Graphics:
-                    poolInfo.queueFamilyIndex = device->graphicsFamily;
-                    break;
-                case CommandQueue::Compute:
-                    poolInfo.queueFamilyIndex = device->computeFamily;
-                    break;
-                default:
-                    assert(0); // queue type not handled
-                    break;
+            case CommandQueue::Graphics:
+                poolInfo.queueFamilyIndex = device->graphicsFamily;
+                break;
+            case CommandQueue::Compute:
+                poolInfo.queueFamilyIndex = device->computeFamily;
+                break;
+            default:
+                assert(0); // queue type not handled
+                break;
             }
             poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             VK_CHECK(vkCreateCommandPool(device->device, &poolInfo, nullptr, &commandPools[i]));
@@ -2861,6 +2645,6 @@ namespace Alimer::rhi
 
         insideRenderPass = false;
     }
-}
+#endif // TODO
 
-#endif /* defined(ALIMER_RHI_VULKAN) */
+}

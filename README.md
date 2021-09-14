@@ -1,23 +1,14 @@
-<h1 align="center" style="border-bottom: none;">
-  <a href="https://github.com/amerkoleci/alimer">Alimer Engine</a>
-</h1>
-<h3 align="center">Cross-platform 2D and 3D Game Engine written in C++17.</h3>
-<p align="center">
-  <a href="#features">Features</a> |
-  <a href="#building-🔨">Building</a> |
-  <a href="#dependencies">Dependencies</a> |
-  <a href="#credits">Credits</a>
-<br/>
-<br/>
-<a href="https://actions-badge.atrox.dev/amerkoleci/alimer/goto?ref=main"><img alt="Build Status" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Famerkoleci%2Falimer%2Fbadge%3Fref%3Dmain&style=flat" /></a>
-<a href=""><img alt="platforms" src="https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square"/></a>
-<a href="https://github.com/amerkoleci/alimer/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/amerkoleci/alimer?style=flat-square"/></a>
-<br/>
-<a href="https://github.com/amerkoleci/alimer/issues"><img alt="Issues" src="https://img.shields.io/github/issues-raw/amerkoleci/alimer.svg?style=flat-square"/></a>
-<a href=""><img alt="size" src="https://img.shields.io/github/repo-size/amerkoleci/alimer?style=flat-square"/></a>
-<a href=""><img alt="stars" src="https://img.shields.io/github/stars/amerkoleci/alimer?style=social"/></a>
-<br/>
-</p>
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/amerkoleci/alimer/blob/main/LICENSE)
+[![Language](https://img.shields.io/badge/Language%20-C++17-blue.svg?style=flat-square)](https://github.com/amerkoleci/alimer)
+[![Build](https://github.com/amerkoleci/alimer/workflows/Build/badge.svg)](https://github.com/amerkoleci/alimer/actions)
+
+**Alimer** is a cross-platform 2D and 3D Game Engine.
+
+Note that **Alimer** is undergoing active developement. Please report all spotted bugs in the [issue tracker](https://github.com/amerkolec/alimer/issues).
+
+## License
+
+Licensed under the MIT license, see [LICENSE](https://github.com/amerkoleci/alimer/blob/main/LICENSE) for details.
 
 ## Features
 
@@ -25,10 +16,12 @@
 * Support for multiple graphics backend D3D11/OpenGL/Vulkan.
 
 ## Building 🔨
-
+#
 ```
 git clone https://github.com/amerkoleci/alimer.git
 ```
+
+## Screenshots
 
 ## Dependencies
 
@@ -46,9 +39,3 @@ Uses the following open-source and third-party libraries:
 - [DirectX-Headers](https://github.com/microsoft/DirectX-Headers): Official MIT licensed Direct3D 12 headers
 - [D3D12MemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator): Easy to integrate memory allocation library for Direct3D 12
 - [DirectXShaderCompiler](https://github.com/microsoft/DirectXShaderCompiler): DirectX Shader Compiler
-
-## Credits
-
-Alimer development, contributions and bugfixes by:
-
-- Amer Koleci

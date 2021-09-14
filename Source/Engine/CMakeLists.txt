@@ -81,6 +81,10 @@ if (ALIMER_GRAPHICS_GL)
   define_engine_source_files(Graphics/GL NO_INSTALL)
 endif()
 
+if (ALIMER_GRAPHICS_VULKAN)
+  define_engine_source_files(Graphics/Vulkan NO_INSTALL)
+endif()
+
 # GLFW
 if(NOT (EMSCRIPTEN OR ANDROID))
   define_engine_source_files(Platform/GLFW NO_INSTALL)
