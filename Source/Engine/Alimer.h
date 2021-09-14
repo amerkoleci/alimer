@@ -20,7 +20,7 @@
 #include "Graphics/Sampler.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Pipeline.h"
-#include "Graphics/CommandBuffer.h"
+#include "Graphics/CommandContext.h"
 #include "Graphics/Graphics.h"
 
 // Application

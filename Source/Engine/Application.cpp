@@ -154,14 +154,14 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            //ICommandList* commandList = GRHIDevice->BeginCommandList();
-            //commandList->PushDebugGroup("Frame");
-            //commandList->BeginRenderPass(window->GetSwapChain(), Color::CornflowerBlue);
+            CommandContext* commandContext = gGraphics().GetImmediateContext();
+            commandContext->PushDebugGroup("Frame");
+            commandContext->BeginDefaultRenderPass(Color::CornflowerBlue);
             
-            //OnDraw(commandList);
+            OnDraw(*commandContext);
             
-            //commandList->EndRenderPass();
-            //commandList->PopDebugGroup();
+            commandContext->EndRenderPass();
+            commandContext->PopDebugGroup();
             EndDraw();
         }
     }

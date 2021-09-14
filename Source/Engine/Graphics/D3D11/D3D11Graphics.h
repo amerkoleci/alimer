@@ -8,11 +8,13 @@
 
 namespace Alimer
 {
-    class D3D11Graphics final : public Graphics
+    class D3D11CommandContext;
+
+    class D3D11GraphicsDevice final : public Graphics
     {
     public:
-        D3D11Graphics(Window& window, const GraphicsCreateInfo& createInfo);
-        ~D3D11Graphics() override;
+        D3D11GraphicsDevice(Window& window, const GraphicsCreateInfo& createInfo);
+        ~D3D11GraphicsDevice() override;
 
         void WaitIdle() override;
         bool BeginFrame() override;
@@ -20,33 +22,10 @@ namespace Alimer
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
 
         auto GetD3DDevice() const noexcept { return d3dDevice; }
-        auto GetD3DDeviceContext() const noexcept { return d3dContext.Get(); }
         auto GetDXGIFactory() const noexcept { return dxgiFactory.Get(); }
-
-        Texture* GetCurrentBackBuffer() const override
-        {
-            return 0;
-        }
-
-        Texture* GetBackBuffer(uint32_t index) const override
-        {
-            return nullptr;
-        }
-
-        uint32_t GetCurrentBackBufferIndex() const override
-        {
-            return 0;
-        }
-
-        uint32_t GetBackBufferCount() const override
-        {
-            return 1;
-        }
-
-        Texture* GetBackBufferDepthStencilTexture() const
-        {
-            return nullptr;
-        }
+        CommandContext* GetImmediateContext() const override;
+        ID3D11RenderTargetView* GetBackBufferView() const noexcept { return backBufferView.Get(); }
+        ID3D11DepthStencilView* GetDepthStencilView() const noexcept { return depthStencilView.Get(); }
 
     private:
         void CreateFactory();
@@ -71,7 +50,6 @@ namespace Alimer
         bool tearingSupported{ false };
 
         ID3D11Device1* d3dDevice = nullptr;
-        ComPtr<ID3D11DeviceContext1> d3dContext;
         D3D_FEATURE_LEVEL featureLevel{};
         bool deviceLost{ false };
 
@@ -91,6 +69,8 @@ namespace Alimer
         ComPtr<ID3D11RenderTargetView> backBufferView;
         ComPtr<ID3D11Texture2D> depthStencilTexture;
         ComPtr<ID3D11DepthStencilView> depthStencilView;
+
+        std::unique_ptr<D3D11CommandContext> mainContext;
     };
 }
 

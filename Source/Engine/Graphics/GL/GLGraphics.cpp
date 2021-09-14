@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "GLGraphics.h"
+#include "GLCommandContext.h"
 #include "Graphics/Sampler.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Pipeline.h"
@@ -69,62 +70,73 @@ namespace Alimer
 #endif
     }
 
-    GLGraphics::GLGraphics(Window& window, const GraphicsCreateInfo& createInfo)
+    GLGraphicsDevice::GLGraphicsDevice(Window& window, const GraphicsCreateInfo& createInfo)
         : Graphics(window)
     {
         // Core in version 4.3 or GLES 3.2
 #ifndef __APPLE__
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(gl_message_callback, nullptr);
+        int flags;
+        glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+        if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+        {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageCallback(gl_message_callback, nullptr);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+        }
 #endif
+
+        // Create main context.
+        mainContext = std::make_unique<GLCommandContext>(this);
 
         glViewport(0, 0, window.GetSize().x, window.GetSize().y);
     }
 
-    GLGraphics::~GLGraphics()
+    GLGraphicsDevice::~GLGraphicsDevice()
+    {
+        mainContext.reset();
+    }
+
+    CommandContext* GLGraphicsDevice::GetImmediateContext() const
+    {
+        return mainContext.get();
+    }
+
+    void GLGraphicsDevice::WaitIdle()
     {
 
     }
 
-    void GLGraphics::WaitIdle()
+    bool GLGraphicsDevice::BeginFrame()
     {
-
-    }
-
-    bool GLGraphics::BeginFrame()
-    {
-        const float clearColor[4] = { 0.2f, 0.3f, 0.3f, 1.0f };
-        glClearBufferfv(GL_COLOR, 0, clearColor);
-
         return true;
     }
 
-    void GLGraphics::EndFrame()
+    void GLGraphicsDevice::EndFrame()
     {
 
     }
 
-    void GLGraphics::Resize(uint32_t newWidth, uint32_t newHeight)
+    void GLGraphicsDevice::Resize(uint32_t newWidth, uint32_t newHeight)
     {
 
     }
 
-    TextureRef GLGraphics::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
-    {
-        return nullptr;
-    }
-
-    SamplerRef GLGraphics::CreateSampler(const SamplerDesc& desc)
-    {
-        return nullptr;
-    }
-    ShaderRef GLGraphics::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
+    TextureRef GLGraphicsDevice::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
         return nullptr;
     }
 
-    PipelineRef GLGraphics::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    SamplerRef GLGraphicsDevice::CreateSampler(const SamplerDesc& desc)
+    {
+        return nullptr;
+    }
+    ShaderRef GLGraphicsDevice::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
+    {
+        return nullptr;
+    }
+
+    PipelineRef GLGraphicsDevice::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
         return nullptr;
     }

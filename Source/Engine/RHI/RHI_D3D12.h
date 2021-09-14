@@ -163,7 +163,7 @@ namespace Alimer::rhi
     private:
     };
 
-    class D3D12_CommandList final : public CommandBuffer
+    class D3D12_CommandList final : public CommandContext
     {
     private:
         D3D12_Device* device;
@@ -404,7 +404,7 @@ namespace Alimer::rhi
         void WaitIdle() override;
         void DeferDestroy(IUnknown* resource, D3D12MA::Allocation* allocation = nullptr);
 
-        CommandBuffer* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) override;
+        CommandContext* BeginCommandBuffer(CommandQueue queue = CommandQueue::Graphics) override;
         void SubmitCommandLists();
 
         bool BeginFrame() override;

@@ -1,15 +1,15 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Graphics/CommandBuffer.h"
+#include "Graphics/CommandContext.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Graphics.h"
 #include "Core/Log.h"
-using namespace Alimer::rhi;
 
 namespace Alimer
 {
-    GPUAllocation CommandBuffer::AllocateGPU(uint64_t size, uint64_t alignment)
+#if TODO
+    GPUAllocation CommandContext::AllocateGPU(uint64_t size, uint64_t alignment)
     {
         ALIMER_ASSERT(size > 0 && "Allocation size must be greater than zero");
 
@@ -79,4 +79,6 @@ namespace Alimer
 
         BindConstantBufferCore(binding, allocation.buffer, allocation.offset, allocation.size);
     }
+#endif // TODO
+
 }

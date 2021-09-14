@@ -37,6 +37,7 @@ public:
     {
         Settings settings;
         settings.title = "Hello World";
+        //settings.graphicsApi = GraphicsAPI::OpenGL;
         return settings;
     }
 
@@ -155,7 +156,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         return true;
     }
 
-    void OnDraw(/* [[maybe_unused]] rhi::ICommandList* commandList*/) override
+    void OnDraw([[maybe_unused]] CommandContext& context) override
     {
         //time += (float)GetElapsedSeconds();
         rotationX += 0.01f;

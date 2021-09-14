@@ -178,7 +178,7 @@ namespace Alimer
     class Sampler;
     class Shader;
     class Pipeline;
-    class CommandBuffer;
+    class CommandContext;
 
     using TextureRef = RefCountPtr<Texture>;
     using SamplerRef = RefCountPtr<Sampler>;

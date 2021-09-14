@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "D3D11Graphics.h"
+#include "D3D11CommandContext.h"
 #include "Graphics/Sampler.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Pipeline.h"
@@ -45,14 +46,6 @@ namespace Alimer
         static constexpr IID DXGI_DEBUG_DXGI = { 0x25cddaa4, 0xb1c6, 0x47e1, {0xac, 0x3e, 0x98, 0x87, 0x5b, 0x5a, 0x2e, 0x2a} };
 #endif
 
-        static_assert(sizeof(Alimer::Viewport) == sizeof(D3D11_VIEWPORT), "Size mismatch");
-        static_assert(offsetof(Alimer::Viewport, x) == offsetof(D3D11_VIEWPORT, TopLeftX), "Layout mismatch");
-        static_assert(offsetof(Alimer::Viewport, y) == offsetof(D3D11_VIEWPORT, TopLeftY), "Layout mismatch");
-        static_assert(offsetof(Alimer::Viewport, width) == offsetof(D3D11_VIEWPORT, Width), "Layout mismatch");
-        static_assert(offsetof(Alimer::Viewport, height) == offsetof(D3D11_VIEWPORT, Height), "Layout mismatch");
-        static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(D3D11_VIEWPORT, MinDepth), "Layout mismatch");
-        static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(D3D11_VIEWPORT, MaxDepth), "Layout mismatch");
-
         // Check for SDK Layer support.
         inline bool SdkLayersAvailable() noexcept
         {
@@ -78,7 +71,7 @@ namespace Alimer
         }
     }
 
-    D3D11Graphics::D3D11Graphics(Window& window, const GraphicsCreateInfo& createInfo)
+    D3D11GraphicsDevice::D3D11GraphicsDevice(Window& window, const GraphicsCreateInfo& createInfo)
         : Graphics(window)
         , validationMode(createInfo.validationMode)
     {
@@ -225,8 +218,11 @@ namespace Alimer
             }
 
             ThrowIfFailed(device->QueryInterface(IID_PPV_ARGS(&d3dDevice)));
-            ThrowIfFailed(context.As(&d3dContext));
-            //ThrowIfFailed(context.As(&m_d3dAnnotation));
+            ID3D11DeviceContext1* immediateContext;
+            ThrowIfFailed(context->QueryInterface(IID_PPV_ARGS(&immediateContext)));
+
+            // Create main context.
+            mainContext = std::make_unique<D3D11CommandContext>(this, immediateContext);
 
             // Init caps
             D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2;
@@ -255,6 +251,8 @@ namespace Alimer
             limits.minStorageBufferOffsetAlignment = 32u;
             limits.maxDrawIndirectCount = static_cast<uint32_t>(-1);
         }
+
+       
 
         backBufferRTVFormat = createInfo.srgb ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
         depthBufferFormat = ToDXGIFormat(createInfo.depthStencilFormat);
@@ -296,19 +294,29 @@ namespace Alimer
 #endif
         }
 
+        //D3D11_BUFFER_DESC desc{};
+        //desc.ByteWidth = 28;
+        //desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+        //desc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+        ////desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+        //desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+        //desc.StructureByteStride = 28;
+        //ComPtr<ID3D11Buffer> buffer;
+        //HRESULT hr = d3dDevice->CreateBuffer(&desc, nullptr, &buffer);
+
         vsyncEnabled = createInfo.vsyncEnabled;
         AfterReset();
     }
 
-    D3D11Graphics::~D3D11Graphics()
+    D3D11GraphicsDevice::~D3D11GraphicsDevice()
     {
         depthStencilView.Reset();
         backBufferView.Reset();
         backBuffer.Reset();
         depthStencilTexture.Reset();
         swapChain.Reset();
-        d3dContext->Flush();
-        d3dContext.Reset();
+        mainContext->GetHandle()->Flush();
+        mainContext.reset();
 
         const ULONG refCount = d3dDevice->Release();
 #ifdef _DEBUG
@@ -337,7 +345,7 @@ namespace Alimer
 #endif
     }
 
-    void D3D11Graphics::CreateFactory()
+    void D3D11GraphicsDevice::CreateFactory()
     {
 #if defined(_DEBUG)
         bool debugDXGI = false;
@@ -371,7 +379,7 @@ namespace Alimer
         }
     }
 
-    void D3D11Graphics::GetAdapter(IDXGIAdapter1** ppAdapter)
+    void D3D11GraphicsDevice::GetAdapter(IDXGIAdapter1** ppAdapter)
     {
         *ppAdapter = nullptr;
 
@@ -437,7 +445,7 @@ namespace Alimer
         *ppAdapter = adapter.Detach();
     }
 
-    void D3D11Graphics::AfterReset()
+    void D3D11GraphicsDevice::AfterReset()
     {
         // Handle color space settings for HDR
         UpdateColorSpace();
@@ -487,7 +495,7 @@ namespace Alimer
         }
     }
 
-    void D3D11Graphics::UpdateColorSpace()
+    void D3D11GraphicsDevice::UpdateColorSpace()
     {
         colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
 
@@ -544,7 +552,7 @@ namespace Alimer
         }
     }
 
-    void D3D11Graphics::HandleDeviceLost()
+    void D3D11GraphicsDevice::HandleDeviceLost()
     {
         // Signal lost
         DeviceLost.Emit();
@@ -554,8 +562,7 @@ namespace Alimer
         backBuffer.Reset();
         depthStencilTexture.Reset();
         swapChain.Reset();
-        d3dContext.Reset();
-        //d3dAnnotation.Reset();
+        mainContext.reset();
 
         const ULONG refCount = d3dDevice->Release();
 #ifdef _DEBUG
@@ -581,12 +588,17 @@ namespace Alimer
         DeviceRestored.Emit();
     }
 
-    void D3D11Graphics::WaitIdle()
+    CommandContext* D3D11GraphicsDevice::GetImmediateContext() const
     {
-        d3dContext->Flush();
+        return mainContext.get();
     }
 
-    bool D3D11Graphics::BeginFrame()
+    void D3D11GraphicsDevice::WaitIdle()
+    {
+        mainContext->GetHandle()->Flush();
+    }
+
+    bool D3D11GraphicsDevice::BeginFrame()
     {
         if (deviceLost)
             return false;
@@ -609,7 +621,7 @@ namespace Alimer
         return true;
     }
 
-    void D3D11Graphics::EndFrame()
+    void D3D11GraphicsDevice::EndFrame()
     {
         UINT presentFlags = 0;
         if (!vsyncEnabled && fullScreenDesc.Windowed && tearingSupported)
@@ -647,16 +659,16 @@ namespace Alimer
         }
     }
 
-    void D3D11Graphics::Resize(uint32_t newWidth, uint32_t newHeight)
+    void D3D11GraphicsDevice::Resize(uint32_t newWidth, uint32_t newHeight)
     {
         // Clear the previous window size specific context.
         ID3D11RenderTargetView* nullViews[] = { nullptr };
-        d3dContext->OMSetRenderTargets(static_cast<UINT>(std::size(nullViews)), nullViews, nullptr);
+        mainContext->GetHandle()->OMSetRenderTargets(static_cast<UINT>(std::size(nullViews)), nullViews, nullptr);
         backBufferView.Reset();
         depthStencilView.Reset();
         backBuffer.Reset();
         depthStencilTexture.Reset();
-        d3dContext->Flush();
+        mainContext->GetHandle()->Flush();
 
         // If the swap chain already exists, resize it.
         HRESULT hr = swapChain->ResizeBuffers(
@@ -690,21 +702,21 @@ namespace Alimer
         AfterReset();
     }
 
-    TextureRef D3D11Graphics::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
+    TextureRef D3D11GraphicsDevice::CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData)
     {
         return nullptr;
     }
 
-    SamplerRef D3D11Graphics::CreateSampler(const SamplerDesc& desc)
+    SamplerRef D3D11GraphicsDevice::CreateSampler(const SamplerDesc& desc)
     {
         return nullptr;
     }
-    ShaderRef D3D11Graphics::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
+    ShaderRef D3D11GraphicsDevice::CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength)
     {
         return nullptr;
     }
 
-    PipelineRef D3D11Graphics::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    PipelineRef D3D11GraphicsDevice::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
         return nullptr;
     }

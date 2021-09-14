@@ -59,11 +59,17 @@ namespace Alimer
     bool Graphics::Initialize(GraphicsAPI api, Window& window, const GraphicsCreateInfo& createInfo)
     {
 #if defined(ALIMER_GRAPHICS_D3D11)
-        gGraphics().Start(new D3D11Graphics(window, createInfo));
+        if (api == GraphicsAPI::D3D11)
+        {
+            gGraphics().Start(new D3D11GraphicsDevice(window, createInfo));
+        }
 
 #endif
 #if defined(ALIMER_GRAPHICS_GL)
-        //gGraphics().Start(new GLGraphics(window, presentationParameters));
+        if (!gGraphics().IsInitialized())
+        {
+            gGraphics().Start(new GLGraphicsDevice(window, createInfo));
+        }
 #endif
 
         return gGraphics().IsInitialized();

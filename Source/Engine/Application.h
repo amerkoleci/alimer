@@ -5,7 +5,7 @@
 
 #include "Core/CommandLine.h"
 #include "Window.h"
-#include "Graphics/GraphicsDefs.h"
+#include "Graphics/CommandContext.h"
 
 namespace Alimer
 {
@@ -56,7 +56,7 @@ namespace Alimer
         virtual bool Initialize() { return true; }
 
         virtual void Update();
-        virtual void OnDraw(/* [[maybe_unused]] rhi::ICommandList* commandList*/) {}
+        virtual void OnDraw([[maybe_unused]] CommandContext& context) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}

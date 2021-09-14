@@ -5,7 +5,7 @@
 
 #include "Core/Module.h"
 #include "Core/Signal.h"
-#include "Graphics/CommandBuffer.h"
+#include "Graphics/CommandContext.h"
 #include <set>
 
 namespace Alimer
@@ -63,11 +63,7 @@ namespace Alimer
         /// Returns the set of hardware limits for this device.
         const DeviceLimits& GetLimits() const { return limits; }
 
-        [[nodiscard]] virtual Texture* GetCurrentBackBuffer() const = 0;
-        [[nodiscard]] virtual Texture* GetBackBuffer(uint32_t index) const = 0;
-        [[nodiscard]] virtual uint32_t GetCurrentBackBufferIndex() const = 0;
-        [[nodiscard]] virtual uint32_t GetBackBufferCount() const = 0;
-        [[nodiscard]] virtual Texture* GetBackBufferDepthStencilTexture() const = 0;
+        [[nodiscard]] virtual CommandContext* GetImmediateContext() const = 0;
 
         [[nodiscard]] u64 GetFrameCount() const { return frameCount; }
         [[nodiscard]] u32 GetFrameIndex() const { return frameIndex; }
