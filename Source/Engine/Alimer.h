@@ -6,6 +6,14 @@
 #include "AlimerConfig.h"
 #include "Core/Types.h"
 
+#include "Core/StringId.h"
+#include "Core/Object.h"
+
+// IO
+//#include "IO/FileStream.h"
+#include "IO/MemoryStream.h"
+//#include "IO/FileSystem.h"
+
 // Math
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
@@ -22,6 +30,10 @@
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/SwapChain.h"
 #include "Graphics/Graphics.h"
+
+// Assets
+#include "Assets/Asset.h"
+//#include "Assets/AssetManager.h"
 
 // Application
 #include "Application.h"

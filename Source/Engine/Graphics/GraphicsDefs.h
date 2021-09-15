@@ -245,12 +245,12 @@ namespace Alimer
     class Pipeline;
     class SwapChain;
 
-    using BufferRef = RefCountPtr<Buffer>;
-    using TextureRef = RefCountPtr<Texture>;
-    using SamplerRef = RefCountPtr<Sampler>;
-    using ShaderRef = RefCountPtr<Shader>;
-    using PipelineRef = RefCountPtr<Pipeline>;
-    using SwapChainRef = RefCountPtr<SwapChain>;
+    using BufferRef = RefPtr<Buffer>;
+    using TextureRef = RefPtr<Texture>;
+    using SamplerRef = RefPtr<Sampler>;
+    using ShaderRef = RefPtr<Shader>;
+    using PipelineRef = RefPtr<Pipeline>;
+    using SwapChainRef = RefPtr<SwapChain>;
 
     /* Structs */
     struct GraphicsAdapterInfo

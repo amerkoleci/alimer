@@ -313,7 +313,7 @@ namespace Alimer
             texture->SetWaitSemaphore(imageAvailableSemaphores[i]);
             texture->SetSignalSemaphore(renderCompleteSemaphores[i]);
 
-            backBufferTextures[i] = RefCountPtr<VulkanTexture>::Create(texture);
+            backBufferTextures[i].Reset(texture);
         }
 
         isMinimized = false;

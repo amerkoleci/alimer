@@ -43,7 +43,7 @@ namespace Alimer
 
 		mutable bool needAcquire = true;
 		mutable uint32_t backBufferIndex = 0;
-		std::vector<RefCountPtr<VulkanTexture>> backBufferTextures;
+		std::vector<RefPtr<VulkanTexture>> backBufferTextures;
 	};
 }
 

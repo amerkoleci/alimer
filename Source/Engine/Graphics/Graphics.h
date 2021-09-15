@@ -55,8 +55,10 @@ namespace Alimer
         /// Return the graphics capabilities.
         [[nodiscard]] const GraphicsDeviceCaps& GetCaps() const noexcept { return caps; }
 
-        [[nodiscard]] uint32_t GetFrameIndex() const { return frameIndex; }
-        [[nodiscard]] uint64_t GetFrameCount() const { return frameCount; }
+        [[nodiscard]] constexpr u64 GetTimestampFrequency() const { return timestampFrequency; }
+
+        [[nodiscard]] constexpr u32 GetFrameIndex() const { return frameIndex; }
+        [[nodiscard]] constexpr u64 GetFrameCount() const { return frameCount; }
 
         /// Get the native device handle (ID3D12Device, VkDevice)
         virtual void* GetNativeHandle() const noexcept = 0;
@@ -76,9 +78,9 @@ namespace Alimer
 
         GraphicsDeviceCaps caps{};
 
-        uint32_t frameIndex = 0;
-        uint64_t frameCount = 0;
-
+        u64 timestampFrequency = 0;
+        u32 frameIndex = 0;
+        u64 frameCount = 0;
         bool deviceLost = false;
 
         /// Mutex for accessing the GPU resource vector from several threads.

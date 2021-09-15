@@ -314,14 +314,21 @@ namespace Alimer
 
         // Set the default value for the dynamic state
         {
-            //vkCmdSetLineWidth(handle, 1.0f);
-            //vkCmdSetDepthBounds(handle, 0.0f, 1.0f);
+            vkCmdSetLineWidth(handle, 1.0f);
+            vkCmdSetDepthBounds(handle, 0.0f, 1.0f);
             SetStencilReference(0);
             float blendColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
             SetBlendColor(blendColor);
 
             // The viewport and scissor default to cover all of the attachments
-            SetViewport(Viewport((float)fboKey.width, (float)fboKey.height));
+            VkViewport viewport;
+            viewport.x = 0.0f;
+            viewport.y = static_cast<float>(fboKey.height);
+            viewport.width = static_cast<float>(fboKey.width);
+            viewport.height = -static_cast<float>(fboKey.height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(handle, 0, 1, &viewport);
 
             VkRect2D scissorRect;
             scissorRect.offset.x = 0;

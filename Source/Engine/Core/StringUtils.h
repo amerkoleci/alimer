@@ -11,6 +11,9 @@ namespace Alimer
 {
     ALIMER_API extern const std::string kEmptyString;
 
+    static constexpr uint32_t kConversionBufferLength = 128;
+    static constexpr uint32_t kMatrixConversionBufferLength = 256;
+
     /// Return whether a char is an alphabet letter.
     inline bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
     /// Return whether a char is a digit.

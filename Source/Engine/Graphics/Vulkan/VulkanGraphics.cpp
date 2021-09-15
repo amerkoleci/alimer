@@ -862,18 +862,32 @@ namespace Alimer
         // Init copy allocator.
         copyAllocator.Init(this);
 
-        // Create frame sync primitives
+        // Create frame resources
+        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
         {
-            const VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-
-            for (uint32_t i = 0; i < kMaxFramesInFlight; i++)
+            for (u8 queue = 0; queue < (u8)QueueType::Count; ++queue)
             {
-                VK_CHECK(vkCreateFence(device, &fenceInfo, nullptr, &frameFences[i]));
+                const VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+                VK_CHECK(vkCreateFence(device, &fenceInfo, nullptr, &frames[i].fence[queue]));
+            }
 
-                if (debugUtils)
-                {
-                    SetObjectName(VK_OBJECT_TYPE_FENCE, (uint64_t)frameFences[i], fmt::format("Frame Fence {}", i));
-                }
+            // Create resources for transition command buffer:
+            {
+                VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+                poolInfo.queueFamilyIndex = graphicsQueueFamily;
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+                VK_CHECK(vkCreateCommandPool(device, &poolInfo, nullptr, &frames[i].initCommandPool));
+
+                VkCommandBufferAllocateInfo commandBufferInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+                commandBufferInfo.commandPool = frames[i].initCommandPool;
+                commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+                commandBufferInfo.commandBufferCount = 1;
+                VK_CHECK(vkAllocateCommandBuffers(device, &commandBufferInfo, &frames[i].initCommandBuffer));
+
+                VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+                beginInfo.pInheritanceInfo = nullptr; // Optional
+                VK_CHECK(vkBeginCommandBuffer(frames[i].initCommandBuffer, &beginInfo));
             }
         }
 
@@ -881,6 +895,18 @@ namespace Alimer
         {
             VmaAllocationCreateInfo allocInfo = {};
             allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+            VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+            bufferInfo.size = 4;
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            bufferInfo.flags = 0;
+            VK_CHECK(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &nullBuffer, &nullBufferAllocation, nullptr));
+
+            VkBufferViewCreateInfo bufferViewInfo{ VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO };
+            bufferViewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            bufferViewInfo.range = VK_WHOLE_SIZE;
+            bufferViewInfo.buffer = nullBuffer;
+            VK_CHECK(vkCreateBufferView(device, &bufferViewInfo, nullptr, &nullBufferView));
 
             VkImageCreateInfo imageInfo = {};
             imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -914,118 +940,124 @@ namespace Alimer
                 vmaCreateImage(allocator, &imageInfo, &allocInfo, &nullImage3D, &nullImageAllocation3D, nullptr)
             );
 
-            VkImageViewCreateInfo viewInfo = {};
-            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            viewInfo.subresourceRange.baseArrayLayer = 0;
-            viewInfo.subresourceRange.layerCount = 1;
-            viewInfo.subresourceRange.baseMipLevel = 0;
-            viewInfo.subresourceRange.levelCount = 1;
-            viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-            viewInfo.image = nullImage1D;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView1D));
+            // Transitions:
+            initLocker.lock();
+            {
+                VkImageMemoryBarrier barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = imageInfo.initialLayout;
+                barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = nullImage1D;
+                barrier.subresourceRange.layerCount = 1;
+                vkCmdPipelineBarrier(
+                    GetFrameResources().initCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+                barrier.image = nullImage2D;
+                barrier.subresourceRange.layerCount = 6;
+                vkCmdPipelineBarrier(
+                    GetFrameResources().initCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+                barrier.image = nullImage3D;
+                barrier.subresourceRange.layerCount = 1;
+                vkCmdPipelineBarrier(
+                    GetFrameResources().initCommandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+            }
+            pendingSubmitInits = true;
+            initLocker.unlock();
 
-            viewInfo.image = nullImage1D;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView1DArray));
+            VkImageViewCreateInfo imageViewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+            imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageViewInfo.subresourceRange.baseArrayLayer = 0;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            imageViewInfo.subresourceRange.baseMipLevel = 0;
+            imageViewInfo.subresourceRange.levelCount = 1;
+            imageViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+            imageViewInfo.image = nullImage1D;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView1D));
 
-            viewInfo.image = nullImage2D;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView2D));
+            imageViewInfo.image = nullImage1D;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView1DArray));
 
-            viewInfo.image = nullImage2D;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView2DArray));
+            imageViewInfo.image = nullImage2D;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView2D));
 
-            viewInfo.image = nullImage2D;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-            viewInfo.subresourceRange.layerCount = 6;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageViewCube));
+            imageViewInfo.image = nullImage2D;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView2DArray));
 
-            viewInfo.image = nullImage2D;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-            viewInfo.subresourceRange.layerCount = 6;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageViewCubeArray));
+            imageViewInfo.image = nullImage2D;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+            imageViewInfo.subresourceRange.layerCount = 6;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageViewCube));
 
-            viewInfo.image = nullImage3D;
-            viewInfo.subresourceRange.layerCount = 1;
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
-            VK_CHECK(vkCreateImageView(device, &viewInfo, nullptr, &nullImageView3D));
+            imageViewInfo.image = nullImage2D;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+            imageViewInfo.subresourceRange.layerCount = 6;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageViewCubeArray));
 
-            VkSamplerCreateInfo samplerCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-            VK_CHECK(vkCreateSampler(device, &samplerCreateInfo, nullptr, &nullSampler));
+            imageViewInfo.image = nullImage3D;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView3D));
 
-            // Transition images
-            VkCommandBuffer transitionCommandBuffer = CreateCommandBuffer();
-            std::array<VkImageMemoryBarrier, 3> barriers = {};
-
-            barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barriers[0].oldLayout = imageInfo.initialLayout;
-            barriers[0].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-            barriers[0].srcAccessMask = 0;
-            barriers[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-            barriers[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barriers[0].subresourceRange.baseArrayLayer = 0;
-            barriers[0].subresourceRange.baseMipLevel = 0;
-            barriers[0].subresourceRange.levelCount = 1;
-            barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barriers[0].image = nullImage1D;
-            barriers[0].subresourceRange.layerCount = 1;
-            barriers[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barriers[1].oldLayout = imageInfo.initialLayout;
-            barriers[1].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-            barriers[1].srcAccessMask = 0;
-            barriers[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-            barriers[1].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barriers[1].subresourceRange.baseArrayLayer = 0;
-            barriers[1].subresourceRange.baseMipLevel = 0;
-            barriers[1].subresourceRange.levelCount = 1;
-            barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barriers[1].image = nullImage2D;
-            barriers[1].subresourceRange.layerCount = 6;
-            barriers[2].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barriers[2].oldLayout = imageInfo.initialLayout;
-            barriers[2].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-            barriers[2].srcAccessMask = 0;
-            barriers[2].dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-            barriers[2].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barriers[2].subresourceRange.baseArrayLayer = 0;
-            barriers[2].subresourceRange.baseMipLevel = 0;
-            barriers[2].subresourceRange.levelCount = 1;
-            barriers[2].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barriers[2].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barriers[2].image = nullImage3D;
-            barriers[2].subresourceRange.layerCount = 1;
-
-            vkCmdPipelineBarrier(
-                transitionCommandBuffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                (uint32_t)barriers.size(), barriers.data()
-            );
-
-            FlushCommandBuffer(transitionCommandBuffer);
+            VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+            VK_CHECK(vkCreateSampler(device, &samplerInfo, nullptr, &nullSampler));
         }
 
-        // Create bindless
-        const bool enableBindless = true;
-        if (enableBindless)
-        {
-            if (features_1_2.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE)
-            {
-                bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
-            }
+        timestampFrequency = uint64_t(1.0 / double(properties2.properties.limits.timestampPeriod) * 1000 * 1000 * 1000);
 
-            if (features_1_2.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE)
-            {
-                bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
-            }
+        // Dynamic PSO states:
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
+        if (caps.features.variableRateShading)
+        {
+            pso_dynamicStates.push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
+        }
+        dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicStateInfo.dynamicStateCount = (uint32_t)pso_dynamicStates.size();
+        dynamicStateInfo.pDynamicStates = pso_dynamicStates.data();
+
+        // Create bindless
+        if (features_1_2.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE)
+        {
+            bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
+        }
+
+        if (features_1_2.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE)
+        {
+            bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
         }
 
         LOGI("Vulkan graphics backend initialized with success");
@@ -1068,13 +1100,22 @@ namespace Alimer
             pipelineLayoutCache.clear();
         }
 
+        for (auto& queue : queues)
+        {
+            vkDestroySemaphore(device, queue.semaphore, nullptr);
+        }
+
+        for (auto& frame : frames)
+        {
+            for (u8 queue = 0; queue < (u8)QueueType::Count; ++queue)
+            {
+                vkDestroyFence(device, frame.fence[queue], nullptr);
+            }
+            vkDestroyCommandPool(device, frame.initCommandPool, nullptr);
+        }
+
         // Shutdown copy allocator.
         copyAllocator.Shutdown();
-
-        for (uint32_t i = 0; i < kMaxFramesInFlight; i++)
-        {
-            vkDestroyFence(device, frameFences[i], nullptr);
-        }
 
         {
             // Destroy all created fences.
@@ -1097,8 +1138,8 @@ namespace Alimer
 
         // Null resources
         {
-            //vmaDestroyBuffer(allocator, nullBuffer, nullBufferAllocation);
-            //vkDestroyBufferView(device, nullBufferView, nullptr);
+            vmaDestroyBuffer(allocator, nullBuffer, nullBufferAllocation);
+            vkDestroyBufferView(device, nullBufferView, nullptr);
             vmaDestroyImage(allocator, nullImage1D, nullImageAllocation1D);
             vmaDestroyImage(allocator, nullImage2D, nullImageAllocation2D);
             vmaDestroyImage(allocator, nullImage3D, nullImageAllocation3D);
@@ -1220,49 +1261,6 @@ namespace Alimer
         return nullptr;
     }
 
-    VkCommandBuffer VulkanGraphics::CreateCommandBuffer()
-    {
-        VkCommandBufferAllocateInfo allocateInfo{};
-        allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        //allocateInfo.commandPool = ToVulkan(graphicsQueue)->GetCommandPool();
-        allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocateInfo.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer;
-        VkResult result = vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer);
-
-        if (result != VK_SUCCESS)
-        {
-            VK_LOG_ERROR(result, "Failed to allocate command buffer");
-        }
-
-        VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-        return commandBuffer;
-    }
-
-    void VulkanGraphics::FlushCommandBuffer(VkCommandBuffer commandBuffer)
-    {
-        VK_CHECK(vkEndCommandBuffer(commandBuffer));
-
-        VkFence fence = AcquireFence();
-
-        // Submit to the queue.
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1u;
-        submitInfo.pCommandBuffers = &commandBuffer;
-
-        //vkQueueSubmit(ToVulkan(graphicsQueue)->GetHandle(), 1, &submitInfo, fence);
-
-        // Wait for the fence to signal that command buffer has finished executing
-        vkWaitForFences(device, 1, &fence, VK_TRUE, VK_DEFAULT_FENCE_TIMEOUT);
-
-        ReleaseFence(fence);
-    }
-
     VulkanUploadContext VulkanGraphics::UploadBegin(uint64_t size)
     {
         return copyAllocator.Allocate(size);
@@ -1316,7 +1314,7 @@ namespace Alimer
 
         if (result->GetHandle() != VK_NULL_HANDLE)
         {
-            return ShaderRef::Create(result);
+            return result;
         }
 
         delete result;
@@ -1329,7 +1327,7 @@ namespace Alimer
 
         if (result->GetHandle() != VK_NULL_HANDLE)
         {
-            return SamplerRef::Create(result);
+            return result;
         }
 
         delete result;
@@ -1368,7 +1366,7 @@ namespace Alimer
 
         if (result->GetHandle() != VK_NULL_HANDLE)
         {
-            return SwapChainRef::Create(result);
+            return result;
         }
 
         delete result;

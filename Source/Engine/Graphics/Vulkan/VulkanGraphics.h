@@ -15,7 +15,7 @@ namespace Alimer
         VkCommandPool commandPool = VK_NULL_HANDLE;
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         uint64_t target = 0;
-        RefCountPtr<VulkanBuffer> uploadBuffer;
+        RefPtr<VulkanBuffer> uploadBuffer;
         uint8_t* data = nullptr;
     };
 
@@ -43,6 +43,9 @@ namespace Alimer
         VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
 
 		// Null objects for descriptor sets
+        VkBuffer		nullBuffer = VK_NULL_HANDLE;
+        VmaAllocation	nullBufferAllocation = VK_NULL_HANDLE;
+        VkBufferView	nullBufferView = VK_NULL_HANDLE;
 		VkImage			nullImage1D = VK_NULL_HANDLE;
 		VkImage			nullImage2D = VK_NULL_HANDLE;
 		VkImage			nullImage3D = VK_NULL_HANDLE;
@@ -73,9 +76,6 @@ namespace Alimer
 		VkFence AcquireFence();
 		void ReleaseFence(VkFence fence);
 		void SubmitFence(VkFence fence);
-
-		VkCommandBuffer CreateCommandBuffer();
-		void FlushCommandBuffer(VkCommandBuffer commandBuffer);
 
         VulkanUploadContext UploadBegin(uint64_t size);
         void UploadEnd(VulkanUploadContext context);
@@ -227,12 +227,21 @@ namespace Alimer
             uint64_t Flush();
         };
         mutable CopyAllocator copyAllocator;
-        
 
-		VkFormat defaultDepthStencilFormat = VK_FORMAT_UNDEFINED;
-		VkFormat defaultDepthFormat = VK_FORMAT_UNDEFINED;
+        mutable std::mutex initLocker;
+        mutable bool pendingSubmitInits = false;
 
-		VkFence frameFences[kMaxFramesInFlight] = {};
+        struct FrameResources
+        {
+            VkFence fence[(uint8_t)QueueType::Count] = {};
+
+            VkCommandPool initCommandPool = VK_NULL_HANDLE;
+            VkCommandBuffer initCommandBuffer = VK_NULL_HANDLE;
+
+        };
+        FrameResources frames[kMaxFramesInFlight] = {};
+        const FrameResources& GetFrameResources() const { return frames[GetFrameIndex()]; }
+        FrameResources& GetFrameResources() { return frames[GetFrameIndex()]; }
 
 		std::mutex fenceMutex;
 		std::set<VkFence> allFences;

@@ -68,6 +68,7 @@ define_engine_source_files(
   Math
   IO
   Graphics
+  Assets
 )
 
 define_engine_source_files(Private NO_INSTALL)
@@ -150,6 +151,10 @@ else()
   # Warnings as Errors Enabled
   target_compile_options(${TARGET_NAME} PRIVATE -Werror)
 endif()
+
+if (WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _UNICODE UNICODE _CRT_SECURE_NO_WARNINGS)
+endif ()
 
 # GLFW
 if(NOT (EMSCRIPTEN OR ANDROID))
