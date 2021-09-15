@@ -6,6 +6,7 @@
 #include "Core/Types.h"
 #include "Core/Signal.h"
 #include "Math/Vector2.h"
+#include "Graphics/GraphicsDefs.h"
 
 namespace Alimer
 {
@@ -61,17 +62,18 @@ namespace Alimer
         void SetSize(int32_t width, int32_t height);
         void SetSize(const Int2& size);
 
-        void SwapBuffers();
-
         [[nodiscard]] WindowImpl* GetImpl() const { return impl.get(); }
+        [[nodiscard]] SwapChain* GetSwapChain() const { return swapChain.Get(); }
 
     private:
         ALIMER_DISABLE_COPY_MOVE(Window);
 
         void Destroy();
         void OnClosed();
+        void CreateSwapChain();
 
         std::unique_ptr<WindowImpl> impl;
+        SwapChainRef swapChain;
 
         bool isClosing{ false };
         std::string title;

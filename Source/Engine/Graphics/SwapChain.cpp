@@ -4,7 +4,7 @@
 #include "Graphics/SwapChain.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Graphics.h"
-//#include "Core/Assert.h"
+#include "Core/Assert.h"
 
 namespace Alimer
 {
@@ -12,7 +12,7 @@ namespace Alimer
 		: width(info.width)
 		, height(info.height)
 		, colorFormat(info.colorFormat)
-		, verticalSync(info.verticalSync)
+		, presentMode(info.presentMode)
 	{
 	}
 

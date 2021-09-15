@@ -2,12 +2,12 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "VulkanCommandBuffer.h"
-#include "VulkanCommandQueue.h"
 #include "VulkanBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanSampler.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanPipeline.h"
+#include "VulkanSwapChain.h"
 #include "VulkanGraphics.h"
 #include <unordered_set>
 
@@ -38,24 +38,38 @@ namespace Alimer
         }
     }
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandQueue& queue_, VkCommandPool commandPool_)
-        : queue(queue_)
-        , device(queue_.GetDevice())
-        , debugUtilsSupported(queue_.GetDevice().DebugUtilsSupported())
-        , commandPool(commandPool_)
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics& device, QueueType queueType, uint8_t index)
+        : device{ device }
+        , queue{ queueType }
+        , index{ index }
+        , debugUtilsSupported(device.DebugUtilsSupported())
     {
-        VkCommandBufferAllocateInfo allocateInfo{};
-        allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocateInfo.commandPool = commandPool;
-        allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocateInfo.commandBufferCount = 1;
-
-        VkResult result = vkAllocateCommandBuffers(device.GetHandle(), &allocateInfo, &handle);
-
-        if (result != VK_SUCCESS)
+        for(uint32_t i = 0; i < kMaxFramesInFlight; ++i)
         {
-            VK_LOG_ERROR(result, "Failed to allocate command buffer");
+            VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+            switch (queue)
+            {
+            case QueueType::Graphics:
+                poolInfo.queueFamilyIndex = device.graphicsQueueFamily;
+                break;
+            case QueueType::Compute:
+                poolInfo.queueFamilyIndex = device.computeQueueFamily;
+                break;
+            default:
+                assert(0); // queue type not handled
+                break;
+            }
+            poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            VK_CHECK(vkCreateCommandPool(device.GetHandle(), &poolInfo, nullptr, &commandPools[i]));
+
+            VkCommandBufferAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+            allocateInfo.commandPool = commandPools[i];
+            allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocateInfo.commandBufferCount = 1;
+            VK_CHECK(vkAllocateCommandBuffers(device.GetHandle(), &allocateInfo, &commandBuffers[i]));
         }
+
+        handle = commandBuffers[0];
 
         for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
         {
@@ -89,21 +103,23 @@ namespace Alimer
             poolInfo.maxSets = poolSize;
             //poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-            VK_CHECK(vkCreateDescriptorPool(queue.GetDevice().GetHandle(), &poolInfo, nullptr, &descriptors[i].descriptorPool));
+            VK_CHECK(vkCreateDescriptorPool(device.GetHandle(), &poolInfo, nullptr, &descriptors[i].descriptorPool));
         }
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        if (handle != VK_NULL_HANDLE)
+        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
         {
-            vkFreeCommandBuffers(queue.GetDevice().GetHandle(), commandPool, 1, &handle);
+            vkFreeCommandBuffers(device.GetHandle(), commandPools[i], 1, &commandBuffers[i]);
+            vkDestroyCommandPool(device.GetHandle(), commandPools[i], nullptr);
         }
+
         handle = VK_NULL_HANDLE;
 
         for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
         {
-            queue.GetDevice().DeferDestroy(descriptors[i].descriptorPool);
+            device.DeferDestroy(descriptors[i].descriptorPool);
         }
     }
 
@@ -111,8 +127,11 @@ namespace Alimer
     {
         CommandBuffer::Reset(frameIndex_);
 
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        VK_CHECK(vkResetCommandPool(device.GetHandle(), commandPools[frameIndex], 0));
+
+        handle = commandBuffers[frameIndex];
+
+        VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         VK_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
 
@@ -125,19 +144,20 @@ namespace Alimer
 
         if (descriptors[frameIndex].descriptorPool != VK_NULL_HANDLE)
         {
-            VK_CHECK(vkResetDescriptorPool(queue.GetDevice().GetHandle(), descriptors[frameIndex].descriptorPool, 0));
+            VK_CHECK(vkResetDescriptorPool(device.GetHandle(), descriptors[frameIndex].descriptorPool, 0));
         }
 
         // Reset state
         bindingState.Reset();
         pushConstants = {};
+        swapChains.clear();
     }
 
     void VulkanCommandBuffer::End()
     {
         for (auto swapChainTexture : swapChainTextures)
         {
-            queue.AddSignalSemaphore(swapChainTexture->GetSignalSemaphore());
+            //queue.AddSignalSemaphore(swapChainTexture->GetSignalSemaphore());
             swapChainTexture->TransitionImageLayout(handle,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -207,6 +227,22 @@ namespace Alimer
         vkCmdCopyBuffer(handle, vkSource->GetHandle(), vkDestination->GetHandle(), 1, &region);
     }
 
+    void VulkanCommandBuffer::BeginRenderPassCore(_In_ SwapChain* swapChain, const Color& clearColor)
+    {
+        VulkanSwapChain* vulkanSwapChain = checked_cast<VulkanSwapChain*>(swapChain);
+
+        swapChains.push_back(vulkanSwapChain);
+        auto textureView = vulkanSwapChain->GetCurrentTextureView();
+
+        RenderPassInfo info{};
+        info.colorAttachments[0].view = textureView;
+        info.colorAttachments[0].loadAction = LoadAction::Clear;
+        info.colorAttachments[0].storeAction = StoreAction::Store;
+        info.colorAttachments[0].clearColor = clearColor;
+
+        BeginRenderPassCore(info);
+    }
+
     void VulkanCommandBuffer::BeginRenderPassCore(const RenderPassInfo& info)
     {
         VulkanRenderPassKey renderPassKey;
@@ -232,8 +268,8 @@ namespace Alimer
             if (texture->IsSwapChainTexture() && swapChainTextures.find(texture) == swapChainTextures.end())
             {
                 swapChainTextures.insert(texture);
-                queue.AddWaitSemaphore(texture->GetWaitSemaphore(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT);
-                queue.QueuePresent(texture->GetSwapChain());
+                //queue.AddWaitSemaphore(texture->GetWaitSemaphore(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT);
+                //queue.QueuePresent(texture->GetSwapChain());
             }
 
             const uint32_t mipLevel = view->GetBaseMipLevel();
@@ -292,12 +328,12 @@ namespace Alimer
             fboKey.attachmentCount++;
         }
 
-        fboKey.renderPass = queue.GetDevice().GetVkRenderPass(renderPassKey);
+        fboKey.renderPass = device.GetVkRenderPass(renderPassKey);
 
         HashCombine(framebufferHash, fboKey.attachmentCount);
         HashCombine(framebufferHash, (uint64_t)fboKey.renderPass);
 
-        VkFramebuffer framebuffer = queue.GetDevice().GetVkFramebuffer(framebufferHash, fboKey);
+        VkFramebuffer framebuffer = device.GetVkFramebuffer(framebufferHash, fboKey);
 
         VkRenderPassBeginInfo beginInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         beginInfo.pNext = nullptr;
@@ -516,14 +552,14 @@ namespace Alimer
                 allocateInfo.descriptorSetCount = 1;
                 allocateInfo.pSetLayouts = &setLayoutHandle;
 
-                VkResult result = vkAllocateDescriptorSets(queue.GetDevice().GetHandle(), &allocateInfo, &descriptorSet);
+                VkResult result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
                 while (result == VK_ERROR_OUT_OF_POOL_MEMORY)
                 {
                     poolSize *= 2;
-                    queue.GetDevice().DeferDestroy(descriptors[frameIndex].descriptorPool);
+                    device.DeferDestroy(descriptors[frameIndex].descriptorPool);
                     //init(device);
                     allocateInfo.descriptorPool = descriptors[frameIndex].descriptorPool;
-                    result = vkAllocateDescriptorSets(queue.GetDevice().GetHandle(), &allocateInfo, &descriptorSet);
+                    result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
                 }
                 ALIMER_ASSERT(result == VK_SUCCESS);
             }
@@ -626,7 +662,7 @@ namespace Alimer
             if (descriptorWrites.size())
             {
                 vkUpdateDescriptorSets(
-                    queue.GetDevice().GetHandle(),
+                    device.GetHandle(),
                     (uint32_t)descriptorWrites.size(),
                     descriptorWrites.data(),
                     0,

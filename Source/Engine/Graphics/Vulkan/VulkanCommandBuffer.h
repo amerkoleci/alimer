@@ -76,8 +76,9 @@ namespace Alimer
 
 	class VulkanCommandBuffer final : public CommandBuffer
 	{
+        friend class VulkanGraphics;
 	public:
-		VulkanCommandBuffer(VulkanCommandQueue& queue, VkCommandPool commandPool);
+		VulkanCommandBuffer(VulkanGraphics& device, QueueType queueType, uint8_t index);
 		~VulkanCommandBuffer() override;
 
 		void Reset(uint32_t frameIndex) override;
@@ -90,6 +91,7 @@ namespace Alimer
 		void UpdateBufferCore(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size) override;
 		void CopyBufferCore(const Buffer* source, uint64_t sourceOffset, const Buffer* destination, uint64_t destinationOffset, uint64_t size) override;
 
+        void BeginRenderPassCore(_In_ SwapChain* swapChain, const Color& clearColor) override;
 		void BeginRenderPassCore(const RenderPassInfo& info) override;
 		void EndRenderPassCore() override;
 
@@ -123,14 +125,18 @@ namespace Alimer
 		void FlushDescriptorState(VkPipelineBindPoint bindPoint);
 		void FlushPushConstants();
 
-		VulkanCommandQueue& queue;
-		VulkanGraphics& device;
-		VkCommandPool commandPool;
+        VulkanGraphics& device;
+        QueueType queue;
+        uint8_t index;
 
 		bool debugUtilsSupported;
-		VkCommandBuffer handle{ VK_NULL_HANDLE };
+
+        VkCommandPool commandPools[kMaxFramesInFlight];
+        VkCommandBuffer commandBuffers[kMaxFramesInFlight];
+        VkCommandBuffer handle{ VK_NULL_HANDLE }; // Active command buffer
 
 		std::array<VkClearValue, kMaxColorAttachments + 1> renderPassClearValues{};
+        std::vector<VulkanSwapChain*> swapChains;
 
 		std::set<VulkanTexture*> swapChainTextures;
 

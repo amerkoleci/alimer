@@ -51,9 +51,13 @@ namespace Alimer
 
 	protected:
 		/// Constructor. 
-		GPUResource(Type type);
+        GPUResource(Type type)
+            : type{ type }
+        {
 
-		Type _type;
+        }
+
+		Type type;
 		uint64_t allocatedSize{ 0 };
 	};
 }

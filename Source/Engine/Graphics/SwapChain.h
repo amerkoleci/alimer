@@ -14,8 +14,7 @@ namespace Alimer
         uint32_t width = 0;
         uint32_t height = 0;
         PixelFormat colorFormat = PixelFormat::BGRA8UnormSrgb;
-        bool verticalSync = true;
-        bool fullscreen = false;
+        PresentMode presentMode = PresentMode::Fifo;
     };
 
 	class ALIMER_API SwapChain : public GPUObject, public RefCounted
@@ -42,6 +41,6 @@ namespace Alimer
         uint32_t width;
         uint32_t height;
 		PixelFormat colorFormat;
-		bool verticalSync;
+        PresentMode presentMode;
 	};
 }

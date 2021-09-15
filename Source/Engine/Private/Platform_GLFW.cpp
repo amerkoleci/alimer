@@ -3,6 +3,7 @@
 
 #if defined(ALIMER_PLATFORM_GLFW)
 #include "Application.h"
+#include "Graphics/SwapChain.h"
 //#include "Platform/Window.h"
 #include "Core/Log.h"
 #include "Core/Assert.h"
@@ -232,6 +233,9 @@ namespace Alimer
     void Window::Show()
     {
         ALIMER_ASSERT(impl->window);
+
+        CreateSwapChain();
+
         glfwShowWindow(impl->window);
     }
 
@@ -330,13 +334,6 @@ namespace Alimer
         return glfwGetWaylandWindow(impl->window);
 #else
         return nullptr;
-#endif
-    }
-
-    void Window::SwapBuffers()
-    {
-#if defined(ALIMER_GRAPHICS_GL)
-        glfwSwapBuffers(impl->window);
 #endif
     }
 }

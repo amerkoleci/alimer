@@ -27,7 +27,6 @@ namespace Alimer
 	class VulkanPipelineLayout;
 	class VulkanPipeline;
 	class VulkanCommandBuffer;
-	class VulkanCommandQueue;
 
 	static constexpr uint32_t kVulkanBindingShift_CBV = 0;
 	static constexpr uint32_t kVulkanBindingShift_SRV = 1000;

@@ -236,6 +236,13 @@ namespace Alimer
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
 
+    enum class PresentMode : uint32_t
+    {
+        Immediate = 0,
+        Mailbox,
+        Fifo
+    };
+
     /* Forward declarations */
     class Buffer;
     class Texture;

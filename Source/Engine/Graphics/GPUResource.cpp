@@ -16,11 +16,4 @@ namespace Alimer
     {
         gGraphics().RemoveGPUObject(this);
     }
-
-	/// Constructor. 
-	GPUResource::GPUResource(Type type)
-		: _type(type)
-	{
-
-	}
 }

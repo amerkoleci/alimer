@@ -161,12 +161,12 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return true; // gGraphics().BeginFrame();
+        return gGraphics().BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        //gGraphics().EndFrame();
+        gGraphics().EndFrame();
     }
 
     void Application::Render()
@@ -178,13 +178,13 @@ namespace Alimer
         {
             // Custom application draw.
             CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
-            //commandContext->PushDebugGroup("Frame");
-            //commandContext->BeginDefaultRenderPass(Color::CornflowerBlue);
-            //
+            commandBuffer->PushDebugGroup("Frame");
+            commandBuffer->BeginRenderPass(window->GetSwapChain(), Color::CornflowerBlue);
+            
             OnDraw(*commandBuffer);
-            //
-            //commandContext->EndRenderPass();
-            //commandContext->PopDebugGroup();
+            
+            commandBuffer->EndRenderPass();
+            commandBuffer->PopDebugGroup();
             EndDraw();
         }
     }

@@ -69,6 +69,7 @@ namespace Alimer
 
 		virtual GPUAllocation Allocate(uint64_t size, uint64_t alignment);
 
+        void BeginRenderPass(_In_ SwapChain* swapChain, const Color& clearColor);
 		void BeginRenderPass(const RenderPassInfo& info);
 		void EndRenderPass();
 
@@ -138,7 +139,8 @@ namespace Alimer
 		virtual void UpdateBufferCore(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size) = 0;
 		virtual void CopyBufferCore(const Buffer* source, uint64_t sourceOffset, const Buffer* destination, uint64_t destinationOffset, uint64_t size) = 0;
 
-		virtual void BeginRenderPassCore(const RenderPassInfo& info) = 0;
+		virtual void BeginRenderPassCore(_In_ SwapChain* swapChain, const Color& clearColor) = 0;
+        virtual void BeginRenderPassCore(const RenderPassInfo& info) = 0;
 		virtual void EndRenderPassCore() = 0;
 
 		virtual void SetVertexBuffersCore(uint32_t startSlot, uint32_t count, const Buffer* const* buffers, const uint64_t* offsets) = 0;

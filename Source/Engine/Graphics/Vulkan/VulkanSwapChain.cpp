@@ -5,11 +5,6 @@
 #include "VulkanTexture.h"
 #include "VulkanGraphics.h"
 
-#if defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_XCB_KHR)
-#include "Platform/SDL2/Window.SDL2.h"
-#include <SDL_vulkan.h>
-#endif
-
 namespace Alimer
 {
     namespace
@@ -53,29 +48,47 @@ namespace Alimer
             return available_formats[0];
         }
 
-        constexpr VkPresentModeKHR QueryPresentMode(const std::vector<VkPresentModeKHR>& availableModes, bool verticalSync)
+        inline bool QueryPresentMode(const std::vector<VkPresentModeKHR>& availableModes, VkPresentModeKHR wantedMode)
         {
-            if (verticalSync)
-            {
-                return VK_PRESENT_MODE_FIFO_KHR;
-            }
-
             VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
             for (const auto& availableMode : availableModes)
             {
-                if (availableMode == VK_PRESENT_MODE_MAILBOX_KHR)
+                if (availableMode == wantedMode)
                 {
-                    presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-                    break;
-                }
-                if (availableMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
-                {
-                    presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+                    return true;
                 }
             }
 
-            return presentMode;
+            return false;
+        }
+
+        constexpr VkPresentModeKHR ToVulkan(PresentMode mode)
+        {
+            switch (mode)
+            {
+            case PresentMode::Fifo:
+                return VK_PRESENT_MODE_FIFO_KHR;
+            case PresentMode::Immediate:
+                return VK_PRESENT_MODE_IMMEDIATE_KHR;
+            case PresentMode::Mailbox:
+                return VK_PRESENT_MODE_MAILBOX_KHR;
+            default:
+                ALIMER_UNREACHABLE();
+            }
+        }
+
+        constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
+        {
+            switch (mode) {
+            case VK_PRESENT_MODE_FIFO_KHR:
+            case VK_PRESENT_MODE_IMMEDIATE_KHR:
+                return 2;
+            case VK_PRESENT_MODE_MAILBOX_KHR:
+                return 3;
+            default:
+                ALIMER_UNREACHABLE();
+            }
         }
     }
 
@@ -174,7 +187,7 @@ namespace Alimer
         backBufferTextures.clear();
         imageAcquiredFenceSubmitted.clear();
 
-        for (uint32_t i = 0; i < bufferCount; i++)
+        for (uint32_t i = 0; i < imageCount; i++)
         {
             vkDestroySemaphore(device.GetHandle(), imageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.GetHandle(), renderCompleteSemaphores[i], nullptr);
@@ -205,20 +218,38 @@ namespace Alimer
 
         VkFormat vulkanSurfaceFormat = ToVulkanFormat(colorFormat);
         VkSurfaceFormatKHR surfaceFormat = QuerySurfaceFormat(swapChainDetails.formats, vulkanSurfaceFormat);
-        VkPresentModeKHR presentMode = QueryPresentMode(swapChainDetails.presentModes, verticalSync);
+        VkPresentModeKHR vkPresentMode = ToVulkan(presentMode);
+        if (!QueryPresentMode(swapChainDetails.presentModes, vkPresentMode))
+        {
+            if (vkPresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                if (!QueryPresentMode(swapChainDetails.presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR))
+                {
+                    vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+                }
+                else
+                {
+                    vkPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+                }
+            }
+            else
+            {
+                vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+            }
+        }
 
         // Determine the number of images
-        bufferCount = caps.minImageCount + 1;
-        if ((caps.maxImageCount > 0) && (bufferCount > caps.maxImageCount))
+        imageCount = MinImageCountForPresentMode(vkPresentMode);
+        if ((caps.maxImageCount > 0) && (imageCount > caps.maxImageCount))
         {
-            bufferCount = caps.maxImageCount;
+            imageCount = caps.maxImageCount;
         }
 
         VkSwapchainKHR oldSwapchain = handle;
 
         VkSwapchainCreateInfoKHR info{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
         info.surface = surface;
-        info.minImageCount = bufferCount;
+        info.minImageCount = imageCount;
         info.imageFormat = surfaceFormat.format;
         info.imageColorSpace = surfaceFormat.colorSpace;
         info.imageExtent = {};
@@ -229,7 +260,7 @@ namespace Alimer
         info.pQueueFamilyIndices = nullptr;
         info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
         info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        info.presentMode = presentMode;
+        info.presentMode = vkPresentMode;
         info.clipped = VK_TRUE;
         info.oldSwapchain = oldSwapchain;
 
@@ -275,14 +306,14 @@ namespace Alimer
         height = info.imageExtent.height;
         colorFormat = FromVulkanFormat(info.imageFormat);
 
-        VK_CHECK(vkGetSwapchainImagesKHR(device.GetHandle(), handle, &bufferCount, nullptr));
-        std::vector<VkImage> swapchainImages(bufferCount);
-        VK_CHECK(vkGetSwapchainImagesKHR(device.GetHandle(), handle, &bufferCount, swapchainImages.data()));
-        backBufferTextures.resize(bufferCount);
-        imageAvailableSemaphores.resize(bufferCount);
-        renderCompleteSemaphores.resize(bufferCount);
-        imageAcquiredFences.resize(bufferCount);
-        imageAcquiredFenceSubmitted.resize(bufferCount, false);
+        VK_CHECK(vkGetSwapchainImagesKHR(device.GetHandle(), handle, &imageCount, nullptr));
+        std::vector<VkImage> swapchainImages(imageCount);
+        VK_CHECK(vkGetSwapchainImagesKHR(device.GetHandle(), handle, &imageCount, swapchainImages.data()));
+        backBufferTextures.resize(imageCount);
+        imageAvailableSemaphores.resize(imageCount);
+        renderCompleteSemaphores.resize(imageCount);
+        imageAcquiredFences.resize(imageCount);
+        imageAcquiredFenceSubmitted.resize(imageCount, false);
         semaphoreIndex = 0;
         backBufferIndex = 0;
 
@@ -294,7 +325,7 @@ namespace Alimer
 
         const VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
         const VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-        for (uint32_t i = 0; i < bufferCount; i++)
+        for (uint32_t i = 0; i < imageCount; i++)
         {
             VK_CHECK(vkCreateSemaphore(device.GetHandle(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]));
             VK_CHECK(vkCreateSemaphore(device.GetHandle(), &semaphoreInfo, nullptr, &renderCompleteSemaphores[i]));
@@ -325,7 +356,7 @@ namespace Alimer
             result == VK_SUBOPTIMAL_KHR)
         {
             Recreate();
-            semaphoreIndex = bufferCount - 1;
+            semaphoreIndex = imageCount - 1;
         }
         else if (result != VK_SUCCESS)
         {
@@ -335,7 +366,7 @@ namespace Alimer
 
         // We need to acquire next image.
         needAcquire = true;
-        semaphoreIndex = (semaphoreIndex + 1) % bufferCount;
+        semaphoreIndex = (semaphoreIndex + 1) % imageCount;
     }
 
     void VulkanSwapChain::Recreate()

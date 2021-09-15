@@ -64,9 +64,17 @@ namespace Alimer
 		CopyBufferCore(source, sourceOffset, destination, destinationOffset, size);
 	}
 
+    void CommandBuffer::BeginRenderPass(_In_ SwapChain* swapChain, const Color& clearColor)
+    {
+        ALIMER_ASSERT_MSG(!insideRenderPass, "Cannot begin render pass while inside render pass");
+
+        BeginRenderPassCore(swapChain, clearColor);
+        insideRenderPass = true;
+    }
+
 	void CommandBuffer::BeginRenderPass(const RenderPassInfo& info)
 	{
-		//ALIMER_ASSERT_MSG(!insideRenderPass, "Cannot begin render pass while inside render pass");
+		ALIMER_ASSERT_MSG(!insideRenderPass, "Cannot begin render pass while inside render pass");
 
 		BeginRenderPassCore(info);
 		insideRenderPass = true;
@@ -74,7 +82,7 @@ namespace Alimer
 
 	void CommandBuffer::EndRenderPass()
 	{
-		//ALIMER_ASSERT_MSG(insideRenderPass, "Cannot end render pass without begin first");
+		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot end render pass without begin first");
 
 		EndRenderPassCore();
 		insideRenderPass = false;
@@ -98,7 +106,7 @@ namespace Alimer
 	void CommandBuffer::SetIndexBuffer(const Buffer* buffer, IndexType indexType, uint64_t offset)
 	{
 		ALIMER_ASSERT(buffer != nullptr);
-		//ALIMER_ASSERT_MSG(any(buffer->GetUsage() & BufferUsage::Index), "Buffer created without Index usage");
+		ALIMER_ASSERT_MSG(CheckBitsAny(buffer->GetUsage(), BufferUsage::Index), "Buffer created without Index usage");
 
 		SetIndexBufferCore(buffer, indexType, offset);
 	}
@@ -158,14 +166,14 @@ namespace Alimer
 
 	void CommandBuffer::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
 	{
-		//ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
 
 		DrawCore(vertexStart, vertexCount, instanceCount, baseInstance);
 	}
 
 	void CommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
 	{
-		//ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
 
 		DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 	}

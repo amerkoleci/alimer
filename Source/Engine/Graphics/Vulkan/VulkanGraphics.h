@@ -3,8 +3,8 @@
 
 #pragma once
 
-//#include "Core/ThreadSafeQueue.h"
 #include "Graphics/Graphics.h"
+#include "VulkanSwapChain.h"
 #include "VulkanPipelineLayout.h"
 #include <queue>
 
@@ -21,6 +21,8 @@ namespace Alimer
 
 	class VulkanGraphics final : public Graphics
 	{
+        friend class VulkanCommandBuffer;
+
 	public:
         VkPhysicalDeviceProperties2 properties2 = {};
         VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
@@ -68,6 +70,7 @@ namespace Alimer
 		void WaitIdle() override;
         bool BeginFrame() override;
 		void EndFrame() override;
+        void SubmitCommandBuffers();
 
         CommandBuffer* BeginCommandBuffer(QueueType queueType = QueueType::Graphics) override;
 
@@ -79,8 +82,6 @@ namespace Alimer
 
         VulkanUploadContext UploadBegin(uint64_t size);
         void UploadEnd(VulkanUploadContext context);
-        uint64_t FlushCopy();
-        VkSemaphore GetCopySemaphore() const;
 
 		VkRenderPass GetVkRenderPass(const VulkanRenderPassKey& key);
 		VkFramebuffer GetVkFramebuffer(uint64_t hash, const VulkanFboKey& key);
@@ -146,8 +147,10 @@ namespace Alimer
         {
             VkQueue queue = VK_NULL_HANDLE;
             VkSemaphore semaphore = VK_NULL_HANDLE;
-            std::vector<VkSwapchainKHR> submit_swapchains;
+            std::vector<VulkanSwapChain*> submit_swapchains;
+            std::vector<VkSwapchainKHR> submitVkSwapchains;
             std::vector<uint32_t> submit_swapChainImageIndices;
+            std::vector<VkResult> submit_swapChainResults;
             std::vector<VkPipelineStageFlags> submit_waitStages;
             std::vector<VkSemaphore> submit_waitSemaphores;
             std::vector<uint64_t> submit_waitValues;
@@ -155,7 +158,7 @@ namespace Alimer
             std::vector<uint64_t> submit_signalValues;
             std::vector<VkCommandBuffer> submit_cmds;
 
-            void submit(VkFence fence)
+            void Submit(VkFence fence)
             {
                 VkSubmitInfo submitInfo = {};
                 submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -189,14 +192,20 @@ namespace Alimer
                     presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
                     presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
                     presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
-                    presentInfo.pSwapchains = submit_swapchains.data();
+                    presentInfo.pSwapchains = submitVkSwapchains.data();
                     presentInfo.pImageIndices = submit_swapChainImageIndices.data();
-                    res = vkQueuePresentKHR(queue, &presentInfo);
-                    assert(res == VK_SUCCESS);
+                    vkQueuePresentKHR(queue, &presentInfo);
+
+                    for (size_t i = 0; i < submit_swapchains.size(); ++i)
+                    {
+                        submit_swapchains[i]->AfterPresent(submit_swapChainResults[i]);
+                    }
                 }
 
                 submit_swapchains.clear();
+                submitVkSwapchains.clear();
                 submit_swapChainImageIndices.clear();
+                submit_swapChainResults.clear();
                 submit_waitStages.clear();
                 submit_waitSemaphores.clear();
                 submit_waitValues.clear();
@@ -205,7 +214,7 @@ namespace Alimer
                 submit_cmds.clear();
             }
 
-        } queues[(u8)QueueType::Count];
+        } queues[(uint8_t)QueueType::Count];
 
         struct CopyAllocator
         {
@@ -242,6 +251,21 @@ namespace Alimer
         FrameResources frames[kMaxFramesInFlight] = {};
         const FrameResources& GetFrameResources() const { return frames[GetFrameIndex()]; }
         FrameResources& GetFrameResources() { return frames[GetFrameIndex()]; }
+
+        /* Command queues*/
+        std::atomic_uint8_t cmdBuffersCount{ 0 };
+        struct CommandListMetadata
+        {
+            QueueType queue = {};
+            std::vector<uint8_t> waits;
+        } commandListMeta[kMaxCommandLists];
+
+        std::unique_ptr<VulkanCommandBuffer> commandLists[kMaxCommandLists][(uint8_t)QueueType::Count] = {};
+
+        inline VulkanCommandBuffer* GetCommandBuffer(uint8_t cmd)
+        {
+            return commandLists[cmd][(uint8_t)commandListMeta[cmd].queue].get();
+        }
 
 		std::mutex fenceMutex;
 		std::set<VkFence> allFences;

@@ -5,7 +5,6 @@
 #include "VulkanTexture.h"
 #include "VulkanShader.h"
 #include "VulkanPipeline.h"
-#include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanSwapChain.h"
@@ -1067,6 +1066,15 @@ namespace Alimer
     {
         VK_CHECK(vkDeviceWaitIdle(device));
 
+        for (uint8_t queue = 0; queue < (uint8_t)QueueType::Count; ++queue)
+        {
+            vkDestroySemaphore(device, queues[queue].semaphore, nullptr);
+            for (uint32_t cmd = 0; cmd < kMaxCommandLists; ++cmd)
+            {
+                commandLists[cmd][queue].reset();
+            }
+        }
+
         // Framebuffer cache
         {
             std::lock_guard<std::mutex> guard(framebufferCacheMutex);
@@ -1098,11 +1106,6 @@ namespace Alimer
         {
             std::lock_guard<std::mutex> guard(pipelineLayoutCacheMutex);
             pipelineLayoutCache.clear();
-        }
-
-        for (auto& queue : queues)
-        {
-            vkDestroySemaphore(device, queue.semaphore, nullptr);
         }
 
         for (auto& frame : frames)
@@ -1230,35 +1233,161 @@ namespace Alimer
 
     bool VulkanGraphics::BeginFrame()
     {
-        //commandListCount.store(0);
+        cmdBuffersCount.store(0);
         return true;
     }
 
     void VulkanGraphics::EndFrame()
     {
-        //VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        //VK_CHECK(
-        //    vkQueueSubmit(ToVulkan(graphicsQueue)->GetHandle(), 1, &submitInfo, frameFences[frameIndex])
-        //);
+        SubmitCommandBuffers();
 
         frameCount++;
         frameIndex = frameCount % kMaxFramesInFlight;
-        //if (frameCount >= kMaxFramesInFlight)
-        //{
-        //    VK_CHECK(vkWaitForFences(device, 1, &frameFences[frameIndex], VK_TRUE, UINT64_MAX));
-        //    VK_CHECK(vkResetFences(device, 1, &frameFences[frameIndex]));
-        //}
 
-        ProcessDeletionQueue();
+        // Begin next frame:
+        {
+            auto& frame = GetFrameResources();
+
+            // Initiate stalling CPU when GPU is not yet finished with next frame:
+            if (frameCount >= kMaxFramesInFlight)
+            {
+                for (uint8_t queue = 0; queue < (uint8_t)QueueType::Count; ++queue)
+                {
+                    VK_CHECK(vkWaitForFences(device, 1, &frame.fence[queue], VK_TRUE, UINT64_MAX));
+                    VK_CHECK(vkResetFences(device, 1, &frame.fence[queue]));
+                }
+            }
+
+            ProcessDeletionQueue();
+
+            // Restart transition command buffers
+            {
+                initLocker.lock();
+                VK_CHECK(vkResetCommandPool(device, frame.initCommandPool, 0));
+
+                VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+                beginInfo.pInheritanceInfo = nullptr; // Optional
+
+                VK_CHECK(vkBeginCommandBuffer(frame.initCommandBuffer, &beginInfo));
+
+                pendingSubmitInits = false;
+                initLocker.unlock();
+            }
+        }
+
 
         // Reset frame command pools
         //ToVulkan(graphicsQueue)->Reset(frameIndex);
         //ToVulkan(computeQueue)->Reset(frameIndex);
     }
 
+    void VulkanGraphics::SubmitCommandBuffers()
+    {
+        initLocker.lock();
+
+        // Submit current frame.
+        {
+            auto& frame = GetFrameResources();
+
+            QueueType submitQueue = QueueType::Count;
+
+            // Transitions first.
+            if (pendingSubmitInits)
+            {
+                VK_CHECK(vkEndCommandBuffer(frame.initCommandBuffer));
+            }
+
+            // Sync with copy queue
+            uint64_t copySyncFence = copyAllocator.Flush();
+
+            uint8_t cmd_last = cmdBuffersCount.load();
+            cmdBuffersCount.store(0);
+            for (uint8_t cmd = 0; cmd < cmd_last; ++cmd)
+            {
+                VulkanCommandBuffer* commandBuffer = GetCommandBuffer(cmd);
+                VK_CHECK(vkEndCommandBuffer(commandBuffer->GetHandle()));
+
+                const CommandListMetadata& meta = commandListMeta[cmd];
+                if (submitQueue == QueueType::Count) // start first batch
+                {
+                    submitQueue = meta.queue;
+                }
+
+                if (copySyncFence > 0) // sync up with copyallocator before first submit
+                {
+                    queues[(uint8_t)submitQueue].submit_waitStages.push_back(VK_PIPELINE_STAGE_TRANSFER_BIT);
+                    queues[(uint8_t)submitQueue].submit_waitSemaphores.push_back(copyAllocator.semaphore);
+                    queues[(uint8_t)submitQueue].submit_waitValues.push_back(copySyncFence);
+                    copySyncFence = 0;
+                }
+
+                if (submitQueue != meta.queue || !meta.waits.empty()) // new queue type or wait breaks submit batch
+                {
+                    // New batch signals its last cmd:
+                    queues[(uint8_t)submitQueue].submit_signalSemaphores.push_back(queues[(uint8_t)submitQueue].semaphore);
+                    queues[(uint8_t)submitQueue].submit_signalValues.push_back(kMaxFramesInFlight * kMaxCommandLists + (uint64_t)cmd);
+                    queues[(uint8_t)submitQueue].Submit(VK_NULL_HANDLE);
+                    submitQueue = meta.queue;
+
+                    for (auto& wait : meta.waits)
+                    {
+                        // record wait for signal on a previous submit:
+                        const CommandListMetadata& wait_meta = commandListMeta[wait];
+                        queues[(uint8_t)submitQueue].submit_waitStages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+                        queues[(uint8_t)submitQueue].submit_waitSemaphores.push_back(queues[(uint8_t)wait_meta.queue].semaphore);
+                        queues[(uint8_t)submitQueue].submit_waitValues.push_back(kMaxFramesInFlight * kMaxCommandLists + (uint64_t)wait);
+                    }
+                }
+
+                if (pendingSubmitInits)
+                {
+                    queues[(uint8_t)submitQueue].submit_cmds.push_back(frame.initCommandBuffer);
+                    pendingSubmitInits = false;
+                }
+
+                for (auto& swapchain : commandBuffer->swapChains)
+                {
+                    queues[(uint8_t)submitQueue].submit_swapchains.push_back(swapchain);
+                    queues[(uint8_t)submitQueue].submitVkSwapchains.push_back(swapchain->GetHandle());
+                    queues[(uint8_t)submitQueue].submit_swapChainImageIndices.push_back(swapchain->GetBackBufferIndex());
+                    queues[(uint8_t)submitQueue].submit_swapChainResults.push_back(VK_SUCCESS);
+                    queues[(uint8_t)submitQueue].submit_waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+                    queues[(uint8_t)submitQueue].submit_waitSemaphores.push_back(swapchain->GetImageAvailableSemaphore());
+                    queues[(uint8_t)submitQueue].submit_waitValues.push_back(0); // not a timeline semaphore
+                    queues[(uint8_t)submitQueue].submit_signalSemaphores.push_back(swapchain->GetRenderCompleteSemaphore());
+                    queues[(uint8_t)submitQueue].submit_signalValues.push_back(0); // not a timeline semaphore
+                }
+
+                queues[(uint8_t)submitQueue].submit_cmds.push_back(commandBuffer->GetHandle());
+            }
+
+            // Final submits with fences
+            for (uint8_t queue = 0; queue < (uint8_t)QueueType::Count; ++queue)
+            {
+                queues[queue].Submit(frame.fence[queue]);
+            }
+        }
+
+        pendingSubmitInits = false;
+        initLocker.unlock();
+    }
+
     CommandBuffer* VulkanGraphics::BeginCommandBuffer(QueueType queueType)
     {
-        return nullptr;
+        uint8_t cmd = cmdBuffersCount.fetch_add(1);
+        assert(cmd < kMaxCommandLists);
+        commandListMeta[cmd].queue = queueType;
+        commandListMeta[cmd].waits.clear();
+
+        if (GetCommandBuffer(cmd) == nullptr)
+        {
+            commandLists[cmd][(uint8_t)queueType] = std::make_unique<VulkanCommandBuffer>(*this, queueType, cmd);
+        }
+
+        GetCommandBuffer(cmd)->Reset(frameIndex);
+
+        return GetCommandBuffer(cmd);
     }
 
     VulkanUploadContext VulkanGraphics::UploadBegin(uint64_t size)
@@ -1270,17 +1399,6 @@ namespace Alimer
     {
         copyAllocator.Submit(context);
     }
-
-    uint64_t VulkanGraphics::FlushCopy()
-    {
-        return copyAllocator.Flush();
-    }
-
-    VkSemaphore VulkanGraphics::GetCopySemaphore() const
-    {
-        return copyAllocator.semaphore;
-    }
-
 
     TextureRef VulkanGraphics::CreateTextureCore(const TextureCreateInfo& info, const void* initialData)
     {

@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Window.h"
+#include "Graphics/SwapChain.h"
 
 namespace Alimer
 {
@@ -26,9 +27,18 @@ namespace Alimer
     {
         ALIMER_ASSERT(isClosing);
         //depthStencilTexture.Reset();
-        //swapChain.Reset();
+        swapChain.Reset();
 
         Closed(this);
+    }
+
+    void Window::CreateSwapChain()
+    {
+        if (swapChain.IsNull())
+        {
+            SwapChainCreateInfo createInfo{};
+            swapChain = SwapChain::Create(GetPlatformHandle(), createInfo);
+        }
     }
 
     void Window::SetPosition(int32_t x, int32_t y)

@@ -17,9 +17,12 @@ namespace Alimer
 
 		void AfterPresent(VkResult result);
 		VkSwapchainKHR GetHandle() const { return handle; }
+        VkSemaphore GetImageAvailableSemaphore() const { return imageAvailableSemaphores[semaphoreIndex]; }
+        VkSemaphore GetRenderCompleteSemaphore() const { return renderCompleteSemaphores[semaphoreIndex]; }
+
 		uint32_t GetBackBufferIndex() const noexcept { return backBufferIndex; }
 		TextureView* GetCurrentTextureView() const override;
-
+        
 	private:
 		void ResizeBackBuffer(uint32_t width, uint32_t height) override;
 		void Destroy(bool destroyHandle);
@@ -31,16 +34,15 @@ namespace Alimer
 		VkSurfaceKHR surface;
 		VkSwapchainKHR handle = VK_NULL_HANDLE;
 
-		uint32_t bufferCount = kMaxFramesInFlight;
-
 		std::vector<VkSemaphore> imageAvailableSemaphores;
 		std::vector<VkSemaphore> renderCompleteSemaphores;
 		std::vector<VkFence> imageAcquiredFences;
 		mutable std::vector<bool> imageAcquiredFenceSubmitted;
-		uint32_t semaphoreIndex = 0;
+        uint32_t semaphoreIndex = 0;
 
 		bool isMinimized = false;
 
+        uint32_t imageCount{ 0 };
 		mutable bool needAcquire = true;
 		mutable uint32_t backBufferIndex = 0;
 		std::vector<RefPtr<VulkanTexture>> backBufferTextures;
