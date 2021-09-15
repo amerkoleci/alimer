@@ -55,6 +55,17 @@ namespace Alimer
             return GPUVendorId::Unknown;
         }
     }
+    const char* ToString(GPUAdapterType type)
+    {
+        switch (type)
+        {
+        case GPUAdapterType::Software:      return "Software";
+        case GPUAdapterType::Integrated:    return "Integrated";
+        case GPUAdapterType::Discrete:      return "Discrete";
+        default:
+            return "<Unknown>";
+        }
+    }
 
     const char* ToString(CompareFunction func)
     {

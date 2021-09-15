@@ -83,9 +83,9 @@ namespace Alimer
 		void Reset(uint32_t frameIndex) override;
 		void End();
 
-		void PushDebugGroup(const std::string& name) override;
+		void PushDebugGroup(const std::string_view& name) override;
 		void PopDebugGroup() override;
-		void InsertDebugMarker(const std::string& name) override;
+		void InsertDebugMarker(const std::string_view& name) override;
 
 		void UpdateBufferCore(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size) override;
 		void CopyBufferCore(const Buffer* source, uint64_t sourceOffset, const Buffer* destination, uint64_t destinationOffset, uint64_t size) override;

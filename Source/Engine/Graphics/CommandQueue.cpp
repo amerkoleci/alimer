@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright Â© Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Graphics/CommandQueue.h"
@@ -7,7 +7,7 @@
 
 namespace Alimer
 {
-	CommandQueue::CommandQueue(CommandQueueType queueType_)
+	CommandQueue::CommandQueue(QueueType queueType_)
 		: queueType(queueType_)
 	{
 

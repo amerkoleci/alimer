@@ -177,11 +177,11 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            //CommandContext* commandContext = gGraphics().GetImmediateContext();
+            CommandBuffer* commandBuffer = gGraphics().BeginCommandBuffer();
             //commandContext->PushDebugGroup("Frame");
             //commandContext->BeginDefaultRenderPass(Color::CornflowerBlue);
             //
-            //OnDraw(*commandContext);
+            OnDraw(*commandBuffer);
             //
             //commandContext->EndRenderPass();
             //commandContext->PopDebugGroup();

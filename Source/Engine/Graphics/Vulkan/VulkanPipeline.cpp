@@ -484,7 +484,7 @@ namespace Alimer
 		createInfo.basePipelineHandle = VK_NULL_HANDLE;
 		createInfo.basePipelineIndex = 0;
 
-		VkResult result = vkCreateGraphicsPipelines(device.GetHandle(), device.GetPipelineCache(),
+		VkResult result = vkCreateGraphicsPipelines(device.GetHandle(), VK_NULL_HANDLE,
 			1, &createInfo,
 			nullptr,
 			&handle);
@@ -520,7 +520,7 @@ namespace Alimer
 		createInfo.stage.pSpecializationInfo = nullptr;
 		createInfo.layout = pipelineLayout->GetHandle();
 
-		VkResult result = vkCreateComputePipelines(device.GetHandle(), device.GetPipelineCache(), 
+		VkResult result = vkCreateComputePipelines(device.GetHandle(), VK_NULL_HANDLE,
 			1, &createInfo,
 			nullptr, &handle);
 

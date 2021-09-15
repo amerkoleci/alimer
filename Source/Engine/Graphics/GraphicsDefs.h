@@ -112,7 +112,7 @@ namespace Alimer
         Count32,
     };
 
-    enum class CommandQueueType : uint8_t
+    enum class QueueType : uint8_t
     {
         Graphics,
         Compute,
@@ -266,15 +266,19 @@ namespace Alimer
         u32 deviceId = 0;
     };
 
-    struct DeviceFeatures
+    struct GraphicsDeviceFeatures
     {
         /// Whether Ray Tracing support is available.
         bool rayTracing = false;
         /// Whether Mesh Shader support is available.
         bool meshShader = false;
+        /// Whether VariableRate shading support is available.
+        bool variableRateShading = false;
+        /// Whether VariableRate shading extended support is available.
+        bool variableRateShadingTier2 = false;
     };
 
-    struct DeviceLimits
+    struct GraphicsDeviceLimits
     {
         /// The maximum pixel size of a 1d image.
         uint32_t maxTextureDimension1D;
@@ -301,9 +305,22 @@ namespace Alimer
         uint32_t maxDrawIndirectCount = 1;
     };
 
+    struct GraphicsDeviceCaps
+    {
+        GraphicsAPI			    backendType;
+        GPUVendorId             vendor = GPUVendorId::Unknown;
+        uint32_t				vendorId = 0;
+        uint32_t				adapterId = 0;
+        GPUAdapterType			adapterType = GPUAdapterType::Unknown;
+        std::string				adapterName;
+        GraphicsDeviceFeatures	features;
+        GraphicsDeviceLimits	limits;
+    };
+
     /* Helper methods */
     ALIMER_API const char* GetVendorName(uint32_t vendorId);
     ALIMER_API GPUVendorId VendorIdToAdapterVendor(uint32_t vendorId);
+    ALIMER_API const char* ToString(GPUAdapterType type);
 
     ALIMER_API const char* ToString(CompareFunction func);
 }

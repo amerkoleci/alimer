@@ -149,13 +149,13 @@ namespace Alimer
         VK_CHECK(vkEndCommandBuffer(handle));
     }
 
-    void VulkanCommandBuffer::PushDebugGroup(const std::string& name)
+    void VulkanCommandBuffer::PushDebugGroup(const std::string_view& name)
     {
         if (!debugUtilsSupported)
             return;
 
         VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = name.c_str();
+        label.pLabelName = name.data();
         label.color[0] = 0.0f;
         label.color[1] = 0.0f;
         label.color[2] = 0.0f;
@@ -171,12 +171,13 @@ namespace Alimer
         vkCmdEndDebugUtilsLabelEXT(handle);
     }
 
-    void VulkanCommandBuffer::InsertDebugMarker(const std::string& name)
+    void VulkanCommandBuffer::InsertDebugMarker(const std::string_view& name)
     {
         if (!debugUtilsSupported)
             return;
 
         VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+        label.pLabelName = name.data();
         label.color[0] = 0.0f;
         label.color[1] = 0.0f;
         label.color[2] = 0.0f;

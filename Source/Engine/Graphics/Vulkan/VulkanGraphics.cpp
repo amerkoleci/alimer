@@ -108,14 +108,6 @@ namespace Alimer
             return {};
         }
 
-        const char* kDeviceTypes[] = {
-            "Other",
-            "IntegratedGPU",
-            "DiscreteGPU",
-            "VirtualGPU",
-            "CPU"
-        };
-
         struct PhysicalDeviceExtensions
         {
             bool swapchain;
@@ -134,6 +126,7 @@ namespace Alimer
             bool create_renderpass2;
             bool fragment_shading_rate;
             bool NV_mesh_shader;
+            bool EXT_shader_viewport_index_layer;
             bool win32_full_screen_exclusive;
         };
 
@@ -198,6 +191,9 @@ namespace Alimer
                 else if (strcmp(vk_extensions[i].extensionName, VK_NV_MESH_SHADER_EXTENSION_NAME) == 0) {
                     extensions.NV_mesh_shader = true;
                 }
+                else if (strcmp(vk_extensions[i].extensionName, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) == 0) {
+                    extensions.EXT_shader_viewport_index_layer = true;
+                }
                 else if (strcmp(vk_extensions[i].extensionName, VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0) {
                     extensions.win32_full_screen_exclusive = true;
                 }
@@ -216,6 +212,7 @@ namespace Alimer
                 //extensions.buffer_device_address = true;
                 extensions.descriptor_indexing = true;
                 extensions.create_renderpass2 = true;
+                extensions.EXT_shader_viewport_index_layer = true;
             }
 
             return extensions;
@@ -405,26 +402,7 @@ namespace Alimer
             }
         }
 
-        // Enumerate physical devices and create logical device.
-        VkPhysicalDeviceProperties2 properties2 = {};
-        VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
-        VkPhysicalDeviceVulkan12Properties properties_1_2 = {};
-        VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties = {};
-        VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
-        VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragment_shading_rate_properties = {};
-        VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
-
-        VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-        VkPhysicalDeviceVulkan11Features features_1_1 = {};
-        VkPhysicalDeviceVulkan12Features features_1_2 = {};
-        VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = {};
-        VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_features = {};
-        VkPhysicalDeviceRayQueryFeaturesKHR raytracing_query_features = {};
-        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features = {};
-        VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_features = {};
-        VkPhysicalDevicePerformanceQueryFeaturesKHR perf_counter_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR };
-        VkPhysicalDeviceHostQueryResetFeatures host_query_reset_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES };
-
+        // Enumerate physical device and create logical device.
         {
             uint32_t deviceCount = 0;
             VK_CHECK(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
@@ -461,6 +439,7 @@ namespace Alimer
                     continue;
                 }
 
+                features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
                 features_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
                 features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
                 features2.pNext = &features_1_1;
@@ -489,27 +468,27 @@ namespace Alimer
                 }
 
                 // For performance queries, we also use host query reset since queryPool resets cannot live in the same command buffer as beginQuery
-                if (physicalDeviceExt.performance_query &&
-                    physicalDeviceExt.host_query_reset)
-                {
-                    VkPhysicalDeviceFeatures2 physical_device_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-                    physical_device_features.pNext = &perf_counter_features;
-                    vkGetPhysicalDeviceFeatures2(physicalDevice, &physical_device_features);
-
-                    physical_device_features.pNext = &host_query_reset_features;
-                    vkGetPhysicalDeviceFeatures2(physicalDevice, &physical_device_features);
-
-                    if (perf_counter_features.performanceCounterQueryPools && host_query_reset_features.hostQueryReset)
-                    {
-                        *features_chain = &perf_counter_features;
-                        features_chain = &perf_counter_features.pNext;
-                        *features_chain = &host_query_reset_features;
-                        features_chain = &host_query_reset_features.pNext;
-
-                        enabledExtensions.push_back(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
-                        enabledExtensions.push_back(VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME);
-                    }
-                }
+                //if (physicalDeviceExt.performance_query &&
+                //    physicalDeviceExt.host_query_reset)
+                //{
+                //    VkPhysicalDeviceFeatures2 physical_device_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+                //    physical_device_features.pNext = &perf_counter_features;
+                //    vkGetPhysicalDeviceFeatures2(physicalDevice, &physical_device_features);
+                //
+                //    physical_device_features.pNext = &host_query_reset_features;
+                //    vkGetPhysicalDeviceFeatures2(physicalDevice, &physical_device_features);
+                //
+                //    if (perf_counter_features.performanceCounterQueryPools && host_query_reset_features.hostQueryReset)
+                //    {
+                //        *features_chain = &perf_counter_features;
+                //        features_chain = &perf_counter_features.pNext;
+                //        *features_chain = &host_query_reset_features;
+                //        features_chain = &host_query_reset_features.pNext;
+                //
+                //        enabledExtensions.push_back(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
+                //        enabledExtensions.push_back(VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME);
+                //    }
+                //}
 
                 if (physicalDeviceExt.spirv_1_4)
                 {
@@ -518,6 +497,11 @@ namespace Alimer
 
                     // Required by VK_KHR_spirv_1_4
                     enabledExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+                }
+
+                if (physicalDeviceExt.EXT_shader_viewport_index_layer)
+                {
+                    enabledExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
                 }
 
                 if (physicalDeviceExt.buffer_device_address)
@@ -617,22 +601,34 @@ namespace Alimer
                 return;
             }
 
-#if TODO
-            caps.backendType = GPUBackendType::Vulkan;
+            vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
+            ALIMER_ASSERT(properties2.properties.limits.timestampComputeAndGraphics == VK_TRUE);
+            ALIMER_ASSERT(features2.features.imageCubeArray == VK_TRUE);
+            ALIMER_ASSERT(features2.features.independentBlend == VK_TRUE);
+            ALIMER_ASSERT(features2.features.geometryShader == VK_TRUE);
+            ALIMER_ASSERT(features2.features.samplerAnisotropy == VK_TRUE);
+            ALIMER_ASSERT(features2.features.shaderClipDistance == VK_TRUE);
+            ALIMER_ASSERT(features2.features.textureCompressionBC == VK_TRUE);
+            ALIMER_ASSERT(features2.features.occlusionQueryPrecise == VK_TRUE);
+            ALIMER_ASSERT(features_1_2.descriptorIndexing == VK_TRUE);
+
+            caps.backendType = GraphicsAPI::Vulkan;
+            caps.vendor = VendorIdToAdapterVendor(properties2.properties.vendorID);
             caps.vendorId = properties2.properties.vendorID;
             caps.adapterId = properties2.properties.deviceID;
 
             switch (properties2.properties.deviceType)
             {
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                caps.adapterType = GPUAdapterType::IntegratedGPU;
+                caps.adapterType = GPUAdapterType::Integrated;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                caps.adapterType = GPUAdapterType::DiscreteGPU;
+                caps.adapterType = GPUAdapterType::Discrete;
                 break;
             case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                caps.adapterType = GPUAdapterType::CPU;
+                caps.adapterType = GPUAdapterType::Software;
                 break;
 
             default:
@@ -641,94 +637,31 @@ namespace Alimer
             }
 
             caps.adapterName = properties2.properties.deviceName;
-            caps.blobType = ShaderBlobType::SPIRV;
-
-            caps.features.independentBlend = features2.features.independentBlend;
-            caps.features.computeShader = true;
-            caps.features.multiViewport = features2.features.multiViewport;
-            caps.features.indexUInt32 = features2.features.fullDrawIndexUint32;
-            caps.features.multiDrawIndirect = features2.features.multiDrawIndirect;
-            caps.features.fillModeNonSolid = features2.features.fillModeNonSolid;
-            caps.features.samplerAnisotropy = features2.features.samplerAnisotropy;
-            caps.features.textureCompressionETC2 = features2.features.textureCompressionETC2;
-            caps.features.textureCompressionASTC_LDR = features2.features.textureCompressionASTC_LDR;
-            caps.features.textureCompressionBC = features2.features.textureCompressionBC;
-            caps.features.textureCubeArray = features2.features.imageCubeArray;
-            caps.features.raytracing = false;
-
-            // Search for depth stencil format
-            const std::vector<VkFormat> depthStencilFormats = {
-                VK_FORMAT_D24_UNORM_S8_UINT,
-                VK_FORMAT_D32_SFLOAT_S8_UINT
-            };
-
-            for (VkFormat format : depthStencilFormats)
-            {
-                VkFormatProperties props;
-                vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
-
-                if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-                {
-                    caps.defaultDepthStencilFormat = FromVulkanFormat(format);
-                    break;
-                }
-            }
-
-            const std::vector<VkFormat> depthFormats = {
-                VK_FORMAT_D32_SFLOAT,
-                VK_FORMAT_X8_D24_UNORM_PACK32,
-                VK_FORMAT_D16_UNORM
-            };
-
-            for (VkFormat format : depthFormats)
-            {
-                VkFormatProperties props;
-                vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
-
-                if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-                {
-                    caps.defaultDepthFormat = FromVulkanFormat(format);
-                    break;
-                }
-            }
-
-            ALIMER_ASSERT(properties2.properties.limits.timestampComputeAndGraphics == VK_TRUE);
-
-            caps.limits.minUniformBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
-            caps.limits.minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
-            vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
-
-            ALIMER_ASSERT(features2.features.imageCubeArray == VK_TRUE);
-            ALIMER_ASSERT(features2.features.independentBlend == VK_TRUE);
-            ALIMER_ASSERT(features2.features.geometryShader == VK_TRUE);
-            ALIMER_ASSERT(features2.features.samplerAnisotropy == VK_TRUE);
-            ALIMER_ASSERT(features2.features.shaderClipDistance == VK_TRUE);
-            ALIMER_ASSERT(features2.features.textureCompressionBC == VK_TRUE);
-            ALIMER_ASSERT(features2.features.occlusionQueryPrecise == VK_TRUE);
-
-            bufferDeviceAddress = features_1_2.bufferDeviceAddress;
+            //caps.blobType = ShaderBlobType::SPIRV;
 
             if (features2.features.tessellationShader == VK_TRUE)
             {
             }
-
             if (features2.features.shaderStorageImageExtendedFormats == VK_TRUE)
             {
+                //capabilities |= GRAPHICSDEVICE_CAPABILITY_UAV_LOAD_FORMAT_COMMON;
+            }
+            if (features2.features.multiViewport == VK_TRUE)
+            {
+                //capabilities |= GRAPHICSDEVICE_CAPABILITY_RENDERTARGET_AND_VIEWPORT_ARRAYINDEX_WITHOUT_GS;
             }
 
-            if (raytracing_features.rayTracingPipeline == VK_TRUE)
+            if (
+                raytracing_features.rayTracingPipeline == VK_TRUE &&
+                raytracing_query_features.rayQuery == VK_TRUE &&
+                acceleration_structure_features.accelerationStructure == VK_TRUE &&
+                features_1_2.bufferDeviceAddress == VK_TRUE
+                )
             {
-                ALIMER_ASSERT(acceleration_structure_features.accelerationStructure == VK_TRUE);
-                ALIMER_ASSERT(features_1_2.bufferDeviceAddress == VK_TRUE);
-                caps.features.raytracing = true;
+                caps.features.rayTracing = true;
                 //SHADER_IDENTIFIER_SIZE = raytracing_properties.shaderGroupHandleSize;
             }
-            if (raytracing_query_features.rayQuery == VK_TRUE)
-            {
-                ALIMER_ASSERT(acceleration_structure_features.accelerationStructure == VK_TRUE);
-                ALIMER_ASSERT(features_1_2.bufferDeviceAddress == VK_TRUE);
-                caps.features.raytracingInline = true;
-            }
+
             if (mesh_shader_features.meshShader == VK_TRUE && mesh_shader_features.taskShader == VK_TRUE)
             {
                 caps.features.meshShader = true;
@@ -739,15 +672,8 @@ namespace Alimer
             }
             if (fragment_shading_rate_features.attachmentFragmentShadingRate == VK_TRUE)
             {
-                caps.features.variableRateShadingExtended = true;
+                caps.features.variableRateShadingTier2 = true;
                 //VARIABLE_RATE_SHADING_TILE_SIZE = std::min(fragment_shading_rate_properties.maxFragmentShadingRateAttachmentTexelSize.width, fragment_shading_rate_properties.maxFragmentShadingRateAttachmentTexelSize.height);
-            }
-
-            ALIMER_ASSERT(features_1_2.hostQueryReset == VK_TRUE);
-
-            if (features_1_2.descriptorIndexing)
-            {
-                caps.features.bindlessDescriptors = true;
             }
 
             VkFormatProperties formatProperties = {};
@@ -757,69 +683,15 @@ namespace Alimer
                 //capabilities |= GRAPHICSDEVICE_CAPABILITY_UAV_LOAD_FORMAT_R11G11B10_FLOAT;
             }
 
-
             // Limits
-            caps.limits.maxVertexAttributes = properties2.properties.limits.maxVertexInputAttributes;
-            caps.limits.maxVertexBindings = properties2.properties.limits.maxVertexInputBindings;
-            caps.limits.maxVertexAttributeOffset = properties2.properties.limits.maxVertexInputAttributeOffset;
-            caps.limits.maxVertexBindingStride = properties2.properties.limits.maxVertexInputBindingStride;
-
             caps.limits.maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
             caps.limits.maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
             caps.limits.maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
             caps.limits.maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
-            caps.limits.maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
-            caps.limits.maxColorAttachments = properties2.properties.limits.maxColorAttachments;
-            caps.limits.minUniformBufferOffsetAlignment = properties2.properties.limits.minUniformBufferOffsetAlignment;
+            caps.limits.maxTextureArraySize = properties2.properties.limits.maxImageArrayLayers;
+            caps.limits.minConstantBufferOffsetAlignment = properties2.properties.limits.minUniformBufferOffsetAlignment;
             caps.limits.minStorageBufferOffsetAlignment = properties2.properties.limits.minStorageBufferOffsetAlignment;
-            caps.limits.maxSamplerAnisotropy = (uint16_t)properties2.properties.limits.maxSamplerAnisotropy;
-            caps.limits.maxViewports = properties2.properties.limits.maxViewports;
-            caps.limits.maxViewportWidth = properties2.properties.limits.maxViewportDimensions[0];
-            caps.limits.maxViewportHeight = properties2.properties.limits.maxViewportDimensions[1];
-            caps.limits.maxTessellationPatchSize = properties2.properties.limits.maxTessellationPatchSize;
-            caps.limits.maxComputeSharedMemorySize = properties2.properties.limits.maxComputeSharedMemorySize;
-            caps.limits.maxComputeWorkGroupCountX = properties2.properties.limits.maxComputeWorkGroupCount[0];
-            caps.limits.maxComputeWorkGroupCountY = properties2.properties.limits.maxComputeWorkGroupCount[1];
-            caps.limits.maxComputeWorkGroupCountZ = properties2.properties.limits.maxComputeWorkGroupCount[2];
-            caps.limits.maxComputeWorkGroupInvocations = properties2.properties.limits.maxComputeWorkGroupInvocations;
-            caps.limits.maxComputeWorkGroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0];
-            caps.limits.maxComputeWorkGroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1];
-            caps.limits.maxComputeWorkGroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2];
-
-            for (uint32_t i = ecast(PixelFormat::Undefined) + 1; i < ecast(PixelFormat::Count); i++)
-            {
-                const VkFormat vkFormat = ToVulkanFormat((PixelFormat)i);
-                if (vkFormat == VK_FORMAT_UNDEFINED)
-                    continue;
-
-                vkGetPhysicalDeviceFormatProperties(physicalDevice, vkFormat, &formatProperties);
-                const VkFormatFeatureFlags vkFeatures = formatProperties.optimalTilingFeatures;
-
-                PixelFormatFeatures features = PixelFormatFeatures::None;
-                if (vkFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
-                    features |= PixelFormatFeatures::Sampled;
-                if (vkFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)
-                    features |= PixelFormatFeatures::RenderTarget;
-                if (vkFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT)
-                    features |= PixelFormatFeatures::RenderTargetBlend;
-                if (vkFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-                    features |= PixelFormatFeatures::DepthStencil;
-                if (vkFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
-                    features |= PixelFormatFeatures::Filter;
-                if (vkFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
-                    features |= PixelFormatFeatures::Storage;
-                if (vkFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT)
-                    features |= PixelFormatFeatures::StorageAtomic;
-
-                if (vkFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT)
-                    features |= PixelFormatFeatures::Blit;
-                if (vkFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)
-                    features |= PixelFormatFeatures::Blit;
-
-                caps.formatProperties[i].features = features;
-            }
-#endif // TODO
-
+            caps.limits.maxDrawIndirectCount = properties2.properties.limits.maxDrawIndirectCount;
 
             // Find queue families:
             uint32_t queueFamilyCount = 0;
@@ -925,13 +797,13 @@ namespace Alimer
 
             volkLoadDevice(device);
 
-            graphicsQueue = new VulkanCommandQueue(*this, CommandQueueType::Graphics, graphicsQueueFamily, graphicsQueueIndex);
-            computeQueue = new VulkanCommandQueue(*this, CommandQueueType::Compute, computeQueueFamily, computeQueueIndex);
+            vkGetDeviceQueue(device, graphicsQueueFamily, graphicsQueueIndex, &graphicsQueue);
+            vkGetDeviceQueue(device, computeQueueFamily, computeQueueIndex, &computeQueue);
             vkGetDeviceQueue(device, copyQueueFamily, copyQueueIndex, &copyQueue);
 
             LOGI("Vendor : {}", GetVendorName(properties2.properties.vendorID));
             LOGI("Name   : {}", properties2.properties.deviceName);
-            LOGI("Type   : {}", kDeviceTypes[properties2.properties.deviceType]);
+            LOGI("Type   : {}", ToString(caps.adapterType));
             LOGI("Driver : {}", properties2.properties.driverVersion);
 
             LOGI("Enabled {} Device Extensions:", createInfo.enabledExtensionCount);
@@ -947,45 +819,37 @@ namespace Alimer
 #endif
         }
 
+        // Command queues
+        {
+            queues[(u8)QueueType::Graphics].queue = graphicsQueue;
+            queues[(u8)QueueType::Compute].queue = computeQueue;
+
+            VkSemaphoreTypeCreateInfo timelineSemaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
+            timelineSemaphoreInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+            timelineSemaphoreInfo.initialValue = 0;
+
+            VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+            semaphoreInfo.pNext = &timelineSemaphoreInfo;
+            semaphoreInfo.flags = 0;
+
+            VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &queues[(u8)QueueType::Graphics].semaphore));
+            VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &queues[(u8)QueueType::Compute].semaphore));
+        }
+
         // Create memory allocator
         {
-            VmaVulkanFunctions vmaVulkanFunc{};
-            vmaVulkanFunc.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
-            vmaVulkanFunc.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
-            vmaVulkanFunc.vkAllocateMemory = vkAllocateMemory;
-            vmaVulkanFunc.vkFreeMemory = vkFreeMemory;
-            vmaVulkanFunc.vkMapMemory = vkMapMemory;
-            vmaVulkanFunc.vkUnmapMemory = vkUnmapMemory;
-            vmaVulkanFunc.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
-            vmaVulkanFunc.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
-            vmaVulkanFunc.vkBindBufferMemory = vkBindBufferMemory;
-            vmaVulkanFunc.vkBindImageMemory = vkBindImageMemory;
-            vmaVulkanFunc.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
-            vmaVulkanFunc.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
-            vmaVulkanFunc.vkCreateBuffer = vkCreateBuffer;
-            vmaVulkanFunc.vkDestroyBuffer = vkDestroyBuffer;
-            vmaVulkanFunc.vkCreateImage = vkCreateImage;
-            vmaVulkanFunc.vkDestroyImage = vkDestroyImage;
-            vmaVulkanFunc.vkCmdCopyBuffer = vkCmdCopyBuffer;
-
             VmaAllocatorCreateInfo allocatorInfo{};
             allocatorInfo.physicalDevice = physicalDevice;
             allocatorInfo.device = device;
             allocatorInfo.instance = instance;
+            allocatorInfo.vulkanApiVersion = volkGetInstanceVersion();
 
             // Core in 1.1
             allocatorInfo.flags = VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT | VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT;
-            vmaVulkanFunc.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2;
-            vmaVulkanFunc.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2;
-            vmaVulkanFunc.vkBindBufferMemory2KHR = vkBindBufferMemory2;
-            vmaVulkanFunc.vkBindImageMemory2KHR = vkBindImageMemory2;
-
             if (features_1_2.bufferDeviceAddress == VK_TRUE)
             {
                 allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
             }
-
-            allocatorInfo.pVulkanFunctions = &vmaVulkanFunc;
 
             VkResult result = vmaCreateAllocator(&allocatorInfo, &allocator);
 
@@ -997,15 +861,6 @@ namespace Alimer
 
         // Init copy allocator.
         copyAllocator.Init(this);
-
-        /* Create pipeline cache */
-        {
-            VkPipelineCacheCreateInfo createInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
-            //createInfo.initialDataSize = pipelineData.size();
-            //createInfo.pInitialData = pipelineData.data();
-
-            VK_CHECK(vkCreatePipelineCache(device, &createInfo, nullptr, &pipelineCache));
-        }
 
         // Create frame sync primitives
         {
@@ -1019,21 +874,6 @@ namespace Alimer
                 {
                     SetObjectName(VK_OBJECT_TYPE_FENCE, (uint64_t)frameFences[i], fmt::format("Frame Fence {}", i));
                 }
-            }
-        }
-
-        // Create bindless
-        const bool enableBindless = true;
-        if (enableBindless)
-        {
-            if (features_1_2.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE)
-            {
-                bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
-            }
-
-            if (features_1_2.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE)
-            {
-                bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
             }
         }
 
@@ -1173,7 +1013,20 @@ namespace Alimer
             FlushCommandBuffer(transitionCommandBuffer);
         }
 
-        processCommandsThread = std::thread(&VulkanGraphics::ProccessCommands, this);
+        // Create bindless
+        const bool enableBindless = true;
+        if (enableBindless)
+        {
+            if (features_1_2.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE)
+            {
+                bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
+            }
+
+            if (features_1_2.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE)
+            {
+                bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
+            }
+        }
 
         LOGI("Vulkan graphics backend initialized with success");
     }
@@ -1181,9 +1034,6 @@ namespace Alimer
     VulkanGraphics::~VulkanGraphics()
     {
         VK_CHECK(vkDeviceWaitIdle(device));
-
-        processCommands = false;
-        processCommandsThread.join();
 
         // Framebuffer cache
         {
@@ -1221,9 +1071,6 @@ namespace Alimer
         // Shutdown copy allocator.
         copyAllocator.Shutdown();
 
-        // Pipeline cache
-        vkDestroyPipelineCache(device, pipelineCache, nullptr);
-
         for (uint32_t i = 0; i < kMaxFramesInFlight; i++)
         {
             vkDestroyFence(device, frameFences[i], nullptr);
@@ -1243,9 +1090,6 @@ namespace Alimer
             bindlessSampledImages.Destroy(device);
             bindlessStorageBuffers.Destroy(device);
         }
-
-        delete graphicsQueue; graphicsQueue = nullptr;
-        delete computeQueue; computeQueue = nullptr;
 
         frameCount = UINT64_MAX;
         ProcessDeletionQueue();
@@ -1343,43 +1187,44 @@ namespace Alimer
         ProcessDeletionQueue();
     }
 
-    void VulkanGraphics::FinishFrame()
+    bool VulkanGraphics::BeginFrame()
     {
-        // Update and Render additional Platform Windows
-        /*{
-            ImGuiIO& io = ImGui::GetIO();
-            if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-            {
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
-            }
-        }*/
+        //commandListCount.store(0);
+        return true;
+    }
 
-        VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        VK_CHECK(
-            vkQueueSubmit(ToVulkan(graphicsQueue)->GetHandle(), 1, &submitInfo, frameFences[frameIndex])
-        );
+    void VulkanGraphics::EndFrame()
+    {
+        //VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        //VK_CHECK(
+        //    vkQueueSubmit(ToVulkan(graphicsQueue)->GetHandle(), 1, &submitInfo, frameFences[frameIndex])
+        //);
 
         frameCount++;
         frameIndex = frameCount % kMaxFramesInFlight;
-        if (frameCount >= kMaxFramesInFlight)
-        {
-            VK_CHECK(vkWaitForFences(device, 1, &frameFences[frameIndex], VK_TRUE, UINT64_MAX));
-            VK_CHECK(vkResetFences(device, 1, &frameFences[frameIndex]));
-        }
+        //if (frameCount >= kMaxFramesInFlight)
+        //{
+        //    VK_CHECK(vkWaitForFences(device, 1, &frameFences[frameIndex], VK_TRUE, UINT64_MAX));
+        //    VK_CHECK(vkResetFences(device, 1, &frameFences[frameIndex]));
+        //}
 
         ProcessDeletionQueue();
 
         // Reset frame command pools
-        ToVulkan(graphicsQueue)->Reset(frameIndex);
-        ToVulkan(computeQueue)->Reset(frameIndex);
+        //ToVulkan(graphicsQueue)->Reset(frameIndex);
+        //ToVulkan(computeQueue)->Reset(frameIndex);
+    }
+
+    CommandBuffer* VulkanGraphics::BeginCommandBuffer(QueueType queueType)
+    {
+        return nullptr;
     }
 
     VkCommandBuffer VulkanGraphics::CreateCommandBuffer()
     {
         VkCommandBufferAllocateInfo allocateInfo{};
         allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocateInfo.commandPool = ToVulkan(graphicsQueue)->GetCommandPool();
+        //allocateInfo.commandPool = ToVulkan(graphicsQueue)->GetCommandPool();
         allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocateInfo.commandBufferCount = 1;
 
@@ -1410,7 +1255,7 @@ namespace Alimer
         submitInfo.commandBufferCount = 1u;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(ToVulkan(graphicsQueue)->GetHandle(), 1, &submitInfo, fence);
+        //vkQueueSubmit(ToVulkan(graphicsQueue)->GetHandle(), 1, &submitInfo, fence);
 
         // Wait for the fence to signal that command buffer has finished executing
         vkWaitForFences(device, 1, &fence, VK_TRUE, VK_DEFAULT_FENCE_TIMEOUT);
@@ -1570,28 +1415,6 @@ namespace Alimer
     {
         std::lock_guard<std::mutex> guard(destroyMutex);
         deletionDescriptorPoolQueue.push_back(std::make_pair(resource, frameCount));
-    }
-
-    void VulkanGraphics::ProccessCommands()
-    {
-        //std::unique_lock<std::mutex> lock(processCommandsThreadMutex, std::defer_lock);
-        //
-        //while (processCommands)
-        //{
-        //    VkFence fence;
-        //
-        //    lock.lock();
-        //    while (submittedFences.try_pop(fence))
-        //    {
-        //        if (vkGetFenceStatus(device, fence) == VK_SUCCESS)
-        //        {
-        //            // Reuse fences
-        //            ReleaseFence(fence);
-        //        }
-        //    }
-        //
-        //    lock.unlock();
-        //}
     }
 
     void VulkanGraphics::ProcessDeletionQueue()
@@ -1958,13 +1781,11 @@ namespace Alimer
     {
         device = device_;
 
-        VkSemaphoreTypeCreateInfo timelineCreateInfo = {};
-        timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-        timelineCreateInfo.pNext = nullptr;
+        VkSemaphoreTypeCreateInfo timelineCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
         timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
         timelineCreateInfo.initialValue = 0;
 
-        VkSemaphoreCreateInfo createInfo { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+        VkSemaphoreCreateInfo createInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
         createInfo.pNext = &timelineCreateInfo;
         createInfo.flags = 0;
         VK_CHECK(vkCreateSemaphore(device->device, &createInfo, nullptr, &semaphore));
@@ -1972,7 +1793,7 @@ namespace Alimer
 
     void VulkanGraphics::CopyAllocator::Shutdown()
     {
-        vkQueueWaitIdle(device->copyQueue);
+        VK_CHECK(vkQueueWaitIdle(device->copyQueue));
         for (auto& x : freeList)
         {
             x.uploadBuffer.Reset();
@@ -1991,13 +1812,13 @@ namespace Alimer
         {
             VulkanUploadContext context;
 
-            VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+            VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
             poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             poolInfo.queueFamilyIndex = device->copyQueueFamily;
 
             VK_CHECK(vkCreateCommandPool(device->device, &poolInfo, nullptr, &context.commandPool));
 
-            VkCommandBufferAllocateInfo commandBufferInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+            VkCommandBufferAllocateInfo commandBufferInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
             commandBufferInfo.commandBufferCount = 1;
             commandBufferInfo.commandPool = context.commandPool;
             commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -2033,7 +1854,7 @@ namespace Alimer
             || context.uploadBuffer->GetSize() < size)
         {
             BufferCreateInfo uploadBufferDesc{};
-            uploadBufferDesc.size = NextPowerOfTwo((uint32_t)size);
+            uploadBufferDesc.size = NextPowerOfTwo(size);
             uploadBufferDesc.memoryUsage = MemoryUsage::CpuOnly;
             context.uploadBuffer = new VulkanBuffer(*device, uploadBufferDesc, nullptr);
             context.data = context.uploadBuffer->Map();
@@ -2073,13 +1894,13 @@ namespace Alimer
         locker.lock();
         if (!submitCommandBuffers.empty())
         {
-            VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+            VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
             submitInfo.commandBufferCount = (uint32_t)submitCommandBuffers.size();
             submitInfo.pCommandBuffers = submitCommandBuffers.data();
             submitInfo.pSignalSemaphores = &semaphore;
             submitInfo.signalSemaphoreCount = 1;
 
-            VkTimelineSemaphoreSubmitInfo timelineInfo { VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+            VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
             timelineInfo.waitSemaphoreValueCount = 0;
             timelineInfo.pWaitSemaphoreValues = nullptr;
             timelineInfo.signalSemaphoreValueCount = 1;

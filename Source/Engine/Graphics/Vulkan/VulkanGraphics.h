@@ -22,6 +22,26 @@ namespace Alimer
 	class VulkanGraphics final : public Graphics
 	{
 	public:
+        VkPhysicalDeviceProperties2 properties2 = {};
+        VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
+        VkPhysicalDeviceVulkan12Properties properties_1_2 = {};
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties = {};
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragment_shading_rate_properties = {};
+        VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
+
+        VkPhysicalDeviceFeatures2 features2 = {};
+        VkPhysicalDeviceVulkan11Features features_1_1 = {};
+        VkPhysicalDeviceVulkan12Features features_1_2 = {};
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = {};
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_features = {};
+        VkPhysicalDeviceRayQueryFeaturesKHR raytracing_query_features = {};
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features = {};
+        VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_features = {};
+
+        std::vector<VkDynamicState> pso_dynamicStates;
+        VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
+
 		// Null objects for descriptor sets
 		VkImage			nullImage1D = VK_NULL_HANDLE;
 		VkImage			nullImage2D = VK_NULL_HANDLE;
@@ -43,8 +63,10 @@ namespace Alimer
 		~VulkanGraphics() override;
 
 		void WaitIdle() override;
+        bool BeginFrame() override;
+		void EndFrame() override;
 
-		void FinishFrame() override;
+        CommandBuffer* BeginCommandBuffer(QueueType queueType = QueueType::Graphics) override;
 
 		void SetObjectName(VkObjectType type, uint64_t handle, const std::string_view& name);
 
@@ -79,9 +101,7 @@ namespace Alimer
 		VkPhysicalDevice GetPhysicalDevice() const noexcept { return physicalDevice; }
 		VmaAllocator GetAllocator() const { return allocator; }
 		VkDevice GetHandle() const { return device; }
-		VkPipelineCache GetPipelineCache() const { return pipelineCache; }
 
-		bool BufferDeviceAddressSupported() const noexcept { return bufferDeviceAddress; }
 		uint32_t GetGraphicsQueueFamily() const noexcept { return graphicsQueueFamily; }
 		uint32_t GetComputeQueueFamily() const noexcept { return computeQueueFamily; }
 		uint32_t GetCopyQueueFamily() const noexcept { return copyQueueFamily; }
@@ -93,7 +113,6 @@ namespace Alimer
         uint32_t AllocateUAV();
 
 	private:
-		void ProccessCommands();
 		void ProcessDeletionQueue();
 
         TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) override;
@@ -116,8 +135,77 @@ namespace Alimer
 		uint32_t copyQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
 		VkDevice device = VK_NULL_HANDLE;
+
+        VkQueue graphicsQueue = VK_NULL_HANDLE;
+        VkQueue computeQueue = VK_NULL_HANDLE;
+        VkQueue copyQueue = VK_NULL_HANDLE;
+
 		VmaAllocator allocator = VK_NULL_HANDLE;
-		bool bufferDeviceAddress = false;
+
+        struct CommandQueue
+        {
+            VkQueue queue = VK_NULL_HANDLE;
+            VkSemaphore semaphore = VK_NULL_HANDLE;
+            std::vector<VkSwapchainKHR> submit_swapchains;
+            std::vector<uint32_t> submit_swapChainImageIndices;
+            std::vector<VkPipelineStageFlags> submit_waitStages;
+            std::vector<VkSemaphore> submit_waitSemaphores;
+            std::vector<uint64_t> submit_waitValues;
+            std::vector<VkSemaphore> submit_signalSemaphores;
+            std::vector<uint64_t> submit_signalValues;
+            std::vector<VkCommandBuffer> submit_cmds;
+
+            void submit(VkFence fence)
+            {
+                VkSubmitInfo submitInfo = {};
+                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submitInfo.commandBufferCount = (uint32_t)submit_cmds.size();
+                submitInfo.pCommandBuffers = submit_cmds.data();
+
+                submitInfo.waitSemaphoreCount = (uint32_t)submit_waitSemaphores.size();
+                submitInfo.pWaitSemaphores = submit_waitSemaphores.data();
+                submitInfo.pWaitDstStageMask = submit_waitStages.data();
+
+                submitInfo.signalSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
+                submitInfo.pSignalSemaphores = submit_signalSemaphores.data();
+
+                VkTimelineSemaphoreSubmitInfo timelineInfo = {};
+                timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+                timelineInfo.pNext = nullptr;
+                timelineInfo.waitSemaphoreValueCount = (uint32_t)submit_waitValues.size();
+                timelineInfo.pWaitSemaphoreValues = submit_waitValues.data();
+                timelineInfo.signalSemaphoreValueCount = (uint32_t)submit_signalValues.size();
+                timelineInfo.pSignalSemaphoreValues = submit_signalValues.data();
+
+                submitInfo.pNext = &timelineInfo;
+
+                VkResult res = vkQueueSubmit(queue, 1, &submitInfo, fence);
+                assert(res == VK_SUCCESS);
+
+                if (!submit_swapchains.empty())
+                {
+                    VkPresentInfoKHR presentInfo = {};
+                    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+                    presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
+                    presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
+                    presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
+                    presentInfo.pSwapchains = submit_swapchains.data();
+                    presentInfo.pImageIndices = submit_swapChainImageIndices.data();
+                    res = vkQueuePresentKHR(queue, &presentInfo);
+                    assert(res == VK_SUCCESS);
+                }
+
+                submit_swapchains.clear();
+                submit_swapChainImageIndices.clear();
+                submit_waitStages.clear();
+                submit_waitSemaphores.clear();
+                submit_waitValues.clear();
+                submit_signalSemaphores.clear();
+                submit_signalValues.clear();
+                submit_cmds.clear();
+            }
+
+        } queues[(u8)QueueType::Count];
 
         struct CopyAllocator
         {
@@ -139,23 +227,16 @@ namespace Alimer
             uint64_t Flush();
         };
         mutable CopyAllocator copyAllocator;
-        VkQueue copyQueue = VK_NULL_HANDLE;
+        
 
 		VkFormat defaultDepthStencilFormat = VK_FORMAT_UNDEFINED;
 		VkFormat defaultDepthFormat = VK_FORMAT_UNDEFINED;
-
-		VkPipelineCache pipelineCache = VK_NULL_HANDLE;
 
 		VkFence frameFences[kMaxFramesInFlight] = {};
 
 		std::mutex fenceMutex;
 		std::set<VkFence> allFences;
 		std::queue<VkFence> availableFences;
-
-		std::thread processCommandsThread;
-		std::mutex processCommandsThreadMutex;
-		std::atomic_bool processCommands{ true };
-		//ThreadSafeQueue<VkFence> submittedFences;
 
 		// Caches
 		std::mutex renderPassCacheMutex;

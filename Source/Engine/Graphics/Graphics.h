@@ -4,7 +4,6 @@
 #pragma once
 
 #include "Core/Module.h"
-#include "Graphics/CommandQueue.h"
 #include "Graphics/CommandBuffer.h"
 //#include "Platform/WindowHandle.h"
 #include <mutex>
@@ -39,8 +38,13 @@ namespace Alimer
         /// Wait for device to finish all pending GPU operations
         virtual void WaitIdle() = 0;
 
+        /// Begin the rendering frame and return false if not possible.
+        [[nodiscard]] virtual bool BeginFrame() = 0;
+
         /// Finish the rendering frame and releases all stale resources.
-        virtual void FinishFrame() = 0;
+        virtual void EndFrame() = 0;
+
+        [[nodiscard]] virtual CommandBuffer* BeginCommandBuffer(QueueType queueType = QueueType::Graphics) = 0;
 
         /// Create new texture.
         [[nodiscard]] TextureRef CreateTexture(const TextureCreateInfo& info, const void* initialData = nullptr);
@@ -49,15 +53,10 @@ namespace Alimer
         [[nodiscard]] virtual SamplerRef CreateSampler(const SamplerCreateInfo* info) = 0;
 
         /// Return the graphics capabilities.
-        //const GraphicsDeviceCaps& GetCaps() const noexcept { return caps; }
+        [[nodiscard]] const GraphicsDeviceCaps& GetCaps() const noexcept { return caps; }
 
-        CommandQueue& GetQueue(CommandQueueType type = CommandQueueType::Graphics)
-        {
-            return (type == CommandQueueType::Compute) ? *computeQueue : *graphicsQueue;
-        }
-
-        uint32_t GetFrameIndex() const { return frameIndex; }
-        uint64_t GetFrameCount() const { return frameCount; }
+        [[nodiscard]] uint32_t GetFrameIndex() const { return frameIndex; }
+        [[nodiscard]] uint64_t GetFrameCount() const { return frameCount; }
 
         /// Get the native device handle (ID3D12Device, VkDevice)
         virtual void* GetNativeHandle() const noexcept = 0;
@@ -75,10 +74,7 @@ namespace Alimer
     protected:
         void Destroy();
 
-        //GraphicsDeviceCaps caps{};
-
-        CommandQueue* graphicsQueue = nullptr;
-        CommandQueue* computeQueue = nullptr;
+        GraphicsDeviceCaps caps{};
 
         uint32_t frameIndex = 0;
         uint64_t frameCount = 0;

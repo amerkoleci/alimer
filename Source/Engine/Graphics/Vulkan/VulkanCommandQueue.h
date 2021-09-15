@@ -13,7 +13,7 @@ namespace Alimer
 	class VulkanCommandQueue final : public CommandQueue
 	{
 	public:
-		VulkanCommandQueue(VulkanGraphics& device, CommandQueueType type, uint32_t queueFamilyIndex, uint32_t queueIndex = 0);
+		VulkanCommandQueue(VulkanGraphics& device, QueueType type, uint32_t queueFamilyIndex, uint32_t queueIndex = 0);
 		~VulkanCommandQueue() override;
 
 		void Reset(uint32_t frameIndex_);

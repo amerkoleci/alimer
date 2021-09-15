@@ -58,9 +58,9 @@ namespace Alimer
 		/// Destructor.
 		virtual ~CommandBuffer() = default;
 
-		virtual void PushDebugGroup(const std::string& name) = 0;
+		virtual void PushDebugGroup(const std::string_view& name) = 0;
 		virtual void PopDebugGroup() = 0;
-		virtual void InsertDebugMarker(const std::string& name) = 0;
+		virtual void InsertDebugMarker(const std::string_view& name) = 0;
 
 		/// Update a buffer.
 		void UpdateBuffer(const Buffer* buffer, const void* data, uint64_t offset = 0, uint64_t size = 0);

@@ -8,7 +8,7 @@
 
 namespace Alimer
 {
-	VulkanCommandQueue::VulkanCommandQueue(VulkanGraphics& device_, CommandQueueType type, uint32_t queueFamilyIndex, uint32_t queueIndex)
+	VulkanCommandQueue::VulkanCommandQueue(VulkanGraphics& device_, QueueType type, uint32_t queueFamilyIndex, uint32_t queueIndex)
 		: CommandQueue(type)
 		, device(device_)
 	{
@@ -63,7 +63,7 @@ namespace Alimer
 
 	void VulkanCommandQueue::QueuePresent(VulkanSwapChain* swapChain)
 	{
-		ALIMER_ASSERT(queueType == CommandQueueType::Graphics);
+		ALIMER_ASSERT(queueType == QueueType::Graphics);
 
 		presentSwapChains[presentSwapChainsCount] = swapChain;
 		vkPresentSwapChains[presentSwapChainsCount] = swapChain->GetHandle();
@@ -159,7 +159,7 @@ namespace Alimer
 		}
 
 		// Handle automatic SwapChain queue present
-		if (queueType == CommandQueueType::Graphics)
+		if (queueType == QueueType::Graphics)
 		{
 			if (presentSwapChainsCount > 0)
 			{

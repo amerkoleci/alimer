@@ -8,7 +8,7 @@
 #include "Graphics/Graphics.h"
 #include "Core/Log.h"
 
-#if defined(ALIMER_GRAPHICS_D3D12)
+#if defined(ALIMER_GRAPHICS_D3D12) && defined(TODO)
 #   include "Graphics/D3D12/D3D12Graphics.h"
 #endif
 
@@ -43,7 +43,7 @@ namespace Alimer
 
     bool Graphics::Initialize(GraphicsAPI api, ValidationMode validationMode)
     {
-#if defined(ALIMER_GRAPHICS_D3D12)
+#if defined(ALIMER_GRAPHICS_D3D12) && defined(TODO)
         if (api == GraphicsAPI::D3D12)
         {
             gGraphics().Start(new D3D12Graphics(validationMode));

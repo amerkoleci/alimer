@@ -28,11 +28,11 @@ namespace Alimer
 		void Submit(CommandBuffer* commandBuffer, bool waitForCompletion = false);
 		void Submit(const std::vector<CommandBuffer*>& commandBuffers, bool waitForCompletion = false);
 
-		CommandQueueType GetQueueType() const noexcept { return queueType; }
+        QueueType GetQueueType() const noexcept { return queueType; }
 
 	protected:
-		CommandQueue(CommandQueueType queueType);
+		CommandQueue(QueueType queueType);
 
-		CommandQueueType queueType;
+        QueueType queueType;
 	};
 }
