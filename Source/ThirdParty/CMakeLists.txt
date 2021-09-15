@@ -14,11 +14,6 @@ add_subdirectory(spdlog EXCLUDE_FROM_ALL)
 set_property(TARGET spdlog PROPERTY FOLDER "ThirdParty")
 
 # Graphics backend dependencies
-if (ALIMER_GRAPHICS_GL)
-  add_subdirectory(glad)
-  set_property(TARGET glad PROPERTY FOLDER "ThirdParty")
-endif()
-
 if(ALIMER_GRAPHICS_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)

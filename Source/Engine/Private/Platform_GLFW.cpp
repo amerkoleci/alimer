@@ -5,6 +5,7 @@
 #include "Application.h"
 //#include "Platform/Window.h"
 #include "Core/Log.h"
+#include "Core/Assert.h"
 
 #define GLFW_INCLUDE_NONE
 #if ALIMER_PLATFORM_WINDOWS
@@ -17,7 +18,6 @@
 #endif
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#include <glad/glad.h>
 
 namespace Alimer
 {
@@ -121,6 +121,8 @@ namespace Alimer
             LOGE("Failed to initialize GLFW");
             return;
         }
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     }
 
     void Application::PlatformShutdown()
@@ -143,11 +145,6 @@ namespace Alimer
             }
         }
 
-        if (settings.graphicsApi == GraphicsAPI::OpenGL)
-        {
-            windowFlags |= WindowFlags::OpenGL;
-        }
-
         window = std::make_unique<Window>(settings.title, settings.width, settings.height, windowFlags);
 
         LOGI("Successfully initialized platform!");
@@ -164,6 +161,7 @@ namespace Alimer
         : title(title_)
         , impl(std::make_unique<WindowImpl>())
     {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
         auto decorated = CheckBitsAny(flags, WindowFlags::Borderless) ? GLFW_FALSE : GLFW_TRUE;
@@ -194,28 +192,6 @@ namespace Alimer
             glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
         }
 
-        if (CheckBitsAny(flags, WindowFlags::OpenGL))
-        {
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_FALSE);
-
-#ifdef __APPLE__
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-#endif
-
-#if ALIMER_DEBUG
-            glfwWindowHint(GLFW_CONTEXT_DEBUG, true);
-#endif
-        }
-        else
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        }
-
         impl->window = glfwCreateWindow(size.x, size.y, title.data(), monitor, nullptr);
         if (!impl->window)
         {
@@ -234,21 +210,6 @@ namespace Alimer
         );
 
         SetPosition(position);
-
-        // Make context current if we're under OpenGL
-        if ((flags & WindowFlags::OpenGL) != 0)
-        {
-            glfwMakeContextCurrent(impl->window);
-
-            // Initialize GLAD
-            if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-            {
-                LOGE("Failed to initialize GLAD");
-                return;
-            }
-
-            glfwSwapInterval(1);
-        }
     }
 
     Window::~Window()

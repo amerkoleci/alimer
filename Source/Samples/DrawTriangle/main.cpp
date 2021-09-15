@@ -3,8 +3,6 @@
 
 #include <Alimer.h>
 using namespace Alimer;
-using namespace Alimer::rhi;
-
 struct DrawData
 {
     float4x4 world;
@@ -20,7 +18,7 @@ struct CameraData
 class HelloWorldApp final : public Application
 {
 private:
-    GraphicsBuffer vertexBuffer;
+    //GraphicsBuffer vertexBuffer;
     //BufferHandle indexBuffer;
     PipelineRef renderPipeline;
 
@@ -37,12 +35,13 @@ public:
     {
         Settings settings;
         settings.title = "Hello World";
-        settings.graphicsApi = GraphicsAPI::OpenGL;
+        //settings.graphicsApi = GraphicsAPI::Vulkan;
         return settings;
     }
 
     bool Initialize() override
     {
+#if TODO
         const float vertices[] = {
             /* positions            colors */
              0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
@@ -55,7 +54,6 @@ public:
         bufferDesc.label = "VertexBuffer";
         vertexBuffer.Create(bufferDesc, vertices);
 
-#if TODO
         bufferDesc.size = sizeof(indices);
         bufferDesc.usage = BufferUsage::Index;
         bufferDesc.label = "IndexBuffer";
@@ -121,7 +119,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         return true;
     }
 
-    void OnDraw([[maybe_unused]] CommandContext& context) override
+    void OnDraw([[maybe_unused]] CommandBuffer& context) override
     {
         //time += (float)GetElapsedSeconds();
         rotationX += 0.01f;

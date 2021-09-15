@@ -3,89 +3,58 @@
 
 #pragma once
 
-#include "Graphics/GraphicsResource.h"
+#include "Graphics/GPUResource.h"
 #include <vector>
 
 namespace Alimer
 {
-    enum class ShaderStages : uint32_t
+    enum class ShaderResourceType : uint32_t
     {
-        None = 0x0000,
-
-        Compute = 0x0020,
-
-        Vertex = 0x0001,
-        Hull = 0x0002,
-        Domain = 0x0004,
-        Geometry = 0x0008,
-        Pixel = 0x0010,
-        Amplification = 0x0040,
-        Mesh = 0x0080,
-        AllGraphics = 0x00FE,
-
-        RayGeneration = 0x0100,
-        AnyHit = 0x0200,
-        ClosestHit = 0x0400,
-        Miss = 0x0800,
-        Intersection = 0x1000,
-        Callable = 0x2000,
-        AllRayTracing = 0x3F00,
-
-        All = 0x3FFF,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
-
-    struct ShaderReflection
-    {
-        struct InputElement
-        {
-            VertexFormat format = VertexFormat::Undefined;
-            std::string semanticName;
-            size_t semanticIndex;
-        };
-
-        enum class ResourceBindType : u32
-        {
-            Unknown,
-            ConstantBuffer,
-            ShaderResource,
-            UnorderedAccess,
-            Sampler
-        };
-
-        struct Resource
-        {
-            std::string name;
-            ResourceBindType type;
-            uint32_t set;
-            uint32_t binding;
-            uint32_t arraySize;
-            uint32_t size;
-        };
-
-        std::vector<InputElement> inputElements;
-        std::vector<Resource> resources;
+        Invalid,
+        Input,
+        Output,
+        SampledTexture,
+        StorageTexture,
+        Sampler,
+        UniformBuffer,
+        StorageBuffer,
+        PushConstant,
+        All
     };
 
-    class ALIMER_API Shader : public RefCounted
+    struct ShaderResource
     {
-    public:
-        /// Create new shader.
-        [[nodiscard]] static ShaderRef Create(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
+        ShaderStages stages = ShaderStages::None;
+        ShaderResourceType type = ShaderResourceType::Invalid;
+        std::string name;
 
-        /// Create new shader.
-        [[nodiscard]] static ShaderRef Create(ShaderStages stage, const void* bytecode, size_t bytecodeLength);
+        uint32_t set;
+        uint32_t binding;
+        uint32_t arraySize;
 
-        const ShaderReflection& GetReflection() const { return reflection; }
-        size_t GetReflectionHash() const { return reflectionHash; }
+        uint32_t offset;
+        uint32_t size;
+    };
 
-    protected:
-        /// Constructor.
-        Shader(ShaderStages stage);
+	class ALIMER_API Shader : public GPUObject, public RefCounted
+	{
+	public:
+		static ShaderRef Create(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint = "main");
+
+        ShaderStages GetStage() const noexcept { return stage; }
+		const std::string& GetEntryPoint() const { return entryPoint; }
+		const std::vector<uint8_t>& GetByteCode() const { return byteCode; }
+		const std::vector<ShaderResource>& GetResources() const { return resources; }
+		size_t GetHash() const { return hash; }
+
+	protected:
+		/// Constructor.
+		Shader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint);
 
         ShaderStages stage;
-        ShaderReflection reflection;
-        size_t reflectionHash = 0;
-    };
+		std::vector<uint8_t> byteCode;
+		std::string entryPoint;
+		std::vector<ShaderResource> resources;
+		size_t hash = 0;
+	};
 }
-

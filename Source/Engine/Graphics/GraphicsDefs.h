@@ -41,9 +41,7 @@ namespace Alimer
     enum class GraphicsAPI : uint8_t
     {
         Default = 0,
-        D3D11,
         D3D12,
-        OpenGL,
         Vulkan,
         Metal,
         Null
@@ -93,7 +91,32 @@ namespace Alimer
         MESA,
         /// Adapter vendor is Broadcom (Raspberry Pi)
         BROADCOM,
+    };
 
+    enum class MemoryUsage : uint32_t
+    {
+        GpuOnly,
+        CpuOnly,
+        CpuToGpu,
+        GpuToCpu
+    };
+
+    /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
+    enum class SampleCount : uint32_t
+    {
+        Count1,
+        Count2,
+        Count4,
+        Count8,
+        Count16,
+        Count32,
+    };
+
+    enum class CommandQueueType : uint8_t
+    {
+        Graphics,
+        Compute,
+        Count
     };
 
     enum class CompareFunction : uint32_t
@@ -110,7 +133,7 @@ namespace Alimer
 
     enum class VertexFormat : uint32_t
     {
-        Undefined = 0,
+        Invalid = 0,
         UByte,
         UByte2,
         UByte4,
@@ -186,35 +209,48 @@ namespace Alimer
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
 
+    enum class ShaderStages : uint32_t
+    {
+        None = 0x0000,
+
+        Compute = 0x0020,
+
+        Vertex = 0x0001,
+        Hull = 0x0002,
+        Domain = 0x0004,
+        Geometry = 0x0008,
+        Pixel = 0x0010,
+        Amplification = 0x0040,
+        Mesh = 0x0080,
+        AllGraphics = 0x00FE,
+
+        RayGeneration = 0x0100,
+        AnyHit = 0x0200,
+        ClosestHit = 0x0400,
+        Miss = 0x0800,
+        Intersection = 0x1000,
+        Callable = 0x2000,
+        AllRayTracing = 0x3F00,
+
+        All = 0x3FFF,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(ShaderStages);
+
     /* Forward declarations */
+    class Buffer;
     class Texture;
     class TextureView;
     class Sampler;
     class Shader;
     class Pipeline;
-    class CommandContext;
+    class SwapChain;
 
+    using BufferRef = RefCountPtr<Buffer>;
     using TextureRef = RefCountPtr<Texture>;
     using SamplerRef = RefCountPtr<Sampler>;
     using ShaderRef = RefCountPtr<Shader>;
     using PipelineRef = RefCountPtr<Pipeline>;
-
-    /* GPU handles */
-    struct GraphicsDeviceChild
-    {
-        std::shared_ptr<void> internalState;
-        inline bool IsValid() const { return internalState.get() != nullptr; }
-    };
-
-    struct GPUResource : public GraphicsDeviceChild
-    {
-
-    };
-
-    struct GPUBuffer : public GPUResource
-    {
-    };
-
+    using SwapChainRef = RefCountPtr<SwapChain>;
 
     /* Structs */
     struct GraphicsAdapterInfo
@@ -263,15 +299,6 @@ namespace Alimer
 
         /// The maximum number of draws when doing indirect drawing.
         uint32_t maxDrawIndirectCount = 1;
-    };
-
-    struct BufferDesc
-    {
-        uint64_t size = 0;
-        BufferUsage usage = BufferUsage::None;
-        //HeapType heapType = HeapType::Default;
-        uintptr_t handle = 0;
-        const char* label = nullptr;
     };
 
     /* Helper methods */

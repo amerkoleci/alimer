@@ -3,19 +3,19 @@
 
 #pragma once
 
-#include "Graphics/GraphicsResource.h"
+#include "Graphics/GPUResource.h"
 
 namespace Alimer
 {
     enum class SamplerFilter : uint32_t
     {
-        Point,
+        Nearest,
         Linear
     };
 
     enum class SamplerAddressMode : uint32_t
     {
-        Wrap = 0,
+        Wrap,
         Mirror,
         Clamp,
         Border,
@@ -24,56 +24,34 @@ namespace Alimer
 
     enum class SamplerBorderColor : uint32_t
     {
-        TransparentBlack = 0,
+        TransparentBlack,
         OpaqueBlack,
         OpaqueWhite,
     };
 
-    struct SamplerDesc
+    struct SamplerCreateInfo
     {
-        SamplerFilter minFilter = SamplerFilter::Point;
-        SamplerFilter magFilter = SamplerFilter::Point;
-        SamplerFilter mipmapFilter = SamplerFilter::Point;
+        const char* label = nullptr;
+        SamplerFilter minFilter = SamplerFilter::Nearest;
+        SamplerFilter magFilter = SamplerFilter::Nearest;
+        SamplerFilter mipFilter = SamplerFilter::Nearest;
         SamplerAddressMode addressModeU = SamplerAddressMode::Clamp;
         SamplerAddressMode addressModeV = SamplerAddressMode::Clamp;
         SamplerAddressMode addressModeW = SamplerAddressMode::Clamp;
-        float mipLodBias = 0.0f;
         uint16_t maxAnisotropy = 1;
-        CompareFunction compare = CompareFunction::Never;
-        float minLod = 0.0f;
-        float maxLod = FLT_MAX;
+        CompareFunction compareFunction = CompareFunction::Never;
         SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
+        float lodMinClamp = 0.0f;
+        float lodMaxClamp = FLT_MAX;
     };
 
-    class ALIMER_API Sampler : public RefCounted
-    {
-    public:
-        /// Create new sampler.
-        [[nodiscard]] static SamplerRef Create(const SamplerDesc& desc);
+	class ALIMER_API Sampler : public GPUObject, public RefCounted
+	{
+	public:
+		static SamplerRef Create(const SamplerCreateInfo& info);
 
-        [[nodiscard]] virtual u32 GetBindlessIndex() const = 0;
-
-    protected:
-        /// Constructor.
-        Sampler(const SamplerDesc& desc);
-
-        SamplerFilter minFilter;
-        SamplerFilter magFilter;
-        SamplerFilter mipmapFilter;
-        SamplerAddressMode addressModeU;
-        SamplerAddressMode addressModeV;
-        SamplerAddressMode addressModeW;
-        float mipLodBias;
-        uint16_t maxAnisotropy;
-        CompareFunction compare;
-        float minLod;
-        float maxLod;
-        SamplerBorderColor borderColor;
-    };
-
-
-    ALIMER_API const char* ToString(SamplerFilter filter);
-    ALIMER_API const char* ToString(SamplerAddressMode mode);
-    ALIMER_API const char* ToString(SamplerBorderColor borderColor);
+	protected:
+		/// Constructor.
+		Sampler();
+	};
 }
-

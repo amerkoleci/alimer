@@ -38,6 +38,8 @@ namespace Alimer
         }
     }
 
+    const std::string kEmptyString{};
+
     std::vector<std::string> Split(const std::string& str, const char* delim)
     {
         return SplitInternal(str, delim, true);

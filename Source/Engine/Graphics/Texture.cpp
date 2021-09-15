@@ -3,145 +3,140 @@
 
 #include "Graphics/Texture.h"
 #include "Graphics/Graphics.h"
+//#include "Assets/TextureLoader.h"
+#include "Core/Assert.h"
 #include "Core/Log.h"
 
 namespace Alimer
 {
-    Texture::Texture(const TextureDesc& info)
-        : GraphicsResource(Type::Texture)
-        , dimension(info.dimension)
-        , width(info.width)
-        , height(info.height)
-        , depthOrArrayLayers(info.depthOrArrayLayers)
-        , mipLevels(info.mipLevels)
-        , sampleCount(info.sampleCount)
+    Texture::Texture(const TextureCreateInfo& info)
+        : GPUResource(Type::Texture)
+        , type(info.type)
         , format(info.format)
         , usage(info.usage)
+        , width(info.width)
+        , height(info.height)
+        , depthOrArraySize(info.depthOrArraySize)
+        , mipLevels(info.mipLevels)
+        , sampleCount(info.sampleCount)
     {
+        if (mipLevels == 0)
+        {
+            mipLevels = Log2(Max(Max(width, height), depthOrArraySize)) + 1;
+        }
     }
 
     void Texture::DestroyViews()
     {
+        for (auto it : views)
+        {
+            //SafeDelete(it.second);
+        }
         views.clear();
     }
 
-    bool Texture::VerifyInfo(const TextureDesc& info)
-    {
-        ALIMER_ASSERT(info.width >= 1);
-        ALIMER_ASSERT(info.height >= 1);
-        ALIMER_ASSERT(info.depthOrArrayLayers >= 1);
-        ALIMER_ASSERT(info.usage != TextureUsage::None);
-
-        if ((info.usage & TextureUsage::ShaderWrite) != 0)
-        {
-            // Check storage support
-            //if (!Any(gGraphics().GetCaps().formatProperties[(uint32_t)desc.format].features, PixelFormatFeatures::Storage))
-            //{
-            //    LOGE("PixelFormat doesn't support shader write");
-            //    return nullptr;
-            //}
-
-            if (CheckBitsAny(info.usage, TextureUsage::RenderTarget) && IsDepthStencilFormat(info.format))
-            {
-                LOGE("Cannot create DepthStencil texture with ShaderWrite usage");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    TextureRef Texture::Create(const TextureDesc& info, const TextureData* initialData)
+    TextureRef Texture::Create(const TextureCreateInfo& info, const void* initialData)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
 
-        if (!VerifyInfo(info))
-        {
-            return nullptr;
-        }
-
-        return gGraphics().CreateTexture(info, nullptr, initialData);
+        return gGraphics().CreateTexture(info, initialData);
     }
 
-    TextureRef Texture::CreateExternal(void* nativeHandle, const TextureDesc& info)
+    TextureRef Texture::Create2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage usage, const void* initialData)
+    {
+        ALIMER_ASSERT(gGraphics().IsInitialized());
+        ALIMER_ASSERT(width >= 1);
+        ALIMER_ASSERT(height >= 1);
+        ALIMER_ASSERT(format != PixelFormat::Undefined);
+        ALIMER_ASSERT(arraySize >= 1);
+        ALIMER_ASSERT(mipLevels >= 0);
+
+        TextureCreateInfo info{};
+        info.type = TextureType::Texture2D;
+        info.width = width;
+        info.height = height;
+        info.depthOrArraySize = arraySize;
+        info.mipLevels = mipLevels;
+        info.format = format;
+        info.sampleCount = SampleCount::Count1;
+        info.usage = usage;
+        return gGraphics().CreateTexture(info, initialData);
+    }
+
+    TextureRef Texture::FromFile(const std::string& path)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
 
-        if (!VerifyInfo(info))
-        {
-            return nullptr;
-        }
-
-        return gGraphics().CreateTexture(info, nativeHandle, nullptr);
+        return nullptr;
+        //return TextureLoader::Load(path);
     }
 
-    TextureView* Texture::GetView(const TextureViewDesc& desc)
+    TextureRef Texture::FromStream(Stream& stream)
     {
-        auto it = views.find(desc);
+        ALIMER_ASSERT(gGraphics().IsInitialized());
+
+        return nullptr;
+        //return TextureLoader::Load(stream);
+    }
+
+    TextureView* Texture::GetView(uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)
+    {
+        TextureViewCreateInfo info;
+        info.format = format;
+        info.baseMipLevel = baseMipLevel;
+        info.mipLevelCount = mipLevelCount;
+        info.baseArrayLayer = baseArrayLayer;
+        info.arrayLayerCount = arrayLayerCount;
+
+        const size_t hash = Hash(info);
+        auto it = views.find(hash);
         if (it == views.end())
         {
-            std::unique_ptr<TextureView> newView = CreateView(desc);
-            views[desc] = std::move(newView);
-
-            it = views.find(desc);
+            auto textureView = CreateView(info);
+            views[hash] = textureView;
+            return textureView;
         }
 
-        return it->second.get();
+        return it->second;
     }
 
-    /* TextureView */
-    TextureView::TextureView(_In_ Texture* texture_, const TextureViewDesc& desc_)
-        : texture(texture_)
-        , desc(desc_)
+    TextureView::TextureView(Texture* texture, const TextureViewCreateInfo& info)
+        : texture{ texture }
     {
-        if (desc.format == PixelFormat::Undefined)
+        ALIMER_ASSERT(texture != nullptr);
+
+        if (info.format == PixelFormat::Undefined)
         {
-            desc.format = texture->GetFormat();
+            format = texture->GetFormat();
         }
-
-        if (desc.dimension == TextureViewDimension::Undefined)
+        else
         {
-            switch (texture->GetDimension())
-            {
-                case TextureDimension::Texture1D:
-                    desc.dimension = TextureViewDimension::View1D;
-                    break;
-                case TextureDimension::Texture2D:
-                    desc.dimension = TextureViewDimension::View2D;
-                    break;
-                case TextureDimension::Texture3D:
-                    desc.dimension = TextureViewDimension::View3D;
-                    break;
-            }
+            format = info.format;
         }
 
-        if (desc.arrayLayerCount == 0)
-        {
-            switch (desc.dimension)
-            {
-                case TextureViewDimension::View1D:
-                case TextureViewDimension::View2D:
-                case TextureViewDimension::View3D:
-                    desc.arrayLayerCount = 1;
-                    break;
+        baseMipLevel = info.baseMipLevel;
+        mipLevelCount = info.mipLevelCount;
+        baseArrayLayer = info.baseArrayLayer;
+        arrayLayerCount = info.arrayLayerCount;
 
-                case TextureViewDimension::ViewCube:
-                    desc.arrayLayerCount = 6;
-                    break;
-                case TextureViewDimension::View1DArray:
-                case TextureViewDimension::View2DArray:
-                case TextureViewDimension::ViewCubeArray:
-                    desc.arrayLayerCount = texture->GetArrayLayers() - desc.baseArrayLayer;
-                    break;
-                default:
-                    // We don't put UNREACHABLE() here because we validate enums only after this
-                    // function sets default values. Otherwise, the UNREACHABLE() will be hit.
-                    break;
-            }
+        if (mipLevelCount == 0) {
+            mipLevelCount = texture->GetMipLevels() - baseMipLevel;
         }
 
-        if (desc.mipLevelCount == 0) {
-            desc.mipLevelCount = texture->GetMipLevels() - desc.baseMipLevel;
+        if (arrayLayerCount == 0) {
+            arrayLayerCount = texture->GetArraySize() - baseArrayLayer;
         }
+
+        HashCombine(hash, (uint32_t)format, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
+    }
+
+    const Texture* TextureView::GetTexture() const
+    {
+        return texture;
+    }
+
+    Texture* TextureView::GetTexture()
+    {
+        return texture;
     }
 }

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Core/Types.h"
+#include "Core/Assert.h"
 
 namespace Alimer
 {

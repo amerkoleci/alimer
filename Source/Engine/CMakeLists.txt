@@ -67,18 +67,13 @@ define_engine_source_files(
   Core
   Math
   IO
-  RHI
   Graphics
 )
 
 define_engine_source_files(Private NO_INSTALL)
 
-if (ALIMER_GRAPHICS_D3D11)
-  define_engine_source_files(Graphics/D3D11 NO_INSTALL)
-endif()
-
-if (ALIMER_GRAPHICS_GL)
-  define_engine_source_files(Graphics/GL NO_INSTALL)
+if (ALIMER_GRAPHICS_D3D12)
+  define_engine_source_files(Graphics/D3D12 NO_INSTALL)
 endif()
 
 if (ALIMER_GRAPHICS_VULKAN)
@@ -163,10 +158,6 @@ if(NOT (EMSCRIPTEN OR ANDROID))
 endif ()
 
 # Graphics backend dependencies 
-if (ALIMER_GRAPHICS_GL)
-  target_link_libraries(${TARGET_NAME} PRIVATE glad)
-endif()
-
 if (ALIMER_GRAPHICS_D3D12)
   target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
 endif()

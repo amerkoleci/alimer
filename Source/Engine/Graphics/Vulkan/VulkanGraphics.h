@@ -3,430 +3,282 @@
 
 #pragma once
 
-#define NOMINMAX
-#include "VulkanBackend.h"
-#include <mutex>
-#include <deque>
-#include <unordered_map>
+//#include "Core/ThreadSafeQueue.h"
+#include "Graphics/Graphics.h"
+#include "VulkanPipelineLayout.h"
+#include <queue>
 
 namespace Alimer
 {
-    class VulkanGraphics;
-
-#if TODO
-    class VulkanBuffer final : public IBuffer
-    {
-    public:
-        VulkanDevice* device = nullptr;
-        uint64_t size = 0;
-        BufferUsage usage = BufferUsage::None;
-        VkBuffer handle = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
-        uint64_t allocatedSize = 0;
-        VkDeviceAddress deviceAddress = 0;
-        uint8_t* mappedData = nullptr;
-
-        ~VulkanBuffer() override;
-        uint64_t GetSize() const override { return size; }
-        BufferUsage GetUsage() const override { return usage; }
-        uint64_t GetAllocatedSize() const override { return allocatedSize; }
-        uint64_t GetDeviceAddress() const override { return deviceAddress; }
-        uint8_t* MappedData() const { return mappedData; }
-    };
-
-    class VulkanTexture final : public ITexture
-    {
-    public:
-        VulkanDevice* device = nullptr;
-        VkImage handle = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
-        uint64_t allocatedSize = 0;
-
-        ~VulkanTexture() override;
-        uint64_t GetAllocatedSize() const override { return allocatedSize; }
-    };
-
-    class VulkanSwapChain final : public ISwapChain
-    {
-    public:
-        VulkanDevice* device = nullptr;
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-        VkSwapchainKHR handle = VK_NULL_HANDLE;
-        VkExtent2D size = {};
-        TextureFormat colorFormat = TextureFormat::BGRA8UnormSrgb;
-        PresentMode presentMode = PresentMode::Fifo;
-
-        ~VulkanSwapChain() override;
-        void Destroy(bool destroyHandle);
-        bool Resize(uint32_t width, uint32_t height) override;
-        void Recreate();
-        VkImageView AcquireNextImage() const;
-        void AfterPresent(VkResult result);
-
-        uint32_t GetBackBufferIndex() const noexcept { return backBufferIndex; }
-        VkSemaphore GetImageAvailableSemaphore() const noexcept { return imageAvailableSemaphores[semaphoreIndex]; }
-        VkSemaphore GetRenderCompleteSemaphore() const noexcept { return renderCompleteSemaphores[semaphoreIndex]; }
-
-    private:
-        uint32_t imageCount = 0;
-
-        //mutable bool needAcquire = true;
-        mutable uint32_t backBufferIndex = 0;
-        std::vector<Alimer::RefCountPtr<VulkanTexture>> backBufferTextures;
-        std::vector<VkImageView> swapChainImageViews;
-
-        std::vector<VkSemaphore> imageAvailableSemaphores;
-        std::vector<VkSemaphore> renderCompleteSemaphores;
-        std::vector<VkFence> imageAcquiredFences;
-        mutable std::vector<bool> imageAcquiredFenceSubmitted;
-        mutable uint32_t semaphoreIndex = 0;
-        bool isMinimized = false;
-    };
-
-    class VulkanCommandList final : public ICommandList
-    {
-        friend class VulkanDevice;
-
-    public:
-        VulkanDevice* device;
-        CommandQueue queue;
-        uint8_t index;
-
-        VulkanCommandList(VulkanDevice* device_, CommandQueue queue_, uint8_t index_);
-        ~VulkanCommandList() override;
-
-        VkCommandBuffer GetHandle() const;
-
-        void Reset(uint32_t frameIndex);
-        void PushDebugGroup(const char* name) override;
-        void PopDebugGroup() override;
-        void InsertDebugMarker(const char* name) override;
-        void BeginRenderPass(ISwapChain* swapChain, const float clearColor[4]) override;
-        void EndRenderPass() override;
-
-    private:
-        VkCommandPool commandPools[kMaxFramesInFlight];
-        VkCommandBuffer commandBuffers[kMaxFramesInFlight];
-        VkCommandBuffer commandBuffer; // Active command buffer
-        bool insideRenderPass = false;
-        std::vector<VulkanSwapChain*> swapChains;
-
-        struct DescriptorBinder
-        {
-            VulkanDevice* device;
-            VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-            uint32_t poolSize = 256;
-
-            std::vector<VkWriteDescriptorSet> descriptorWrites;
-            std::vector<VkDescriptorBufferInfo> bufferInfos;
-            std::vector<VkDescriptorImageInfo> imageInfos;
-            std::vector<VkBufferView> texelBufferViews;
-            std::vector<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructureViews;
-            bool dirty = false;
-
-            //GPUBuffer CBV[DESCRIPTORBINDER_CBV_COUNT];
-            //uint64_t CBV_offset[DESCRIPTORBINDER_CBV_COUNT];
-            //GPUResource SRV[DESCRIPTORBINDER_SRV_COUNT];
-            //int SRV_index[DESCRIPTORBINDER_SRV_COUNT];
-            //GPUResource UAV[DESCRIPTORBINDER_UAV_COUNT];
-            //int UAV_index[DESCRIPTORBINDER_UAV_COUNT];
-            //Sampler SAM[DESCRIPTORBINDER_SAMPLER_COUNT];
-
-            void Init(VulkanDevice* device_);
-            void Shutdown();
-            void Reset();
-            void Flush(bool graphics);
-        };
-        DescriptorBinder binders[kMaxFramesInFlight];
-    };
-
-    struct VulkanCopyContext
+    struct VulkanUploadContext
     {
         VkCommandPool commandPool = VK_NULL_HANDLE;
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         uint64_t target = 0;
-        BufferHandle uploadBuffer;
+        RefCountPtr<VulkanBuffer> uploadBuffer;
+        uint8_t* data = nullptr;
     };
 
+	class VulkanGraphics final : public Graphics
+	{
+	public:
+		// Null objects for descriptor sets
+		VkImage			nullImage1D = VK_NULL_HANDLE;
+		VkImage			nullImage2D = VK_NULL_HANDLE;
+		VkImage			nullImage3D = VK_NULL_HANDLE;
+		VmaAllocation	nullImageAllocation1D = VK_NULL_HANDLE;
+		VmaAllocation	nullImageAllocation2D = VK_NULL_HANDLE;
+		VmaAllocation	nullImageAllocation3D = VK_NULL_HANDLE;
+		VkImageView		nullImageView1D = VK_NULL_HANDLE;
+		VkImageView		nullImageView1DArray = VK_NULL_HANDLE;
+		VkImageView		nullImageView2D = VK_NULL_HANDLE;
+		VkImageView		nullImageView2DArray = VK_NULL_HANDLE;
+		VkImageView		nullImageViewCube = VK_NULL_HANDLE;
+		VkImageView		nullImageViewCubeArray = VK_NULL_HANDLE;
+		VkImageView		nullImageView3D = VK_NULL_HANDLE;
+		VkSampler		nullSampler = VK_NULL_HANDLE;
 
-    template <class T>
-    void hash_combine(size_t& seed, const T& v)
-    {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
+	public:
+		VulkanGraphics(ValidationMode validationMode);
+		~VulkanGraphics() override;
 
-    struct VulkanAttachmentDescription
-    {
-        TextureFormat format;
-        LoadAction loadAction;
-        StoreAction storeAction;
-    };
+		void WaitIdle() override;
 
-    struct VulkanRenderPassKey
-    {
-        uint32_t colorAttachmentCount = 0;
-        VulkanAttachmentDescription colorAttachments[kMaxColorAttachments] = {};
-        VulkanAttachmentDescription depthStencilAttachment = {};
-        uint32_t sampleCount = 1;
+		void FinishFrame() override;
 
-        size_t GetHash() const
-        {
-            if (hash == 0)
-            {
-                hash_combine(hash, colorAttachmentCount);
-                hash_combine(hash, (uint32_t)sampleCount);
-                hash_combine(hash, (uint32_t)depthStencilAttachment.format);
-                hash_combine(hash, (uint32_t)depthStencilAttachment.loadAction);
-                hash_combine(hash, (uint32_t)depthStencilAttachment.storeAction);
+		void SetObjectName(VkObjectType type, uint64_t handle, const std::string_view& name);
 
-                for (uint32_t i = 0; i < colorAttachmentCount; ++i)
-                {
-                    hash_combine(hash, (uint32_t)colorAttachments[i].format);
-                    hash_combine(hash, (uint32_t)colorAttachments[i].loadAction);
-                    hash_combine(hash, (uint32_t)colorAttachments[i].storeAction);
-                }
-            }
+		VkFence AcquireFence();
+		void ReleaseFence(VkFence fence);
+		void SubmitFence(VkFence fence);
 
-            return hash;
-        }
+		VkCommandBuffer CreateCommandBuffer();
+		void FlushCommandBuffer(VkCommandBuffer commandBuffer);
 
-    private:
-        mutable size_t hash = 0;
-    };
+        VulkanUploadContext UploadBegin(uint64_t size);
+        void UploadEnd(VulkanUploadContext context);
+        uint64_t FlushCopy();
+        VkSemaphore GetCopySemaphore() const;
 
-    struct VulkanFboKey
-    {
-        VkRenderPass renderPass;
-        uint32_t attachmentCount = 0;
-        VkImageView attachments[kMaxColorAttachments + 1] = {};
-        uint32_t width;
-        uint32_t height;
-        uint32_t layers;
-    };
+		VkRenderPass GetVkRenderPass(const VulkanRenderPassKey& key);
+		VkFramebuffer GetVkFramebuffer(uint64_t hash, const VulkanFboKey& key);
 
-    class VulkanDevice final : public IDevice
-    {
-        friend class VulkanCommandList;
+		VulkanDescriptorSetLayout& RequestDescriptorSetLayout(const uint32_t setIndex, const std::vector<ShaderResource>& resources);
+		VulkanPipelineLayout& RequestPipelineLayout(const std::vector<VulkanShader*>& shaders);
 
-    public:
-        VulkanDevice(ValidationMode validationMode);
-        ~VulkanDevice() override;
+		void DeferDestroy(VkImage texture, VmaAllocation allocation);
+		void DeferDestroy(VkBuffer buffer, VmaAllocation allocation);
+		void DeferDestroy(VkImageView view);
+		void DeferDestroy(VkSampler resource);
+		void DeferDestroy(VkShaderModule resource);
+		void DeferDestroy(VkPipeline resource);
+		void DeferDestroy(VkDescriptorPool resource);
 
-        void WaitIdle() override;
-        bool BeginFrame() override;
-        void EndFrame() override;
-        ICommandList* BeginCommandList(CommandQueue queue = CommandQueue::Graphics) override;
-        void SubmitCommandLists();
+		bool DebugUtilsSupported() const noexcept { return debugUtils; }
+		VkInstance GetInstance() const noexcept { return instance; }
+		VkPhysicalDevice GetPhysicalDevice() const noexcept { return physicalDevice; }
+		VmaAllocator GetAllocator() const { return allocator; }
+		VkDevice GetHandle() const { return device; }
+		VkPipelineCache GetPipelineCache() const { return pipelineCache; }
 
-        void DeferDestroy(VkImage texture, VmaAllocation allocation);
-        void DeferDestroy(VkImageView view);
-        void DeferDestroy(VkBuffer buffer, VmaAllocation allocation);
-        void ProcessDeletionQueue();
+		bool BufferDeviceAddressSupported() const noexcept { return bufferDeviceAddress; }
+		uint32_t GetGraphicsQueueFamily() const noexcept { return graphicsQueueFamily; }
+		uint32_t GetComputeQueueFamily() const noexcept { return computeQueueFamily; }
+		uint32_t GetCopyQueueFamily() const noexcept { return copyQueueFamily; }
 
-        TextureHandle CreateTextureCore(const TextureDesc& desc, const void* handle, const TextureData* initialData) override;
-        BufferHandle CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
-        SwapChainHandle CreateSwapChainCore(void* windowHandle, const SwapChainDesc& desc) override;
+		uint32_t AllocateSRV();
+        VkDescriptorSetLayout GetBindlessSampledImageDescriptorSetLayout() const;
+        VkDescriptorSet GetBindlessSampledImageDescriptorSet() const;
 
-        VkInstance GetInstance() const { return instance; }
-        VkPhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
-        VkDevice GetHandle() const { return device; }
+        uint32_t AllocateUAV();
 
-        VkRenderPass GetRenderPass(const VulkanRenderPassKey& key);
-        VkFramebuffer GetFramebuffer(uint64_t hash, const VulkanFboKey& key);
+	private:
+		void ProccessCommands();
+		void ProcessDeletionQueue();
 
-    private:
-        bool debugUtils = false;
-        VkInstance instance = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
+        TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) override;
+		BufferRef CreateBuffer(const BufferCreateInfo& info, const void* initialData) override;
+        ShaderRef CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint) override;
+		SamplerRef CreateSampler(const SamplerCreateInfo* info) override;
+		PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) override;
+		PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) override;
+        SwapChainRef CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info) override;
 
-        VkPhysicalDeviceProperties2 properties2 = {};
-        VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
-        VkPhysicalDeviceVulkan12Properties properties_1_2 = {};
-        VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties = {};
-        VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
-        VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragment_shading_rate_properties = {};
-        VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
+		void* GetNativeHandle() const noexcept { return device; }
 
-        VkPhysicalDeviceFeatures2 features2 = {};
-        VkPhysicalDeviceVulkan11Features features_1_1 = {};
-        VkPhysicalDeviceVulkan12Features features_1_2 = {};
-        VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = {};
-        VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_features = {};
-        VkPhysicalDeviceRayQueryFeaturesKHR raytracing_query_features = {};
-        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features = {};
-        VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_features = {};
+		bool debugUtils = false;
+		VkInstance instance{ VK_NULL_HANDLE };
+		VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
 
-        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-        std::vector<VkQueueFamilyProperties> physicalDeviceQueueFamilies;
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		uint32_t graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+		uint32_t computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+		uint32_t copyQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
-        uint32_t graphicsFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t computeFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t copyFamily = VK_QUEUE_FAMILY_IGNORED;
-        std::vector<uint32_t> queueFamilies; // Unique queue families
-
-        VkDevice device = VK_NULL_HANDLE;
-        VkQueue graphicsQueue = VK_NULL_HANDLE;
-        VkQueue computeQueue = VK_NULL_HANDLE;
-        VkQueue copyQueue = VK_NULL_HANDLE;
-
-        VmaAllocator allocator = VK_NULL_HANDLE;
-
-        /* Null resource to bind */
-        VkBuffer		nullBuffer = VK_NULL_HANDLE;
-        VmaAllocation	nullBufferAllocation = VK_NULL_HANDLE;
-        VkBufferView	nullBufferView = VK_NULL_HANDLE;
-        VkSampler		nullSampler = VK_NULL_HANDLE;
-        VmaAllocation	nullImageAllocation1D = VK_NULL_HANDLE;
-        VmaAllocation	nullImageAllocation2D = VK_NULL_HANDLE;
-        VmaAllocation	nullImageAllocation3D = VK_NULL_HANDLE;
-        VkImage			nullImage1D = VK_NULL_HANDLE;
-        VkImage			nullImage2D = VK_NULL_HANDLE;
-        VkImage			nullImage3D = VK_NULL_HANDLE;
-        VkImageView		nullImageView1D = VK_NULL_HANDLE;
-        VkImageView		nullImageView1DArray = VK_NULL_HANDLE;
-        VkImageView		nullImageView2D = VK_NULL_HANDLE;
-        VkImageView		nullImageView2DArray = VK_NULL_HANDLE;
-        VkImageView		nullImageViewCube = VK_NULL_HANDLE;
-        VkImageView		nullImageViewCubeArray = VK_NULL_HANDLE;
-        VkImageView		nullImageView3D = VK_NULL_HANDLE;
-
-        struct Queue
-        {
-            VkQueue queue = VK_NULL_HANDLE;
-            VkSemaphore semaphore = VK_NULL_HANDLE;
-            std::vector<VulkanSwapChain*> submit_swapchains;
-            std::vector<VkSwapchainKHR> submitVkSwapchains;
-            std::vector<uint32_t> submit_swapChainImageIndices;
-            std::vector<VkResult> submit_swapChainResults;
-            std::vector<VkPipelineStageFlags> submit_waitStages;
-            std::vector<VkSemaphore> submit_waitSemaphores;
-            std::vector<uint64_t> submit_waitValues;
-            std::vector<VkSemaphore> submit_signalSemaphores;
-            std::vector<uint64_t> submit_signalValues;
-            std::vector<VkCommandBuffer> submit_cmds;
-
-            void Submit(VkFence fence)
-            {
-                VkTimelineSemaphoreSubmitInfo timelineInfo = {};
-                timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-                timelineInfo.pNext = nullptr;
-                timelineInfo.waitSemaphoreValueCount = (uint32_t)submit_waitValues.size();
-                timelineInfo.pWaitSemaphoreValues = submit_waitValues.data();
-                timelineInfo.signalSemaphoreValueCount = (uint32_t)submit_signalValues.size();
-                timelineInfo.pSignalSemaphoreValues = submit_signalValues.data();
-
-                VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-                submitInfo.pNext = &timelineInfo;
-                submitInfo.waitSemaphoreCount = (uint32_t)submit_waitSemaphores.size();
-                submitInfo.pWaitSemaphores = submit_waitSemaphores.data();
-                submitInfo.pWaitDstStageMask = submit_waitStages.data();
-                submitInfo.commandBufferCount = (uint32_t)submit_cmds.size();
-                submitInfo.pCommandBuffers = submit_cmds.data();
-                submitInfo.signalSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
-                submitInfo.pSignalSemaphores = submit_signalSemaphores.data();
-
-                VkResult res = vkQueueSubmit(queue, 1, &submitInfo, fence);
-                assert(res == VK_SUCCESS);
-
-                if (!submit_swapchains.empty())
-                {
-                    VkPresentInfoKHR presentInfo = {};
-                    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-                    presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
-                    presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
-                    presentInfo.swapchainCount = (uint32_t)submitVkSwapchains.size();
-                    presentInfo.pSwapchains = submitVkSwapchains.data();
-                    presentInfo.pImageIndices = submit_swapChainImageIndices.data();
-                    presentInfo.pResults = submit_swapChainResults.data();
-                    vkQueuePresentKHR(queue, &presentInfo);
-
-                    for (size_t i = 0; i < submit_swapchains.size(); ++i)
-                    {
-                        submit_swapchains[i]->AfterPresent(submit_swapChainResults[i]);
-                    }
-                }
-
-                submit_swapchains.clear();
-                submitVkSwapchains.clear();
-                submit_swapChainImageIndices.clear();
-                submit_swapChainResults.clear();
-                submit_waitStages.clear();
-                submit_waitSemaphores.clear();
-                submit_waitValues.clear();
-                submit_signalSemaphores.clear();
-                submit_signalValues.clear();
-                submit_cmds.clear();
-            }
-
-        } queues[(uint8_t)CommandQueue::Count];
+		VkDevice device = VK_NULL_HANDLE;
+		VmaAllocator allocator = VK_NULL_HANDLE;
+		bool bufferDeviceAddress = false;
 
         struct CopyAllocator
         {
-            VulkanDevice* device = nullptr;
+            VulkanGraphics* device = nullptr;
             VkSemaphore semaphore = VK_NULL_HANDLE;
             uint64_t fenceValue = 0;
             std::mutex locker;
 
-            std::vector<VulkanCopyContext> freeList; // available
-            std::vector<VulkanCopyContext> workList; // in progress
-            std::vector<VkCommandBuffer> submit_cmds; // for next submit
-            uint64_t submit_wait = 0; // last submit wait value
+            std::vector<VulkanUploadContext> freeList; // available
+            std::vector<VulkanUploadContext> workList; // in progress
+            std::vector<VkCommandBuffer> submitCommandBuffers; // for next submit
+            uint64_t submitWait = 0; // last submit wait value
 
-            void Init(VulkanDevice* device);
+            void Init(VulkanGraphics* device);
             void Shutdown();
-            VulkanCopyContext Allocate(uint64_t size);
-            void Submit(VulkanCopyContext context);
+
+            VulkanUploadContext Allocate(uint64_t size);
+            void Submit(VulkanUploadContext context);
             uint64_t Flush();
         };
         mutable CopyAllocator copyAllocator;
+        VkQueue copyQueue = VK_NULL_HANDLE;
 
-        mutable std::mutex initLocker;
-        mutable bool submit_inits = false;
+		VkFormat defaultDepthStencilFormat = VK_FORMAT_UNDEFINED;
+		VkFormat defaultDepthFormat = VK_FORMAT_UNDEFINED;
 
-        struct FrameResources
+		VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+
+		VkFence frameFences[kMaxFramesInFlight] = {};
+
+		std::mutex fenceMutex;
+		std::set<VkFence> allFences;
+		std::queue<VkFence> availableFences;
+
+		std::thread processCommandsThread;
+		std::mutex processCommandsThreadMutex;
+		std::atomic_bool processCommands{ true };
+		//ThreadSafeQueue<VkFence> submittedFences;
+
+		// Caches
+		std::mutex renderPassCacheMutex;
+		std::unordered_map<size_t, VkRenderPass> renderPassCache;
+
+		std::mutex framebufferCacheMutex;
+		std::unordered_map<size_t, VkFramebuffer> framebufferCache;
+
+		std::mutex descriptorSetLayoutCacheMutex;
+		std::unordered_map<size_t, std::unique_ptr<VulkanDescriptorSetLayout>> descriptorSetLayoutCache;
+
+		std::mutex pipelineLayoutCacheMutex;
+		std::unordered_map<size_t, std::unique_ptr<VulkanPipelineLayout>> pipelineLayoutCache;
+
+		// Deletion queue objects
+		std::mutex destroyMutex;
+		std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> deletionImagesQueue;
+		std::deque<std::pair<VkImageView, uint64_t>> deletionImageViews;
+		std::deque<std::pair<VkSampler, uint64_t>> deletionSamplers;
+		std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> deletionBuffersQueue;
+		std::deque<std::pair<VkShaderModule, uint64_t>> deletionShaderModulesQueue;
+		std::deque<std::pair<VkPipeline, uint64_t>> deletionPipelinesQueue;
+		std::deque<std::pair<VkDescriptorPool, uint64_t>> deletionDescriptorPoolQueue;
+
+        // Bindless
+        struct BindlessDescriptorHeap
         {
-            VkFence fence[(uint8_t)CommandQueue::Count] = {};
+            VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+            VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+            VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+            std::vector<uint32_t> freeList;
+            std::mutex locker;
 
-            VkCommandPool initCommandPool = VK_NULL_HANDLE;
-            VkCommandBuffer initCommandBuffer = VK_NULL_HANDLE;
+            void Init(VkDevice device, VkDescriptorType type, uint32_t descriptorCount)
+            {
+                descriptorCount = Min(descriptorCount, 100000u);
 
+                // Create descriptor pool 
+                VkDescriptorPoolSize poolSize = {};
+                poolSize.type = type;
+                poolSize.descriptorCount = descriptorCount;
+                VkDescriptorPoolCreateInfo poolInfo = {};
+                poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+                poolInfo.poolSizeCount = 1;
+                poolInfo.pPoolSizes = &poolSize;
+                poolInfo.maxSets = 1;
+                poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+                VK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool));
+
+                // Create bindless descriptor set layout
+                VkDescriptorSetLayoutBinding bindlessLayout;
+                bindlessLayout.binding = 0;
+                bindlessLayout.descriptorType = type;
+                bindlessLayout.descriptorCount = descriptorCount;
+                bindlessLayout.stageFlags = VK_SHADER_STAGE_ALL;
+                bindlessLayout.pImmutableSamplers = nullptr;
+
+                const VkDescriptorBindingFlagsEXT bindingFlags =
+                    //VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+                    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+                    VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
+                    VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
+
+                VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
+                bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+                bindingFlagsInfo.pNext = nullptr;
+                bindingFlagsInfo.bindingCount = 1;
+                bindingFlagsInfo.pBindingFlags = &bindingFlags;
+
+                VkDescriptorSetLayoutCreateInfo bindlessLayoutInfo = {};
+                bindlessLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+                bindlessLayoutInfo.pNext = &bindingFlagsInfo;
+                bindlessLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+                bindlessLayoutInfo.bindingCount = 1;
+                bindlessLayoutInfo.pBindings = &bindlessLayout;
+
+                VK_CHECK(vkCreateDescriptorSetLayout(device, &bindlessLayoutInfo, nullptr, &descriptorSetLayout));
+
+                // Allocate bindless descriptor set
+                VkDescriptorSetAllocateInfo allocateInfo = {};
+                allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                allocateInfo.descriptorPool = descriptorPool;
+                allocateInfo.descriptorSetCount = 1;
+                allocateInfo.pSetLayouts = &descriptorSetLayout;
+                VK_CHECK(vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSet));
+
+                for (uint32_t i = 0; i < descriptorCount; ++i)
+                {
+                    freeList.push_back(descriptorCount - i - 1);
+                }
+            }
+
+            void Destroy(VkDevice device)
+            {
+                vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+                vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+            }
+
+            uint32_t Allocate()
+            {
+                locker.lock();
+                if (!freeList.empty())
+                {
+                    uint32_t index = freeList.back();
+                    freeList.pop_back();
+                    locker.unlock();
+                    return index;
+                }
+                locker.unlock();
+                return kInvalidBindlessIndex;
+            }
+
+            void Free(uint32_t index)
+            {
+                ALIMER_ASSERT(index != kInvalidBindlessIndex);
+
+                locker.lock();
+                freeList.push_back(index);
+                locker.unlock();
+            }
         };
-        FrameResources frames[kMaxFramesInFlight] = {};
-        const FrameResources& GetFrameResources() const { return frames[GetFrameIndex()]; }
-        FrameResources& GetFrameResources() { return frames[GetFrameIndex()]; }
 
-        std::vector<VkDynamicState> psoDynamicStates;
-        VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
-
-        /* Command queues*/
-        std::atomic_uint8_t commandListCount{ 0 };
-        struct CommandListMetadata
-        {
-            CommandQueue queue = {};
-            std::vector<uint8_t> waits;
-        } commandListMeta[kMaxCommandLists];
-
-        std::unique_ptr<VulkanCommandList> commandLists[kMaxCommandLists][(uint8_t)CommandQueue::Count] = {};
-
-        VulkanCommandList* GetCommandList(uint8_t cmd)
-        {
-            return commandLists[cmd][(uint8_t)commandListMeta[cmd].queue].get();
-        }
-
-        /* Caches */
-        std::mutex renderPassCacheMutex;
-        std::unordered_map<size_t, VkRenderPass> renderPassCache;
-
-        std::mutex framebufferCacheMutex;
-        std::unordered_map<size_t, VkFramebuffer> framebufferCache;
-
-        /* Deletion queue */
-        std::mutex destroyMutex;
-        std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> destroyedImages;
-        std::deque<std::pair<VkImageView, uint64_t>> destroyedImageViews;
-        std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> destroyedBuffers;
-    };
-#endif // TODO
-
+        BindlessDescriptorHeap bindlessSampledImages;
+        BindlessDescriptorHeap bindlessStorageBuffers;
+	};
 }

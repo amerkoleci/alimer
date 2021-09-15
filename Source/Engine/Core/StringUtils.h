@@ -4,10 +4,13 @@
 #pragma once
 
 #include "Core/Types.h"
+#include <spdlog/fmt/fmt.h>
 #include <vector>
 
 namespace Alimer
 {
+    ALIMER_API extern const std::string kEmptyString;
+
     /// Return whether a char is an alphabet letter.
     inline bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
     /// Return whether a char is a digit.

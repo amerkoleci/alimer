@@ -18,7 +18,6 @@ namespace Alimer
         Resizable = 1 << 3,
         Minimized = 1 << 4,
         Maximized = 1 << 5,
-        OpenGL = 1 << 6,
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(WindowFlags);
 

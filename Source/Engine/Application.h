@@ -5,7 +5,7 @@
 
 #include "Core/CommandLine.h"
 #include "Window.h"
-#include "Graphics/CommandContext.h"
+#include "Graphics/CommandBuffer.h"
 
 namespace Alimer
 {
@@ -16,8 +16,6 @@ namespace Alimer
         int32_t     height = 800;
         bool        resizable = true;
         bool        fullscreen = false;
-
-        GraphicsAPI graphicsApi = GraphicsAPI::Default;
     };
 
     /// Class that provides graphics initialization, application logic, and rendering code.
@@ -56,7 +54,7 @@ namespace Alimer
         virtual bool Initialize() { return true; }
 
         virtual void Update();
-        virtual void OnDraw([[maybe_unused]] CommandContext& context) {}
+        virtual void OnDraw([[maybe_unused]] CommandBuffer& context) {}
 
         virtual void BeginRun() {}
         virtual void EndRun() {}

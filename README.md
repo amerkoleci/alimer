@@ -13,7 +13,7 @@ Licensed under the MIT license, see [LICENSE](https://github.com/amerkoleci/alim
 ## Features
 
 * Support for Windows, Linux, macOS.
-* Support for multiple graphics backend D3D11/OpenGL/Vulkan.
+* Modern rendering using Vulkan and Direct3D12.
 
 ## Building 🔨
 #
@@ -31,7 +31,6 @@ Uses the following open-source and third-party libraries:
 - [glfw](https://github.com/glfw/glfw): A multi-platform library for OpenGL, OpenGL ES, Vulkan, window and input
 - [spdlog](https://github.com/gabime/spdlog): Fast C++ logging library
 - [fmt](https://fmt.dev): A modern formatting library.
-- [glad](https://github.com/Dav1dde/glad) : Meta loader for OpenGL API.
 - [vulkan](https://github.com/KhronosGroup/Vulkan-Docs): Sources for the formal documentation of the Vulkan API
 - [volk](https://github.com/zeux/volk): Meta loader for Vulkan API
 - [vma](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Vulkan Memory Allocator

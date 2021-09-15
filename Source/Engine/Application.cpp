@@ -55,23 +55,51 @@ namespace Alimer
         // Defaults
         settings = SetupSettings();
 
-        if (settings.graphicsApi == GraphicsAPI::Default)
-        {
-            // Detect best API per platform
-            settings.graphicsApi = Graphics::GetBestPlatformAPI();
-        }
-
         if (!PlatformSetup())
         {
             return false;
         }
 
-        // Init graphics module
-        GraphicsCreateInfo graphicsCreateInfo = {};
-#if ALIMER_DEBUG
-        graphicsCreateInfo.validationMode = ValidationMode::Enabled;
+        GraphicsAPI graphicsApi = GraphicsAPI::Default;
+        if (CommandLine::HasArgument("d3d12") || CommandLine::HasArgument("dx12"))
+        {
+            graphicsApi = GraphicsAPI::D3D12;
+        }
+        else if (CommandLine::HasArgument("vulkan") || CommandLine::HasArgument("vk"))
+        {
+            graphicsApi = GraphicsAPI::Vulkan;
+        }
+
+        if (graphicsApi == GraphicsAPI::Default)
+        {
+#if defined(ALIMER_GRAPHICS_D3D12)
+            graphicsApi = GraphicsAPI::D3D12;
 #endif
-        if (!Graphics::Initialize(settings.graphicsApi, *window, graphicsCreateInfo))
+
+            if (graphicsApi == GraphicsAPI::Default)
+            {
+#if defined(ALIMER_GRAPHICS_VULKAN)
+                graphicsApi = GraphicsAPI::Vulkan;
+#endif
+            }
+        }
+
+        graphicsApi = GraphicsAPI::Vulkan;
+
+        // Init graphics module
+        ValidationMode validationMode = ValidationMode::Disabled;
+
+        if (CommandLine::HasArgument("gpu-debug"))
+        {
+            validationMode = ValidationMode::Enabled;
+        }
+
+        if (CommandLine::HasArgument("gpu-validation"))
+        {
+            validationMode = ValidationMode::GPU;
+        }
+
+        if (!Graphics::Initialize(graphicsApi, validationMode))
         {
             return false;
         }
@@ -133,17 +161,12 @@ namespace Alimer
 
     bool Application::BeginDraw()
     {
-        return gGraphics().BeginFrame();
+        return true; // gGraphics().BeginFrame();
     }
 
     void Application::EndDraw()
     {
-        gGraphics().EndFrame();
-
-        if (settings.graphicsApi == GraphicsAPI::OpenGL)
-        {
-            window->SwapBuffers();
-        }
+        //gGraphics().EndFrame();
     }
 
     void Application::Render()
@@ -154,14 +177,14 @@ namespace Alimer
             BeginDraw())
         {
             // Custom application draw.
-            CommandContext* commandContext = gGraphics().GetImmediateContext();
-            commandContext->PushDebugGroup("Frame");
-            commandContext->BeginDefaultRenderPass(Color::CornflowerBlue);
-            
-            OnDraw(*commandContext);
-            
-            commandContext->EndRenderPass();
-            commandContext->PopDebugGroup();
+            //CommandContext* commandContext = gGraphics().GetImmediateContext();
+            //commandContext->PushDebugGroup("Frame");
+            //commandContext->BeginDefaultRenderPass(Color::CornflowerBlue);
+            //
+            //OnDraw(*commandContext);
+            //
+            //commandContext->EndRenderPass();
+            //commandContext->PopDebugGroup();
             EndDraw();
         }
     }

@@ -4,103 +4,93 @@
 #pragma once
 
 #include "Core/Module.h"
-#include "Core/Signal.h"
-#include "Graphics/CommandContext.h"
-#include <set>
+#include "Graphics/CommandQueue.h"
+#include "Graphics/CommandBuffer.h"
+//#include "Platform/WindowHandle.h"
+#include <mutex>
 
 namespace Alimer
 {
-    struct BufferDesc;
-    struct TextureDesc;
-    struct TextureData;
-    struct SamplerDesc;
-    struct RenderPipelineDesc;
-    enum class ShaderStages : uint32_t;
-    class GraphicsBuffer;
-    class Window;
+    struct BufferCreateInfo;
+    struct TextureCreateInfo;
+    struct SamplerCreateInfo;
+    struct SwapChainCreateInfo;
+    struct RenderPipelineStateCreateInfo;
+    struct ComputePipelineCreateInfo;
 
-    struct GraphicsCreateInfo
-    {
-        ValidationMode validationMode = ValidationMode::Disabled;
-
-        bool srgb = false;
-        PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
-        bool vsyncEnabled = false;
-        bool isFullScreen = false;
-    };
-
-    /// Defines a Graphics module class.
     class ALIMER_API Graphics : public Module<Graphics>
     {
-        friend class GraphicsBuffer;
-
-        friend class Texture;
-        friend class Sampler;
+        friend class Buffer;
         friend class Shader;
+        friend class Sampler;
         friend class Pipeline;
+        friend class SwapChain;
 
     public:
-        /// Occurs when the device is lost.
-        Signal<> DeviceLost;
-
-        /// Occurs when the device is restored after being lost.
-        Signal<> DeviceRestored;
+        Graphics() = default;
 
         virtual ~Graphics() = default;
 
-        [[nodiscard]] static std::set<GraphicsAPI> GetAvailableBackends();
-        [[nodiscard]] static GraphicsAPI GetBestPlatformAPI();
+        [[nodiscard]] static bool Initialize(GraphicsAPI api, ValidationMode validationMode = ValidationMode::Disabled);
 
-        [[nodiscard]] static bool Initialize(GraphicsAPI api, Window& window, const GraphicsCreateInfo& createInfo);
+        void AddGPUObject(GPUObject* resource);
+        void RemoveGPUObject(GPUObject* resource);
 
+        /// Wait for device to finish all pending GPU operations
         virtual void WaitIdle() = 0;
-        virtual bool BeginFrame() = 0;
-        virtual void EndFrame() = 0;
-        virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
 
-        /// Returns the set of features supported by this device.
-        const GraphicsAdapterInfo& GetAdapterInfo() const { return adapterInfo; }
+        /// Finish the rendering frame and releases all stale resources.
+        virtual void FinishFrame() = 0;
 
-        /// Returns the set of features supported by this device.
-        const DeviceFeatures& GetFeatures() const { return features; }
+        /// Create new texture.
+        [[nodiscard]] TextureRef CreateTexture(const TextureCreateInfo& info, const void* initialData = nullptr);
 
-        /// Returns the set of hardware limits for this device.
-        const DeviceLimits& GetLimits() const { return limits; }
+        /// Create new sampler.
+        [[nodiscard]] virtual SamplerRef CreateSampler(const SamplerCreateInfo* info) = 0;
 
-        [[nodiscard]] virtual CommandContext* GetImmediateContext() const = 0;
+        /// Return the graphics capabilities.
+        //const GraphicsDeviceCaps& GetCaps() const noexcept { return caps; }
 
-        [[nodiscard]] u64 GetFrameCount() const { return frameCount; }
-        [[nodiscard]] u32 GetFrameIndex() const { return frameIndex; }
+        CommandQueue& GetQueue(CommandQueueType type = CommandQueueType::Graphics)
+        {
+            return (type == CommandQueueType::Compute) ? *computeQueue : *graphicsQueue;
+        }
 
-        /// Return backbuffer width.
-        [[nodiscard]] u32 GetBackBufferWidth() const { return backBufferWidth; }
-        /// Return backbuffer height.
-        [[nodiscard]] u32 GetBackBufferHeight() const { return backBufferHeight; }
+        uint32_t GetFrameIndex() const { return frameIndex; }
+        uint64_t GetFrameCount() const { return frameCount; }
 
-        virtual bool CreateBuffer(const BufferDesc* desc, const void* initialData, GPUBuffer* pBuffer) const = 0;
+        /// Get the native device handle (ID3D12Device, VkDevice)
+        virtual void* GetNativeHandle() const noexcept = 0;
+
+        bool IsDeviceLost() const noexcept { return deviceLost; }
 
     private:
-        virtual TextureRef CreateTexture(const TextureDesc& desc, void* nativeHandle, const TextureData* initialData) = 0;
-        virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
-        virtual ShaderRef CreateShader(ShaderStages stage, const void* bytecode, size_t bytecodeLength) = 0;
-        virtual PipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc) = 0;
+        virtual TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) = 0;
+        virtual BufferRef CreateBuffer(const BufferCreateInfo& info, const void* initialData) = 0;
+        virtual ShaderRef CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint) = 0;
+        virtual PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) = 0;
+        virtual PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) = 0;
+        virtual SwapChainRef CreateSwapChain(void* window, const SwapChainCreateInfo& info) = 0;
 
     protected:
-        Graphics(Window& window);
+        void Destroy();
 
-        Window& window;
-        GraphicsAdapterInfo adapterInfo{};
-        DeviceFeatures features{};
-        DeviceLimits limits{};
+        //GraphicsDeviceCaps caps{};
 
-        u32 backBufferWidth = 0;
-        u32 backBufferHeight = 0;
-        bool vsyncEnabled = false;
-        u64 frameCount = 0;
-        u32 frameIndex = 0;
+        CommandQueue* graphicsQueue = nullptr;
+        CommandQueue* computeQueue = nullptr;
+
+        uint32_t frameIndex = 0;
+        uint64_t frameCount = 0;
+
+        bool deviceLost = false;
+
+        /// Mutex for accessing the GPU resource vector from several threads.
+        std::mutex objectsMutex;
+        /// GPU objects.
+        std::vector<GPUObject*> objects;
     };
 
     /** Provides easier access to graphics module. */
     ALIMER_API Graphics& gGraphics();
 }
-

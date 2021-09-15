@@ -154,20 +154,6 @@ template <> struct Limits<type> { \
     }
 }
 
-#ifdef NDEBUG
-#   define ALIMER_DEBUG 0
-#else
-#   define ALIMER_DEBUG 1
-#endif
-
-#ifndef ALIMER_ASSERT
-#   if ALIMER_DEBUG
-#       define ALIMER_ASSERT(cond, ...) assert(cond)
-#   else
-#       define ALIMER_ASSERT
-#   endif
-#endif
-
 #define ALIMER_DISABLE_COPY(_Class) \
     _Class(const _Class&) = delete; _Class& operator=(const _Class&) = delete; \
     _Class(_Class&&) = default; _Class& operator=(_Class&&) = default;

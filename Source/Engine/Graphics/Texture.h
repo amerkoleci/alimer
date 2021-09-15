@@ -3,280 +3,246 @@
 
 #pragma once
 
-#include "RHI/RHI.h"
-#include "Graphics/GraphicsResource.h"
+//#include "Core/Object.h"
+#include "Graphics/GPUResource.h"
 #include <unordered_map>
 
 namespace Alimer
 {
-    enum class TextureDimension : uint32_t
+    enum class TextureType : uint32_t
     {
         Texture1D,
         Texture2D,
-        Texture3D
-    };
-
-    enum class TextureViewDimension : uint32_t
-    {
-        Undefined,
-        View1D,
-        View2D,
-        View3D,
-        ViewCube,
-        View1DArray,
-        View2DArray,
-        ViewCubeArray,
+        Texture3D,
+        TextureCube
     };
 
     enum class TextureUsage : uint32_t
     {
         None,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
+        Sampled = 1 << 0,
+        Storage = 1 << 1,
         RenderTarget = 1 << 2,
-        ShadingRate = 1 << 3,
     };
     ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(TextureUsage);
 
-    struct TextureDesc
+    struct TextureCreateInfo
     {
-        TextureDimension dimension = TextureDimension::Texture2D;
+        const char* label = nullptr;
+        TextureType type = TextureType::Texture2D;
         uint32_t width = 1;
         uint32_t height = 1;
-        uint32_t depthOrArrayLayers = 1;
-        uint32_t mipLevels = 1;
-        uint32_t sampleCount = 1;
+        uint32_t depthOrArraySize = 1;
         PixelFormat format = PixelFormat::RGBA8Unorm;
-        TextureUsage usage = TextureUsage::ShaderRead;
-        rhi::ResourceStates initialState = rhi::ResourceStates::Unknown;
+        uint32_t mipLevels = 1;
+        TextureUsage usage = TextureUsage::Sampled;
+        SampleCount sampleCount = SampleCount::Count1;
 
-        static inline TextureDesc Tex1D(
+        static inline TextureCreateInfo Tex1D(
             PixelFormat format,
             uint32_t width,
-            uint32_t arrayLayers = 1,
+            uint32_t arraySize = 1,
             uint32_t mipLevels = 1,
-            TextureUsage usage = TextureUsage::ShaderRead) noexcept
+            TextureUsage usage = TextureUsage::Sampled) noexcept
         {
-            TextureDesc desc;
-            desc.dimension = TextureDimension::Texture1D;
-            desc.width = width;
-            desc.height = 1;
-            desc.depthOrArrayLayers = arrayLayers;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = 1;
-            desc.usage = usage;
-            return desc;
+            TextureCreateInfo info;
+            info.type = TextureType::Texture1D;
+            info.width = width;
+            info.height = 1;
+            info.depthOrArraySize = arraySize;
+            info.mipLevels = mipLevels;
+            info.format = format;
+            info.sampleCount = SampleCount::Count1;
+            info.usage = usage;
+            return info;
         }
 
-        static inline TextureDesc Tex2D(
+        static inline TextureCreateInfo Tex2D(
             PixelFormat format,
             uint32_t width,
             uint32_t height,
-            uint32_t arrayLayers = 1,
+            uint32_t arraySize = 1,
             uint32_t mipLevels = 1,
-            TextureUsage usage = TextureUsage::ShaderRead,
-            uint32_t sampleCount = 1) noexcept
+            TextureUsage usage = TextureUsage::Sampled,
+            SampleCount sampleCount = SampleCount::Count1) noexcept
         {
-            TextureDesc desc;
-            desc.dimension = TextureDimension::Texture2D;
-            desc.width = width;
-            desc.height = height;
-            desc.depthOrArrayLayers = arrayLayers;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = sampleCount;
-            desc.usage = usage;
-            return desc;
+            TextureCreateInfo info;
+            info.type = TextureType::Texture2D;
+            info.width = width;
+            info.height = height;
+            info.depthOrArraySize = arraySize;
+            info.mipLevels = mipLevels;
+            info.format = format;
+            info.sampleCount = sampleCount;
+            info.usage = usage;
+            return info;
         }
 
-        static inline TextureDesc Tex3D(
+        static inline TextureCreateInfo Tex3D(
             PixelFormat format,
             uint32_t width,
             uint32_t height,
             uint32_t depth,
             uint32_t mipLevels = 1,
-            TextureUsage usage = TextureUsage::ShaderRead) noexcept
+            TextureUsage usage = TextureUsage::Sampled) noexcept
         {
-            TextureDesc desc;
-            desc.dimension = TextureDimension::Texture3D;
-            desc.width = width;
-            desc.height = height;
-            desc.depthOrArrayLayers = depth;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = 1;
-            desc.usage = usage;
-            return desc;
+            TextureCreateInfo info;
+            info.type = TextureType::Texture3D;
+            info.width = width;
+            info.height = height;
+            info.depthOrArraySize = depth;
+            info.mipLevels = mipLevels;
+            info.format = format;
+            info.sampleCount = SampleCount::Count1;
+            info.usage = usage;
+            return info;
         }
 
-        static inline TextureDesc TexCube(
+        static inline TextureCreateInfo TexCube(
             PixelFormat format,
             uint32_t size,
             uint32_t mipLevels = 1,
-            uint32_t arrayLayers = 1,
-            TextureUsage usage = TextureUsage::ShaderRead) noexcept
+            uint32_t arraySize = 1,
+            TextureUsage usage = TextureUsage::Sampled) noexcept
         {
-            TextureDesc desc;
-            desc.dimension = TextureDimension::Texture2D;
-            desc.width = size;
-            desc.height = size;
-            desc.depthOrArrayLayers = 6 * arrayLayers;
-            desc.mipLevels = mipLevels;
-            desc.format = format;
-            desc.sampleCount = 1;
-            desc.usage = usage;
-            return desc;
+            TextureCreateInfo info;
+            info.type = TextureType::TextureCube;
+            info.width = size;
+            info.height = size;
+            info.depthOrArraySize = arraySize;
+            info.mipLevels = mipLevels;
+            info.format = format;
+            info.sampleCount = SampleCount::Count1;
+            info.usage = usage;
+            return info;
         }
     };
 
-    struct TextureViewDesc
-    {
+    struct TextureViewCreateInfo {
         PixelFormat format = PixelFormat::Undefined;
-        TextureViewDimension dimension = TextureViewDimension::Undefined;
         uint32_t baseMipLevel = 0;
         uint32_t mipLevelCount = 0;
         uint32_t baseArrayLayer = 0;
         uint32_t arrayLayerCount = 0;
-
-        bool operator ==(const TextureViewDesc& rhs) const
-        {
-            return format == rhs.format &&
-                dimension == rhs.dimension &&
-                baseMipLevel == rhs.baseMipLevel &&
-                mipLevelCount == rhs.mipLevelCount &&
-                baseArrayLayer == rhs.baseArrayLayer &&
-                arrayLayerCount == rhs.arrayLayerCount;
-        }
     };
 
-    struct TextureData
-    {
-        const void* pData = nullptr;
-        uint32_t    rowPitch = 0;
-        uint32_t    slicePitch = 0;
-    };
+	struct TextureData
+	{
+		const void* data = nullptr;
+		uint32_t rowPitch = 0;
+		uint32_t slicePitch = 0;
+	};
 
-    struct TextureSubresourceSet
-    {
-        uint32_t baseMipLevel = 0;
-        uint32_t numMipLevels = 1;
-        uint32_t baseArraySlice = 0;
-        uint32_t numArraySlices = 1;
+	class Stream;
+	class Texture;
 
-        TextureSubresourceSet() = default;
+	class ALIMER_API Texture : public GPUResource, public RefCounted //, public Object
+	{
+		friend class TextureView;
 
-        TextureSubresourceSet(uint32_t baseMipLevel, uint32_t numMipLevels, uint32_t baseArraySlice, uint32_t numArraySlices)
-            : baseMipLevel{ baseMipLevel }
-            , numMipLevels{ numMipLevels }
-            , baseArraySlice{ baseArraySlice }
-            , numArraySlices{ numArraySlices }
+		//ALIMER_OBJECT(Texture, Object);
+
+	public:
+        [[nodiscard]] static TextureRef Create(const TextureCreateInfo& info, const void* initialData = nullptr);
+        [[nodiscard]] static TextureRef Create2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 1, TextureUsage usage = TextureUsage::Sampled, const void* initialData = nullptr);
+
+        [[nodiscard]] static TextureRef FromFile(const std::string& path);
+        [[nodiscard]] static TextureRef FromStream(Stream& stream);
+
+        TextureView* GetView(uint32_t baseMipLevel = 0, uint32_t mipLevelCount = 0, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = 0);
+        TextureView* GetDefault() const { return defaultView; }
+
+		TextureType GetTextureType() const noexcept { return type; }
+        uint32_t GetWidth(uint32_t mipLevel = 0) const noexcept { return Max(1u, width >> mipLevel); }
+        uint32_t GetHeight(uint32_t mipLevel = 0) const noexcept { return Max(1u, height >> mipLevel); }
+        uint32_t GetDepth(uint32_t mipLevel = 0) const noexcept { return type == TextureType::Texture3D ? Max(1u, depthOrArraySize >> mipLevel) : 1; }
+        uint32_t GetArraySize() const noexcept { return type != TextureType::Texture3D ? depthOrArraySize : 1; }
+        uint32_t GetMipLevels() const noexcept { return mipLevels; }
+		PixelFormat GetFormat() const noexcept { return format; }
+		TextureUsage GetUsage() const noexcept { return usage; }
+        SampleCount GetSampleCount() const noexcept { return sampleCount; }
+
+        /// Get the array index of a subresource.
+        uint32_t GetSubresourceArraySlice(uint32_t subresource) const { return subresource / mipLevels; }
+
+        /// Get the mip-level of a subresource.
+        uint32_t GetSubresourceMipLevel(uint32_t subresource) const { return subresource % mipLevels; }
+
+        uint32_t GetSubresourceIndex(uint32_t mipLevel, uint32_t arraySlice, uint32_t placeSlice = 0) const
         {
+            return mipLevel + arraySlice * GetMipLevels() + placeSlice * GetMipLevels() * GetArraySize();
         }
 
-        bool operator ==(const TextureSubresourceSet& other) const
-        {
-            return baseMipLevel == other.baseMipLevel &&
-                numMipLevels == other.numMipLevels &&
-                baseArraySlice == other.baseArraySlice &&
-                numArraySlices == other.numArraySlices;
-        }
-        bool operator !=(const TextureSubresourceSet& other) const { return !(*this == other); }
-    };
-    static const TextureSubresourceSet AllSubresources = TextureSubresourceSet(0, kAllMipLevels, 0, kAllArraySlices);
-
-    class ALIMER_API Texture : public GraphicsResource
-    {
-    public:
-        /// Create new texture.
-        [[nodiscard]] static TextureRef Create(const TextureDesc& info, const TextureData* initialData = nullptr);
-
-        /// Create new texture from external handle.
-        [[nodiscard]] static TextureRef CreateExternal(void* nativeHandle, const TextureDesc& info);
-
-        /// Get texture view with given description (create new if not found).
-        [[nodiscard]] TextureView* GetView(const TextureViewDesc& desc);
-
-        [[nodiscard]] TextureDimension GetDimension() const noexcept { return dimension; }
-        [[nodiscard]] uint32_t GetWidth(uint32_t mipLevel = 0) const noexcept { return Max(1u, width >> mipLevel); }
-        [[nodiscard]] uint32_t GetHeight(uint32_t mipLevel = 0) const noexcept { return Max(1u, height >> mipLevel); }
-        [[nodiscard]] uint32_t GetDepth(uint32_t mipLevel = 0) const noexcept { return dimension == TextureDimension::Texture3D ? Max(1u, depthOrArrayLayers >> mipLevel) : 1; }
-        [[nodiscard]] uint32_t GetArrayLayers() const noexcept { return dimension != TextureDimension::Texture3D ? depthOrArrayLayers : 1; }
-        [[nodiscard]] uint32_t GetMipLevels() const noexcept { return mipLevels; }
-        [[nodiscard]] PixelFormat GetFormat() const noexcept { return format; }
-        [[nodiscard]] TextureUsage GetUsage() const noexcept { return usage; }
-        [[nodiscard]] uint32_t GetSampleCount() const noexcept { return sampleCount; }
-
-    private:
-        [[nodiscard]] static bool VerifyInfo(const TextureDesc& info);
-
-        virtual std::unique_ptr<TextureView> CreateView(const TextureViewDesc& desc) = 0;
-
-    protected:
-        /// Constructor.
-        Texture(const TextureDesc& info);
+	protected:
+		/// Constructor.
+		Texture(const TextureCreateInfo& info);
 
         void DestroyViews();
+        virtual TextureView* CreateView(const TextureViewCreateInfo& createInfo) = 0;
 
-        TextureDimension dimension;
+		TextureType type;
         uint32_t width;
         uint32_t height;
-        uint32_t depthOrArrayLayers;
+        uint32_t depthOrArraySize;
+		PixelFormat format;
         uint32_t mipLevels;
-        uint32_t sampleCount;
-        PixelFormat format;
-        TextureUsage usage;
+		TextureUsage usage;
+        SampleCount sampleCount;
 
-    private:
-        struct ViewInfoHashFunc
-        {
-            std::size_t operator()(const TextureViewDesc& desc) const
-            {
-                size_t hash = 0;
-                Alimer::HashCombine(hash, (uint32_t)desc.format);
-                Alimer::HashCombine(hash, (uint32_t)desc.dimension);
-                Alimer::HashCombine(hash, desc.baseMipLevel);
-                Alimer::HashCombine(hash, desc.mipLevelCount);
-                Alimer::HashCombine(hash, desc.baseArrayLayer);
-                Alimer::HashCombine(hash, desc.arrayLayerCount);
-                return hash;
-            }
-        };
-
-        std::unordered_map<TextureViewDesc, std::unique_ptr<TextureView>, ViewInfoHashFunc> views;
-    };
+        std::unordered_map<size_t, TextureView*> views;
+        TextureView* defaultView{ nullptr };
+	};
 
     class ALIMER_API TextureView
     {
     public:
         virtual ~TextureView() = default;
 
-        TextureView(const TextureView&) = delete;
-        TextureView(const TextureView&&) = delete;
+        TextureView(TextureView&) = delete;
+        TextureView(TextureView&&) = delete;
         TextureView& operator=(const TextureView&) = delete;
-        TextureView& operator=(const TextureView&&) = delete;
+        TextureView& operator=(TextureView&&) = delete;
 
-        [[nodiscard]] const TextureViewDesc& GetDesc() const { return desc; }
+        const Texture* GetTexture() const;
+        Texture* GetTexture();
+        PixelFormat GetFormat() const noexcept { return format; }
+        uint32_t GetBaseMipLevel() const noexcept { return baseMipLevel; }
+        uint32_t GetLevelCount() const noexcept { return mipLevelCount; }
+        uint32_t GetBaseArrayLayer() const noexcept { return baseArrayLayer; }
+        uint32_t GetLayerCount() const noexcept { return arrayLayerCount; }
+
+        uint32_t GetBindlessSRV() const noexcept { return bindless_srv; }
+        uint32_t GetBindlessUAV() const noexcept { return bindless_uav; }
 
     protected:
-        TextureView(_In_ Texture* texture, const TextureViewDesc& desc);
+        TextureView(_In_ Texture* texture, const TextureViewCreateInfo& info);
 
-        TextureRef texture;
-        TextureViewDesc desc;
+        Texture* texture;
+        PixelFormat format;
+        uint32_t baseMipLevel;
+        uint32_t mipLevelCount;
+        uint32_t baseArrayLayer;
+        uint32_t arrayLayerCount;
+        size_t hash{ 0 };
+
+        mutable uint32_t bindless_srv = kInvalidBindlessIndex;
+        mutable uint32_t bindless_uav = kInvalidBindlessIndex;
     };
 }
 
 namespace std
 {
-    template<> struct hash<Alimer::TextureSubresourceSet>
+    template <> class hash<Alimer::TextureViewCreateInfo>
     {
-        std::size_t operator()(const Alimer::TextureSubresourceSet& set) const noexcept
+    public:
+        size_t operator()(const Alimer::TextureViewCreateInfo& info) const
         {
             size_t hash = 0;
-            Alimer::HashCombine(hash, set.baseMipLevel);
-            Alimer::HashCombine(hash, set.numMipLevels);
-            Alimer::HashCombine(hash, set.baseArraySlice);
-            Alimer::HashCombine(hash, set.numArraySlices);
+            Alimer::HashCombine(hash, (uint32_t)info.format);
+            Alimer::HashCombine(hash, info.baseMipLevel);
+            Alimer::HashCombine(hash, info.mipLevelCount);
+            Alimer::HashCombine(hash, info.baseArrayLayer);
+            Alimer::HashCombine(hash, info.arrayLayerCount);
             return hash;
         }
     };
