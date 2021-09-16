@@ -88,6 +88,26 @@ namespace Alimer
 		insideRenderPass = false;
 	}
 
+    void CommandBuffer::SetViewport(const Rect& rect)
+    {
+        SetViewport(Viewport(rect));
+    }
+
+    void CommandBuffer::SetViewport(float x, float y, float width, float height, float minDepth, float maxDepth)
+    {
+        SetViewport(Viewport(x, y, width, height, minDepth, maxDepth));
+    }
+
+    void CommandBuffer::SetScissorRect(float width, float height)
+    {
+        SetScissorRect(Rect(width, height));
+    }
+
+    void CommandBuffer::SetScissorRect(float x, float y, float width, float height)
+    {
+        SetScissorRect(Rect(x, y, width, height));
+    }
+
 	void CommandBuffer::SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset)
 	{
 		ALIMER_ASSERT(slot < kMaxVertexBufferBindings);

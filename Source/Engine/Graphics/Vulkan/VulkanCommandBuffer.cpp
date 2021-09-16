@@ -357,21 +357,10 @@ namespace Alimer
             SetBlendColor(blendColor);
 
             // The viewport and scissor default to cover all of the attachments
-            VkViewport viewport;
-            viewport.x = 0.0f;
-            viewport.y = static_cast<float>(fboKey.height);
-            viewport.width = static_cast<float>(fboKey.width);
-            viewport.height = -static_cast<float>(fboKey.height);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(handle, 0, 1, &viewport);
+            Viewport viewport(static_cast<float>(fboKey.width), static_cast<float>(fboKey.height));
+            SetViewport(viewport);
 
-            VkRect2D scissorRect;
-            scissorRect.offset.x = 0;
-            scissorRect.offset.y = 0;
-            scissorRect.extent.width = fboKey.width;
-            scissorRect.extent.height = fboKey.height;
-            vkCmdSetScissor(handle, 0, 1, &scissorRect);
+            SetScissorRect(Rect(static_cast<float>(fboKey.width), static_cast<float>(fboKey.height)));
         }
 
         boundRenderPass = beginInfo.renderPass;
@@ -388,11 +377,6 @@ namespace Alimer
         boundRenderPass = VK_NULL_HANDLE;
         colorAttachmentCount = 0;
     }
-
-    //void VulkanCommandBuffer::SetViewport(const Rect& rect)
-    //{
-    //    SetViewport(Viewport(rect));
-    //}
 
     void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
     {
@@ -425,29 +409,29 @@ namespace Alimer
         vkCmdSetViewport(handle, 0, count, (const VkViewport*)viewports);
     }
 
-    //void VulkanCommandBuffer::SetScissorRect(const Rect& rect)
-    //{
-    //    VkRect2D vkRect;
-    //    vkRect.offset.x = rect.x;
-    //    vkRect.offset.y = rect.y;
-    //    vkRect.extent.width = static_cast<uint32_t>(rect.width);
-    //    vkRect.extent.height = static_cast<uint32_t>(rect.height);
-    //    vkCmdSetScissor(handle, 0, 1, &vkRect);
-    //}
-    //
-    //void VulkanCommandBuffer::SetScissorRects(const Rect* rects, uint32_t count)
-    //{
-    //    VkRect2D vkRects[kMaxViewportsAndScissors];
-    //    for (uint32_t i = 0; i < count; i += 1)
-    //    {
-    //        vkRects[i].offset.x = Max(0, rects[i].x);
-    //        vkRects[i].offset.y = Max(0, rects[i].y);
-    //        vkRects[i].extent.width = static_cast<uint32_t>(rects[i].width);
-    //        vkRects[i].extent.height = static_cast<uint32_t>(rects[i].height);
-    //    }
-    //
-    //    vkCmdSetScissor(handle, 0, count, vkRects);
-    //}
+    void VulkanCommandBuffer::SetScissorRect(const Rect& rect)
+    {
+        VkRect2D vkRect;
+        vkRect.offset.x = (int32_t)rect.x;
+        vkRect.offset.y = (int32_t)rect.y;
+        vkRect.extent.width = (uint32_t)rect.width;
+        vkRect.extent.height = (uint32_t)rect.height;
+        vkCmdSetScissor(handle, 0, 1, &vkRect);
+    }
+    
+    void VulkanCommandBuffer::SetScissorRects(const Rect* rects, uint32_t count)
+    {
+        VkRect2D vkRects[kMaxViewportsAndScissors];
+        for (uint32_t i = 0; i < count; i += 1)
+        {
+            vkRects[i].offset.x = (int32_t)rects[i].x;
+            vkRects[i].offset.y = (int32_t)rects[i].y;
+            vkRects[i].extent.width = (uint32_t)rects[i].width;
+            vkRects[i].extent.height = (uint32_t)rects[i].height;
+        }
+    
+        vkCmdSetScissor(handle, 0, count, vkRects);
+    }
 
     void VulkanCommandBuffer::SetStencilReference(uint32_t value)
     {

@@ -73,12 +73,15 @@ namespace Alimer
 		void BeginRenderPass(const RenderPassInfo& info);
 		void EndRenderPass();
 
-		//virtual void SetViewport(const Rect& rect) = 0;
+		void SetViewport(const Rect& rect);
+        void SetViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
 		virtual void SetViewport(const Viewport& viewport) = 0;
 		virtual void SetViewports(const Viewport* viewports, uint32_t count) = 0;
 
-		//virtual void SetScissorRect(const Rect& rect) = 0;
-		//virtual void SetScissorRects(const Rect* rects, uint32_t count) = 0;
+        void SetScissorRect(float width, float height);
+        void SetScissorRect(float x, float y, float width, float height);
+		virtual void SetScissorRect(const Rect& rect) = 0;
+		virtual void SetScissorRects(const Rect* rects, uint32_t count) = 0;
 
 		virtual void SetStencilReference(uint32_t value) = 0;
 		virtual void SetBlendColor(const Color& color) = 0;

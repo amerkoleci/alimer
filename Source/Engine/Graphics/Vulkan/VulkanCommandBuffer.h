@@ -99,8 +99,8 @@ namespace Alimer
 		void SetViewport(const Viewport& viewport) override;
 		void SetViewports(const Viewport* viewports, uint32_t count) override;
 
-		//void SetScissorRect(const Rect& rect) override;
-		//void SetScissorRects(const Rect* rects, uint32_t count) override;
+		void SetScissorRect(const Rect& rect) override;
+		void SetScissorRects(const Rect* rects, uint32_t count) override;
 
 		void SetStencilReference(uint32_t value) override;
 		void SetBlendColor(const Color& color) override;

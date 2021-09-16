@@ -35,9 +35,6 @@ namespace Alimer
 
     template <typename T> inline T Sign(T v) { return v < T(0) ? T(-1) : (v > T(0) ? T(1) : T(0)); }
 
-    template <typename T> inline T sin(T v) { return std::sin(v); }
-    template <typename T> inline T cos(T v) { return std::cos(v); }
-
     /// Return tangent of an angle in degrees.
     template <class T> inline T Tan(T angle) { return std::tan(angle); }
 

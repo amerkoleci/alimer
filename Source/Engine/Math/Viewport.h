@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Math/Vector4.h"
+#include "Math/Rect.h"
 
 namespace Alimer
 {
@@ -38,11 +38,21 @@ namespace Alimer
         {
         }
 
+        explicit Viewport(const Rect& rect) noexcept
+            : x(rect.x)
+            , y(rect.y)
+            , width(rect.width)
+            , height(rect.height)
+            , minDepth(0.0f)
+            , maxDepth(1.0f)
+        {
+        }
+
         explicit Viewport(const Vector4& rect) noexcept
-            : x(float(rect.x))
-            , y(float(rect.y))
-            , width(float(rect.z))
-            , height(float(rect.w))
+            : x(rect.x)
+            , y(rect.y)
+            , width(rect.z)
+            , height(rect.w)
             , minDepth(0.0f)
             , maxDepth(1.0f)
         {
