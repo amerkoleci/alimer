@@ -61,7 +61,7 @@ namespace Alimer
 		VkImageView		nullImageViewCube = VK_NULL_HANDLE;
 		VkImageView		nullImageViewCubeArray = VK_NULL_HANDLE;
 		VkImageView		nullImageView3D = VK_NULL_HANDLE;
-		VkSampler		nullSampler = VK_NULL_HANDLE;
+		SamplerRef		nullSampler;
 
 	public:
 		VulkanGraphics(ValidationMode validationMode);
@@ -88,7 +88,7 @@ namespace Alimer
 		void DeferDestroy(VkImage texture, VmaAllocation allocation);
 		void DeferDestroy(VkBuffer buffer, VmaAllocation allocation);
 		void DeferDestroy(VkImageView view);
-		void DeferDestroy(VkSampler resource);
+		void DeferDestroy(VkSampler resource, uint32_t bindlessIndex);
 		void DeferDestroy(VkShaderModule resource);
 		void DeferDestroy(VkPipeline resource);
 		void DeferDestroy(VkDescriptorPool resource);
@@ -281,7 +281,7 @@ namespace Alimer
 		std::mutex destroyMutex;
 		std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> deletionImagesQueue;
 		std::deque<std::pair<VkImageView, uint64_t>> deletionImageViews;
-		std::deque<std::pair<VkSampler, uint64_t>> deletionSamplers;
+		std::deque<std::pair<VkSampler, uint64_t>> destroyedSamplers;
 		std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> deletionBuffersQueue;
 		std::deque<std::pair<VkShaderModule, uint64_t>> deletionShaderModulesQueue;
 		std::deque<std::pair<VkPipeline, uint64_t>> deletionPipelinesQueue;
@@ -304,16 +304,16 @@ namespace Alimer
                 VkDescriptorPoolSize poolSize = {};
                 poolSize.type = type;
                 poolSize.descriptorCount = descriptorCount;
-                VkDescriptorPoolCreateInfo poolInfo = {};
-                poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+
+                VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+                poolInfo.maxSets = 1;
                 poolInfo.poolSizeCount = 1;
                 poolInfo.pPoolSizes = &poolSize;
-                poolInfo.maxSets = 1;
                 poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
                 VK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool));
 
                 // Create bindless descriptor set layout
-                VkDescriptorSetLayoutBinding bindlessLayout;
+                VkDescriptorSetLayoutBinding bindlessLayout{};
                 bindlessLayout.binding = 0;
                 bindlessLayout.descriptorType = type;
                 bindlessLayout.descriptorCount = descriptorCount;
@@ -326,9 +326,7 @@ namespace Alimer
                     VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
                     VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
 
-                VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
-                bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-                bindingFlagsInfo.pNext = nullptr;
+                VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
                 bindingFlagsInfo.bindingCount = 1;
                 bindingFlagsInfo.pBindingFlags = &bindingFlags;
 
@@ -387,5 +385,15 @@ namespace Alimer
 
         BindlessDescriptorHeap bindlessSampledImages;
         BindlessDescriptorHeap bindlessStorageBuffers;
+        BindlessDescriptorHeap bindlessStorageImages;
+        BindlessDescriptorHeap bindlessSamplers;
+
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessSampledImages;
+        //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessUniformTexelBuffers;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageBuffers;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageImages;
+        //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageTexelBuffers;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessSamplers;
+        //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessAccelerationStructures;
 	};
 }

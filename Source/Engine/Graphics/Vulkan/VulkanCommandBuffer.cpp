@@ -603,7 +603,7 @@ namespace Alimer
                         }
                         else
                         {
-                            imageInfos.back().sampler = device.nullSampler;
+                            imageInfos.back().sampler = checked_cast<VulkanSampler*>(device.nullSampler.Get())->handle;
                         }
 
                         break;

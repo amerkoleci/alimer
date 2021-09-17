@@ -31,11 +31,7 @@ namespace Alimer
 
     VulkanSampler::~VulkanSampler()
     {
-        if (handle != VK_NULL_HANDLE)
-        {
-            device->DeferDestroy(handle);
-        }
-
+        device->DeferDestroy(handle, bindlessIndex);
         handle = VK_NULL_HANDLE;
     }
 }

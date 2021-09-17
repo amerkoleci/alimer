@@ -51,6 +51,8 @@ namespace Alimer
 	public:
         [[nodiscard]] static SamplerRef Create(const SamplerDesc& desc);
 
+        [[nodiscard]] virtual uint32_t GetBindlesIndex() const = 0;
+
 	protected:
 		/// Constructor.
 		Sampler();

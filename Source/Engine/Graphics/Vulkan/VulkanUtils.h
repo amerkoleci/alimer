@@ -512,8 +512,10 @@ namespace Alimer
     {
         VulkanGraphics* device = nullptr;
         VkSampler handle = VK_NULL_HANDLE;
+        uint32_t bindlessIndex = kInvalidBindlessIndex;
 
         ~VulkanSampler() override;
+        uint32_t GetBindlesIndex() const override { return bindlessIndex; }
     };
 
 

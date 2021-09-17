@@ -973,6 +973,25 @@ namespace Alimer
             }
         }
 
+        // Dynamic PSO states:
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
+        if (caps.features.variableRateShading)
+        {
+            pso_dynamicStates.push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
+        }
+        dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicStateInfo.dynamicStateCount = (uint32_t)pso_dynamicStates.size();
+        dynamicStateInfo.pDynamicStates = pso_dynamicStates.data();
+
+        // Create bindless
+        bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
+        bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
+        bindlessStorageImages.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindStorageImages / 4);
+        bindlessSamplers.Init(device, VK_DESCRIPTOR_TYPE_SAMPLER, 256);
+
         // Null objects
         {
             VmaAllocationCreateInfo allocInfo = {};
@@ -1112,35 +1131,11 @@ namespace Alimer
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
             VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView3D));
 
-            VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-            VK_CHECK(vkCreateSampler(device, &samplerInfo, nullptr, &nullSampler));
+            SamplerDesc samplerDesc{};
+            nullSampler = CreateSampler(samplerDesc);
         }
 
         timestampFrequency = uint64_t(1.0 / double(properties2.properties.limits.timestampPeriod) * 1000 * 1000 * 1000);
-
-        // Dynamic PSO states:
-        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
-        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
-        pso_dynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
-        if (caps.features.variableRateShading)
-        {
-            pso_dynamicStates.push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
-        }
-        dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicStateInfo.dynamicStateCount = (uint32_t)pso_dynamicStates.size();
-        dynamicStateInfo.pDynamicStates = pso_dynamicStates.data();
-
-        // Create bindless
-        if (features_1_2.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE)
-        {
-            bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
-        }
-
-        if (features_1_2.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE)
-        {
-            bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
-        }
 
         OnCreated();
         LOGI("Vulkan graphics backend initialized with success");
@@ -1208,11 +1203,9 @@ namespace Alimer
         {
             bindlessSampledImages.Destroy(device);
             bindlessStorageBuffers.Destroy(device);
+            bindlessStorageImages.Destroy(device);
+            bindlessSamplers.Destroy(device);
         }
-
-        frameCount = UINT64_MAX;
-        ProcessDeletionQueue();
-        frameCount = 0;
 
         // Null resources
         {
@@ -1228,8 +1221,12 @@ namespace Alimer
             vkDestroyImageView(device, nullImageViewCube, nullptr);
             vkDestroyImageView(device, nullImageViewCubeArray, nullptr);
             vkDestroyImageView(device, nullImageView3D, nullptr);
-            vkDestroySampler(device, nullSampler, nullptr);
+            nullSampler.Reset();
         }
+
+        frameCount = UINT64_MAX;
+        ProcessDeletionQueue();
+        frameCount = 0;
 
         // Destroy pending resources that still exist.
         Destroy();
@@ -1812,6 +1809,14 @@ namespace Alimer
         createInfo.borderColor = ToVulkan(desc.borderColor);
         createInfo.unnormalizedCoordinates = VK_FALSE;
 
+        // Reduction
+        VkSamplerReductionModeCreateInfo samplerReductionCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO };
+        if (features_1_2.samplerFilterMinmax)
+        {
+            samplerReductionCreateInfo.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
+            createInfo.pNext = &samplerReductionCreateInfo;
+        }
+
         VkSampler handle;
         VkResult result = vkCreateSampler(device, &createInfo, nullptr, &handle);
 
@@ -1829,6 +1834,25 @@ namespace Alimer
         auto sampler = new VulkanSampler();
         sampler->device = this;
         sampler->handle = handle;
+
+        sampler->bindlessIndex = bindlessSamplers.Allocate();
+        if (sampler->bindlessIndex == kInvalidBindlessIndex)
+        {
+            LOGE("Vulkan: Cannot allocate bindless index for sampler");
+        }
+
+        VkDescriptorImageInfo imageInfo = {};
+        imageInfo.sampler = handle;
+
+        VkWriteDescriptorSet descriptorSetWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+        descriptorSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorSetWrite.dstBinding = 0;
+        descriptorSetWrite.dstArrayElement = sampler->bindlessIndex;
+        descriptorSetWrite.descriptorCount = 1;
+        descriptorSetWrite.dstSet = bindlessSamplers.descriptorSet;
+        descriptorSetWrite.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(device, 1, &descriptorSetWrite, 0, nullptr);
+
         return SamplerRef(sampler);
     }
 
@@ -1889,10 +1913,19 @@ namespace Alimer
         deletionImageViews.push_back(std::make_pair(resource, frameCount));
     }
 
-    void VulkanGraphics::DeferDestroy(VkSampler resource)
+    void VulkanGraphics::DeferDestroy(VkSampler resource, uint32_t bindlessIndex)
     {
-        std::lock_guard<std::mutex> guard(destroyMutex);
-        deletionSamplers.push_back(std::make_pair(resource, frameCount));
+        destroyMutex.lock();
+        if (resource != VK_NULL_HANDLE)
+        {
+            destroyedSamplers.push_back(std::make_pair(resource, frameCount));
+        }
+
+        if (bindlessIndex != kInvalidBindlessIndex)
+        {
+            destroyedBindlessSamplers.push_back(std::make_pair(bindlessIndex, frameCount));
+        }
+        destroyMutex.unlock();
     }
 
     void VulkanGraphics::DeferDestroy(VkShaderModule resource)
@@ -1915,7 +1948,7 @@ namespace Alimer
 
     void VulkanGraphics::ProcessDeletionQueue()
     {
-        std::lock_guard<std::mutex> guard(destroyMutex);
+        destroyMutex.lock();
         while (!deletionImagesQueue.empty())
         {
             if (deletionImagesQueue.front().second + kMaxFramesInFlight < frameCount)
@@ -1944,12 +1977,12 @@ namespace Alimer
             }
         }
 
-        while (!deletionSamplers.empty())
+        while (!destroyedSamplers.empty())
         {
-            if (deletionSamplers.front().second + kMaxFramesInFlight < frameCount)
+            if (destroyedSamplers.front().second + kMaxFramesInFlight < frameCount)
             {
-                auto item = deletionSamplers.front();
-                deletionSamplers.pop_front();
+                auto item = destroyedSamplers.front();
+                destroyedSamplers.pop_front();
                 vkDestroySampler(device, item.first, nullptr);
             }
             else
@@ -2013,6 +2046,98 @@ namespace Alimer
                 break;
             }
         }
+        while (!destroyedBindlessSampledImages.empty())
+        {
+            if (destroyedBindlessSampledImages.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessSampledImages.front().first;
+                destroyedBindlessSampledImages.pop_front();
+                bindlessSampledImages.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
+        //while (!destroyedBindlessUniformTexelBuffers.empty())
+        //{
+        //    if (destroyedBindlessUniformTexelBuffers.front().second + kMaxFramesInFlight < frameCount)
+        //    {
+        //        uint32_t index = destroyedBindlessUniformTexelBuffers.front().first;
+        //        destroyedBindlessUniformTexelBuffers.pop_front();
+        //        bindlessUniformTexelBuffers.free(index);
+        //    }
+        //    else
+        //    {
+        //        break;
+        //    }
+        //}
+        while (!destroyedBindlessStorageBuffers.empty())
+        {
+            if (destroyedBindlessStorageBuffers.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessStorageBuffers.front().first;
+                destroyedBindlessStorageBuffers.pop_front();
+                bindlessStorageBuffers.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
+        while (!destroyedBindlessStorageImages.empty())
+        {
+            if (destroyedBindlessStorageImages.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessStorageImages.front().first;
+                destroyedBindlessStorageImages.pop_front();
+                bindlessStorageImages.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
+        //while (!destroyedBindlessStorageTexelBuffers.empty())
+        //{
+        //    if (destroyedBindlessStorageTexelBuffers.front().second + kMaxFramesInFlight < frameCount)
+        //    {
+        //        uint32_t index = destroyedBindlessStorageTexelBuffers.front().first;
+        //        destroyedBindlessStorageTexelBuffers.pop_front();
+        //        bindlessStorageTexelBuffers.Free(index);
+        //    }
+        //    else
+        //    {
+        //        break;
+        //    }
+        //}
+        while (!destroyedBindlessSamplers.empty())
+        {
+            if (destroyedBindlessSamplers.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessSamplers.front().first;
+                destroyedBindlessSamplers.pop_front();
+                bindlessSamplers.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
+        //while (!destroyedBindlessAccelerationStructures.empty())
+        //{
+        //    if (destroyedBindlessAccelerationStructures.front().second + kMaxFramesInFlight < frameCount)
+        //    {
+        //        uint32_t index = destroyedBindlessAccelerationStructures.front().first;
+        //        destroyedBindlessAccelerationStructures.pop_front();
+        //        bindlessAccelerationStructures.Free(index);
+        //    }
+        //    else
+        //    {
+        //        break;
+        //    }
+        //}
+        destroyMutex.unlock();
     }
 
     /* Cache */
