@@ -45,7 +45,7 @@ namespace Alimer
         float lodMaxClamp = FLT_MAX;
     };
 
-	class ALIMER_API Sampler : public GPUObject, public RefCounted
+	class ALIMER_API Sampler : public GPUObjectOld, public RefCounted
 	{
 	public:
 		static SamplerRef Create(const SamplerCreateInfo& info);
@@ -53,5 +53,10 @@ namespace Alimer
 	protected:
 		/// Constructor.
 		Sampler();
+
+        [[nodiscard]] const GPUSampler* GetHandle() const { return &handle; }
+
+    private:
+        GPUSampler handle;
 	};
 }

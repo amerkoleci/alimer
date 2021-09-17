@@ -32,7 +32,7 @@ namespace Alimer
         {
             std::lock_guard<std::mutex> lock(objectsMutex);
 
-            for (GPUObject* resource : objects)
+            for (GPUObjectOld* resource : objects)
             {
                 resource->Destroy();
             }
@@ -59,7 +59,7 @@ namespace Alimer
         return gGraphics().IsInitialized();
     }
 
-	void Graphics::AddGPUObject(GPUObject* resource)
+	void Graphics::AddGPUObject(GPUObjectOld* resource)
 	{
         std::lock_guard<std::mutex> lock(objectsMutex);
         auto it = std::find(objects.begin(), objects.end(), resource);
@@ -73,7 +73,7 @@ namespace Alimer
         }
 	}
 
-	void Graphics::RemoveGPUObject(GPUObject* resource)
+	void Graphics::RemoveGPUObject(GPUObjectOld* resource)
 	{
 		std::lock_guard<std::mutex> lock(objectsMutex);
 		auto it = std::remove(objects.begin(), objects.end(), resource);

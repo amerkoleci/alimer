@@ -7,26 +7,25 @@
 
 namespace Alimer
 {
-	Buffer::Buffer(const BufferCreateInfo& info)
+	Buffer::Buffer(const BufferCreateInfo* info)
 		: GPUResource(Type::Buffer)
-		, memoryUsage(info.memoryUsage)
-		, usage(info.usage)
-		, size(info.size)
+		, size(info->size)
+		, usage(info->usage)
 	{
 
 	}
 
-    BufferRef Buffer::Create(const BufferCreateInfo& createInfo, const void* initialData)
+    BufferRef Buffer::Create(const BufferCreateInfo* createInfo, const void* initialData)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
 
-        ALIMER_ASSERT(createInfo.size > 0);
+        ALIMER_ASSERT(createInfo->size > 0);
 
         static constexpr uint64_t kMaxBufferSize = 128u * 1024u * 1024u;
 
-        if (createInfo.size > kMaxBufferSize)
+        if (createInfo->size > kMaxBufferSize)
         {
-            LOGE("Buffer size too large (size {})", createInfo.size);
+            LOGE("Buffer size too large (size {})", createInfo->size);
             return nullptr;
         }
 
@@ -40,9 +39,30 @@ namespace Alimer
 
         BufferCreateInfo info;
         info.label = label;
-        info.memoryUsage = MemoryUsage::GpuOnly;
         info.usage = usage;
         info.size = size;
-		return gGraphics().CreateBuffer(info, data);
+		return gGraphics().CreateBuffer(&info, data);
 	}
+
+    BufferRef Buffer::CreateUpload(uint64_t size, const char* label)
+    {
+        ALIMER_ASSERT(gGraphics().IsInitialized());
+
+        BufferCreateInfo info;
+        info.label = label;
+        info.heapType = HeapType::Upload;
+        info.size = size;
+        return Create(&info, nullptr);
+    }
+
+    BufferRef Buffer::CreateReadback(uint64_t size, const char* label)
+    {
+        ALIMER_ASSERT(gGraphics().IsInitialized());
+
+        BufferCreateInfo info;
+        info.label = label;
+        info.heapType = HeapType::Readback;
+        info.size = size;
+        return Create(&info, nullptr);
+    }
 }

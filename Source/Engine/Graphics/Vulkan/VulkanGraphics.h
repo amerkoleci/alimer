@@ -15,7 +15,7 @@ namespace Alimer
         VkCommandPool commandPool = VK_NULL_HANDLE;
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         uint64_t target = 0;
-        RefPtr<VulkanBuffer> uploadBuffer;
+        BufferRef uploadBuffer;
         uint8_t* data = nullptr;
     };
 
@@ -117,7 +117,7 @@ namespace Alimer
 		void ProcessDeletionQueue();
 
         TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) override;
-		BufferRef CreateBuffer(const BufferCreateInfo& info, const void* initialData) override;
+		BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) override;
         ShaderRef CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint) override;
 		SamplerRef CreateSampler(const SamplerCreateInfo* info) override;
 		PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) override;

@@ -36,7 +36,7 @@ namespace Alimer
         uint32_t size;
     };
 
-	class ALIMER_API Shader : public GPUObject, public RefCounted
+	class ALIMER_API Shader : public GPUObjectOld, public RefCounted
 	{
 	public:
 		static ShaderRef Create(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint = "main");

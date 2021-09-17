@@ -10,11 +10,11 @@ namespace Alimer
 	class Graphics;
 
     /// Base class for objects that allocate GPU object.
-    class ALIMER_API GPUObject
+    class ALIMER_API GPUObjectOld
     {
     public:
         /// Destructor. 
-        virtual ~GPUObject() = default;
+        virtual ~GPUObjectOld() = default;
 
         /// Unconditionally destroy the GPU resource.
         virtual void Destroy() = 0;
@@ -27,7 +27,7 @@ namespace Alimer
 
     protected:
         /// Constructor. 
-        GPUObject() = default;
+        GPUObjectOld() = default;
 
         void OnCreated();
         void OnDestroyed();
@@ -37,7 +37,7 @@ namespace Alimer
     };
 
 	/// Base class for objects that allocate GPU resources.
-	class ALIMER_API GPUResource : public GPUObject
+	class ALIMER_API GPUResource : public GPUObjectOld
 	{
 	public:
 		enum class Type

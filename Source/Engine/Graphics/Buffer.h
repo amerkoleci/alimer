@@ -7,35 +7,51 @@
 
 namespace Alimer
 {
+    enum class BufferUsage : uint32_t
+    {
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Constant = 1 << 2,
+        ShaderRead = 1 << 3,
+        ShaderWrite = 1 << 4,
+        Indirect = 1 << 5,
+        RayTracingAccelerationStructure = 1 << 6,
+        RayTracingShaderTable = 1 << 7,
+    };
+    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
+
     struct BufferCreateInfo
     {
         const char* label = nullptr;
         uint64_t size = 0;
         BufferUsage usage = BufferUsage::None;
-        MemoryUsage memoryUsage = MemoryUsage::GpuOnly;
-        //PixelFormat format = PixelFormat::Undefined;
+        HeapType heapType = HeapType::Default;
+        PixelFormat format = PixelFormat::Undefined;
         uintptr_t handle = 0;
     };
 
 	class ALIMER_API Buffer : public GPUResource, public RefCounted
 	{
 	public:
-        [[nodiscard]] static BufferRef Create(const BufferCreateInfo& createInfo, const void* initialData = nullptr);
+        [[nodiscard]] static BufferRef Create(const BufferCreateInfo* createInfo, const void* initialData = nullptr);
 		[[nodiscard]] static BufferRef Create(const void* data, BufferUsage usage, uint64_t size, const char* label = nullptr);
+        [[nodiscard]] static BufferRef CreateUpload(uint64_t size, const char* label = nullptr);
+        [[nodiscard]] static BufferRef CreateReadback(uint64_t size, const char* label = nullptr);
 
-		BufferUsage GetUsage() const noexcept { return usage; }
-        uint64_t GetSize() const noexcept { return size; }
-        MemoryUsage GetMemoryUsage() const noexcept { return memoryUsage; }
+        [[nodiscard]] uint64_t GetSize() const noexcept { return size; }
+        [[nodiscard]] BufferUsage GetUsage() const noexcept { return usage; }
 
-        virtual uint8_t* Map() = 0;
-        virtual void Unmap() = 0;
+        [[nodiscard]] uint64_t GetDeviceAddress() const noexcept { return deviceAddress; }
+        [[nodiscard]] uint8_t* MappedData() const { return mappedData; }
 
 	protected:
 		/// Constructor.
-		Buffer(const BufferCreateInfo& info);
+		Buffer(const BufferCreateInfo* info);
 
-		BufferUsage usage;
         uint64_t size;
-        MemoryUsage memoryUsage;
+		BufferUsage usage;
+        uint64_t deviceAddress{ 0 };
+        uint8_t* mappedData{ nullptr };
 	};
 }

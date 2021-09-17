@@ -444,22 +444,6 @@ namespace Alimer
 			IsDynamicBuffer(type);
 	}
 
-	enum class VulkanBufferState : uint32_t
-	{
-		Undefined = 0,
-		Vertex = 1 << 0,
-		Index = 1 << 1,
-		Uniform = 1 << 2,
-		ShaderRead = 1 << 3,
-		ShaderWrite = 1 << 4,
-		IndirectArgument = 1 << 5,
-		CopyDest = 1 << 6,
-		CopySource = 1 << 7,
-		AccelerationStructureRead = 1 << 8,
-		AccelerationStructureWrite = 1 << 9,
-	};
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(VulkanBufferState);
-
 	struct VulkanAttachmentDescription
 	{
 		PixelFormat format;

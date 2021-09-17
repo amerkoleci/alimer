@@ -4,19 +4,40 @@
     <Type Name="Alimer::Vector2">
         <DisplayString>{{x={x} y={y}}}</DisplayString>
     </Type>
+    <Type Name="Alimer::Int2">
+        <DisplayString>{{x={x} y={y}}}</DisplayString>
+    </Type>
+    <Type Name="Alimer::UInt2">
+        <DisplayString>{{x={x} y={y}}}</DisplayString>
+    </Type>
     <Type Name="Alimer::Vector3">
+        <DisplayString>{{x={x} y={y} z={z}}}</DisplayString>
+    </Type>
+    <Type Name="Alimer::Int3">
+        <DisplayString>{{x={x} y={y} z={z}}}</DisplayString>
+    </Type>
+    <Type Name="Alimer::UInt3">
         <DisplayString>{{x={x} y={y} z={z}}}</DisplayString>
     </Type>
     <Type Name="Alimer::Vector4">
         <DisplayString>{{x={x} y={y} z={z} w={w}}}</DisplayString>
     </Type>
+    <Type Name="Alimer::Int4">
+        <DisplayString>{{x={x} y={y} z={z} w={w}}}</DisplayString>
+    </Type>
+    <Type Name="Alimer::UInt4">
+        <DisplayString>{{x={x} y={y} z={z} w={w}}}</DisplayString>
+    </Type>
     <Type Name="Alimer::Quaternion">
         <DisplayString>{{x={x} y={y} z={z} w={w}}}</DisplayString>
+    </Type>
+    <Type Name="Alimer::Rect">
+        <DisplayString>{{x={x} y={y} width={width} height={height}}}</DisplayString>
     </Type>
     <Type Name="Alimer::Color">
         <DisplayString>{{r={r} g={g} b={b} a={a}}}</DisplayString>
     </Type>
-    <Type Name="Alimer::Int2">
-        <DisplayString>{{x={x} y={y}}}</DisplayString>
+    <Type Name="Alimer::Viewport">
+        <DisplayString>{{x={x} y={y} width={width} height={height} minDepth={minDepth} maxDepth={maxDepth}}}</DisplayString>
     </Type>
 </AutoVisualizer>

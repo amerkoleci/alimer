@@ -32,8 +32,8 @@ namespace Alimer
 
         [[nodiscard]] static bool Initialize(GraphicsAPI api, ValidationMode validationMode = ValidationMode::Disabled);
 
-        void AddGPUObject(GPUObject* resource);
-        void RemoveGPUObject(GPUObject* resource);
+        void AddGPUObject(GPUObjectOld* resource);
+        void RemoveGPUObject(GPUObjectOld* resource);
 
         /// Wait for device to finish all pending GPU operations
         virtual void WaitIdle() = 0;
@@ -67,7 +67,7 @@ namespace Alimer
 
     private:
         virtual TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) = 0;
-        virtual BufferRef CreateBuffer(const BufferCreateInfo& info, const void* initialData) = 0;
+        virtual BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) = 0;
         virtual ShaderRef CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint) = 0;
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) = 0;
         virtual PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) = 0;
@@ -86,7 +86,7 @@ namespace Alimer
         /// Mutex for accessing the GPU resource vector from several threads.
         std::mutex objectsMutex;
         /// GPU objects.
-        std::vector<GPUObject*> objects;
+        std::vector<GPUObjectOld*> objects;
     };
 
     /** Provides easier access to graphics module. */

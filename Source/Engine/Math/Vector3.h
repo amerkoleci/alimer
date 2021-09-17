@@ -248,7 +248,114 @@ namespace Alimer
         static const Vector3 Backward;
     };
 
+    /// Three-dimensional vector with 32 bit signed integer components.
+    struct ALIMER_API Int3
+    {
+        /// X coordinate.
+        int32_t x;
+        /// Y coordinate.
+        int32_t y;
+        /// Z coordinate.
+        int32_t z;
+
+        Int3() = default;
+
+        Int3(const Int3&) = default;
+        Int3& operator=(const Int3&) = default;
+
+        Int3(Int3&&) = default;
+        Int3& operator=(Int3&&) = default;
+
+        constexpr Int3(int32_t x_, int32_t y_, int32_t z_) noexcept
+            : x(x_)
+            , y(y_)
+            , z(z_)
+        {
+        }
+
+        /// Construct from a float array.
+        explicit Int3(_In_reads_(3) const int32_t* data)
+            : x(data[0])
+            , y(data[1])
+            , z(data[2])
+        {
+        }
+    };
+
+    /// Three-dimensional vector with 32 bit unsigned integer components.
+    struct ALIMER_API UInt3
+    {
+        /// X coordinate.
+        uint32_t x;
+        /// Y coordinate.
+        uint32_t y;
+        /// Z coordinate.
+        uint32_t z;
+
+        UInt3() = default;
+
+        UInt3(const UInt3&) = default;
+        UInt3& operator=(const UInt3&) = default;
+
+        UInt3(UInt3&&) = default;
+        UInt3& operator=(UInt3&&) = default;
+
+        constexpr UInt3(uint32_t x_, uint32_t y_, uint32_t z_) noexcept
+            : x(x_)
+            , y(y_)
+            , z(z_)
+        {
+        }
+
+        /// Construct from a float array.
+        explicit UInt3(_In_reads_(3) const uint32_t* data)
+            : x(data[0])
+            , y(data[1])
+            , z(data[2])
+        {
+        }
+    };
+
     /// Multiply Vector3 with a scalar.
     inline Vector3 operator * (float lhs, const Vector3& rhs) { return rhs * lhs; }
-
 }
+
+namespace std
+{
+    template <> struct hash<Alimer::Vector3>
+    {
+        size_t operator()(const Alimer::Vector3& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            Alimer::HashCombine(h, value.z);
+            return h;
+        }
+    };
+
+    template <> struct hash<Alimer::Int3>
+    {
+        size_t operator()(const Alimer::Int3& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            Alimer::HashCombine(h, value.z);
+            return h;
+        }
+    };
+
+    template <> struct hash<Alimer::UInt3>
+    {
+        size_t operator()(const Alimer::UInt3& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            Alimer::HashCombine(h, value.z);
+            return h;
+        }
+    };
+}
+

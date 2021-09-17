@@ -10,32 +10,32 @@
 namespace Alimer
 {
     /* Constants */
-    static constexpr u32 KnownVendorId_Nvidia = 0x010DE;
-    static constexpr u32 KnownVendorId_AMD = 0x01002;
-    static constexpr u32 KnownVendorId_Intel = 0x08086;
-    static constexpr u32 KnownVendorId_ARM = 0x013B5;
-    static constexpr u32 KnownVendorId_Qualcomm = 0x05143;
-    static constexpr u32 KnownVendorId_ImgTec = 0x01010;
-    static constexpr u32 KnownVendorId_Microsoft = 0x01414;
-    static constexpr u32 KnownVendorId_Apple = 0x0106B;
-    static constexpr u32 KnownVendorId_Mesa = 0x10005;
-    static constexpr u32 KnownVendorId_BROADCOM = 0x014e4;
+    static constexpr uint32_t KnownVendorId_Nvidia = 0x010DE;
+    static constexpr uint32_t KnownVendorId_AMD = 0x01002;
+    static constexpr uint32_t KnownVendorId_Intel = 0x08086;
+    static constexpr uint32_t KnownVendorId_ARM = 0x013B5;
+    static constexpr uint32_t KnownVendorId_Qualcomm = 0x05143;
+    static constexpr uint32_t KnownVendorId_ImgTec = 0x01010;
+    static constexpr uint32_t KnownVendorId_Microsoft = 0x01414;
+    static constexpr uint32_t KnownVendorId_Apple = 0x0106B;
+    static constexpr uint32_t KnownVendorId_Mesa = 0x10005;
+    static constexpr uint32_t KnownVendorId_BROADCOM = 0x014e4;
 
-    static constexpr u32 kMaxFramesInFlight = 2;
-    static constexpr u32 kMaxColorAttachments = 8;
-    static constexpr u32 kMaxViewportsAndScissors = 8;
-    static constexpr u32 kMaxVertexBufferBindings = 8;
-    static constexpr u32 kMaxVertexAttributes = 16;
-    static constexpr u32 kMaxVertexAttributeOffset = 2047u;
-    static constexpr u32 kMaxVertexBufferStride = 2048u;
-    static constexpr u32 kMaxCommandLists = 32u;
-    static constexpr u32 kMaxUniformBufferBindings = 14;
+    static constexpr uint32_t kMaxFramesInFlight = 2;
+    static constexpr uint32_t kMaxColorAttachments = 8;
+    static constexpr uint32_t kMaxViewportsAndScissors = 8;
+    static constexpr uint32_t kMaxVertexBufferBindings = 8;
+    static constexpr uint32_t kMaxVertexAttributes = 16;
+    static constexpr uint32_t kMaxVertexAttributeOffset = 2047u;
+    static constexpr uint32_t kMaxVertexBufferStride = 2048u;
+    static constexpr uint32_t kMaxCommandLists = 32u;
+    static constexpr uint32_t kMaxUniformBufferBindings = 14;
     //static constexpr uint32_t kMaxDescriptorBindings = 32;
     //static constexpr uint32_t kMaxUniformBufferSize = 16 * 1024;
 
-    static constexpr u32 kInvalidBindlessIndex = static_cast<u32>(-1);
-    static constexpr u32 kAllMipLevels = static_cast<u32>(-1);
-    static constexpr u32 kAllArraySlices = static_cast<u32>(-1);
+    static constexpr uint32_t kInvalidBindlessIndex = static_cast<u32>(-1);
+    static constexpr uint32_t kAllMipLevels = static_cast<u32>(-1);
+    static constexpr uint32_t kAllArraySlices = static_cast<u32>(-1);
 
     /* Enums */
     enum class GraphicsAPI : uint8_t
@@ -93,12 +93,11 @@ namespace Alimer
         BROADCOM,
     };
 
-    enum class MemoryUsage : uint32_t
+    enum class HeapType : uint8_t
     {
-        GpuOnly,
-        CpuOnly,
-        CpuToGpu,
-        GpuToCpu
+        Default,
+        Upload,
+        Readback
     };
 
     /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
@@ -195,20 +194,6 @@ namespace Alimer
         Discard,
     };
 
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        ShaderRead = 1 << 3,
-        ShaderWrite = 1 << 4,
-        Indirect = 1 << 5,
-        RayTracingAccelerationStructure = 1 << 6,
-        RayTracingShaderTable = 1 << 7,
-    };
-    ALIMER_DEFINE_ENUM_BITWISE_OPERATORS(BufferUsage);
-
     enum class ShaderStages : uint32_t
     {
         None = 0x0000,
@@ -241,6 +226,17 @@ namespace Alimer
         Immediate = 0,
         Mailbox,
         Fifo
+    };
+
+    /* GPU handles */
+    struct GPUObject
+    {
+        std::shared_ptr<void> internalState;
+        inline bool IsValid() const { return internalState.get() != nullptr; }
+    };
+
+    struct GPUSampler : public GPUObject
+    {
     };
 
     /* Forward declarations */

@@ -182,7 +182,7 @@ namespace Alimer
 	ALIMER_API bool EnableBlend(const RenderTargetBlendState& state);
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
-	class ALIMER_API Pipeline : public GPUObject, public RefCounted
+	class ALIMER_API Pipeline : public GPUObjectOld, public RefCounted
 	{
 	public:
         enum class Type

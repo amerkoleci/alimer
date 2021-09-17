@@ -182,7 +182,124 @@ namespace Alimer
         static const Vector4 UnitW;
     };
 
+    /// Four-dimensional vector with 32 bit signed integer components.
+    struct ALIMER_API Int4
+    {
+        /// X coordinate.
+        int32_t x;
+        /// Y coordinate.
+        int32_t y;
+        /// Z coordinate.
+        int32_t z;
+        /// W coordinate.
+        int32_t w;
+
+        Int4() = default;
+
+        Int4(const Int4&) = default;
+        Int4& operator=(const Int4&) = default;
+
+        Int4(Int4&&) = default;
+        Int4& operator=(Int4&&) = default;
+
+        constexpr Int4(int32_t x_, int32_t y_, int32_t z_, int32_t w_) noexcept
+            : x(x_)
+            , y(y_)
+            , z(z_)
+            , w(w_)
+        {
+        }
+
+        /// Construct from a float array.
+        explicit Int4(_In_reads_(4) const int32_t* data)
+            : x(data[0])
+            , y(data[1])
+            , z(data[2])
+            , w(data[3])
+        {
+        }
+    };
+
+    /// Four-dimensional vector with 32 bit unsigned integer components.
+    struct ALIMER_API UInt4
+    {
+        /// X coordinate.
+        uint32_t x;
+        /// Y coordinate.
+        uint32_t y;
+        /// Z coordinate.
+        uint32_t z;
+        /// W coordinate.
+        uint32_t w;
+
+        UInt4() = default;
+
+        UInt4(const UInt4&) = default;
+        UInt4& operator=(const UInt4&) = default;
+
+        UInt4(UInt4&&) = default;
+        UInt4& operator=(UInt4&&) = default;
+
+        constexpr UInt4(uint32_t x_, uint32_t y_, uint32_t z_, uint32_t w_) noexcept
+            : x(x_)
+            , y(y_)
+            , z(z_)
+            , w(w_)
+        {
+        }
+
+        /// Construct from a float array.
+        explicit UInt4(_In_reads_(4) const uint32_t* data)
+            : x(data[0])
+            , y(data[1])
+            , z(data[2])
+            , w(data[3])
+        {
+        }
+    };
+
     /// Multiply Vector4 with a scalar.
     inline Vector4 operator * (float lhs, const Vector4& rhs) { return rhs * lhs; }
+}
 
+namespace std
+{
+    template <> struct hash<Alimer::Vector4>
+    {
+        size_t operator()(const Alimer::Vector4& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            Alimer::HashCombine(h, value.z);
+            Alimer::HashCombine(h, value.w);
+            return h;
+        }
+    };
+
+    template <> struct hash<Alimer::Int4>
+    {
+        size_t operator()(const Alimer::Int4& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            Alimer::HashCombine(h, value.z);
+            Alimer::HashCombine(h, value.w);
+            return h;
+        }
+    };
+
+    template <> struct hash<Alimer::UInt4>
+    {
+        size_t operator()(const Alimer::UInt4& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            Alimer::HashCombine(h, value.z);
+            Alimer::HashCombine(h, value.w);
+            return h;
+        }
+    };
 }

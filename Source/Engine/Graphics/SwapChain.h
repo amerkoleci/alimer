@@ -17,7 +17,7 @@ namespace Alimer
         PresentMode presentMode = PresentMode::Fifo;
     };
 
-	class ALIMER_API SwapChain : public GPUObject, public RefCounted
+	class ALIMER_API SwapChain : public GPUObjectOld, public RefCounted
 	{
 	public:
         /// Create new SwapChain

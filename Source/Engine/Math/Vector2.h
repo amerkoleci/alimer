@@ -181,34 +181,21 @@ namespace Alimer
         static const Vector2 One;
     };
 
-    /// Two-dimensional vector with 32 bit signed integer components
+    /// Two-dimensional vector with 32 bit signed integer components.
     struct ALIMER_API Int2
     {
-    public:
-        union
-        {
-            struct
-            {
-                /// X coordinate.
-                int32_t x;
-                /// Y coordinate.
-                int32_t y;
-            };
+        /// X coordinate.
+        int32_t x;
+        /// Y coordinate.
+        int32_t y;
 
-            int32_t data[2];
-        };
+        Int2() = default;
 
-        Int2() noexcept
-            : x(0)
-            , y(0)
-        {
-        }
+        Int2(const Int2&) = default;
+        Int2& operator=(const Int2&) = default;
 
-        constexpr explicit Int2(int32_t value) noexcept
-            : x(value)
-            , y(value)
-        {
-        }
+        Int2(Int2&&) = default;
+        Int2& operator=(Int2&&) = default;
 
         constexpr Int2(int32_t x_, int32_t y_) noexcept
             : x(x_)
@@ -222,120 +209,73 @@ namespace Alimer
             , y(data[1])
         {
         }
+    };
 
-        Int2(const Int2&) = default;
-        Int2& operator=(const Int2&) = default;
+    /// Two-dimensional vector with 32 bit unsigned integer components.
+    struct ALIMER_API UInt2
+    {
+        /// X coordinate.
+        uint32_t x;
+        /// Y coordinate.
+        uint32_t y;
 
-        Int2(Int2&&) = default;
-        Int2& operator=(Int2&&) = default;
+        UInt2() = default;
 
-        /// Add-assign a vector.
-        Int2& operator += (const Int2& rhs)
+        UInt2(const UInt2&) = default;
+        UInt2& operator=(const UInt2&) = default;
+
+        UInt2(UInt2&&) = default;
+        UInt2& operator=(UInt2&&) = default;
+
+        constexpr UInt2(uint32_t x_, uint32_t y_) noexcept
+            : x(x_)
+            , y(y_)
         {
-            x += rhs.x;
-            y += rhs.y;
-            return *this;
         }
 
-        /// Subtract-assign a vector.
-        Int2& operator -= (const Int2& rhs)
+        /// Construct from a float array.
+        explicit UInt2(_In_reads_(2) const uint32_t* data)
+            : x(data[0])
+            , y(data[1])
         {
-            x -= rhs.x;
-            y -= rhs.y;
-            return *this;
         }
-
-        /// Multiply-assign a scalar.
-        Int2& operator *= (int32_t rhs)
-        {
-            x *= rhs;
-            y *= rhs;
-            return *this;
-        }
-
-        /// Multiply-assign a vector.
-        Int2& operator *= (const Int2& rhs)
-        {
-            x *= rhs.x;
-            y *= rhs.y;
-            return *this;
-        }
-
-        /// Divide-assign a scalar.
-        Int2& operator /= (int32_t scalar)
-        {
-            x /= scalar;
-            y /= scalar;
-            return *this;
-        }
-
-        /// Divide-assign a vector.
-        Int2& operator /= (const Int2& rhs)
-        {
-            x /= rhs.x;
-            y /= rhs.y;
-            return *this;
-        }
-
-        /// Test for equality with another vector without epsilon.
-        bool operator == (const Int2& rhs) const { return x == rhs.x && y == rhs.y; }
-        /// Test for inequality with another vector without epsilon.
-        bool operator != (const Int2& rhs) const { return !(*this == rhs); }
-        /// Add a vector.
-        Int2 operator + (const Int2& rhs) const { return Int2(x + rhs.x, y + rhs.y); }
-        /// Return negation.
-        Int2 operator - () const { return Int2(-x, -y); }
-        /// Subtract a vector.
-        Int2 operator - (const Int2& rhs) const { return Int2(x - rhs.x, y - rhs.y); }
-        /// Multiply with a scalar.
-        Int2 operator * (int32_t rhs) const { return Int2(x * rhs, y * rhs); }
-        /// Multiply with a vector.
-        Int2 operator * (const Int2& rhs) const { return Int2(x * rhs.x, y * rhs.y); }
-        /// Divide by a scalar.
-        Int2 operator / (int32_t rhs) const { return Int2(x / rhs, y / rhs); }
-        /// Divide by a vector.
-        Int2 operator / (const Int2& rhs) const { return Int2(x / rhs.x, y / rhs.y); }
-
-        /// Return as string.
-        std::string ToString() const;
-
-        /// Zero vector.
-        static const Int2 Zero;
-        /// (-1,0) vector.
-        static const Int2 Left;
-        /// (1,0) vector.
-        static const Int2 Right;
-        /// (0,1) vector.
-        static const Int2 Up;
-        /// (0,-1) vector.
-        static const Int2 Down;
-        /// (1,1) vector.
-        static const Int2 One;
     };
 
     /// Multiply Vector2 with a scalar
     inline Vector2 operator * (float lhs, const Vector2& rhs) { return rhs * lhs; }
-
-    /// Multiply Int2 with a scalar
-    inline Int2 operator * (int32_t lhs, const Int2& rhs) { return rhs * lhs; }
 }
 
 namespace std
 {
-    template <>
-    struct hash<Alimer::Vector2> {
-        size_t operator()(const Alimer::Vector2& value) const noexcept {
+    template <> struct hash<Alimer::Vector2>
+    {
+        size_t operator()(const Alimer::Vector2& value) const noexcept
+        {
             size_t h = 0;
-            Alimer::HashCombine(h, value.x, value.y);
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
             return h;
         }
     };
 
-    template <>
-    struct hash<Alimer::Int2> {
-        size_t operator()(const Alimer::Int2& value) const noexcept {
+    template <> struct hash<Alimer::Int2>
+    {
+        size_t operator()(const Alimer::Int2& value) const noexcept
+        {
             size_t h = 0;
-            Alimer::HashCombine(h, value.x, value.y);
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
+            return h;
+        }
+    };
+
+    template <> struct hash<Alimer::UInt2>
+    {
+        size_t operator()(const Alimer::UInt2& value) const noexcept
+        {
+            size_t h = 0;
+            Alimer::HashCombine(h, value.x);
+            Alimer::HashCombine(h, value.y);
             return h;
         }
     };

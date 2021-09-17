@@ -1413,7 +1413,7 @@ namespace Alimer
         return nullptr;
     }
 
-    BufferRef VulkanGraphics::CreateBuffer(const BufferCreateInfo& info, const void* initialData)
+    BufferRef VulkanGraphics::CreateBuffer(const BufferCreateInfo* info, const void* initialData)
     {
         auto result = new VulkanBuffer(*this, info, initialData);
 
@@ -1969,11 +1969,9 @@ namespace Alimer
         if (context.uploadBuffer == nullptr
             || context.uploadBuffer->GetSize() < size)
         {
-            BufferCreateInfo uploadBufferDesc{};
-            uploadBufferDesc.size = NextPowerOfTwo(size);
-            uploadBufferDesc.memoryUsage = MemoryUsage::CpuOnly;
-            context.uploadBuffer = new VulkanBuffer(*device, uploadBufferDesc, nullptr);
-            context.data = context.uploadBuffer->Map();
+            const uint64_t bufferSize = NextPowerOfTwo(size);
+            context.uploadBuffer = Buffer::CreateUpload(bufferSize);
+            context.data = context.uploadBuffer->MappedData();
             ALIMER_ASSERT(context.data != nullptr);
         }
 

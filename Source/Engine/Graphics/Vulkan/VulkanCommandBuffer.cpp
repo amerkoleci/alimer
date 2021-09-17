@@ -207,9 +207,9 @@ namespace Alimer
 
     void VulkanCommandBuffer::UpdateBufferCore(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size)
     {
-        //GPUAllocation allocation = Allocate(size, gGraphics().GetCaps().limits.minUniformBufferOffsetAlignment);
-        //memcpy(allocation.data, data, size);
-        //CopyBufferCore(allocation.buffer, allocation.offset, buffer, offset, size);
+        GPUAllocation allocation = Allocate(size, gGraphics().GetCaps().limits.minConstantBufferOffsetAlignment);
+        memcpy(allocation.data, data, size);
+        CopyBufferCore(allocation.buffer, allocation.offset, buffer, offset, size);
     }
 
     void VulkanCommandBuffer::CopyBufferCore(const Buffer* source, uint64_t sourceOffset, const Buffer* destination, uint64_t destinationOffset, uint64_t size)
