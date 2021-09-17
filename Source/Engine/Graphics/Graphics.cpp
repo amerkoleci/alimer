@@ -3,6 +3,7 @@
 
 #include "Graphics/Texture.h"
 #include "Graphics/Buffer.h"
+#include "Graphics/Sampler.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/SwapChain.h"
 #include "Graphics/Graphics.h"
@@ -18,6 +19,12 @@
 
 namespace Alimer
 {
+    void Graphics::OnCreated()
+    {
+        //Object::RegisterFactory<Texture>();
+        //Object::RegisterFactory<Sampler>();
+    }
+
     void Graphics::Destroy()
     {
         // Stock Samplers
@@ -32,7 +39,7 @@ namespace Alimer
         {
             std::lock_guard<std::mutex> lock(objectsMutex);
 
-            for (GPUObjectOld* resource : objects)
+            for (GPUResource* resource : objects)
             {
                 resource->Destroy();
             }
@@ -59,7 +66,7 @@ namespace Alimer
         return gGraphics().IsInitialized();
     }
 
-	void Graphics::AddGPUObject(GPUObjectOld* resource)
+	void Graphics::AddGPUObject(GPUResource* resource)
 	{
         std::lock_guard<std::mutex> lock(objectsMutex);
         auto it = std::find(objects.begin(), objects.end(), resource);
@@ -73,7 +80,7 @@ namespace Alimer
         }
 	}
 
-	void Graphics::RemoveGPUObject(GPUObjectOld* resource)
+	void Graphics::RemoveGPUObject(GPUResource* resource)
 	{
 		std::lock_guard<std::mutex> lock(objectsMutex);
 		auto it = std::remove(objects.begin(), objects.end(), resource);

@@ -11,7 +11,7 @@ namespace Alimer
 	class VulkanShader final : public Shader
 	{
 	public:
-		VulkanShader(VulkanGraphics& device, ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint);
+		VulkanShader(VulkanGraphics& device, ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint);
 		~VulkanShader();
 		void Destroy() override;
 

@@ -12,7 +12,7 @@ namespace Alimer
 {
     struct BufferCreateInfo;
     struct TextureCreateInfo;
-    struct SamplerCreateInfo;
+    struct SamplerDesc;
     struct SwapChainCreateInfo;
     struct RenderPipelineStateCreateInfo;
     struct ComputePipelineCreateInfo;
@@ -32,8 +32,8 @@ namespace Alimer
 
         [[nodiscard]] static bool Initialize(GraphicsAPI api, ValidationMode validationMode = ValidationMode::Disabled);
 
-        void AddGPUObject(GPUObjectOld* resource);
-        void RemoveGPUObject(GPUObjectOld* resource);
+        void AddGPUObject(GPUResource* resource);
+        void RemoveGPUObject(GPUResource* resource);
 
         /// Wait for device to finish all pending GPU operations
         virtual void WaitIdle() = 0;
@@ -50,10 +50,13 @@ namespace Alimer
         [[nodiscard]] TextureRef CreateTexture(const TextureCreateInfo& info, const void* initialData = nullptr);
 
         /// Create new sampler.
-        [[nodiscard]] virtual SamplerRef CreateSampler(const SamplerCreateInfo* info) = 0;
+        [[nodiscard]] virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
 
         /// Return the graphics capabilities.
         [[nodiscard]] const GraphicsDeviceCaps& GetCaps() const noexcept { return caps; }
+
+        /// Return the shader format.
+        [[nodiscard]] ShaderFormat GetShaderFormat() const noexcept { return shaderFormat; }
 
         [[nodiscard]] constexpr u64 GetTimestampFrequency() const { return timestampFrequency; }
 
@@ -68,15 +71,17 @@ namespace Alimer
     private:
         virtual TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) = 0;
         virtual BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) = 0;
-        virtual ShaderRef CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint) = 0;
+        virtual ShaderRef CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint) = 0;
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) = 0;
         virtual PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) = 0;
         virtual SwapChainRef CreateSwapChain(void* window, const SwapChainCreateInfo& info) = 0;
 
     protected:
+        void OnCreated();
         void Destroy();
 
         GraphicsDeviceCaps caps{};
+        ShaderFormat shaderFormat{};
 
         u64 timestampFrequency = 0;
         u32 frameIndex = 0;
@@ -86,7 +91,7 @@ namespace Alimer
         /// Mutex for accessing the GPU resource vector from several threads.
         std::mutex objectsMutex;
         /// GPU objects.
-        std::vector<GPUObjectOld*> objects;
+        std::vector<GPUResource*> objects;
     };
 
     /** Provides easier access to graphics module. */

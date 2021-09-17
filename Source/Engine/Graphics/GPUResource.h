@@ -19,25 +19,13 @@ namespace Alimer
         /// Unconditionally destroy the GPU resource.
         virtual void Destroy() = 0;
 
-        /// Get the object name.
-        const std::string& GetName() const { return name; }
-
-        /// Set the object name.
-        void SetName(const std::string& name_) { name = name_; ApiSetName(); }
-
     protected:
         /// Constructor. 
         GPUObjectOld() = default;
-
-        void OnCreated();
-        void OnDestroyed();
-        virtual void ApiSetName() {}
-
-        std::string name;
     };
 
 	/// Base class for objects that allocate GPU resources.
-	class ALIMER_API GPUResource : public GPUObjectOld
+	class ALIMER_API GPUResource 
 	{
 	public:
 		enum class Type
@@ -49,6 +37,8 @@ namespace Alimer
 		/// Unconditionally destroy the GPU resource.
 		virtual void Destroy() = 0;
 
+        [[nodiscard]] virtual uint64_t GetAllocatedSize() const = 0;
+
 	protected:
 		/// Constructor. 
         GPUResource(Type type)
@@ -57,7 +47,9 @@ namespace Alimer
 
         }
 
+        void OnCreated();
+        void OnDestroyed();
+
 		Type type;
-		uint64_t allocatedSize{ 0 };
 	};
 }

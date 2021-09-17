@@ -12,10 +12,10 @@ namespace Alimer
 
 	}
 
-	SamplerRef Sampler::Create(const SamplerCreateInfo& info)
+	SamplerRef Sampler::Create(const SamplerDesc& desc)
 	{
 		ALIMER_ASSERT(gGraphics().IsInitialized());
 
-		return gGraphics().CreateSampler(&info);
+		return gGraphics().CreateSampler(desc);
 	}
 }

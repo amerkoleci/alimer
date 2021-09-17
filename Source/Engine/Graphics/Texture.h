@@ -3,7 +3,7 @@
 
 #pragma once
 
-//#include "Core/Object.h"
+#include "Assets/Asset.h"
 #include "Graphics/GPUResource.h"
 #include <unordered_map>
 
@@ -136,11 +136,11 @@ namespace Alimer
 	class Stream;
 	class Texture;
 
-	class ALIMER_API Texture : public GPUResource, public RefCounted //, public Object
+	class ALIMER_API Texture : public GPUResource, public Asset
 	{
 		friend class TextureView;
 
-		//ALIMER_OBJECT(Texture, Object);
+		ALIMER_OBJECT(Texture, Asset);
 
 	public:
         [[nodiscard]] static TextureRef Create(const TextureCreateInfo& info, const void* initialData = nullptr);

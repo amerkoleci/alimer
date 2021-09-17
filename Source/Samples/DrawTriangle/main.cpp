@@ -18,8 +18,8 @@ struct CameraData
 class HelloWorldApp final : public Application
 {
 private:
-    //GraphicsBuffer vertexBuffer;
-    //BufferHandle indexBuffer;
+    BufferRef vertexBuffer;
+    BufferRef indexBuffer;
     PipelineRef renderPipeline;
 
     float rotationX = 0.0f;
@@ -41,19 +41,21 @@ public:
 
     bool Initialize() override
     {
-#if TODO
         const float vertices[] = {
             /* positions            colors */
-             0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
-             0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
+            -0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
+             0.5f,  0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+             0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f,     1.0f, 1.0f, 0.0f, 1.0f,
         };
-        BufferDesc bufferDesc;
-        bufferDesc.size = sizeof(vertices);
-        bufferDesc.usage = BufferUsage::Vertex;
-        bufferDesc.label = "VertexBuffer";
-        vertexBuffer.Create(bufferDesc, vertices);
+        const uint16_t indices[] = {
+            0, 1, 2,    /* first triangle */
+            0, 2, 3,    /* second triangle */
+        };
+        vertexBuffer = Buffer::Create(sizeof(vertices), BufferUsage::Vertex, vertices, "VertexBuffer");
+        indexBuffer = Buffer::Create(sizeof(indices), BufferUsage::Index, indices, "IndexBuffer");
 
+#if TODO
         bufferDesc.size = sizeof(indices);
         bufferDesc.usage = BufferUsage::Index;
         bufferDesc.label = "IndexBuffer";
@@ -61,20 +63,21 @@ public:
 
         SamplerDesc samplerDesc;
         auto test = Sampler::Create(samplerDesc);
+#endif
 
         static const char* shaderSource = R"(
 struct VSInput 
 { 
     float3 Position : ATTRIBUTE0;
     float4 Color : ATTRIBUTE1;
-    float2 TexCoord : ATTRIBUTE2;
+    //float2 TexCoord : ATTRIBUTE2;
 };
 
 struct PSInput 
 { 
     float4 Position : SV_POSITION;
     float4 Color : COLOR;
-    float2 TexCoord : TEXCOORD0;
+    //float2 TexCoord : TEXCOORD0;
 };
 
 struct DrawData
@@ -82,15 +85,16 @@ struct DrawData
     float4x4 world;
 };
 
-ConstantBuffer<DrawData> draw : register(b0);
+//ConstantBuffer<DrawData> draw : register(b0);
 
 PSInput vertex_main(in VSInput input) 
 {
     PSInput output;
-    float4x4 worldViewProjection = draw.world; // mul(camera.viewProjection, draw.world);
-    output.Position = mul(worldViewProjection, float4(input.Position, 1));
+    //float4x4 worldViewProjection = draw.world; // mul(camera.viewProjection, draw.world);
+    //output.Position = mul(worldViewProjection, float4(input.Position, 1));
+    output.Position = float4(input.Position, 1);
     output.Color    = input.Color;
-    output.TexCoord = input.TexCoord;
+    //output.TexCoord = input.TexCoord;
     return output;
 }
 
@@ -104,18 +108,16 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         ShaderRef vertexShader = Shader::Create(ShaderStages::Vertex, shaderSource, "vertex_main");
         ShaderRef pixelShader = Shader::Create(ShaderStages::Pixel, shaderSource, "pixel_main");
 
-        RenderPipelineDesc renderPipelineDesc;
-        renderPipelineDesc.vertex = vertexShader;
-        renderPipelineDesc.pixel = pixelShader;
+        RenderPipelineStateCreateInfo renderPipelineDesc;
+        renderPipelineDesc.vertexShader = vertexShader;
+        renderPipelineDesc.pixelShader = pixelShader;
 
-        renderPipelineDesc.vertexLayout.attributes[0].format = VertexFormat::Float3;
-        renderPipelineDesc.vertexLayout.attributes[1].format = VertexFormat::Float4;
-        renderPipelineDesc.vertexLayout.attributes[2].format = VertexFormat::Float2;
-        renderPipelineDesc.colorFormats[0] = gGraphics().GetCurrentBackBuffer()->GetFormat();
-        renderPipelineDesc.depthStencilFormat = gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
+        renderPipelineDesc.vertexLayout.attributes[0].format = VertexFormat::Float32x3;
+        renderPipelineDesc.vertexLayout.attributes[1].format = VertexFormat::Float32x4;
+        //renderPipelineDesc.vertexLayout.attributes[2].format = VertexFormat::Float2;
+        renderPipelineDesc.colorFormats[0] = PixelFormat::BGRA8UnormSrgb;// gGraphics().GetCurrentBackBuffer()->GetFormat();
+        renderPipelineDesc.depthStencilFormat = PixelFormat::Undefined; // gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
         renderPipeline = Pipeline::Create(renderPipelineDesc);
-#endif // TODO
-
         return true;
     }
 
@@ -137,11 +139,12 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
         drawData.world = Float4x4::Multiply(drawData.world, cameraData.viewProjection);
 
-        //commandList->SetVertexBuffer(0, vertexBuffer.Get());
-        //commandList->SetIndexBuffer(indexBuffer.Get(), 0, IndexType::UInt16);
-        //commandList->SetPipeline(renderPipeline.Get());
+        context.SetVertexBuffer(0, vertexBuffer.Get());
+        context.SetIndexBuffer(indexBuffer.Get(), IndexType::UInt16, 0);
+        context.SetPipeline(renderPipeline.Get());
+        context.DrawIndexed(6);
         //commandList->BindConstantBufferData(drawData, 0);
-        //commandList->DrawIndexed(36);
+        //context.DrawIndexed(36);
     }
 };
 

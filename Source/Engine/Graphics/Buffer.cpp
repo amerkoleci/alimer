@@ -32,15 +32,15 @@ namespace Alimer
         return gGraphics().CreateBuffer(createInfo, initialData);
     }
 
-    BufferRef Buffer::Create(const void* data, BufferUsage usage, uint64_t size, const char* label)
+    BufferRef Buffer::Create(uint64_t size, BufferUsage usage, const void* data, const char* label)
 	{
         ALIMER_ASSERT(data != nullptr);
 		ALIMER_ASSERT(gGraphics().IsInitialized());
 
         BufferCreateInfo info;
         info.label = label;
-        info.usage = usage;
         info.size = size;
+        info.usage = usage;
 		return gGraphics().CreateBuffer(&info, data);
 	}
 
@@ -50,7 +50,7 @@ namespace Alimer
 
         BufferCreateInfo info;
         info.label = label;
-        info.heapType = HeapType::Upload;
+        info.cpuAccess = CpuAccessMode::Write;
         info.size = size;
         return Create(&info, nullptr);
     }
@@ -61,7 +61,7 @@ namespace Alimer
 
         BufferCreateInfo info;
         info.label = label;
-        info.heapType = HeapType::Readback;
+        info.cpuAccess = CpuAccessMode::Read;
         info.size = size;
         return Create(&info, nullptr);
     }

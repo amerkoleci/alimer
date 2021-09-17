@@ -7,12 +7,12 @@
 
 namespace Alimer
 {
-    void GPUObjectOld::OnCreated()
+    void GPUResource::OnCreated()
     {
         gGraphics().AddGPUObject(this);
     }
 
-    void GPUObjectOld::OnDestroyed()
+    void GPUResource::OnDestroyed()
     {
         gGraphics().RemoveGPUObject(this);
     }

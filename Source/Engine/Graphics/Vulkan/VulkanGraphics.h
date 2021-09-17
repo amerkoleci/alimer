@@ -76,10 +76,6 @@ namespace Alimer
 
 		void SetObjectName(VkObjectType type, uint64_t handle, const std::string_view& name);
 
-		VkFence AcquireFence();
-		void ReleaseFence(VkFence fence);
-		void SubmitFence(VkFence fence);
-
         VulkanUploadContext UploadBegin(uint64_t size);
         void UploadEnd(VulkanUploadContext context);
 
@@ -118,8 +114,8 @@ namespace Alimer
 
         TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) override;
 		BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) override;
-        ShaderRef CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint) override;
-		SamplerRef CreateSampler(const SamplerCreateInfo* info) override;
+        ShaderRef CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint) override;
+		SamplerRef CreateSampler(const SamplerDesc& desc) override;
 		PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) override;
 		PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) override;
         SwapChainRef CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info) override;
@@ -194,6 +190,7 @@ namespace Alimer
                     presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
                     presentInfo.pSwapchains = submitVkSwapchains.data();
                     presentInfo.pImageIndices = submit_swapChainImageIndices.data();
+                    presentInfo.pResults = submit_swapChainResults.data();
                     vkQueuePresentKHR(queue, &presentInfo);
 
                     for (size_t i = 0; i < submit_swapchains.size(); ++i)
@@ -266,10 +263,6 @@ namespace Alimer
         {
             return commandLists[cmd][(uint8_t)commandListMeta[cmd].queue].get();
         }
-
-		std::mutex fenceMutex;
-		std::set<VkFence> allFences;
-		std::queue<VkFence> availableFences;
 
 		// Caches
 		std::mutex renderPassCacheMutex;

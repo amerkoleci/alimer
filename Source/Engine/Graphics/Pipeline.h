@@ -104,7 +104,7 @@ namespace Alimer
 
 	struct VertexAttribute
 	{
-		VertexFormat format = VertexFormat::Invalid;
+		VertexFormat format = VertexFormat::Undefined;
 		uint32_t offset = 0;
         uint32_t bufferIndex = 0;
 	};
@@ -160,7 +160,7 @@ namespace Alimer
     {
 		const char* label = nullptr;
 		Shader* vertexShader;
-		Shader* fragmentShader = nullptr;
+		Shader* pixelShader = nullptr;
 
         VertexLayout        vertexLayout;
         BlendState          blendState;

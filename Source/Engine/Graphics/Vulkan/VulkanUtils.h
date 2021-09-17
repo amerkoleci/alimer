@@ -4,7 +4,8 @@
 #pragma once
 
 #include "Core/Log.h"
-#include "Graphics/GraphicsDefs.h"
+#include "Graphics/Buffer.h"
+#include "Graphics/Sampler.h"
 #define NOMINMAX
 #include "volk.h"
 #include "vk_mem_alloc.h"
@@ -17,57 +18,55 @@
 
 namespace Alimer
 {
-	class VulkanGraphics;
-	class VulkanBuffer;
-	class VulkanTexture;
-	class VulkanTextureView;
-	class VulkanSwapChain;
-	class VulkanShader;
-	class VulkanDescriptorSetLayout;
-	class VulkanPipelineLayout;
-	class VulkanPipeline;
-	class VulkanCommandBuffer;
+    class VulkanGraphics;
+    class VulkanTexture;
+    class VulkanTextureView;
+    class VulkanShader;
+    class VulkanDescriptorSetLayout;
+    class VulkanPipelineLayout;
+    class VulkanPipeline;
+    class VulkanCommandBuffer;
 
-	static constexpr uint32_t kVulkanBindingShift_CBV = 0;
-	static constexpr uint32_t kVulkanBindingShift_SRV = 1000;
-	static constexpr uint32_t kVulkanBindingShift_UAV = 2000;
-	static constexpr uint32_t kVulkanBindingShift_Sampler = 3000;
+    static constexpr uint32_t kVulkanBindingShift_CBV = 0;
+    static constexpr uint32_t kVulkanBindingShift_SRV = 1000;
+    static constexpr uint32_t kVulkanBindingShift_UAV = 2000;
+    static constexpr uint32_t kVulkanBindingShift_Sampler = 3000;
 
-	constexpr const char* ToString(VkResult result)
-	{
-		switch (result)
-		{
+    constexpr const char* ToString(VkResult result)
+    {
+        switch (result)
+        {
 #define STR(r)   \
 	case VK_##r: \
 		return #r
-			STR(NOT_READY);
-			STR(TIMEOUT);
-			STR(EVENT_SET);
-			STR(EVENT_RESET);
-			STR(INCOMPLETE);
-			STR(ERROR_OUT_OF_HOST_MEMORY);
-			STR(ERROR_OUT_OF_DEVICE_MEMORY);
-			STR(ERROR_INITIALIZATION_FAILED);
-			STR(ERROR_DEVICE_LOST);
-			STR(ERROR_MEMORY_MAP_FAILED);
-			STR(ERROR_LAYER_NOT_PRESENT);
-			STR(ERROR_EXTENSION_NOT_PRESENT);
-			STR(ERROR_FEATURE_NOT_PRESENT);
-			STR(ERROR_INCOMPATIBLE_DRIVER);
-			STR(ERROR_TOO_MANY_OBJECTS);
-			STR(ERROR_FORMAT_NOT_SUPPORTED);
-			STR(ERROR_SURFACE_LOST_KHR);
-			STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-			STR(SUBOPTIMAL_KHR);
-			STR(ERROR_OUT_OF_DATE_KHR);
-			STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-			STR(ERROR_VALIDATION_FAILED_EXT);
-			STR(ERROR_INVALID_SHADER_NV);
+            STR(NOT_READY);
+            STR(TIMEOUT);
+            STR(EVENT_SET);
+            STR(EVENT_RESET);
+            STR(INCOMPLETE);
+            STR(ERROR_OUT_OF_HOST_MEMORY);
+            STR(ERROR_OUT_OF_DEVICE_MEMORY);
+            STR(ERROR_INITIALIZATION_FAILED);
+            STR(ERROR_DEVICE_LOST);
+            STR(ERROR_MEMORY_MAP_FAILED);
+            STR(ERROR_LAYER_NOT_PRESENT);
+            STR(ERROR_EXTENSION_NOT_PRESENT);
+            STR(ERROR_FEATURE_NOT_PRESENT);
+            STR(ERROR_INCOMPATIBLE_DRIVER);
+            STR(ERROR_TOO_MANY_OBJECTS);
+            STR(ERROR_FORMAT_NOT_SUPPORTED);
+            STR(ERROR_SURFACE_LOST_KHR);
+            STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
+            STR(SUBOPTIMAL_KHR);
+            STR(ERROR_OUT_OF_DATE_KHR);
+            STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
+            STR(ERROR_VALIDATION_FAILED_EXT);
+            STR(ERROR_INVALID_SHADER_NV);
 #undef STR
-		default:
-			return "UNKNOWN_ERROR";
-		}
-	}
+        default:
+            return "UNKNOWN_ERROR";
+        }
+    }
 
     [[nodiscard]] constexpr VkFormat ToVulkanFormat(PixelFormat format)
     {
@@ -295,198 +294,233 @@ namespace Alimer
         }
     }
 
-	[[nodiscard]] constexpr VkCompareOp ToVkCompareOp(CompareFunction function)
-	{
-		switch (function)
-		{
-		case CompareFunction::Never:
-			return VK_COMPARE_OP_NEVER;
-		case CompareFunction::Less:
-			return VK_COMPARE_OP_LESS;
-		case CompareFunction::Equal:
-			return VK_COMPARE_OP_EQUAL;
-		case CompareFunction::LessEqual:
-			return VK_COMPARE_OP_LESS_OR_EQUAL;
-		case CompareFunction::Greater:
-			return VK_COMPARE_OP_GREATER;
-		case CompareFunction::NotEqual:
-			return VK_COMPARE_OP_NOT_EQUAL;
-		case CompareFunction::GreaterEqual:
-			return VK_COMPARE_OP_GREATER_OR_EQUAL;
-		case CompareFunction::Always:
-			return VK_COMPARE_OP_ALWAYS;
+    [[nodiscard]] constexpr VkCompareOp ToVkCompareOp(CompareFunction function)
+    {
+        switch (function)
+        {
+        case CompareFunction::Never:
+            return VK_COMPARE_OP_NEVER;
+        case CompareFunction::Less:
+            return VK_COMPARE_OP_LESS;
+        case CompareFunction::Equal:
+            return VK_COMPARE_OP_EQUAL;
+        case CompareFunction::LessEqual:
+            return VK_COMPARE_OP_LESS_OR_EQUAL;
+        case CompareFunction::Greater:
+            return VK_COMPARE_OP_GREATER;
+        case CompareFunction::NotEqual:
+            return VK_COMPARE_OP_NOT_EQUAL;
+        case CompareFunction::GreaterEqual:
+            return VK_COMPARE_OP_GREATER_OR_EQUAL;
+        case CompareFunction::Always:
+            return VK_COMPARE_OP_ALWAYS;
 
-		default:
-			ALIMER_UNREACHABLE();
-			return VK_COMPARE_OP_MAX_ENUM;
-		}
-	}
+        default:
+            ALIMER_UNREACHABLE();
+            return VK_COMPARE_OP_MAX_ENUM;
+        }
+    }
 
     [[nodiscard]] constexpr VkSampleCountFlagBits VulkanSampleCount(SampleCount count)
     {
         switch (count)
         {
-            case SampleCount::Count1:
-                return VK_SAMPLE_COUNT_1_BIT;
-            case SampleCount::Count2:
-                return VK_SAMPLE_COUNT_2_BIT;
-            case SampleCount::Count4:
-                return VK_SAMPLE_COUNT_4_BIT;
-            case SampleCount::Count8:
-                return VK_SAMPLE_COUNT_8_BIT;
-            case SampleCount::Count16:
-                return VK_SAMPLE_COUNT_16_BIT;
-            case SampleCount::Count32:
-                return VK_SAMPLE_COUNT_32_BIT;
+        case SampleCount::Count1:
+            return VK_SAMPLE_COUNT_1_BIT;
+        case SampleCount::Count2:
+            return VK_SAMPLE_COUNT_2_BIT;
+        case SampleCount::Count4:
+            return VK_SAMPLE_COUNT_4_BIT;
+        case SampleCount::Count8:
+            return VK_SAMPLE_COUNT_8_BIT;
+        case SampleCount::Count16:
+            return VK_SAMPLE_COUNT_16_BIT;
+        case SampleCount::Count32:
+            return VK_SAMPLE_COUNT_32_BIT;
 
-            default:
-                ALIMER_UNREACHABLE();
-                return VK_SAMPLE_COUNT_1_BIT;
+        default:
+            ALIMER_UNREACHABLE();
+            return VK_SAMPLE_COUNT_1_BIT;
         }
     }
 
-	[[nodiscard]] constexpr VkAttachmentLoadOp ToVulkan(LoadAction action)
-	{
-		switch (action) {
-		case LoadAction::Load:
-			return VK_ATTACHMENT_LOAD_OP_LOAD;
-		case LoadAction::Clear:
-			return VK_ATTACHMENT_LOAD_OP_CLEAR;
-		case LoadAction::Discard:
-			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		default:
-			ALIMER_UNREACHABLE();
-			return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
-		}
-	}
+    [[nodiscard]] constexpr VkAttachmentLoadOp ToVulkan(LoadAction action)
+    {
+        switch (action) {
+        case LoadAction::Load:
+            return VK_ATTACHMENT_LOAD_OP_LOAD;
+        case LoadAction::Clear:
+            return VK_ATTACHMENT_LOAD_OP_CLEAR;
+        case LoadAction::Discard:
+            return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        default:
+            ALIMER_UNREACHABLE();
+            return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+        }
+    }
 
-	[[nodiscard]] constexpr VkAttachmentStoreOp ToVulkan(StoreAction action)
-	{
-		switch (action) {
-		case StoreAction::Store:
-			return VK_ATTACHMENT_STORE_OP_STORE;
-		case StoreAction::Discard:
-			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		default:
-			ALIMER_UNREACHABLE();
-			return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
-		}
-	}
+    [[nodiscard]] constexpr VkAttachmentStoreOp ToVulkan(StoreAction action)
+    {
+        switch (action) {
+        case StoreAction::Store:
+            return VK_ATTACHMENT_STORE_OP_STORE;
+        case StoreAction::Discard:
+            return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        default:
+            ALIMER_UNREACHABLE();
+            return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+        }
+    }
 
-	[[nodiscard]] inline VkShaderStageFlags ToVulkan(ShaderStages stage)
-	{
-		switch (stage) {
-		case ShaderStages::Vertex:
-			return VK_SHADER_STAGE_VERTEX_BIT;
-		case ShaderStages::Pixel:
-			return VK_SHADER_STAGE_FRAGMENT_BIT;
-		case ShaderStages::Compute:
-			return VK_SHADER_STAGE_COMPUTE_BIT;
-		default:
-			ALIMER_UNREACHABLE();
-			return 0;
-		}
-	}
+    [[nodiscard]] inline VkShaderStageFlags ToVulkan(ShaderStages stage)
+    {
+        switch (stage) {
+        case ShaderStages::Vertex:
+            return VK_SHADER_STAGE_VERTEX_BIT;
+        case ShaderStages::Pixel:
+            return VK_SHADER_STAGE_FRAGMENT_BIT;
+        case ShaderStages::Compute:
+            return VK_SHADER_STAGE_COMPUTE_BIT;
+        default:
+            ALIMER_UNREACHABLE();
+            return 0;
+        }
+    }
 
-	[[nodiscard]] inline VkShaderStageFlags ToVulkanStageFlags(ShaderStages stage)
-	{
-		if (stage == ShaderStages::All)
-		{
-			return VK_SHADER_STAGE_ALL;
-		}
+    [[nodiscard]] inline VkShaderStageFlags ToVulkanStageFlags(ShaderStages stage)
+    {
+        if (stage == ShaderStages::All)
+        {
+            return VK_SHADER_STAGE_ALL;
+        }
 
-		VkShaderStageFlags vkStage = 0u;
-		
-		if (CheckBitsAny(stage, ShaderStages::Vertex))
-		{
-			vkStage |= VK_SHADER_STAGE_VERTEX_BIT;
-		}
-		if (CheckBitsAny(stage, ShaderStages::Pixel))
-		{
-			vkStage |= VK_SHADER_STAGE_FRAGMENT_BIT;
-		}
-		if (CheckBitsAny(stage, ShaderStages::Compute))
-		{
-			vkStage |= VK_SHADER_STAGE_COMPUTE_BIT;
-		}
+        VkShaderStageFlags vkStage = 0u;
 
-		return vkStage;
-	}
+        if (CheckBitsAny(stage, ShaderStages::Vertex))
+        {
+            vkStage |= VK_SHADER_STAGE_VERTEX_BIT;
+        }
+        if (CheckBitsAny(stage, ShaderStages::Pixel))
+        {
+            vkStage |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+        if (CheckBitsAny(stage, ShaderStages::Compute))
+        {
+            vkStage |= VK_SHADER_STAGE_COMPUTE_BIT;
+        }
 
-	constexpr VkImageAspectFlags GetVkImageAspectFlags(PixelFormat format, bool ignoreStencil = false)
-	{
-		VkImageAspectFlags flags = VK_IMAGE_ASPECT_COLOR_BIT;
-		if (IsDepthStencilFormat(format))
-		{
-			flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        return vkStage;
+    }
 
-			if (ignoreStencil == false && IsStencilFormat(format))
-			{
-				flags |= VK_IMAGE_ASPECT_STENCIL_BIT;
-			}
-		}
+    constexpr VkImageAspectFlags GetVkImageAspectFlags(PixelFormat format, bool ignoreStencil = false)
+    {
+        VkImageAspectFlags flags = VK_IMAGE_ASPECT_COLOR_BIT;
+        if (IsDepthStencilFormat(format))
+        {
+            flags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-		return flags;
-	}
+            if (ignoreStencil == false && IsStencilFormat(format))
+            {
+                flags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+        }
 
-	[[nodiscard]] constexpr bool IsDynamicBuffer(VkDescriptorType type)
-	{
-		return
-			type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-			type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	}
+        return flags;
+    }
 
-	[[nodiscard]] constexpr bool IsBuffer(VkDescriptorType type)
-	{
-		return
-			type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-			type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-			IsDynamicBuffer(type);
-	}
+    [[nodiscard]] constexpr bool IsDynamicBuffer(VkDescriptorType type)
+    {
+        return
+            type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+            type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    }
 
-	struct VulkanAttachmentDescription
-	{
-		PixelFormat format;
-		LoadAction loadAction;
-		StoreAction storeAction;
-	};
+    [[nodiscard]] constexpr bool IsBuffer(VkDescriptorType type)
+    {
+        return
+            type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+            type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+            IsDynamicBuffer(type);
+    }
 
-	struct VulkanRenderPassKey
-	{
+    struct VulkanAttachmentDescription
+    {
+        PixelFormat format;
+        LoadAction loadAction;
+        StoreAction storeAction;
+        VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    };
+
+    struct VulkanRenderPassKey
+    {
         uint32_t colorAttachmentCount = 0;
-		VulkanAttachmentDescription colorAttachments[kMaxColorAttachments] = {};
-		VulkanAttachmentDescription depthStencilAttachment = {};
-		SampleCount sampleCount = SampleCount::Count1;
+        VulkanAttachmentDescription colorAttachments[kMaxColorAttachments] = {};
+        VulkanAttachmentDescription depthStencilAttachment = {};
+        SampleCount sampleCount = SampleCount::Count1;
 
-		size_t GetHash() const
-		{
-			if (hash == 0)
-			{
-				HashCombine(hash, colorAttachmentCount, (uint32_t)sampleCount);
-				HashCombine(hash, depthStencilAttachment.format, depthStencilAttachment.loadAction, depthStencilAttachment.storeAction);
+        size_t GetHash() const
+        {
+            if (hash == 0)
+            {
+                HashCombine(hash, colorAttachmentCount, (uint32_t)sampleCount);
+                HashCombine(hash, depthStencilAttachment.format, depthStencilAttachment.loadAction, depthStencilAttachment.storeAction);
 
-				for (uint32_t i = 0; i < colorAttachmentCount; ++i)
-				{
-					HashCombine(hash, colorAttachments[i].format, colorAttachments[i].loadAction, colorAttachments[i].storeAction);
-				}
-			}
+                for (uint32_t i = 0; i < colorAttachmentCount; ++i)
+                {
+                    HashCombine(hash, colorAttachments[i].format, colorAttachments[i].loadAction, colorAttachments[i].storeAction);
+                    HashCombine(hash, colorAttachments[i].initialLayout, colorAttachments[i].finalLayout);
+                }
+            }
 
-			return hash;
-		}
+            return hash;
+        }
 
-	private:
-		mutable size_t hash = 0;
-	};
+    private:
+        mutable size_t hash = 0;
+    };
 
-	struct VulkanFboKey
-	{
-		VkRenderPass renderPass;
-		uint32_t attachmentCount = 0;
-		VkImageView attachments[kMaxColorAttachments + 1] = {};
-		uint32_t width;
-		uint32_t height;
-		uint32_t layers;
-	};
+    struct VulkanFboKey
+    {
+        VkRenderPass renderPass;
+        uint32_t attachmentCount = 0;
+        VkImageView attachments[kMaxColorAttachments + 1] = {};
+        uint32_t width;
+        uint32_t height;
+        uint32_t layers;
+    };
+
+    struct VulkanBuffer final : public Buffer
+    {
+        VulkanGraphics* device = nullptr;
+        VkBuffer handle = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        uint64_t allocatedSize = 0;
+        uint64_t deviceAddress = 0;
+        uint8_t* mappedData = nullptr;
+
+        VulkanBuffer(const BufferCreateInfo* info);
+        ~VulkanBuffer() override;
+        void Destroy() override;
+
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
+        uint64_t GetDeviceAddress() const override { return deviceAddress; }
+        uint8_t* MappedData() const override { return mappedData; }
+    };
+
+    struct VulkanSampler final : public Sampler
+    {
+        VulkanGraphics* device = nullptr;
+        VkSampler handle = VK_NULL_HANDLE;
+
+        ~VulkanSampler() override;
+    };
+
+
+    constexpr const VulkanBuffer* ToVulkan(const Buffer* resource)
+    {
+        return static_cast<const VulkanBuffer*>(resource);
+    }
 }
 
 /// Helper macro to test the result of Vulkan calls which can return an error.

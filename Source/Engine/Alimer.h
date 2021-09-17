@@ -20,12 +20,13 @@
 #include "Math/Vector4.h"
 #include "Math/Quaternion.h"
 #include "Math/Color.h"
-//#include "Math/Rect.h"
+#include "Math/Rect.h"
 #include "Math/Matrix.h"
 
 // Graphics
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
+#include "Graphics/Shader.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/SwapChain.h"

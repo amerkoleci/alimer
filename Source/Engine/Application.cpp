@@ -88,6 +88,9 @@ namespace Alimer
 
         // Init graphics module
         ValidationMode validationMode = ValidationMode::Disabled;
+#ifdef _DEBUG
+        //validationMode = ValidationMode::Enabled;
+#endif
 
         if (CommandLine::HasArgument("gpu-debug"))
         {

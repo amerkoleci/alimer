@@ -39,20 +39,22 @@ namespace Alimer
 	class ALIMER_API Shader : public GPUObjectOld, public RefCounted
 	{
 	public:
-		static ShaderRef Create(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint = "main");
+        /// Create new shader from source.
+        [[nodiscard]] static ShaderRef Create(ShaderStages stage, const std::string& source, const std::string& entryPoint = "main");
+
+        /// Create new shader from bytecode.
+        [[nodiscard]] static ShaderRef Create(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint = "main");
 
         ShaderStages GetStage() const noexcept { return stage; }
 		const std::string& GetEntryPoint() const { return entryPoint; }
-		const std::vector<uint8_t>& GetByteCode() const { return byteCode; }
 		const std::vector<ShaderResource>& GetResources() const { return resources; }
 		size_t GetHash() const { return hash; }
 
 	protected:
 		/// Constructor.
-		Shader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint);
+		Shader(ShaderStages stage, const std::string& entryPoint);
 
         ShaderStages stage;
-		std::vector<uint8_t> byteCode;
 		std::string entryPoint;
 		std::vector<ShaderResource> resources;
 		size_t hash = 0;

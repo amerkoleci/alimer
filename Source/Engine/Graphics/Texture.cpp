@@ -30,7 +30,7 @@ namespace Alimer
     {
         for (auto it : views)
         {
-            //SafeDelete(it.second);
+            delete it.second;
         }
         views.clear();
     }

@@ -135,8 +135,10 @@ namespace Alimer
 		virtual void PushConstants(const void* data, uint32_t size) = 0;
 
 		virtual void SetPipeline(const Pipeline* pipeline) = 0;
-		void Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t baseInstance = 0);
+		void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t baseVertex = 0, uint32_t firstInstance = 0);
+        void DrawIndirect(_In_ Buffer* indirectBuffer, uint64_t indirectOffset);
+        void DrawIndexedIndirect(_In_ Buffer* indirectBuffer, uint64_t indirectOffset);
 
 	private:
 		virtual void UpdateBufferCore(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size) = 0;
@@ -151,8 +153,10 @@ namespace Alimer
 		virtual void BindBufferCore(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) = 0;
 		virtual void SetTextureCore(uint32_t set, uint32_t binding, const TextureView* texture) = 0;
 
-		virtual void DrawCore(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) = 0;
+		virtual void DrawCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 		virtual void DrawIndexedCore(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;
+        virtual void DrawIndirectCore(_In_ Buffer* indirectBuffer, uint64_t indirectOffset) = 0;
+        virtual void DrawIndexedIndirectCore(_In_ Buffer* indirectBuffer, uint64_t indirectOffset) = 0;
 
 	protected:
 		CommandBuffer() = default;

@@ -57,71 +57,66 @@ namespace Alimer
 		{
 			switch (format)
 			{
-			//case VertexFormat::UChar2:
-			//	return VK_FORMAT_R8G8_UINT;
-			//case VertexFormat::UChar4:
-			//	return VK_FORMAT_R8G8B8A8_UINT;
-			//case VertexFormat::Char2:
-			//	return VK_FORMAT_R8G8_SINT;
-			//case VertexFormat::Char4:
-			//	return VK_FORMAT_R8G8B8A8_SINT;
-			//case VertexFormat::UChar2Norm:
-			//	return VK_FORMAT_R8G8_UNORM;
-			//case VertexFormat::UChar4Norm:
-			//	return VK_FORMAT_R8G8B8A8_UNORM;
-			//case VertexFormat::Char2Norm:
-			//	return VK_FORMAT_R8G8_SNORM;
-			//case VertexFormat::Char4Norm:
-			//	return VK_FORMAT_R8G8B8A8_SNORM;
-			case VertexFormat::UShort2:
-				return VK_FORMAT_R16G16_UINT;
-			case VertexFormat::UShort4:
-				return VK_FORMAT_R16G16B16A16_UINT;
-			case VertexFormat::Short2:
-				return VK_FORMAT_R16G16_SINT;
-			case VertexFormat::Short4:
-				return VK_FORMAT_R16G16B16A16_SINT;
-			case VertexFormat::UShort2Norm:
-				return VK_FORMAT_R16G16_UNORM;
-			case VertexFormat::UShort4Norm:
-				return VK_FORMAT_R16G16B16A16_UNORM;
-			case VertexFormat::Short2Norm:
-				return VK_FORMAT_R16G16_SNORM;
-			case VertexFormat::Short4Norm:
-				return VK_FORMAT_R16G16B16A16_SNORM;
-			case VertexFormat::Half2:
-				return VK_FORMAT_R16G16_SFLOAT;
-			case VertexFormat::Half4:
-				return VK_FORMAT_R16G16B16A16_SFLOAT;
-
-			case VertexFormat::Float:
-				return VK_FORMAT_R32_SFLOAT;
-			case VertexFormat::Float2:
-				return VK_FORMAT_R32G32_SFLOAT;
-			case VertexFormat::Float3:
-				return VK_FORMAT_R32G32B32_SFLOAT;
-			case VertexFormat::Float4:
-				return VK_FORMAT_R32G32B32A32_SFLOAT;
-
-			case VertexFormat::UInt:
-				return VK_FORMAT_R32_UINT;
-			case VertexFormat::UInt2:
-				return VK_FORMAT_R32G32_UINT;
-			case VertexFormat::UInt3:
-				return VK_FORMAT_R32G32B32_UINT;
-			case VertexFormat::UInt4:
-				return VK_FORMAT_R32G32B32A32_UINT;
-
-			case VertexFormat::Int:
-				return VK_FORMAT_R32_SINT;
-			case VertexFormat::Int2:
-				return VK_FORMAT_R32G32_SINT;
-			case VertexFormat::Int3:
-				return VK_FORMAT_R32G32B32_SINT;
-			case VertexFormat::Int4:
-				return VK_FORMAT_R32G32B32A32_SINT;
-			case VertexFormat::RGB10A2Unorm:
-				return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case VertexFormat::Uint8x2:
+                return VK_FORMAT_R8G8_UINT;
+            case VertexFormat::Uint8x4:
+                return VK_FORMAT_R8G8B8A8_UINT;
+            case VertexFormat::Sint8x2:
+                return VK_FORMAT_R8G8_SINT;
+            case VertexFormat::Sint8x4:
+                return VK_FORMAT_R8G8B8A8_SINT;
+            case VertexFormat::Unorm8x2:
+                return VK_FORMAT_R8G8_UNORM;
+            case VertexFormat::Unorm8x4:
+                return VK_FORMAT_R8G8B8A8_UNORM;
+            case VertexFormat::Snorm8x2:
+                return VK_FORMAT_R8G8_SNORM;
+            case VertexFormat::Snorm8x4:
+                return VK_FORMAT_R8G8B8A8_SNORM;
+            case VertexFormat::Uint16x2:
+                return VK_FORMAT_R16G16_UINT;
+            case VertexFormat::Uint16x4:
+                return VK_FORMAT_R16G16B16A16_UINT;
+            case VertexFormat::Sint16x2:
+                return VK_FORMAT_R16G16_SINT;
+            case VertexFormat::Sint16x4:
+                return VK_FORMAT_R16G16B16A16_SINT;
+            case VertexFormat::Unorm16x2:
+                return VK_FORMAT_R16G16_UNORM;
+            case VertexFormat::Unorm16x4:
+                return VK_FORMAT_R16G16B16A16_UNORM;
+            case VertexFormat::Snorm16x2:
+                return VK_FORMAT_R16G16_SNORM;
+            case VertexFormat::Snorm16x4:
+                return VK_FORMAT_R16G16B16A16_SNORM;
+            case VertexFormat::Float16x2:
+                return VK_FORMAT_R16G16_SFLOAT;
+            case VertexFormat::Float16x4:
+                return VK_FORMAT_R16G16B16A16_SFLOAT;
+            case VertexFormat::Float32:
+                return VK_FORMAT_R32_SFLOAT;
+            case VertexFormat::Float32x2:
+                return VK_FORMAT_R32G32_SFLOAT;
+            case VertexFormat::Float32x3:
+                return VK_FORMAT_R32G32B32_SFLOAT;
+            case VertexFormat::Float32x4:
+                return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case VertexFormat::Uint32:
+                return VK_FORMAT_R32_UINT;
+            case VertexFormat::Uint32x2:
+                return VK_FORMAT_R32G32_UINT;
+            case VertexFormat::Uint32x3:
+                return VK_FORMAT_R32G32B32_UINT;
+            case VertexFormat::Uint32x4:
+                return VK_FORMAT_R32G32B32A32_UINT;
+            case VertexFormat::Sint32:
+                return VK_FORMAT_R32_SINT;
+            case VertexFormat::Sint32x2:
+                return VK_FORMAT_R32G32_SINT;
+            case VertexFormat::Sint32x3:
+                return VK_FORMAT_R32G32B32_SINT;
+            case VertexFormat::Sint32x4:
+                return VK_FORMAT_R32G32B32A32_SINT;
 
 			default:
 				ALIMER_UNREACHABLE();
@@ -266,9 +261,9 @@ namespace Alimer
 		std::vector<VulkanShader*> shaders;
 		shaders.push_back(ToVulkan(info->vertexShader));
 
-		if (info->fragmentShader != nullptr)
+		if (info->pixelShader != nullptr)
 		{
-			shaders.push_back(ToVulkan(info->fragmentShader));
+			shaders.push_back(ToVulkan(info->pixelShader));
 		}
 
 		pipelineLayout = &device.RequestPipelineLayout(shaders);
@@ -292,7 +287,7 @@ namespace Alimer
 
 		for (uint32_t index = 0; index < kMaxVertexAttributes; index++) {
 			const VertexAttribute* attribute = &info->vertexLayout.attributes[index];
-			if (attribute->format == VertexFormat::Invalid) {
+			if (attribute->format == VertexFormat::Undefined) {
 				continue;
 			}
 
@@ -417,8 +412,11 @@ namespace Alimer
 		inputAssemblyState.topology = ToVulkan(info->primitiveTopology);
 		inputAssemblyState.primitiveRestartEnable = EnablePrimitiveRestart(info->primitiveTopology);
 
-		VkPipelineTessellationStateCreateInfo tessellationState = {};
+		VkPipelineTessellationStateCreateInfo tessellationState;
 		tessellationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+        tessellationState.pNext = nullptr;
+        tessellationState.flags = 0;
+        tessellationState.patchControlPoints = info->patchControlPoints;
 
 		VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -439,30 +437,6 @@ namespace Alimer
 		multisampleState.alphaToCoverageEnable = info->blendState.alphaToCoverageEnable;
 		multisampleState.alphaToOneEnable = VK_FALSE;
 
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-			VK_DYNAMIC_STATE_LINE_WIDTH,
-			VK_DYNAMIC_STATE_DEPTH_BIAS,
-			VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-			VK_DYNAMIC_STATE_DEPTH_BOUNDS,
-			VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
-			VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
-			VK_DYNAMIC_STATE_STENCIL_REFERENCE,
-		};
-
-		//if (device.GetCaps().features.variableRateShading)
-		//{
-		//	dynamicStateEnables.push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
-		//}
-
-		VkPipelineDynamicStateCreateInfo dynamicState;
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.pNext = nullptr;
-		dynamicState.flags = 0;
-		dynamicState.pDynamicStates = dynamicStateEnables.data();
-		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-
 		VkGraphicsPipelineCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		createInfo.pNext = nullptr;
@@ -477,7 +451,7 @@ namespace Alimer
 		createInfo.pMultisampleState = &multisampleState;
 		createInfo.pDepthStencilState = &depthStencilState;
 		createInfo.pColorBlendState = &blendState;
-		createInfo.pDynamicState = &dynamicState;
+		createInfo.pDynamicState = &device.dynamicStateInfo;
 		createInfo.layout = pipelineLayout->GetHandle();
 		createInfo.renderPass = device.GetVkRenderPass(renderPassKey);
 		createInfo.subpass = 0;
@@ -495,7 +469,7 @@ namespace Alimer
 			return;
 		}
 
-        OnCreated();
+        //OnCreated();
 
 		if (info->label != nullptr)
 		{
@@ -530,7 +504,7 @@ namespace Alimer
 			return;
 		}
 
-        OnCreated();
+        //OnCreated();
 
 		if (info->label != nullptr)
 		{
@@ -551,7 +525,7 @@ namespace Alimer
 			handle = VK_NULL_HANDLE;
 		}
 
-        OnDestroyed();
+        //OnDestroyed();
 	}
 }
 

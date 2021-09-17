@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "VulkanTexture.h"
-#include "VulkanBuffer.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanGraphics.h"
 
@@ -208,7 +207,7 @@ namespace Alimer
 
                 vkCmdCopyBufferToImage(
                     uploadContext.commandBuffer,
-                    ToVulkan(uploadContext.uploadBuffer)->GetHandle(),
+                    ToVulkan(uploadContext.uploadBuffer)->handle,
                     handle,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     (uint32_t)copyRegions.size(), copyRegions.data());
@@ -265,10 +264,10 @@ namespace Alimer
         OnDestroyed();
     }
 
-    void VulkanTexture::ApiSetName()
-    {
-        device.SetObjectName(VK_OBJECT_TYPE_IMAGE, (uint64_t)handle, name);
-    }
+    //void VulkanTexture::ApiSetName()
+    //{
+    //    device.SetObjectName(VK_OBJECT_TYPE_IMAGE, (uint64_t)handle, name);
+    //}
 
     TextureView* VulkanTexture::CreateView(const TextureViewCreateInfo& createInfo)
     {

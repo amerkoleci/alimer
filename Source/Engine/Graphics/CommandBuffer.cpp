@@ -184,11 +184,11 @@ namespace Alimer
 		SetTextureCore(set, binding, texture);
 	}
 
-	void CommandBuffer::Draw(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+	void CommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 	{
 		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
 
-		DrawCore(vertexStart, vertexCount, instanceCount, baseInstance);
+		DrawCore(vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
 	void CommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
@@ -197,6 +197,22 @@ namespace Alimer
 
 		DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 	}
+
+    void CommandBuffer::DrawIndirect(_In_ Buffer* indirectBuffer, uint64_t indirectOffset)
+    {
+        ALIMER_ASSERT(indirectBuffer);
+        ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+
+        DrawIndirectCore(indirectBuffer, indirectOffset);
+    }
+
+    void CommandBuffer::DrawIndexedIndirect(_In_ Buffer* indirectBuffer, uint64_t indirectOffset)
+    {
+        ALIMER_ASSERT(indirectBuffer);
+        ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+
+        DrawIndexedIndirectCore(indirectBuffer, indirectOffset);
+    }
 
 	GPUAllocation CommandBuffer::ResourceFrameAllocator::Allocate(uint64_t size_, uint64_t alignment)
 	{

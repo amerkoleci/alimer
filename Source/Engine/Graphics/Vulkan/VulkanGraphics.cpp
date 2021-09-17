@@ -1,14 +1,12 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "VulkanBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanShader.h"
 #include "VulkanPipeline.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanSwapChain.h"
-#include "VulkanSampler.h"
 #include "VulkanGraphics.h"
 
 #include "Math/MathHelper.h"
@@ -19,6 +17,24 @@ namespace Alimer
 {
     namespace
     {
+        static_assert(sizeof(Alimer::DispatchIndirectCommand) == sizeof(VkDispatchIndirectCommand), "Size mismatch");
+        static_assert(offsetof(Alimer::DispatchIndirectCommand, x) == offsetof(VkDispatchIndirectCommand, x), "Layout mismatch");
+        static_assert(offsetof(Alimer::DispatchIndirectCommand, y) == offsetof(VkDispatchIndirectCommand, y), "Layout mismatch");
+        static_assert(offsetof(Alimer::DispatchIndirectCommand, z) == offsetof(VkDispatchIndirectCommand, z), "Layout mismatch");
+
+        static_assert(sizeof(Alimer::DrawIndexedIndirectCommand) == sizeof(VkDrawIndexedIndirectCommand), "Size mismatch");
+        static_assert(offsetof(Alimer::DrawIndexedIndirectCommand, indexCount) == offsetof(VkDrawIndexedIndirectCommand, indexCount), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndexedIndirectCommand, instanceCount) == offsetof(VkDrawIndexedIndirectCommand, instanceCount), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndexedIndirectCommand, firstIndex) == offsetof(VkDrawIndexedIndirectCommand, firstIndex), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndexedIndirectCommand, vertexOffset) == offsetof(VkDrawIndexedIndirectCommand, vertexOffset), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndexedIndirectCommand, firstInstance) == offsetof(VkDrawIndexedIndirectCommand, firstInstance), "Layout mismatch");
+
+        static_assert(sizeof(Alimer::DrawIndirectCommand) == sizeof(VkDrawIndirectCommand), "Size mismatch");
+        static_assert(offsetof(Alimer::DrawIndirectCommand, vertexCount) == offsetof(VkDrawIndirectCommand, vertexCount), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndirectCommand, instanceCount) == offsetof(VkDrawIndirectCommand, instanceCount), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndirectCommand, firstVertex) == offsetof(VkDrawIndirectCommand, firstVertex), "Layout mismatch");
+        static_assert(offsetof(Alimer::DrawIndirectCommand, firstInstance) == offsetof(VkDrawIndirectCommand, firstInstance), "Layout mismatch");
+
         VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessengerCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -224,6 +240,71 @@ namespace Alimer
 #else
             return true;
 #endif
+        }
+
+        /* Sampler */
+        [[nodiscard]] constexpr VkFilter ToVulkan(SamplerFilter mode)
+        {
+            switch (mode)
+            {
+            case SamplerFilter::Nearest:
+                return VK_FILTER_NEAREST;
+            case SamplerFilter::Linear:
+                return VK_FILTER_LINEAR;
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_FILTER_MAX_ENUM;
+            }
+        }
+
+        [[nodiscard]] constexpr VkSamplerMipmapMode ToVulkanMipmapMode(SamplerFilter mode)
+        {
+            switch (mode)
+            {
+            case SamplerFilter::Nearest:
+                return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            case SamplerFilter::Linear:
+                return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
+            }
+        }
+
+        [[nodiscard]] constexpr VkSamplerAddressMode ToVulkan(SamplerAddressMode mode)
+        {
+            switch (mode)
+            {
+            case SamplerAddressMode::Wrap:
+                return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            case SamplerAddressMode::Mirror:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+            case SamplerAddressMode::Clamp:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            case SamplerAddressMode::Border:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+            case SamplerAddressMode::MirrorOnce:
+                return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+            }
+        }
+
+        [[nodiscard]] constexpr VkBorderColor ToVulkan(SamplerBorderColor value)
+        {
+            switch (value)
+            {
+            case SamplerBorderColor::TransparentBlack:
+                return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+            case SamplerBorderColor::OpaqueBlack:
+                return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+            case SamplerBorderColor::OpaqueWhite:
+                return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_BORDER_COLOR_MAX_ENUM;
+            }
         }
     }
 
@@ -616,6 +697,8 @@ namespace Alimer
             caps.vendor = VendorIdToAdapterVendor(properties2.properties.vendorID);
             caps.vendorId = properties2.properties.vendorID;
             caps.adapterId = properties2.properties.deviceID;
+
+            shaderFormat = ShaderFormat::SPIRV;
 
             switch (properties2.properties.deviceType)
             {
@@ -1059,6 +1142,7 @@ namespace Alimer
             bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
         }
 
+        OnCreated();
         LOGI("Vulkan graphics backend initialized with success");
     }
 
@@ -1119,15 +1203,6 @@ namespace Alimer
 
         // Shutdown copy allocator.
         copyAllocator.Shutdown();
-
-        {
-            // Destroy all created fences.
-            std::lock_guard<std::mutex> guard(fenceMutex);
-            for (auto fence : allFences)
-            {
-                vkDestroyFence(device, fence, nullptr);
-            }
-        }
 
         // Bindless data
         {
@@ -1265,7 +1340,7 @@ namespace Alimer
                 initLocker.lock();
                 VK_CHECK(vkResetCommandPool(device, frame.initCommandPool, 0));
 
-                VkCommandBufferBeginInfo beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+                VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
                 beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
                 beginInfo.pInheritanceInfo = nullptr; // Optional
 
@@ -1415,7 +1490,276 @@ namespace Alimer
 
     BufferRef VulkanGraphics::CreateBuffer(const BufferCreateInfo* info, const void* initialData)
     {
-        auto result = new VulkanBuffer(*this, info, initialData);
+        RefPtr<VulkanBuffer> buffer(new VulkanBuffer(info));
+        buffer->device = this;
+
+        if (info->handle)
+        {
+            buffer->handle = (VkBuffer)info->handle;
+
+            if (features_1_2.bufferDeviceAddress == VK_TRUE)
+            {
+                VkBufferDeviceAddressInfo info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+                info.buffer = buffer->handle;
+                buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
+            }
+
+            return buffer;
+        }
+
+        VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        createInfo.size = info->size;
+        createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+        if ((info->usage & BufferUsage::Vertex) != 0)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        }
+
+        if ((info->usage & BufferUsage::Index) != 0)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+
+        if ((info->usage & BufferUsage::Constant) != 0)
+        {
+            // Align the buffer size to multiples of the dynamic uniform buffer minimum size
+            uint64_t minAlignment = gGraphics().GetCaps().limits.minConstantBufferOffsetAlignment;
+            createInfo.size = AlignUp(createInfo.size, minAlignment);
+
+            createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        }
+
+        if ((info->usage & BufferUsage::ShaderRead) != 0)
+        {
+            if (info->format == PixelFormat::Undefined)
+            {
+                createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            }
+            else
+            {
+                createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+            }
+        }
+
+        if ((info->usage & BufferUsage::ShaderWrite) != 0)
+        {
+            if (info->format == PixelFormat::Undefined)
+            {
+                createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            }
+            else
+            {
+                createInfo.usage |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+            }
+        }
+
+        if ((info->usage & BufferUsage::Indirect) != 0)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        }
+        if ((info->usage & BufferUsage::RayTracingAccelerationStructure) != 0)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+            createInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+        }
+        if ((info->usage & BufferUsage::RayTracingShaderTable) != 0)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        }
+
+        if (features_1_2.bufferDeviceAddress == VK_TRUE)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        }
+
+        VmaAllocationCreateInfo memoryInfo{};
+        memoryInfo.flags = 0;
+        memoryInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+
+        switch (info->cpuAccess)
+        {
+        case CpuAccessMode::Write:
+            memoryInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+            memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            memoryInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+            break;
+        case CpuAccessMode::Read:
+            memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            memoryInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+            memoryInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            break;
+
+        case CpuAccessMode::None:
+        default:
+            memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+            memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            break;
+        }
+
+        uint32_t sharingIndices[3];
+        if (graphicsQueueFamily != computeQueueFamily
+            || graphicsQueueFamily != copyQueueFamily)
+        {
+            // For buffers, always just use CONCURRENT access modes,
+            // so we don't have to deal with acquire/release barriers in async compute.
+            createInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+
+            sharingIndices[createInfo.queueFamilyIndexCount++] = graphicsQueueFamily;
+
+            if (graphicsQueueFamily != computeQueueFamily)
+            {
+                sharingIndices[createInfo.queueFamilyIndexCount++] = computeQueueFamily;
+            }
+
+            if (graphicsQueueFamily != copyQueueFamily
+                && computeQueueFamily != copyQueueFamily)
+            {
+                sharingIndices[createInfo.queueFamilyIndexCount++] = copyQueueFamily;
+            }
+
+            createInfo.pQueueFamilyIndices = sharingIndices;
+        }
+
+        VmaAllocationInfo allocationInfo{};
+        VkResult result = vmaCreateBuffer(allocator,
+            &createInfo, &memoryInfo,
+            &buffer->handle, &buffer->allocation, &allocationInfo);
+
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create buffer.");
+            return nullptr;
+        }
+
+        if (info->label != nullptr)
+        {
+            SetObjectName(VK_OBJECT_TYPE_BUFFER, (uint64_t)buffer->handle, info->label);
+        }
+
+        buffer->allocatedSize = allocationInfo.size;
+
+        if (createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+        {
+            VkBufferDeviceAddressInfo info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+            info.buffer = buffer->handle;
+            buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
+        }
+
+        if (memoryInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT)
+        {
+            buffer->mappedData = static_cast<uint8_t*>(allocationInfo.pMappedData);
+        }
+
+        if (initialData != nullptr)
+        {
+            VulkanUploadContext context = copyAllocator.Allocate(info->size);
+            memcpy(context.data, initialData, info->size);
+
+            VkBufferMemoryBarrier barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.buffer = buffer->handle;
+            barrier.offset = 0;
+            barrier.size = VK_WHOLE_SIZE;
+
+            vkCmdPipelineBarrier(
+                context.commandBuffer,
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                0,
+                0, nullptr,
+                1, &barrier,
+                0, nullptr
+            );
+
+            VkBufferCopy copyRegion = {};
+            copyRegion.srcOffset = 0;
+            copyRegion.dstOffset = 0;
+            copyRegion.size = info->size;
+
+            vkCmdCopyBuffer(
+                context.commandBuffer,
+                ToVulkan(context.uploadBuffer.Get())->handle,
+                buffer->handle,
+                1,
+                &copyRegion
+            );
+
+            VkAccessFlags tmp = barrier.srcAccessMask;
+            barrier.srcAccessMask = barrier.dstAccessMask;
+            barrier.dstAccessMask = 0;
+
+            if ((info->usage & BufferUsage::Vertex) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            }
+            if ((info->usage & BufferUsage::Index) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_INDEX_READ_BIT;
+            }
+            if ((info->usage & BufferUsage::Constant) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_UNIFORM_READ_BIT;
+            }
+            if ((info->usage & BufferUsage::ShaderRead) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
+            }
+            if ((info->usage & BufferUsage::ShaderWrite) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_SHADER_WRITE_BIT;
+            }
+            if ((info->usage & BufferUsage::Indirect) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+            }
+            if ((info->usage & BufferUsage::RayTracingAccelerationStructure) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+            }
+            if ((info->usage & BufferUsage::RayTracingShaderTable) != 0)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+            }
+
+            vkCmdPipelineBarrier(
+                context.commandBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                0,
+                0, nullptr,
+                1, &barrier,
+                0, nullptr
+            );
+
+            copyAllocator.Submit(context);
+        }
+        else if (info->cpuAccess == CpuAccessMode::None)
+        {
+            // zero-initialize:
+            initLocker.lock();
+            vkCmdFillBuffer(GetFrameResources().initCommandBuffer,
+                buffer->handle,
+                0,
+                VK_WHOLE_SIZE,
+                0
+            );
+
+            pendingSubmitInits = true;
+            initLocker.unlock();
+        }
+
+        return buffer;
+    }
+
+    ShaderRef VulkanGraphics::CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint)
+    {
+        auto result = new VulkanShader(*this, stage, byteCode, byteCodeLength, entryPoint);
 
         if (result->GetHandle() != VK_NULL_HANDLE)
         {
@@ -1426,30 +1770,66 @@ namespace Alimer
         return nullptr;
     }
 
-    ShaderRef VulkanGraphics::CreateShader(ShaderStages stage, const std::vector<uint8_t>& byteCode, const std::string& entryPoint)
+    SamplerRef VulkanGraphics::CreateSampler(const SamplerDesc& desc)
     {
-        auto result = new VulkanShader(*this, stage, byteCode, entryPoint);
+        VkSamplerCreateInfo createInfo;
+        createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.magFilter = ToVulkan(desc.magFilter);
+        createInfo.minFilter = ToVulkan(desc.minFilter);
+        createInfo.mipmapMode = ToVulkanMipmapMode(desc.mipFilter);
+        createInfo.addressModeU = ToVulkan(desc.addressModeU);
+        createInfo.addressModeV = ToVulkan(desc.addressModeV);
+        createInfo.addressModeW = ToVulkan(desc.addressModeW);
+        createInfo.mipLodBias = desc.mipLodBias;
 
-        if (result->GetHandle() != VK_NULL_HANDLE)
+        // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSamplerCreateInfo.html
+        if (desc.maxAnisotropy > 1)
         {
-            return result;
+            createInfo.anisotropyEnable = VK_TRUE;
+            createInfo.maxAnisotropy = Min(static_cast<float>(desc.maxAnisotropy), properties2.properties.limits.maxSamplerAnisotropy);
+        }
+        else
+        {
+            createInfo.anisotropyEnable = VK_FALSE;
+            createInfo.maxAnisotropy = 1;
         }
 
-        delete result;
-        return nullptr;
-    }
-
-    SamplerRef VulkanGraphics::CreateSampler(const SamplerCreateInfo* info)
-    {
-        auto result = new VulkanSampler(*this, info);
-
-        if (result->GetHandle() != VK_NULL_HANDLE)
+        if (desc.compareFunction != CompareFunction::Undefined)
         {
-            return result;
+            createInfo.compareOp = ToVkCompareOp(desc.compareFunction);
+            createInfo.compareEnable = VK_TRUE;
+        }
+        else
+        {
+            createInfo.compareOp = VK_COMPARE_OP_NEVER;
+            createInfo.compareEnable = VK_FALSE;
         }
 
-        delete result;
-        return nullptr;
+        createInfo.minLod = desc.minLod;
+        createInfo.maxLod = desc.maxLod;
+        createInfo.borderColor = ToVulkan(desc.borderColor);
+        createInfo.unnormalizedCoordinates = VK_FALSE;
+
+        VkSampler handle;
+        VkResult result = vkCreateSampler(device, &createInfo, nullptr, &handle);
+
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create sampler.");
+            return nullptr;
+        }
+
+        if (desc.label != nullptr)
+        {
+            SetObjectName(VkObjectType::VK_OBJECT_TYPE_SAMPLER, (uint64_t)handle, desc.label);
+        }
+
+        auto sampler = new VulkanSampler();
+        sampler->device = this;
+        sampler->handle = handle;
+        return SamplerRef(sampler);
     }
 
     PipelineRef VulkanGraphics::CreateRenderPipeline(const RenderPipelineStateCreateInfo* info)
@@ -1635,50 +2015,6 @@ namespace Alimer
         }
     }
 
-    VkFence VulkanGraphics::AcquireFence()
-    {
-        // See if there's a free fence available.
-        std::lock_guard<std::mutex> guard(fenceMutex);
-        VkFence fence;
-        if (availableFences.size() > 0)
-        {
-            fence = availableFences.front();
-            availableFences.pop();
-        }
-        // Else create a new one.
-        else
-        {
-            VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-            VK_CHECK(vkCreateFence(device, &createInfo, nullptr, &fence));
-            allFences.emplace(fence);
-
-#ifdef _DEBUG
-            if (debugUtils) {
-                static uint32_t fenceCount = 0;
-                fenceCount++;
-                SetObjectName(VK_OBJECT_TYPE_FENCE, (uint64_t)fence, fmt::format("Submit Fence {}", fenceCount));
-            }
-#endif
-        }
-
-        return fence;
-    }
-
-    void VulkanGraphics::ReleaseFence(VkFence fence)
-    {
-        std::lock_guard<std::mutex> guard(fenceMutex);
-        if (allFences.find(fence) != allFences.end())
-        {
-            VK_CHECK(vkResetFences(device, 1, &fence));
-            availableFences.push(fence);
-        }
-    }
-
-    void VulkanGraphics::SubmitFence(VkFence fence)
-    {
-        //submittedFences.push(fence);
-    }
-
     /* Cache */
     VkRenderPass VulkanGraphics::GetVkRenderPass(const VulkanRenderPassKey& key)
     {
@@ -1713,8 +2049,8 @@ namespace Alimer
                 attachmentDesc.storeOp = ToVulkan(key.colorAttachments[i].storeAction);
                 attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                attachmentDesc.initialLayout = key.colorAttachments[i].initialLayout;
+                attachmentDesc.finalLayout = key.colorAttachments[i].finalLayout;
 
                 ++colorAttachmentIndex;
             }
@@ -1754,7 +2090,7 @@ namespace Alimer
             subpassDesc.pPreserveAttachments = nullptr;
 
             // Use subpass dependencies for layout transitions
-            /*std::array<VkSubpassDependency, 2> dependencies;
+            std::array<VkSubpassDependency, 2> dependencies;
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;
             dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -1768,7 +2104,7 @@ namespace Alimer
             dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;*/
+            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
             // Finally, create the renderpass.
             VkRenderPassCreateInfo createInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
@@ -1778,8 +2114,8 @@ namespace Alimer
             createInfo.pSubpasses = &subpassDesc;
             createInfo.dependencyCount = 0;
             createInfo.pDependencies = nullptr;
-            //createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-            //createInfo.pDependencies = dependencies.data();
+            createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+            createInfo.pDependencies = dependencies.data();
 
             VkRenderPass renderPass;
             VK_CHECK(vkCreateRenderPass(device, &createInfo, nullptr, &renderPass));

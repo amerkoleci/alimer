@@ -2,9 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "VulkanCommandBuffer.h"
-#include "VulkanBuffer.h"
 #include "VulkanTexture.h"
-#include "VulkanSampler.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanPipeline.h"
 #include "VulkanSwapChain.h"
@@ -151,21 +149,11 @@ namespace Alimer
         bindingState.Reset();
         pushConstants = {};
         swapChains.clear();
+        swapChainTextures.clear();
     }
 
     void VulkanCommandBuffer::End()
     {
-        for (auto swapChainTexture : swapChainTextures)
-        {
-            //queue.AddSignalSemaphore(swapChainTexture->GetSignalSemaphore());
-            swapChainTexture->TransitionImageLayout(handle,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-        }
-
-        swapChainTextures.clear();
-
         VK_CHECK(vkEndCommandBuffer(handle));
     }
 
@@ -224,7 +212,7 @@ namespace Alimer
         region.srcOffset = sourceOffset;
         region.dstOffset = destinationOffset;
         region.size = size;
-        vkCmdCopyBuffer(handle, vkSource->GetHandle(), vkDestination->GetHandle(), 1, &region);
+        vkCmdCopyBuffer(handle, vkSource->handle, vkDestination->handle, 1, &region);
     }
 
     void VulkanCommandBuffer::BeginRenderPassCore(_In_ SwapChain* swapChain, const Color& clearColor)
@@ -233,12 +221,19 @@ namespace Alimer
 
         swapChains.push_back(vulkanSwapChain);
         auto textureView = vulkanSwapChain->GetCurrentTextureView();
+        auto texture = checked_cast<VulkanTexture*>(textureView->GetTexture());
+
+        if (swapChainTextures.find(texture) == swapChainTextures.end())
+        {
+            swapChainTextures.insert(texture);
+        }
 
         RenderPassInfo info{};
         info.colorAttachments[0].view = textureView;
         info.colorAttachments[0].loadAction = LoadAction::Clear;
         info.colorAttachments[0].storeAction = StoreAction::Store;
         info.colorAttachments[0].clearColor = clearColor;
+
 
         BeginRenderPassCore(info);
     }
@@ -264,13 +259,6 @@ namespace Alimer
 
             VulkanTextureView* view = static_cast<VulkanTextureView*>(attachment.view);
             VulkanTexture* texture = static_cast<VulkanTexture*>(view->GetTexture());
-
-            if (texture->IsSwapChainTexture() && swapChainTextures.find(texture) == swapChainTextures.end())
-            {
-                swapChainTextures.insert(texture);
-                //queue.AddWaitSemaphore(texture->GetWaitSemaphore(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT);
-                //queue.QueuePresent(texture->GetSwapChain());
-            }
 
             const uint32_t mipLevel = view->GetBaseMipLevel();
             fboKey.width = Min(fboKey.width, texture->GetWidth(mipLevel));
@@ -374,6 +362,17 @@ namespace Alimer
     void VulkanCommandBuffer::EndRenderPassCore()
     {
         vkCmdEndRenderPass(handle);
+
+        for (auto swapChainTexture : swapChainTextures)
+        {
+            swapChainTexture->TransitionImageLayout(handle,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        }
+
+        swapChainTextures.clear();
+
         boundRenderPass = VK_NULL_HANDLE;
         colorAttachmentCount = 0;
     }
@@ -453,7 +452,7 @@ namespace Alimer
         VkBuffer vbuffers[kMaxVertexBufferBindings];
         for (uint32_t i = startSlot; i < count; ++i)
         {
-            vbuffers[i] = ToVulkan(buffers[i])->GetHandle();
+            vbuffers[i] = ToVulkan(buffers[i])->handle;
         }
 
         vkCmdBindVertexBuffers(handle, startSlot, count, vbuffers, offsets);
@@ -461,7 +460,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::SetIndexBufferCore(const Buffer* buffer, IndexType indexType, uint64_t offset)
     {
-        vkCmdBindIndexBuffer(handle, ToVulkan(buffer)->GetHandle(), offset, ToVulkan(indexType));
+        vkCmdBindIndexBuffer(handle, ToVulkan(buffer)->handle, offset, ToVulkan(indexType));
     }
 
     void VulkanCommandBuffer::BindBufferCore(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
@@ -486,11 +485,11 @@ namespace Alimer
         vkCmdBindPipeline(handle, boundPipeline->GetBindPoint(), boundPipeline->GetHandle());
     }
 
-    void VulkanCommandBuffer::DrawCore(uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+    void VulkanCommandBuffer::DrawCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         Flush(VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        vkCmdDraw(handle, vertexCount, instanceCount, vertexStart, baseInstance);
+        vkCmdDraw(handle, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void VulkanCommandBuffer::DrawIndexedCore(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
@@ -498,6 +497,26 @@ namespace Alimer
         Flush(VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         vkCmdDrawIndexed(handle, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    void VulkanCommandBuffer::DrawIndirectCore(_In_ Buffer* indirectBuffer, uint64_t indirectOffset)
+    {
+        Flush(VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        // TODO: Specify draw count => multiDrawIndirect
+        //device.features2.features.multiDrawIndirect;
+
+        vkCmdDrawIndirect(handle, checked_cast<VulkanBuffer*>(indirectBuffer)->handle, indirectOffset, 1, sizeof(DrawIndirectCommand));
+    }
+
+    void VulkanCommandBuffer::DrawIndexedIndirectCore(_In_ Buffer* indirectBuffer, uint64_t indirectOffset)
+    {
+        Flush(VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        // TODO: Specify draw count => multiDrawIndirect
+       //device.features2.features.multiDrawIndirect;
+
+        vkCmdDrawIndexedIndirect(handle, checked_cast<VulkanBuffer*>(indirectBuffer)->handle, indirectOffset, 1, sizeof(DrawIndexedIndirectCommand));
     }
 
     void VulkanCommandBuffer::Flush(VkPipelineBindPoint bindPoint)
@@ -580,7 +599,7 @@ namespace Alimer
 
                         if (boundResouceInfoIt != bindings.end())
                         {
-                            imageInfos.back().sampler = ToVulkan(boundResouceInfoIt->second.sampler)->GetHandle();
+                            imageInfos.back().sampler = checked_cast<VulkanSampler*>(boundResouceInfoIt->second.sampler)->handle;
                         }
                         else
                         {
@@ -617,7 +636,7 @@ namespace Alimer
 
                         if (boundResouceInfoIt != bindings.end())
                         {
-                            bufferInfo.buffer = ToVulkan(boundResouceInfoIt->second.buffer)->GetHandle();
+                            bufferInfo.buffer = ToVulkan(boundResouceInfoIt->second.buffer)->handle;
                             bufferInfo.offset = boundResouceInfoIt->second.offset;
                             bufferInfo.range = boundResouceInfoIt->second.range;
 
@@ -751,7 +770,7 @@ namespace Alimer
         return true;
     }
 
-    bool VulkanResourceSet::SetSampler(uint32_t binding, const Sampler* sampler)
+    bool VulkanResourceSet::SetSampler(uint32_t binding, _In_ Sampler* sampler)
     {
         if (bindings[binding].sampler == sampler)
         {
@@ -801,7 +820,7 @@ namespace Alimer
         }
     }
 
-    void VulkanResourceBindingState::SetSampler(uint32_t set, uint32_t binding, const Sampler* sampler)
+    void VulkanResourceBindingState::SetSampler(uint32_t set, uint32_t binding, _In_ Sampler* sampler)
     {
         if (sets[set].SetSampler(binding, sampler))
         {

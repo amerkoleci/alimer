@@ -35,7 +35,7 @@ namespace Alimer
 
 		for (uint32_t index = 0; index < kMaxVertexAttributes; index++) {
 			VertexAttribute* attribute = &def.vertexLayout.attributes[index];
-			if (attribute->format == VertexFormat::Invalid) {
+			if (attribute->format == VertexFormat::Undefined) {
 				continue;
 			}
 
@@ -43,7 +43,9 @@ namespace Alimer
 			if (useAutoOffset) {
 				attribute->offset = autoOffsets[attribute->bufferIndex];
 			}
-			//autoOffsets[attribute->bufferIndex] += GetVertexFormatSize(attribute->format);
+
+            const VertexFormatInfo& vertexFormatInfo = GetVertexFormatInfo(attribute->format);
+			autoOffsets[attribute->bufferIndex] += vertexFormatInfo.byteSize;
 		}
 
 		// Compute vertex strides if needed.

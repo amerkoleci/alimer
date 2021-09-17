@@ -47,6 +47,12 @@ namespace Alimer
         Null
     };
 
+    enum class ShaderFormat : uint8_t
+    {
+        DXIL = 0,
+        SPIRV,
+    };
+
     enum class ValidationMode : uint32_t
     {
         /// No validation is enabled.
@@ -93,11 +99,11 @@ namespace Alimer
         BROADCOM,
     };
 
-    enum class HeapType : uint8_t
+    enum class CpuAccessMode : uint8_t
     {
-        Default,
-        Upload,
-        Readback
+        None,
+        Write,
+        Read
     };
 
     /// Number of MSAA samples to use. 1xMSAA and 4xMSAA are most broadly supported
@@ -120,6 +126,7 @@ namespace Alimer
 
     enum class CompareFunction : uint32_t
     {
+        Undefined = 0,
         Never,
         Less,
         Equal,
@@ -132,47 +139,37 @@ namespace Alimer
 
     enum class VertexFormat : uint32_t
     {
-        Invalid = 0,
-        UByte,
-        UByte2,
-        UByte4,
-        Byte,
-        Byte2,
-        Byte4,
-        UByteNorm,
-        UByte2Norm,
-        UByte4Norm,
-        ByteNorm,
-        Byte2Norm,
-        Byte4Norm,
-        UShort,
-        UShort2,
-        UShort4,
-        Short,
-        Short2,
-        Short4,
-        UShortNorm,
-        UShort2Norm,
-        UShort4Norm,
-        ShortNorm,
-        Short2Norm,
-        Short4Norm,
-        Half,
-        Half2,
-        Half4,
-        Float,
-        Float2,
-        Float3,
-        Float4,
-        UInt,
-        UInt2,
-        UInt3,
-        UInt4,
-        Int,
-        Int2,
-        Int3,
-        Int4,
-        RGB10A2Unorm
+        Undefined = 0,
+        Uint8x2,
+        Uint8x4,
+        Sint8x2,
+        Sint8x4,
+        Unorm8x2,
+        Unorm8x4,
+        Snorm8x2,
+        Snorm8x4,
+        Uint16x2,
+        Uint16x4,
+        Sint16x2,
+        Sint16x4,
+        Unorm16x2,
+        Unorm16x4,
+        Snorm16x2,
+        Snorm16x4,
+        Float16x2,
+        Float16x4,
+        Float32,
+        Float32x2,
+        Float32x3,
+        Float32x4,
+        Uint32,
+        Uint32x2,
+        Uint32x3,
+        Uint32x4,
+        Sint32,
+        Sint32x2,
+        Sint32x3,
+        Sint32x4,
     };
 
     enum class IndexType : uint32_t
@@ -228,17 +225,6 @@ namespace Alimer
         Fifo
     };
 
-    /* GPU handles */
-    struct GPUObject
-    {
-        std::shared_ptr<void> internalState;
-        inline bool IsValid() const { return internalState.get() != nullptr; }
-    };
-
-    struct GPUSampler : public GPUObject
-    {
-    };
-
     /* Forward declarations */
     class Buffer;
     class Texture;
@@ -256,6 +242,27 @@ namespace Alimer
     using SwapChainRef = RefPtr<SwapChain>;
 
     /* Structs */
+    struct DispatchIndirectCommand {
+        uint32_t    x;
+        uint32_t    y;
+        uint32_t    z;
+    };
+
+    struct DrawIndexedIndirectCommand {
+        uint32_t    indexCount;
+        uint32_t    instanceCount;
+        uint32_t    firstIndex;
+        int32_t     vertexOffset;
+        uint32_t    firstInstance;
+    };
+
+    struct DrawIndirectCommand {
+        uint32_t    vertexCount;
+        uint32_t    instanceCount;
+        uint32_t    firstVertex;
+        uint32_t    firstInstance;
+    };
+
     struct GraphicsAdapterInfo
     {
         std::string name;
@@ -326,5 +333,23 @@ namespace Alimer
     ALIMER_API const char* ToString(GPUAdapterType type);
 
     ALIMER_API const char* ToString(CompareFunction func);
+
+    enum class VertexFormatBaseType
+    {
+        Float,
+        Uint,
+        Sint,
+    };
+
+    struct VertexFormatInfo
+    {
+        VertexFormat format;
+        uint32_t byteSize;
+        uint32_t componentCount;
+        uint32_t componentByteSize;
+        VertexFormatBaseType baseType;
+    };
+
+    ALIMER_API const VertexFormatInfo& GetVertexFormatInfo(VertexFormat format);
 }
 

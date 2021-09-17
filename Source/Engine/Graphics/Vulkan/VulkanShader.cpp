@@ -86,12 +86,12 @@ namespace Alimer
 		}
 	}
 
-	VulkanShader::VulkanShader(VulkanGraphics& device_, ShaderStages stage_, const std::vector<uint8_t>& byteCode_, const std::string& entryPoint_)
-		: Shader(stage_, byteCode_, entryPoint_)
+	VulkanShader::VulkanShader(VulkanGraphics& device_, ShaderStages stage_, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint_)
+		: Shader(stage_, entryPoint_)
 		, device(device_)
 	{
 		SpvReflectShaderModule module;
-		SpvReflectResult result = spvReflectCreateShaderModule(byteCode_.size(), byteCode_.data(), &module);
+		SpvReflectResult result = spvReflectCreateShaderModule(byteCodeLength, byteCode, &module);
 		ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
 
 		const SpvReflectEntryPoint* spvEntryPoint = spvReflectGetEntryPoint(&module, entryPoint.c_str());
@@ -175,17 +175,16 @@ namespace Alimer
 			}
 		}
 
-		byteCode.clear();
-		byteCode.resize(spvReflectGetCodeSize(&module));
-		memcpy(byteCode.data(), spvReflectGetCode(&module), byteCode.size());
+		std::vector<uint8_t> modifiedByteCode(spvReflectGetCodeSize(&module));
+		memcpy(modifiedByteCode.data(), spvReflectGetCode(&module), modifiedByteCode.size());
 		spvReflectDestroyShaderModule(&module);
 
 		// Create the Vulkan ShaderModule.
 		{
 			VkShaderModuleCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			createInfo.codeSize = byteCode.size();
-			createInfo.pCode = reinterpret_cast<const uint32_t*>(byteCode.data());
+			createInfo.codeSize = modifiedByteCode.size();
+			createInfo.pCode = reinterpret_cast<const uint32_t*>(modifiedByteCode.data());
 			VkResult result = vkCreateShaderModule(device.GetHandle(), &createInfo, nullptr, &handle);
 
 			if (result != VK_SUCCESS)
@@ -196,9 +195,9 @@ namespace Alimer
 		}
 
 		std::hash<std::string> hasher{};
-		hash = hasher(std::string{ byteCode.cbegin(), byteCode.cend() });
+		hash = hasher(std::string{ modifiedByteCode.cbegin(), modifiedByteCode.cend() });
 
-        OnCreated();
+        //OnCreated();
 	}
 
 	VulkanShader::~VulkanShader()
@@ -214,7 +213,7 @@ namespace Alimer
 			handle = VK_NULL_HANDLE;
 		}
 
-        OnDestroyed();
+        //OnDestroyed();
 	}
 }
 

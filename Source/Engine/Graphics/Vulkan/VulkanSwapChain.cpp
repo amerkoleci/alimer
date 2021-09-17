@@ -254,7 +254,7 @@ namespace Alimer
         info.imageColorSpace = surfaceFormat.colorSpace;
         info.imageExtent = {};
         info.imageArrayLayers = 1;
-        info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        info.imageUsage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         info.queueFamilyIndexCount = 0;
         info.pQueueFamilyIndices = nullptr;
@@ -340,10 +340,6 @@ namespace Alimer
             }
 
             VulkanTexture* texture = new VulkanTexture(device, textureInfo, swapchainImages[i]);
-            texture->SetSwapChain(this);
-            texture->SetWaitSemaphore(imageAvailableSemaphores[i]);
-            texture->SetSignalSemaphore(renderCompleteSemaphores[i]);
-
             backBufferTextures[i].Reset(texture);
         }
 

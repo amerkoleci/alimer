@@ -29,34 +29,31 @@ namespace Alimer
         OpaqueWhite,
     };
 
-    struct SamplerCreateInfo
+    struct SamplerDesc
     {
         const char* label = nullptr;
-        SamplerFilter minFilter = SamplerFilter::Nearest;
         SamplerFilter magFilter = SamplerFilter::Nearest;
+        SamplerFilter minFilter = SamplerFilter::Nearest;
         SamplerFilter mipFilter = SamplerFilter::Nearest;
         SamplerAddressMode addressModeU = SamplerAddressMode::Clamp;
         SamplerAddressMode addressModeV = SamplerAddressMode::Clamp;
         SamplerAddressMode addressModeW = SamplerAddressMode::Clamp;
+        float    mipLodBias = 0.0f;
         uint16_t maxAnisotropy = 1;
-        CompareFunction compareFunction = CompareFunction::Never;
+        CompareFunction compareFunction = CompareFunction::Undefined;
+        float minLod = 0.0f;
+        float maxLod = FLT_MAX;
         SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
-        float lodMinClamp = 0.0f;
-        float lodMaxClamp = FLT_MAX;
     };
 
-	class ALIMER_API Sampler : public GPUObjectOld, public RefCounted
+	class ALIMER_API Sampler : public RefCounted
 	{
 	public:
-		static SamplerRef Create(const SamplerCreateInfo& info);
+        [[nodiscard]] static SamplerRef Create(const SamplerDesc& desc);
 
 	protected:
 		/// Constructor.
 		Sampler();
 
-        [[nodiscard]] const GPUSampler* GetHandle() const { return &handle; }
-
-    private:
-        GPUSampler handle;
 	};
 }

@@ -8,11 +8,11 @@
 
 namespace Alimer
 {
-	class VulkanSwapChain;
-
 	class VulkanTexture final : public Texture
 	{
 	public:
+        uint64_t allocatedSize = 0;
+
 		VulkanTexture(VulkanGraphics& device, const TextureCreateInfo& info, VkImage existingImage = VK_NULL_HANDLE, const void* initialData = nullptr);
 		~VulkanTexture() override;
 		void Destroy() override;
@@ -28,26 +28,15 @@ namespace Alimer
 		VkImageLayout GetLayout() const noexcept { return layout; }
 		void SetLayout(VkImageLayout newLayout) const noexcept { layout = newLayout; }
 
-		// Swapchain texture logic.
-		bool IsSwapChainTexture() const { return swapChain != nullptr; }
-		VulkanSwapChain* GetSwapChain() const { return swapChain; }
-		void SetSwapChain(VulkanSwapChain* swapChain_) { swapChain = swapChain_; }
-		VkSemaphore GetWaitSemaphore() const { return waitSemaphore; }
-		void SetWaitSemaphore(VkSemaphore semaphore) { waitSemaphore = semaphore; }
-		VkSemaphore GetSignalSemaphore() const { return signalSemaphore; }
-		void SetSignalSemaphore(VkSemaphore semaphore) { signalSemaphore = semaphore; }
+        uint64_t GetAllocatedSize() const override { return allocatedSize; }
 
 	private:
-        void ApiSetName() override;
+       // void ApiSetName() override;
 
 		VulkanGraphics& device;
 		VkImage handle{ VK_NULL_HANDLE };
 		VmaAllocation allocation{ VK_NULL_HANDLE };
 		mutable VkImageLayout layout{ VK_IMAGE_LAYOUT_UNDEFINED };
-
-		VulkanSwapChain* swapChain = nullptr;
-		VkSemaphore waitSemaphore = VK_NULL_HANDLE;
-		VkSemaphore signalSemaphore = VK_NULL_HANDLE;
 	};
 
     class VulkanTextureView final : public TextureView

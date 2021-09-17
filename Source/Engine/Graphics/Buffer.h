@@ -26,7 +26,7 @@ namespace Alimer
         const char* label = nullptr;
         uint64_t size = 0;
         BufferUsage usage = BufferUsage::None;
-        HeapType heapType = HeapType::Default;
+        CpuAccessMode cpuAccess = CpuAccessMode::None;
         PixelFormat format = PixelFormat::Undefined;
         uintptr_t handle = 0;
     };
@@ -35,15 +35,15 @@ namespace Alimer
 	{
 	public:
         [[nodiscard]] static BufferRef Create(const BufferCreateInfo* createInfo, const void* initialData = nullptr);
-		[[nodiscard]] static BufferRef Create(const void* data, BufferUsage usage, uint64_t size, const char* label = nullptr);
+		[[nodiscard]] static BufferRef Create(uint64_t size, BufferUsage usage, const void* data, const char* label = nullptr);
         [[nodiscard]] static BufferRef CreateUpload(uint64_t size, const char* label = nullptr);
         [[nodiscard]] static BufferRef CreateReadback(uint64_t size, const char* label = nullptr);
 
         [[nodiscard]] uint64_t GetSize() const noexcept { return size; }
         [[nodiscard]] BufferUsage GetUsage() const noexcept { return usage; }
 
-        [[nodiscard]] uint64_t GetDeviceAddress() const noexcept { return deviceAddress; }
-        [[nodiscard]] uint8_t* MappedData() const { return mappedData; }
+        [[nodiscard]] virtual uint64_t GetDeviceAddress() const = 0;
+        [[nodiscard]] virtual uint8_t* MappedData() const = 0;
 
 	protected:
 		/// Constructor.
