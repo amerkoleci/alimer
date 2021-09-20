@@ -86,7 +86,7 @@ namespace Vortice.Graphics.D3D12
 
             SupportsRenderPass = false;
             if (featureDataOptions5.RenderPassesTier > RenderPassTier.Tier0
-                && adapterDesc.VendorId != (int)KnownVendorId.Intel)
+                && (VendorId)adapterDesc.VendorId != VendorId.Intel)
             {
                 SupportsRenderPass = true;
             }
@@ -94,7 +94,7 @@ namespace Vortice.Graphics.D3D12
             _caps = new GraphicsDeviceCaps()
             {
                 BackendType = GraphicsBackend.Direct3D12,
-                VendorId = new GPUVendorId((uint)adapterDesc.VendorId),
+                VendorId = (VendorId)adapterDesc.VendorId,
                 AdapterId = (uint)adapterDesc.DeviceId,
                 AdapterType = adapterType,
                 AdapterName = adapterDesc.Description,

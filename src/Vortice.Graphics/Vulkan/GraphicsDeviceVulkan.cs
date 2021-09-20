@@ -72,7 +72,7 @@ namespace Vortice.Graphics.Vulkan
             _caps = new GraphicsDeviceCaps()
             {
                 BackendType = GraphicsBackend.Vulkan,
-                VendorId = new GPUVendorId(properties.vendorID),
+                VendorId = (VendorId)properties.vendorID,
                 AdapterId = properties.deviceID,
                 AdapterType = adapterType,
                 AdapterName = properties.GetDeviceName(),

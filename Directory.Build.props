@@ -5,11 +5,10 @@
     <BinDir>$(RepositoryRootDirectory)bin</BinDir>
     <OutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)bin\$(Configuration)'))\$(MSBuildProjectName)</OutputPath>
     <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)bin\obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
-    <PackageOutputPath>$(BinDir)\Packages\$(Configuration)</PackageOutputPath>
   </PropertyGroup>
   
   <PropertyGroup>
-    <LangVersion>9.0</LangVersion>
+    <LangVersion>10.0</LangVersion>
     <Nullable>enable</Nullable>
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -25,11 +24,9 @@
     <RepositoryUrl>https://github.com/amerkoleci/vortice</RepositoryUrl>
     <ProjectUrl>https://github.com/amerkoleci/vortice</ProjectUrl>
     <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu</PackageTags>
-  </PropertyGroup>
 
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('net5.0-windows')) or $(TargetFramework.StartsWith('net6.0-windows')) ">
-    <UseWindowsForms>true</UseWindowsForms>
-    <UseWPF>true</UseWPF>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta1</VersionSuffix>
   </PropertyGroup>
 
   <PropertyGroup>

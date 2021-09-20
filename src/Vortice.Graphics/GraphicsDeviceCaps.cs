@@ -7,7 +7,7 @@ namespace Vortice.Graphics
     {
         public GraphicsBackend BackendType { get; init; }
 
-        public GPUVendorId VendorId { get; init; }
+        public VendorId VendorId { get; init; }
         public uint AdapterId { get; init; }
         public GPUAdapterType AdapterType { get; init; }
         public string? AdapterName { get; init; }
