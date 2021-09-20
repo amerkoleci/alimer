@@ -90,7 +90,7 @@ namespace Alimer
 		}
 	}
 
-    TextureRef Graphics::CreateTexture(const TextureCreateInfo& info, const void* initialData)
+    TextureRef Graphics::CreateTexture(const TextureCreateInfo& info, const TextureData* initialData)
 	{
 		ALIMER_ASSERT(info.width >= 1);
 

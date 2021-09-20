@@ -20,8 +20,9 @@ class HelloWorldApp final : public Application
 private:
     BufferRef vertexBuffer;
     BufferRef indexBuffer;
-    PipelineRef renderPipeline;
+    TextureRef texture;
 
+    PipelineRef renderPipeline;
     float rotationX = 0.0f;
     float rotationY = 0.0f;
 
@@ -42,42 +43,72 @@ public:
     bool Initialize() override
     {
         const float vertices[] = {
-            /* positions            colors */
-            -0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
-             0.5f,  0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
-             0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f,     1.0f, 1.0f, 0.0f, 1.0f,
+            /* pos                  color                       uvs */
+            -1.0f, -1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     0.0f, 0.0f,
+             1.0f, -1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     1.0f, 1.0f,
+            -1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f, -1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     0.0f, 0.0f,
+             1.0f, -1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     1.0f, 1.0f,
+            -1.0f,  1.0f,  1.0f,    0.0f, 1.0f, 0.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f, -1.0f, -1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     0.0f, 0.0f,
+            -1.0f,  1.0f, -1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     1.0f, 0.0f,
+            -1.0f,  1.0f,  1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     1.0f, 1.0f,
+            -1.0f, -1.0f,  1.0f,    0.0f, 0.0f, 1.0f, 1.0f,     0.0f, 1.0f,
+
+             1.0f, -1.0f, -1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     0.0f, 0.0f,
+             1.0f,  1.0f, -1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     1.0f, 1.0f,
+             1.0f, -1.0f,  1.0f,    1.0f, 0.5f, 0.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f, -1.0f, -1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     0.0f, 0.0f,
+            -1.0f, -1.0f,  1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     1.0f, 0.0f,
+             1.0f, -1.0f,  1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     1.0f, 1.0f,
+             1.0f, -1.0f, -1.0f,    0.0f, 0.5f, 1.0f, 1.0f,     0.0f, 1.0f,
+
+            -1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     0.0f, 0.0f,
+            -1.0f,  1.0f,  1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     1.0f, 0.0f,
+             1.0f,  1.0f,  1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     1.0f, 1.0f,
+             1.0f,  1.0f, -1.0f,    1.0f, 0.0f, 0.5f, 1.0f,     0.0f, 1.0f
         };
         const uint16_t indices[] = {
-            0, 1, 2,    /* first triangle */
-            0, 2, 3,    /* second triangle */
+            0, 1, 2,  0, 2, 3,
+            6, 5, 4,  7, 6, 4,
+            8, 9, 10,  8, 10, 11,
+            14, 13, 12,  15, 14, 12,
+            16, 17, 18,  16, 18, 19,
+            22, 21, 20,  23, 22, 20
         };
         vertexBuffer = Buffer::Create(sizeof(vertices), BufferUsage::Vertex, vertices, "VertexBuffer");
         indexBuffer = Buffer::Create(sizeof(indices), BufferUsage::Index, indices, "IndexBuffer");
 
-#if TODO
-        bufferDesc.size = sizeof(indices);
-        bufferDesc.usage = BufferUsage::Index;
-        bufferDesc.label = "IndexBuffer";
-        indexBuffer = GRHIDevice->CreateBuffer(bufferDesc, indices);
-
-        SamplerDesc samplerDesc;
-        auto test = Sampler::Create(samplerDesc);
-#endif
+        uint32_t pixels[4 * 4] = {
+            0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0x00000000,
+            0x00000000, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF,
+            0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0x00000000,
+            0x00000000, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF,
+        };
+        TextureData textureData;
+        textureData.data = pixels;
+        textureData.rowPitch = 4 * GetFormatBytesPerBlock(PixelFormat::RGBA8Unorm);
+        texture = Texture::Create2D(4, 4, PixelFormat::RGBA8Unorm, 1, 1, TextureUsage::ShaderRead, &textureData);
 
         static const char* shaderSource = R"(
 struct VSInput 
 { 
     float3 Position : ATTRIBUTE0;
     float4 Color : ATTRIBUTE1;
-    //float2 TexCoord : ATTRIBUTE2;
+    float2 TexCoord : ATTRIBUTE2;
 };
 
 struct PSInput 
 { 
     float4 Position : SV_POSITION;
     float4 Color : COLOR;
-    //float2 TexCoord : TEXCOORD0;
+    float2 TexCoord : TEXCOORD0;
 };
 
 struct DrawData
@@ -85,22 +116,23 @@ struct DrawData
     float4x4 world;
 };
 
-//ConstantBuffer<DrawData> draw : register(b0);
+ConstantBuffer<DrawData> draw : register(b0);
+Texture2D DiffuseTexture : register(t0);
+SamplerState LinearSampler : register(s0);
 
 PSInput vertex_main(in VSInput input) 
 {
     PSInput output;
-    //float4x4 worldViewProjection = draw.world; // mul(camera.viewProjection, draw.world);
-    //output.Position = mul(worldViewProjection, float4(input.Position, 1));
-    output.Position = float4(input.Position, 1);
+    float4x4 worldViewProjection = draw.world; // mul(camera.viewProjection, draw.world);
+    output.Position = mul(worldViewProjection, float4(input.Position, 1));
     output.Color    = input.Color;
-    //output.TexCoord = input.TexCoord;
+    output.TexCoord = input.TexCoord;
     return output;
 }
 
 float4 pixel_main(in PSInput input) : SV_TARGET
 {
-    float4 color = input.Color;
+    float4 color = DiffuseTexture.Sample(LinearSampler, input.TexCoord) * input.Color;
     return color;
 }
 )";
@@ -114,7 +146,7 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
         renderPipelineDesc.vertexLayout.attributes[0].format = VertexFormat::Float32x3;
         renderPipelineDesc.vertexLayout.attributes[1].format = VertexFormat::Float32x4;
-        //renderPipelineDesc.vertexLayout.attributes[2].format = VertexFormat::Float2;
+        renderPipelineDesc.vertexLayout.attributes[2].format = VertexFormat::Float32x2;
         renderPipelineDesc.colorFormats[0] = PixelFormat::BGRA8UnormSrgb;// gGraphics().GetCurrentBackBuffer()->GetFormat();
         renderPipelineDesc.depthStencilFormat = PixelFormat::Undefined; // gGraphics().GetBackBufferDepthStencilTexture()->GetFormat();
         renderPipeline = Pipeline::Create(renderPipelineDesc);
@@ -142,9 +174,9 @@ float4 pixel_main(in PSInput input) : SV_TARGET
         context.SetVertexBuffer(0, vertexBuffer.Get());
         context.SetIndexBuffer(indexBuffer.Get(), IndexType::UInt16, 0);
         context.SetPipeline(renderPipeline.Get());
-        context.DrawIndexed(6);
-        //commandList->BindConstantBufferData(drawData, 0);
-        //context.DrawIndexed(36);
+        context.BindConstantBufferData(drawData, 0);
+        context.BindTexture(0, texture);
+        context.DrawIndexed(36);
     }
 };
 

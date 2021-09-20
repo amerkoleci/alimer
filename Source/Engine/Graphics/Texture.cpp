@@ -35,14 +35,14 @@ namespace Alimer
         views.clear();
     }
 
-    TextureRef Texture::Create(const TextureCreateInfo& info, const void* initialData)
+    TextureRef Texture::Create(const TextureCreateInfo& info, const TextureData* initialData)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
 
         return gGraphics().CreateTexture(info, initialData);
     }
 
-    TextureRef Texture::Create2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage usage, const void* initialData)
+    TextureRef Texture::Create2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage usage, const TextureData* initialData)
     {
         ALIMER_ASSERT(gGraphics().IsInitialized());
         ALIMER_ASSERT(width >= 1);

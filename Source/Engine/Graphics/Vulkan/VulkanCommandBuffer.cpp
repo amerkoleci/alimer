@@ -42,11 +42,9 @@ namespace Alimer
         , index{ index }
         , debugUtilsSupported(device.DebugUtilsSupported())
     {
-        for(uint32_t i = 0; i < kMaxFramesInFlight; ++i)
+        VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        switch (queue)
         {
-            VkCommandPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-            switch (queue)
-            {
             case QueueType::Graphics:
                 poolInfo.queueFamilyIndex = device.graphicsQueueFamily;
                 break;
@@ -54,10 +52,13 @@ namespace Alimer
                 poolInfo.queueFamilyIndex = device.computeQueueFamily;
                 break;
             default:
-                assert(0); // queue type not handled
-                break;
-            }
-            poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+                ALIMER_UNREACHABLE();
+        }
+
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
+        {
             VK_CHECK(vkCreateCommandPool(device.GetHandle(), &poolInfo, nullptr, &commandPools[i]));
 
             VkCommandBufferAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -65,44 +66,13 @@ namespace Alimer
             allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             allocateInfo.commandBufferCount = 1;
             VK_CHECK(vkAllocateCommandBuffers(device.GetHandle(), &allocateInfo, &commandBuffers[i]));
+
+            //
+            binderPools[i].Init(&device);
         }
 
+        binder.Init(&device);
         handle = commandBuffers[0];
-
-        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
-        {
-            // Create descriptor pool:
-            VkDescriptorPoolSize poolSizes[9] = {};
-            uint32_t count = 0;
-
-            poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[0].descriptorCount = kUniformBufferCount * poolSize;
-            count++;
-
-            poolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            poolSizes[1].descriptorCount = kSRVCount * poolSize;
-            count++;
-
-            poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            poolSizes[2].descriptorCount = kSRVCount * poolSize;
-            count++;
-
-            poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            poolSizes[3].descriptorCount = kUAVCount * poolSize;
-            count++;
-
-            poolSizes[4].type = VK_DESCRIPTOR_TYPE_SAMPLER;
-            poolSizes[4].descriptorCount = kSamplerCount * poolSize;
-            count++;
-
-            VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-            poolInfo.poolSizeCount = count;
-            poolInfo.pPoolSizes = poolSizes;
-            poolInfo.maxSets = poolSize;
-            //poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-            VK_CHECK(vkCreateDescriptorPool(device.GetHandle(), &poolInfo, nullptr, &descriptors[i].descriptorPool));
-        }
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
@@ -111,14 +81,10 @@ namespace Alimer
         {
             vkFreeCommandBuffers(device.GetHandle(), commandPools[i], 1, &commandBuffers[i]);
             vkDestroyCommandPool(device.GetHandle(), commandPools[i], nullptr);
+            binderPools[i].Destroy();
         }
 
         handle = VK_NULL_HANDLE;
-
-        for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
-        {
-            device.DeferDestroy(descriptors[i].descriptorPool);
-        }
     }
 
     void VulkanCommandBuffer::Reset(uint32_t frameIndex_)
@@ -138,15 +104,10 @@ namespace Alimer
         boundPipeline = nullptr;
 
         // Reset descriptor allocators.
-        descriptors[frameIndex].dirty = true;
-
-        if (descriptors[frameIndex].descriptorPool != VK_NULL_HANDLE)
-        {
-            VK_CHECK(vkResetDescriptorPool(device.GetHandle(), descriptors[frameIndex].descriptorPool, 0));
-        }
+        binderPools[frameIndex].Reset();
+        binder.Reset();
 
         // Reset state
-        bindingState.Reset();
         pushConstants = {};
         swapChains.clear();
         swapChainTextures.clear();
@@ -355,7 +316,6 @@ namespace Alimer
         colorAttachmentCount = renderPassKey.colorAttachmentCount;
 
         // Reset state
-        bindingState.Reset();
         pushConstants = {};
     }
 
@@ -417,7 +377,7 @@ namespace Alimer
         vkRect.extent.height = (uint32_t)rect.height;
         vkCmdSetScissor(handle, 0, 1, &vkRect);
     }
-    
+
     void VulkanCommandBuffer::SetScissorRects(const Rect* rects, uint32_t count)
     {
         VkRect2D vkRects[kMaxViewportsAndScissors];
@@ -428,7 +388,7 @@ namespace Alimer
             vkRects[i].extent.width = (uint32_t)rects[i].width;
             vkRects[i].extent.height = (uint32_t)rects[i].height;
         }
-    
+
         vkCmdSetScissor(handle, 0, count, vkRects);
     }
 
@@ -463,14 +423,37 @@ namespace Alimer
         vkCmdBindIndexBuffer(handle, ToVulkan(buffer)->handle, offset, ToVulkan(indexType));
     }
 
-    void VulkanCommandBuffer::BindBufferCore(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
+    void VulkanCommandBuffer::BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
     {
-        bindingState.BindBuffer(buffer, offset, range, set, binding);
+        auto vulkanBuffer = checked_cast<const VulkanBuffer*>(buffer);
+
+        if (binder.table.buffers[binding].buffer != vulkanBuffer->handle ||
+            binder.table.buffers[binding].offset != offset ||
+            binder.table.buffers[binding].range != range)
+        {
+            binder.table.buffers[binding].buffer = vulkanBuffer->handle;
+            binder.table.buffers[binding].offset = offset;
+            binder.table.buffers[binding].range = range;
+            binder.dirty = true;
+        }
     }
 
-    void VulkanCommandBuffer::SetTextureCore(uint32_t set, uint32_t binding, const TextureView* texture)
+    void VulkanCommandBuffer::BindTextureCore(uint32_t binding, const TextureView* textureView)
     {
-        bindingState.SetTexture(set, binding + kVulkanBindingShift_SRV, texture);
+        if (binder.table.textureSRVViews[binding] != textureView)
+        {
+            binder.table.textureSRVViews[binding] = checked_cast<const VulkanTextureView*>(textureView);
+            binder.dirty = true;
+        }
+    }
+
+    void VulkanCommandBuffer::BindSamplerCore(uint32_t binding, const Sampler* sampler)
+    {
+        if (binder.table.samplers[binding] != sampler)
+        {
+            binder.table.samplers[binding] = checked_cast<const VulkanSampler*>(sampler);
+            binder.dirty = true;
+        }
     }
 
     void VulkanCommandBuffer::PushConstants(const void* data, uint32_t size)
@@ -483,6 +466,7 @@ namespace Alimer
     {
         boundPipeline = ToVulkan(pipeline);
         vkCmdBindPipeline(handle, boundPipeline->GetBindPoint(), boundPipeline->GetHandle());
+        binder.dirty = true;
     }
 
     void VulkanCommandBuffer::DrawCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -528,22 +512,17 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushDescriptorState(VkPipelineBindPoint bindPoint)
     {
-        if (!bindingState.IsDirty())
+        if (!binder.dirty)
             return;
 
-        bindingState.ClearDirty();
+        binder.dirty = false;
 
-        std::unordered_set<uint32_t> updateDescriptorSets;
-
+        auto& binderPool = binderPools[device.GetFrameIndex()];
         const VulkanPipelineLayout* pipelineLayout = boundPipeline->GetPipelineLayout();
 
         for (auto& descriptorSetLayout : pipelineLayout->GetDescriptorSetLayouts())
         {
             const uint32_t set = descriptorSetLayout->GetIndex();
-            bindingState.ClearDirty(set);
-
-            const auto resourceSet = bindingState.GetSet(set);
-            const BindingMap<VulkanResourceInfo>& bindings = resourceSet.GetResourceBindings();
 
             // Allocate new DescriptorSet
             VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
@@ -551,36 +530,38 @@ namespace Alimer
             {
                 auto setLayoutHandle = descriptorSetLayout->GetHandle();
                 VkDescriptorSetAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-                allocateInfo.descriptorPool = descriptors[frameIndex].descriptorPool;
+                allocateInfo.descriptorPool = binderPool.descriptorPool;
                 allocateInfo.descriptorSetCount = 1;
                 allocateInfo.pSetLayouts = &setLayoutHandle;
 
                 VkResult result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
                 while (result == VK_ERROR_OUT_OF_POOL_MEMORY)
                 {
-                    poolSize *= 2;
-                    device.DeferDestroy(descriptors[frameIndex].descriptorPool);
-                    //init(device);
-                    allocateInfo.descriptorPool = descriptors[frameIndex].descriptorPool;
+                    binderPool.poolSize *= 2;
+                    binderPool.Destroy();
+                    binderPool.Init(&device);
+                    allocateInfo.descriptorPool = binderPool.descriptorPool;
                     result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
                 }
                 ALIMER_ASSERT(result == VK_SUCCESS);
             }
 
-            std::vector<VkWriteDescriptorSet> descriptorWrites;
-            std::vector<VkDescriptorBufferInfo> bufferInfos;
-            std::vector<VkDescriptorImageInfo> imageInfos;
-            std::vector<VkBufferView> texelBufferViews;
-            std::vector<uint32_t> dynamicOffsets;
+            binder.descriptorWrites.clear();
+            binder.bufferInfos.clear();
+            binder.imageInfos.clear();
+            binder.texelBufferViews.clear();
+            binder.accelerationStructureViews.clear();
 
             // Iterate over all resource bindings
             for (auto& binding_it : descriptorSetLayout->GetLayoutBindings())
             {
-                const uint32_t bindingIndex = binding_it.binding;
-                auto boundResouceInfoIt = bindings.find(bindingIndex);
+                const uint32_t binding = binding_it.binding;
 
-                VkWriteDescriptorSet writeDescriptorSet{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-                writeDescriptorSet.dstBinding = bindingIndex;
+                binder.descriptorWrites.emplace_back();
+                auto& writeDescriptorSet = binder.descriptorWrites.back();
+                writeDescriptorSet = {};
+                writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSet.dstBinding = binding;
                 writeDescriptorSet.descriptorType = binding_it.descriptorType;
                 writeDescriptorSet.dstSet = descriptorSet;
                 writeDescriptorSet.dstArrayElement = 0;
@@ -593,85 +574,82 @@ namespace Alimer
                         break;
 
                     case VK_DESCRIPTOR_TYPE_SAMPLER:
-                        imageInfos.emplace_back();
-                        writeDescriptorSet.pImageInfo = &imageInfos.back();
-                        imageInfos.back() = {};
+                    {
+                        const uint32_t original_binding = binding - kVulkanBindingShift_Sampler;
+                        //writeDescriptorSet.dstBinding = binding + kVulkanBindingShift_Sampler;
 
-                        if (boundResouceInfoIt != bindings.end())
+                        binder.imageInfos.emplace_back();
+                        writeDescriptorSet.pImageInfo = &binder.imageInfos.back();
+                        binder.imageInfos.back() = {};
+
+                        if (binder.table.samplers[original_binding] != nullptr)
                         {
-                            imageInfos.back().sampler = checked_cast<VulkanSampler*>(boundResouceInfoIt->second.sampler)->handle;
+                            binder.imageInfos.back().sampler = binder.table.samplers[original_binding]->handle;
                         }
                         else
                         {
-                            imageInfos.back().sampler = checked_cast<VulkanSampler*>(device.nullSampler.Get())->handle;
+                            binder.imageInfos.back().sampler = checked_cast<VulkanSampler*>(device.nullSampler.Get())->handle;
                         }
+                    }
+                    break;
 
-                        break;
-
+                    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                     case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
                     {
-                        VkDescriptorImageInfo imageInfo{};
-                        imageInfo.sampler = VK_NULL_HANDLE;
+                        const uint32_t original_binding = binding - kVulkanBindingShift_SRV;
+                        //writeDescriptorSet.dstBinding = binding + kVulkanBindingShift_SRV;
 
-                        if (boundResouceInfoIt != bindings.end())
+                        binder.imageInfos.emplace_back();
+                        writeDescriptorSet.pImageInfo = &binder.imageInfos.back();
+                        binder.imageInfos.back() = {};
+
+                        if (binder.table.textureSRVViews[original_binding] != nullptr)
                         {
-                            imageInfo.imageView = ToVulkan(boundResouceInfoIt->second.texture)->GetHandle();
-                            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                            binder.imageInfos.back().imageView = binder.table.textureSRVViews[original_binding]->GetHandle();
+                            binder.imageInfos.back().imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         }
                         else
                         {
-                            imageInfo.imageView = device.nullImageView2D;
-                            imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                            binder.imageInfos.back().imageView = device.nullImageView2D;
+                            binder.imageInfos.back().imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                         }
-
-                        imageInfos.push_back(imageInfo);
-                        writeDescriptorSet.pImageInfo = &imageInfo;
-                        break;
                     }
+                    break;
 
                     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
                     {
-                        VkDescriptorBufferInfo bufferInfo{};
+                        //writeDescriptorSet.dstBinding = binding + kVulkanBindingShift_CBV;
+                        binder.bufferInfos.emplace_back();
+                        writeDescriptorSet.pBufferInfo = &binder.bufferInfos.back();
+                        binder.bufferInfos.back() = {};
 
-                        if (boundResouceInfoIt != bindings.end())
+                        if (binder.table.buffers[binding].buffer == VK_NULL_HANDLE)
                         {
-                            bufferInfo.buffer = ToVulkan(boundResouceInfoIt->second.buffer)->handle;
-                            bufferInfo.offset = boundResouceInfoIt->second.offset;
-                            bufferInfo.range = boundResouceInfoIt->second.range;
-
-                            if (binding_it.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-                            {
-                                dynamicOffsets.push_back(static_cast<uint32_t>(bufferInfo.offset));
-                                bufferInfo.offset = 0;
-                            }
+                            binder.bufferInfos.back().buffer = VK_NULL_HANDLE;
+                            binder.bufferInfos.back().range = VK_WHOLE_SIZE;
                         }
                         else
                         {
-                            bufferInfo.buffer = VK_NULL_HANDLE;
-                            bufferInfo.range = VK_WHOLE_SIZE;
+
+                            binder.bufferInfos.back() = binder.table.buffers[binding];
+
+                            //if (binding_it.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+                            //{
+                            //    dynamicOffsets.push_back(static_cast<uint32_t>(bufferInfo.offset));
+                            //    bufferInfo.offset = 0;
+                            //}
                         }
-
-                        bufferInfos.push_back(bufferInfo);
-                        writeDescriptorSet.pBufferInfo = &bufferInfo;
-                        break;
                     }
+                    break;
                 }
-
-                descriptorWrites.push_back(writeDescriptorSet);
             }
 
             // Update 
-            if (descriptorWrites.size())
-            {
-                vkUpdateDescriptorSets(
-                    device.GetHandle(),
-                    (uint32_t)descriptorWrites.size(),
-                    descriptorWrites.data(),
-                    0,
-                    nullptr
-                );
-            }
+            vkUpdateDescriptorSets(device.GetHandle(),
+                (uint32_t)binder.descriptorWrites.size(), binder.descriptorWrites.data(),
+                0, nullptr
+            );
 
             // Bind descriptor set
             vkCmdBindDescriptorSets(handle,
@@ -679,8 +657,7 @@ namespace Alimer
                 pipelineLayout->GetHandle(),
                 set,
                 1, &descriptorSet,
-                static_cast<uint32_t>(dynamicOffsets.size()),
-                dynamicOffsets.data()
+                0, nullptr
             );
         }
 
@@ -717,114 +694,93 @@ namespace Alimer
         }
     }
 
-    /* VulkanResourceBindingState */
-    void VulkanResourceSet::Reset()
+    void VulkanCommandBuffer::DescriptorBinderPool::Init(VulkanGraphics* device_)
     {
-        ClearDirty();
+        device = device_;
 
-        bindings.clear();
-    }
+        // Create descriptor pool:
+        VkDescriptorPoolSize poolSizes[9] = {};
+        uint32_t count = 0;
 
-    bool VulkanResourceSet::IsDirty() const
-    {
-        return dirty;
-    }
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = kMaxConstantBufferBindings * poolSize;
+        count++;
 
-    void VulkanResourceSet::ClearDirty()
-    {
-        dirty = false;
-    }
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        poolSizes[1].descriptorCount = kMaxSRVBindings * poolSize;
+        count++;
 
-    void VulkanResourceSet::ClearDirty(uint32_t binding)
-    {
-        bindings[binding].dirty = false;
-    }
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+        poolSizes[2].descriptorCount = kMaxSRVBindings * poolSize;
+        count++;
 
-    bool VulkanResourceSet::SetBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
-    {
-        if (bindings[binding].buffer == buffer &&
-            bindings[binding].offset == offset &&
-            bindings[binding].range == range)
+        poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSizes[3].descriptorCount = kMaxSRVBindings * poolSize;
+        count++;
+
+        poolSizes[4].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        poolSizes[4].descriptorCount = kUAVCount * poolSize;
+        count++;
+
+        poolSizes[5].type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+        poolSizes[5].descriptorCount = kUAVCount * poolSize;
+        count++;
+
+        poolSizes[6].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSizes[6].descriptorCount = kUAVCount * poolSize;
+        count++;
+
+        poolSizes[7].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        poolSizes[7].descriptorCount = kMaxSamplerBindings * poolSize;
+        count++;
+
+        if (device->GetCaps().features.rayTracing)
         {
-            return false;
+            poolSizes[8].type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+            poolSizes[8].descriptorCount = kMaxSRVBindings * poolSize;
+            count++;
         }
 
-        bindings[binding].dirty = true;
-        bindings[binding].buffer = buffer;
-        bindings[binding].offset = offset;
-        bindings[binding].range = range;
+        VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+        poolInfo.poolSizeCount = count;
+        poolInfo.pPoolSizes = poolSizes;
+        poolInfo.maxSets = poolSize;
+
+        VK_CHECK(vkCreateDescriptorPool(device->device, &poolInfo, nullptr, &descriptorPool));
+    }
+
+    void VulkanCommandBuffer::DescriptorBinderPool::Destroy()
+    {
+        if (descriptorPool != VK_NULL_HANDLE)
+        {
+            device->DeferDestroy(descriptorPool);
+            descriptorPool = VK_NULL_HANDLE;
+        }
+    }
+
+    void VulkanCommandBuffer::DescriptorBinderPool::Reset()
+    {
+        if (descriptorPool != VK_NULL_HANDLE)
+        {
+            VK_CHECK(vkResetDescriptorPool(device->device, descriptorPool, 0));
+        }
+    }
+
+    void VulkanCommandBuffer::DescriptorBinder::Init(VulkanGraphics* device_)
+    {
+        device = device_;
+
+        // Important that these don't reallocate themselves during writing descriptors!
+        descriptorWrites.reserve(128);
+        bufferInfos.reserve(128);
+        imageInfos.reserve(128);
+        texelBufferViews.reserve(128);
+        accelerationStructureViews.reserve(128);
+    }
+
+    void VulkanCommandBuffer::DescriptorBinder::Reset()
+    {
+        table = {};
         dirty = true;
-        return true;
-    }
-
-    bool VulkanResourceSet::SetTexture(uint32_t binding, const TextureView* texture)
-    {
-        if (bindings[binding].texture == texture)
-        {
-            return false;
-        }
-
-        bindings[binding].dirty = true;
-        bindings[binding].texture = texture;
-        dirty = true;
-        return true;
-    }
-
-    bool VulkanResourceSet::SetSampler(uint32_t binding, _In_ Sampler* sampler)
-    {
-        if (bindings[binding].sampler == sampler)
-        {
-            return false;
-        }
-
-        bindings[binding].dirty = true;
-        bindings[binding].sampler = sampler;
-        dirty = true;
-        return true;
-    }
-
-    void VulkanResourceBindingState::Reset()
-    {
-        ClearDirty();
-        sets.clear();
-    }
-
-    bool VulkanResourceBindingState::IsDirty()
-    {
-        return dirty;
-    }
-
-    void VulkanResourceBindingState::ClearDirty()
-    {
-        dirty = false;
-    }
-
-    void VulkanResourceBindingState::ClearDirty(uint32_t set)
-    {
-        sets[set].ClearDirty();
-    }
-
-    void VulkanResourceBindingState::BindBuffer(const Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding)
-    {
-        if (sets[set].SetBuffer(binding, buffer, offset, range))
-        {
-            dirty = true;
-        }
-    }
-
-    void VulkanResourceBindingState::SetTexture(uint32_t set, uint32_t binding, const TextureView* texture)
-    {
-        if (sets[set].SetTexture(binding, texture))
-        {
-            dirty = true;
-        }
-    }
-
-    void VulkanResourceBindingState::SetSampler(uint32_t set, uint32_t binding, _In_ Sampler* sampler)
-    {
-        if (sets[set].SetSampler(binding, sampler))
-        {
-            dirty = true;
-        }
     }
 }

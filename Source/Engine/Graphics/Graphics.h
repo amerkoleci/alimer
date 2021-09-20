@@ -47,7 +47,7 @@ namespace Alimer
         [[nodiscard]] virtual CommandBuffer* BeginCommandBuffer(QueueType queueType = QueueType::Graphics) = 0;
 
         /// Create new texture.
-        [[nodiscard]] TextureRef CreateTexture(const TextureCreateInfo& info, const void* initialData = nullptr);
+        [[nodiscard]] TextureRef CreateTexture(const TextureCreateInfo& info, const TextureData* initialData = nullptr);
 
         /// Create new sampler.
         [[nodiscard]] virtual SamplerRef CreateSampler(const SamplerDesc& desc) = 0;
@@ -69,7 +69,7 @@ namespace Alimer
         bool IsDeviceLost() const noexcept { return deviceLost; }
 
     private:
-        virtual TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) = 0;
+        virtual TextureRef CreateTextureCore(const TextureCreateInfo& info, const TextureData* initialData) = 0;
         virtual BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) = 0;
         virtual ShaderRef CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint) = 0;
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) = 0;

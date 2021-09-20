@@ -13,7 +13,7 @@ namespace Alimer
 	public:
         uint64_t allocatedSize = 0;
 
-		VulkanTexture(VulkanGraphics& device, const TextureCreateInfo& info, VkImage existingImage = VK_NULL_HANDLE, const void* initialData = nullptr);
+		VulkanTexture(VulkanGraphics& device, const TextureCreateInfo& info, VkImage existingImage = VK_NULL_HANDLE, const TextureData* initialData = nullptr);
 		~VulkanTexture() override;
 		void Destroy() override;
 

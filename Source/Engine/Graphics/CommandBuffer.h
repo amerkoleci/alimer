@@ -127,10 +127,21 @@ namespace Alimer
 			SetDynamicIndexBuffer(static_cast<uint32_t>(data.size()), indexType, data.data());
 		}
 
-		void BindBuffer(uint32_t set, uint32_t binding, const Buffer* buffer);
-		void BindBuffer(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range);
-		void BindUniformBufferData(uint32_t set, uint32_t binding, uint32_t size, const void* data);
-		void SetTexture(uint32_t set, uint32_t binding, const TextureView* texture);
+		void BindConstantBuffer(uint32_t binding, const Buffer* buffer);
+		void BindConstantBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range);
+		void BindConstantBufferData(uint32_t binding, uint32_t size, const void* data);
+
+        template<typename T>
+        void BindConstantBufferData(const T& data, uint32_t slot)
+        {
+            GPUAllocation allocation = Allocate(sizeof(T), 0);
+            std::memcpy(allocation.data, &data, sizeof(T));
+            BindConstantBufferCore(slot, allocation.buffer, allocation.offset, allocation.size);
+        }
+
+        void BindTexture(uint32_t binding, const Texture* texture);
+		void BindTexture(uint32_t binding, const TextureView* textureView);
+        void BindSampler(uint32_t binding, const Sampler* sampler);
 
 		virtual void PushConstants(const void* data, uint32_t size) = 0;
 
@@ -150,8 +161,9 @@ namespace Alimer
 
 		virtual void SetVertexBuffersCore(uint32_t startSlot, uint32_t count, const Buffer* const* buffers, const uint64_t* offsets) = 0;
 		virtual void SetIndexBufferCore(const Buffer* buffer, IndexType indexType, uint64_t offset) = 0;
-		virtual void BindBufferCore(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) = 0;
-		virtual void SetTextureCore(uint32_t set, uint32_t binding, const TextureView* texture) = 0;
+		virtual void BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) = 0;
+		virtual void BindTextureCore(uint32_t binding, const TextureView* textureView) = 0;
+        virtual void BindSamplerCore(uint32_t binding, const Sampler* sampler) = 0;
 
 		virtual void DrawCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 		virtual void DrawIndexedCore(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;

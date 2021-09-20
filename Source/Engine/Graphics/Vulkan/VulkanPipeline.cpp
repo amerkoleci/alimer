@@ -1,7 +1,6 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "VulkanShader.h"
 #include "VulkanPipeline.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanGraphics.h"
@@ -396,7 +395,7 @@ namespace Alimer
 			VkPipelineShaderStageCreateInfo stageCreateInfo{};
 			stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			stageCreateInfo.stage = (VkShaderStageFlagBits)ToVulkan(shader->GetStage());
-			stageCreateInfo.module = shader->GetHandle();
+			stageCreateInfo.module = shader->handle;
 			stageCreateInfo.pName = shader->GetEntryPoint().c_str();
 			stageCreateInfo.pSpecializationInfo = nullptr;
 			stages.push_back(stageCreateInfo);
@@ -489,7 +488,7 @@ namespace Alimer
 		createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 		createInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		createInfo.stage.stage = (VkShaderStageFlagBits)ToVulkan(shader->GetStage());
-		createInfo.stage.module = shader->GetHandle();
+		createInfo.stage.module = shader->handle;
 		createInfo.stage.pName = shader->GetEntryPoint().c_str();
 		createInfo.stage.pSpecializationInfo = nullptr;
 		createInfo.layout = pipelineLayout->GetHandle();

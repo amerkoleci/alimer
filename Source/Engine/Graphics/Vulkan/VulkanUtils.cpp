@@ -34,5 +34,24 @@ namespace Alimer
         device->DeferDestroy(handle, bindlessIndex);
         handle = VK_NULL_HANDLE;
     }
+
+    VulkanShader::VulkanShader(ShaderStages stage, const std::string& entryPoint)
+        : Shader(stage, entryPoint)
+    {
+    }
+
+    VulkanShader::~VulkanShader()
+    {
+        Destroy();
+    }
+
+    void VulkanShader::Destroy()
+    {
+        if (handle != VK_NULL_HANDLE)
+        {
+            device->DeferDestroy(handle);
+            handle = VK_NULL_HANDLE;
+        }
+    }
 }
 

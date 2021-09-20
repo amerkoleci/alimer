@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "VulkanPipelineLayout.h"
-#include "VulkanShader.h"
 #include "VulkanGraphics.h"
 
 namespace Alimer
@@ -48,7 +47,7 @@ namespace Alimer
 
             // Convert ShaderResource to VkDescriptorSetLayoutBinding
             VkDescriptorSetLayoutBinding layoutBinding{};
-            layoutBinding.binding = resource.binding;
+            layoutBinding.binding = resource.backend_binding;
             layoutBinding.descriptorType = ToVulkan(resource.type, false);
             layoutBinding.descriptorCount = resource.arraySize;
             layoutBinding.stageFlags = ToVulkan(resource.stages);

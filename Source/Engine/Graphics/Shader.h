@@ -30,6 +30,7 @@ namespace Alimer
 
         uint32_t set;
         uint32_t binding;
+        uint32_t backend_binding;
         uint32_t arraySize;
 
         uint32_t offset;
@@ -45,10 +46,9 @@ namespace Alimer
         /// Create new shader from bytecode.
         [[nodiscard]] static ShaderRef Create(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint = "main");
 
-        ShaderStages GetStage() const noexcept { return stage; }
-		const std::string& GetEntryPoint() const { return entryPoint; }
-		const std::vector<ShaderResource>& GetResources() const { return resources; }
-		size_t GetHash() const { return hash; }
+        [[nodiscard]] ShaderStages GetStage() const noexcept { return stage; }
+        [[nodiscard]] const std::string& GetEntryPoint() const { return entryPoint; }
+        [[nodiscard]] virtual const std::vector<ShaderResource>& GetResources() const = 0;
 
 	protected:
 		/// Constructor.
@@ -56,7 +56,5 @@ namespace Alimer
 
         ShaderStages stage;
 		std::string entryPoint;
-		std::vector<ShaderResource> resources;
-		size_t hash = 0;
 	};
 }

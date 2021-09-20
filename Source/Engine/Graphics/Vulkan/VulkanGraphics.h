@@ -22,6 +22,7 @@ namespace Alimer
 	class VulkanGraphics final : public Graphics
 	{
         friend class VulkanCommandBuffer;
+        friend class VulkanTexture;
 
 	public:
         VkPhysicalDeviceProperties2 properties2 = {};
@@ -112,7 +113,7 @@ namespace Alimer
 	private:
 		void ProcessDeletionQueue();
 
-        TextureRef CreateTextureCore(const TextureCreateInfo& info, const void* initialData) override;
+        TextureRef CreateTextureCore(const TextureCreateInfo& info, const TextureData* initialData) override;
 		BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) override;
         ShaderRef CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint) override;
 		SamplerRef CreateSampler(const SamplerDesc& desc) override;
@@ -156,27 +157,21 @@ namespace Alimer
 
             void Submit(VkFence fence)
             {
-                VkSubmitInfo submitInfo = {};
-                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submitInfo.commandBufferCount = (uint32_t)submit_cmds.size();
-                submitInfo.pCommandBuffers = submit_cmds.data();
-
-                submitInfo.waitSemaphoreCount = (uint32_t)submit_waitSemaphores.size();
-                submitInfo.pWaitSemaphores = submit_waitSemaphores.data();
-                submitInfo.pWaitDstStageMask = submit_waitStages.data();
-
-                submitInfo.signalSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
-                submitInfo.pSignalSemaphores = submit_signalSemaphores.data();
-
-                VkTimelineSemaphoreSubmitInfo timelineInfo = {};
-                timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-                timelineInfo.pNext = nullptr;
+                VkTimelineSemaphoreSubmitInfo timelineInfo { VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
                 timelineInfo.waitSemaphoreValueCount = (uint32_t)submit_waitValues.size();
                 timelineInfo.pWaitSemaphoreValues = submit_waitValues.data();
                 timelineInfo.signalSemaphoreValueCount = (uint32_t)submit_signalValues.size();
                 timelineInfo.pSignalSemaphoreValues = submit_signalValues.data();
 
+                VkSubmitInfo submitInfo { VK_STRUCTURE_TYPE_SUBMIT_INFO };
                 submitInfo.pNext = &timelineInfo;
+                submitInfo.waitSemaphoreCount = (uint32_t)submit_waitSemaphores.size();
+                submitInfo.pWaitSemaphores = submit_waitSemaphores.data();
+                submitInfo.pWaitDstStageMask = submit_waitStages.data();
+                submitInfo.commandBufferCount = (uint32_t)submit_cmds.size();
+                submitInfo.pCommandBuffers = submit_cmds.data();
+                submitInfo.signalSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
+                submitInfo.pSignalSemaphores = submit_signalSemaphores.data();
 
                 VkResult res = vkQueueSubmit(queue, 1, &submitInfo, fence);
                 assert(res == VK_SUCCESS);

@@ -6,7 +6,8 @@
 #include "Core/Log.h"
 #include "Graphics/Buffer.h"
 #include "Graphics/Sampler.h"
-#define NOMINMAX
+#include "Graphics/Shader.h"
+#include "PlatformInclude.h"
 #include "volk.h"
 #include "vk_mem_alloc.h"
 #include <array>
@@ -21,7 +22,6 @@ namespace Alimer
     class VulkanGraphics;
     class VulkanTexture;
     class VulkanTextureView;
-    class VulkanShader;
     class VulkanDescriptorSetLayout;
     class VulkanPipelineLayout;
     class VulkanPipeline;
@@ -515,13 +515,32 @@ namespace Alimer
         uint32_t bindlessIndex = kInvalidBindlessIndex;
 
         ~VulkanSampler() override;
-        uint32_t GetBindlesIndex() const override { return bindlessIndex; }
+        uint32_t GetBindlessIndex() const override { return bindlessIndex; }
     };
 
+    struct VulkanShader final : public Shader
+    {
+    public:
+        VulkanGraphics* device = nullptr;
+        VkShaderModule handle = VK_NULL_HANDLE;
+        std::vector<ShaderResource> resources;
+        size_t hash = 0;
+
+        VulkanShader(ShaderStages stage, const std::string& entryPoint);
+        ~VulkanShader();
+
+        void Destroy() override;
+        const std::vector<ShaderResource>& GetResources() const override { return resources; }
+    };
 
     constexpr const VulkanBuffer* ToVulkan(const Buffer* resource)
     {
         return static_cast<const VulkanBuffer*>(resource);
+    }
+
+    constexpr VulkanShader* ToVulkan(Shader* resource)
+    {
+        return static_cast<VulkanShader*>(resource);
     }
 }
 

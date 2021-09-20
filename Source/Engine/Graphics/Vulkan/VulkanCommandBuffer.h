@@ -5,75 +5,9 @@
 
 #include "Graphics/CommandBuffer.h"
 #include "VulkanUtils.h"
-#include <map>
 
 namespace Alimer
 {
-    template <class T>
-    using BindingMap = std::map<uint32_t, T>;
-
-    struct VulkanResourceInfo
-    {
-        bool dirty = false;
-
-        const Buffer* buffer = nullptr;
-        VkDeviceSize offset = 0;
-        VkDeviceSize range = 0;
-
-        const TextureView* texture = nullptr;
-        Sampler* sampler = nullptr;
-    };
-
-    class VulkanResourceSet
-    {
-    public:
-        void Reset();
-        bool IsDirty() const;
-
-        void ClearDirty();
-        void ClearDirty(uint32_t binding);
-        bool SetBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range);
-        bool SetTexture(uint32_t binding, const TextureView* texture);
-        bool SetSampler(uint32_t binding, _In_ Sampler* sampler);
-
-        const BindingMap<VulkanResourceInfo>& GetResourceBindings() const
-        {
-            return bindings;
-        }
-
-    private:
-        bool dirty = false;
-
-        BindingMap<VulkanResourceInfo> bindings;
-    };
-
-    class VulkanResourceBindingState
-    {
-    public:
-        void Reset();
-        bool IsDirty();
-        void ClearDirty();
-        void ClearDirty(uint32_t set);
-
-        void BindBuffer(const Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding);
-        void SetTexture(uint32_t set, uint32_t binding, const TextureView* view);
-        void SetSampler(uint32_t set, uint32_t binding, _In_ Sampler* sampler);
-
-        const VulkanResourceSet& GetSet(uint32_t index) const
-        {
-            return sets.find(index)->second;
-        }
-
-        const std::unordered_map<uint32_t, VulkanResourceSet>& GetSets() const
-        {
-            return sets;
-        }
-
-    private:
-        bool dirty = false;
-        std::unordered_map<uint32_t, VulkanResourceSet> sets;
-    };
-
     class VulkanSwapChain;
 
     class VulkanCommandBuffer final : public CommandBuffer
@@ -110,8 +44,9 @@ namespace Alimer
 
         void SetVertexBuffersCore(uint32_t startSlot, uint32_t count, const Buffer* const* buffers, const uint64_t* offsets) override;
         void SetIndexBufferCore(const Buffer* buffer, IndexType indexType, uint64_t offset = 0) override;
-        void BindBufferCore(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) override;
-        void SetTextureCore(uint32_t set, uint32_t binding, const TextureView* texture) override;
+        void BindConstantBufferCore(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range) override;
+        void BindTextureCore(uint32_t binding, const TextureView* textureView) override;
+        void BindSamplerCore(uint32_t binding, const Sampler* sampler) override;
 
         void PushConstants(const void* data, uint32_t size) override;
 
@@ -146,20 +81,48 @@ namespace Alimer
         uint32_t colorAttachmentCount = 0;
         VkRenderPass boundRenderPass = VK_NULL_HANDLE;
         const VulkanPipeline* boundPipeline = nullptr;
-        VulkanResourceBindingState bindingState;
 
-        static constexpr uint32_t kUniformBufferCount = 15u;
-        static constexpr uint32_t kSRVCount = 64u;
-        static constexpr uint32_t kUAVCount = 8u;
-        static constexpr uint32_t kSamplerCount = 16u;
-        uint32_t poolSize = 256u;
+        struct DescriptorBinderPool
+        {
+            VulkanGraphics* device;
+            VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+            uint32_t poolSize = 256;
+
+            void Init(VulkanGraphics* device);
+            void Destroy();
+            void Reset();
+        } binderPools[kMaxFramesInFlight];
+
+        static constexpr uint32_t kUAVCount = 16u;
+
+        struct DescriptorBindingTable
+        {
+            VkDescriptorBufferInfo buffers[kMaxConstantBufferBindings] = {};
+
+            const VulkanTextureView* textureSRVViews[kMaxSRVBindings] = {};
+            const VulkanTextureView* textureUAVViews[kUAVCount] = {};
+            //int UAV_index[DESCRIPTORBINDER_UAV_COUNT] = {};
+            const VulkanSampler* samplers[kMaxSamplerBindings] = {};
+        };
 
         struct DescriptorBinder
         {
+            VulkanGraphics* device = nullptr;
+            DescriptorBindingTable table;
+
             VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+            uint32_t poolSize = 256u;
+
+            std::vector<VkWriteDescriptorSet> descriptorWrites;
+            std::vector<VkDescriptorBufferInfo> bufferInfos;
+            std::vector<VkDescriptorImageInfo> imageInfos;
+            std::vector<VkBufferView> texelBufferViews;
+            std::vector<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructureViews;
             bool dirty = false;
 
-        } descriptors[kMaxFramesInFlight];
+            void Init(VulkanGraphics* device);
+            void Reset();
+        } binder;
 
         struct PushConstantData
         {

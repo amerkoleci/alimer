@@ -8,61 +8,66 @@
 
 namespace Alimer
 {
-	void CommandBuffer::Reset(uint32_t frameIndex_)
-	{
-		frameIndex = frameIndex_;
-		frameAllocators[frameIndex_].Reset();
-	}
+    void CommandBuffer::Reset(uint32_t frameIndex_)
+    {
+        frameIndex = frameIndex_;
+        frameAllocators[frameIndex_].Reset();
+    }
 
-	GPUAllocation CommandBuffer::Allocate(uint64_t size, uint64_t alignment)
-	{
-		return frameAllocators[frameIndex].Allocate(size, alignment);
-	}
+    GPUAllocation CommandBuffer::Allocate(uint64_t size, uint64_t alignment)
+    {
+        if (alignment == 0)
+        {
+            alignment = gGraphics().GetCaps().limits.minConstantBufferOffsetAlignment;
+        }
 
-	void CommandBuffer::UpdateBuffer(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size)
-	{
-		ALIMER_ASSERT(!insideRenderPass);
-		ALIMER_ASSERT(buffer != nullptr);
+        return frameAllocators[frameIndex].Allocate(size, alignment);
+    }
 
-		if (size == 0)
-		{
-			size = buffer->GetSize() - offset;
-		}
+    void CommandBuffer::UpdateBuffer(const Buffer* buffer, const void* data, uint64_t offset, uint64_t size)
+    {
+        ALIMER_ASSERT(!insideRenderPass);
+        ALIMER_ASSERT(buffer != nullptr);
 
-		if (offset >= size)
-		{
-			LOGW("UpdateBuffer - offset is larger than the buffer size.");
-			return;
-		}
+        if (size == 0)
+        {
+            size = buffer->GetSize() - offset;
+        }
 
-		if (offset + size > size)
-		{
+        if (offset >= size)
+        {
+            LOGW("UpdateBuffer - offset is larger than the buffer size.");
+            return;
+        }
+
+        if (offset + size > size)
+        {
             LOGW("UpdateBuffer - offset + size bigger that buffer size. Clamping size");
-			size -= offset;
-		}
+            size -= offset;
+        }
 
-		UpdateBufferCore(buffer, data, offset, size);
-	}
+        UpdateBufferCore(buffer, data, offset, size);
+    }
 
-	void CommandBuffer::CopyBuffer(const Buffer* source, const Buffer* destination)
-	{
-		ALIMER_ASSERT(!insideRenderPass);
-		ALIMER_ASSERT(source != nullptr);
-		ALIMER_ASSERT(destination != nullptr);
+    void CommandBuffer::CopyBuffer(const Buffer* source, const Buffer* destination)
+    {
+        ALIMER_ASSERT(!insideRenderPass);
+        ALIMER_ASSERT(source != nullptr);
+        ALIMER_ASSERT(destination != nullptr);
 
-		CopyBufferCore(source, 0, destination, 0, source->GetSize());
-	}
+        CopyBufferCore(source, 0, destination, 0, source->GetSize());
+    }
 
-	void CommandBuffer::CopyBuffer(const Buffer* source, uint64_t sourceOffset, const Buffer* destination, uint64_t destinationOffset, uint64_t size)
-	{
-		ALIMER_ASSERT(!insideRenderPass);
-		ALIMER_ASSERT(source != nullptr);
-		ALIMER_ASSERT(destination != nullptr);
-		ALIMER_ASSERT(sourceOffset + size <= source->GetSize());
-		ALIMER_ASSERT(destinationOffset + size <= destination->GetSize());
+    void CommandBuffer::CopyBuffer(const Buffer* source, uint64_t sourceOffset, const Buffer* destination, uint64_t destinationOffset, uint64_t size)
+    {
+        ALIMER_ASSERT(!insideRenderPass);
+        ALIMER_ASSERT(source != nullptr);
+        ALIMER_ASSERT(destination != nullptr);
+        ALIMER_ASSERT(sourceOffset + size <= source->GetSize());
+        ALIMER_ASSERT(destinationOffset + size <= destination->GetSize());
 
-		CopyBufferCore(source, sourceOffset, destination, destinationOffset, size);
-	}
+        CopyBufferCore(source, sourceOffset, destination, destinationOffset, size);
+    }
 
     void CommandBuffer::BeginRenderPass(_In_ SwapChain* swapChain, const Color& clearColor)
     {
@@ -72,21 +77,21 @@ namespace Alimer
         insideRenderPass = true;
     }
 
-	void CommandBuffer::BeginRenderPass(const RenderPassInfo& info)
-	{
-		ALIMER_ASSERT_MSG(!insideRenderPass, "Cannot begin render pass while inside render pass");
+    void CommandBuffer::BeginRenderPass(const RenderPassInfo& info)
+    {
+        ALIMER_ASSERT_MSG(!insideRenderPass, "Cannot begin render pass while inside render pass");
 
-		BeginRenderPassCore(info);
-		insideRenderPass = true;
-	}
+        BeginRenderPassCore(info);
+        insideRenderPass = true;
+    }
 
-	void CommandBuffer::EndRenderPass()
-	{
-		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot end render pass without begin first");
+    void CommandBuffer::EndRenderPass()
+    {
+        ALIMER_ASSERT_MSG(insideRenderPass, "Cannot end render pass without begin first");
 
-		EndRenderPassCore();
-		insideRenderPass = false;
-	}
+        EndRenderPassCore();
+        insideRenderPass = false;
+    }
 
     void CommandBuffer::SetViewport(const Rect& rect)
     {
@@ -108,95 +113,108 @@ namespace Alimer
         SetScissorRect(Rect(x, y, width, height));
     }
 
-	void CommandBuffer::SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset)
-	{
-		ALIMER_ASSERT(slot < kMaxVertexBufferBindings);
+    void CommandBuffer::SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset)
+    {
+        ALIMER_ASSERT(slot < kMaxVertexBufferBindings);
 
-		SetVertexBuffersCore(slot, 1, &buffer, &offset);
-	}
+        SetVertexBuffersCore(slot, 1, &buffer, &offset);
+    }
 
-	void CommandBuffer::SetVertexBuffers(uint32_t startSlot, uint32_t count, const Buffer* const* buffers, const uint64_t* offsets)
-	{
-		ALIMER_ASSERT(startSlot < kMaxVertexBufferBindings);
-		ALIMER_ASSERT((startSlot + count) < kMaxVertexBufferBindings);
+    void CommandBuffer::SetVertexBuffers(uint32_t startSlot, uint32_t count, const Buffer* const* buffers, const uint64_t* offsets)
+    {
+        ALIMER_ASSERT(startSlot < kMaxVertexBufferBindings);
+        ALIMER_ASSERT((startSlot + count) < kMaxVertexBufferBindings);
 
-		SetVertexBuffersCore(startSlot, count, buffers, offsets);
-	}
+        SetVertexBuffersCore(startSlot, count, buffers, offsets);
+    }
 
-	void CommandBuffer::SetIndexBuffer(const Buffer* buffer, IndexType indexType, uint64_t offset)
-	{
-		ALIMER_ASSERT(buffer != nullptr);
-		ALIMER_ASSERT_MSG(CheckBitsAny(buffer->GetUsage(), BufferUsage::Index), "Buffer created without Index usage");
+    void CommandBuffer::SetIndexBuffer(const Buffer* buffer, IndexType indexType, uint64_t offset)
+    {
+        ALIMER_ASSERT(buffer != nullptr);
+        ALIMER_ASSERT_MSG(CheckBitsAny(buffer->GetUsage(), BufferUsage::Index), "Buffer created without Index usage");
 
-		SetIndexBufferCore(buffer, indexType, offset);
-	}
+        SetIndexBufferCore(buffer, indexType, offset);
+    }
 
-	void CommandBuffer::SetDynamicVertexBuffer(uint32_t slot, uint32_t vertexCount, uint32_t vertexStride, const void* data)
-	{
-		uint64_t bufferSize = (uint64_t)(vertexCount * vertexStride);
+    void CommandBuffer::SetDynamicVertexBuffer(uint32_t slot, uint32_t vertexCount, uint32_t vertexStride, const void* data)
+    {
+        uint64_t bufferSize = (uint64_t)(vertexCount * vertexStride);
 
-		GPUAllocation allocation = Allocate(bufferSize, 4);
-		memcpy(allocation.data, data, bufferSize);
+        GPUAllocation allocation = Allocate(bufferSize, 4);
+        memcpy(allocation.data, data, bufferSize);
 
-		SetVertexBuffer(slot, allocation.buffer, allocation.offset);
-	}
+        SetVertexBuffer(slot, allocation.buffer, allocation.offset);
+    }
 
-	void CommandBuffer::SetDynamicIndexBuffer(uint32_t indexCount, IndexType indexType, const void* data)
-	{
-		uint64_t indexSizeInBytes = indexType == IndexType::UInt16 ? 2 : 4;
-		uint64_t bufferSize = indexCount * indexSizeInBytes;
-		
-		GPUAllocation allocation = Allocate(bufferSize, 4);
-		memcpy(allocation.data, data, bufferSize);
-		SetIndexBufferCore(allocation.buffer, indexType, allocation.offset);
-	}
+    void CommandBuffer::SetDynamicIndexBuffer(uint32_t indexCount, IndexType indexType, const void* data)
+    {
+        uint64_t indexSizeInBytes = indexType == IndexType::UInt16 ? 2 : 4;
+        uint64_t bufferSize = indexCount * indexSizeInBytes;
 
-	void CommandBuffer::BindBuffer(uint32_t set, uint32_t binding, const Buffer* buffer)
-	{
-		BindBuffer(set, binding, buffer, 0, buffer->GetSize());
-	}
+        GPUAllocation allocation = Allocate(bufferSize, 4);
+        memcpy(allocation.data, data, bufferSize);
+        SetIndexBufferCore(allocation.buffer, indexType, allocation.offset);
+    }
 
-	void CommandBuffer::BindBuffer(uint32_t set, uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
-	{
-		//ALIMER_ASSERT(set < kMaxDescriptorSets);
-		//ALIMER_ASSERT(binding < kMaxDescriptorBindings);
+    void CommandBuffer::BindConstantBuffer(uint32_t binding, const Buffer* buffer)
+    {
+        BindConstantBuffer(binding, buffer, 0, buffer->GetSize());
+    }
 
-		BindBufferCore(set, binding, buffer, offset, range);
-	}
+    void CommandBuffer::BindConstantBuffer(uint32_t binding, const Buffer* buffer, uint64_t offset, uint64_t range)
+    {
+        ALIMER_ASSERT(binding < kMaxConstantBufferBindings);
 
-	void CommandBuffer::BindUniformBufferData(uint32_t set, uint32_t binding, uint32_t size, const void* data)
-	{
-		//ALIMER_ASSERT(set < kMaxDescriptorSets);
-		//ALIMER_ASSERT(binding < kMaxDescriptorBindings);
+        BindConstantBufferCore(binding, buffer, offset, range);
+    }
 
-		auto allocation = Allocate(size, 256);
-		memcpy(allocation.data, data, size);
+    void CommandBuffer::BindConstantBufferData(uint32_t binding, uint32_t size, const void* data)
+    {
+        ALIMER_ASSERT(binding < kMaxConstantBufferBindings);
 
-		BindBufferCore(set, binding, allocation.buffer, allocation.offset, allocation.size);
-	}
+        auto allocation = Allocate(size, gGraphics().GetCaps().limits.minConstantBufferOffsetAlignment);
+        memcpy(allocation.data, data, size);
 
-	void CommandBuffer::SetTexture(uint32_t set, uint32_t binding, const TextureView* texture)
-	{
-		//ALIMER_ASSERT(set < kMaxDescriptorSets);
-		//ALIMER_ASSERT(binding < kMaxDescriptorBindings);
-		ALIMER_ASSERT(texture != nullptr);
+        BindConstantBufferCore(binding, allocation.buffer, allocation.offset, allocation.size);
+    }
 
-		SetTextureCore(set, binding, texture);
-	}
+    void CommandBuffer::BindTexture(uint32_t binding, const Texture* texture)
+    {
+        ALIMER_ASSERT(binding < kMaxSRVBindings);
+        ALIMER_ASSERT(texture);
 
-	void CommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
-	{
-		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+        BindTextureCore(binding, texture->GetDefaultView());
+    }
 
-		DrawCore(vertexCount, instanceCount, firstVertex, firstInstance);
-	}
+    void CommandBuffer::BindTexture(uint32_t binding, const TextureView* textureView)
+    {
+        ALIMER_ASSERT(binding < kMaxSRVBindings);
+        ALIMER_ASSERT(textureView);
 
-	void CommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
-	{
-		ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+        BindTextureCore(binding, textureView);
+    }
 
-		DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
-	}
+    void CommandBuffer::BindSampler(uint32_t binding, const Sampler* sampler)
+    {
+        ALIMER_ASSERT(binding < kMaxSamplerBindings);
+        ALIMER_ASSERT(sampler);
+
+        BindSamplerCore(binding, sampler);
+    }
+
+    void CommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+
+        DrawCore(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void CommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+    {
+        ALIMER_ASSERT_MSG(insideRenderPass, "Cannot Draw outside render pass");
+
+        DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
 
     void CommandBuffer::DrawIndirect(_In_ Buffer* indirectBuffer, uint64_t indirectOffset)
     {
@@ -214,46 +232,44 @@ namespace Alimer
         DrawIndexedIndirectCore(indirectBuffer, indirectOffset);
     }
 
-	GPUAllocation CommandBuffer::ResourceFrameAllocator::Allocate(uint64_t size_, uint64_t alignment)
-	{
-		ALIMER_ASSERT(size_ > 0 && "Allocation size must be greater than zero");
+    GPUAllocation CommandBuffer::ResourceFrameAllocator::Allocate(uint64_t size_, uint64_t alignment)
+    {
+        ALIMER_ASSERT(size_ > 0 && "Allocation size must be greater than zero");
 
-		// Align the allocation
-		const uint64_t alignedSize = AlignUp(size_, alignment);
+        // Align the allocation
+        const uint64_t alignedSize = AlignUp(size_, alignment);
 
-		//if (buffer.IsNull() || (alignedSize > size))
-		//{
-		//	// Resize or create
-		//	if (buffer.IsNotNull())
-		//	{
-		//		size *= 2u;
-		//	}
-        //
-        //    BufferCreateInfo bufferInfo{};
-        //    bufferInfo.label = "ResourceFrameAllocator - Buffer";
-        //    bufferInfo.memoryUsage = MemoryUsage::CpuToGpu;
-        //    bufferInfo.usage = BufferUsage::Vertex | BufferUsage::Index | BufferUsage::Uniform;
-        //    bufferInfo.size = size;
-		//	buffer = Buffer::Create(bufferInfo);
-        //
-		//	mappedData = buffer->Map();
-		//}
+        if (buffer.IsNull() || (alignedSize > size))
+        {
+            // Resize or create
+            if (buffer.IsNotNull())
+            {
+                size *= 2u;
+            }
 
-		currentOffset = AlignUp(currentOffset, alignment);
+            BufferCreateInfo bufferInfo{};
+            bufferInfo.label = "ResourceFrameAllocator - Buffer";
+            bufferInfo.size = size;
+            bufferInfo.usage = BufferUsage::Vertex | BufferUsage::Index | BufferUsage::Constant | BufferUsage::ShaderRead;
+            bufferInfo.cpuAccess = CpuAccessMode::Write;
+            buffer = Buffer::Create(bufferInfo);
 
-		GPUAllocation allocation;
-		allocation.buffer = buffer;
-		allocation.offset = currentOffset;
-		allocation.size = alignedSize;
-		allocation.data = mappedData + currentOffset;
+            mappedData = buffer->MappedData();
+        }
 
-		currentOffset += alignedSize;
+        GPUAllocation allocation;
+        allocation.buffer = buffer;
+        allocation.offset = currentOffset;
+        allocation.size = alignedSize;
+        allocation.data = mappedData + currentOffset;
 
-		return allocation;
-	}
+        currentOffset += alignedSize;
 
-	void CommandBuffer::ResourceFrameAllocator::Reset()
-	{
-		currentOffset = 0;
-	}
+        return allocation;
+    }
+
+    void CommandBuffer::ResourceFrameAllocator::Reset()
+    {
+        currentOffset = 0;
+    }
 }

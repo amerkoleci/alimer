@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "VulkanTexture.h"
-#include "VulkanShader.h"
 #include "VulkanPipeline.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanPipelineLayout.h"
@@ -12,6 +11,7 @@
 #include "Math/MathHelper.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
+#include <spirv_reflect.h>
 
 namespace Alimer
 {
@@ -305,6 +305,83 @@ namespace Alimer
                 ALIMER_UNREACHABLE();
                 return VK_BORDER_COLOR_MAX_ENUM;
             }
+        }
+
+        /* Shader */
+        [[nodiscard]] constexpr ShaderStages ConvertShaderStage(SpvExecutionModel model)
+        {
+            switch (model)
+            {
+            case SpvExecutionModelVertex:
+                return ShaderStages::Vertex;
+                //case SpvExecutionModelTessellationControl:
+                //	return ShaderStages::TessControl;
+                //case SpvExecutionModelTessellationEvaluation:
+                //	return ShaderStages::TessEvaluation;
+                //case SpvExecutionModelGeometry:
+                //	return ShaderStages::Geometry;
+            case SpvExecutionModelFragment:
+                return ShaderStages::Pixel;
+            case SpvExecutionModelGLCompute:
+                return ShaderStages::Compute;
+                //case SpvExecutionModelRayGenerationNV:
+                //	return ShaderStage::RayGeneration;
+                //case SpvExecutionModelIntersectionNV:
+                //	return ShaderStage::Intersection;
+                //case SpvExecutionModelAnyHitNV:
+                //	return ShaderStage::AnyHit;
+                //case SpvExecutionModelClosestHitNV:
+                //	return ShaderStage::ClosestHit;
+                //case SpvExecutionModelMissNV:
+                //	return ShaderStage::Miss;
+                //case SpvExecutionModelCallableNV:
+                //	return ShaderStage::Callable;
+                //case SpvExecutionModelTaskNV:
+                //	return ShaderStage::Amplification;
+                //case SpvExecutionModelMeshNV:
+                //	return ShaderStage::Mesh;
+            }
+
+            ALIMER_UNREACHABLE();
+            return ShaderStages::None;
+        }
+
+        [[nodiscard]] constexpr ShaderResourceType GetShaderResourceType(SpvReflectDescriptorType type)
+        {
+            switch (type)
+            {
+            case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+                return ShaderResourceType::Sampler;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                return ShaderResourceType::SampledTexture;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                return ShaderResourceType::StorageTexture;
+
+            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                return ShaderResourceType::UniformBuffer;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                return ShaderResourceType::StorageBuffer;
+
+            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                return ShaderResourceType::UniformBuffer;
+
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                break;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                break;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                break;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+                break;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                break;
+            default:
+                ALIMER_UNREACHABLE();
+                break;
+            }
+
+            ALIMER_UNREACHABLE();
         }
     }
 
@@ -1472,7 +1549,7 @@ namespace Alimer
         copyAllocator.Submit(context);
     }
 
-    TextureRef VulkanGraphics::CreateTextureCore(const TextureCreateInfo& info, const void* initialData)
+    TextureRef VulkanGraphics::CreateTextureCore(const TextureCreateInfo& info, const TextureData* initialData)
     {
         auto result = new VulkanTexture(*this, info, nullptr, initialData);
 
@@ -1736,35 +1813,129 @@ namespace Alimer
 
             copyAllocator.Submit(context);
         }
-        else if (info->cpuAccess == CpuAccessMode::None)
-        {
-            // zero-initialize:
-            initLocker.lock();
-            vkCmdFillBuffer(GetFrameResources().initCommandBuffer,
-                buffer->handle,
-                0,
-                VK_WHOLE_SIZE,
-                0
-            );
-
-            pendingSubmitInits = true;
-            initLocker.unlock();
-        }
 
         return buffer;
     }
 
     ShaderRef VulkanGraphics::CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint)
     {
-        auto result = new VulkanShader(*this, stage, byteCode, byteCodeLength, entryPoint);
+        RefPtr<VulkanShader> shader(new VulkanShader(stage, entryPoint));
+        shader->device = this;
 
-        if (result->GetHandle() != VK_NULL_HANDLE)
+        SpvReflectShaderModule module;
+        SpvReflectResult result = spvReflectCreateShaderModule(byteCodeLength, byteCode, &module);
+        ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
+
+        const SpvReflectEntryPoint* spvEntryPoint = spvReflectGetEntryPoint(&module, entryPoint.c_str());
+        ALIMER_ASSERT(spvEntryPoint != nullptr);
+        ALIMER_ASSERT(module.entry_point_count == 1);
+
+        //stage = ConvertShaderStage(spvEntryPoint->spirv_execution_model);
+
+        // Bindings
         {
-            return result;
+            uint32_t count = 0;
+            result = spvReflectEnumerateEntryPointDescriptorBindings(&module, entryPoint.c_str(), &count, NULL);
+            ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
+
+            std::vector<SpvReflectDescriptorBinding*> bindings(count);
+            result = spvReflectEnumerateEntryPointDescriptorBindings(&module, entryPoint.c_str(), &count, bindings.data());
+            ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
+
+            const uint32_t bindlessSet = 1;
+            std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+            for (auto& binding : bindings)
+            {
+                const bool bindless = binding->set > 0;
+
+                ShaderResource resource{};
+                resource.type = GetShaderResourceType(binding->descriptor_type);
+                resource.stages |= stage;
+                resource.name = binding->name;
+
+                resource.arraySize = binding->count;
+                for (uint32_t i_dim = 0; i_dim < binding->array.dims_count; ++i_dim) {
+                    resource.arraySize *= binding->array.dims[i_dim];
+                }
+                resource.set = binding->set;
+                resource.binding = binding->binding;
+
+                if (binding->resource_type == SPV_REFLECT_RESOURCE_FLAG_CBV)
+                {
+                    resource.offset = binding->block.offset;
+                    resource.size = binding->block.size;
+                }
+
+                if (!bindless)
+                {
+                    switch (binding->resource_type)
+                    {
+                    case SPV_REFLECT_RESOURCE_FLAG_SAMPLER:
+                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_Sampler, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                        break;
+
+                    case SPV_REFLECT_RESOURCE_FLAG_CBV: // Unchanged
+                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_CBV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                        break;
+
+                    case SPV_REFLECT_RESOURCE_FLAG_SRV:
+                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_SRV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                        break;
+                    case SPV_REFLECT_RESOURCE_FLAG_UAV:
+                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_UAV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                        break;
+                    }
+                }
+
+                resource.backend_binding = binding->binding;
+                shader->resources.push_back(resource);
+            }
         }
 
-        delete result;
-        return nullptr;
+        // Push constants
+        {
+            uint32_t pushCount = 0;
+            result = spvReflectEnumerateEntryPointPushConstantBlocks(&module, entryPoint.c_str(), &pushCount, nullptr);
+            ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
+
+            std::vector<SpvReflectBlockVariable*> pushConstants(pushCount);
+            result = spvReflectEnumerateEntryPointPushConstantBlocks(&module, entryPoint.c_str(), &pushCount, pushConstants.data());
+            ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
+
+            for (auto& pushConstant : pushConstants)
+            {
+                ShaderResource resource{};
+                resource.type = ShaderResourceType::PushConstant;
+                resource.stages |= stage;
+                resource.name = pushConstant->name;
+                resource.offset = pushConstant->offset;
+                resource.size = pushConstant->size;
+                shader->resources.push_back(resource);
+            }
+        }
+
+        std::vector<uint8_t> modifiedByteCode(spvReflectGetCodeSize(&module));
+        memcpy(modifiedByteCode.data(), spvReflectGetCode(&module), modifiedByteCode.size());
+        spvReflectDestroyShaderModule(&module);
+
+        // Create the Vulkan ShaderModule.
+        {
+            VkShaderModuleCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            createInfo.codeSize = modifiedByteCode.size();
+            createInfo.pCode = reinterpret_cast<const uint32_t*>(modifiedByteCode.data());
+            VkResult result = vkCreateShaderModule(device, &createInfo, nullptr, &shader->handle);
+
+            if (result != VK_SUCCESS)
+            {
+                VK_LOG_ERROR(result, "Failed to create ShaderModule");
+                return nullptr;
+            }
+        }
+
+        std::hash<std::string> hasher{};
+        shader->hash = hasher(std::string{ modifiedByteCode.cbegin(), modifiedByteCode.cend() });
+        return shader;
     }
 
     SamplerRef VulkanGraphics::CreateSampler(const SamplerDesc& desc)
@@ -1942,8 +2113,9 @@ namespace Alimer
 
     void VulkanGraphics::DeferDestroy(VkDescriptorPool resource)
     {
-        std::lock_guard<std::mutex> guard(destroyMutex);
+        destroyMutex.lock();
         deletionDescriptorPoolQueue.push_back(std::make_pair(resource, frameCount));
+        destroyMutex.unlock();
     }
 
     void VulkanGraphics::ProcessDeletionQueue()
@@ -2335,7 +2507,7 @@ namespace Alimer
 
         for (auto& shader : shaders)
         {
-            HashCombine(hash, shader->GetHash());
+            HashCombine(hash, shader->hash);
         }
 
         auto it = pipelineLayoutCache.find(hash);

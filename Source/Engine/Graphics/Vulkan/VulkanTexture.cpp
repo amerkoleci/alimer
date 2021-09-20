@@ -50,7 +50,7 @@ namespace Alimer
 
     }
 
-    VulkanTexture::VulkanTexture(VulkanGraphics& device, const TextureCreateInfo& info, VkImage existingImage, const void* initialData)
+    VulkanTexture::VulkanTexture(VulkanGraphics& device, const TextureCreateInfo& info, VkImage existingImage, const TextureData* initialData)
         : Texture(info)
         , device{ device }
         , handle(existingImage)
@@ -89,15 +89,16 @@ namespace Alimer
             imageInfo.samples = VulkanSampleCount(info.sampleCount);
             imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
             imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-            if (CheckBitsAny(info.usage, TextureUsage::Sampled))
+            if ((info.usage & TextureUsage::ShaderRead) != 0)
             {
                 imageInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
             }
-            if (CheckBitsAny(info.usage, TextureUsage::Storage))
+            if ((info.usage & TextureUsage::ShaderWrite) != 0)
             {
                 imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
             }
-            if (CheckBitsAny(info.usage, TextureUsage::RenderTarget))
+
+            if ((info.usage &TextureUsage::RenderTarget) != 0)
             {
                 if (IsDepthStencilFormat(info.format))
                 {
@@ -130,58 +131,54 @@ namespace Alimer
             // Upload data.
             if (initialData != nullptr)
             {
-                auto uploadContext = device.UploadBegin(allocationInfo.size);
+                auto context = device.UploadBegin(allocationInfo.size);
+
+                const VkDeviceSize srcTexelSize = GetFormatBlockSize(info.format);
 
                 std::vector<VkBufferImageCopy> copyRegions;
 
-                uint32_t mipWidth = imageInfo.extent.width;
-                uint32_t mipHeight = imageInfo.extent.height;
-                uint32_t depth = imageInfo.extent.depth;
-
-                const uint8_t* srcMemory = reinterpret_cast<const uint8_t*>(initialData);
-                const uint64_t srcTexelSize = GetFormatBlockSize(info.format);
-                uint64_t copyOffset = 0;
-
-                for (uint32_t arrayIndex = 0; arrayIndex < imageInfo.arrayLayers; ++arrayIndex)
+                VkDeviceSize copyOffset = 0;
+                uint32_t initDataIdx = 0;
+                for (uint32_t layer = 0; layer < imageInfo.arrayLayers; ++layer)
                 {
-                    for (uint32_t mipLevel = 0; mipLevel < imageInfo.mipLevels; ++mipLevel)
+                    uint32_t width = imageInfo.extent.width;
+                    uint32_t height = imageInfo.extent.height;
+                    uint32_t depth = imageInfo.extent.depth;
+                    for (uint32_t mip = 0; mip < imageInfo.mipLevels; ++mip)
                     {
-                        const uint64_t rowPitch = mipWidth * srcTexelSize;
-                        const uint64_t slicePitch = rowPitch * mipHeight;
-
-                        uint64_t copySize = slicePitch * depth * imageInfo.arrayLayers;
-                        if (IsBlockCompressedFormat(info.format))
-                        {
-                            copySize /= 4;
-                        }
-
-                        uint8_t* cpyAddress = uploadContext.data + copyOffset;
-                        memcpy(cpyAddress, initialData, copySize);
+                        const TextureData& subresourceData = initialData[initDataIdx++];
+                        VkDeviceSize copySize = subresourceData.rowPitch * height * depth / srcTexelSize;
+                        uint8_t* cpyaddr = (uint8_t*)context.uploadBuffer->MappedData() + copyOffset;
+                        memcpy(cpyaddr, subresourceData.data, copySize);
 
                         VkBufferImageCopy copyRegion = {};
                         copyRegion.bufferOffset = copyOffset;
                         copyRegion.bufferRowLength = 0;
                         copyRegion.bufferImageHeight = 0;
+
                         copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                        copyRegion.imageSubresource.mipLevel = mipLevel;
-                        copyRegion.imageSubresource.baseArrayLayer = arrayIndex;
+                        copyRegion.imageSubresource.mipLevel = mip;
+                        copyRegion.imageSubresource.baseArrayLayer = layer;
                         copyRegion.imageSubresource.layerCount = 1;
-                        copyRegion.imageExtent.width = mipWidth;
-                        copyRegion.imageExtent.height = mipHeight;
-                        copyRegion.imageExtent.depth = depth;
+
+                        copyRegion.imageOffset = { 0, 0, 0 };
+                        copyRegion.imageExtent = {
+                            width,
+                            height,
+                            depth
+                        };
+
+                        width = std::max(1u, width / 2);
+                        height = std::max(1u, height / 2);
+                        depth = std::max(1u, depth / 2);
+
                         copyRegions.push_back(copyRegion);
 
-                        mipWidth = Max(mipWidth / 2, 1u);
-                        mipHeight = Max(1u, height / 2);
-                        depth = Max(1u, depth / 2);
-
                         copyOffset += AlignUp(copySize, srcTexelSize);
-                        srcMemory += rowPitch;
                     }
                 }
 
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
                 barrier.image = handle;
                 barrier.oldLayout = imageInfo.initialLayout;
                 barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -196,7 +193,7 @@ namespace Alimer
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
                 vkCmdPipelineBarrier(
-                    uploadContext.commandBuffer,
+                    context.commandBuffer,
                     VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
                     0,
@@ -206,19 +203,22 @@ namespace Alimer
                 );
 
                 vkCmdCopyBufferToImage(
-                    uploadContext.commandBuffer,
-                    ToVulkan(uploadContext.uploadBuffer)->handle,
+                    context.commandBuffer,
+                    ToVulkan(context.uploadBuffer)->handle,
                     handle,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     (uint32_t)copyRegions.size(), copyRegions.data());
+
+                device.UploadEnd(context);
 
                 barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                 barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
+                device.initLocker.lock();
                 vkCmdPipelineBarrier(
-                    uploadContext.commandBuffer,
+                    device.GetFrameResources().initCommandBuffer,
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                     0,
@@ -226,10 +226,50 @@ namespace Alimer
                     0, nullptr,
                     1, &barrier
                 );
-
-                device.UploadEnd(uploadContext);
+                device.pendingSubmitInits = true;
+                device.initLocker.unlock();
 
                 layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            }
+            else
+            {
+                //VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+                //barrier.image = handle;
+                //barrier.oldLayout = imageInfo.initialLayout;
+                //barrier.newLayout = _ConvertImageLayout(pTexture->desc.layout);
+                //barrier.srcAccessMask = 0;
+                //barrier.dstAccessMask = _ParseResourceState(pTexture->desc.layout);
+                //if (pTexture->desc.BindFlags & BIND_DEPTH_STENCIL)
+                //{
+                //    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                //    if (IsFormatStencilSupport(pTexture->desc.Format))
+                //    {
+                //        barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+                //    }
+                //}
+                //else
+                //{
+                //    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                //}
+                //barrier.subresourceRange.baseArrayLayer = 0;
+                //barrier.subresourceRange.layerCount = imageInfo.arrayLayers;
+                //barrier.subresourceRange.baseMipLevel = 0;
+                //barrier.subresourceRange.levelCount = imageInfo.mipLevels;
+                //barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                //barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+                //initLocker.lock();
+                //vkCmdPipelineBarrier(
+                //    GetFrameResources().initCommandBuffer,
+                //    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                //    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                //    0,
+                //    0, nullptr,
+                //    0, nullptr,
+                //    1, &barrier
+                //);
+                //submit_inits = true;
+                //initLocker.unlock();
             }
 
             OnCreated();
@@ -433,8 +473,10 @@ namespace Alimer
             VK_LOG_ERROR(result, "Failed to create ImageView");
         }
 
+        const TextureUsage usage = texture->GetUsage();
+
         // Allocate bindless SRV
-        if (CheckBitsAny(texture->GetUsage(), TextureUsage::Sampled))
+        if ((usage & TextureUsage::ShaderRead) != 0)
         {
             bindless_srv = device.AllocateSRV();
             if (bindless_srv != -1)
@@ -454,7 +496,7 @@ namespace Alimer
             }
         }
 
-        if (CheckBitsAny(texture->GetUsage(), TextureUsage::Storage))
+        if ((usage & TextureUsage::ShaderWrite) != 0)
         {
             //bindless_uav = device.AllocateUAV();
             //if (bindless_uav != -1)

@@ -34,7 +34,7 @@ namespace Alimer
 	class ALIMER_API Buffer : public GPUResource, public RefCounted
 	{
 	public:
-        [[nodiscard]] static BufferRef Create(const BufferCreateInfo* createInfo, const void* initialData = nullptr);
+        [[nodiscard]] static BufferRef Create(const BufferCreateInfo& desc, const void* initialData = nullptr);
 		[[nodiscard]] static BufferRef Create(uint64_t size, BufferUsage usage, const void* data, const char* label = nullptr);
         [[nodiscard]] static BufferRef CreateUpload(uint64_t size, const char* label = nullptr);
         [[nodiscard]] static BufferRef CreateReadback(uint64_t size, const char* label = nullptr);

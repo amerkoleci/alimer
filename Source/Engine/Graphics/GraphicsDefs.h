@@ -29,9 +29,11 @@ namespace Alimer
     static constexpr uint32_t kMaxVertexAttributeOffset = 2047u;
     static constexpr uint32_t kMaxVertexBufferStride = 2048u;
     static constexpr uint32_t kMaxCommandLists = 32u;
-    static constexpr uint32_t kMaxUniformBufferBindings = 14;
+
+    static constexpr uint32_t kMaxConstantBufferBindings = 15;
+    static constexpr uint32_t kMaxSRVBindings = 64u;
+    static constexpr uint32_t kMaxSamplerBindings = 16;
     //static constexpr uint32_t kMaxDescriptorBindings = 32;
-    //static constexpr uint32_t kMaxUniformBufferSize = 16 * 1024;
 
     static constexpr uint32_t kInvalidBindlessIndex = static_cast<u32>(-1);
     static constexpr uint32_t kAllMipLevels = static_cast<u32>(-1);

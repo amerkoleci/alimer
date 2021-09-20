@@ -433,6 +433,6 @@ namespace Alimer
             return nullptr;
         }
 
-        return backBufferTextures[backBufferIndex]->GetDefault();
+        return backBufferTextures[backBufferIndex]->GetDefaultView();
     }
 }
