@@ -6,98 +6,6 @@
 
 namespace Alimer
 {
-    namespace
-    {
-        inline VkDescriptorType ToVulkan(ShaderResourceType type, bool dynamic)
-        {
-            switch (type)
-            {
-                //case ShaderResourceType::InputAttachment:
-                //	return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-                case ShaderResourceType::SampledTexture:
-                    return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                case ShaderResourceType::StorageTexture:
-                    return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                case ShaderResourceType::Sampler:
-                    return VK_DESCRIPTOR_TYPE_SAMPLER;
-                case ShaderResourceType::UniformBuffer:
-                    return dynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                case ShaderResourceType::StorageBuffer:
-                    return dynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                default:
-                    LOGE("No conversion possible for the shader resource type.");
-                    return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-            }
-        }
-    }
-
-    VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VulkanGraphics& device_, const uint32_t setIndex_, const std::vector<ShaderResource>& resources)
-        : device(device_)
-        , setIndex(setIndex_)
-    {
-        for (auto& resource : resources)
-        {
-            // Skip shader resources whitout a binding point
-            if (resource.type == ShaderResourceType::Input ||
-                resource.type == ShaderResourceType::Output ||
-                resource.type == ShaderResourceType::PushConstant)
-            {
-                continue;
-            }
-
-            // Convert ShaderResource to VkDescriptorSetLayoutBinding
-            VkDescriptorSetLayoutBinding layoutBinding{};
-            layoutBinding.binding = resource.backend_binding;
-            layoutBinding.descriptorType = ToVulkan(resource.type, false);
-            layoutBinding.descriptorCount = resource.arraySize;
-            layoutBinding.stageFlags = ToVulkan(resource.stages);
-
-            bindings.push_back(layoutBinding);
-
-            // Store mapping between binding and the binding point
-            bindingsLookup.emplace(resource.binding, layoutBinding);
-        }
-
-        VkDescriptorSetLayoutCreateInfo createInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        createInfo.flags = 0;
-        createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        createInfo.pBindings = bindings.data();
-
-        // Create the Vulkan descriptor set layout handle
-        VkResult result = vkCreateDescriptorSetLayout(device.GetHandle(), &createInfo, nullptr, &handle);
-
-        if (result != VK_SUCCESS)
-        {
-            VK_LOG_ERROR(result, "Cannot create DescriptorSetLayout");
-        }
-    }
-
-    VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout()
-    {
-        if (handle != VK_NULL_HANDLE)
-        {
-            vkDestroyDescriptorSetLayout(device.GetHandle(), handle, nullptr);
-            handle = VK_NULL_HANDLE;
-        }
-    }
-
-    const std::vector<VkDescriptorSetLayoutBinding>& VulkanDescriptorSetLayout::GetLayoutBindings() const
-    {
-        return bindings;
-    }
-
-    std::unique_ptr<VkDescriptorSetLayoutBinding> VulkanDescriptorSetLayout::GetLayoutBinding(const uint32_t bindingIndex) const
-    {
-        auto it = bindingsLookup.find(bindingIndex);
-
-        if (it == bindingsLookup.end())
-        {
-            return nullptr;
-        }
-
-        return std::make_unique<VkDescriptorSetLayoutBinding>(it->second);
-    }
-
     /* VulkanPipelineLayout */
     VulkanPipelineLayout::VulkanPipelineLayout(VulkanGraphics& device, const std::vector<VulkanShader*>& shaders)
         : device{ device }
@@ -172,7 +80,7 @@ namespace Alimer
         {
             if (descriptorSetLayouts[i])
             {
-                vkDescriptorSetLayouts.push_back(descriptorSetLayouts[i]->GetHandle());
+                vkDescriptorSetLayouts.push_back(descriptorSetLayouts[i]->handle);
             }
             else
             {
@@ -210,7 +118,6 @@ namespace Alimer
         }
     }
 
-
     VulkanPipelineLayout::~VulkanPipelineLayout()
     {
         if (handle != VK_NULL_HANDLE)
@@ -218,20 +125,6 @@ namespace Alimer
             vkDestroyPipelineLayout(device.GetHandle(), handle, nullptr);
             handle = VK_NULL_HANDLE;
         }
-    }
-
-    VulkanDescriptorSetLayout* VulkanPipelineLayout::GetDescriptorSetLayout(const uint32_t setIndex) const
-    {
-        for (auto& descriptorSetLayout : descriptorSetLayouts)
-        {
-            if (descriptorSetLayout->GetIndex() == setIndex)
-            {
-                return descriptorSetLayout;
-            }
-        }
-
-        LOGE("Couldn't find descriptor set layout at set index {}", setIndex);
-        return nullptr;
     }
 
     const std::vector<ShaderResource> VulkanPipelineLayout::GetResources(const ShaderResourceType& type, ShaderStages stage) const

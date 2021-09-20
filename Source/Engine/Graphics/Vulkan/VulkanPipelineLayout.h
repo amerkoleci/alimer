@@ -7,28 +7,6 @@
 
 namespace Alimer
 {
-	class VulkanDescriptorSetLayout final
-	{
-	public:
-		VulkanDescriptorSetLayout(VulkanGraphics& device, const uint32_t setIndex, const std::vector<ShaderResource>& resources);
-		~VulkanDescriptorSetLayout();
-
-		VkDescriptorSetLayout GetHandle() const { return handle; }
-
-		const uint32_t GetIndex() const { return setIndex; }
-
-		const std::vector<VkDescriptorSetLayoutBinding>& GetLayoutBindings() const;
-		std::unique_ptr<VkDescriptorSetLayoutBinding> GetLayoutBinding(const uint32_t bindingIndex) const;
-
-	private:
-		VulkanGraphics& device;
-		VkDescriptorSetLayout handle{ VK_NULL_HANDLE };
-		const uint32_t setIndex;
-
-		std::vector<VkDescriptorSetLayoutBinding> bindings;
-		std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindingsLookup;
-	};
-
 	class VulkanPipelineLayout final
 	{
 	public:
@@ -49,7 +27,6 @@ namespace Alimer
 		}
 
 		const std::vector<VulkanDescriptorSetLayout*>& GetDescriptorSetLayouts() const { return descriptorSetLayouts; }
-		VulkanDescriptorSetLayout* GetDescriptorSetLayout(const uint32_t setIndex) const;
 		const std::vector<ShaderResource> GetResources(const ShaderResourceType& type = ShaderResourceType::All, ShaderStages stage = ShaderStages::All) const;
 
         bool GetBindless() const noexcept { return bindless; }

@@ -63,9 +63,6 @@ namespace Alimer
         [[nodiscard]] constexpr u32 GetFrameIndex() const { return frameIndex; }
         [[nodiscard]] constexpr u64 GetFrameCount() const { return frameCount; }
 
-        /// Get the native device handle (ID3D12Device, VkDevice)
-        virtual void* GetNativeHandle() const noexcept = 0;
-
         bool IsDeviceLost() const noexcept { return deviceLost; }
 
     private:

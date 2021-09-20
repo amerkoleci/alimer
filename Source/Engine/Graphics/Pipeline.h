@@ -182,16 +182,16 @@ namespace Alimer
 	ALIMER_API bool EnableBlend(const RenderTargetBlendState& state);
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
-	class ALIMER_API Pipeline : public GPUObjectOld, public RefCounted
+    enum class PipelineType
+    {
+        Render,
+        Compute,
+        Raytracing,
+    };
+
+	class ALIMER_API Pipeline : public RefCounted
 	{
 	public:
-        enum class Type
-        {
-            RenderPipeline,
-            ComputePipeline,
-            RaytracingPipeline,
-        };
-
 		/**
 		* Create new render pipeline.
 		* @param info - The render pipeline info.
@@ -204,10 +204,6 @@ namespace Alimer
 		*/
 		[[nodiscard]] static PipelineRef Create(const ComputePipelineCreateInfo& info);
 
-	protected:
-		/// Constructor.
-		Pipeline(Type type);
-
-        Type type;
+        [[nodiscard]] virtual PipelineType GetType() const = 0;
 	};
 }

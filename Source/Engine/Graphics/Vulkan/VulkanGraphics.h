@@ -23,10 +23,10 @@ namespace Alimer
 	{
         friend class VulkanCommandBuffer;
         friend class VulkanTexture;
+        friend class VulkanPipelineLayout;
 
 	public:
         VkPhysicalDeviceProperties2 properties2 = {};
-        VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
         VkPhysicalDeviceVulkan12Properties properties_1_2 = {};
         VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties = {};
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
@@ -34,16 +34,12 @@ namespace Alimer
         VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
 
         VkPhysicalDeviceFeatures2 features2 = {};
-        VkPhysicalDeviceVulkan11Features features_1_1 = {};
         VkPhysicalDeviceVulkan12Features features_1_2 = {};
         VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = {};
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_features = {};
         VkPhysicalDeviceRayQueryFeaturesKHR raytracing_query_features = {};
         VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features = {};
         VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_features = {};
-
-        std::vector<VkDynamicState> pso_dynamicStates;
-        VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
 
 		// Null objects for descriptor sets
         VkBuffer		nullBuffer = VK_NULL_HANDLE;
@@ -83,9 +79,6 @@ namespace Alimer
 		VkRenderPass GetVkRenderPass(const VulkanRenderPassKey& key);
 		VkFramebuffer GetVkFramebuffer(uint64_t hash, const VulkanFboKey& key);
 
-		VulkanDescriptorSetLayout& RequestDescriptorSetLayout(const uint32_t setIndex, const std::vector<ShaderResource>& resources);
-		VulkanPipelineLayout& RequestPipelineLayout(const std::vector<VulkanShader*>& shaders);
-
 		void DeferDestroy(VkImage texture, VmaAllocation allocation);
 		void DeferDestroy(VkBuffer buffer, VmaAllocation allocation);
 		void DeferDestroy(VkImageView view);
@@ -121,7 +114,8 @@ namespace Alimer
 		PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) override;
         SwapChainRef CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info) override;
 
-		void* GetNativeHandle() const noexcept { return device; }
+        VulkanDescriptorSetLayout& RequestDescriptorSetLayout(const uint32_t setIndex, const std::vector<ShaderResource>& resources);
+        VulkanPipelineLayout* RequestPipelineLayout(const std::vector<VulkanShader*>& shaders);
 
 		bool debugUtils = false;
 		VkInstance instance{ VK_NULL_HANDLE };
@@ -231,6 +225,9 @@ namespace Alimer
 
         mutable std::mutex initLocker;
         mutable bool pendingSubmitInits = false;
+
+        std::vector<VkDynamicState> pso_dynamicStates;
+        VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
 
         struct FrameResources
         {

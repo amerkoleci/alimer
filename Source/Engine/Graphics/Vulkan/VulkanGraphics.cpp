@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "VulkanTexture.h"
-#include "VulkanPipeline.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanSwapChain.h"
@@ -129,19 +128,12 @@ namespace Alimer
             bool depth_clip_enable;
             bool memory_budget;
             bool performance_query;
-            bool host_query_reset;
-            bool sampler_mirror_clamp_to_edge;
-            bool spirv_1_4;
-            bool buffer_device_address;
             bool deferred_host_operations;
-            bool descriptor_indexing;
             bool accelerationStructure;
             bool raytracingPipeline;
             bool rayQuery;
-            bool create_renderpass2;
             bool fragment_shading_rate;
             bool NV_mesh_shader;
-            bool EXT_shader_viewport_index_layer;
             bool win32_full_screen_exclusive;
         };
 
@@ -170,23 +162,8 @@ namespace Alimer
                 else if (strcmp(vk_extensions[i].extensionName, VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME) == 0) {
                     extensions.performance_query = true;
                 }
-                else if (strcmp(vk_extensions[i].extensionName, VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME) == 0) {
-                    extensions.host_query_reset = true;
-                }
-                else if (strcmp(vk_extensions[i].extensionName, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME) == 0) {
-                    extensions.sampler_mirror_clamp_to_edge = true;
-                }
-                else if (strcmp(vk_extensions[i].extensionName, VK_KHR_SPIRV_1_4_EXTENSION_NAME) == 0) {
-                    extensions.spirv_1_4 = true;
-                }
-                else if (strcmp(vk_extensions[i].extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) == 0) {
-                    extensions.buffer_device_address = true;
-                }
                 else if (strcmp(vk_extensions[i].extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0) {
                     extensions.deferred_host_operations = true;
-                }
-                else if (strcmp(vk_extensions[i].extensionName, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0) {
-                    extensions.descriptor_indexing = true;
                 }
                 else if (strcmp(vk_extensions[i].extensionName, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) == 0) {
                     extensions.accelerationStructure = true;
@@ -197,37 +174,15 @@ namespace Alimer
                 else if (strcmp(vk_extensions[i].extensionName, VK_KHR_RAY_QUERY_EXTENSION_NAME) == 0) {
                     extensions.rayQuery = true;
                 }
-                else if (strcmp(vk_extensions[i].extensionName, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) == 0) {
-                    extensions.create_renderpass2 = true;
-                }
                 else if (strcmp(vk_extensions[i].extensionName, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME) == 0) {
                     extensions.fragment_shading_rate = true;
                 }
                 else if (strcmp(vk_extensions[i].extensionName, VK_NV_MESH_SHADER_EXTENSION_NAME) == 0) {
                     extensions.NV_mesh_shader = true;
                 }
-                else if (strcmp(vk_extensions[i].extensionName, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) == 0) {
-                    extensions.EXT_shader_viewport_index_layer = true;
-                }
                 else if (strcmp(vk_extensions[i].extensionName, VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0) {
                     extensions.win32_full_screen_exclusive = true;
                 }
-            }
-
-            // We run on vulkan 1.1 or higher.
-            VkPhysicalDeviceProperties gpuProps;
-            vkGetPhysicalDeviceProperties(physicalDevice, &gpuProps);
-
-            // Promoted in 1.2
-            if (gpuProps.apiVersion >= VK_API_VERSION_1_2)
-            {
-                extensions.host_query_reset = true;
-                extensions.sampler_mirror_clamp_to_edge = true;
-                extensions.spirv_1_4 = true;
-                //extensions.buffer_device_address = true;
-                extensions.descriptor_indexing = true;
-                extensions.create_renderpass2 = true;
-                extensions.EXT_shader_viewport_index_layer = true;
             }
 
             return extensions;
@@ -247,13 +202,13 @@ namespace Alimer
         {
             switch (mode)
             {
-            case SamplerFilter::Nearest:
-                return VK_FILTER_NEAREST;
-            case SamplerFilter::Linear:
-                return VK_FILTER_LINEAR;
-            default:
-                ALIMER_UNREACHABLE();
-                return VK_FILTER_MAX_ENUM;
+                case SamplerFilter::Nearest:
+                    return VK_FILTER_NEAREST;
+                case SamplerFilter::Linear:
+                    return VK_FILTER_LINEAR;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_FILTER_MAX_ENUM;
             }
         }
 
@@ -261,13 +216,13 @@ namespace Alimer
         {
             switch (mode)
             {
-            case SamplerFilter::Nearest:
-                return VK_SAMPLER_MIPMAP_MODE_NEAREST;
-            case SamplerFilter::Linear:
-                return VK_SAMPLER_MIPMAP_MODE_LINEAR;
-            default:
-                ALIMER_UNREACHABLE();
-                return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
+                case SamplerFilter::Nearest:
+                    return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+                case SamplerFilter::Linear:
+                    return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
             }
         }
 
@@ -275,19 +230,19 @@ namespace Alimer
         {
             switch (mode)
             {
-            case SamplerAddressMode::Wrap:
-                return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            case SamplerAddressMode::Mirror:
-                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-            case SamplerAddressMode::Clamp:
-                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            case SamplerAddressMode::Border:
-                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-            case SamplerAddressMode::MirrorOnce:
-                return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
-            default:
-                ALIMER_UNREACHABLE();
-                return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+                case SamplerAddressMode::Wrap:
+                    return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                case SamplerAddressMode::Mirror:
+                    return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+                case SamplerAddressMode::Clamp:
+                    return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+                case SamplerAddressMode::Border:
+                    return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+                case SamplerAddressMode::MirrorOnce:
+                    return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
             }
         }
 
@@ -295,15 +250,15 @@ namespace Alimer
         {
             switch (value)
             {
-            case SamplerBorderColor::TransparentBlack:
-                return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-            case SamplerBorderColor::OpaqueBlack:
-                return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-            case SamplerBorderColor::OpaqueWhite:
-                return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-            default:
-                ALIMER_UNREACHABLE();
-                return VK_BORDER_COLOR_MAX_ENUM;
+                case SamplerBorderColor::TransparentBlack:
+                    return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+                case SamplerBorderColor::OpaqueBlack:
+                    return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+                case SamplerBorderColor::OpaqueWhite:
+                    return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_BORDER_COLOR_MAX_ENUM;
             }
         }
 
@@ -312,34 +267,34 @@ namespace Alimer
         {
             switch (model)
             {
-            case SpvExecutionModelVertex:
-                return ShaderStages::Vertex;
-                //case SpvExecutionModelTessellationControl:
-                //	return ShaderStages::TessControl;
-                //case SpvExecutionModelTessellationEvaluation:
-                //	return ShaderStages::TessEvaluation;
-                //case SpvExecutionModelGeometry:
-                //	return ShaderStages::Geometry;
-            case SpvExecutionModelFragment:
-                return ShaderStages::Pixel;
-            case SpvExecutionModelGLCompute:
-                return ShaderStages::Compute;
-                //case SpvExecutionModelRayGenerationNV:
-                //	return ShaderStage::RayGeneration;
-                //case SpvExecutionModelIntersectionNV:
-                //	return ShaderStage::Intersection;
-                //case SpvExecutionModelAnyHitNV:
-                //	return ShaderStage::AnyHit;
-                //case SpvExecutionModelClosestHitNV:
-                //	return ShaderStage::ClosestHit;
-                //case SpvExecutionModelMissNV:
-                //	return ShaderStage::Miss;
-                //case SpvExecutionModelCallableNV:
-                //	return ShaderStage::Callable;
-                //case SpvExecutionModelTaskNV:
-                //	return ShaderStage::Amplification;
-                //case SpvExecutionModelMeshNV:
-                //	return ShaderStage::Mesh;
+                case SpvExecutionModelVertex:
+                    return ShaderStages::Vertex;
+                    //case SpvExecutionModelTessellationControl:
+                    //	return ShaderStages::TessControl;
+                    //case SpvExecutionModelTessellationEvaluation:
+                    //	return ShaderStages::TessEvaluation;
+                    //case SpvExecutionModelGeometry:
+                    //	return ShaderStages::Geometry;
+                case SpvExecutionModelFragment:
+                    return ShaderStages::Pixel;
+                case SpvExecutionModelGLCompute:
+                    return ShaderStages::Compute;
+                    //case SpvExecutionModelRayGenerationNV:
+                    //	return ShaderStage::RayGeneration;
+                    //case SpvExecutionModelIntersectionNV:
+                    //	return ShaderStage::Intersection;
+                    //case SpvExecutionModelAnyHitNV:
+                    //	return ShaderStage::AnyHit;
+                    //case SpvExecutionModelClosestHitNV:
+                    //	return ShaderStage::ClosestHit;
+                    //case SpvExecutionModelMissNV:
+                    //	return ShaderStage::Miss;
+                    //case SpvExecutionModelCallableNV:
+                    //	return ShaderStage::Callable;
+                    //case SpvExecutionModelTaskNV:
+                    //	return ShaderStage::Amplification;
+                    //case SpvExecutionModelMeshNV:
+                    //	return ShaderStage::Mesh;
             }
 
             ALIMER_UNREACHABLE();
@@ -350,38 +305,306 @@ namespace Alimer
         {
             switch (type)
             {
-            case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
-                return ShaderResourceType::Sampler;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-            case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                return ShaderResourceType::SampledTexture;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                return ShaderResourceType::StorageTexture;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+                    return ShaderResourceType::Sampler;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                    return ShaderResourceType::SampledTexture;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                    return ShaderResourceType::StorageTexture;
 
-            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-                return ShaderResourceType::UniformBuffer;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-                return ShaderResourceType::StorageBuffer;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                    return ShaderResourceType::UniformBuffer;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                    return ShaderResourceType::StorageBuffer;
 
-            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                return ShaderResourceType::UniformBuffer;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                    return ShaderResourceType::UniformBuffer;
 
-            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                break;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                break;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-                break;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-                break;
-            case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
-                break;
-            default:
-                ALIMER_UNREACHABLE();
-                break;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                    break;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                    break;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                    break;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+                    break;
+                case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                    break;
+                default:
+                    ALIMER_UNREACHABLE();
+                    break;
             }
 
             ALIMER_UNREACHABLE();
+        }
+
+        /* DescriptorSetLayout/PipelineLayout */
+        [[nodiscard]] constexpr VkDescriptorType ToVulkan(ShaderResourceType type, bool dynamic)
+        {
+            switch (type)
+            {
+                //case ShaderResourceType::InputAttachment:
+                //	return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+                case ShaderResourceType::SampledTexture:
+                    return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                case ShaderResourceType::StorageTexture:
+                    return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                case ShaderResourceType::Sampler:
+                    return VK_DESCRIPTOR_TYPE_SAMPLER;
+                case ShaderResourceType::UniformBuffer:
+                    return dynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                case ShaderResourceType::StorageBuffer:
+                    return dynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                default:
+                    LOGE("No conversion possible for the shader resource type.");
+                    return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+            }
+        }
+
+        /* Pipeline */
+
+        [[nodiscard]] constexpr VkPrimitiveTopology ToVulkan(PrimitiveTopology topology)
+        {
+            switch (topology)
+            {
+                case PrimitiveTopology::PointList:
+                    return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+                case PrimitiveTopology::LineList:
+                    return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+                case PrimitiveTopology::LineStrip:
+                    return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+                case PrimitiveTopology::TriangleList:
+                    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+                case PrimitiveTopology::TriangleStrip:
+                    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+                default:
+                    ALIMER_UNREACHABLE();
+                    return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+            }
+        }
+
+        [[nodiscard]] constexpr VkBool32 EnablePrimitiveRestart(PrimitiveTopology topology)
+        {
+            switch (topology)
+            {
+                case PrimitiveTopology::LineStrip:
+                case PrimitiveTopology::TriangleStrip:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        [[nodiscard]] constexpr VkVertexInputRate ToVulkan(VertexStepRate stepMode)
+        {
+            switch (stepMode)
+            {
+                case VertexStepRate::Instance:
+                    return VK_VERTEX_INPUT_RATE_INSTANCE;
+                default:
+                    return VK_VERTEX_INPUT_RATE_VERTEX;
+            }
+        }
+
+        [[nodiscard]] constexpr VkFormat ToVulkan(VertexFormat format)
+        {
+            switch (format)
+            {
+                case VertexFormat::Uint8x2:
+                    return VK_FORMAT_R8G8_UINT;
+                case VertexFormat::Uint8x4:
+                    return VK_FORMAT_R8G8B8A8_UINT;
+                case VertexFormat::Sint8x2:
+                    return VK_FORMAT_R8G8_SINT;
+                case VertexFormat::Sint8x4:
+                    return VK_FORMAT_R8G8B8A8_SINT;
+                case VertexFormat::Unorm8x2:
+                    return VK_FORMAT_R8G8_UNORM;
+                case VertexFormat::Unorm8x4:
+                    return VK_FORMAT_R8G8B8A8_UNORM;
+                case VertexFormat::Snorm8x2:
+                    return VK_FORMAT_R8G8_SNORM;
+                case VertexFormat::Snorm8x4:
+                    return VK_FORMAT_R8G8B8A8_SNORM;
+                case VertexFormat::Uint16x2:
+                    return VK_FORMAT_R16G16_UINT;
+                case VertexFormat::Uint16x4:
+                    return VK_FORMAT_R16G16B16A16_UINT;
+                case VertexFormat::Sint16x2:
+                    return VK_FORMAT_R16G16_SINT;
+                case VertexFormat::Sint16x4:
+                    return VK_FORMAT_R16G16B16A16_SINT;
+                case VertexFormat::Unorm16x2:
+                    return VK_FORMAT_R16G16_UNORM;
+                case VertexFormat::Unorm16x4:
+                    return VK_FORMAT_R16G16B16A16_UNORM;
+                case VertexFormat::Snorm16x2:
+                    return VK_FORMAT_R16G16_SNORM;
+                case VertexFormat::Snorm16x4:
+                    return VK_FORMAT_R16G16B16A16_SNORM;
+                case VertexFormat::Float16x2:
+                    return VK_FORMAT_R16G16_SFLOAT;
+                case VertexFormat::Float16x4:
+                    return VK_FORMAT_R16G16B16A16_SFLOAT;
+                case VertexFormat::Float32:
+                    return VK_FORMAT_R32_SFLOAT;
+                case VertexFormat::Float32x2:
+                    return VK_FORMAT_R32G32_SFLOAT;
+                case VertexFormat::Float32x3:
+                    return VK_FORMAT_R32G32B32_SFLOAT;
+                case VertexFormat::Float32x4:
+                    return VK_FORMAT_R32G32B32A32_SFLOAT;
+                case VertexFormat::Uint32:
+                    return VK_FORMAT_R32_UINT;
+                case VertexFormat::Uint32x2:
+                    return VK_FORMAT_R32G32_UINT;
+                case VertexFormat::Uint32x3:
+                    return VK_FORMAT_R32G32B32_UINT;
+                case VertexFormat::Uint32x4:
+                    return VK_FORMAT_R32G32B32A32_UINT;
+                case VertexFormat::Sint32:
+                    return VK_FORMAT_R32_SINT;
+                case VertexFormat::Sint32x2:
+                    return VK_FORMAT_R32G32_SINT;
+                case VertexFormat::Sint32x3:
+                    return VK_FORMAT_R32G32B32_SINT;
+                case VertexFormat::Sint32x4:
+                    return VK_FORMAT_R32G32B32A32_SINT;
+
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
+
+        [[nodiscard]] constexpr VkPolygonMode ToVulkan(FillMode mode)
+        {
+            switch (mode)
+            {
+                default:
+                case FillMode::Solid:
+                    return VK_POLYGON_MODE_FILL;
+                case FillMode::Wireframe:
+                    return VK_POLYGON_MODE_LINE;
+            }
+        }
+
+        [[nodiscard]] constexpr VkCullModeFlagBits ToVulkan(CullMode mode)
+        {
+            switch (mode)
+            {
+                default:
+                case CullMode::None:
+                    return VK_CULL_MODE_NONE;
+                case CullMode::Front:
+                    return VK_CULL_MODE_FRONT_BIT;
+                case CullMode::Back:
+                    return VK_CULL_MODE_BACK_BIT;
+            }
+        }
+
+        [[nodiscard]] constexpr VkFrontFace ToVulkan(FaceWinding winding)
+        {
+            switch (winding)
+            {
+                default:
+                case FaceWinding::Clockwise:
+                    return VK_FRONT_FACE_CLOCKWISE;
+                case FaceWinding::CounterClockwise:
+                    return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+            }
+        }
+
+        [[nodiscard]] constexpr VkStencilOp ToVulkan(StencilOperation op) {
+            switch (op) {
+                case StencilOperation::Keep:
+                    return VK_STENCIL_OP_KEEP;
+                case StencilOperation::Zero:
+                    return VK_STENCIL_OP_ZERO;
+                case StencilOperation::Replace:
+                    return VK_STENCIL_OP_REPLACE;
+                case StencilOperation::IncrementClamp:
+                    return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+                case StencilOperation::DecrementClamp:
+                    return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+                case StencilOperation::Invert:
+                    return VK_STENCIL_OP_INVERT;
+                case StencilOperation::IncrementWrap:
+                    return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+                case StencilOperation::DecrementWrap:
+                    return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
+
+        [[nodiscard]] constexpr VkBlendFactor ToVulkan(BlendFactor factor)
+        {
+            switch (factor) {
+                case BlendFactor::Zero:
+                    return VK_BLEND_FACTOR_ZERO;
+                case BlendFactor::One:
+                    return VK_BLEND_FACTOR_ONE;
+                case BlendFactor::SourceColor:
+                    return VK_BLEND_FACTOR_SRC_COLOR;
+                case BlendFactor::OneMinusSourceColor:
+                    return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+                case BlendFactor::SourceAlpha:
+                    return VK_BLEND_FACTOR_SRC_ALPHA;
+                case BlendFactor::OneMinusSourceAlpha:
+                    return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+                case BlendFactor::DestinationColor:
+                    return VK_BLEND_FACTOR_DST_COLOR;
+                case BlendFactor::OneMinusDestinationColor:
+                    return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+                case BlendFactor::DestinationAlpha:
+                    return VK_BLEND_FACTOR_DST_ALPHA;
+                case BlendFactor::OneMinusDestinationAlpha:
+                    return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+                case BlendFactor::SourceAlphaSaturated:
+                    return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+                case BlendFactor::BlendColor:
+                    return VK_BLEND_FACTOR_CONSTANT_COLOR;
+                case BlendFactor::OneMinusBlendColor:
+                    return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+                case BlendFactor::Source1Color:
+                    return VK_BLEND_FACTOR_SRC1_COLOR;
+                case BlendFactor::OneMinusSource1Color:
+                    return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+                case BlendFactor::Source1Alpha:
+                    return VK_BLEND_FACTOR_SRC1_ALPHA;
+                case BlendFactor::OneMinusSource1Alpha:
+                    return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
+
+        [[nodiscard]] constexpr VkBlendOp ToVulkan(BlendOperation operation)
+        {
+            switch (operation) {
+                case BlendOperation::Add:
+                    return VK_BLEND_OP_ADD;
+                case BlendOperation::Subtract:
+                    return VK_BLEND_OP_SUBTRACT;
+                case BlendOperation::ReverseSubtract:
+                    return VK_BLEND_OP_REVERSE_SUBTRACT;
+                case BlendOperation::Min:
+                    return VK_BLEND_OP_MIN;
+                case BlendOperation::Max:
+                    return VK_BLEND_OP_MAX;
+                default:
+                    ALIMER_UNREACHABLE();
+            }
+        }
+
+        VkColorComponentFlags constexpr ToVulkan(ColorWriteMask mask)
+        {
+            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Red) == VK_COLOR_COMPONENT_R_BIT, "Vulkan ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Green) == VK_COLOR_COMPONENT_G_BIT, "Vulkan ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Blue) == VK_COLOR_COMPONENT_B_BIT, "Vulkan ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Alpha) == VK_COLOR_COMPONENT_A_BIT, "Vulkan ColorWriteMask mismatch");
+            return static_cast<VkColorComponentFlags>(mask);
         }
     }
 
@@ -450,10 +673,6 @@ namespace Alimer
                 {
                     debugUtils = true;
                     instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-                }
-                else if (strcmp(available_extension.extensionName, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
-                {
-                    instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
                 }
             }
 
@@ -574,10 +793,7 @@ namespace Alimer
             std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
             VK_CHECK(vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data()));
 
-            std::vector<const char*> enabledExtensions = {
-                VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
-            };
+            std::vector<const char*> enabledExtensions;
 
             for (const VkPhysicalDevice& physicalDevice : physicalDevices)
             {
@@ -597,10 +813,8 @@ namespace Alimer
                 }
 
                 features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-                features_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
                 features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-                features2.pNext = &features_1_1;
-                features_1_1.pNext = &features_1_2;
+                features2.pNext = &features_1_2;
                 void** features_chain = &features_1_2.pNext;
                 acceleration_structure_features = {};
                 raytracing_features = {};
@@ -609,15 +823,17 @@ namespace Alimer
                 mesh_shader_features = {};
 
                 properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-                properties_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
                 properties_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
-                properties2.pNext = &properties_1_1;
-                properties_1_1.pNext = &properties_1_2;
+                properties2.pNext = &properties_1_2;
                 void** properties_chain = &properties_1_2.pNext;
                 acceleration_structure_properties = {};
                 raytracing_properties = {};
                 fragment_shading_rate_properties = {};
                 mesh_shader_properties = {};
+
+                enabledExtensions.clear();
+                enabledExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
 
                 if (physicalDeviceExt.memory_budget)
                 {
@@ -647,36 +863,23 @@ namespace Alimer
                 //    }
                 //}
 
-                if (physicalDeviceExt.spirv_1_4)
-                {
-                    // Required for VK_KHR_ray_tracing_pipeline
-                    enabledExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+                // Core 1.2.
+                // Required by VK_KHR_spirv_1_4
+                //enabledExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 
-                    // Required by VK_KHR_spirv_1_4
-                    enabledExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
-                }
+                // Required for VK_KHR_ray_tracing_pipeline
+                //enabledExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
 
-                if (physicalDeviceExt.EXT_shader_viewport_index_layer)
-                {
-                    enabledExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
-                }
+                //enabledExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
 
-                if (physicalDeviceExt.buffer_device_address)
-                {
-                    // Required by VK_KHR_acceleration_structure
-                    enabledExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-                }
+                // Required by VK_KHR_acceleration_structure
+                //enabledExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 
-                if (physicalDeviceExt.descriptor_indexing)
-                {
-                    // Required by VK_KHR_acceleration_structure
-                    enabledExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-                }
+                // Required by VK_KHR_acceleration_structure
+                //enabledExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
                 if (physicalDeviceExt.accelerationStructure)
                 {
-                    ALIMER_ASSERT(physicalDeviceExt.buffer_device_address);
-                    ALIMER_ASSERT(physicalDeviceExt.descriptor_indexing);
                     ALIMER_ASSERT(physicalDeviceExt.deferred_host_operations);
 
                     // Required by VK_KHR_acceleration_structure
@@ -710,15 +913,9 @@ namespace Alimer
                     }
                 }
 
-                if (physicalDeviceExt.create_renderpass2)
-                {
-                    enabledExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-                }
-
                 if (physicalDeviceExt.fragment_shading_rate)
                 {
-                    ALIMER_ASSERT(physicalDeviceExt.create_renderpass2);
-
+                    //enabledExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
                     enabledExtensions.push_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
                     fragment_shading_rate_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
                     *features_chain = &fragment_shading_rate_features;
@@ -768,6 +965,7 @@ namespace Alimer
             ALIMER_ASSERT(features2.features.shaderClipDistance == VK_TRUE);
             ALIMER_ASSERT(features2.features.textureCompressionBC == VK_TRUE);
             ALIMER_ASSERT(features2.features.occlusionQueryPrecise == VK_TRUE);
+            ALIMER_ASSERT(features_1_2.bufferDeviceAddress == VK_TRUE);
             ALIMER_ASSERT(features_1_2.descriptorIndexing == VK_TRUE);
 
             caps.backendType = GraphicsAPI::Vulkan;
@@ -779,20 +977,20 @@ namespace Alimer
 
             switch (properties2.properties.deviceType)
             {
-            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                caps.adapterType = GPUAdapterType::Integrated;
-                break;
+                case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                    caps.adapterType = GPUAdapterType::Integrated;
+                    break;
 
-            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                caps.adapterType = GPUAdapterType::Discrete;
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                caps.adapterType = GPUAdapterType::Software;
-                break;
+                case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                    caps.adapterType = GPUAdapterType::Discrete;
+                    break;
+                case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                    caps.adapterType = GPUAdapterType::Software;
+                    break;
 
-            default:
-                caps.adapterType = GPUAdapterType::Unknown;
-                break;
+                default:
+                    caps.adapterType = GPUAdapterType::Unknown;
+                    break;
             }
 
             caps.adapterName = properties2.properties.deviceName;
@@ -813,8 +1011,7 @@ namespace Alimer
             if (
                 raytracing_features.rayTracingPipeline == VK_TRUE &&
                 raytracing_query_features.rayQuery == VK_TRUE &&
-                acceleration_structure_features.accelerationStructure == VK_TRUE &&
-                features_1_2.bufferDeviceAddress == VK_TRUE
+                acceleration_structure_features.accelerationStructure == VK_TRUE
                 )
             {
                 caps.features.rayTracing = true;
@@ -1005,11 +1202,7 @@ namespace Alimer
 
             // Core in 1.1
             allocatorInfo.flags = VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT | VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT;
-            if (features_1_2.bufferDeviceAddress == VK_TRUE)
-            {
-                allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-            }
-
+            allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
             VkResult result = vmaCreateAllocator(&allocatorInfo, &allocator);
 
             if (result != VK_SUCCESS)
@@ -1571,13 +1764,9 @@ namespace Alimer
         {
             buffer->handle = (VkBuffer)info->handle;
 
-            if (features_1_2.bufferDeviceAddress == VK_TRUE)
-            {
-                VkBufferDeviceAddressInfo info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
-                info.buffer = buffer->handle;
-                buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
-            }
-
+            VkBufferDeviceAddressInfo info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+            info.buffer = buffer->handle;
+            buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
             return buffer;
         }
 
@@ -1642,10 +1831,7 @@ namespace Alimer
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
 
-        if (features_1_2.bufferDeviceAddress == VK_TRUE)
-        {
-            createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        }
+        createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
         VmaAllocationCreateInfo memoryInfo{};
         memoryInfo.flags = 0;
@@ -1653,24 +1839,24 @@ namespace Alimer
 
         switch (info->cpuAccess)
         {
-        case CpuAccessMode::Write:
-            memoryInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-            memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-            memoryInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-            break;
-        case CpuAccessMode::Read:
-            memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-            memoryInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-            memoryInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            break;
+            case CpuAccessMode::Write:
+                memoryInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+                memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                memoryInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+                break;
+            case CpuAccessMode::Read:
+                memoryInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                memoryInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+                memoryInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+                createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                break;
 
-        case CpuAccessMode::None:
-        default:
-            memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-            memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            break;
+            case CpuAccessMode::None:
+            default:
+                memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+                memoryInfo.requiredFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                break;
         }
 
         uint32_t sharingIndices[3];
@@ -1870,20 +2056,20 @@ namespace Alimer
                 {
                     switch (binding->resource_type)
                     {
-                    case SPV_REFLECT_RESOURCE_FLAG_SAMPLER:
-                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_Sampler, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
-                        break;
+                        case SPV_REFLECT_RESOURCE_FLAG_SAMPLER:
+                            spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_Sampler, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                            break;
 
-                    case SPV_REFLECT_RESOURCE_FLAG_CBV: // Unchanged
-                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_CBV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
-                        break;
+                        case SPV_REFLECT_RESOURCE_FLAG_CBV: // Unchanged
+                            spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_CBV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                            break;
 
-                    case SPV_REFLECT_RESOURCE_FLAG_SRV:
-                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_SRV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
-                        break;
-                    case SPV_REFLECT_RESOURCE_FLAG_UAV:
-                        spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_UAV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
-                        break;
+                        case SPV_REFLECT_RESOURCE_FLAG_SRV:
+                            spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_SRV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                            break;
+                        case SPV_REFLECT_RESOURCE_FLAG_UAV:
+                            spvReflectChangeDescriptorBindingNumbers(&module, binding, binding->binding + kVulkanBindingShift_UAV, SPV_REFLECT_SET_NUMBER_DONT_CHANGE);
+                            break;
                     }
                 }
 
@@ -2029,28 +2215,276 @@ namespace Alimer
 
     PipelineRef VulkanGraphics::CreateRenderPipeline(const RenderPipelineStateCreateInfo* info)
     {
-        auto result = new VulkanPipeline(*this, info);
 
-        if (result->GetHandle() != VK_NULL_HANDLE)
+        std::vector<VulkanShader*> shaders;
+        shaders.push_back(ToVulkan(info->vertexShader));
+
+        if (info->pixelShader != nullptr)
         {
-            return result;
+            shaders.push_back(ToVulkan(info->pixelShader));
         }
 
-        delete result;
-        return nullptr;
+        VulkanPipelineLayout* pipelineLayout = RequestPipelineLayout(shaders);
+
+        uint32_t vertexBindingCount = 0;
+        uint32_t vertexAttributeCount = 0;
+        VkVertexInputBindingDescription vertexBindings[kMaxVertexBufferBindings];
+        VkVertexInputAttributeDescription vertexAttributes[kMaxVertexAttributes];
+
+        for (uint32_t index = 0; index < kMaxVertexBufferBindings; ++index)
+        {
+            if (!info->vertexLayout.buffers[index].stride)
+                break;
+
+            const VertexBufferLayout* layout = &info->vertexLayout.buffers[index];
+            VkVertexInputBindingDescription* bindingDesc = &vertexBindings[vertexBindingCount++];
+            bindingDesc->binding = index;
+            bindingDesc->stride = layout->stride;
+            bindingDesc->inputRate = ToVulkan(layout->stepRate);
+        }
+
+        for (uint32_t index = 0; index < kMaxVertexAttributes; index++) {
+            const VertexAttribute* attribute = &info->vertexLayout.attributes[index];
+            if (attribute->format == VertexFormat::Undefined) {
+                continue;
+            }
+
+            VkVertexInputAttributeDescription* attributeDesc = &vertexAttributes[vertexAttributeCount++];
+            attributeDesc->location = index;
+            attributeDesc->binding = attribute->bufferIndex;
+            attributeDesc->format = ToVulkan(attribute->format);
+            attributeDesc->offset = attribute->offset;
+        }
+
+        VulkanRenderPassKey renderPassKey;
+        renderPassKey.depthStencilAttachment.format = info->depthStencilFormat;
+        renderPassKey.depthStencilAttachment.loadAction = LoadAction::Discard;
+        renderPassKey.depthStencilAttachment.storeAction = StoreAction::Discard;
+        renderPassKey.sampleCount = info->sampleCount;
+
+        // BlendState
+        std::array<VkPipelineColorBlendAttachmentState, kMaxColorAttachments> blendAttachmentState = {};
+
+        VkPipelineColorBlendStateCreateInfo blendState{};
+        blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        blendState.logicOpEnable = VK_FALSE;
+        blendState.logicOp = VK_LOGIC_OP_CLEAR;
+        blendState.attachmentCount = 0;
+        blendState.pAttachments = blendAttachmentState.data();
+
+        for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
+        {
+            if (info->colorFormats[i] == PixelFormat::Undefined)
+                break;
+
+            uint32_t rtIndex = 0;
+            if (info->blendState.independentBlendEnable)
+                rtIndex = i;
+
+            const RenderTargetBlendState& renderTarget = info->blendState.renderTargets[rtIndex];
+
+            blendAttachmentState[blendState.attachmentCount].blendEnable = EnableBlend(renderTarget) ? VK_TRUE : VK_FALSE;
+            blendAttachmentState[blendState.attachmentCount].srcColorBlendFactor = ToVulkan(renderTarget.srcBlend);
+            blendAttachmentState[blendState.attachmentCount].dstColorBlendFactor = ToVulkan(renderTarget.destBlend);
+            blendAttachmentState[blendState.attachmentCount].colorBlendOp = ToVulkan(renderTarget.blendOperation);
+            blendAttachmentState[blendState.attachmentCount].srcAlphaBlendFactor = ToVulkan(renderTarget.srcBlendAlpha);
+            blendAttachmentState[blendState.attachmentCount].dstAlphaBlendFactor = ToVulkan(renderTarget.destBlendAlpha);
+            blendAttachmentState[blendState.attachmentCount].alphaBlendOp = ToVulkan(renderTarget.blendOperationAlpha);
+            blendAttachmentState[blendState.attachmentCount].colorWriteMask = ToVulkan(renderTarget.writeMask);
+            blendState.attachmentCount++;
+
+            renderPassKey.colorAttachments[renderPassKey.colorAttachmentCount].format = info->colorFormats[i];
+            renderPassKey.colorAttachments[renderPassKey.colorAttachmentCount].loadAction = LoadAction::Discard;
+            renderPassKey.colorAttachments[renderPassKey.colorAttachmentCount].storeAction = StoreAction::Store;
+            renderPassKey.colorAttachmentCount++;
+        }
+
+        // Rasterization state
+        VkPipelineRasterizationStateCreateInfo rasterizationState{};
+        rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizationState.pNext = nullptr;
+        rasterizationState.flags = 0u;
+        rasterizationState.depthClampEnable = VK_TRUE;
+        rasterizationState.rasterizerDiscardEnable = VK_FALSE;
+        rasterizationState.polygonMode = ToVulkan(info->rasterizerState.fillMode);
+        rasterizationState.cullMode = ToVulkan(info->rasterizerState.cullMode);
+        rasterizationState.frontFace = ToVulkan(info->rasterizerState.frontFace);
+        rasterizationState.depthBiasEnable = info->rasterizerState.depthBias != 0 || info->rasterizerState.depthBiasSlopeScale != 0;
+        rasterizationState.depthBiasConstantFactor = info->rasterizerState.depthBias;
+        rasterizationState.depthBiasClamp = info->rasterizerState.depthBiasClamp;
+        rasterizationState.depthBiasSlopeFactor = info->rasterizerState.depthBiasSlopeScale;
+        rasterizationState.lineWidth = 1.0f;
+
+        VkPipelineDepthStencilStateCreateInfo depthStencilState{};
+        depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depthStencilState.pNext = nullptr;
+        depthStencilState.flags = 0;
+        // Depth writes only occur if depth is enabled
+        depthStencilState.depthTestEnable = (info->depthStencilState.depthCompare != CompareFunction::Always || info->depthStencilState.depthWriteEnabled)
+            ? VK_TRUE
+            : VK_FALSE;
+
+        depthStencilState.depthWriteEnable = info->depthStencilState.depthWriteEnabled ? VK_TRUE : VK_FALSE;
+        depthStencilState.depthCompareOp = ToVkCompareOp(info->depthStencilState.depthCompare);
+        depthStencilState.depthBoundsTestEnable = VK_FALSE;
+        depthStencilState.stencilTestEnable = StencilTestEnabled(&info->depthStencilState) ? VK_TRUE : VK_FALSE;
+
+        depthStencilState.front.failOp = ToVulkan(info->depthStencilState.frontFace.failOperation);
+        depthStencilState.front.passOp = ToVulkan(info->depthStencilState.frontFace.passOperation);
+        depthStencilState.front.depthFailOp = ToVulkan(info->depthStencilState.frontFace.depthFailOperation);
+        depthStencilState.front.compareOp = ToVkCompareOp(info->depthStencilState.frontFace.compareFunction);
+        depthStencilState.front.compareMask = info->depthStencilState.stencilReadMask;
+        depthStencilState.front.writeMask = info->depthStencilState.stencilWriteMask;
+        depthStencilState.front.reference = 0; // The stencil reference is always dynamic
+
+        depthStencilState.back.failOp = ToVulkan(info->depthStencilState.backFace.failOperation);
+        depthStencilState.back.passOp = ToVulkan(info->depthStencilState.backFace.passOperation);
+        depthStencilState.back.depthFailOp = ToVulkan(info->depthStencilState.backFace.depthFailOperation);
+        depthStencilState.back.compareOp = ToVkCompareOp(info->depthStencilState.backFace.compareFunction);
+        depthStencilState.back.compareMask = info->depthStencilState.stencilReadMask;
+        depthStencilState.back.writeMask = info->depthStencilState.stencilWriteMask;
+        depthStencilState.back.reference = 0; // The stencil reference is always dynamic
+
+        depthStencilState.minDepthBounds = 0.0f;
+        depthStencilState.maxDepthBounds = 1.0f;
+
+        std::vector<VkPipelineShaderStageCreateInfo> stages;
+        for (VulkanShader* shader : shaders)
+        {
+            VkPipelineShaderStageCreateInfo stageCreateInfo{};
+            stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            stageCreateInfo.stage = (VkShaderStageFlagBits)ToVulkan(shader->GetStage());
+            stageCreateInfo.module = shader->handle;
+            stageCreateInfo.pName = shader->GetEntryPoint().c_str();
+            stageCreateInfo.pSpecializationInfo = nullptr;
+            stages.push_back(stageCreateInfo);
+        }
+
+        VkPipelineVertexInputStateCreateInfo vertexInputState{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+        vertexInputState.vertexBindingDescriptionCount = vertexBindingCount;
+        vertexInputState.pVertexBindingDescriptions = vertexBindings;
+        vertexInputState.vertexAttributeDescriptionCount = vertexAttributeCount;
+        vertexInputState.pVertexAttributeDescriptions = vertexAttributes;
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+        inputAssemblyState.topology = ToVulkan(info->primitiveTopology);
+        inputAssemblyState.primitiveRestartEnable = EnablePrimitiveRestart(info->primitiveTopology);
+
+        VkPipelineTessellationStateCreateInfo tessellationState;
+        tessellationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+        tessellationState.pNext = nullptr;
+        tessellationState.flags = 0;
+        tessellationState.patchControlPoints = info->patchControlPoints;
+
+        VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        VkPipelineMultisampleStateCreateInfo multisampleState;
+        multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampleState.pNext = nullptr;
+        multisampleState.flags = 0;
+        multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // static_cast<VkSampleCountFlagBits>(info.sampleCount);
+        multisampleState.sampleShadingEnable = VK_FALSE;
+        multisampleState.minSampleShading = 0.0f;
+        //ALIMER_ASSERT(multisampleState.rasterizationSamples <= 32);
+        //VkSampleMask sampleMask = info->sampleMask;
+        //multisampleState.pSampleMask = &sampleMask;
+        multisampleState.pSampleMask = nullptr;
+        multisampleState.alphaToCoverageEnable = info->blendState.alphaToCoverageEnable;
+        multisampleState.alphaToOneEnable = VK_FALSE;
+
+        VkGraphicsPipelineCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.stageCount = static_cast<uint32_t>(stages.size());
+        createInfo.pStages = stages.data();
+        createInfo.pVertexInputState = &vertexInputState;
+        createInfo.pInputAssemblyState = &inputAssemblyState;
+        createInfo.pTessellationState = &tessellationState;
+        createInfo.pViewportState = &viewportState;
+        createInfo.pRasterizationState = &rasterizationState;
+        createInfo.pMultisampleState = &multisampleState;
+        createInfo.pDepthStencilState = &depthStencilState;
+        createInfo.pColorBlendState = &blendState;
+        createInfo.pDynamicState = &dynamicStateInfo;
+        createInfo.layout = pipelineLayout->GetHandle();
+        createInfo.renderPass = GetVkRenderPass(renderPassKey);
+        createInfo.subpass = 0;
+        createInfo.basePipelineHandle = VK_NULL_HANDLE;
+        createInfo.basePipelineIndex = 0;
+
+        VkPipeline handle;
+        VkResult result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE,
+            1, &createInfo,
+            nullptr,
+            &handle);
+
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create pipeline");
+            return nullptr;
+        }
+
+        //OnCreated();
+
+        if (info->label != nullptr)
+        {
+            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)handle, info->label);
+        }
+
+        VulkanPipeline* pipeline = new VulkanPipeline();
+        pipeline->device = this;
+        pipeline->type = PipelineType::Render;
+        pipeline->pipelineLayout = pipelineLayout;
+        pipeline->handle = handle;
+        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+        return PipelineRef(pipeline);
     }
 
     PipelineRef VulkanGraphics::CreateComputePipeline(const ComputePipelineCreateInfo* info)
     {
-        auto result = new VulkanPipeline(*this, info);
+        VulkanShader* shader = ToVulkan(info->shader);
+        VulkanPipelineLayout* pipelineLayout = RequestPipelineLayout({ shader });
 
-        if (result->GetHandle() != nullptr)
+        VkComputePipelineCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        createInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        createInfo.stage.stage = (VkShaderStageFlagBits)ToVulkan(shader->GetStage());
+        createInfo.stage.module = shader->handle;
+        createInfo.stage.pName = shader->GetEntryPoint().c_str();
+        createInfo.stage.pSpecializationInfo = nullptr;
+        createInfo.layout = pipelineLayout->GetHandle();
+
+        VkPipeline handle;
+        VkResult result = vkCreateComputePipelines(device, VK_NULL_HANDLE,
+            1, &createInfo,
+            nullptr, &handle);
+
+        if (result != VK_SUCCESS)
         {
-            return result;
+            VK_LOG_ERROR(result, "Failed to create compute pipeline");
+            return nullptr;
         }
 
-        delete result;
-        return nullptr;
+        //OnCreated();
+
+        if (info->label != nullptr)
+        {
+            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)handle, info->label);
+        }
+
+        VulkanPipeline* pipeline = new VulkanPipeline();
+        pipeline->device = this;
+        pipeline->type = PipelineType::Compute;
+        pipeline->pipelineLayout = pipelineLayout;
+        pipeline->handle = handle;
+        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+
+        return PipelineRef(pipeline);
     }
 
     SwapChainRef VulkanGraphics::CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info)
@@ -2486,7 +2920,43 @@ namespace Alimer
         auto it = descriptorSetLayoutCache.find(hash);
         if (it == descriptorSetLayoutCache.end())
         {
-            auto setLayout = std::make_unique<VulkanDescriptorSetLayout>(*this, setIndex, resources);
+            auto setLayout = std::make_unique<VulkanDescriptorSetLayout>();
+            setLayout->device = this;
+            setLayout->setIndex = setIndex;
+
+            for (auto& resource : resources)
+            {
+                // Skip shader resources whitout a binding point
+                if (resource.type == ShaderResourceType::Input ||
+                    resource.type == ShaderResourceType::Output ||
+                    resource.type == ShaderResourceType::PushConstant)
+                {
+                    continue;
+                }
+
+                // Convert ShaderResource to VkDescriptorSetLayoutBinding
+                VkDescriptorSetLayoutBinding layoutBinding{};
+                layoutBinding.binding = resource.backend_binding;
+                layoutBinding.descriptorType = ToVulkan(resource.type, false);
+                layoutBinding.descriptorCount = resource.arraySize;
+                layoutBinding.stageFlags = ToVulkan(resource.stages);
+
+                setLayout->layoutBindings.push_back(layoutBinding);
+            }
+
+            VkDescriptorSetLayoutCreateInfo createInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+            createInfo.flags = 0;
+            createInfo.bindingCount = static_cast<uint32_t>(setLayout->layoutBindings.size());
+            createInfo.pBindings = setLayout->layoutBindings.data();
+
+            // Create the Vulkan descriptor set layout handle
+            VkResult result = vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &setLayout->handle);
+
+            if (result != VK_SUCCESS)
+            {
+                VK_LOG_ERROR(result, "Cannot create DescriptorSetLayout");
+            }
+
             descriptorSetLayoutCache[hash] = std::move(setLayout);
 
 #if defined(_DEBUG)
@@ -2499,7 +2969,7 @@ namespace Alimer
         return *it->second;
     }
 
-    VulkanPipelineLayout& VulkanGraphics::RequestPipelineLayout(const std::vector<VulkanShader*>& shaders)
+    VulkanPipelineLayout* VulkanGraphics::RequestPipelineLayout(const std::vector<VulkanShader*>& shaders)
     {
         std::lock_guard<std::mutex> guard(pipelineLayoutCacheMutex);
 
@@ -2522,7 +2992,7 @@ namespace Alimer
             it = pipelineLayoutCache.find(hash);
         }
 
-        return *it->second;
+        return it->second.get();
     }
 
     /* Copy Allocator */

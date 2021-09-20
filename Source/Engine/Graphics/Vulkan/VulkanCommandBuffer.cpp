@@ -4,7 +4,6 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanPipeline.h"
 #include "VulkanSwapChain.h"
 #include "VulkanGraphics.h"
 #include <unordered_set>
@@ -465,7 +464,7 @@ namespace Alimer
     void VulkanCommandBuffer::SetPipeline(const Pipeline* pipeline)
     {
         boundPipeline = ToVulkan(pipeline);
-        vkCmdBindPipeline(handle, boundPipeline->GetBindPoint(), boundPipeline->GetHandle());
+        vkCmdBindPipeline(handle, boundPipeline->bindPoint, boundPipeline->handle);
         binder.dirty = true;
     }
 
@@ -518,21 +517,20 @@ namespace Alimer
         binder.dirty = false;
 
         auto& binderPool = binderPools[device.GetFrameIndex()];
-        const VulkanPipelineLayout* pipelineLayout = boundPipeline->GetPipelineLayout();
+        const VulkanPipelineLayout* pipelineLayout = boundPipeline->pipelineLayout;
 
         for (auto& descriptorSetLayout : pipelineLayout->GetDescriptorSetLayouts())
         {
-            const uint32_t set = descriptorSetLayout->GetIndex();
+            const uint32_t set = descriptorSetLayout->setIndex;
 
             // Allocate new DescriptorSet
             VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
             if (set == 0)
             {
-                auto setLayoutHandle = descriptorSetLayout->GetHandle();
                 VkDescriptorSetAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
                 allocateInfo.descriptorPool = binderPool.descriptorPool;
                 allocateInfo.descriptorSetCount = 1;
-                allocateInfo.pSetLayouts = &setLayoutHandle;
+                allocateInfo.pSetLayouts = &descriptorSetLayout->handle;
 
                 VkResult result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
                 while (result == VK_ERROR_OUT_OF_POOL_MEMORY)
@@ -553,21 +551,21 @@ namespace Alimer
             binder.accelerationStructureViews.clear();
 
             // Iterate over all resource bindings
-            for (auto& binding_it : descriptorSetLayout->GetLayoutBindings())
+            for (VkDescriptorSetLayoutBinding& layoutBinding : descriptorSetLayout->layoutBindings)
             {
-                const uint32_t binding = binding_it.binding;
+                const uint32_t binding = layoutBinding.binding;
 
                 binder.descriptorWrites.emplace_back();
                 auto& writeDescriptorSet = binder.descriptorWrites.back();
                 writeDescriptorSet = {};
                 writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSet.dstBinding = binding;
-                writeDescriptorSet.descriptorType = binding_it.descriptorType;
+                writeDescriptorSet.descriptorType = layoutBinding.descriptorType;
                 writeDescriptorSet.dstSet = descriptorSet;
                 writeDescriptorSet.dstArrayElement = 0;
                 writeDescriptorSet.descriptorCount = 1;
 
-                switch (binding_it.descriptorType)
+                switch (layoutBinding.descriptorType)
                 {
                     default:
                         ALIMER_UNREACHABLE();
@@ -679,12 +677,12 @@ namespace Alimer
     void VulkanCommandBuffer::FlushPushConstants()
     {
         if (pushConstants.size > 0
-            && boundPipeline->GetPipelineLayout()->GetPushConstantStage())
+            && boundPipeline->pipelineLayout->GetPushConstantStage())
         {
             vkCmdPushConstants(
                 handle,
-                boundPipeline->GetPipelineLayout()->GetHandle(),
-                boundPipeline->GetPipelineLayout()->GetPushConstantStage(),
+                boundPipeline->pipelineLayout->GetHandle(),
+                boundPipeline->pipelineLayout->GetPushConstantStage(),
                 0,
                 pushConstants.size,
                 pushConstants.data

@@ -8,12 +8,6 @@
 
 namespace Alimer
 {
-	Pipeline::Pipeline(Type type)
-		: type{ type }
-	{
-
-	}
-
     PipelineRef Pipeline::Create(const RenderPipelineStateCreateInfo& info)
 	{
 		ALIMER_ASSERT(gGraphics().IsInitialized());

@@ -53,5 +53,30 @@ namespace Alimer
             handle = VK_NULL_HANDLE;
         }
     }
+
+    /* VulkanDescriptorSetLayout */
+    VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout()
+    {
+        if (handle != VK_NULL_HANDLE)
+        {
+            vkDestroyDescriptorSetLayout(device->GetHandle(), handle, nullptr);
+            handle = VK_NULL_HANDLE;
+        }
+    }
+
+    /* VulkanPipeline */
+    VulkanPipeline::VulkanPipeline()
+    {
+
+    }
+
+    VulkanPipeline::~VulkanPipeline()
+    {
+        if (handle != VK_NULL_HANDLE)
+        {
+            device->DeferDestroy(handle);
+            handle = VK_NULL_HANDLE;
+        }
+    }
 }
 
