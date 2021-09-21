@@ -4,6 +4,7 @@
 #include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"
 #include "Core/Log.h"
+#include <filesystem>
 
 #if defined(_WIN32)
 #   include "Core/StringUtils.h"
@@ -74,6 +75,47 @@ namespace Alimer
 
         static IDxcCompiler3* dxcCompiler = nullptr;
 
+        class IncludeHandler : public IDxcIncludeHandler
+        {
+        private:
+            IDxcUtils* utils;
+            std::filesystem::path fullPath;
+
+        public:
+            IncludeHandler(IDxcUtils* utils, const std::string& fullPath_)
+                : utils{ utils }
+                , fullPath(fullPath_)
+            {
+            }
+
+            HRESULT STDMETHODCALLTYPE LoadSource(
+                _In_ LPCWSTR pFilename,
+                _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource) override
+            {
+                // TODO: pFileName is different when in RELEASE
+                std::filesystem::path fileNamePath(ToUtf8(pFilename));
+
+                auto filePath = fullPath / "Source/Engine/shaders" / fileNamePath.filename();
+                if (!std::filesystem::exists(filePath))
+                {
+                    return S_FALSE;
+                }
+
+                ComPtr<IDxcBlobEncoding> pEncoding;
+                HRESULT hr = utils->LoadFile(ToUtf16(filePath.string()).c_str(), DXC_CP_ACP, &pEncoding);
+                if (SUCCEEDED(hr))
+                {
+                    *ppIncludeSource = pEncoding.Detach();
+                }
+                return hr;
+            }
+
+
+            HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject) override { return E_NOTIMPL; }
+            ULONG STDMETHODCALLTYPE AddRef() override { return E_NOTIMPL; }
+            ULONG STDMETHODCALLTYPE Release() override { return E_NOTIMPL; }
+        };
+
         inline ShaderRef CompileDXIL(ShaderStages stage, const std::string& source, const std::string& entryPoint)
         {
             if (DxcCreateInstance == nullptr)
@@ -100,8 +142,8 @@ namespace Alimer
                 ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler)));
             }
 
-            ComPtr<IDxcIncludeHandler> includeHandler;
-            ThrowIfFailed(dxcUtils->CreateDefaultIncludeHandler(&includeHandler));
+            auto fullPath = std::filesystem::current_path();
+            IncludeHandler includeHandler(dxcUtils, fullPath.string());
 
             ShaderModel shaderModel{ 6, 5 };
 
@@ -109,6 +151,13 @@ namespace Alimer
             std::vector<LPCWSTR> args;
 
             // Add source file name if present. This will be displayed in error messages
+            if (!fullPath.empty())
+            {
+                std::wstring wFullPath = ToUtf16(fullPath.string());
+                args.push_back(L"-I");
+                args.push_back(wFullPath.c_str());
+            }
+
             //if (!options.fileName.empty())
             //{
             //    std::wstring wFileName = ToUtf16(options.fileName);
@@ -185,7 +234,7 @@ namespace Alimer
                 &sourceBuffer,                          // Source buffer.
                 args.data(),							// Array of pointers to arguments.
                 static_cast<UINT32>(args.size()),		// Number of arguments.
-                includeHandler.Get(),
+                &includeHandler,
                 IID_PPV_ARGS(&pResults)                  // Compiler output status, buffer, and errors.
             );
 

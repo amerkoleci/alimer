@@ -106,7 +106,6 @@ namespace Alimer
         binder.Reset();
 
         // Reset state
-        pushConstants = {};
         swapChains.clear();
         swapChainTextures.clear();
     }
@@ -312,9 +311,6 @@ namespace Alimer
 
         boundRenderPass = beginInfo.renderPass;
         colorAttachmentCount = renderPassKey.colorAttachmentCount;
-
-        // Reset state
-        pushConstants = {};
     }
 
     void VulkanCommandBuffer::EndRenderPassCore()
@@ -456,38 +452,33 @@ namespace Alimer
 
     void VulkanCommandBuffer::PushConstants(const void* data, uint32_t size)
     {
-        memcpy(pushConstants.data, data, size);
-        pushConstants.size = size;
+        ALIMER_ASSERT_MSG(boundPipeline, "Invalid pipeline for push constants");
+
+#if defined(_DEBUG)
+        //ALIMER_ASSERT_MSG(boundPipeline->pushConstantRanges.size == size, "Missmatch pipeline push constants size");
+#endif
+
+        vkCmdPushConstants(
+            handle,
+            boundPipeline->pipelineLayout,
+            boundPipeline->pushConstantRanges.stageFlags,
+            boundPipeline->pushConstantRanges.offset,
+            size,
+            data
+        );
     }
 
-    void VulkanCommandBuffer::SetPipeline(const Pipeline* pipeline)
+    void VulkanCommandBuffer::BindPipeline(const Pipeline* pipeline)
     {
         boundPipeline = ToVulkan(pipeline);
-
-        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        switch (boundPipeline->GetType())
-        {
-            case PipelineType::Compute:
-                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-                break;
-            case PipelineType::Raytracing:
-                bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-                break;
-
-            case PipelineType::Render:
-            default:
-                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-                break;
-        }
-
-        vkCmdBindPipeline(handle, bindPoint, boundPipeline->handle);
+        vkCmdBindPipeline(handle, boundPipeline->bindPoint, boundPipeline->handle);
 
         // Bind bindless descriptor sets
         if (!boundPipeline->bindlessSets.empty())
         {
             vkCmdBindDescriptorSets(
                 handle,
-                bindPoint,
+                boundPipeline->bindPoint,
                 boundPipeline->pipelineLayout,
                 boundPipeline->bindlessFirstSet,
                 (uint32_t)boundPipeline->bindlessSets.size(),
@@ -537,8 +528,6 @@ namespace Alimer
     void VulkanCommandBuffer::Flush(VkPipelineBindPoint bindPoint)
     {
         FlushDescriptorState(bindPoint);
-
-        FlushPushConstants();
     }
 
     void VulkanCommandBuffer::FlushDescriptorState(VkPipelineBindPoint bindPoint)
@@ -696,24 +685,6 @@ namespace Alimer
             0, 1, &descriptorSet,
             0, nullptr
         );
-    }
-
-    void VulkanCommandBuffer::FlushPushConstants()
-    {
-        if (pushConstants.size > 0
-            && boundPipeline->pushConstantRanges.size > 0)
-        {
-            vkCmdPushConstants(
-                handle,
-                boundPipeline->pipelineLayout,
-                boundPipeline->pushConstantRanges.stageFlags,
-                boundPipeline->pushConstantRanges.offset,
-                boundPipeline->pushConstantRanges.size,
-                pushConstants.data
-            );
-
-            pushConstants.size = 0;
-        }
     }
 
     void VulkanCommandBuffer::DescriptorBinderPool::Init(VulkanGraphics* device_)

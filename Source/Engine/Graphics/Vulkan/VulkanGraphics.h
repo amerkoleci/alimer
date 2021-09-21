@@ -112,7 +112,7 @@ namespace Alimer
         ShaderRef CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint) override;
 		SamplerRef CreateSampler(const SamplerDesc& desc) override;
 		PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) override;
-		PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) override;
+		PipelineRef CreateComputePipeline(const ComputePipelineDesc* desc) override;
         SwapChainRef CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info) override;
 
 		bool debugUtils = false;

@@ -53,22 +53,13 @@ namespace Alimer
 		return gGraphics().CreateRenderPipeline(&def);
 	}
 
-    PipelineRef Pipeline::Create(const ComputePipelineCreateInfo& info)
+    PipelineRef Pipeline::Create(const ComputePipelineDesc& desc)
 	{
 		ALIMER_ASSERT(gGraphics().IsInitialized());
-		ALIMER_ASSERT(info.shader != nullptr);
+		ALIMER_ASSERT(desc.shader != nullptr);
+        ALIMER_ASSERT(desc.shader->GetStage() == ShaderStages::Compute);
 
-		return gGraphics().CreateComputePipeline(&info);
-	}
-
-	bool EnableBlend(const RenderTargetBlendState& state)
-	{
-		return state.blendOperation != BlendOperation::Add
-			|| state.destBlend != BlendFactor::Zero
-			|| state.srcBlend != BlendFactor::One
-			|| state.blendOperationAlpha != BlendOperation::Add
-			|| state.destBlendAlpha != BlendFactor::Zero
-			|| state.srcBlendAlpha != BlendFactor::One;
+		return gGraphics().CreateComputePipeline(&desc);
 	}
 
     bool StencilTestEnabled(const DepthStencilState* depthStencil)

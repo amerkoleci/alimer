@@ -530,6 +530,7 @@ namespace Alimer
         VulkanGraphics* device = nullptr;
         PipelineType type = PipelineType::Render;
         VkPipeline handle = VK_NULL_HANDLE;
+        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
         // Managed by device 
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;

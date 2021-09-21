@@ -2,18 +2,10 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 #include <Alimer.h>
+#include "shaders/types.h"
 using namespace Alimer;
-struct DrawData
-{
-    float4x4 world;
-};
 
-struct CameraData
-{
-    float4x4 view;
-    float4x4 projection;
-    float4x4 viewProjection;
-};
+
 
 class HelloWorldApp final : public Application
 {
@@ -97,6 +89,8 @@ public:
         texture = Texture::Create2D(4, 4, PixelFormat::RGBA8Unorm, 1, 1, TextureUsage::ShaderRead, &textureData);
 
         static const char* shaderSource = R"(
+#include <shaders/common.hlsli>
+
 struct VSInput 
 { 
     float3 Position : ATTRIBUTE0;
@@ -111,15 +105,9 @@ struct PSInput
     float2 TexCoord : TEXCOORD0;
 };
 
-struct DrawData
-{
-    float4x4 world;
-};
+PUSH_CONSTANT(PushDataConstants, constants);
 
 ConstantBuffer<DrawData> draw : register(b0);
-Texture2D DiffuseTexture : register(t0);
-SamplerState LinearSampler : register(s0);
-
 PSInput vertex_main(in VSInput input) 
 {
     PSInput output;
@@ -132,7 +120,8 @@ PSInput vertex_main(in VSInput input)
 
 float4 pixel_main(in PSInput input) : SV_TARGET
 {
-    float4 color = DiffuseTexture.Sample(LinearSampler, input.TexCoord) * input.Color;
+    Texture2D DiffuseTexture = Texture2DTable[constants.dataIndex];
+    float4 color = DiffuseTexture.Sample(LinearWrapSampler, input.TexCoord) * input.Color;
     return color;
 }
 )";
@@ -164,6 +153,10 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
         CameraData cameraData;
 
+        // Bindless data
+        PushDataConstants pushConstants{};
+        pushConstants.dataIndex = texture->GetView()->GetBindlessSRV();
+
         auto size = GetWindow()->GetSize();
         cameraData.view = Float4x4::CreateLookAt(Vector3(0, 0, 5), Vector3::Zero, Vector3::UnitY);
         cameraData.projection = Float4x4::CreatePerspectiveFieldOfView(PiOver4, (float)size.x / size.y, 0.1f, 100.0f);
@@ -173,9 +166,11 @@ float4 pixel_main(in PSInput input) : SV_TARGET
 
         context.SetVertexBuffer(0, vertexBuffer.Get());
         context.SetIndexBuffer(indexBuffer.Get(), IndexType::UInt16, 0);
-        context.SetPipeline(renderPipeline.Get());
+        context.BindPipeline(renderPipeline.Get());
+        context.PushConstants(&pushConstants, sizeof(pushConstants));
         context.BindConstantBufferData(drawData, 0);
-        context.BindTexture(0, texture);
+        
+        //context.BindTexture(0, texture);
         context.DrawIndexed(36);
     }
 };

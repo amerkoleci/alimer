@@ -143,9 +143,12 @@ namespace Alimer
 		void BindTexture(uint32_t binding, const TextureView* textureView);
         void BindSampler(uint32_t binding, const Sampler* sampler);
 
+        virtual void BindPipeline(const Pipeline* pipeline) = 0;
+
+		/// Push constants using current bound pipeline.
 		virtual void PushConstants(const void* data, uint32_t size) = 0;
 
-		virtual void SetPipeline(const Pipeline* pipeline) = 0;
+		
 		void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t baseVertex = 0, uint32_t firstInstance = 0);
         void DrawIndirect(_In_ Buffer* indirectBuffer, uint64_t indirectOffset);

@@ -63,6 +63,9 @@ else()
   set(MISC_FILES "")
 endif()
 
+# Shader
+file (GLOB SHADER_FILES shaders/*.h shaders/*.hlsli shaders/*.hlsl)
+
 define_engine_source_files(
   Core
   Math
@@ -89,7 +92,7 @@ endif ()
 group_sources()
 
 if (ALIMER_BUILD_SHARED)
-  add_library(${TARGET_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES} ${MISC_FILES})
+  add_library(${TARGET_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES} ${MISC_FILES} ${SHADER_FILES})
   #set_property(TARGET ${TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
   target_compile_definitions(${TARGET_NAME}
@@ -97,7 +100,7 @@ if (ALIMER_BUILD_SHARED)
   	PUBLIC ALIMER_IMPORTS=1
   )
 else()
-  add_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${MISC_FILES})
+  add_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${MISC_FILES} ${SHADER_FILES})
 
   target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_STATIC=1)
 endif ()
@@ -178,3 +181,6 @@ install(TARGETS ${TARGET_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+# Install shader headers
+install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/shaders DESTINATION ${INSTALL_BIN_DIR})

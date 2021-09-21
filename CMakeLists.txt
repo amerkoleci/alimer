@@ -179,6 +179,16 @@ set (INSTALL_BASE_INCLUDE_DIR include)
 set (INSTALL_INCLUDE_DIR ${INSTALL_BASE_INCLUDE_DIR}/Alimer)
 set (INSTALL_THIRDPARTY_DIR ${INSTALL_INCLUDE_DIR}/ThirdParty)
 
+if (ANDROID)
+    set (INSTALL_BIN_DIR bin)
+    set (INSTALL_LIB_DIR lib)
+    set (INSTALL_ARCHIVE_DIR lib)
+else ()
+    set (INSTALL_BIN_DIR bin)
+    set (INSTALL_LIB_DIR bin)
+    set (INSTALL_ARCHIVE_DIR lib)
+endif ()
+
 # Source
 add_subdirectory(Source)
 
@@ -226,19 +236,19 @@ if (NOT ANDROID)
 	#endforeach()
 
 	# DLLs
-	#if(WIN32 AND NOT (WINDOWS_STORE))
-	#	set(DXIL_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxil.dll")
-	#	set(DXCOMPILER_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxcompiler.dll")
-    #
-	#	foreach(config ${CMAKE_CONFIGURATION_TYPES})
-	#		file (COPY ${DXIL_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
-	#		file (COPY ${DXCOMPILER_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
-	#	endforeach()
-    #
-	#	install (FILES
-	#		${DXIL_LIBRARY}
-	#		${DXCOMPILER_LIBRARY}
-	#		DESTINATION bin
-	#	)
-	#endif ()
+	if(WIN32 AND NOT (WINDOWS_STORE))
+		set(DXIL_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxil.dll")
+		set(DXCOMPILER_LIBRARY "${ALIMER_THIRD_PARTY_DIR}/dxc/bin/win-x64/dxcompiler.dll")
+    
+		foreach(config ${CMAKE_CONFIGURATION_TYPES})
+			file (COPY ${DXIL_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
+			file (COPY ${DXCOMPILER_LIBRARY} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${config})
+		endforeach()
+    
+		install (FILES
+			${DXIL_LIBRARY}
+			${DXCOMPILER_LIBRARY}
+			DESTINATION bin
+		)
+	endif ()
 endif ()

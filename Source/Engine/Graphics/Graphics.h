@@ -15,7 +15,7 @@ namespace Alimer
     struct SamplerDesc;
     struct SwapChainCreateInfo;
     struct RenderPipelineStateCreateInfo;
-    struct ComputePipelineCreateInfo;
+    struct ComputePipelineDesc;
 
     class ALIMER_API Graphics : public Module<Graphics>
     {
@@ -70,7 +70,7 @@ namespace Alimer
         virtual BufferRef CreateBuffer(const BufferCreateInfo* info, const void* initialData) = 0;
         virtual ShaderRef CreateShader(ShaderStages stage, const void* byteCode, size_t byteCodeLength, const std::string& entryPoint) = 0;
         virtual PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) = 0;
-        virtual PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) = 0;
+        virtual PipelineRef CreateComputePipeline(const ComputePipelineDesc* desc) = 0;
         virtual SwapChainRef CreateSwapChain(void* window, const SwapChainCreateInfo& info) = 0;
 
     protected:

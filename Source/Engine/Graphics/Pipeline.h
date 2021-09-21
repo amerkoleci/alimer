@@ -130,7 +130,9 @@ namespace Alimer
         uint8_t stencilWriteMask = 0xFF;
 	};
 
-	struct RenderTargetBlendState {
+	struct RenderTargetBlendState
+    {
+        bool blendEnable = false;
 		BlendFactor srcBlend = BlendFactor::One;
 		BlendFactor destBlend = BlendFactor::Zero;
 		BlendOperation blendOperation = BlendOperation::Add;
@@ -140,7 +142,8 @@ namespace Alimer
 		ColorWriteMask writeMask = ColorWriteMask::All;
 	};
 
-    struct BlendState {
+    struct BlendState
+    {
         bool alphaToCoverageEnable{ false };
         bool independentBlendEnable{ false };
 
@@ -173,13 +176,12 @@ namespace Alimer
 		SampleCount         sampleCount = SampleCount::Count1;
 	};
 
-    struct ComputePipelineCreateInfo
+    struct ComputePipelineDesc
     {
         const char* label = nullptr;
         Shader* shader;
     };
 
-	ALIMER_API bool EnableBlend(const RenderTargetBlendState& state);
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
 
     enum class PipelineType
@@ -200,9 +202,9 @@ namespace Alimer
 
 		/**
 		* Create new compute pipeline.
-		* @param info - The compute pipeline info.
+		* @param desc - The compute pipeline desc.
 		*/
-		[[nodiscard]] static PipelineRef Create(const ComputePipelineCreateInfo& info);
+		[[nodiscard]] static PipelineRef Create(const ComputePipelineDesc& desc);
 
         [[nodiscard]] virtual PipelineType GetType() const = 0;
 	};

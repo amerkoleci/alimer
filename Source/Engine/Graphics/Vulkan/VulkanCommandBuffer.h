@@ -50,7 +50,7 @@ namespace Alimer
 
         void PushConstants(const void* data, uint32_t size) override;
 
-        void SetPipeline(const Pipeline* pipeline) override;
+        void BindPipeline(const Pipeline* pipeline) override;
 
         void DrawCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
         void DrawIndexedCore(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
@@ -62,7 +62,6 @@ namespace Alimer
     private:
         void Flush(VkPipelineBindPoint bindPoint);
         void FlushDescriptorState(VkPipelineBindPoint bindPoint);
-        void FlushPushConstants();
 
         VulkanGraphics& device;
         QueueType queue;
@@ -123,12 +122,6 @@ namespace Alimer
             void Init(VulkanGraphics* device);
             void Reset();
         } binder;
-
-        struct PushConstantData
-        {
-            uint8_t data[128];
-            uint32_t size;
-        } pushConstants = {};
     };
 
     constexpr VulkanCommandBuffer* ToVulkan(CommandBuffer* resource)

@@ -675,7 +675,6 @@ namespace Alimer
                 }
             }
 
-
 #if defined(_DEBUG)
             bool validationFeatures = false;
             if (validationMode == ValidationMode::GPU)
@@ -2553,13 +2552,10 @@ namespace Alimer
             if (info->colorFormats[i] == PixelFormat::Undefined)
                 break;
 
-            uint32_t rtIndex = 0;
-            if (info->blendState.independentBlendEnable)
-                rtIndex = i;
-
+            const uint32_t rtIndex = info->blendState.independentBlendEnable ? i : 0;
             const RenderTargetBlendState& renderTarget = info->blendState.renderTargets[rtIndex];
 
-            blendAttachmentState[blendState.attachmentCount].blendEnable = EnableBlend(renderTarget) ? VK_TRUE : VK_FALSE;
+            blendAttachmentState[blendState.attachmentCount].blendEnable = renderTarget.blendEnable ? VK_TRUE : VK_FALSE;
             blendAttachmentState[blendState.attachmentCount].srcColorBlendFactor = ToVulkan(renderTarget.srcBlend);
             blendAttachmentState[blendState.attachmentCount].dstColorBlendFactor = ToVulkan(renderTarget.destBlend);
             blendAttachmentState[blendState.attachmentCount].colorBlendOp = ToVulkan(renderTarget.blendOperation);
@@ -2713,13 +2709,14 @@ namespace Alimer
         return pipeline;
     }
 
-    PipelineRef VulkanGraphics::CreateComputePipeline(const ComputePipelineCreateInfo* info)
+    PipelineRef VulkanGraphics::CreateComputePipeline(const ComputePipelineDesc* desc)
     {
         RefPtr<VulkanPipeline> pipeline(new VulkanPipeline());
         pipeline->device = this;
         pipeline->type = PipelineType::Compute;
+        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 
-        VulkanShader* shader = ToVulkan(info->shader);
+        VulkanShader* shader = ToVulkan(desc->shader);
         //VulkanPipelineLayout* pipelineLayout = RequestPipelineLayout({ shader });
 
         VkComputePipelineCreateInfo createInfo{};
@@ -2743,9 +2740,9 @@ namespace Alimer
 
         //OnCreated();
 
-        if (info->label != nullptr)
+        if (desc->label != nullptr)
         {
-            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipeline->handle, info->label);
+            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipeline->handle, desc->label);
         }
 
         return pipeline;
