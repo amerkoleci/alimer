@@ -39,7 +39,7 @@ namespace Alimer
     {
         const float* leftData = reinterpret_cast<const float*>(this);
         const float* rightData = reinterpret_cast<const float*>(&rhs);
-        for (u32 i = 0; i < 12; ++i)
+        for (uint32_t i = 0; i < 12; ++i)
         {
             if (leftData[i] != rightData[i])
                 return false;
@@ -52,7 +52,7 @@ namespace Alimer
     {
         const float* leftData = reinterpret_cast<const float*>(this);
         const float* rightData = reinterpret_cast<const float*>(&rhs);
-        for (u32 i = 0; i < 12; ++i)
+        for (uint32_t i = 0; i < 12; ++i)
         {
             if (leftData[i] != rightData[i])
                 return false;

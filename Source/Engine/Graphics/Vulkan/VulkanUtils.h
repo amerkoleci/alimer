@@ -23,7 +23,6 @@ namespace Alimer
     class VulkanGraphics;
     class VulkanTexture;
     class VulkanTextureView;
-    class VulkanPipelineLayout;
     class VulkanCommandBuffer;
 
     static constexpr uint32_t kVulkanBindingShift_CBV = 0;
@@ -509,6 +508,16 @@ namespace Alimer
         std::vector<ShaderResource> resources;
         size_t hash = 0;
 
+        // WIP
+        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+        std::vector<VkImageViewType> imageViewTypes;
+
+        std::vector<VkDescriptorSetLayoutBinding> bindlessBindings;
+        std::vector<VkDescriptorSet> bindlessSets;
+        uint32_t bindlessFirstSet = 0;
+
+        VkPushConstantRange pushConstantRanges = {};
+
         VulkanShader(ShaderStages stage, const std::string& entryPoint);
         ~VulkanShader();
 
@@ -516,28 +525,28 @@ namespace Alimer
         const std::vector<ShaderResource>& GetResources() const override { return resources; }
     };
 
-    struct VulkanDescriptorSetLayout final
-    {
-        VulkanGraphics* device = nullptr;
-        VkDescriptorSetLayout handle = VK_NULL_HANDLE;
-        uint32_t setIndex = 0;
-        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-
-        ~VulkanDescriptorSetLayout();
-    };
-
     struct VulkanPipeline final : public Pipeline
     {
         VulkanGraphics* device = nullptr;
         PipelineType type = PipelineType::Render;
-        VulkanPipelineLayout* pipelineLayout = nullptr;
         VkPipeline handle = VK_NULL_HANDLE;
-        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-        VulkanPipeline(VulkanGraphics* device, const RenderPipelineStateCreateInfo* info);
-        VulkanPipeline();
+        // Managed by device 
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE; 
+
+        // WIP
+        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+        std::vector<VkImageViewType> imageViewTypes;
+
+        std::vector<VkDescriptorSetLayoutBinding> bindlessBindings;
+        std::vector<VkDescriptorSet> bindlessSets;
+        uint32_t bindlessFirstSet = 0;
+        size_t layoutBindingHash = 0;
+
+        VkPushConstantRange pushConstantRanges = {};
+
         ~VulkanPipeline() override;
-
 
         PipelineType GetType() const override { return type; }
     };

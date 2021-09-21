@@ -5,7 +5,7 @@
 
 #include "Graphics/Graphics.h"
 #include "VulkanSwapChain.h"
-#include "VulkanPipelineLayout.h"
+#include "VulkanUtils.h"
 #include <queue>
 
 namespace Alimer
@@ -23,10 +23,10 @@ namespace Alimer
 	{
         friend class VulkanCommandBuffer;
         friend class VulkanTexture;
-        friend class VulkanPipelineLayout;
 
 	public:
         VkPhysicalDeviceProperties2 properties2 = {};
+        VkPhysicalDeviceVulkan11Properties properties_1_1 = {};
         VkPhysicalDeviceVulkan12Properties properties_1_2 = {};
         VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties = {};
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
@@ -34,6 +34,7 @@ namespace Alimer
         VkPhysicalDeviceMeshShaderPropertiesNV mesh_shader_properties = {};
 
         VkPhysicalDeviceFeatures2 features2 = {};
+        VkPhysicalDeviceVulkan11Features features_1_1 = {};
         VkPhysicalDeviceVulkan12Features features_1_2 = {};
         VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = {};
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_features = {};
@@ -113,9 +114,6 @@ namespace Alimer
 		PipelineRef CreateRenderPipeline(const RenderPipelineStateCreateInfo* info) override;
 		PipelineRef CreateComputePipeline(const ComputePipelineCreateInfo* info) override;
         SwapChainRef CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info) override;
-
-        VulkanDescriptorSetLayout& RequestDescriptorSetLayout(const uint32_t setIndex, const std::vector<ShaderResource>& resources);
-        VulkanPipelineLayout* RequestPipelineLayout(const std::vector<VulkanShader*>& shaders);
 
 		bool debugUtils = false;
 		VkInstance instance{ VK_NULL_HANDLE };
@@ -263,11 +261,15 @@ namespace Alimer
 		std::mutex framebufferCacheMutex;
 		std::unordered_map<size_t, VkFramebuffer> framebufferCache;
 
-		std::mutex descriptorSetLayoutCacheMutex;
-		std::unordered_map<size_t, std::unique_ptr<VulkanDescriptorSetLayout>> descriptorSetLayoutCache;
-
+        struct PSOLayout
+        {
+            VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+            VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+            std::vector<VkDescriptorSet> bindlessSets;
+            uint32_t bindlessFirstSet = 0;
+        };
 		std::mutex pipelineLayoutCacheMutex;
-		std::unordered_map<size_t, std::unique_ptr<VulkanPipelineLayout>> pipelineLayoutCache;
+        std::unordered_map<size_t, PSOLayout> pipelineLayoutCache;
 
 		// Deletion queue objects
 		std::mutex destroyMutex;
@@ -376,16 +378,19 @@ namespace Alimer
         };
 
         BindlessDescriptorHeap bindlessSampledImages;
+        BindlessDescriptorHeap bindlessUniformTexelBuffers;
         BindlessDescriptorHeap bindlessStorageBuffers;
         BindlessDescriptorHeap bindlessStorageImages;
+        BindlessDescriptorHeap bindlessStorageTexelBuffers;
         BindlessDescriptorHeap bindlessSamplers;
+        BindlessDescriptorHeap bindlessAccelerationStructures;
 
         std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessSampledImages;
-        //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessUniformTexelBuffers;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessUniformTexelBuffers;
         std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageBuffers;
         std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageImages;
-        //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageTexelBuffers;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessStorageTexelBuffers;
         std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessSamplers;
-        //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessAccelerationStructures;
+        std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessAccelerationStructures;
 	};
 }

@@ -10,17 +10,6 @@
 namespace Alimer
 {
     /* Constants */
-    static constexpr uint32_t KnownVendorId_Nvidia = 0x010DE;
-    static constexpr uint32_t KnownVendorId_AMD = 0x01002;
-    static constexpr uint32_t KnownVendorId_Intel = 0x08086;
-    static constexpr uint32_t KnownVendorId_ARM = 0x013B5;
-    static constexpr uint32_t KnownVendorId_Qualcomm = 0x05143;
-    static constexpr uint32_t KnownVendorId_ImgTec = 0x01010;
-    static constexpr uint32_t KnownVendorId_Microsoft = 0x01414;
-    static constexpr uint32_t KnownVendorId_Apple = 0x0106B;
-    static constexpr uint32_t KnownVendorId_Mesa = 0x10005;
-    static constexpr uint32_t KnownVendorId_BROADCOM = 0x014e4;
-
     static constexpr uint32_t kMaxFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
     static constexpr uint32_t kMaxViewportsAndScissors = 8;
@@ -35,9 +24,9 @@ namespace Alimer
     static constexpr uint32_t kMaxSamplerBindings = 16;
     //static constexpr uint32_t kMaxDescriptorBindings = 32;
 
-    static constexpr uint32_t kInvalidBindlessIndex = static_cast<u32>(-1);
-    static constexpr uint32_t kAllMipLevels = static_cast<u32>(-1);
-    static constexpr uint32_t kAllArraySlices = static_cast<u32>(-1);
+    static constexpr uint32_t kInvalidBindlessIndex = static_cast<uint32_t>(-1);
+    static constexpr uint32_t kAllMipLevels = static_cast<uint32_t>(-1);
+    static constexpr uint32_t kAllArraySlices = static_cast<uint32_t>(-1);
 
     /* Enums */
     enum class GraphicsAPI : uint8_t
@@ -75,30 +64,32 @@ namespace Alimer
         Discrete,
     };
 
-    enum class GPUVendorId : uint8_t
+    enum class GPUVendorId : uint32_t
     {
         /// Adapter vendor is unknown
         Unknown = 0,
         /// Adapter vendor is NVidia
-        NVIDIA,
+        Nvidia = 0x10DE,
         /// Adapter vendor is AMD
-        AMD,
+        AMD = 0x1002,
         /// Adapter vendor is Intel
-        INTEL,
+        Intel = 0x8086,
         /// Adapter vendor is ARM
-        ARM,
-        /// Adapter vendor is Qualcomm
-        QUALCOMM,
+        ARM = 0x13B5,
         /// Adapter vendor is Imagination Technologies
-        IMGTECH,
+        ImgTec = 0x1010,
+        /// Adapter vendor is Qualcomm
+        Qualcomm = 0x5143,
+        /// Adapter vendor is Samsung
+        Samsung = 0x1099,
         /// Adapter vendor is Microsoft (software rasterizer)
-        MSFT,
+        Microsoft = 0x1414,
         /// Adapter vendor is Apple
-        APPLE,
+        Apple = 0x0106B,
         /// Adapter vendor is Mesa (software rasterizer)
-        MESA,
+        Mesa = 0x10005,
         /// Adapter vendor is Broadcom (Raspberry Pi)
-        BROADCOM,
+        Broadcom = 0x014e4,
     };
 
     enum class CpuAccessMode : uint8_t
@@ -244,13 +235,15 @@ namespace Alimer
     using SwapChainRef = RefPtr<SwapChain>;
 
     /* Structs */
-    struct DispatchIndirectCommand {
+    struct DispatchIndirectCommand
+    {
         uint32_t    x;
         uint32_t    y;
         uint32_t    z;
     };
 
-    struct DrawIndexedIndirectCommand {
+    struct DrawIndexedIndirectCommand
+    {
         uint32_t    indexCount;
         uint32_t    instanceCount;
         uint32_t    firstIndex;
@@ -258,25 +251,14 @@ namespace Alimer
         uint32_t    firstInstance;
     };
 
-    struct DrawIndirectCommand {
+    struct DrawIndirectCommand
+    {
         uint32_t    vertexCount;
         uint32_t    instanceCount;
         uint32_t    firstVertex;
         uint32_t    firstInstance;
     };
 
-    struct GraphicsAdapterInfo
-    {
-        std::string name;
-        GPUAdapterType type = GPUAdapterType::Unknown;
-        /// Adapter type
-        /// Adapter vendor
-        GPUVendorId vendor = GPUVendorId::Unknown;
-        /// The PCI ID of the hardware vendor (if available).
-        u32 vendorId = 0;
-        /// The PCI ID of the hardware device (if available).
-        u32 deviceId = 0;
-    };
 
     struct GraphicsDeviceFeatures
     {
@@ -320,18 +302,17 @@ namespace Alimer
     struct GraphicsDeviceCaps
     {
         GraphicsAPI			    backendType;
-        GPUVendorId             vendor = GPUVendorId::Unknown;
-        uint32_t				vendorId = 0;
-        uint32_t				adapterId = 0;
         GPUAdapterType			adapterType = GPUAdapterType::Unknown;
+        /// The PCI ID of the hardware vendor.
+        GPUVendorId             vendor = GPUVendorId::Unknown;
+        uint32_t				adapterId = 0;
         std::string				adapterName;
         GraphicsDeviceFeatures	features;
         GraphicsDeviceLimits	limits;
     };
 
     /* Helper methods */
-    ALIMER_API const char* GetVendorName(uint32_t vendorId);
-    ALIMER_API GPUVendorId VendorIdToAdapterVendor(uint32_t vendorId);
+    ALIMER_API const char* ToString(GPUVendorId vendorId);
     ALIMER_API const char* ToString(GPUAdapterType type);
 
     ALIMER_API const char* ToString(CompareFunction func);

@@ -6,65 +6,47 @@
 
 namespace Alimer
 {
-    const char* GetVendorName(uint32_t vendorId)
+    const char* ToString(GPUVendorId vendorId)
     {
         switch (vendorId)
         {
-        case KnownVendorId_AMD:
-            return "AMD";
-        case KnownVendorId_ImgTec:
-            return "IMAGINATION";
-        case KnownVendorId_Nvidia:
-            return "Nvidia";
-        case KnownVendorId_ARM:
-            return "ARM";
-        case KnownVendorId_Qualcomm:
-            return "Qualcom";
-        case KnownVendorId_Intel:
-            return "Intel";
-        default:
-            return "Unknown";
+            case GPUVendorId::Nvidia:
+                return "Nvidia";
+            case GPUVendorId::AMD:
+                return "AMD";
+            case GPUVendorId::Intel:
+                return "Intel";
+            case GPUVendorId::ARM:
+                return "ARM";
+            case GPUVendorId::ImgTec:
+                return "IMAGINATION";
+            case GPUVendorId::Qualcomm:
+                return "Qualcom";
+            case GPUVendorId::Samsung:
+                return "Samsung";
+            case GPUVendorId::Microsoft:
+                return "Microsoft";
+            case GPUVendorId::Apple:
+                return "Apple";
+            case GPUVendorId::Mesa:
+                return "Mesa";
+            case GPUVendorId::Broadcom:
+                return "Broadcom";
+
+            default:
+                return "Unknown";
         }
     }
 
-    GPUVendorId VendorIdToAdapterVendor(uint32_t vendorId)
-    {
-        switch (vendorId)
-        {
-        case KnownVendorId_Nvidia:
-            return GPUVendorId::NVIDIA;
-        case KnownVendorId_AMD:
-            return GPUVendorId::AMD;
-        case KnownVendorId_Intel:
-            return GPUVendorId::INTEL;
-        case KnownVendorId_ARM:
-            return GPUVendorId::ARM;
-        case KnownVendorId_Qualcomm:
-            return GPUVendorId::QUALCOMM;
-        case KnownVendorId_ImgTec:
-            return GPUVendorId::IMGTECH;
-        case KnownVendorId_Microsoft:
-            return GPUVendorId::MSFT;
-        case KnownVendorId_Apple:
-            return GPUVendorId::APPLE;
-        case KnownVendorId_Mesa:
-            return GPUVendorId::MESA;
-        case KnownVendorId_BROADCOM:
-            return GPUVendorId::BROADCOM;
-        
-        default:
-            return GPUVendorId::Unknown;
-        }
-    }
     const char* ToString(GPUAdapterType type)
     {
         switch (type)
         {
-        case GPUAdapterType::Software:      return "Software";
-        case GPUAdapterType::Integrated:    return "Integrated";
-        case GPUAdapterType::Discrete:      return "Discrete";
-        default:
-            return "<Unknown>";
+            case GPUAdapterType::Software:      return "Software";
+            case GPUAdapterType::Integrated:    return "Integrated";
+            case GPUAdapterType::Discrete:      return "Discrete";
+            default:
+                return "<Unknown>";
         }
     }
 
@@ -87,7 +69,7 @@ namespace Alimer
     }
 
     static constexpr std::array<VertexFormatInfo, 31> sVertexFormatTable = { {
-           
+
             {VertexFormat::Undefined, 0, 0, 0, VertexFormatBaseType::Float},
             {VertexFormat::Uint8x2, 2, 2, 1, VertexFormatBaseType::Uint},
             {VertexFormat::Uint8x4, 4, 4, 1, VertexFormatBaseType::Uint},

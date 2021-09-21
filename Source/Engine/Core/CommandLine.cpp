@@ -99,12 +99,12 @@ namespace Alimer::CommandLine
 		return Parse(cmdLine);
 	}
 
-	const std::vector<string>& GetArgs()
+	const std::vector<std::string>& GetArgs()
 	{
 		return arguments;
 	}
 
-	bool HasArgument(const string& argument)
+	bool HasArgument(const std::string& argument)
 	{
 		for (size_t i = 0; i < arguments.size(); ++i)
 		{

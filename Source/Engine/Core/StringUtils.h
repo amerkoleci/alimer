@@ -23,13 +23,13 @@ namespace Alimer
     ALIMER_API std::vector<std::string> SplitNoEmpty(const std::string& str, const char* delim);
 
     // Convert to lower-case.
-    ALIMER_API string ToLower(const string& str);
+    ALIMER_API std::string ToLower(const std::string& str);
 
     // Convert to upper-case.
-    ALIMER_API string ToUpper(const string& str);
+    ALIMER_API std::string ToUpper(const std::string& str);
 
     /// Replace all instances of a sub-string with a another sub-string.
-    ALIMER_API string ReplaceAll(const string& source, const string& replaceWhat, const string& replaceWithWhat);
+    ALIMER_API std::string ReplaceAll(const std::string& source, const std::string& replaceWhat, const std::string& replaceWithWhat);
 
 #ifdef _WIN32
     ALIMER_API std::string ToUtf8(const wchar_t* wstr, size_t len);

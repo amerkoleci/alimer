@@ -3,7 +3,6 @@
 
 #include "VulkanTexture.h"
 #include "VulkanCommandBuffer.h"
-#include "VulkanPipelineLayout.h"
 #include "VulkanSwapChain.h"
 #include "VulkanGraphics.h"
 
@@ -813,8 +812,10 @@ namespace Alimer
                 }
 
                 features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+                features_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
                 features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-                features2.pNext = &features_1_2;
+                features2.pNext = &features_1_1;
+                features_1_1.pNext = &features_1_2;
                 void** features_chain = &features_1_2.pNext;
                 acceleration_structure_features = {};
                 raytracing_features = {};
@@ -823,8 +824,10 @@ namespace Alimer
                 mesh_shader_features = {};
 
                 properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+                properties_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
                 properties_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
-                properties2.pNext = &properties_1_2;
+                properties2.pNext = &properties_1_1;
+                properties_1_1.pNext = &properties_1_2;
                 void** properties_chain = &properties_1_2.pNext;
                 acceleration_structure_properties = {};
                 raytracing_properties = {};
@@ -864,19 +867,21 @@ namespace Alimer
                 //}
 
                 // Core 1.2.
-                // Required by VK_KHR_spirv_1_4
-                //enabledExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+                {
+                    // Required by VK_KHR_spirv_1_4
+                    enabledExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 
-                // Required for VK_KHR_ray_tracing_pipeline
-                //enabledExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+                    // Required for VK_KHR_ray_tracing_pipeline
+                    enabledExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
 
-                //enabledExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+                    enabledExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
 
-                // Required by VK_KHR_acceleration_structure
-                //enabledExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+                    // Required by VK_KHR_acceleration_structure
+                    enabledExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 
-                // Required by VK_KHR_acceleration_structure
-                //enabledExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+                    // Required by VK_KHR_acceleration_structure
+                    enabledExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+                }
 
                 if (physicalDeviceExt.accelerationStructure)
                 {
@@ -915,7 +920,7 @@ namespace Alimer
 
                 if (physicalDeviceExt.fragment_shading_rate)
                 {
-                    //enabledExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+                    enabledExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
                     enabledExtensions.push_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
                     fragment_shading_rate_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
                     *features_chain = &fragment_shading_rate_features;
@@ -965,12 +970,10 @@ namespace Alimer
             ALIMER_ASSERT(features2.features.shaderClipDistance == VK_TRUE);
             ALIMER_ASSERT(features2.features.textureCompressionBC == VK_TRUE);
             ALIMER_ASSERT(features2.features.occlusionQueryPrecise == VK_TRUE);
-            ALIMER_ASSERT(features_1_2.bufferDeviceAddress == VK_TRUE);
             ALIMER_ASSERT(features_1_2.descriptorIndexing == VK_TRUE);
 
             caps.backendType = GraphicsAPI::Vulkan;
-            caps.vendor = VendorIdToAdapterVendor(properties2.properties.vendorID);
-            caps.vendorId = properties2.properties.vendorID;
+            caps.vendor = static_cast<GPUVendorId>(properties2.properties.vendorID);
             caps.adapterId = properties2.properties.deviceID;
 
             shaderFormat = ShaderFormat::SPIRV;
@@ -1008,20 +1011,21 @@ namespace Alimer
                 //capabilities |= GRAPHICSDEVICE_CAPABILITY_RENDERTARGET_AND_VIEWPORT_ARRAYINDEX_WITHOUT_GS;
             }
 
-            if (
-                raytracing_features.rayTracingPipeline == VK_TRUE &&
+            if (raytracing_features.rayTracingPipeline == VK_TRUE &&
                 raytracing_query_features.rayQuery == VK_TRUE &&
-                acceleration_structure_features.accelerationStructure == VK_TRUE
-                )
+                acceleration_structure_features.accelerationStructure == VK_TRUE &&
+                features_1_2.bufferDeviceAddress == VK_TRUE)
             {
                 caps.features.rayTracing = true;
                 //SHADER_IDENTIFIER_SIZE = raytracing_properties.shaderGroupHandleSize;
             }
 
-            if (mesh_shader_features.meshShader == VK_TRUE && mesh_shader_features.taskShader == VK_TRUE)
+            if (mesh_shader_features.meshShader == VK_TRUE &&
+                mesh_shader_features.taskShader == VK_TRUE)
             {
                 caps.features.meshShader = true;
             }
+
             if (fragment_shading_rate_features.pipelineFragmentShadingRate == VK_TRUE)
             {
                 caps.features.variableRateShading = true;
@@ -1157,7 +1161,7 @@ namespace Alimer
             vkGetDeviceQueue(device, computeQueueFamily, computeQueueIndex, &computeQueue);
             vkGetDeviceQueue(device, copyQueueFamily, copyQueueIndex, &copyQueue);
 
-            LOGI("Vendor : {}", GetVendorName(properties2.properties.vendorID));
+            LOGI("Vendor : {}", ToString((GPUVendorId)properties2.properties.vendorID));
             LOGI("Name   : {}", properties2.properties.deviceName);
             LOGI("Type   : {}", ToString(caps.adapterType));
             LOGI("Driver : {}", properties2.properties.driverVersion);
@@ -1177,8 +1181,8 @@ namespace Alimer
 
         // Command queues
         {
-            queues[(u8)QueueType::Graphics].queue = graphicsQueue;
-            queues[(u8)QueueType::Compute].queue = computeQueue;
+            queues[(uint8_t)QueueType::Graphics].queue = graphicsQueue;
+            queues[(uint8_t)QueueType::Compute].queue = computeQueue;
 
             VkSemaphoreTypeCreateInfo timelineSemaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
             timelineSemaphoreInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
@@ -1188,8 +1192,8 @@ namespace Alimer
             semaphoreInfo.pNext = &timelineSemaphoreInfo;
             semaphoreInfo.flags = 0;
 
-            VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &queues[(u8)QueueType::Graphics].semaphore));
-            VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &queues[(u8)QueueType::Compute].semaphore));
+            VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &queues[(uint8_t)QueueType::Graphics].semaphore));
+            VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &queues[(uint8_t)QueueType::Compute].semaphore));
         }
 
         // Create memory allocator
@@ -1217,7 +1221,7 @@ namespace Alimer
         // Create frame resources
         for (uint32_t i = 0; i < kMaxFramesInFlight; ++i)
         {
-            for (u8 queue = 0; queue < (u8)QueueType::Count; ++queue)
+            for (uint8_t queue = 0; queue < (uint8_t)QueueType::Count; ++queue)
             {
                 const VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
                 VK_CHECK(vkCreateFence(device, &fenceInfo, nullptr, &frames[i].fence[queue]));
@@ -1258,9 +1262,16 @@ namespace Alimer
 
         // Create bindless
         bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
+        bindlessUniformTexelBuffers.Init(device, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindSampledImages / 4);
         bindlessStorageBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageBuffers / 4);
         bindlessStorageImages.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, properties_1_2.maxDescriptorSetUpdateAfterBindStorageImages / 4);
+        bindlessStorageTexelBuffers.Init(device, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, properties_1_2.maxDescriptorSetUpdateAfterBindStorageImages / 4);
         bindlessSamplers.Init(device, VK_DESCRIPTOR_TYPE_SAMPLER, 256);
+
+        if (caps.features.rayTracing)
+        {
+            bindlessAccelerationStructures.Init(device, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 32);
+        }
 
         // Null objects
         {
@@ -1445,21 +1456,19 @@ namespace Alimer
             renderPassCache.clear();
         }
 
-        // DescriptorSetLayout cache
-        {
-            std::lock_guard<std::mutex> guard(descriptorSetLayoutCacheMutex);
-            descriptorSetLayoutCache.clear();
-        }
-
         // PipelineLayout cache
         {
             std::lock_guard<std::mutex> guard(pipelineLayoutCacheMutex);
-            pipelineLayoutCache.clear();
+            for (auto& it : pipelineLayoutCache)
+            {
+                vkDestroyPipelineLayout(device, it.second.pipelineLayout, nullptr);
+                vkDestroyDescriptorSetLayout(device, it.second.descriptorSetLayout, nullptr);
+            }
         }
 
         for (auto& frame : frames)
         {
-            for (u8 queue = 0; queue < (u8)QueueType::Count; ++queue)
+            for (uint8_t queue = 0; queue < (uint8_t)QueueType::Count; ++queue)
             {
                 vkDestroyFence(device, frame.fence[queue], nullptr);
             }
@@ -1472,9 +1481,12 @@ namespace Alimer
         // Bindless data
         {
             bindlessSampledImages.Destroy(device);
+            bindlessUniformTexelBuffers.Destroy(device);
             bindlessStorageBuffers.Destroy(device);
             bindlessStorageImages.Destroy(device);
+            bindlessStorageTexelBuffers.Destroy(device);
             bindlessSamplers.Destroy(device);
+            bindlessAccelerationStructures.Destroy(device);
         }
 
         // Null resources
@@ -1764,9 +1776,13 @@ namespace Alimer
         {
             buffer->handle = (VkBuffer)info->handle;
 
-            VkBufferDeviceAddressInfo info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
-            info.buffer = buffer->handle;
-            buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
+            if (features_1_2.bufferDeviceAddress == VK_TRUE)
+            {
+                VkBufferDeviceAddressInfo info{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+                info.buffer = buffer->handle;
+                buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
+            }
+
             return buffer;
         }
 
@@ -1831,7 +1847,10 @@ namespace Alimer
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
 
-        createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        if (features_1_2.bufferDeviceAddress == VK_TRUE)
+        {
+            createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        }
 
         VmaAllocationCreateInfo memoryInfo{};
         memoryInfo.flags = 0;
@@ -2075,17 +2094,87 @@ namespace Alimer
 
                 resource.backend_binding = binding->binding;
                 shader->resources.push_back(resource);
+
+                // WIP:
+                if (bindless)
+                {
+                    // There can be padding between bindless spaces because sets need to be bound contiguously
+                    shader->bindlessBindings.resize(Max(shader->bindlessBindings.size(), (size_t)binding->set));
+                }
+
+                auto& descriptor = bindless ? shader->bindlessBindings[binding->set - 1] : shader->layoutBindings.emplace_back();
+                descriptor.stageFlags = (VkShaderStageFlags)module.shader_stage;
+                descriptor.binding = binding->binding;
+                descriptor.descriptorCount = binding->count;
+                descriptor.descriptorType = (VkDescriptorType)binding->descriptor_type;
+
+                if (bindless)
+                    continue;
+
+                auto& imageViewType = shader->imageViewTypes.emplace_back();
+                imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+
+                if (binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER)
+                {
+                    // TODO: static samplers
+                }
+
+                switch (binding->descriptor_type)
+                {
+                    default:
+                        break;
+                    case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                    case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                        switch (binding->image.dim)
+                        {
+                            default:
+                            case SpvDim1D:
+                                if (binding->image.arrayed == 0)
+                                {
+                                    imageViewType = VK_IMAGE_VIEW_TYPE_1D;
+                                }
+                                else
+                                {
+                                    imageViewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+                                }
+                                break;
+                            case SpvDim2D:
+                                if (binding->image.arrayed == 0)
+                                {
+                                    imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+                                }
+                                else
+                                {
+                                    imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+                                }
+                                break;
+                            case SpvDim3D:
+                                imageViewType = VK_IMAGE_VIEW_TYPE_3D;
+                                break;
+                            case SpvDimCube:
+                                if (binding->image.arrayed == 0)
+                                {
+                                    imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
+                                }
+                                else
+                                {
+                                    imageViewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+                                }
+                                break;
+                        }
+                        break;
+                }
             }
         }
 
         // Push constants
         {
             uint32_t pushCount = 0;
-            result = spvReflectEnumerateEntryPointPushConstantBlocks(&module, entryPoint.c_str(), &pushCount, nullptr);
+            result = spvReflectEnumeratePushConstantBlocks(&module, &pushCount, nullptr);
             ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
 
             std::vector<SpvReflectBlockVariable*> pushConstants(pushCount);
-            result = spvReflectEnumerateEntryPointPushConstantBlocks(&module, entryPoint.c_str(), &pushCount, pushConstants.data());
+            result = spvReflectEnumeratePushConstantBlocks(&module, &pushCount, pushConstants.data());
             ALIMER_ASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
 
             for (auto& pushConstant : pushConstants)
@@ -2097,6 +2186,12 @@ namespace Alimer
                 resource.offset = pushConstant->offset;
                 resource.size = pushConstant->size;
                 shader->resources.push_back(resource);
+
+                // WIP
+                VkPushConstantRange& pushConstantRange = shader->pushConstantRanges;
+                pushConstantRange.stageFlags = (VkShaderStageFlags)module.shader_stage;
+                pushConstantRange.offset = pushConstant->offset;
+                pushConstantRange.size = pushConstant->size;
             }
         }
 
@@ -2215,6 +2310,93 @@ namespace Alimer
 
     PipelineRef VulkanGraphics::CreateRenderPipeline(const RenderPipelineStateCreateInfo* info)
     {
+        RefPtr<VulkanPipeline> pipeline(new VulkanPipeline());
+        pipeline->device = this;
+        pipeline->type = PipelineType::Render;
+
+        auto InsertShader = [&](const Shader* shader) {
+            if (shader == nullptr)
+                return;
+
+            const VulkanShader* shaderVulkan = checked_cast<const VulkanShader*>(shader);
+
+            uint32_t i = 0;
+            size_t check_max = shaderVulkan->layoutBindings.size(); // dont't check for duplicates within self table
+            for (const VkDescriptorSetLayoutBinding& shaderLayoutBinding : shaderVulkan->layoutBindings)
+            {
+                bool found = false;
+                size_t j = 0;
+                for (VkDescriptorSetLayoutBinding& pipelineLayoutBinding : pipeline->layoutBindings)
+                {
+                    if (shaderLayoutBinding.binding == pipelineLayoutBinding.binding)
+                    {
+                        // If the asserts fire, it means there are overlapping bindings between shader stages
+                        //	This is not supported now for performance reasons (less binding management)!
+                        //	(Overlaps between s/b/t bind points are not a problem because those are shifted by the compiler)
+                        ALIMER_ASSERT(shaderLayoutBinding.descriptorCount == pipelineLayoutBinding.descriptorCount);
+                        ALIMER_ASSERT(shaderLayoutBinding.descriptorType == pipelineLayoutBinding.descriptorType);
+                        found = true;
+                        pipelineLayoutBinding.stageFlags |= shaderLayoutBinding.stageFlags;
+                        break;
+                    }
+                    if (j++ >= check_max)
+                        break;
+                }
+
+                if (!found)
+                {
+                    pipeline->layoutBindings.push_back(shaderLayoutBinding);
+                    pipeline->imageViewTypes.push_back(shaderVulkan->imageViewTypes[i]);
+                }
+                i++;
+            }
+
+            if (shaderVulkan->pushConstantRanges.size > 0)
+            {
+                pipeline->pushConstantRanges.offset = Min(pipeline->pushConstantRanges.offset, shaderVulkan->pushConstantRanges.offset);
+                pipeline->pushConstantRanges.size = Max(pipeline->pushConstantRanges.size, shaderVulkan->pushConstantRanges.size);
+                pipeline->pushConstantRanges.stageFlags |= shaderVulkan->pushConstantRanges.stageFlags;
+            }
+        };
+
+        auto InsertShaderBindless = [&](const Shader* shader) {
+            if (shader == nullptr)
+                return;
+
+            const VulkanShader* shaderVulkan = checked_cast<const VulkanShader*>(shader);
+
+            pipeline->bindlessBindings.resize(Max(pipeline->bindlessBindings.size(), shaderVulkan->bindlessBindings.size()));
+
+            int i = 0;
+            for (const VkDescriptorSetLayoutBinding& shaderLayoutBinding : shaderVulkan->bindlessBindings)
+            {
+                if (pipeline->bindlessBindings[i].descriptorType != shaderLayoutBinding.descriptorType)
+                {
+                    pipeline->bindlessBindings[i] = shaderLayoutBinding;
+                }
+                else
+                {
+                    pipeline->bindlessBindings[i].stageFlags |= shaderLayoutBinding.stageFlags;
+                }
+                i++;
+            }
+        };
+
+        //InsertShader(pDesc->ms);
+        //InsertShader(pDesc->as);
+        InsertShader(info->vertexShader);
+        //InsertShader(pDesc->hs);
+        //InsertShader(pDesc->ds);
+        //InsertShader(pDesc->gs);
+        InsertShader(info->pixelShader);
+
+        //InsertShaderBindless(pDesc->ms);
+        //InsertShaderBindless(pDesc->as);
+        InsertShaderBindless(info->vertexShader);
+        //InsertShaderBindless(pDesc->hs);
+        //InsertShaderBindless(pDesc->ds);
+        //InsertShaderBindless(pDesc->gs);
+        InsertShaderBindless(info->pixelShader);
 
         std::vector<VulkanShader*> shaders;
         shaders.push_back(ToVulkan(info->vertexShader));
@@ -2224,7 +2406,101 @@ namespace Alimer
             shaders.push_back(ToVulkan(info->pixelShader));
         }
 
-        VulkanPipelineLayout* pipelineLayout = RequestPipelineLayout(shaders);
+        pipeline->layoutBindingHash = 0;
+        size_t i = 0;
+        for (auto& x : pipeline->layoutBindings)
+        {
+            HashCombine(pipeline->layoutBindingHash, x.binding);
+            HashCombine(pipeline->layoutBindingHash, x.descriptorType);
+            HashCombine(pipeline->layoutBindingHash, x.descriptorCount);
+            HashCombine(pipeline->layoutBindingHash, x.stageFlags);
+            HashCombine(pipeline->layoutBindingHash, pipeline->imageViewTypes[i++]);
+        }
+        for (auto& x : pipeline->bindlessBindings)
+        {
+            HashCombine(pipeline->layoutBindingHash, x.binding);
+            HashCombine(pipeline->layoutBindingHash, x.descriptorType);
+            HashCombine(pipeline->layoutBindingHash, x.descriptorCount);
+            HashCombine(pipeline->layoutBindingHash, x.stageFlags);
+        }
+        HashCombine(pipeline->layoutBindingHash, pipeline->pushConstantRanges.offset);
+        HashCombine(pipeline->layoutBindingHash, pipeline->pushConstantRanges.size);
+        HashCombine(pipeline->layoutBindingHash, pipeline->pushConstantRanges.stageFlags);
+
+        // Request DescriptorSetLayout (+ bindless) + pipeline layout
+        pipelineLayoutCacheMutex.lock();
+        if (pipelineLayoutCache[pipeline->layoutBindingHash].pipelineLayout == VK_NULL_HANDLE)
+        {
+            // Not found -> create new
+            std::vector<VkDescriptorSetLayout> setLayouts;
+            {
+                VkDescriptorSetLayoutCreateInfo descriptorSetlayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+                descriptorSetlayoutInfo.pBindings = pipeline->layoutBindings.data();
+                descriptorSetlayoutInfo.bindingCount = static_cast<uint32_t>(pipeline->layoutBindings.size());
+
+                VK_CHECK(vkCreateDescriptorSetLayout(device, &descriptorSetlayoutInfo, nullptr, &pipeline->descriptorSetLayout));
+                pipelineLayoutCache[pipeline->layoutBindingHash].descriptorSetLayout = pipeline->descriptorSetLayout;
+                setLayouts.push_back(pipeline->descriptorSetLayout);
+            }
+
+            pipelineLayoutCache[pipeline->layoutBindingHash].bindlessFirstSet = (uint32_t)setLayouts.size();
+            for (const VkDescriptorSetLayoutBinding& x : pipeline->bindlessBindings)
+            {
+                switch (x.descriptorType)
+                {
+                    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                        assert(0); // not supported, use the raw buffers for same functionality
+                        break;
+                    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                        setLayouts.push_back(bindlessSampledImages.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessSampledImages.descriptorSet);
+                        break;
+                    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                        setLayouts.push_back(bindlessUniformTexelBuffers.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessUniformTexelBuffers.descriptorSet);
+                        break;
+                    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                        setLayouts.push_back(bindlessStorageBuffers.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessStorageBuffers.descriptorSet);
+                        break;
+                    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                        setLayouts.push_back(bindlessStorageImages.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessStorageImages.descriptorSet);
+                        break;
+                    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                        setLayouts.push_back(bindlessStorageTexelBuffers.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessStorageTexelBuffers.descriptorSet);
+                        break;
+                    case VK_DESCRIPTOR_TYPE_SAMPLER:
+                        setLayouts.push_back(bindlessSamplers.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessSamplers.descriptorSet);
+                        break;
+                    case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                        setLayouts.push_back(bindlessAccelerationStructures.descriptorSetLayout);
+                        pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets.push_back(bindlessAccelerationStructures.descriptorSet);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+            pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+            pipelineLayoutInfo.pSetLayouts = setLayouts.data();
+            if (pipeline->pushConstantRanges.size > 0)
+            {
+                pipelineLayoutInfo.pushConstantRangeCount = 1;
+                pipelineLayoutInfo.pPushConstantRanges = &pipeline->pushConstantRanges;
+            }
+            
+            VK_CHECK(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipeline->pipelineLayout));
+            pipelineLayoutCache[pipeline->layoutBindingHash].pipelineLayout = pipeline->pipelineLayout;
+        }
+        pipeline->descriptorSetLayout = pipelineLayoutCache[pipeline->layoutBindingHash].descriptorSetLayout;
+        pipeline->pipelineLayout = pipelineLayoutCache[pipeline->layoutBindingHash].pipelineLayout;
+        pipeline->bindlessSets = pipelineLayoutCache[pipeline->layoutBindingHash].bindlessSets;
+        pipeline->bindlessFirstSet = pipelineLayoutCache[pipeline->layoutBindingHash].bindlessFirstSet;
+        pipelineLayoutCacheMutex.unlock();
 
         uint32_t vertexBindingCount = 0;
         uint32_t vertexAttributeCount = 0;
@@ -2410,17 +2686,16 @@ namespace Alimer
         createInfo.pDepthStencilState = &depthStencilState;
         createInfo.pColorBlendState = &blendState;
         createInfo.pDynamicState = &dynamicStateInfo;
-        createInfo.layout = pipelineLayout->GetHandle();
+        createInfo.layout = pipeline->pipelineLayout;
         createInfo.renderPass = GetVkRenderPass(renderPassKey);
         createInfo.subpass = 0;
         createInfo.basePipelineHandle = VK_NULL_HANDLE;
         createInfo.basePipelineIndex = 0;
 
-        VkPipeline handle;
         VkResult result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE,
             1, &createInfo,
             nullptr,
-            &handle);
+            &pipeline->handle);
 
         if (result != VK_SUCCESS)
         {
@@ -2432,23 +2707,20 @@ namespace Alimer
 
         if (info->label != nullptr)
         {
-            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)handle, info->label);
+            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipeline->handle, info->label);
         }
 
-        VulkanPipeline* pipeline = new VulkanPipeline();
-        pipeline->device = this;
-        pipeline->type = PipelineType::Render;
-        pipeline->pipelineLayout = pipelineLayout;
-        pipeline->handle = handle;
-        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-        return PipelineRef(pipeline);
+        return pipeline;
     }
 
     PipelineRef VulkanGraphics::CreateComputePipeline(const ComputePipelineCreateInfo* info)
     {
+        RefPtr<VulkanPipeline> pipeline(new VulkanPipeline());
+        pipeline->device = this;
+        pipeline->type = PipelineType::Compute;
+
         VulkanShader* shader = ToVulkan(info->shader);
-        VulkanPipelineLayout* pipelineLayout = RequestPipelineLayout({ shader });
+        //VulkanPipelineLayout* pipelineLayout = RequestPipelineLayout({ shader });
 
         VkComputePipelineCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -2457,12 +2729,11 @@ namespace Alimer
         createInfo.stage.module = shader->handle;
         createInfo.stage.pName = shader->GetEntryPoint().c_str();
         createInfo.stage.pSpecializationInfo = nullptr;
-        createInfo.layout = pipelineLayout->GetHandle();
+        //createInfo.layout = pipelineLayout->GetHandle();
 
-        VkPipeline handle;
         VkResult result = vkCreateComputePipelines(device, VK_NULL_HANDLE,
             1, &createInfo,
-            nullptr, &handle);
+            nullptr, &pipeline->handle);
 
         if (result != VK_SUCCESS)
         {
@@ -2474,17 +2745,10 @@ namespace Alimer
 
         if (info->label != nullptr)
         {
-            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)handle, info->label);
+            SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipeline->handle, info->label);
         }
 
-        VulkanPipeline* pipeline = new VulkanPipeline();
-        pipeline->device = this;
-        pipeline->type = PipelineType::Compute;
-        pipeline->pipelineLayout = pipelineLayout;
-        pipeline->handle = handle;
-        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-
-        return PipelineRef(pipeline);
+        return pipeline;
     }
 
     SwapChainRef VulkanGraphics::CreateSwapChain(void* windowHandle, const SwapChainCreateInfo& info)
@@ -2665,19 +2929,19 @@ namespace Alimer
                 break;
             }
         }
-        //while (!destroyedBindlessUniformTexelBuffers.empty())
-        //{
-        //    if (destroyedBindlessUniformTexelBuffers.front().second + kMaxFramesInFlight < frameCount)
-        //    {
-        //        uint32_t index = destroyedBindlessUniformTexelBuffers.front().first;
-        //        destroyedBindlessUniformTexelBuffers.pop_front();
-        //        bindlessUniformTexelBuffers.free(index);
-        //    }
-        //    else
-        //    {
-        //        break;
-        //    }
-        //}
+        while (!destroyedBindlessUniformTexelBuffers.empty())
+        {
+            if (destroyedBindlessUniformTexelBuffers.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessUniformTexelBuffers.front().first;
+                destroyedBindlessUniformTexelBuffers.pop_front();
+                bindlessUniformTexelBuffers.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
         while (!destroyedBindlessStorageBuffers.empty())
         {
             if (destroyedBindlessStorageBuffers.front().second + kMaxFramesInFlight < frameCount)
@@ -2704,19 +2968,19 @@ namespace Alimer
                 break;
             }
         }
-        //while (!destroyedBindlessStorageTexelBuffers.empty())
-        //{
-        //    if (destroyedBindlessStorageTexelBuffers.front().second + kMaxFramesInFlight < frameCount)
-        //    {
-        //        uint32_t index = destroyedBindlessStorageTexelBuffers.front().first;
-        //        destroyedBindlessStorageTexelBuffers.pop_front();
-        //        bindlessStorageTexelBuffers.Free(index);
-        //    }
-        //    else
-        //    {
-        //        break;
-        //    }
-        //}
+        while (!destroyedBindlessStorageTexelBuffers.empty())
+        {
+            if (destroyedBindlessStorageTexelBuffers.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessStorageTexelBuffers.front().first;
+                destroyedBindlessStorageTexelBuffers.pop_front();
+                bindlessStorageTexelBuffers.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
         while (!destroyedBindlessSamplers.empty())
         {
             if (destroyedBindlessSamplers.front().second + kMaxFramesInFlight < frameCount)
@@ -2730,19 +2994,19 @@ namespace Alimer
                 break;
             }
         }
-        //while (!destroyedBindlessAccelerationStructures.empty())
-        //{
-        //    if (destroyedBindlessAccelerationStructures.front().second + kMaxFramesInFlight < frameCount)
-        //    {
-        //        uint32_t index = destroyedBindlessAccelerationStructures.front().first;
-        //        destroyedBindlessAccelerationStructures.pop_front();
-        //        bindlessAccelerationStructures.Free(index);
-        //    }
-        //    else
-        //    {
-        //        break;
-        //    }
-        //}
+        while (!destroyedBindlessAccelerationStructures.empty())
+        {
+            if (destroyedBindlessAccelerationStructures.front().second + kMaxFramesInFlight < frameCount)
+            {
+                uint32_t index = destroyedBindlessAccelerationStructures.front().first;
+                destroyedBindlessAccelerationStructures.pop_front();
+                bindlessAccelerationStructures.Free(index);
+            }
+            else
+            {
+                break;
+            }
+        }
         destroyMutex.unlock();
     }
 
@@ -2893,108 +3157,7 @@ namespace Alimer
 
         return it->second;
     }
-
-    VulkanDescriptorSetLayout& VulkanGraphics::RequestDescriptorSetLayout(const uint32_t setIndex, const std::vector<ShaderResource>& resources)
-    {
-        std::lock_guard<std::mutex> guard(descriptorSetLayoutCacheMutex);
-
-        size_t hash = 0;
-        HashCombine(hash, setIndex);
-
-        for (auto& resource : resources)
-        {
-            if (resource.type == ShaderResourceType::Input ||
-                resource.type == ShaderResourceType::Output ||
-                resource.type == ShaderResourceType::PushConstant)
-            {
-                continue;
-            }
-
-            HashCombine(hash, static_cast<uint32_t>(resource.stages));
-            HashCombine(hash, static_cast<uint32_t>(resource.type));
-            HashCombine(hash, resource.set);
-            HashCombine(hash, resource.binding);
-            //HashCombine(hash, shaderResource.mode);
-        }
-
-        auto it = descriptorSetLayoutCache.find(hash);
-        if (it == descriptorSetLayoutCache.end())
-        {
-            auto setLayout = std::make_unique<VulkanDescriptorSetLayout>();
-            setLayout->device = this;
-            setLayout->setIndex = setIndex;
-
-            for (auto& resource : resources)
-            {
-                // Skip shader resources whitout a binding point
-                if (resource.type == ShaderResourceType::Input ||
-                    resource.type == ShaderResourceType::Output ||
-                    resource.type == ShaderResourceType::PushConstant)
-                {
-                    continue;
-                }
-
-                // Convert ShaderResource to VkDescriptorSetLayoutBinding
-                VkDescriptorSetLayoutBinding layoutBinding{};
-                layoutBinding.binding = resource.backend_binding;
-                layoutBinding.descriptorType = ToVulkan(resource.type, false);
-                layoutBinding.descriptorCount = resource.arraySize;
-                layoutBinding.stageFlags = ToVulkan(resource.stages);
-
-                setLayout->layoutBindings.push_back(layoutBinding);
-            }
-
-            VkDescriptorSetLayoutCreateInfo createInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-            createInfo.flags = 0;
-            createInfo.bindingCount = static_cast<uint32_t>(setLayout->layoutBindings.size());
-            createInfo.pBindings = setLayout->layoutBindings.data();
-
-            // Create the Vulkan descriptor set layout handle
-            VkResult result = vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &setLayout->handle);
-
-            if (result != VK_SUCCESS)
-            {
-                VK_LOG_ERROR(result, "Cannot create DescriptorSetLayout");
-            }
-
-            descriptorSetLayoutCache[hash] = std::move(setLayout);
-
-#if defined(_DEBUG)
-            LOGD("VkDescriptorSetLayout created with hash {}", hash);
-#endif
-
-            it = descriptorSetLayoutCache.find(hash);
-        }
-
-        return *it->second;
-    }
-
-    VulkanPipelineLayout* VulkanGraphics::RequestPipelineLayout(const std::vector<VulkanShader*>& shaders)
-    {
-        std::lock_guard<std::mutex> guard(pipelineLayoutCacheMutex);
-
-        size_t hash = 0;
-
-        for (auto& shader : shaders)
-        {
-            HashCombine(hash, shader->hash);
-        }
-
-        auto it = pipelineLayoutCache.find(hash);
-        if (it == pipelineLayoutCache.end())
-        {
-            auto pipelineLayout = std::make_unique<VulkanPipelineLayout>(*this, shaders);
-            pipelineLayoutCache[hash] = std::move(pipelineLayout);
-
-#if defined(_DEBUG)
-            LOGD("PipelineLayout created with hash {}", hash);
-#endif
-            it = pipelineLayoutCache.find(hash);
-        }
-
-        return it->second.get();
-    }
-
+    
     /* Copy Allocator */
     void VulkanGraphics::CopyAllocator::Init(VulkanGraphics* device_)
     {

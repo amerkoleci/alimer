@@ -3,7 +3,6 @@
 
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
-#include "VulkanPipelineLayout.h"
 #include "VulkanSwapChain.h"
 #include "VulkanGraphics.h"
 #include <unordered_set>
@@ -464,7 +463,40 @@ namespace Alimer
     void VulkanCommandBuffer::SetPipeline(const Pipeline* pipeline)
     {
         boundPipeline = ToVulkan(pipeline);
-        vkCmdBindPipeline(handle, boundPipeline->bindPoint, boundPipeline->handle);
+
+        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        switch (boundPipeline->GetType())
+        {
+            case PipelineType::Compute:
+                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+                break;
+            case PipelineType::Raytracing:
+                bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+                break;
+
+            case PipelineType::Render:
+            default:
+                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                break;
+        }
+
+        vkCmdBindPipeline(handle, bindPoint, boundPipeline->handle);
+
+        // Bind bindless descriptor sets
+        if (!boundPipeline->bindlessSets.empty())
+        {
+            vkCmdBindDescriptorSets(
+                handle,
+                bindPoint,
+                boundPipeline->pipelineLayout,
+                boundPipeline->bindlessFirstSet,
+                (uint32_t)boundPipeline->bindlessSets.size(),
+                boundPipeline->bindlessSets.data(),
+                0,
+                nullptr
+            );
+        }
+
         binder.dirty = true;
     }
 
@@ -517,55 +549,64 @@ namespace Alimer
         binder.dirty = false;
 
         auto& binderPool = binderPools[device.GetFrameIndex()];
-        const VulkanPipelineLayout* pipelineLayout = boundPipeline->pipelineLayout;
 
-        for (auto& descriptorSetLayout : pipelineLayout->GetDescriptorSetLayouts())
+        VkDescriptorSetLayout descriptorSetLayout = boundPipeline->descriptorSetLayout;
+        VkPipelineLayout pipelineLayout = boundPipeline->pipelineLayout;
+
+        // Allocate new DescriptorSet
+        VkDescriptorSetAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+        allocateInfo.descriptorPool = binderPool.descriptorPool;
+        allocateInfo.descriptorSetCount = 1;
+        allocateInfo.pSetLayouts = &descriptorSetLayout;
+
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        VkResult result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
+        while (result == VK_ERROR_OUT_OF_POOL_MEMORY)
         {
-            const uint32_t set = descriptorSetLayout->setIndex;
+            binderPool.poolSize *= 2;
+            binderPool.Destroy();
+            binderPool.Init(&device);
+            allocateInfo.descriptorPool = binderPool.descriptorPool;
+            result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
+        }
+        ALIMER_ASSERT(result == VK_SUCCESS);
 
-            // Allocate new DescriptorSet
-            VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-            if (set == 0)
+        binder.descriptorWrites.clear();
+        binder.bufferInfos.clear();
+        binder.imageInfos.clear();
+        binder.texelBufferViews.clear();
+        binder.accelerationStructureViews.clear();
+
+        // Iterate over all resource bindings
+        //const auto& layoutBindings = graphics ? pso_internal->layoutBindings : cs_internal->layoutBindings;
+        //const auto& imageViewTypes = graphics ? pso_internal->imageViewTypes : cs_internal->imageViewTypes;
+
+        uint32_t i = 0;
+        for (const VkDescriptorSetLayoutBinding& x : boundPipeline->layoutBindings)
+        {
+            if (x.pImmutableSamplers != nullptr)
             {
-                VkDescriptorSetAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-                allocateInfo.descriptorPool = binderPool.descriptorPool;
-                allocateInfo.descriptorSetCount = 1;
-                allocateInfo.pSetLayouts = &descriptorSetLayout->handle;
-
-                VkResult result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
-                while (result == VK_ERROR_OUT_OF_POOL_MEMORY)
-                {
-                    binderPool.poolSize *= 2;
-                    binderPool.Destroy();
-                    binderPool.Init(&device);
-                    allocateInfo.descriptorPool = binderPool.descriptorPool;
-                    result = vkAllocateDescriptorSets(device.GetHandle(), &allocateInfo, &descriptorSet);
-                }
-                ALIMER_ASSERT(result == VK_SUCCESS);
+                i++;
+                continue;
             }
 
-            binder.descriptorWrites.clear();
-            binder.bufferInfos.clear();
-            binder.imageInfos.clear();
-            binder.texelBufferViews.clear();
-            binder.accelerationStructureViews.clear();
+            VkImageViewType viewtype = boundPipeline->imageViewTypes[i++];
 
-            // Iterate over all resource bindings
-            for (VkDescriptorSetLayoutBinding& layoutBinding : descriptorSetLayout->layoutBindings)
+            for (uint32_t descriptor_index = 0; descriptor_index < x.descriptorCount; ++descriptor_index)
             {
-                const uint32_t binding = layoutBinding.binding;
+                const uint32_t unrolled_binding = x.binding + descriptor_index;
 
                 binder.descriptorWrites.emplace_back();
                 auto& writeDescriptorSet = binder.descriptorWrites.back();
                 writeDescriptorSet = {};
                 writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSet.dstBinding = binding;
-                writeDescriptorSet.descriptorType = layoutBinding.descriptorType;
-                writeDescriptorSet.dstSet = descriptorSet;
-                writeDescriptorSet.dstArrayElement = 0;
+                writeDescriptorSet.dstBinding = x.binding;
+                writeDescriptorSet.dstArrayElement = descriptor_index;
                 writeDescriptorSet.descriptorCount = 1;
+                writeDescriptorSet.descriptorType = x.descriptorType;
+                writeDescriptorSet.dstSet = descriptorSet;
 
-                switch (layoutBinding.descriptorType)
+                switch (x.descriptorType)
                 {
                     default:
                         ALIMER_UNREACHABLE();
@@ -573,8 +614,7 @@ namespace Alimer
 
                     case VK_DESCRIPTOR_TYPE_SAMPLER:
                     {
-                        const uint32_t original_binding = binding - kVulkanBindingShift_Sampler;
-                        //writeDescriptorSet.dstBinding = binding + kVulkanBindingShift_Sampler;
+                        const uint32_t original_binding = unrolled_binding - kVulkanBindingShift_Sampler;
 
                         binder.imageInfos.emplace_back();
                         writeDescriptorSet.pImageInfo = &binder.imageInfos.back();
@@ -594,8 +634,7 @@ namespace Alimer
                     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
                     case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
                     {
-                        const uint32_t original_binding = binding - kVulkanBindingShift_SRV;
-                        //writeDescriptorSet.dstBinding = binding + kVulkanBindingShift_SRV;
+                        const uint32_t original_binding = unrolled_binding - kVulkanBindingShift_SRV;
 
                         binder.imageInfos.emplace_back();
                         writeDescriptorSet.pImageInfo = &binder.imageInfos.back();
@@ -617,20 +656,20 @@ namespace Alimer
                     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
                     {
-                        //writeDescriptorSet.dstBinding = binding + kVulkanBindingShift_CBV;
+                        const uint32_t original_binding = unrolled_binding - kVulkanBindingShift_CBV;
+
                         binder.bufferInfos.emplace_back();
                         writeDescriptorSet.pBufferInfo = &binder.bufferInfos.back();
                         binder.bufferInfos.back() = {};
 
-                        if (binder.table.buffers[binding].buffer == VK_NULL_HANDLE)
+                        if (binder.table.buffers[original_binding].buffer == VK_NULL_HANDLE)
                         {
-                            binder.bufferInfos.back().buffer = VK_NULL_HANDLE;
+                            binder.bufferInfos.back().buffer = device.nullBuffer;
                             binder.bufferInfos.back().range = VK_WHOLE_SIZE;
                         }
                         else
                         {
-
-                            binder.bufferInfos.back() = binder.table.buffers[binding];
+                            binder.bufferInfos.back() = binder.table.buffers[original_binding];
 
                             //if (binding_it.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
                             //{
@@ -642,49 +681,34 @@ namespace Alimer
                     break;
                 }
             }
-
-            // Update 
-            vkUpdateDescriptorSets(device.GetHandle(),
-                (uint32_t)binder.descriptorWrites.size(), binder.descriptorWrites.data(),
-                0, nullptr
-            );
-
-            // Bind descriptor set
-            vkCmdBindDescriptorSets(handle,
-                bindPoint,
-                pipelineLayout->GetHandle(),
-                set,
-                1, &descriptorSet,
-                0, nullptr
-            );
         }
 
-        // TODO: Actually detect which bindless sets are used
-        if (pipelineLayout->GetBindless())
-        {
-            auto bindlessSet = device.GetBindlessSampledImageDescriptorSet();
-            vkCmdBindDescriptorSets(
-                handle,
-                bindPoint,
-                pipelineLayout->GetHandle(),
-                1,
-                1, &bindlessSet,
-                0, nullptr
-            );
-        }
+        // Update descriptor sets
+        vkUpdateDescriptorSets(device.GetHandle(),
+            (uint32_t)binder.descriptorWrites.size(), binder.descriptorWrites.data(),
+            0, nullptr
+        );
+
+        // Bind descriptor set
+        vkCmdBindDescriptorSets(handle,
+            bindPoint,
+            pipelineLayout,
+            0, 1, &descriptorSet,
+            0, nullptr
+        );
     }
 
     void VulkanCommandBuffer::FlushPushConstants()
     {
         if (pushConstants.size > 0
-            && boundPipeline->pipelineLayout->GetPushConstantStage())
+            && boundPipeline->pushConstantRanges.size > 0)
         {
             vkCmdPushConstants(
                 handle,
-                boundPipeline->pipelineLayout->GetHandle(),
-                boundPipeline->pipelineLayout->GetPushConstantStage(),
-                0,
-                pushConstants.size,
+                boundPipeline->pipelineLayout,
+                boundPipeline->pushConstantRanges.stageFlags,
+                boundPipeline->pushConstantRanges.offset,
+                boundPipeline->pushConstantRanges.size,
                 pushConstants.data
             );
 

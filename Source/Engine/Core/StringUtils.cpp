@@ -7,8 +7,6 @@
 #include <sstream>
 #include <cstdio>
 
-using namespace std;
-
 namespace Alimer
 {
     namespace
@@ -50,7 +48,7 @@ namespace Alimer
         return SplitInternal(str, delim, false);
     }
 
-    string ToLower(const string& str)
+    std::string ToLower(const std::string& str)
     {
         std::string result;
         for (const char& ch : str)
@@ -61,7 +59,7 @@ namespace Alimer
         return result;
     }
 
-    string ToUpper(const string& str)
+    std::string ToUpper(const std::string& str)
     {
         std::string result;
         for (const char& ch : str)
@@ -72,14 +70,14 @@ namespace Alimer
         return result;
     }
 
-    string ReplaceAll(const string& source, const string& replaceWhat, const string& replaceWithWhat)
+    std::string ReplaceAll(const std::string& source, const std::string& replaceWhat, const std::string& replaceWithWhat)
     {
-        string result = source;
-        string::size_type pos = 0;
+        std::string result = source;
+        std::string::size_type pos = 0;
         while (1)
         {
             pos = result.find(replaceWhat, pos);
-            if (pos == string::npos) break;
+            if (pos == std::string::npos) break;
             result.replace(pos, replaceWhat.size(), replaceWithWhat);
             pos += replaceWithWhat.size();
         }
@@ -87,9 +85,9 @@ namespace Alimer
     }
 
 #ifdef _WIN32
-    string ToUtf8(const wchar_t* wstr, size_t len)
+    std::string ToUtf8(const wchar_t* wstr, size_t len)
     {
-        vector<char> char_buffer;
+        std::vector<char> char_buffer;
         auto ret = WideCharToMultiByte(CP_UTF8, 0, wstr, static_cast<int>(len), nullptr, 0, nullptr, nullptr);
         if (ret < 0)
             return "";
@@ -99,19 +97,19 @@ namespace Alimer
         return std::string(char_buffer.data(), static_cast<uint32_t>(char_buffer.size()));
     }
 
-    string ToUtf8(const std::wstring& str)
+    std::string ToUtf8(const std::wstring& str)
     {
         return ToUtf8(str.data(), str.length());
     }
 
-    string ToUtf8(const wstring_view& str)
+    std::string ToUtf8(const std::wstring_view& str)
     {
         return ToUtf8(str.data(), str.length());
     }
 
-    wstring ToUtf16(const char* str, size_t len)
+    std::wstring ToUtf16(const char* str, size_t len)
     {
-        vector<wchar_t> wchar_buffer;
+        std::vector<wchar_t> wchar_buffer;
         auto ret = MultiByteToWideChar(CP_UTF8, 0, str, static_cast<int>(len), nullptr, 0);
         if (ret < 0)
             return L"";
@@ -120,12 +118,12 @@ namespace Alimer
         return std::wstring(wchar_buffer.data(), wchar_buffer.size());
     }
 
-    wstring ToUtf16(const string& str)
+    std::wstring ToUtf16(const std::string& str)
     {
         return ToUtf16(str.data(), str.length());
     }
 
-    wstring ToUtf16(const string_view& str)
+    std::wstring ToUtf16(const std::string_view& str)
     {
         return ToUtf16(str.data(), str.length());
     }
