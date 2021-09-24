@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Toolkit.Diagnostics" Version="7.1.0-rc1" />
+    <PackageReference Include="Microsoft.Toolkit.Diagnostics" Version="7.1.0" />
     <PackageReference Include="Vortice.Direct3D12" Version="$(VorticeWindowsVersion)" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="Vortice.Vulkan" Version="$(VorticeVulkanVersion)" Condition="'$(ExcludeVulkan)' != 'true'" />
   </ItemGroup>

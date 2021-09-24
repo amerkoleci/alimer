@@ -30,7 +30,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <VorticeWindowsVersion>1.9.143</VorticeWindowsVersion>
+    <VorticeWindowsVersion>2.0.19-beta</VorticeWindowsVersion>
     <VorticeVulkanVersion>1.3.34</VorticeVulkanVersion>
   </PropertyGroup>
   
