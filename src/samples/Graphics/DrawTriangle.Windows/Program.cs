@@ -30,10 +30,6 @@ namespace DrawTriangle
 
         private void OnMainFormLoad(object? sender, EventArgs e)
         {
-#if DEBUG
-            GraphicsDevice.ValidationMode = ValidationMode.GPU;
-#endif
-
             //StorageFolder rootFolder = await StorageFolder.GetFolderFromPathAsync(Directory.GetCurrentDirectory());
 
             _game = new DrawTriangleGame(new WinFormsGameContext(this));

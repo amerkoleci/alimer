@@ -5,12 +5,6 @@ namespace Vortice.Graphics
 {
     public readonly struct GraphicsDeviceCaps
     {
-        public GraphicsBackend BackendType { get; init; }
-
-        public VendorId VendorId { get; init; }
-        public uint AdapterId { get; init; }
-        public GPUAdapterType AdapterType { get; init; }
-        public string? AdapterName { get; init; }
         public GraphicsDeviceFeatures Features { get; init; }
         public GraphicsDeviceLimits Limits { get; init; }
     }

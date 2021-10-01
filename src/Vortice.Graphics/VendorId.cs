@@ -6,7 +6,7 @@ namespace Vortice.Graphics
     public enum VendorId : uint
     {
         Unknown = 0,
-        Nvidia = 0x10DE,
+        NVidia = 0x10DE,
         AMD = 0x1002,
         Intel = 0x8086,
         ARM = 0x13B5,

@@ -7,6 +7,7 @@ namespace Vortice.Graphics
     {
         Default,
         Vulkan,
+        Direct3D11,
         Direct3D12,
         Null
     }

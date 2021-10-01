@@ -3,9 +3,9 @@
 
 namespace Vortice.Graphics.Null
 {
-    public class TextureNull : Texture
+    public class NullTexture : Texture
     {
-        public TextureNull(GraphicsDeviceNull device, in TextureDescriptor descriptor)
+        public NullTexture(NullGraphicsDevice device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
         }

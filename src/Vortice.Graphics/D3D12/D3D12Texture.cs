@@ -6,9 +6,9 @@ using Vortice.DXGI;
 
 namespace Vortice.Graphics.D3D12
 {
-    public unsafe class TextureD3D12 : Texture
+    internal class D3D12Texture : Texture
     {
-        public TextureD3D12(GraphicsDeviceD3D12 device, in TextureDescriptor descriptor)
+        public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
             ResourceDescription resourceDesc = new()

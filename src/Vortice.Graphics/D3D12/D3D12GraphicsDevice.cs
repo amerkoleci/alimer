@@ -13,23 +13,21 @@ using Vortice.Direct3D12.Debug;
 
 namespace Vortice.Graphics.D3D12
 {
-    public sealed unsafe class GraphicsDeviceD3D12 : GraphicsDevice
+    internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
-        private ID3D12Device2 _nativeDevice;
-
-        private readonly QueueD3D12[] _queues = new QueueD3D12[(int)CommandQueueType.Count];
+        private readonly D3D12Queue[] _queues = new D3D12Queue[(int)CommandQueueType.Count];
 
         private readonly GraphicsDeviceCaps _caps;
 
-        internal GraphicsDeviceD3D12(ID3D12Device2 device, IDXGIAdapter1 adapter)
+        internal D3D12GraphicsDevice(D3D12PhysicalDevice physicalDevice, string? name = null)
+            : base(GraphicsBackend.Direct3D12, physicalDevice)
         {
-            Adapter = adapter;
-            _nativeDevice = device;
+            NativeDevice = D3D12CreateDevice<ID3D12Device2>(physicalDevice.Adapter, FeatureLevel.Level_12_0);
 
             // Configure debug device (if active).
-            if (ValidationMode != ValidationMode.Disabled)
+            if (physicalDevice.Factory.ValidationMode != ValidationMode.Disabled)
             {
-                ID3D12InfoQueue? d3d12InfoQueue = _nativeDevice.QueryInterfaceOrNull<ID3D12InfoQueue>();
+                ID3D12InfoQueue? d3d12InfoQueue = NativeDevice.QueryInterfaceOrNull<ID3D12InfoQueue>();
                 if (d3d12InfoQueue != null)
                 {
 #if DEBUG
@@ -61,43 +59,28 @@ namespace Vortice.Graphics.D3D12
                 }
             }
 
-            // Create queues
-            _queues[(int)CommandQueueType.Graphics] = new QueueD3D12(this, CommandQueueType.Graphics);
-            _queues[(int)CommandQueueType.Compute] = new QueueD3D12(this, CommandQueueType.Compute);
+            if (!string.IsNullOrEmpty(name))
+            {
+                NativeDevice.Name = name;
+            }
 
-            AdapterDescription1 adapterDesc = Adapter.Description1;
+            // Create queues
+            _queues[(int)CommandQueueType.Graphics] = new D3D12Queue(this, CommandQueueType.Graphics);
+            _queues[(int)CommandQueueType.Compute] = new D3D12Queue(this, CommandQueueType.Compute);
 
             // Init capabilites.
-            GPUAdapterType adapterType;
-            if ((adapterDesc.Flags & AdapterFlags.Software) != 0)
-            {
-                adapterType = GPUAdapterType.CPU;
-            }
-            else
-            {
-                FeatureDataArchitecture1 featureDataArchitecture = _nativeDevice.Architecture1;
-
-                adapterType = featureDataArchitecture.Uma ? GPUAdapterType.IntegratedGPU : GPUAdapterType.DiscreteGPU;
-                IsCacheCoherentUMA = featureDataArchitecture.CacheCoherentUMA;
-            }
-
-            FeatureDataD3D12Options1 featureDataOptions1 = _nativeDevice.Options1;
-            FeatureDataD3D12Options5 featureDataOptions5 = _nativeDevice.Options5;
+            FeatureDataD3D12Options1 featureDataOptions1 = NativeDevice.Options1;
+            FeatureDataD3D12Options5 featureDataOptions5 = NativeDevice.Options5;
 
             SupportsRenderPass = false;
             if (featureDataOptions5.RenderPassesTier > RenderPassTier.Tier0
-                && (VendorId)adapterDesc.VendorId != VendorId.Intel)
+                && physicalDevice.VendorId != VendorId.Intel)
             {
                 SupportsRenderPass = true;
             }
 
             _caps = new GraphicsDeviceCaps()
             {
-                BackendType = GraphicsBackend.Direct3D12,
-                VendorId = (VendorId)adapterDesc.VendorId,
-                AdapterId = (uint)adapterDesc.DeviceId,
-                AdapterType = adapterType,
-                AdapterName = adapterDesc.Description,
                 Features = new GraphicsDeviceFeatures
                 {
                     IndependentBlend = true,
@@ -147,16 +130,11 @@ namespace Vortice.Graphics.D3D12
             };
         }
 
-        public IDXGIAdapter1 Adapter { get; }
+        public D3D12GraphicsDeviceFactory Factory => ((D3D12PhysicalDevice)PhysicalDevice).Factory;
 
-        public ID3D12Device2 NativeDevice => _nativeDevice;
+        public ID3D12Device2 NativeDevice { get; }
 
-        public QueueD3D12 GetQueue(CommandQueueType type = CommandQueueType.Graphics) => _queues[(int)type];
-
-        /// <summary>
-        /// Gets whether or not the current device has a cache coherent UMA architecture.
-        /// </summary>
-        public bool IsCacheCoherentUMA { get; }
+        public D3D12Queue GetQueue(CommandQueueType type = CommandQueueType.Graphics) => _queues[(int)type];
 
         public bool SupportsRenderPass { get; }
 
@@ -164,9 +142,9 @@ namespace Vortice.Graphics.D3D12
         public override GraphicsDeviceCaps Capabilities => _caps;
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="GraphicsDeviceD3D12" /> class.
+        /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
         /// </summary>
-        ~GraphicsDeviceD3D12() => Dispose(disposing: false);
+        ~D3D12GraphicsDevice() => Dispose(disposing: false);
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
@@ -179,12 +157,12 @@ namespace Vortice.Graphics.D3D12
                 }
 
 #if DEBUG
-                uint refCount = _nativeDevice.Release();
+                uint refCount = NativeDevice.Release();
                 if (refCount > 0)
                 {
                     Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
-                    ID3D12DebugDevice? d3d12DebugDevice = _nativeDevice.QueryInterfaceOrNull<ID3D12DebugDevice>();
+                    ID3D12DebugDevice? d3d12DebugDevice = NativeDevice.QueryInterfaceOrNull<ID3D12DebugDevice>();
                     if (d3d12DebugDevice != null)
                     {
                         d3d12DebugDevice!.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail | ReportLiveDeviceObjectFlags.IgnoreInternal);
@@ -192,17 +170,15 @@ namespace Vortice.Graphics.D3D12
                     }
                 }
 #else
-                _nativeDevice.Dispose();
+                NativeDevice.Dispose();
 #endif
-
-                Adapter.Dispose();
             }
         }
 
         /// <inheritdoc />
-        protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => new SwapChainD3D12(this, surface, descriptor);
+        protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => new D3D12SwapChain(this, surface, descriptor);
 
         /// <inheritdoc />
-        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureD3D12(this, descriptor);
+        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new D3D12Texture(this, descriptor);
     }
 }

@@ -2,18 +2,29 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
-using System.Runtime.InteropServices;
 using Microsoft.Toolkit.Diagnostics;
 
 namespace Vortice.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
-        protected GraphicsDevice()
+        protected GraphicsDevice(GraphicsBackend backendType, PhysicalDevice physicalDevice)
         {
+            Guard.IsNotNull(physicalDevice, nameof(physicalDevice));
+
+            BackendType = backendType;
+            PhysicalDevice = physicalDevice;
         }
 
-        public static ValidationMode ValidationMode { get; set; } = ValidationMode.Disabled;
+        /// <summary>
+        /// Get the device backend type.
+        /// </summary>
+        public GraphicsBackend BackendType { get; }
+
+        /// <summary>
+        /// Get the <see cref="Graphics.PhysicalDevice"/> that was used to create this device.
+        /// </summary>
+        public PhysicalDevice PhysicalDevice { get; }
 
         /// <summary>
         /// Get the device capabilities.
@@ -32,73 +43,6 @@ namespace Vortice.Graphics
         /// <c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.
         /// </param>
         protected abstract void Dispose(bool disposing);
-
-        public static GraphicsDevice Create()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                if (IsSupported(GraphicsBackend.Direct3D12))
-                {
-#if !EXCLUDE_D3D12_BACKEND
-                    return D3D12.D3D12DeviceHelper.DefaultDevice.Value;
-#endif // !EXCLUDE_D3D12_BACKEND
-                }
-            }
-
-            if (IsSupported(GraphicsBackend.Vulkan))
-            {
-#if !EXCLUDE_D3D12_BACKEND
-                return Vulkan.VulkanDeviceHelper.DefaultDevice.Value;
-#endif // !EXCLUDE_D3D12_BACKEND
-            }
-
-            return new Null.GraphicsDeviceNull();
-        }
-
-        public static bool IsSupported(GraphicsBackend backend)
-        {
-            if (backend == GraphicsBackend.Default)
-            {
-                backend = GetDefaultPlatformBackend();
-            }
-
-            switch (backend)
-            {
-#if !EXCLUDE_VULKAN_BACKEND
-                case GraphicsBackend.Vulkan:
-                    return Vulkan.VulkanDeviceHelper.IsSupported.Value;
-#endif // !EXCLUDE_VULKAN_BACKEND
-
-#if !EXCLUDE_D3D12_BACKEND
-                case GraphicsBackend.Direct3D12:
-                    return D3D12.D3D12DeviceHelper.IsSupported.Value;
-#endif // !EXCLUDE_D3D12_BACKEND
-                default:
-                    return false;
-            }
-        }
-
-        public static GraphicsBackend GetDefaultPlatformBackend()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-#if !EXCLUDE_D3D12_BACKEND
-                if (D3D12.D3D12DeviceHelper.IsSupported.Value)
-                {
-                    return GraphicsBackend.Direct3D12;
-                }
-#endif // !EXCLUDE_D3D12_BACKEND
-            }
-
-#if !EXCLUDE_VULKAN_BACKEND
-            if (Vulkan.VulkanDeviceHelper.IsSupported.Value)
-            {
-                return GraphicsBackend.Vulkan;
-            }
-#endif // !EXCLUDE_VULKAN_BACKEND
-
-            return GraphicsBackend.Vulkan;
-        }
 
         public SwapChain CreateSwapChain(in SwapChainSurface surface, in SwapChainDescriptor descriptor)
         {

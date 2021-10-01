@@ -22,7 +22,8 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/amerkoleci/vortice</RepositoryUrl>
-    <ProjectUrl>https://github.com/amerkoleci/vortice</ProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu</PackageTags>
 
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -30,8 +31,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <VorticeWindowsVersion>2.0.19-beta</VorticeWindowsVersion>
-    <VorticeVulkanVersion>1.3.34</VorticeVulkanVersion>
+    <VorticeWindowsVersion>2.0.20-beta</VorticeWindowsVersion>
   </PropertyGroup>
   
 </Project>

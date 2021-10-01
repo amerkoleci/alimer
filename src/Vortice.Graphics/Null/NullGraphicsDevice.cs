@@ -3,24 +3,21 @@
 
 namespace Vortice.Graphics.Null
 {
-    public sealed  class GraphicsDeviceNull : GraphicsDevice
+    public sealed  class NullGraphicsDevice : GraphicsDevice
     {
-        private readonly GraphicsDeviceCaps _caps;
-        public GraphicsDeviceNull()
+        public NullGraphicsDevice()
+            : base(GraphicsBackend.Null, physicalDevice: null)
         {
-            _caps = new GraphicsDeviceCaps()
-            {
-                BackendType = GraphicsBackend.Null,
-            };
+            Capabilities = default;
         }
 
         /// <inheritdoc />
-        public override GraphicsDeviceCaps Capabilities => _caps;
+        public override GraphicsDeviceCaps Capabilities { get; }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="GraphicsDeviceNull" /> class.
+        /// Finalizes an instance of the <see cref="NullGraphicsDevice" /> class.
         /// </summary>
-        ~GraphicsDeviceNull() => Dispose(disposing: false);
+        ~NullGraphicsDevice() => Dispose(disposing: false);
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
@@ -31,6 +28,6 @@ namespace Vortice.Graphics.Null
         protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => throw new System.NotImplementedException();
 
         /// <inheritdoc />
-        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureNull(this, descriptor);
+        protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new NullTexture(this, descriptor);
     }
 }

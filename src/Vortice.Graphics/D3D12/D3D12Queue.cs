@@ -5,9 +5,9 @@ using Vortice.Direct3D12;
 
 namespace Vortice.Graphics.D3D12
 {
-    public unsafe class QueueD3D12
+    internal class D3D12Queue
     {
-        public QueueD3D12(GraphicsDeviceD3D12 device, CommandQueueType type)
+        public D3D12Queue(D3D12GraphicsDevice device, CommandQueueType type)
         {
             CommandQueueDescription queueDesc = new()
             {

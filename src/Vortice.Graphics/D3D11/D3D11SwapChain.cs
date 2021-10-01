@@ -2,13 +2,16 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Vortice.DXGI;
-using static Vortice.Graphics.D3D12.Utils;
+using static Vortice.Graphics.D3DUtils;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics.D3D11
 {
-    public class SwapChainD3D12 : SwapChain
+    internal class D3D11SwapChain : SwapChain
     {
-        public SwapChainD3D12(GraphicsDeviceD3D12 device, in SwapChainSurface surface, in SwapChainDescriptor descriptor)
+        private readonly int _syncInterval = 1;
+        private readonly PresentFlags _presentFlags = PresentFlags.None;
+
+        public D3D11SwapChain(D3D11GraphicsDevice device, in SwapChainSurface surface, in SwapChainDescriptor descriptor)
             : base(device, descriptor)
         {
             SwapChainDescription1 swapChainDesc = new()
@@ -23,42 +26,54 @@ namespace Vortice.Graphics.D3D12
                 Scaling = Scaling.Stretch,
                 SwapEffect = SwapEffect.FlipDiscard,
                 AlphaMode = AlphaMode.Ignore,
-                Flags = D3D12DeviceHelper.IsTearingSupported ? SwapChainFlags.AllowTearing : SwapChainFlags.None
+                Flags = device.Factory.IsTearingSupported ? SwapChainFlags.AllowTearing : SwapChainFlags.None
             };
 
             if (surface is SwapChainSurfaceWin32 surfaceWin32)
             {
                 SwapChainFullscreenDescription fsSwapChainDesc = new SwapChainFullscreenDescription()
                 {
-                    Windowed = true
+                    Windowed = !descriptor.IsFullscreen
                 };
-
-                using IDXGISwapChain1 tempSwapChain = D3D12DeviceHelper.DXGIFactory.CreateSwapChainForHwnd(
-                    device.GetQueue().Handle,
+                
+                using IDXGISwapChain1 tempSwapChain = device.Factory.DXGIFactory.CreateSwapChainForHwnd(
+                    device.NativeDevice,
                     surfaceWin32.Hwnd,
                     swapChainDesc,
                     fsSwapChainDesc
                     );
-
+                
                 Handle = tempSwapChain.QueryInterface<IDXGISwapChain3>();
+            }
+            else
+            {
+                throw new GraphicsException("Surface not supported");
+            }
+
+            _syncInterval = PresentModeToSwapInterval(descriptor.PresentMode);
+            if (!descriptor.IsFullscreen
+                && _syncInterval == 0
+                && device.Factory.IsTearingSupported) 
+            {
+                _presentFlags |= PresentFlags.AllowTearing;
             }
         }
 
-        public IDXGISwapChain3? Handle { get; }
+        public IDXGISwapChain3 Handle { get; }
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                Handle?.Dispose();
+                Handle.Dispose();
             }
         }
 
         /// <inheritdoc />
         public override void Present()
         {
-            Handle!.Present(1, 0);
+            Handle.Present(_syncInterval, _presentFlags).CheckError();
         }
     }
 }

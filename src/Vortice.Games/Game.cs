@@ -29,8 +29,17 @@ namespace Vortice
             // Get services.
             View = _serviceProvider.GetRequiredService<GameView>();
 
-            // Create GraphicsDevice
-            GraphicsDevice = GraphicsDevice.Create();
+            // Create GraphicsDeviceFactory
+            ValidationMode validationMode = ValidationMode.Disabled;
+
+#if DEBUG
+            validationMode = ValidationMode.Enabled;
+#endif
+
+
+            GraphicsDeviceFactory = GraphicsDeviceFactory.Create(validationMode);
+
+            GraphicsDevice = GraphicsDeviceFactory.PhysicalDevices[0].CreateDevice("Vortice");
         }
 
         ~Game()
@@ -53,7 +62,9 @@ namespace Vortice
 
         public GameView View { get; }
 
-        public GraphicsDevice? GraphicsDevice { get; }
+        public GraphicsDeviceFactory GraphicsDeviceFactory { get; }
+
+        public GraphicsDevice GraphicsDevice { get; }
 
         public void Dispose()
         {
@@ -66,7 +77,8 @@ namespace Vortice
             if (dispose && !IsDisposed)
             {
                 View.SwapChain?.Dispose();
-                GraphicsDevice?.Dispose();
+                GraphicsDevice.Dispose();
+                GraphicsDeviceFactory.Dispose();
 
                 Disposed?.Invoke(this, EventArgs.Empty);
                 IsDisposed = true;
