@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Vortice.DXGI;
-using static Vortice.Graphics.D3DUtils;
+using static Vortice.Graphics.D3D12.D3D12Utils;
 
 namespace Vortice.Graphics.D3D12
 {

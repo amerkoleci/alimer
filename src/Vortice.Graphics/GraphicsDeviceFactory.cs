@@ -43,13 +43,6 @@ namespace Vortice.Graphics
                     return new D3D12GraphicsDeviceFactory(validationMode);
 #endif // !EXCLUDE_D3D12_BACKEND
                 }
-
-                if (IsBackendSupported(GraphicsBackend.Direct3D11))
-                {
-#if !EXCLUDE_D3D11_BACKEND
-                    return new D3D11GraphicsDeviceFactory(validationMode);
-#endif // !EXCLUDE_D3D11_BACKEND
-                }
             }
 
             if (IsBackendSupported(GraphicsBackend.Vulkan))
@@ -76,11 +69,6 @@ namespace Vortice.Graphics
                     return Vulkan.VulkanDeviceHelper.IsSupported.Value;
 #endif // !EXCLUDE_VULKAN_BACKEND
 
-#if !EXCLUDE_D3D11_BACKEND
-                case GraphicsBackend.Direct3D11:
-                    return D3D11GraphicsDeviceFactory.IsSupported.Value;
-#endif // !EXCLUDE_D3D11_BACKEND
-
 #if !EXCLUDE_D3D12_BACKEND
                 case GraphicsBackend.Direct3D12:
                     return D3D12GraphicsDeviceFactory.IsSupported.Value;
@@ -101,14 +89,6 @@ namespace Vortice.Graphics
                     return GraphicsBackend.Direct3D12;
                 }
 #endif // !EXCLUDE_D3D12_BACKEND
-
-#if !EXCLUDE_D3D11_BACKEND
-                if (D3D11GraphicsDeviceFactory.IsSupported.Value)
-                {
-                    return GraphicsBackend.Direct3D11;
-                }
-#endif // !EXCLUDE_D3D11_BACKEND
-
             }
 
 #if !EXCLUDE_VULKAN_BACKEND
