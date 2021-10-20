@@ -77,6 +77,7 @@ namespace Vortice.Graphics
         BC6HRGBFloat,
         BC7RGBAUNorm,
         BC7RGBAUNormSrgb,
+
         Count
     }
 }

@@ -1,49 +1,60 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.DXGI;
+using TerraFX.Interop;
+using static TerraFX.Interop.Windows;
 using static Vortice.Graphics.D3D12.D3D12Utils;
+using static TerraFX.Interop.DXGI_SCALING;
+using static TerraFX.Interop.DXGI_SWAP_EFFECT;
+using static TerraFX.Interop.DXGI_ALPHA_MODE;
+using static TerraFX.Interop.DXGI_SWAP_CHAIN_FLAG;
 
 namespace Vortice.Graphics.D3D12
 {
-    internal class D3D12SwapChain : SwapChain
+    internal unsafe class D3D12SwapChain : SwapChain
     {
-        private readonly int _syncInterval = 1;
-        private readonly PresentFlags _presentFlags = PresentFlags.None;
+        private readonly ComPtr<IDXGISwapChain3> _handle;
+
+        private readonly uint _syncInterval = 1u;
+        private readonly uint _presentFlags = 0u;
 
         public D3D12SwapChain(D3D12GraphicsDevice device, in SwapChainSurface surface, in SwapChainDescriptor descriptor)
             : base(device, descriptor)
         {
-            SwapChainDescription1 swapChainDesc = new()
+            DXGI_SWAP_CHAIN_DESC1 swapChainDesc = new()
             {
-                Width = descriptor.Size.Width,
-                Height = descriptor.Size.Height,
+                Width = (uint)descriptor.Size.Width,
+                Height = (uint)descriptor.Size.Height,
                 Format = ToDXGISwapChainFormat(descriptor.ColorFormat),
-                Stereo = false,
-                SampleDescription = new(1, 0),
-                Usage = Usage.RenderTargetOutput,
+                Stereo = FALSE,
+                SampleDesc = new(1, 0),
+                BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
                 BufferCount = PresentModeToBufferCount(descriptor.PresentMode),
-                Scaling = Scaling.Stretch,
-                SwapEffect = SwapEffect.FlipDiscard,
-                AlphaMode = AlphaMode.Ignore,
-                Flags = device.Factory.IsTearingSupported ? SwapChainFlags.AllowTearing : SwapChainFlags.None
+                Scaling = DXGI_SCALING_STRETCH,
+                SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+                AlphaMode = DXGI_ALPHA_MODE_IGNORE,
+                Flags = device.Factory.IsTearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
             };
 
             if (surface is SwapChainSurfaceWin32 surfaceWin32)
             {
-                SwapChainFullscreenDescription fsSwapChainDesc = new SwapChainFullscreenDescription()
+                DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new()
                 {
-                    Windowed = !descriptor.IsFullscreen
+                    Windowed = descriptor.IsFullscreen ? FALSE : TRUE
                 };
 
-                using IDXGISwapChain1 tempSwapChain = device.Factory.DXGIFactory.CreateSwapChainForHwnd(
-                    device.GetQueue().Handle,
-                    surfaceWin32.Hwnd,
-                    swapChainDesc,
-                    fsSwapChainDesc
-                    );
+                using ComPtr<IDXGISwapChain1> tempSwapChain = default;
 
-                Handle = tempSwapChain.QueryInterface<IDXGISwapChain3>();
+                device.Factory.DXGIFactory->CreateSwapChainForHwnd(
+                    (IUnknown*)device.GetQueue().Handle,
+                    surfaceWin32.Hwnd,
+                    &swapChainDesc,
+                    &fsSwapChainDesc,
+                    null,
+                    tempSwapChain.GetAddressOf()
+                    ).Assert();
+
+                tempSwapChain.CopyTo(_handle.GetAddressOf()).Assert();
             }
             else
             {
@@ -55,25 +66,25 @@ namespace Vortice.Graphics.D3D12
                 && _syncInterval == 0
                 && device.Factory.IsTearingSupported)
             {
-                _presentFlags |= PresentFlags.AllowTearing;
+                _presentFlags |= DXGI_PRESENT_ALLOW_TEARING;
             }
         }
 
-        public IDXGISwapChain3 Handle { get; }
+        public IDXGISwapChain3* Handle => _handle;
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                Handle.Dispose();
+                _handle.Dispose();
             }
         }
 
         /// <inheritdoc />
         public override void Present()
         {
-            Handle.Present(_syncInterval, _presentFlags).CheckError();
+            _handle.Get()->Present(_syncInterval, _presentFlags).Assert();
         }
     }
 }

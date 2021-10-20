@@ -1,42 +1,47 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
-using Vortice.Direct3D12;
-using Vortice.DXGI;
+using TerraFX.Interop;
+using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.Windows;
+using static Vortice.MarshalUtilities;
 
 namespace Vortice.Graphics.D3D12
 {
-    internal class D3D12PhysicalDevice : PhysicalDevice, IDisposable
+    internal unsafe class D3D12PhysicalDevice : PhysicalDevice, IDisposable
     {
-        public D3D12PhysicalDevice(D3D12GraphicsDeviceFactory factory, IDXGIAdapter1 adapter, in FeatureDataArchitecture1 featureDataArchitecture)
+        private readonly ComPtr<IDXGIAdapter1> _adapter;
+
+        public D3D12PhysicalDevice(D3D12GraphicsDeviceFactory factory, ComPtr<IDXGIAdapter1> adapter, in D3D12_FEATURE_DATA_ARCHITECTURE1 architecture1)
         {
             Factory = factory;
-            Adapter = adapter;
+            _adapter = adapter;
 
-            AdapterDescription1 adapterDesc = adapter.Description1;
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            adapter.Get()->GetDesc1(&adapterDesc).Assert();
 
             // Init capabilites.
             GPUAdapterType adapterType;
-            if ((adapterDesc.Flags & AdapterFlags.Software) != 0)
+            if (((DXGI_ADAPTER_FLAG)adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == DXGI_ADAPTER_FLAG_SOFTWARE)
             {
                 adapterType = GPUAdapterType.CPU;
             }
             else
             {
-                adapterType = featureDataArchitecture.Uma ? GPUAdapterType.IntegratedGPU : GPUAdapterType.DiscreteGPU;
-                IsCacheCoherentUMA = featureDataArchitecture.CacheCoherentUMA;
+                adapterType = architecture1.UMA == TRUE ? GPUAdapterType.IntegratedGPU : GPUAdapterType.DiscreteGPU;
+                IsCacheCoherentUMA = architecture1.CacheCoherentUMA == TRUE;
             }
 
             VendorId = (VendorId)adapterDesc.VendorId;
-            AdapterId = (uint)adapterDesc.DeviceId;
+            AdapterId = adapterDesc.DeviceId;
             AdapterType = adapterType;
-            AdapterName = adapterDesc.Description;
+            AdapterName = GetUtf16Span(in adapterDesc.Description[0], 128).GetString();
         }
 
         public D3D12GraphicsDeviceFactory Factory { get; }
 
-        public IDXGIAdapter1 Adapter { get; }
+        public IDXGIAdapter1* Adapter => _adapter;
 
         /// <summary>
         /// Gets whether or not the current device has a cache coherent UMA architecture.
@@ -46,7 +51,7 @@ namespace Vortice.Graphics.D3D12
         /// <inheritdoc />
         public void Dispose()
         {
-            Adapter.Dispose();
+            _adapter.Dispose();
         }
 
         /// <inheritdoc />

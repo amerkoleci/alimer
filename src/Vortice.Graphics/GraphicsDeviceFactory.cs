@@ -40,7 +40,7 @@ namespace Vortice.Graphics
                 if (IsBackendSupported(GraphicsBackend.Direct3D12))
                 {
 #if !EXCLUDE_D3D12_BACKEND
-                    return new D3D12GraphicsDeviceFactory(validationMode);
+                    return new D3D12.D3D12GraphicsDeviceFactory(validationMode);
 #endif // !EXCLUDE_D3D12_BACKEND
                 }
             }
@@ -71,7 +71,7 @@ namespace Vortice.Graphics
 
 #if !EXCLUDE_D3D12_BACKEND
                 case GraphicsBackend.Direct3D12:
-                    return D3D12GraphicsDeviceFactory.IsSupported.Value;
+                    return D3D12.D3D12GraphicsDeviceFactory.IsSupported.Value;
 #endif // !EXCLUDE_D3D12_BACKEND
 
                 default:
@@ -84,7 +84,7 @@ namespace Vortice.Graphics
             if (OperatingSystem.IsWindows())
             {
 #if !EXCLUDE_D3D12_BACKEND
-                if (D3D12GraphicsDeviceFactory.IsSupported.Value)
+                if (D3D12.D3D12GraphicsDeviceFactory.IsSupported.Value)
                 {
                     return GraphicsBackend.Direct3D12;
                 }
