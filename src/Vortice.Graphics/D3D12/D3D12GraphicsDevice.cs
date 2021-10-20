@@ -21,6 +21,10 @@ namespace Vortice.Graphics.D3D12
         private readonly ComPtr<ID3D12Device2> _device;
         private readonly D3D12Queue[] _queues = new D3D12Queue[(int)CommandQueueType.Count];
 
+#if ENABLE_D3D12MA
+        private readonly ReferenceCountPtr<D3D12MA_Allocator> _allocator;
+#endif
+
         private readonly GraphicsDeviceCaps _caps;
 
         internal D3D12GraphicsDevice(D3D12PhysicalDevice physicalDevice, string? name = null)
@@ -71,6 +75,14 @@ namespace Vortice.Graphics.D3D12
             {
                 _device.Get()->SetName(name);
             }
+
+            // Create allocator.
+#if ENABLE_D3D12MA
+            D3D12MA_ALLOCATOR_DESC allocatorDesc = default;
+            allocatorDesc.pDevice = (ID3D12Device*)_device.Get();
+            allocatorDesc.pAdapter = (IDXGIAdapter*)physicalDevice.Adapter;
+            D3D12MemAlloc.D3D12MA_CreateAllocator(&allocatorDesc, _allocator.GetAddressOf()).Assert();
+#endif
 
             // Create queues
             _queues[(int)CommandQueueType.Graphics] = new D3D12Queue(this, CommandQueueType.Graphics);
@@ -163,6 +175,21 @@ namespace Vortice.Graphics.D3D12
                 {
                     _queues[i]?.Dispose();
                 }
+
+                // Allocator.
+#if ENABLE_D3D12MA
+                {
+                    D3D12MA_Stats stats;
+                    _allocator.Get()->CalculateStats(&stats);
+
+                    if (stats.Total.UsedBytes > 0)
+                    {
+                        //LOGI("Total device memory leaked: {} bytes.", stats.Total.UsedBytes);
+                    }
+
+                    _allocator.Dispose();
+                }
+#endif
 
 #if DEBUG
                 uint refCount = NativeDevice->Release();
