@@ -3,9 +3,12 @@
 
 namespace Vortice.Graphics
 {
-    public enum GPUPowerPreference
+    /// <summary>
+    /// Defines a <see cref="SurfaceSource"/> type.
+    /// </summary>
+    public enum SurfaceSourceType
     {
-        HighPerformance,
-        LowPower,
+        Unknown,
+        Win32
     }
 }

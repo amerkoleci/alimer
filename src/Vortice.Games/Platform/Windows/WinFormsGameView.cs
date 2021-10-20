@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and contributors.
+// Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
@@ -19,7 +19,7 @@ namespace Vortice
         {
             _control = control;
 
-            Surface = SwapChainSurface.CreateWin32(
+            Source = SurfaceSource.CreateWin32(
                 Marshal.GetHINSTANCE(Assembly.GetEntryAssembly()!.Modules.First()),
                 _control.Handle
                 );
@@ -31,7 +31,7 @@ namespace Vortice
         public override Size ClientSize => _control.ClientSize;
 
         /// <inheritdoc />
-        public override SwapChainSurface Surface { get; }
+        public override SurfaceSource Source { get; }
 
         private void OnControlClientSizeChanged(object? sender, EventArgs e)
         {

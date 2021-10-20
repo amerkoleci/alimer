@@ -1,4 +1,4 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
@@ -30,8 +30,6 @@ namespace Vortice.Graphics
         /// <c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.
         /// </param>
         protected abstract void Dispose(bool disposing);
-
-        public abstract IReadOnlyList<PhysicalDevice> PhysicalDevices { get; }
 
         public static GraphicsDeviceFactory Create(ValidationMode validationMode = ValidationMode.Disabled)
         {
@@ -100,5 +98,9 @@ namespace Vortice.Graphics
 
             return GraphicsBackend.Vulkan;
         }
+
+        public abstract GraphicsSurface CreateSurface(in SurfaceSource source);
+
+        public abstract GraphicsAdapter? RequestAdapter(GPUPowerPreference powerPreference = GPUPowerPreference.HighPerformance);
     }
 }

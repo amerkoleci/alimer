@@ -1,4 +1,4 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
@@ -13,7 +13,7 @@ namespace Vortice
 
         public abstract Size ClientSize { get; }
 
-        public abstract SwapChainSurface Surface { get; }
+        public abstract SurfaceSource Source { get; }
 
         public SwapChain? SwapChain { get; private set; }
 
@@ -24,7 +24,7 @@ namespace Vortice
                 Size = ClientSize
             };
 
-            SwapChain = device.CreateSwapChain(Surface, descriptor);
+            //SwapChain = device.CreateSwapChain(Source, descriptor);
         }
 
         protected virtual void OnSizeChanged()

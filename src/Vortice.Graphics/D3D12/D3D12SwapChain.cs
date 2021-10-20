@@ -19,7 +19,7 @@ namespace Vortice.Graphics.D3D12
         private readonly uint _syncInterval = 1u;
         private readonly uint _presentFlags = 0u;
 
-        public D3D12SwapChain(D3D12GraphicsDevice device, in SwapChainSurface surface, in SwapChainDescriptor descriptor)
+        public D3D12SwapChain(D3D12GraphicsDevice device, in GraphicsSurface surface, in SwapChainDescriptor descriptor)
             : base(device, descriptor)
         {
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc = new()
@@ -39,29 +39,32 @@ namespace Vortice.Graphics.D3D12
 
             using ComPtr<IDXGISwapChain1> tempSwapChain = default;
 
-            if (surface is SwapChainSurfaceWin32 surfaceWin32)
+            switch (surface.Source.Type)
             {
-                DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new()
-                {
-                    Windowed = descriptor.IsFullscreen ? FALSE : TRUE
-                };
+                case SurfaceSourceType.Win32:
+                    SurfaceSourceWin32 win32Source = (SurfaceSourceWin32)surface.Source;
+                    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new()
+                    {
+                        Windowed = descriptor.IsFullscreen ? FALSE : TRUE
+                    };
 
-                device.Factory.DXGIFactory->CreateSwapChainForHwnd(
-                    (IUnknown*)device.GetQueue().Handle,
-                    surfaceWin32.Hwnd,
-                    &swapChainDesc,
-                    &fsSwapChainDesc,
-                    null,
-                    tempSwapChain.GetAddressOf()
-                    ).Assert();
+                    device.Factory.DXGIFactory->CreateSwapChainForHwnd(
+                        (IUnknown*)device.GetQueue().Handle,
+                        win32Source.Hwnd,
+                        &swapChainDesc,
+                        &fsSwapChainDesc,
+                        null,
+                        tempSwapChain.GetAddressOf()
+                        ).Assert();
 
 
-                // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                device.Factory.DXGIFactory->MakeWindowAssociation(surfaceWin32.Hwnd, DXGI_MWA_NO_ALT_ENTER).Assert();
-            }
-            else
-            {
-                throw new GraphicsException("Surface not supported");
+                    // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
+                    device.Factory.DXGIFactory->MakeWindowAssociation(win32Source.Hwnd, DXGI_MWA_NO_ALT_ENTER).Assert();
+                    break;
+
+                default:
+                    throw new GraphicsException("Surface not supported");
+
             }
 
             tempSwapChain.CopyTo(_handle.GetAddressOf()).Assert();

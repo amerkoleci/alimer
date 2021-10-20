@@ -11,14 +11,12 @@ using static TerraFX.Interop.D3D12_RAYTRACING_TIER;
 using System;
 #if DEBUG
 using static TerraFX.Interop.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.D3D12_RLDO_FLAGS;
 #endif
 
 namespace Vortice.Graphics.D3D12
 {
     internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
-        private readonly ComPtr<ID3D12Device2> _device;
         private readonly D3D12Queue[] _queues = new D3D12Queue[(int)CommandQueueType.Count];
 
 #if ENABLE_D3D12MA
@@ -27,17 +25,15 @@ namespace Vortice.Graphics.D3D12
 
         private readonly GraphicsDeviceCaps _caps;
 
-        internal D3D12GraphicsDevice(D3D12PhysicalDevice physicalDevice, string? name = null)
-            : base(GraphicsBackend.Direct3D12, physicalDevice)
+        internal D3D12GraphicsDevice(D3D12GraphicsAdapter adapter, string? name = null)
+            : base(GraphicsBackend.Direct3D12, adapter)
         {
-            D3D12CreateDevice((IUnknown*)physicalDevice.Adapter, D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device2>(), _device.GetVoidAddressOf()).Assert();
-
             // Configure debug device (if active).
-            if (physicalDevice.Factory.ValidationMode != ValidationMode.Disabled)
+            if (adapter.Factory.ValidationMode != ValidationMode.Disabled)
             {
                 using ComPtr<ID3D12InfoQueue> d3d12InfoQueue = default;
 
-                if (SUCCEEDED(_device.CopyTo(d3d12InfoQueue.GetAddressOf())))
+                if (SUCCEEDED(adapter.NativeDevice.CopyTo(d3d12InfoQueue.GetAddressOf())))
                 {
 #if DEBUG
                     d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
@@ -73,7 +69,7 @@ namespace Vortice.Graphics.D3D12
 
             if (!string.IsNullOrEmpty(name))
             {
-                _device.Get()->SetName(name);
+                NativeDevice->SetName(name);
             }
 
             // Create allocator.
@@ -89,12 +85,12 @@ namespace Vortice.Graphics.D3D12
             _queues[(int)CommandQueueType.Compute] = new D3D12Queue(this, CommandQueueType.Compute);
 
             // Init capabilites.
-            var featureDataOptions1 = _device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
-            var featureDataOptions5 = _device.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
+            var featureDataOptions1 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
+            var featureDataOptions5 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
 
             SupportsRenderPass = false;
             if (featureDataOptions5.RenderPassesTier > D3D12_RENDER_PASS_TIER_0
-                && physicalDevice.VendorId != VendorId.Intel)
+                && adapter.VendorId != VendorId.Intel)
             {
                 SupportsRenderPass = true;
             }
@@ -150,9 +146,9 @@ namespace Vortice.Graphics.D3D12
             };
         }
 
-        public D3D12GraphicsDeviceFactory Factory => ((D3D12PhysicalDevice)PhysicalDevice).Factory;
+        public D3D12GraphicsDeviceFactory Factory => ((D3D12GraphicsAdapter)Adapter).Factory;
 
-        public ID3D12Device2* NativeDevice => _device;
+        public ID3D12Device2* NativeDevice => ((D3D12GraphicsAdapter)Adapter).NativeDevice;
 
         public D3D12Queue GetQueue(CommandQueueType type = CommandQueueType.Graphics) => _queues[(int)type];
 
@@ -191,26 +187,12 @@ namespace Vortice.Graphics.D3D12
                 }
 #endif
 
-#if DEBUG
-                uint refCount = NativeDevice->Release();
-                if (refCount > 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
-
-                    using ComPtr<ID3D12DebugDevice> d3d12DebugDevice = default;
-                    if (SUCCEEDED(_device.CopyTo(d3d12DebugDevice.GetAddressOf())))
-                    {
-                        d3d12DebugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-                    }
-                }
-#else
-                _device.Dispose();
-#endif
+                ((D3D12GraphicsAdapter)Adapter).Dispose();
             }
         }
 
         /// <inheritdoc />
-        protected override SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor) => new D3D12SwapChain(this, surface, descriptor);
+        protected override SwapChain CreateSwapChainCore(in GraphicsSurface surface, in SwapChainDescriptor descriptor) => new D3D12SwapChain(this, surface, descriptor);
 
         /// <inheritdoc />
         protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new D3D12Texture(this, descriptor);

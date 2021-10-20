@@ -1,8 +1,6 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Collections.Generic;
-
 namespace Vortice.Graphics.Null
 {
     internal class NullGraphicsDeviceFactory : GraphicsDeviceFactory
@@ -23,6 +21,15 @@ namespace Vortice.Graphics.Null
         }
 
         /// <inheritdoc />
-        public override IReadOnlyList<PhysicalDevice> PhysicalDevices { get; }
+        public override GraphicsSurface CreateSurface(in SurfaceSource source)
+        {
+            return null;
+        }
+
+        /// <inheritdoc />
+        public override GraphicsAdapter? RequestAdapter(GPUPowerPreference powerPreference)
+        {
+            return null;
+        }
     }
 }

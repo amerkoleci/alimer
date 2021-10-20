@@ -35,7 +35,7 @@ jobs:
     - name: Setup .NET 6.0
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100-rc.1.21505.57
+        dotnet-version: 6.0.100-rc.1.21458.32
 
     - name: Pack
       run: dotnet pack Vortice.sln --configuration Release --output build/packages
@@ -44,7 +44,7 @@ jobs:
       if: github.event_name == 'push'
       run: |      
           if ( "${{github.ref}}" -match "^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$" ) {
-              dotnet nuget push build/packages/**/*.nupkg -s nuget.org -k ${{secrets.NUGET_TOKEN}} --no-symbols true
+              dotnet nuget push build/packages/**/*.nupkg -s "https://api.nuget.org/v3/index.json" -k ${{secrets.NUGET_TOKEN}} --skip-duplicate
           } else {
               echo "publish is only enabled by tagging with a release tag"
           }

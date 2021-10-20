@@ -3,11 +3,9 @@
 
 using System;
 using System.Diagnostics;
-using System.Collections.Generic;
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
 using static TerraFX.Interop.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.D3D12_FEATURE;
 using static TerraFX.Interop.D3D12_GPU_BASED_VALIDATION_FLAGS;
 using static TerraFX.Interop.DXGI_FEATURE;
 using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
@@ -124,9 +122,38 @@ namespace Vortice.Graphics.D3D12
                 }
             }
 
-            // Enumerate physical devices
-            List<D3D12.D3D12PhysicalDevice> physicalDevices = new();
+        }
 
+        public IDXGIFactory4* DXGIFactory => _dxgiFactory4.Get();
+        public bool IsTearingSupported { get; private set; }
+
+        /// <inheritdoc />
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _dxgiFactory4.Dispose();
+
+#if DEBUG
+                using ComPtr<IDXGIDebug1> dxgiDebug = default;
+
+                if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIDebug1>(), dxgiDebug.GetVoidAddressOf())))
+                {
+                    dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+                }
+#endif
+            }
+        }
+
+        /// <inheritdoc />
+        public override GraphicsSurface CreateSurface(in SurfaceSource source)
+        {
+            return new D3D12GraphicsSurface(this, source);
+        }
+
+        /// <inheritdoc />
+        public override GraphicsAdapter? RequestAdapter(GPUPowerPreference powerPreference)
+        {
             using ComPtr<IDXGIFactory6> dxgiFactory6 = default;
             if (SUCCEEDED(_dxgiFactory4.CopyTo(dxgiFactory6.GetAddressOf())))
             {
@@ -147,15 +174,14 @@ namespace Vortice.Graphics.D3D12
                         continue;
                     }
 
-                    using ComPtr<ID3D12Device2> tempDevice = default;
+                    using ComPtr<ID3D12Device2> d3dDevice = default;
 
                     if (SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.AsIUnknown().Get(),
                         D3D_FEATURE_LEVEL_12_0,
                         __uuidof<ID3D12Device2>(),
-                        tempDevice.GetVoidAddressOf())))
+                        d3dDevice.GetVoidAddressOf())))
                     {
-                        D3D12_FEATURE_DATA_ARCHITECTURE1 architecture1 = tempDevice.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_ARCHITECTURE1>(D3D12_FEATURE_ARCHITECTURE1);
-                        physicalDevices.Add(new D3D12PhysicalDevice(this, dxgiAdapter1, architecture1));
+                        return new D3D12GraphicsAdapter(this, dxgiAdapter1.Move(), d3dDevice.Move());
                     }
                 }
             }
@@ -174,44 +200,20 @@ namespace Vortice.Graphics.D3D12
                         continue;
                     }
 
-                    //if (D3D12CreateDevice(adapter, FeatureLevel.Level_12_0, out ID3D12Device2? device).Success)
-                    //{
-                    //    physicalDevices.Add(new D3D12.D3D12PhysicalDevice(this, dxgiAdapter1.Get(), device.Architecture1));
-                    //    device.Dispose();
-                    //}
+                    using ComPtr<ID3D12Device2> d3dDevice = default;
+
+                    if (SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.AsIUnknown().Get(),
+                        D3D_FEATURE_LEVEL_12_0,
+                        __uuidof<ID3D12Device2>(),
+                        d3dDevice.GetVoidAddressOf())))
+                    {
+                        return new D3D12GraphicsAdapter(this, dxgiAdapter1.Move(), d3dDevice.Move());
+                    }
                 }
             }
 
-            PhysicalDevices = physicalDevices.AsReadOnly();
-        }
-
-        public IDXGIFactory4* DXGIFactory => _dxgiFactory4.Get();
-        public bool IsTearingSupported { get; private set; }
-
-        /// <inheritdoc />
-        public override IReadOnlyList<PhysicalDevice> PhysicalDevices { get; }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                foreach (D3D12.D3D12PhysicalDevice physicalDevice in PhysicalDevices)
-                {
-                    physicalDevice.Dispose();
-                }
-
-                _dxgiFactory4.Dispose();
-
-#if DEBUG
-                using ComPtr<IDXGIDebug1> dxgiDebug = default;
-
-                if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIDebug1>(), dxgiDebug.GetVoidAddressOf())))
-                {
-                    dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-                }
-#endif
-            }
+            // No capable device found
+            return null;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
@@ -8,12 +8,12 @@ namespace Vortice.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
-        protected GraphicsDevice(GraphicsBackend backendType, PhysicalDevice physicalDevice)
+        protected GraphicsDevice(GraphicsBackend backendType, GraphicsAdapter adapter)
         {
-            Guard.IsNotNull(physicalDevice, nameof(physicalDevice));
+            Guard.IsNotNull(adapter, nameof(adapter));
 
             BackendType = backendType;
-            PhysicalDevice = physicalDevice;
+            Adapter = adapter;
         }
 
         /// <summary>
@@ -22,9 +22,9 @@ namespace Vortice.Graphics
         public GraphicsBackend BackendType { get; }
 
         /// <summary>
-        /// Get the <see cref="Graphics.PhysicalDevice"/> that was used to create this device.
+        /// Get the <see cref="GraphicsAdapter"/> that was used to create this device.
         /// </summary>
-        public PhysicalDevice PhysicalDevice { get; }
+        public GraphicsAdapter Adapter { get; }
 
         /// <summary>
         /// Get the device capabilities.
@@ -44,7 +44,7 @@ namespace Vortice.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
-        public SwapChain CreateSwapChain(in SwapChainSurface surface, in SwapChainDescriptor descriptor)
+        public SwapChain CreateSwapChain(in GraphicsSurface surface, in SwapChainDescriptor descriptor)
         {
             Guard.IsNotNull(surface, nameof(surface));
 
@@ -60,7 +60,7 @@ namespace Vortice.Graphics
             return CreateTextureCore(descriptor);
         }
 
-        protected abstract SwapChain CreateSwapChainCore(in SwapChainSurface surface, in SwapChainDescriptor descriptor);
+        protected abstract SwapChain CreateSwapChainCore(in GraphicsSurface surface, in SwapChainDescriptor descriptor);
 
         protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor);
     }
