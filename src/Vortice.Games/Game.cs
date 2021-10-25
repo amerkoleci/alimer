@@ -2,6 +2,8 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Vortice.Graphics;
 
@@ -12,6 +14,9 @@ namespace Vortice
         private readonly GameContext _context;
         private readonly GamePlatform _platform;
         private readonly ServiceProvider _serviceProvider;
+        private readonly object _tickLock = new();
+        private readonly Stopwatch _stopwatch = new();
+        private bool _isExiting;
 
         protected Game(GameContext context)
         {
@@ -39,7 +44,6 @@ namespace Vortice
 
             GraphicsDeviceFactory = GraphicsDeviceFactory.Create(validationMode);
 
-            GraphicsDevice = GraphicsDeviceFactory.RequestAdapter()!.CreateDevice("Vortice");
         }
 
         ~Game()
@@ -60,11 +64,15 @@ namespace Vortice
 
         public bool IsDisposed { get; private set; }
 
+        public GameTime Time { get; } = new GameTime();
+
         public GameView View { get; }
 
         public GraphicsDeviceFactory GraphicsDeviceFactory { get; }
 
-        public GraphicsDevice GraphicsDevice { get; }
+        public GraphicsDevice GraphicsDevice { get; private set; }
+
+        public IList<IGameSystem> GameSystems { get; } = new List<IGameSystem>();
 
         public void Dispose()
         {
@@ -87,7 +95,7 @@ namespace Vortice
 
         protected virtual void ConfigureServices(IServiceCollection services)
         {
-            //services.AddSingleton<IGame>(this);
+            services.AddSingleton<IGame>(this);
             //services.AddSingleton<IContentManager, ContentManager>();
         }
 
@@ -103,20 +111,94 @@ namespace Vortice
             _context.RunMainLoop(InitializeBeforeRun, Tick);
         }
 
-        protected virtual void Initialize()
+        public virtual void Initialize()
         {
         }
 
         private void InitializeBeforeRun()
         {
-            View.CreateSwapChain(GraphicsDevice!);
+            GraphicsSurface surface = GraphicsDeviceFactory.CreateSurface(View.Source);
+            GraphicsDevice = GraphicsDeviceFactory.RequestAdapter()!.CreateDevice("Vortice");
+
+            View.CreateSwapChain(GraphicsDevice, surface);
 
             Initialize();
+
+            _stopwatch.Start();
+            Time.Update(_stopwatch.Elapsed, TimeSpan.Zero);
+
+            BeginRun();
         }
 
         public void Tick()
         {
-            //View.SwapChain!.Present();
+            lock (_tickLock)
+            {
+                if (_isExiting)
+                {
+                    CheckEndRun();
+                    return;
+                }
+
+                try
+                {
+                    TimeSpan elapsedTime = _stopwatch.Elapsed - Time.Total;
+                    Time.Update(_stopwatch.Elapsed, elapsedTime);
+
+                    Update(Time);
+
+                    BeginDraw();
+                    Draw(Time);
+                }
+                finally
+                {
+                    EndDraw();
+
+                    CheckEndRun();
+                }
+            }
+        }
+
+        public virtual void BeginRun()
+        {
+        }
+
+        public virtual void EndRun()
+        {
+        }
+
+        public virtual void Update(GameTime gameTime)
+        {
+            foreach (IGameSystem system in GameSystems)
+            {
+                system.Update(gameTime);
+            }
+        }
+
+        public virtual void BeginDraw()
+        {
+            foreach (IGameSystem system in GameSystems)
+            {
+                system.BeginDraw();
+            }
+        }
+
+        public virtual void Draw(GameTime gameTime)
+        {
+            foreach (IGameSystem system in GameSystems)
+            {
+                system.Draw(gameTime);
+            }
+        }
+
+        public virtual void EndDraw()
+        {
+            foreach (IGameSystem system in GameSystems)
+            {
+                system.EndDraw();
+            }
+
+            View.Present();
         }
 
         /// <summary>
@@ -139,6 +221,18 @@ namespace Vortice
             Deactivated?.Invoke(this, args);
         }
 
+        private void CheckEndRun()
+        {
+            if (_isExiting && IsRunning)
+            {
+                EndRun();
+
+                _stopwatch.Stop();
+
+                IsRunning = false;
+                _isExiting = false;
+            }
+        }
 
         #region GamePlatform Events
         private void GamePlatform_Activated(object? sender, EventArgs e)

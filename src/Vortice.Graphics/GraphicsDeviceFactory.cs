@@ -31,6 +31,11 @@ namespace Vortice.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
+        /// <summary>
+        /// Create new instance of <see cref="GraphicsDeviceFactory"/> class.
+        /// </summary>
+        /// <param name="validationMode">The type of validation to use.</param>
+        /// <returns>Instance of <see cref="GraphicsDeviceFactory"/> class.</returns>
         public static GraphicsDeviceFactory Create(ValidationMode validationMode = ValidationMode.Disabled)
         {
             if (OperatingSystem.IsWindows())

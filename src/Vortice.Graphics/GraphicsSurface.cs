@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
+using System.Drawing;
 
 namespace Vortice.Graphics
 {
@@ -13,6 +14,8 @@ namespace Vortice.Graphics
         }
 
         public SurfaceSource Source { get; }
+
+        public Size Size { get; protected set; }
 
         /// <summary>
         /// Finalizes an instance of the <see cref="GraphicsSurface" /> class.

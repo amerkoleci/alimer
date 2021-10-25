@@ -17,14 +17,19 @@ namespace Vortice
 
         public SwapChain? SwapChain { get; private set; }
 
-        public void CreateSwapChain(GraphicsDevice device)
+        public void CreateSwapChain(GraphicsDevice device, GraphicsSurface surface)
         {
             SwapChainDescriptor descriptor = new()
             {
                 Size = ClientSize
             };
 
-            //SwapChain = device.CreateSwapChain(Source, descriptor);
+            SwapChain = device.CreateSwapChain(surface, descriptor);
+        }
+
+        public void Present()
+        {
+            SwapChain.Present();
         }
 
         protected virtual void OnSizeChanged()
