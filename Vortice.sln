@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31410.414
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{4205B27B-0F9D-4FE5-8FC5-8995C60F8EE4}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{4205B27B-0F9D-4FE5-8FC5-8995C60F8EE4}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		Directory.Build.props = Directory.Build.props
@@ -47,6 +47,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Audio", "src\Audio\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Audio.XAudio2", "src\Audio\Vortice.Audio.XAudio2\Vortice.Audio.XAudio2.csproj", "{43FB232A-784D-4BE7-916C-022D7CAD8C7E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platforms", "Platforms", "{6F4EDC2F-EFFA-45BD-8C4F-76D52CD41A1C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.WPF", "src\Platforms\Vortice.WPF\Vortice.WPF.csproj", "{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.SDL2", "src\Platforms\Vortice.SDL2\Vortice.SDL2.csproj", "{E7888A66-50C2-427D-9B47-5A924EB3A1DB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -89,6 +95,14 @@ Global
 		{43FB232A-784D-4BE7-916C-022D7CAD8C7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{43FB232A-784D-4BE7-916C-022D7CAD8C7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{43FB232A-784D-4BE7-916C-022D7CAD8C7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -101,6 +115,8 @@ Global
 		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C} = {FD5B16DA-11E1-4A00-90E7-C5EE246B7C4E}
 		{03BCF697-C6A0-4A76-B4F0-255920B95DD0} = {F0193F7C-734B-48E9-BDA2-5ECD97AC37EC}
 		{43FB232A-784D-4BE7-916C-022D7CAD8C7E} = {F0193F7C-734B-48E9-BDA2-5ECD97AC37EC}
+		{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7} = {6F4EDC2F-EFFA-45BD-8C4F-76D52CD41A1C}
+		{E7888A66-50C2-427D-9B47-5A924EB3A1DB} = {6F4EDC2F-EFFA-45BD-8C4F-76D52CD41A1C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}
