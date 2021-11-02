@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net6.0</TargetFrameworks>
@@ -16,9 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
-    <ProjectReference Include="..\Vortice.Input\Vortice.Input.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-rc.2.21480.5" />
+    <ProjectReference Include="..\Audio\Vortice.Audio\Vortice.Audio.csproj" />
+    <ProjectReference Include="..\Graphics\Vortice.Graphics\Vortice.Graphics.csproj" />
+    <ProjectReference Include="..\Vortice.Input\Vortice.Input.csproj" />
   </ItemGroup>
 
   <Import Project="..\targets\Vortice.MultiTargeting.targets" />

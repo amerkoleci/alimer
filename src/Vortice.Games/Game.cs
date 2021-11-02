@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Vortice.Audio;
 using Vortice.Graphics;
 using Vortice.Input;
 
@@ -36,9 +37,11 @@ namespace Vortice
             View = _serviceProvider.GetRequiredService<GameView>();
             Input = _serviceProvider.GetRequiredService<InputManager>();
 
+            // Get optional services.
+            Audio = _serviceProvider.GetService<AudioSystem>();
+
             // Create GraphicsDeviceFactory
             ValidationMode validationMode = ValidationMode.Disabled;
-
 #if DEBUG
             validationMode = ValidationMode.Enabled;
 #endif
@@ -69,6 +72,7 @@ namespace Vortice
         public GameView View { get; }
 
         public InputManager Input { get; }
+        public AudioSystem? Audio { get; }
 
         public GraphicsDeviceFactory GraphicsDeviceFactory { get; }
 
