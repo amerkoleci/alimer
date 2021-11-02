@@ -24,16 +24,9 @@
     <Copyright>Copyright © 2021 Amer Koleci and Contributors</Copyright>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/amerkoleci/vortice</RepositoryUrl>
-    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/amerkoleci/vortice.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/amerkoleci/vortice</PackageProjectUrl>
     <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RestoreSources>
-      https://api.nuget.org/v3/index.json;
-      https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet6/nuget/v3/index.json;
-      https://pkgs.terrafx.dev/index.json;
-    </RestoreSources>
-    <UseSharedCompilation>true</UseSharedCompilation>
   </PropertyGroup>
   
 </Project>

@@ -1,10 +1,10 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Toolkit.Diagnostics;
-using HRESULT = System.Int32;
+using TerraFX.Interop;
 
 namespace Vortice.Graphics.D3D12
 {
@@ -15,12 +15,12 @@ namespace Vortice.Graphics.D3D12
     internal static class HResultExtensions
     {
         /// <summary>
-        /// Throws a <see cref="Win32Exception"/> if <paramref name="result"/> represents an error.
+        /// Throws a <see cref="Win32Exception"/> if <paramref name="hr"/> represents an error.
         /// </summary>
-        /// <param name="result">The input <see cref="HRESULT"/> to check.</param>
-        /// <exception cref="Win32Exception">Thrown if <paramref name="result"/> represents an error.</exception>
+        /// <param name="hr">The input <see cref="HRESULT"/> to check.</param>
+        /// <exception cref="Win32Exception">Thrown if <paramref name="hr"/> represents an error.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Assert(this HRESULT result)
+        public static void Assert(this HRESULT hr)
         {
 #if DEBUG && TODO
             bool hasErrorsOrWarnings = DeviceHelper.FlushAllID3D12InfoQueueMessagesAndCheckForErrorsOrWarnings();
@@ -35,9 +35,9 @@ namespace Vortice.Graphics.D3D12
                 ThrowHelper.ThrowWin32Exception("Warning or error detected by ID3D12InfoQueue");
             }
 #else
-            if (result < 0)
+            if (hr.FAILED)
             {
-                ThrowHelper.ThrowWin32Exception(result);
+                ThrowHelper.ThrowWin32Exception(hr);
             }
 #endif
         }

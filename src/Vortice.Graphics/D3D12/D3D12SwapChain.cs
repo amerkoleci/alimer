@@ -50,7 +50,7 @@ namespace Vortice.Graphics.D3D12
 
                     device.Factory.DXGIFactory->CreateSwapChainForHwnd(
                         (IUnknown*)device.GetQueue().Handle,
-                        win32Source.Hwnd,
+                        (HWND)win32Source.Hwnd,
                         &swapChainDesc,
                         &fsSwapChainDesc,
                         null,
@@ -59,7 +59,7 @@ namespace Vortice.Graphics.D3D12
 
 
                     // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                    device.Factory.DXGIFactory->MakeWindowAssociation(win32Source.Hwnd, DXGI_MWA_NO_ALT_ENTER).Assert();
+                    device.Factory.DXGIFactory->MakeWindowAssociation((HWND)win32Source.Hwnd, DXGI_MWA_NO_ALT_ENTER).Assert();
                     break;
 
                 default:
@@ -67,7 +67,7 @@ namespace Vortice.Graphics.D3D12
 
             }
 
-            tempSwapChain.CopyTo(_handle.GetAddressOf()).Assert();
+            ((HRESULT)tempSwapChain.CopyTo(_handle.GetAddressOf())).Assert();
 
             _syncInterval = PresentModeToSwapInterval(descriptor.PresentMode);
             if (!descriptor.IsFullscreen

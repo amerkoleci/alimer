@@ -6,8 +6,8 @@
     <RootNamespace>Vortice</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' or '$(TargetFramework)' == 'net6.0' ">
-    <PackageReference Include="ppy.SDL2-CS" Version="1.0.452-alpha" />
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
+    <PackageReference Include="ppy.SDL2-CS" Version="1.0.468-alpha" />
   </ItemGroup>
 
   <PropertyGroup Condition=" $(TargetFramework.StartsWith('net6.0-windows'))">
@@ -18,7 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Vortice\Vortice.csproj" />
     <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-rc.1.21451.13" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-rc.2.21480.5" />
   </ItemGroup>
 
   <Import Project="..\targets\Vortice.MultiTargeting.targets" />

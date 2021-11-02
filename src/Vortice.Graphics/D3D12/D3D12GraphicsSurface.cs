@@ -16,9 +16,9 @@ namespace Vortice.Graphics.D3D12
             {
                 case SurfaceSourceType.Win32:
                     SurfaceSourceWin32 win32Source = (SurfaceSourceWin32)source;
-                    Guard.IsTrue(IsWindow(win32Source.Hwnd) == TRUE, nameof(source));
+                    Guard.IsTrue(IsWindow((HWND)win32Source.Hwnd) == TRUE, nameof(source));
                     RECT rect;
-                    GetClientRect(win32Source.Hwnd, &rect);
+                    GetClientRect((HWND)win32Source.Hwnd, &rect);
 
                     Size = new(rect.right - rect.left, rect.bottom - rect.top);
                     break;
