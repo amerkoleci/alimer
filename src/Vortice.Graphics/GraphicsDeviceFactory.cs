@@ -55,7 +55,7 @@ namespace Vortice.Graphics
 #endif // !EXCLUDE_VULKAN_BACKEND
             }
 
-            return new Null.NullGraphicsDeviceFactory(validationMode);
+            return null;
         }
 
         public static bool IsBackendSupported(GraphicsBackend backend)

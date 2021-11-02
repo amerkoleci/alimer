@@ -33,6 +33,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DrawTriangle.Windows", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics", "src\Vortice.Graphics\Vortice.Graphics.csproj", "{AFF4E338-AA0B-4B5A-9B62-E21410D03862}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{FD5B16DA-11E1-4A00-90E7-C5EE246B7C4E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Assets", "src\Assets\Vortice.Assets\Vortice.Assets.csproj", "{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Audio", "Audio", "{F0193F7C-734B-48E9-BDA2-5ECD97AC37EC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Input", "src\Vortice.Input\Vortice.Input.csproj", "{5276BD22-F00F-4C77-B762-C7700AA4128F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +67,14 @@ Global
 		{AFF4E338-AA0B-4B5A-9B62-E21410D03862}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFF4E338-AA0B-4B5A-9B62-E21410D03862}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFF4E338-AA0B-4B5A-9B62-E21410D03862}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5276BD22-F00F-4C77-B762-C7700AA4128F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5276BD22-F00F-4C77-B762-C7700AA4128F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5276BD22-F00F-4C77-B762-C7700AA4128F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5276BD22-F00F-4C77-B762-C7700AA4128F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -67,6 +83,7 @@ Global
 		{4E0EA7FF-529D-4F30-977E-A5C7F3D83835} = {D8EC0278-B4F9-4EF5-A4BE-FE2284C6ECED}
 		{0DB41C96-7D02-41EE-8E7B-F2B1024A8659} = {4E0EA7FF-529D-4F30-977E-A5C7F3D83835}
 		{96F40ED5-9D9E-4D06-A308-BA76E0F3616C} = {4E0EA7FF-529D-4F30-977E-A5C7F3D83835}
+		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C} = {FD5B16DA-11E1-4A00-90E7-C5EE246B7C4E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}

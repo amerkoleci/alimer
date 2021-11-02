@@ -1,12 +1,12 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Vortice.Graphics
+using System.Threading.Tasks;
+
+namespace Vortice.Assets
 {
-    public enum GraphicsBackend : byte
+    public interface IAssetImporter
     {
-        Default = 0,
-        Vulkan,
-        Direct3D12,
+        Task<Asset> Import(string source);
     }
 }

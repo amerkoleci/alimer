@@ -6,7 +6,6 @@ using TerraFX.Interop;
 using static TerraFX.Interop.DXGI_ADAPTER_FLAG;
 using static TerraFX.Interop.D3D12_FEATURE;
 using static TerraFX.Interop.Windows;
-using static Vortice.MarshalUtilities;
 using static TerraFX.Interop.D3D12_RLDO_FLAGS;
 
 namespace Vortice.Graphics.D3D12
@@ -42,7 +41,7 @@ namespace Vortice.Graphics.D3D12
             VendorId = (VendorId)adapterDesc.VendorId;
             AdapterId = adapterDesc.DeviceId;
             AdapterType = adapterType;
-            AdapterName = GetUtf16Span(in adapterDesc.Description[0], 128).GetString();
+            AdapterName = new string((char*)adapterDesc.Description);
         }
 
         public D3D12GraphicsDeviceFactory Factory { get; }

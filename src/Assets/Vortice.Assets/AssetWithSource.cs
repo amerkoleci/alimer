@@ -1,12 +1,9 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Vortice.Graphics
+namespace Vortice.Assets
 {
-    public enum GraphicsBackend : byte
+    public abstract class AssetWithSource : Asset
     {
-        Default = 0,
-        Vulkan,
-        Direct3D12,
     }
 }

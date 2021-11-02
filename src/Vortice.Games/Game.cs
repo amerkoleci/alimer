@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Vortice.Graphics;
+using Vortice.Input;
 
 namespace Vortice
 {
@@ -31,8 +32,9 @@ namespace Vortice
 
             _serviceProvider = services.BuildServiceProvider();
 
-            // Get services.
+            // Get required services.
             View = _serviceProvider.GetRequiredService<GameView>();
+            Input = _serviceProvider.GetRequiredService<InputManager>();
 
             // Create GraphicsDeviceFactory
             ValidationMode validationMode = ValidationMode.Disabled;
@@ -41,9 +43,7 @@ namespace Vortice
             validationMode = ValidationMode.Enabled;
 #endif
 
-
             GraphicsDeviceFactory = GraphicsDeviceFactory.Create(validationMode);
-
         }
 
         ~Game()
@@ -67,6 +67,8 @@ namespace Vortice
         public GameTime Time { get; } = new GameTime();
 
         public GameView View { get; }
+
+        public InputManager Input { get; }
 
         public GraphicsDeviceFactory GraphicsDeviceFactory { get; }
 
@@ -97,6 +99,8 @@ namespace Vortice
         {
             services.AddSingleton<IGame>(this);
             //services.AddSingleton<IContentManager, ContentManager>();
+
+            services.AddSingleton<InputManager>();
         }
 
         public void Run()
