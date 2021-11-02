@@ -85,8 +85,8 @@ namespace Vortice.Graphics.D3D12
             _queues[(int)CommandQueueType.Compute] = new D3D12Queue(this, CommandQueueType.Compute);
 
             // Init capabilites.
-            var featureDataOptions1 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
-            var featureDataOptions5 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
+            D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureDataOptions1 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
+            D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureDataOptions5 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
 
             SupportsRenderPass = false;
             if (featureDataOptions5.RenderPassesTier > D3D12_RENDER_PASS_TIER_0
@@ -188,6 +188,15 @@ namespace Vortice.Graphics.D3D12
 #endif
 
                 ((D3D12GraphicsAdapter)Adapter).Dispose();
+            }
+        }
+
+        /// <inheritdoc />
+        public override void WaitIdle()
+        {
+            for (int i = 0; i < (int)CommandQueueType.Count; i++)
+            {
+                _queues[i]?.WaitIdle();
             }
         }
 

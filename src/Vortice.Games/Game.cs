@@ -14,7 +14,7 @@ namespace Vortice
     public abstract class Game : IGame, IDisposable
     {
         private readonly GameContext _context;
-        private readonly GamePlatform _platform;
+        //private readonly GamePlatform _platform;
         private readonly ServiceProvider _serviceProvider;
         private readonly object _tickLock = new();
         private readonly Stopwatch _stopwatch = new();
@@ -23,9 +23,9 @@ namespace Vortice
         protected Game(GameContext context)
         {
             _context = context;
-            _platform = GamePlatform.Create(this);
-            _platform.Activated += GamePlatform_Activated;
-            _platform.Deactivated += GamePlatform_Deactivated;
+            //_platform = GamePlatform.Create(this);
+            //_platform.Activated += GamePlatform_Activated;
+            //_platform.Deactivated += GamePlatform_Deactivated;
 
             ServiceCollection services = new();
             context.ConfigureServices(services);
@@ -90,6 +90,8 @@ namespace Vortice
         {
             if (dispose && !IsDisposed)
             {
+                GraphicsDevice.WaitIdle();
+
                 View.SwapChain?.Dispose();
                 GraphicsDevice.Dispose();
                 GraphicsDeviceFactory.Dispose();

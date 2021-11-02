@@ -44,6 +44,11 @@ namespace Vortice.Graphics
         /// </param>
         protected abstract void Dispose(bool disposing);
 
+        /// <summary>
+        /// Wait for device to finish pending GPU operations.
+        /// </summary>
+        public abstract void WaitIdle();
+
         public SwapChain CreateSwapChain(in GraphicsSurface surface, in SwapChainDescriptor descriptor)
         {
             Guard.IsNotNull(surface, nameof(surface));

@@ -4,7 +4,7 @@
 using Vortice;
 using Vortice.Graphics;
 
-namespace DrawTriangle
+namespace Vortice.Samples
 {
     public sealed class DrawTriangleGame : Game
     {

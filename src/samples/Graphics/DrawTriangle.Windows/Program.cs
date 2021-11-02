@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and contributors.
+// Copyright (c) Amer Koleci and contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 using System;
@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using Vortice;
 using Vortice.Graphics;
 
-namespace DrawTriangle
+namespace Vortice.Samples
 {
     public class MainForm : Form
     {

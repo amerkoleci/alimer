@@ -18,11 +18,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice", "src\Vortice\Vort
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Games", "src\Vortice.Games\Vortice.Games.csproj", "{C6CEA688-2A93-4E16-9CCF-62EC48F91589}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "targets", "targets", "{32D5F8C0-9BC8-4231-AA60-50C7310BFE4B}"
-	ProjectSection(SolutionItems) = preProject
-		src\targets\Vortice.MultiTargeting.targets = src\targets\Vortice.MultiTargeting.targets
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{D8EC0278-B4F9-4EF5-A4BE-FE2284C6ECED}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics", "Graphics", "{4E0EA7FF-529D-4F30-977E-A5C7F3D83835}"
@@ -49,9 +44,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Audio.XAudio2", "sr
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platforms", "Platforms", "{6F4EDC2F-EFFA-45BD-8C4F-76D52CD41A1C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.WPF", "src\Platforms\Vortice.WPF\Vortice.WPF.csproj", "{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Windows", "src\Platforms\Vortice.Windows\Vortice.Windows.csproj", "{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.SDL2", "src\Platforms\Vortice.SDL2\Vortice.SDL2.csproj", "{E7888A66-50C2-427D-9B47-5A924EB3A1DB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DrawTriangle.SDL2", "src\samples\Graphics\DrawTriangle.SDL2\DrawTriangle.SDL2.csproj", "{75D7E79F-6D04-431B-A268-7BB61925B75B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -103,6 +100,10 @@ Global
 		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E7888A66-50C2-427D-9B47-5A924EB3A1DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -117,6 +118,7 @@ Global
 		{43FB232A-784D-4BE7-916C-022D7CAD8C7E} = {F0193F7C-734B-48E9-BDA2-5ECD97AC37EC}
 		{FD2D8DBB-FD8B-4DA0-A251-3C88AF1CE9F7} = {6F4EDC2F-EFFA-45BD-8C4F-76D52CD41A1C}
 		{E7888A66-50C2-427D-9B47-5A924EB3A1DB} = {6F4EDC2F-EFFA-45BD-8C4F-76D52CD41A1C}
+		{75D7E79F-6D04-431B-A268-7BB61925B75B} = {4E0EA7FF-529D-4F30-977E-A5C7F3D83835}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}

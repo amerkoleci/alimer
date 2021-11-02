@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net6.0-windows10.0.19041.0;</TargetFrameworks>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Vortice</RootNamespace>
   </PropertyGroup>
 
@@ -10,18 +9,11 @@
     <PackageReference Include="ppy.SDL2-CS" Version="1.0.468-alpha" />
   </ItemGroup>
 
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('net6.0-windows'))">
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-rc.2.21480.5" />
     <ProjectReference Include="..\Audio\Vortice.Audio\Vortice.Audio.csproj" />
     <ProjectReference Include="..\Graphics\Vortice.Graphics\Vortice.Graphics.csproj" />
     <ProjectReference Include="..\Vortice.Input\Vortice.Input.csproj" />
   </ItemGroup>
-
-  <Import Project="..\targets\Vortice.MultiTargeting.targets" />
 
 </Project>

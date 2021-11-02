@@ -5,9 +5,11 @@
     <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <PublishTrimmed>false</PublishTrimmed>
+    <RootNamespace>Vortice.Samples</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Platforms\Vortice.Windows\Vortice.Windows.csproj" />
     <ProjectReference Include="..\DrawTriangle\DrawTriangle.csproj" />
   </ItemGroup>
 
