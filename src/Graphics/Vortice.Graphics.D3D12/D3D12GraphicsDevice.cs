@@ -383,60 +383,52 @@ namespace Vortice.Graphics
         /// <inheritdoc />
         public override GraphicsDeviceCaps Capabilities => _caps;
 
-        /// <summary>
-        /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
-        /// </summary>
-        ~D3D12GraphicsDevice() => Dispose(disposing: false);
-
         /// <inheritdoc />
-        protected override void Dispose(bool disposing)
+        protected override void OnDispose()
         {
-            if (disposing)
+            for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {
-                for (int i = 0; i < (int)CommandQueueType.Count; i++)
+                _queues[i]?.Dispose();
+            }
+
+            // Allocator.
+            {
+                D3D12MA_Stats stats;
+                _allocator.Get()->CalculateStats(&stats);
+
+                if (stats.Total.UsedBytes > 0)
                 {
-                    _queues[i]?.Dispose();
+                    //LOGI("Total device memory leaked: {} bytes.", stats.Total.UsedBytes);
                 }
 
-                // Allocator.
-                {
-                    D3D12MA_Stats stats;
-                    _allocator.Get()->CalculateStats(&stats);
-
-                    if (stats.Total.UsedBytes > 0)
-                    {
-                        //LOGI("Total device memory leaked: {} bytes.", stats.Total.UsedBytes);
-                    }
-
-                    _allocator.Dispose();
-                }
+                _allocator.Dispose();
+            }
 
 #if DEBUG
-                uint refCount = _handle.Get()->Release();
-                if (refCount > 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
+            uint refCount = _handle.Get()->Release();
+            if (refCount > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
-                    using ComPtr<ID3D12DebugDevice> d3d12DebugDevice = default;
-                    if (SUCCEEDED(_handle.CopyTo(d3d12DebugDevice.GetAddressOf())))
-                    {
-                        d3d12DebugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-                    }
+                using ComPtr<ID3D12DebugDevice> d3d12DebugDevice = default;
+                if (SUCCEEDED(_handle.CopyTo(d3d12DebugDevice.GetAddressOf())))
+                {
+                    d3d12DebugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
                 }
+            }
 #else
-                _device.Dispose();
+            _handle.Dispose();
 #endif
-                _adapter.Dispose();
-                _dxgiFactory4.Dispose();
+            _adapter.Dispose();
+            _dxgiFactory4.Dispose();
 
 
 #if DEBUG
-                using ComPtr<IDXGIDebug1> dxgiDebug1 = default;
+            using ComPtr<IDXGIDebug1> dxgiDebug1 = default;
 
-                if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIDebug1>(), dxgiDebug1.GetVoidAddressOf())))
-                {
-                    dxgiDebug1.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-                }
+            if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIDebug1>(), dxgiDebug1.GetVoidAddressOf())))
+            {
+                dxgiDebug1.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
             }
 #endif
         }

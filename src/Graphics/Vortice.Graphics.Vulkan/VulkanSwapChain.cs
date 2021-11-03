@@ -1,18 +1,37 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if TODO
+using System.Runtime.InteropServices;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
-namespace Vortice.Graphics.Vulkan
+namespace Vortice.Graphics
 {
-    internal unsafe class SwapChainVulkan : SwapChain
+    internal unsafe class VulkanSwapChain : SwapChain
     {
-        public SwapChainVulkan(GraphicsDeviceVulkan device, in SwapChainSurface surface, in SwapChainDescriptor descriptor)
+        private readonly VkSurfaceKHR _surface = VkSurfaceKHR.Null;
+
+        public VulkanSwapChain(VulkanGraphicsDevice device, in SwapChainSource source, in SwapChainDescriptor descriptor)
             : base(device, descriptor)
         {
-            Surface = VulkanDeviceHelper.CreateSurface(surface);
+            switch (source.Type)
+            {
+                case SwapChainSourceType.Win32:
+                    Win32SwapChainSource win32Source = (Win32SwapChainSource)source;
+                    VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = new VkWin32SurfaceCreateInfoKHR
+                    {
+                        sType = VkStructureType.Win32SurfaceCreateInfoKHR,
+                        hinstance = GetModuleHandleW(lpModuleName: null),
+                        hwnd = win32Source.Hwnd
+                    };
+
+                    vkCreateWin32SurfaceKHR(device.Instance, &surfaceCreateInfo, null, out _surface).CheckResult();
+                    break;
+
+                default:
+                    throw new GraphicsException("Surface not supported");
+
+            }
 
             Resize(descriptor.Size.Width, descriptor.Size.Height);
         }
@@ -23,7 +42,7 @@ namespace Vortice.Graphics.Vulkan
 
         public void Resize(int width, int height)
         {
-            VkDevice vkDevice = ((GraphicsDeviceVulkan)Device).NativeDevice;
+            //VkDevice vkDevice = ((GraphicsDeviceVulkan)Device).NativeDevice;
 
             var createInfo = new VkSwapchainCreateInfoKHR
             {
@@ -43,12 +62,15 @@ namespace Vortice.Graphics.Vulkan
                 oldSwapchain = Handle
             };
 
-            vkCreateSwapchainKHR(vkDevice, &createInfo, null, out VkSwapchainKHR swapChain).CheckResult();
-            Handle = swapChain;
+            //vkCreateSwapchainKHR(vkDevice, &createInfo, null, out VkSwapchainKHR swapChain).CheckResult();
+            //Handle = swapChain;
         }
 
         /// <inheritdoc />
-        public override void Present() => throw new System.NotImplementedException();
+        public override void Present()
+        {
+
+        }
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
@@ -57,6 +79,8 @@ namespace Vortice.Graphics.Vulkan
             {
             }
         }
+
+        [DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+        private static extern unsafe nint GetModuleHandleW(ushort* lpModuleName);
     }
-} 
-#endif
+}

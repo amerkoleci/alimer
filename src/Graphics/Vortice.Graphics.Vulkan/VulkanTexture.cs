@@ -1,17 +1,16 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if TODO
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
-namespace Vortice.Graphics.Vulkan
+namespace Vortice.Graphics
 {
-    internal unsafe class TextureVulkan : Texture
+    internal unsafe class VulkanTexture : Texture
     {
         private readonly VkImage _handle;
 
-        public TextureVulkan(GraphicsDeviceVulkan device, in TextureDescriptor descriptor)
+        public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor)
             : base(device, descriptor)
         {
             VkImageCreateInfo createInfo = new VkImageCreateInfo()
@@ -32,4 +31,3 @@ namespace Vortice.Graphics.Vulkan
         }
     }
 } 
-#endif

@@ -2,15 +2,30 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Microsoft.Toolkit.Diagnostics;
 
 namespace Vortice.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
+        private volatile int _isDisposed;
+
         protected GraphicsDevice(GraphicsBackend backendType)
         {
             BackendType = backendType;
+        }
+
+        /// <summary>
+        /// Releases unmanaged resources and performs other cleanup operations.
+        /// </summary>
+        ~GraphicsDevice()
+        {
+            if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) == 0)
+            {
+                OnDispose();
+            }
         }
 
         /// <summary>
@@ -28,18 +43,44 @@ namespace Vortice.Graphics
         /// </summary>
         public abstract GraphicsDeviceCaps Capabilities { get; }
 
+        /// <summary>
+        /// Gets whether or not the current instance has already been disposed.
+        /// </summary>
+        public bool IsDisposed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return _isDisposed != 0;
+            }
+        }
+
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
-            Dispose(disposing: true);
+            OnDispose();
             GC.SuppressFinalize(this);
         }
 
-        /// <inheritdoc cref="Dispose()" />
-        /// <param name="disposing">
-        /// <c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.
-        /// </param>
-        protected abstract void Dispose(bool disposing);
+        protected abstract void OnDispose();
+
+        /// <summary>
+        /// Throws an <see cref="ObjectDisposedException" /> if the current instance has been disposed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void ThrowIfDisposed()
+        {
+            if (IsDisposed)
+            {
+                Throw();
+            }
+            void Throw()
+            {
+                throw new ObjectDisposedException(ToString());
+            }
+        }
+
 
         /// <summary>
         /// Wait for device to finish pending GPU operations.
