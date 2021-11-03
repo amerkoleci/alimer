@@ -36,7 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Audio", "Audio", "{F0193F7C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Input", "src\Vortice.Input\Vortice.Input.csproj", "{5276BD22-F00F-4C77-B762-C7700AA4128F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Grapihcs", "Grapihcs", "{783D107C-4D46-4B9D-95C1-0DD706142BE2}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Graphics", "Graphics", "{783D107C-4D46-4B9D-95C1-0DD706142BE2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Audio", "src\Audio\Vortice.Audio\Vortice.Audio.csproj", "{03BCF697-C6A0-4A76-B4F0-255920B95DD0}"
 EndProject

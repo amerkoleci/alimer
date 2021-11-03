@@ -4,7 +4,6 @@
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
 using static TerraFX.Interop.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.D3D12_HEAP_FLAGS;
 using static TerraFX.Interop.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.D3D12_TEXTURE_LAYOUT;
 using static TerraFX.Interop.D3D12_RESOURCE_STATES;
@@ -14,6 +13,7 @@ namespace Vortice.Graphics.D3D12
     internal unsafe class D3D12Texture : Texture
     {
         private readonly ComPtr<ID3D12Resource> _handle;
+        private readonly ComPtr<D3D12MA_Allocation> _allocation = default;
 
         public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor)
             : base(device, descriptor)
@@ -75,17 +75,21 @@ namespace Vortice.Graphics.D3D12
                 }
             }
 
+            D3D12MA_ALLOCATION_DESC allocationDesc = default;
+            allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
             D3D12_HEAP_PROPERTIES heapProps = default;
             heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-            device.NativeDevice->CreateCommittedResource(
-                &heapProps,
-                D3D12_HEAP_FLAG_NONE,
+            HRESULT hr = device.Allocator->CreateResource(
+                &allocationDesc,
                 &resourceDesc,
                 state,
                 optimizedClearValue,
+                _allocation.GetAddressOf(),
                 __uuidof<ID3D12Resource>(),
-                _handle.GetVoidAddressOf()).Assert(); 
+                _handle.GetVoidAddressOf());
+            hr.Assert();
         }
 
         public ID3D12Resource* Handle => _handle;
@@ -97,8 +101,8 @@ namespace Vortice.Graphics.D3D12
         {
             if (disposing)
             {
+                _allocation.Dispose();
                 _handle.Dispose();
-                //allocation.Dispose();
             }
         }
     }

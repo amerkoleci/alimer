@@ -19,9 +19,7 @@ namespace Vortice.Graphics.D3D12
     {
         private readonly D3D12Queue[] _queues = new D3D12Queue[(int)CommandQueueType.Count];
 
-#if ENABLE_D3D12MA
-        private readonly ReferenceCountPtr<D3D12MA_Allocator> _allocator;
-#endif
+        private readonly ComPtr<D3D12MA_Allocator> _allocator;
 
         private readonly GraphicsDeviceCaps _caps;
 
@@ -73,12 +71,11 @@ namespace Vortice.Graphics.D3D12
             }
 
             // Create allocator.
-#if ENABLE_D3D12MA
             D3D12MA_ALLOCATOR_DESC allocatorDesc = default;
-            allocatorDesc.pDevice = (ID3D12Device*)_device.Get();
-            allocatorDesc.pAdapter = (IDXGIAdapter*)physicalDevice.Adapter;
-            D3D12MemAlloc.D3D12MA_CreateAllocator(&allocatorDesc, _allocator.GetAddressOf()).Assert();
-#endif
+            allocatorDesc.pDevice = (ID3D12Device*)adapter.NativeDevice.Get();
+            allocatorDesc.pAdapter = (IDXGIAdapter*)adapter.Adapter;
+            HRESULT hr = D3D12MemAlloc.D3D12MA_CreateAllocator(&allocatorDesc, _allocator.GetAddressOf());
+            hr.Assert();
 
             // Create queues
             _queues[(int)CommandQueueType.Graphics] = new D3D12Queue(this, CommandQueueType.Graphics);
@@ -150,6 +147,8 @@ namespace Vortice.Graphics.D3D12
 
         public ID3D12Device2* NativeDevice => ((D3D12GraphicsAdapter)Adapter).NativeDevice;
 
+        internal D3D12MA_Allocator* Allocator => _allocator;
+
         public D3D12Queue GetQueue(CommandQueueType type = CommandQueueType.Graphics) => _queues[(int)type];
 
         public bool SupportsRenderPass { get; }
@@ -173,7 +172,6 @@ namespace Vortice.Graphics.D3D12
                 }
 
                 // Allocator.
-#if ENABLE_D3D12MA
                 {
                     D3D12MA_Stats stats;
                     _allocator.Get()->CalculateStats(&stats);
@@ -185,7 +183,6 @@ namespace Vortice.Graphics.D3D12
 
                     _allocator.Dispose();
                 }
-#endif
 
                 ((D3D12GraphicsAdapter)Adapter).Dispose();
             }
