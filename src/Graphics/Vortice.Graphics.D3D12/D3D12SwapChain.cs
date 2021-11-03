@@ -3,13 +3,13 @@
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
-using static Vortice.Graphics.D3D12.D3D12Utils;
+using static Vortice.Graphics.D3D12Utils;
 using static TerraFX.Interop.DXGI_SCALING;
 using static TerraFX.Interop.DXGI_SWAP_EFFECT;
 using static TerraFX.Interop.DXGI_ALPHA_MODE;
 using static TerraFX.Interop.DXGI_SWAP_CHAIN_FLAG;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics
 {
     internal unsafe class D3D12SwapChain : SwapChain
     {
@@ -19,7 +19,7 @@ namespace Vortice.Graphics.D3D12
         private readonly uint _syncInterval = 1u;
         private readonly uint _presentFlags = 0u;
 
-        public D3D12SwapChain(D3D12GraphicsDevice device, in GraphicsSurface surface, in SwapChainDescriptor descriptor)
+        public D3D12SwapChain(D3D12GraphicsDevice device, in SwapChainSource source, in SwapChainDescriptor descriptor)
             : base(device, descriptor)
         {
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc = new()
@@ -34,21 +34,21 @@ namespace Vortice.Graphics.D3D12
                 Scaling = DXGI_SCALING_STRETCH,
                 SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
                 AlphaMode = DXGI_ALPHA_MODE_IGNORE,
-                Flags = device.Factory.IsTearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+                Flags = device.IsTearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
             };
 
             using ComPtr<IDXGISwapChain1> tempSwapChain = default;
 
-            switch (surface.Source.Type)
+            switch (source.Type)
             {
-                case SurfaceSourceType.Win32:
-                    SurfaceSourceWin32 win32Source = (SurfaceSourceWin32)surface.Source;
+                case SwapChainSourceType.Win32:
+                    Win32SwapChainSource win32Source = (Win32SwapChainSource)source;
                     DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new()
                     {
                         Windowed = descriptor.IsFullscreen ? FALSE : TRUE
                     };
 
-                    device.Factory.DXGIFactory->CreateSwapChainForHwnd(
+                    device.DXGIFactory->CreateSwapChainForHwnd(
                         (IUnknown*)device.GetQueue().Handle,
                         (HWND)win32Source.Hwnd,
                         &swapChainDesc,
@@ -59,7 +59,7 @@ namespace Vortice.Graphics.D3D12
 
 
                     // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                    device.Factory.DXGIFactory->MakeWindowAssociation((HWND)win32Source.Hwnd, DXGI_MWA_NO_ALT_ENTER).Assert();
+                    device.DXGIFactory->MakeWindowAssociation((HWND)win32Source.Hwnd, DXGI_MWA_NO_ALT_ENTER).Assert();
                     break;
 
                 default:
@@ -72,7 +72,7 @@ namespace Vortice.Graphics.D3D12
             _syncInterval = PresentModeToSwapInterval(descriptor.PresentMode);
             if (!descriptor.IsFullscreen
                 && _syncInterval == 0
-                && device.Factory.IsTearingSupported)
+                && device.IsTearingSupported)
             {
                 _presentFlags |= DXGI_PRESENT_ALLOW_TEARING;
             }

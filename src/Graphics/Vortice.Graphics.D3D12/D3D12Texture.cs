@@ -8,7 +8,7 @@ using static TerraFX.Interop.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.D3D12_TEXTURE_LAYOUT;
 using static TerraFX.Interop.D3D12_RESOURCE_STATES;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics
 {
     internal unsafe class D3D12Texture : Texture
     {

@@ -13,23 +13,23 @@ namespace Vortice
 
         public abstract Size ClientSize { get; }
 
-        public abstract SurfaceSource Source { get; }
+        public abstract SwapChainSource Source { get; }
 
         public SwapChain? SwapChain { get; private set; }
 
-        public void CreateSwapChain(GraphicsDevice device, GraphicsSurface surface)
+        public void CreateSwapChain(GraphicsDevice device)
         {
             SwapChainDescriptor descriptor = new()
             {
                 Size = ClientSize
             };
 
-            SwapChain = device.CreateSwapChain(surface, descriptor);
+            SwapChain = device.CreateSwapChain(Source, descriptor);
         }
 
         public void Present()
         {
-            SwapChain.Present();
+            SwapChain?.Present();
         }
 
         protected virtual void OnSizeChanged()

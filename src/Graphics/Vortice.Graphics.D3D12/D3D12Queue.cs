@@ -3,13 +3,13 @@
 
 using TerraFX.Interop;
 using static TerraFX.Interop.Windows;
-using static Vortice.Graphics.D3D12.D3D12Utils;
+using static Vortice.Graphics.D3D12Utils;
 using static TerraFX.Interop.D3D12_COMMAND_QUEUE_FLAGS;
 using static TerraFX.Interop.D3D12_COMMAND_QUEUE_PRIORITY;
 using static TerraFX.Interop.D3D12_FENCE_FLAGS;
 using System;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics
 {
     internal unsafe class D3D12Queue
     {

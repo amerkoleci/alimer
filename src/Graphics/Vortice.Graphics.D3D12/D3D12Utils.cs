@@ -8,7 +8,7 @@ using static TerraFX.Interop.D3D12_COMMAND_LIST_TYPE;
 using Microsoft.Toolkit.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics
 {
     internal static unsafe class D3D12Utils
     {

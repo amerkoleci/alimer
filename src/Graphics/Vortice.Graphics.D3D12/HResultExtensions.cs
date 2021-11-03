@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Toolkit.Diagnostics;
 using TerraFX.Interop;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics
 {
     /// <summary>
     /// Helper methods to efficiently throw exceptions.

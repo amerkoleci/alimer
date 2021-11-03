@@ -14,7 +14,6 @@ namespace Vortice
     public abstract class Game : IGame, IDisposable
     {
         private readonly GameContext _context;
-        //private readonly GamePlatform _platform;
         private readonly ServiceProvider _serviceProvider;
         private readonly object _tickLock = new();
         private readonly Stopwatch _stopwatch = new();
@@ -23,9 +22,6 @@ namespace Vortice
         protected Game(GameContext context)
         {
             _context = context;
-            //_platform = GamePlatform.Create(this);
-            //_platform.Activated += GamePlatform_Activated;
-            //_platform.Deactivated += GamePlatform_Deactivated;
 
             ServiceCollection services = new();
             context.ConfigureServices(services);
@@ -35,18 +31,11 @@ namespace Vortice
 
             // Get required services.
             View = _serviceProvider.GetRequiredService<GameView>();
+            GraphicsDevice = _serviceProvider.GetRequiredService<GraphicsDevice>();
             Input = _serviceProvider.GetRequiredService<InputManager>();
 
             // Get optional services.
             Audio = _serviceProvider.GetService<AudioSystem>();
-
-            // Create GraphicsDeviceFactory
-            ValidationMode validationMode = ValidationMode.Disabled;
-#if DEBUG
-            validationMode = ValidationMode.Enabled;
-#endif
-
-            GraphicsDeviceFactory = GraphicsDeviceFactory.Create(validationMode);
         }
 
         ~Game()
@@ -74,9 +63,7 @@ namespace Vortice
         public InputManager Input { get; }
         public AudioSystem? Audio { get; }
 
-        public GraphicsDeviceFactory GraphicsDeviceFactory { get; }
-
-        public GraphicsDevice GraphicsDevice { get; private set; }
+        public GraphicsDevice GraphicsDevice { get; }
 
         public IList<IGameSystem> GameSystems { get; } = new List<IGameSystem>();
 
@@ -94,7 +81,6 @@ namespace Vortice
 
                 View.SwapChain?.Dispose();
                 GraphicsDevice.Dispose();
-                GraphicsDeviceFactory.Dispose();
 
                 Disposed?.Invoke(this, EventArgs.Empty);
                 IsDisposed = true;
@@ -127,10 +113,7 @@ namespace Vortice
 
         private void InitializeBeforeRun()
         {
-            GraphicsSurface surface = GraphicsDeviceFactory.CreateSurface(View.Source);
-            GraphicsDevice = GraphicsDeviceFactory.RequestAdapter()!.CreateDevice("Vortice");
-
-            View.CreateSwapChain(GraphicsDevice, surface);
+            View.CreateSwapChain(GraphicsDevice);
 
             Initialize();
 

@@ -1,6 +1,7 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#if TODO
 using System;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
@@ -88,4 +89,5 @@ namespace Vortice.Graphics.Vulkan
             return result;
         }
     }
-}
+} 
+#endif

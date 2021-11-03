@@ -19,7 +19,7 @@ namespace Vortice
         {
             _control = control;
 
-            Source = SurfaceSource.CreateWin32(
+            Source = SwapChainSource.CreateWin32(
                 Marshal.GetHINSTANCE(Assembly.GetEntryAssembly()!.Modules.First()),
                 _control.Handle
                 );
@@ -31,7 +31,7 @@ namespace Vortice
         public override Size ClientSize => _control.ClientSize;
 
         /// <inheritdoc />
-        public override SurfaceSource Source { get; }
+        public override SwapChainSource Source { get; }
 
         private void OnControlClientSizeChanged(object? sender, EventArgs e)
         {

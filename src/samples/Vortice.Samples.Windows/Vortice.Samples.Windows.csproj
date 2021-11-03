@@ -7,10 +7,10 @@
     <PublishTrimmed>false</PublishTrimmed>
     <RootNamespace>Vortice.Samples</RootNamespace>
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Platforms\Vortice.Windows\Vortice.Windows.csproj" />
-    <ProjectReference Include="..\DrawTriangle\DrawTriangle.csproj" />
+    <ProjectReference Include="..\..\Platforms\Vortice.Windows\Vortice.Windows.csproj" />
+    <ProjectReference Include="..\Vortice.Samples\Vortice.Samples.csproj" />
   </ItemGroup>
 
 </Project>

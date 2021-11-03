@@ -8,12 +8,9 @@ namespace Vortice.Graphics
 {
     public abstract class GraphicsDevice : IDisposable
     {
-        protected GraphicsDevice(GraphicsBackend backendType, GraphicsAdapter adapter)
+        protected GraphicsDevice(GraphicsBackend backendType)
         {
-            Guard.IsNotNull(adapter, nameof(adapter));
-
             BackendType = backendType;
-            Adapter = adapter;
         }
 
         /// <summary>
@@ -21,10 +18,10 @@ namespace Vortice.Graphics
         /// </summary>
         public GraphicsBackend BackendType { get; }
 
-        /// <summary>
-        /// Get the <see cref="GraphicsAdapter"/> that was used to create this device.
-        /// </summary>
-        public GraphicsAdapter Adapter { get; }
+        public abstract VendorId VendorId { get; }
+        public abstract uint AdapterId { get; }
+        public abstract GPUAdapterType AdapterType { get; }
+        public abstract string AdapterName { get; }
 
         /// <summary>
         /// Get the device capabilities.
@@ -49,11 +46,11 @@ namespace Vortice.Graphics
         /// </summary>
         public abstract void WaitIdle();
 
-        public SwapChain CreateSwapChain(in GraphicsSurface surface, in SwapChainDescriptor descriptor)
+        public SwapChain CreateSwapChain(in SwapChainSource source, in SwapChainDescriptor descriptor)
         {
-            Guard.IsNotNull(surface, nameof(surface));
+            Guard.IsNotNull(source, nameof(source));
 
-            return CreateSwapChainCore(surface, descriptor);
+            return CreateSwapChainCore(source, descriptor);
         }
 
         public Texture CreateTexture(in TextureDescriptor descriptor)
@@ -65,7 +62,7 @@ namespace Vortice.Graphics
             return CreateTextureCore(descriptor);
         }
 
-        protected abstract SwapChain CreateSwapChainCore(in GraphicsSurface surface, in SwapChainDescriptor descriptor);
+        protected abstract SwapChain CreateSwapChainCore(in SwapChainSource source, in SwapChainDescriptor descriptor);
 
         protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor);
     }

@@ -4,7 +4,7 @@
 using System.Diagnostics.Contracts;
 using TerraFX.Interop;
 
-namespace Vortice.Graphics.D3D12
+namespace Vortice.Graphics
 {
     /// <summary>
     /// A <see langword="class"/> with extensions for the <see cref="ID3D12Device2"/> type.

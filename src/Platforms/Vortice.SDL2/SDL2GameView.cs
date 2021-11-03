@@ -34,7 +34,7 @@ namespace Vortice
             switch (wmInfo.subsystem)
             {
                 case SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS:
-                    Source = SurfaceSource.CreateWin32(
+                    Source = SwapChainSource.CreateWin32(
                         wmInfo.info.win.hinstance,
                         wmInfo.info.win.window
                         );
@@ -71,7 +71,7 @@ namespace Vortice
         public override Size ClientSize { get; }
 
         /// <inheritdoc />
-        public override SurfaceSource Source { get; }
+        public override SwapChainSource Source { get; }
 
         private void OnControlClientSizeChanged(object? sender, EventArgs e)
         {

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Vortice.Graphics</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta3.1413125470" Condition="'$(ExcludeD3D12)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
+  </ItemGroup>
+
+</Project>

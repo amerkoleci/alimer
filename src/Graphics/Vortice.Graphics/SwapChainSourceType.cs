@@ -4,9 +4,9 @@
 namespace Vortice.Graphics
 {
     /// <summary>
-    /// Defines a <see cref="SurfaceSource"/> type.
+    /// Defines a <see cref="SwapChainSource"/> type.
     /// </summary>
-    public enum SurfaceSourceType
+    public enum SwapChainSourceType
     {
         Unknown,
         Win32

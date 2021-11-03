@@ -3,17 +3,24 @@
 
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Vortice.Graphics;
 using static SDL2.SDL;
 using static SDL2.SDL.SDL_EventType;
 
 namespace Vortice
 {
-    public sealed class SDL2GameContext : GameContext
+    public sealed class SDL2GameContext : GameContextWithGraphics
     {
         private const int _eventsPerPeep = 64;
         private readonly SDL_Event[] _events = new SDL_Event[_eventsPerPeep];
 
         private bool _exiting = false;
+
+        public SDL2GameContext(GraphicsDevice graphicsDevice)
+            : base(graphicsDevice)
+        {
+
+        }
 
         public override void ConfigureServices(IServiceCollection services)
         {

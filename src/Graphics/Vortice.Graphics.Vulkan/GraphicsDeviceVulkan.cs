@@ -1,6 +1,7 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#if TODO
 using System;
 using System.Collections.Generic;
 using Vortice.Vulkan;
@@ -149,3 +150,5 @@ namespace Vortice.Graphics.Vulkan
         protected override Texture CreateTextureCore(in TextureDescriptor descriptor) => new TextureVulkan(this, descriptor);
     }
 }
+
+#endif
