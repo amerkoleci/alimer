@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Vortice.Audio\Vortice.Audio.csproj" />
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.20348-rc2.1411011823" Condition="'$(ExcludeD3D12)' != 'true'" />
+    <ProjectReference Include="..\..\Vortice.Audio\Vortice.Audio.csproj" />
+    <PackageReference Include="Vortice.XAudio2" Version="2.1.0-beta2" />
   </ItemGroup>
 
 </Project>

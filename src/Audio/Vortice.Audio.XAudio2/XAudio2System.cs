@@ -3,19 +3,18 @@
 
 using System;
 using Microsoft.Toolkit.Diagnostics;
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
-using static Vortice.Audio.XAudio2Helpers;
+using Vortice.XAudio2;
+using static Vortice.XAudio2.XAudio2;
 
 namespace Vortice.Audio
 {
     public sealed unsafe class XAudio2System : AudioSystem
     {
-        private readonly ComPtr<IXAudio2> _xaudio2;
+        private readonly IXAudio2 _xaudio2;
 
         public XAudio2System()
         {
-            ThrowIfFailed(XAudio2Create(_xaudio2.GetAddressOf()));
+            _xaudio2 = XAudio2Create();
         }
     }
 }
