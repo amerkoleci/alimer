@@ -52,6 +52,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Samples.Windows", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Samples.SDL2", "src\samples\Vortice.Samples.SDL2\Vortice.Samples.SDL2.csproj", "{75D7E79F-6D04-431B-A268-7BB61925B75B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Engine", "src\Vortice.Engine\Vortice.Engine.csproj", "{639F24FA-F69E-4AB2-99A3-2C1CC6B84DCB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -114,6 +116,10 @@ Global
 		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75D7E79F-6D04-431B-A268-7BB61925B75B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{639F24FA-F69E-4AB2-99A3-2C1CC6B84DCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{639F24FA-F69E-4AB2-99A3-2C1CC6B84DCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{639F24FA-F69E-4AB2-99A3-2C1CC6B84DCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{639F24FA-F69E-4AB2-99A3-2C1CC6B84DCB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

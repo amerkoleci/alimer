@@ -11,7 +11,7 @@ using Vortice.Input;
 
 namespace Vortice
 {
-    public abstract class Game : IGame, IDisposable
+    public abstract class GameBase : IGame, IDisposable
     {
         private readonly GameContext _context;
         private readonly ServiceProvider _serviceProvider;
@@ -19,7 +19,7 @@ namespace Vortice
         private readonly Stopwatch _stopwatch = new();
         private bool _isExiting;
 
-        protected Game(GameContext context)
+        protected GameBase(GameContext context)
         {
             _context = context;
 
@@ -31,14 +31,13 @@ namespace Vortice
 
             // Get required services.
             View = _serviceProvider.GetRequiredService<GameView>();
-            GraphicsDevice = _serviceProvider.GetRequiredService<GraphicsDevice>();
             Input = _serviceProvider.GetRequiredService<InputManager>();
 
             // Get optional services.
             Audio = _serviceProvider.GetService<AudioSystem>();
         }
 
-        ~Game()
+        ~GameBase()
         {
             Dispose(dispose: false);
         }
@@ -63,7 +62,6 @@ namespace Vortice
         public InputManager Input { get; }
         public AudioSystem? Audio { get; }
 
-        public GraphicsDevice GraphicsDevice { get; }
 
         public IList<IGameSystem> GameSystems { get; } = new List<IGameSystem>();
 
@@ -77,11 +75,6 @@ namespace Vortice
         {
             if (dispose && !IsDisposed)
             {
-                GraphicsDevice.WaitIdle();
-
-                View.SwapChain?.Dispose();
-                GraphicsDevice.Dispose();
-
                 Disposed?.Invoke(this, EventArgs.Empty);
                 IsDisposed = true;
             }
@@ -107,14 +100,12 @@ namespace Vortice
             _context.RunMainLoop(InitializeBeforeRun, Tick);
         }
 
-        public virtual void Initialize()
+        protected virtual void Initialize()
         {
         }
 
         private void InitializeBeforeRun()
         {
-            View.CreateSwapChain(GraphicsDevice);
-
             Initialize();
 
             _stopwatch.Start();

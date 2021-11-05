@@ -13,13 +13,5 @@ namespace Vortice
         IList<IGameSystem> GameSystems { get; }
 
         bool IsRunning { get; }
-
-        void Initialize();
-
-        void Run();
-        void BeginRun();
-        void EndRun();
-
-        void Tick();
     }
 }
