@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
+    <ProjectReference Include="..\..\Vortice.Graphics\Vortice.Graphics.csproj" />
   </ItemGroup>
 
 </Project>

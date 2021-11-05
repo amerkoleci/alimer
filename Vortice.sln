@@ -20,7 +20,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Games", "src\Vortic
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{D8EC0278-B4F9-4EF5-A4BE-FE2284C6ECED}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics", "src\Graphics\Vortice.Graphics\Vortice.Graphics.csproj", "{AFF4E338-AA0B-4B5A-9B62-E21410D03862}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics", "src\Vortice.Graphics\Vortice.Graphics.csproj", "{AFF4E338-AA0B-4B5A-9B62-E21410D03862}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics.Vulkan", "src\Graphics\Vortice.Graphics.Vulkan\Vortice.Graphics.Vulkan.csproj", "{70A6274D-37D1-4AF9-B35F-C574003078F1}"
 EndProject
@@ -119,7 +119,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{AFF4E338-AA0B-4B5A-9B62-E21410D03862} = {783D107C-4D46-4B9D-95C1-0DD706142BE2}
 		{70A6274D-37D1-4AF9-B35F-C574003078F1} = {783D107C-4D46-4B9D-95C1-0DD706142BE2}
 		{3D335F65-998D-4CC8-A489-4C0017BF6953} = {783D107C-4D46-4B9D-95C1-0DD706142BE2}
 		{F6A4373B-0A3F-45F1-BA64-7AD30BB7F04C} = {FD5B16DA-11E1-4A00-90E7-C5EE246B7C4E}
