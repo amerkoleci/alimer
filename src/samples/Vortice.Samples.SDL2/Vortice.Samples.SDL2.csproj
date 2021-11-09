@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFrameworks>net6.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
     <PublishTrimmed>true</PublishTrimmed>
     <RootNamespace>Vortice.Samples</RootNamespace>
   </PropertyGroup>

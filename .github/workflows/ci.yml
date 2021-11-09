@@ -24,7 +24,7 @@ jobs:
     - name: Setup .NET 6.0
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100-rc.1.21458.32
+        dotnet-version: 6.0.100
 
     - name: Pack
       run: dotnet pack Vortice.sln --configuration Release --output build/packages

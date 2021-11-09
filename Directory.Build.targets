@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <!-- Settings that are only set for executables -->
-  <PropertyGroup Condition="'$(OutputType)' != 'Library'">
+  <PropertyGroup Condition="'$(OutputType)' != 'Library' AND '$(UseWindowsForms)' != 'true'">
     <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
