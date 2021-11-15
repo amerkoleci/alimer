@@ -3,7 +3,7 @@
 
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 namespace Vortice.Graphics;
 
@@ -20,7 +20,7 @@ internal static class ComPtrExtensions
     /// <returns>A <see cref="ComPtr{T}"/> instance of type <see cref="IUnknown"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe uint AddRef<T>(this ComPtr<T> ptr)
-        where T : unmanaged
+        where T : unmanaged, IUnknown.Interface
     {
         if (ptr.Get() is not null)
         {
@@ -39,7 +39,7 @@ internal static class ComPtrExtensions
     /// <returns>A <see cref="ComPtr{T}"/> instance of type <see cref="IUnknown"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe uint Release<T>(this ref ComPtr<T> ptr)
-        where T : unmanaged
+        where T : unmanaged, IUnknown.Interface
     {
         if (ptr.Get() is not null)
         {
@@ -69,7 +69,7 @@ internal static class ComPtrExtensions
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe ref readonly ComPtr<IUnknown> AsIUnknown<T>(this in ComPtr<T> ptr)
-        where T : unmanaged
+        where T : unmanaged, IUnknown.Interface
     {
         return ref Unsafe.As<ComPtr<T>, ComPtr<IUnknown>>(ref Unsafe.AsRef(in ptr));
     }
@@ -84,7 +84,7 @@ internal static class ComPtrExtensions
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void** GetVoidAddressOf<T>(this in ComPtr<T> ptr)
-        where T : unmanaged
+        where T : unmanaged, IUnknown.Interface
     {
         return (void**)Unsafe.AsPointer(ref Unsafe.AsRef(in ptr));
     }
@@ -97,7 +97,7 @@ internal static class ComPtrExtensions
     /// <returns>The moved <see cref="ComPtr{T}"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe ComPtr<T> Move<T>(this in ComPtr<T> ptr)
-        where T : unmanaged
+        where T : unmanaged, IUnknown.Interface
     {
         ComPtr<T> copy = default;
 

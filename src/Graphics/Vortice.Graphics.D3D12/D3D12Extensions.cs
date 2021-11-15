@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.Contracts;
-using TerraFX.Interop;
+using TerraFX.Interop.DirectX;
 
 namespace Vortice.Graphics
 {

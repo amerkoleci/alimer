@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Toolkit.Diagnostics;
-using TerraFX.Interop;
+using TerraFX.Interop.Windows;
 
 namespace Vortice.Graphics
 {

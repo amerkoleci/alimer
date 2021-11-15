@@ -1,12 +1,12 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
-using static Vortice.Graphics.D3D12Utils;
-using static TerraFX.Interop.D3D12_COMMAND_QUEUE_FLAGS;
-using static TerraFX.Interop.D3D12_COMMAND_QUEUE_PRIORITY;
-using static TerraFX.Interop.D3D12_FENCE_FLAGS;
+using TerraFX.Interop.Windows;
+using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
+using static TerraFX.Interop.DirectX.D3D12_FENCE_FLAGS;
 using System;
 
 namespace Vortice.Graphics
@@ -35,7 +35,7 @@ namespace Vortice.Graphics
             _handle.Get()->SetName($"{type} Command Queue");
 
             device.NativeDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof<ID3D12Fence>(), _fence.GetVoidAddressOf()).Assert();
-            _fenceEventHandle = CreateEventExW(lpEventAttributes: null, lpName: null, dwFlags: 0, dwDesiredAccess: EVENT_MODIFY_STATE | SYNCHRONIZE);
+            _fenceEventHandle = CreateEventExW(lpEventAttributes: null, lpName: null, dwFlags: 0, dwDesiredAccess: EVENT.EVENT_MODIFY_STATE | SYNCHRONIZE);
             if (_fenceEventHandle == HANDLE.NULL)
             {
                 //ThrowForLastError(nameof(CreateEventW));

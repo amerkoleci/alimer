@@ -1,12 +1,13 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
-using static TerraFX.Interop.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.D3D12_TEXTURE_LAYOUT;
-using static TerraFX.Interop.D3D12_RESOURCE_STATES;
+using TerraFX.Interop.Windows;
+using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_TEXTURE_LAYOUT;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 
 namespace Vortice.Graphics
 {

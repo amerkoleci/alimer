@@ -1,10 +1,10 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop;
-using static TerraFX.Interop.DXGI_FORMAT;
-using static TerraFX.Interop.D3D12_RESOURCE_DIMENSION;
-using static TerraFX.Interop.D3D12_COMMAND_LIST_TYPE;
+using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
 using Microsoft.Toolkit.Diagnostics;
 using System.Runtime.CompilerServices;
 

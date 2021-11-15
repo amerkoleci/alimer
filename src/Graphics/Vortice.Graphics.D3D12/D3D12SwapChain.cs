@@ -1,13 +1,15 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop;
-using static TerraFX.Interop.Windows;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
 using static Vortice.Graphics.D3D12Utils;
-using static TerraFX.Interop.DXGI_SCALING;
-using static TerraFX.Interop.DXGI_SWAP_EFFECT;
-using static TerraFX.Interop.DXGI_ALPHA_MODE;
-using static TerraFX.Interop.DXGI_SWAP_CHAIN_FLAG;
+using static TerraFX.Interop.DirectX.DXGI_SCALING;
+using static TerraFX.Interop.DirectX.DXGI_SWAP_EFFECT;
+using static TerraFX.Interop.DirectX.DXGI_ALPHA_MODE;
+using static TerraFX.Interop.DirectX.DXGI_SWAP_CHAIN_FLAG;
 
 namespace Vortice.Graphics
 {

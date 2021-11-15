@@ -5,7 +5,7 @@
     <TargetFrameworks>net6.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
+    <SelfContained>false</SelfContained>
     <PublishTrimmed>true</PublishTrimmed>
     <RootNamespace>Vortice.Samples</RootNamespace>
   </PropertyGroup>

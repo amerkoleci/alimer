@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta3.1423935916" Condition="'$(ExcludeD3D12)' != 'true'" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta3.1460839041" />
   </ItemGroup>
 
   <ItemGroup>
