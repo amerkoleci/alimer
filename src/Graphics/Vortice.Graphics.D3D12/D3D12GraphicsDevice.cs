@@ -6,6 +6,8 @@ using TerraFX.Interop.Windows;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI;
+using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
 using static TerraFX.Interop.DirectX.D3D12_FEATURE;

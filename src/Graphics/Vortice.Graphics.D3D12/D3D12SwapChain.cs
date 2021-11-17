@@ -4,7 +4,7 @@
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI;
 using static Vortice.Graphics.D3D12Utils;
 using static TerraFX.Interop.DirectX.DXGI_SCALING;
 using static TerraFX.Interop.DirectX.DXGI_SWAP_EFFECT;
