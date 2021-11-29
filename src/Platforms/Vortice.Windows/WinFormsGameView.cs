@@ -28,7 +28,7 @@ namespace Vortice
         }
 
         /// <inheritdoc />
-        public override Size ClientSize => _control.ClientSize;
+        public override SizeF ClientSize => _control.ClientSize;
 
         /// <inheritdoc />
         public override SwapChainSource Source { get; }

@@ -2,10 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Vortice</RootNamespace>
-    <Platforms>x64</Platforms>
-    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win10-x64;win10-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Vortice.WinUI</PackageId>
+    <Title>Vortice.WinUI</Title>
+    <Description>A WinUI 3 platform support for Vortice.</Description>
+    <PackageTags>$(PackageTags) winui winui3 wasdk</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.0.0-preview3" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22489-preview" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22504-preview" />
   </ItemGroup>
 
 </Project>

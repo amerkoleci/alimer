@@ -9,8 +9,8 @@ namespace Vortice.Samples
     {
         public static void Main(string[] args)
         {
-            using DrawTriangleGame game = new(new SDL2GameContext(new D3D12GraphicsDevice()));
-            //using DrawTriangleGame game = new(new SDL2GameContext(new VulkanGraphicsDevice()));
+            //using DrawTriangleGame game = new(new SDL2GameContext(new D3D12GraphicsDevice()));
+            using DrawTriangleGame game = new(new SDL2GameContext(new VulkanGraphicsDevice()));
             game.Run();
         }
     }

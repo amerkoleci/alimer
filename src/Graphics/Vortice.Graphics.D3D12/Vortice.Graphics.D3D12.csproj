@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta3" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.20348-rc3.1513684912" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta3.1495396519" />
   </ItemGroup>
 
   <ItemGroup>

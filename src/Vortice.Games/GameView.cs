@@ -11,7 +11,7 @@ namespace Vortice
     {
         public event EventHandler? SizeChanged;
 
-        public abstract Size ClientSize { get; }
+        public abstract SizeF ClientSize { get; }
 
         public abstract SwapChainSource Source { get; }
 
@@ -21,7 +21,7 @@ namespace Vortice
         {
             SwapChainDescriptor descriptor = new()
             {
-                Size = ClientSize
+                Size = new Size((int)ClientSize.Width, (int)ClientSize.Height),
             };
 
             SwapChain = device.CreateSwapChain(Source, descriptor);

@@ -36,23 +36,27 @@ namespace Vortice.Graphics
                 List<string> instanceExtensions = new();
                 List<string> instanceLayers = new();
 
-
-                instanceExtensions.Add(KHRSurfaceExtensionName);
+                instanceExtensions.Add(VK_KHR_SURFACE_EXTENSION_NAME);
 
                 if (OperatingSystem.IsWindows())
                 {
-                    instanceExtensions.Add(KHRWin32SurfaceExtensionName);
+                    instanceExtensions.Add("VK_KHR_win32_surface");
                 }
                 else if (OperatingSystem.IsAndroid())
                 {
-                    instanceExtensions.Add(KHRAndroidSurfaceExtensionName);
+                    instanceExtensions.Add(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+                }
+                else if (OperatingSystem.IsIOS())
+                {
+                    instanceExtensions.Add(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
                 }
                 else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
                 {
+                    instanceExtensions.Add(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
                 }
                 else if (OperatingSystem.IsLinux())
                 {
-                    instanceExtensions.Add(KHRXcbSurfaceExtensionName);
+                    instanceExtensions.Add("VK_KHR_xcb_surface");
                 }
 
                 for (int i = 0; i < availableInstanceExtensions.Length; i++)
@@ -61,6 +65,14 @@ namespace Vortice.Graphics
                     {
                         instanceExtensions.Add(EXTDebugUtilsExtensionName);
                         DebugUtils = true;
+                    }
+                    else if (availableInstanceExtensions[i].GetExtensionName() == KHRGetPhysicalDeviceProperties2ExtensionName)
+                    {
+                        instanceExtensions.Add(KHRGetPhysicalDeviceProperties2ExtensionName);
+                    }
+                    else if (availableInstanceExtensions[i].GetExtensionName() == EXTSwapchainColorSpaceExtensionName)
+                    {
+                        instanceExtensions.Add(EXTSwapchainColorSpaceExtensionName);
                     }
                 }
 
@@ -77,7 +89,7 @@ namespace Vortice.Graphics
                     applicationVersion = new VkVersion(1, 0, 0),
                     pEngineName = s_engineName,
                     engineVersion = new VkVersion(1, 0, 0),
-                    apiVersion = vkEnumerateInstanceVersion()
+                    apiVersion = VkVersion.Version_1_2
                 };
 
                 using var vkLayerNames = new VkStringArray(instanceLayers);
