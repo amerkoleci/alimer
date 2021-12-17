@@ -20,16 +20,16 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.3
+
     - name: Setup .NET 6 SDK
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
 
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.3
-
-    - name: Pack
-      run: dotnet pack Vortice.sln --configuration Release --output build/packages
+    - name: Build
+      run: msbuild -t:restore,build /p:Configuration=Release
 
     - name: Publish to NuGet
       if: github.event_name == 'push'
