@@ -28,7 +28,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/amerkoleci/vortice.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/amerkoleci/vortice</PackageProjectUrl>
-    <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu</PackageTags>
+    <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu vortice</PackageTags>
+    <ExtrasUwpMetaPackageVersion>6.2.13</ExtrasUwpMetaPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup>
