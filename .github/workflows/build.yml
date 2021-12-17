@@ -2,29 +2,31 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - 'main'
     paths-ignore:
+      - 'docs/**'
       - '*.md'
   pull_request:
-    types: [opened, synchronize, reopened]
     paths-ignore:
+      - 'docs/**'
       - '*.md'
-
-env:
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Setup .NET 6.0
+    - name: Setup .NET 6 SDK
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100
+        dotnet-version: 6.0.x
+
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.3
 
     - name: Pack
       run: dotnet pack Vortice.sln --configuration Release --output build/packages
