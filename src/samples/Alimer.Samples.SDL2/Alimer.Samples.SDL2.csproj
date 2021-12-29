@@ -7,14 +7,14 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <PublishTrimmed>true</PublishTrimmed>
-    <RootNamespace>Vortice.Samples</RootNamespace>
+    <RootNamespace>Alimer.Samples</RootNamespace>
   </PropertyGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\..\Alimer.SDL2\Alimer.SDL2.csproj" />
     <ProjectReference Include="..\..\Graphics\Vortice.Graphics.D3D12\Vortice.Graphics.D3D12.csproj" />
     <ProjectReference Include="..\..\Graphics\Vortice.Graphics.Vulkan\Vortice.Graphics.Vulkan.csproj" />
-    <ProjectReference Include="..\..\Platforms\Vortice.SDL2\Vortice.SDL2.csproj" />
-    <ProjectReference Include="..\Vortice.Samples\Vortice.Samples.csproj" />
+    <ProjectReference Include="..\Alimer.Samples\Alimer.Samples.csproj" />
   </ItemGroup>
 
 </Project>

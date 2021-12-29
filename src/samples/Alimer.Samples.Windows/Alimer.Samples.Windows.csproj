@@ -4,12 +4,12 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Vortice.Samples</RootNamespace>
+    <RootNamespace>Alimer.Samples</RootNamespace>
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\Platforms\Vortice.Windows\Vortice.Windows.csproj" />
-    <ProjectReference Include="..\Vortice.Samples\Vortice.Samples.csproj" />
+    <ProjectReference Include="..\..\Alimer.Windows\Alimer.Windows.csproj" />
+    <ProjectReference Include="..\Alimer.Samples\Alimer.Samples.csproj" />
   </ItemGroup>
 
 </Project>
