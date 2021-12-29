@@ -30,7 +30,6 @@ public abstract class Game : IGame, IDisposable
         _serviceProvider = services.BuildServiceProvider();
 
         // Get required services.
-        View = _serviceProvider.GetRequiredService<GameView>();
         Input = _serviceProvider.GetRequiredService<InputManager>();
         GraphicsDevice = _serviceProvider.GetRequiredService<GraphicsDevice>();
 
@@ -58,7 +57,7 @@ public abstract class Game : IGame, IDisposable
 
     public GameTime Time { get; } = new GameTime();
 
-    public GameView View { get; }
+    public GameView View => _context.View;
 
     public InputManager Input { get; }
 

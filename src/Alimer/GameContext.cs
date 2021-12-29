@@ -9,6 +9,11 @@ namespace Alimer;
 
 public abstract class GameContext
 {
+    /// <summary>
+    /// Gets the main view.
+    /// </summary>
+    public abstract GameView View { get; }
+
     public virtual void ConfigureServices(IServiceCollection services)
     {
     }

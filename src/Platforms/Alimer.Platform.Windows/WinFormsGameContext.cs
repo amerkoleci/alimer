@@ -3,6 +3,7 @@
 
 using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Toolkit.Diagnostics;
 
 namespace Alimer;
 
@@ -10,16 +11,18 @@ public class WinFormsGameContext : GameContext
 {
     public WinFormsGameContext(Control control)
     {
-        Control = control;
+        Guard.IsNotNull(control, name: nameof(control));
+
+        View = new WinFormsGameView(control);
     }
 
-    public Control Control { get; }
+    // <inheritdoc />
+    public override GameView View { get; }
 
     public override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
 
-        services.AddSingleton<GameView>(new WinFormsGameView(Control));
         //services.AddSingleton<GraphicsPresenter>(new HwndSwapChainGraphicsPresenter(GraphicsDevice, PresentationParameters, Control.Handle));
         //services.AddSingleton<IInputSourceConfiguration>(new WinFormsInputSourceConfiguration(Control));
     }

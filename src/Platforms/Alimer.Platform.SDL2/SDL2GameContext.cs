@@ -1,7 +1,6 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Alimer.Graphics;
 using static SDL2.SDL;
@@ -19,21 +18,22 @@ public sealed class SDL2GameContext : GameContextWithGraphics
     public SDL2GameContext(GraphicsDevice graphicsDevice)
         : base(graphicsDevice)
     {
-
-    }
-
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        base.ConfigureServices(services);
-
         // Init SDL2
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) != 0)
         {
             SDL_Log($"Unable to initialize SDL: {SDL_GetError()}");
-            return;
+            throw new Exception("");
         }
 
-        services.AddSingleton<GameView>(new SDL2GameView());
+        View = new SDL2GameView();
+    }
+
+    // <inheritdoc />
+    public override GameView View { get; }
+
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        base.ConfigureServices(services);
     }
 
     public override void RunMainLoop(Action init, Action callback)
