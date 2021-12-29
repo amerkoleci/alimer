@@ -11,9 +11,9 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\Alimer.SDL2\Alimer.SDL2.csproj" />
-    <ProjectReference Include="..\..\Graphics\Vortice.Graphics.D3D12\Vortice.Graphics.D3D12.csproj" />
-    <ProjectReference Include="..\..\Graphics\Vortice.Graphics.Vulkan\Vortice.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Alimer.Graphics.D3D12\Alimer.Graphics.D3D12.csproj" />
+    <ProjectReference Include="..\..\Alimer.Graphics.Vulkan\Alimer.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Alimer.Platform.SDL2\Alimer.Platform.SDL2.csproj" />
     <ProjectReference Include="..\Alimer.Samples\Alimer.Samples.csproj" />
   </ItemGroup>
 

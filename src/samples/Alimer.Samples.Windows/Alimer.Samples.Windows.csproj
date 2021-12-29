@@ -8,8 +8,10 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\Alimer.Windows\Alimer.Windows.csproj" />
+    <ProjectReference Include="..\..\Alimer.Graphics.D3D12\Alimer.Graphics.D3D12.csproj" />
+    <ProjectReference Include="..\..\Alimer.Graphics.Vulkan\Alimer.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Alimer.Platform.Windows\Alimer.Platform.Windows.csproj" />
     <ProjectReference Include="..\Alimer.Samples\Alimer.Samples.csproj" />
   </ItemGroup>
-
+  
 </Project>
