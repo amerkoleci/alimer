@@ -4,9 +4,9 @@
 using Vortice.XAudio2;
 using static Vortice.XAudio2.XAudio2;
 
-namespace Vortice.Audio.XAudio2;
+namespace Alimer.Audio;
 
-internal unsafe class XAudio2System : AudioSystem
+public class XAudio2System : AudioSystem
 {
     private readonly IXAudio2 _xaudio2;
 

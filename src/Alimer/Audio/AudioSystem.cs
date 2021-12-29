@@ -4,12 +4,12 @@
 using System;
 using Microsoft.Toolkit.Diagnostics;
 
-namespace Vortice.Audio
+namespace Alimer.Audio;
+
+public abstract class AudioSystem : GameSystem
 {
-    public abstract class AudioSystem //: GameSystem
+    protected AudioSystem()
     {
-        protected AudioSystem()
-        {
-        }
     }
 }
+

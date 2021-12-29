@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-//using Alimer.Audio;
+using Alimer.Audio;
 using Alimer.Graphics;
 using Alimer.Input;
 
@@ -32,10 +32,10 @@ public abstract class Game : IGame, IDisposable
         // Get required services.
         View = _serviceProvider.GetRequiredService<GameView>();
         Input = _serviceProvider.GetRequiredService<InputManager>();
-        GraphicsDevice = Services.GetRequiredService<GraphicsDevice>();
+        GraphicsDevice = _serviceProvider.GetRequiredService<GraphicsDevice>();
 
         // Get optional services.
-        //Audio = _serviceProvider.GetService<AudioSystem>();
+        Audio = _serviceProvider.GetService<AudioSystem>();
     }
 
     ~Game()
@@ -64,7 +64,7 @@ public abstract class Game : IGame, IDisposable
 
     public GraphicsDevice GraphicsDevice { get; }
 
-    //public AudioSystem? Audio { get; }
+    public AudioSystem? Audio { get; }
 
     public IList<IGameSystem> GameSystems { get; } = new List<IGameSystem>();
 
