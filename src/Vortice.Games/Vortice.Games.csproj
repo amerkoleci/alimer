@@ -11,9 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
-    <ProjectReference Include="..\Vortice.Input\Vortice.Input.csproj" />
     <ProjectReference Include="..\Vortice.Audio\Vortice.Audio.csproj" />
-    <ProjectReference Include="..\Vortice.Graphics\Vortice.Graphics.csproj" />
   </ItemGroup>
 
 </Project>

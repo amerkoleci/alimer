@@ -6,22 +6,22 @@ using System.Runtime.CompilerServices;
 using Microsoft.Toolkit.Diagnostics;
 using TerraFX.Interop.Windows;
 
-namespace Vortice.Graphics
+namespace Alimer.Graphics;
+
+/// <summary>
+/// Helper methods to efficiently throw exceptions.
+/// </summary>
+[DebuggerStepThrough]
+internal static class HResultExtensions
 {
     /// <summary>
-    /// Helper methods to efficiently throw exceptions.
+    /// Throws a <see cref="Win32Exception"/> if <paramref name="hr"/> represents an error.
     /// </summary>
-    [DebuggerStepThrough]
-    internal static class HResultExtensions
+    /// <param name="hr">The input <see cref="HRESULT"/> to check.</param>
+    /// <exception cref="Win32Exception">Thrown if <paramref name="hr"/> represents an error.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Assert(this HRESULT hr)
     {
-        /// <summary>
-        /// Throws a <see cref="Win32Exception"/> if <paramref name="hr"/> represents an error.
-        /// </summary>
-        /// <param name="hr">The input <see cref="HRESULT"/> to check.</param>
-        /// <exception cref="Win32Exception">Thrown if <paramref name="hr"/> represents an error.</exception>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Assert(this HRESULT hr)
-        {
 #if DEBUG && TODO
             bool hasErrorsOrWarnings = DeviceHelper.FlushAllID3D12InfoQueueMessagesAndCheckForErrorsOrWarnings();
 
@@ -35,11 +35,10 @@ namespace Vortice.Graphics
                 ThrowHelper.ThrowWin32Exception("Warning or error detected by ID3D12InfoQueue");
             }
 #else
-            if (hr.FAILED)
-            {
-                ThrowHelper.ThrowWin32Exception(hr);
-            }
-#endif
+        if (hr.FAILED)
+        {
+            ThrowHelper.ThrowWin32Exception(hr);
         }
+#endif
     }
 }

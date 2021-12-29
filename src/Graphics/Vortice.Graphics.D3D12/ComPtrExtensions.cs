@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.Windows;
 
-namespace Vortice.Graphics;
+namespace Alimer.Graphics;
 
 /// <summary>
 /// Helper methods for working with the <see cref="ComPtr{T}"/> type.
