@@ -5,7 +5,7 @@ using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Toolkit.Diagnostics;
 
-namespace Alimer;
+namespace Vortice;
 
 public class WinFormsGameContext : GameContext
 {

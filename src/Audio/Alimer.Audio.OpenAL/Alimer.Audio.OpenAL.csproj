@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
-    <RootNamespace>Alimer.Audio</RootNamespace>
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <RootNamespace>Vortice.Audio</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
+    <ProjectReference Include="..\..\Vortice\Vortice.csproj" />
   </ItemGroup>
 
 </Project>

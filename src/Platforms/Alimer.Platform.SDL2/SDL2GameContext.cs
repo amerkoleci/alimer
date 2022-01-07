@@ -2,11 +2,11 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Microsoft.Extensions.DependencyInjection;
-using Alimer.Graphics;
+using Vortice.Graphics;
 using static SDL2.SDL;
 using static SDL2.SDL.SDL_EventType;
 
-namespace Alimer;
+namespace Vortice;
 
 public sealed class SDL2GameContext : GameContextWithGraphics
 {

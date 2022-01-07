@@ -5,11 +5,8 @@ using System.Runtime.InteropServices;
 
 namespace Vortice.Audio.OpenAL;
 
-// TODO: NetStandard 2.0
-
 internal unsafe static class OpenALNative
 {
-#if NET5_0_OR_GREATER
     private static readonly IntPtr s_nativeLibrary;
     private static readonly delegate* unmanaged<sbyte*, nint> alcOpenDevice_ptr;
 
@@ -20,5 +17,4 @@ internal unsafe static class OpenALNative
         s_nativeLibrary = NativeLibrary.Load("OpenAL32.dll");
         alcOpenDevice_ptr = (delegate* unmanaged<sbyte*, nint>)NativeLibrary.GetExport(s_nativeLibrary, nameof(alcOpenDevice));
     }
-#endif
 }

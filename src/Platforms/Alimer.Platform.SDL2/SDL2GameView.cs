@@ -2,11 +2,11 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Drawing;
-using Alimer.Graphics;
+using Vortice.Graphics;
 using static SDL2.SDL;
 using static SDL2.SDL.SDL_WindowFlags;
 
-namespace Alimer;
+namespace Vortice;
 
 internal class SDL2GameView : GameView
 {

@@ -3,7 +3,7 @@
 
 using static Vortice.Audio.OpenAL.OpenALNative;
 
-namespace Alimer.Audio;
+namespace Vortice.Audio;
 
 public unsafe class OpenALSystem : AudioSystem
 {
@@ -11,8 +11,6 @@ public unsafe class OpenALSystem : AudioSystem
 
     public OpenALSystem()
     {
-#if NET5_0_OR_GREATER
         _device = alcOpenDevice(null);
-#endif
     }
 }

@@ -3,9 +3,9 @@
 
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Alimer.Graphics;
+using Vortice.Graphics;
 
-namespace Alimer;
+namespace Vortice;
 
 internal class WinFormsGameView : GameView
 {

@@ -4,7 +4,7 @@
 using Vortice.XAudio2;
 using static Vortice.XAudio2.XAudio2;
 
-namespace Alimer.Audio;
+namespace Vortice.Audio;
 
 public class XAudio2System : AudioSystem
 {
