@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer\Alimer.csproj" />
+    <ProjectReference Include="..\Vortice\Vortice.csproj" />
   </ItemGroup>
 
 </Project>
