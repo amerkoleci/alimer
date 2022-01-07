@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Vortice.Samples</RootNamespace>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\Vortice\Vortice.csproj" />
+  </ItemGroup>
+
+</Project>

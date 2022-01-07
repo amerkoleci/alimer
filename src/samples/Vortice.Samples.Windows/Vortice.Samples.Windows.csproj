@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Vortice.Samples</RootNamespace>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platforms\Vortice.Platform.Windows\Vortice.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\Graphics\Vortice.Graphics.D3D12\Vortice.Graphics.D3D12.csproj" />
+    <ProjectReference Include="..\..\Graphics\Vortice.Graphics.Vulkan\Vortice.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\Vortice.Samples\Vortice.Samples.csproj" />
+  </ItemGroup>
+  
+</Project>

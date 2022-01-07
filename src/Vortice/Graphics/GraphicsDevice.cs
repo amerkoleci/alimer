@@ -10,7 +10,7 @@ public abstract class GraphicsDevice : IDisposable
 {
     private volatile int _isDisposed;
 
-    protected GraphicsDevice(GraphicsBackend backendType)
+    protected GraphicsDevice(GpuBackend backendType)
     {
         BackendType = backendType;
     }
@@ -29,11 +29,11 @@ public abstract class GraphicsDevice : IDisposable
     /// <summary>
     /// Get the device backend type.
     /// </summary>
-    public GraphicsBackend BackendType { get; }
+    public GpuBackend BackendType { get; }
 
-    public abstract VendorId VendorId { get; }
+    public abstract GpuVendorId VendorId { get; }
     public abstract uint AdapterId { get; }
-    public abstract GPUAdapterType AdapterType { get; }
+    public abstract GpuAdapterType AdapterType { get; }
     public abstract string AdapterName { get; }
 
     /// <summary>
