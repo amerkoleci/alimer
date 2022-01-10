@@ -33,6 +33,11 @@
     <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu vortice</PackageTags>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <VorticeVulkanVersion>1.4.7</VorticeVulkanVersion>
+    <VorticeWindowsVersion>2.1.1-beta3</VorticeWindowsVersion>
+  </PropertyGroup>
+
   <!-- platform version number information -->
   <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
     <SupportedOSPlatformVersion>10.0</SupportedOSPlatformVersion>

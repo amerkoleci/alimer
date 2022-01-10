@@ -7,7 +7,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Vortice\Vortice.csproj" />
-    <PackageReference Include="Vortice.Vulkan" Version="$(VorticeVulkanVersion)" />
+    <PackageReference Include="Vortice.Direct3D11 " Version="$(VorticeWindowsVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
   </ItemGroup>
 
 </Project>
