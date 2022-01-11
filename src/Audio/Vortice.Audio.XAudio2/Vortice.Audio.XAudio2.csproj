@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22000-rc1" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22000-rc2.1631805058" />
   </ItemGroup>
 
   <ItemGroup>
