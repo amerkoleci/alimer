@@ -35,7 +35,7 @@
 
   <PropertyGroup>
     <VorticeVulkanVersion>1.4.7</VorticeVulkanVersion>
-    <VorticeWindowsVersion>2.1.1-beta3</VorticeWindowsVersion>
+    <VorticeWindowsVersion>2.1.1-beta4</VorticeWindowsVersion>
   </PropertyGroup>
 
   <!-- platform version number information -->

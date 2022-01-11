@@ -95,12 +95,7 @@ internal class D3D11SwapChain : SwapChain
 
         SwapChainDescription1 swapChainDesc = Handle.Description1;
 
-        // Obtain the back buffers for this window which will be the final render targets
-        // and create render target views for each of them.
-        for (uint n = 0; n < swapChainDesc.BufferCount; n++)
-        {
-            //_handle.Get()->GetBuffer(n, __uuidof<ID3D12Resource>(), (void**)_renderTargets[n].ReleaseAndGetAddressOf()).Assert();
-        }
+        
     }
 
     private void UpdateColorSpace()

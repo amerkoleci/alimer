@@ -26,7 +26,6 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
         FeatureLevel.Level_10_0
     };
 
-    private readonly IDXGIAdapter1 _adapter;
     private readonly ID3D11Device1 _handle;
     private readonly ID3D11DeviceContext1 _immediateContext;
 
@@ -46,14 +45,13 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
 
             if (validationMode != ValidationMode.Disabled)
             {
-
 #if DEBUG
                 if (DXGIGetDebugInterface1(out IDXGIInfoQueue? dxgiInfoQueue).Success)
                 {
                     debugDXGI = true;
 
                     dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Error, true);
-                    dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Corruption, true);
+                    dxgiInfoQueue.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Corruption, true);
 
                     int[] hide = new int[]
                     {
@@ -68,7 +66,7 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
                         }
                     };
 
-                    dxgiInfoQueue!.AddStorageFilterEntries(DebugDxgi, filter);
+                    dxgiInfoQueue.AddStorageFilterEntries(DebugDxgi, filter);
                     dxgiInfoQueue.Dispose();
                 }
 #endif
@@ -95,15 +93,15 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
                 for (int adapterIndex = 0;
                     dxgiFactory6.EnumAdapterByGpuPreference(adapterIndex,
                         powerPreference == GpuPowerPreference.HighPerformance ? GpuPreference.HighPerformance : GpuPreference.MinimumPower,
-                        out _adapter).Code != (int)Vortice.DXGI.ResultCode.NotFound;
+                        out Adapter).Code != (int)Vortice.DXGI.ResultCode.NotFound;
                     adapterIndex++)
                 {
-                    AdapterDescription1 desc = _adapter!.Description1;
+                    AdapterDescription1 desc = Adapter!.Description1;
 
                     if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
                     {
                         // Don't select the Basic Render Driver adapter.
-                        _adapter.Dispose();
+                        Adapter.Dispose();
                         continue;
                     }
 
@@ -113,20 +111,25 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
             else
             {
                 for (int adapterIndex = 0;
-                    DXGIFactory.EnumAdapters1(adapterIndex, out _adapter).Code != (int)Vortice.DXGI.ResultCode.NotFound; adapterIndex++)
+                    DXGIFactory.EnumAdapters1(adapterIndex, out Adapter).Code != (int)Vortice.DXGI.ResultCode.NotFound; adapterIndex++)
                 {
-                    AdapterDescription1 desc = _adapter!.Description1;
+                    AdapterDescription1 desc = Adapter!.Description1;
 
                     if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
                     {
                         // Don't select the Basic Render Driver adapter.
-                        _adapter.Dispose();
+                        Adapter.Dispose();
                         continue;
                     }
 
                     break;
                 }
             }
+        }
+
+        if (Adapter == null)
+        {
+            throw new GraphicsException("No Direct3D11 device found");
         }
 
         DeviceCreationFlags creationFlags = DeviceCreationFlags.BgraSupport;
@@ -141,7 +144,7 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
 #endif
 
         if (D3D11CreateDevice(
-            _adapter!,
+            Adapter!,
             DriverType.Unknown,
             creationFlags,
             s_featureLevels,
@@ -163,7 +166,6 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
         tempContext.Dispose();
         tempDevice.Dispose();
 
-
         // Configure debug device (if active).
         if (validationMode != ValidationMode.Disabled)
         {
@@ -183,7 +185,7 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
                         MessageId.SetPrivateDataChangingParams,
                     };
 
-                    Vortice.Direct3D11.Debug.InfoQueueFilter filter = new()
+                    Direct3D11.Debug.InfoQueueFilter filter = new()
                     {
                         DenyList = new()
                         {
@@ -256,29 +258,29 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
                     MaxVertexBindings = 16,
                     MaxVertexAttributeOffset = 2047,
                     MaxVertexBindingStride = 2048,
-                    //MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
-                    //MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
-                    //MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
-                    //MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
-                    //MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-                    //MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
-                    //MaxUniformBufferRange = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
-                    //MaxStorageBufferRange = uint.MaxValue,
-                    //MinUniformBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
-                    //MinStorageBufferOffsetAlignment = 16u,
-                    //MaxSamplerAnisotropy = D3D12_MAX_MAXANISOTROPY,
-                    //MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-                    //MaxViewportWidth = D3D12_VIEWPORT_BOUNDS_MAX,
-                    //MaxViewportHeight = D3D12_VIEWPORT_BOUNDS_MAX,
-                    //MaxTessellationPatchSize = D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT,
-                    //MaxComputeSharedMemorySize = D3D12_CS_THREAD_LOCAL_TEMP_REGISTER_POOL,
-                    //MaxComputeWorkGroupCountX = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    //MaxComputeWorkGroupCountY = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    //MaxComputeWorkGroupCountZ = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    //MaxComputeWorkGroupInvocations = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
-                    //MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
-                    //MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
-                    //MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
+                    MaxTextureDimension1D = ID3D11Resource.MaximumTexture1DSize,
+                    MaxTextureDimension2D = ID3D11Resource.MaximumTexture2DSize,
+                    MaxTextureDimension3D = ID3D11Resource.MaximumTexture3DSize,
+                    MaxTextureDimensionCube = ID3D11Resource.MaximumTextureCubeSize,
+                    MaxTextureArrayLayers = ID3D11Resource.MaximumTexture2DArraySize,
+                    MaxColorAttachments = BlendDescription.SimultaneousRenderTargetCount,
+                    MaxUniformBufferRange = ID3D11DeviceContext.ConstantBufferElementCount * 16,
+                    MaxStorageBufferRange = uint.MaxValue,
+                    MinUniformBufferOffsetAlignment = 256,
+                    MinStorageBufferOffsetAlignment = 16u,
+                    MaxSamplerAnisotropy = SamplerDescription.MaxMaxAnisotropy,
+                    MaxViewports = ID3D11DeviceContext.ViewportAndScissorRectObjectCountPerPipeline,
+                    MaxViewportWidth = ID3D11DeviceContext.ViewportBoundsMax,
+                    MaxViewportHeight = ID3D11DeviceContext.ViewportBoundsMax,
+                    MaxTessellationPatchSize = 32, //D3D11_IA_PATCH_MAX_CONTROL_POINT_COUNT,
+                    MaxComputeSharedMemorySize = 16384, //D3D11_CS_THREAD_LOCAL_TEMP_REGISTER_POOL,
+                    MaxComputeWorkGroupCountX = 65535, //D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+                    MaxComputeWorkGroupCountY = 65535, //D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+                    MaxComputeWorkGroupCountZ = 65535, //D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+                    MaxComputeWorkGroupInvocations = 1024, // D3D11_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
+                    MaxComputeWorkGroupSizeX = 1024, //D3D11_CS_THREAD_GROUP_MAX_X,
+                    MaxComputeWorkGroupSizeY = 1024, //D3D11_CS_THREAD_GROUP_MAX_Y,
+                    MaxComputeWorkGroupSizeZ = 65, //D3D11_CS_THREAD_GROUP_MAX_Z,
                 }
             };
         }
@@ -297,7 +299,7 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
     }
 
     public IDXGIFactory2 DXGIFactory { get; }
-    public IDXGIAdapter1 Adapter => _adapter;
+    internal readonly IDXGIAdapter1 Adapter;
 
     public bool IsTearingSupported { get; private set; }
 
@@ -338,7 +340,7 @@ public unsafe class D3D11GraphicsDevice : GraphicsDevice
 #else
             _handle.Dispose();
 #endif
-        _adapter.Dispose();
+        Adapter.Dispose();
         DXGIFactory.Dispose();
 
 

@@ -10,7 +10,6 @@
     <PackageReference Include="Vortice.Direct3D11 " Version="$(VorticeWindowsVersion)" />
   </ItemGroup>
 
-  <ItemGroup>
-  </ItemGroup>
+  <Import Project="..\Vortice.Graphics.D3D\Vortice.Graphics.D3D.projitems" Label="Shared" />
 
 </Project>

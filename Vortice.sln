@@ -46,7 +46,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Samples.SDL2", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vortice.Graphics.D3D11", "src\Graphics\Vortice.Graphics.D3D11\Vortice.Graphics.D3D11.csproj", "{F4E80C19-5A76-4DE0-884C-E46C98045E8B}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Vortice.Graphics.D3D", "src\Graphics\Vortice.Graphics.D3D\Vortice.Graphics.D3D.shproj", "{06C951AC-ECB4-4368-93AE-A403A1C3D78D}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\Graphics\Vortice.Graphics.D3D\Vortice.Graphics.D3D.projitems*{06c951ac-ecb4-4368-93ae-a403a1c3d78d}*SharedItemsImports = 13
+		src\Graphics\Vortice.Graphics.D3D\Vortice.Graphics.D3D.projitems*{3d335f65-998d-4cc8-a489-4c0017bf6953}*SharedItemsImports = 5
+		src\Graphics\Vortice.Graphics.D3D\Vortice.Graphics.D3D.projitems*{f4e80c19-5a76-4de0-884c-e46c98045e8b}*SharedItemsImports = 5
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
@@ -165,6 +172,7 @@ Global
 		{96F40ED5-9D9E-4D06-A308-BA76E0F3616C} = {D8EC0278-B4F9-4EF5-A4BE-FE2284C6ECED}
 		{75D7E79F-6D04-431B-A268-7BB61925B75B} = {D8EC0278-B4F9-4EF5-A4BE-FE2284C6ECED}
 		{F4E80C19-5A76-4DE0-884C-E46C98045E8B} = {783D107C-4D46-4B9D-95C1-0DD706142BE2}
+		{06C951AC-ECB4-4368-93AE-A403A1C3D78D} = {783D107C-4D46-4B9D-95C1-0DD706142BE2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {85020CE7-9EF6-4502-94F6-98643E762B78}

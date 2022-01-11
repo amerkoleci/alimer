@@ -106,6 +106,8 @@ public abstract class Game : IGame, IDisposable
 
     private void InitializeBeforeRun()
     {
+        View.CreateSwapChain(GraphicsDevice);
+
         Initialize();
 
         _stopwatch.Start();

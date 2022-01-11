@@ -6,12 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22000-rc1" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.0-beta3.1599835883" />
+    <ProjectReference Include="..\..\Vortice\Vortice.csproj" />
+    <PackageReference Include="Vortice.Direct3D12" Version="$(VorticeWindowsVersion)" />
+    <PackageReference Include="Vortice.Direct3D11" Version="$(VorticeWindowsVersion)" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\Vortice\Vortice.csproj" />
-  </ItemGroup>
+  <Import Project="..\Vortice.Graphics.D3D\Vortice.Graphics.D3D.projitems" Label="Shared" />
 
 </Project>

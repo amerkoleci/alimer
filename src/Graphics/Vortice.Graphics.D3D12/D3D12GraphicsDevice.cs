@@ -1,40 +1,21 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.Windows;
-using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_TIER;
-using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_GPU_BASED_VALIDATION_FLAGS;
-using static TerraFX.Interop.DirectX.DXGI_FEATURE;
-using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
-using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
-
-#if DEBUG
-using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
-using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
-#endif
+using Vortice.Direct3D;
+using Vortice.Direct3D12;
+using Vortice.Direct3D12.Debug;
+using Vortice.DXGI;
+using Vortice.DXGI.Debug;
+using static Vortice.Direct3D12.D3D12;
+using static Vortice.DXGI.DXGI;
 
 namespace Vortice.Graphics;
 
 public unsafe class D3D12GraphicsDevice : GraphicsDevice
 {
-    public static readonly D3D_FEATURE_LEVEL MinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+    public static readonly FeatureLevel MinFeatureLevel = FeatureLevel.Level_11_0;
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
 
-    private readonly ComPtr<IDXGIFactory4> _dxgiFactory4;
-    private readonly ComPtr<IDXGIAdapter1> _adapter;
-    private readonly ComPtr<ID3D12Device2> _handle;
-    private readonly ComPtr<D3D12MA_Allocator> _allocator;
     private readonly D3D12Queue[] _queues = new D3D12Queue[(int)CommandQueueType.Count];
 
     private readonly GraphicsDeviceCaps _caps;
@@ -49,34 +30,33 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
         // Create DXGI factory first
         {
-            uint factoryFlags = 0;
+            bool debugDXGI = false;
 
             if (validationMode != ValidationMode.Disabled)
             {
-                factoryFlags = DXGI_CREATE_FACTORY_DEBUG;
-
-                using ComPtr<ID3D12Debug> d3d12Debug = default;
-
-                if (SUCCEEDED(D3D12GetDebugInterface(__uuidof<ID3D12Debug>(), d3d12Debug.GetVoidAddressOf())))
+                if (D3D12GetDebugInterface(out ID3D12Debug? d3d12Debug).Success)
                 {
-                    d3d12Debug.Get()->EnableDebugLayer();
+                    d3d12Debug!.EnableDebugLayer();
 
                     if (validationMode == ValidationMode.GPU)
                     {
-                        using ComPtr<ID3D12Debug1> d3d12Debug1 = default;
-
-                        if (SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug1.GetAddressOf())))
+                        ID3D12Debug1? d3d12Debug1 = d3d12Debug.QueryInterfaceOrNull<ID3D12Debug1>();
+                        if (d3d12Debug1 != null)
                         {
-                            d3d12Debug1.Get()->SetEnableGPUBasedValidation(TRUE);
-                            d3d12Debug1.Get()->SetEnableSynchronizedCommandQueueValidation(TRUE);
+                            d3d12Debug1.SetEnableGPUBasedValidation(true);
+                            d3d12Debug1.SetEnableSynchronizedCommandQueueValidation(true);
+                            d3d12Debug1.Dispose();
                         }
 
-                        using ComPtr<ID3D12Debug2> d3d12Debug2 = default;
-                        if (SUCCEEDED(d3d12Debug.CopyTo(d3d12Debug2.GetAddressOf())))
+                        ID3D12Debug2? d3d12Debug2 = d3d12Debug.QueryInterfaceOrNull<ID3D12Debug2>();
+                        if (d3d12Debug1 != null)
                         {
-                            d3d12Debug2.Get()->SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS_NONE);
+                            d3d12Debug2.SetGPUBasedValidationFlags(GpuBasedValidationFlags.None);
+                            d3d12Debug2.Dispose();
                         }
                     }
+
+                    d3d12Debug.Dispose();
                 }
                 else
                 {
@@ -84,158 +64,132 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
                 }
 
 #if DEBUG
-                using ComPtr<IDXGIInfoQueue> dxgiInfoQueue = default;
-
-                if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIInfoQueue>(), dxgiInfoQueue.GetVoidAddressOf())))
+                if (DXGIGetDebugInterface1(out IDXGIInfoQueue? dxgiInfoQueue).Success)
                 {
-                    dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, TRUE);
-                    dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+                    debugDXGI = true;
 
-                    ReadOnlySpan<int> hide = stackalloc int[]
+                    dxgiInfoQueue!.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Error, true);
+                    dxgiInfoQueue.SetBreakOnSeverity(DebugAll, InfoQueueMessageSeverity.Corruption, true);
+
+                    int[] hide = new int[]
                     {
                         80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
                     };
 
-                    fixed (int* pIDList = hide)
+                    DXGI.Debug.InfoQueueFilter filter = new()
                     {
-                        DXGI_INFO_QUEUE_FILTER filter = new()
+                        DenyList = new()
                         {
-                            DenyList = new()
-                            {
-                                NumIDs = (uint)hide.Length,
-                                pIDList = pIDList
-                            }
-                        };
+                            Ids = hide,
+                        }
+                    };
 
-                        dxgiInfoQueue.Get()->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
-                    }
+                    dxgiInfoQueue.AddStorageFilterEntries(DebugDxgi, filter);
+                    dxgiInfoQueue.Dispose();
                 }
 #endif
             }
 
-            CreateDXGIFactory2(factoryFlags, __uuidof<IDXGIFactory4>(), _dxgiFactory4.GetVoidAddressOf()).Assert();
+            DXGIFactory = CreateDXGIFactory2<IDXGIFactory4>(debugDXGI);
 
             // Check tearing support
+            IDXGIFactory5? dxgiFactory5 = DXGIFactory.QueryInterfaceOrNull<IDXGIFactory5>();
+            if (dxgiFactory5 != null)
             {
-                using ComPtr<IDXGIFactory5> dxgiFactory5 = default;
-                if (SUCCEEDED(_dxgiFactory4.CopyTo(dxgiFactory5.GetAddressOf())))
-                {
-                    int allowTearing = FALSE;
-                    if (FAILED(dxgiFactory5.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, (uint)sizeof(int)))
-                        && allowTearing == FALSE)
-                    {
-                        IsTearingSupported = false;
-                    }
-                    else
-                    {
-                        IsTearingSupported = true;
-                    }
-                }
+                IsTearingSupported = dxgiFactory5.PresentAllowTearing;
+                dxgiFactory5.Dispose();
             }
         }
 
         // Get adapter and create device
         {
-            using ComPtr<IDXGIFactory6> dxgiFactory6 = default;
-            if (SUCCEEDED(_dxgiFactory4.CopyTo(dxgiFactory6.GetAddressOf())))
+            IDXGIFactory6? dxgiFactory6 = DXGIFactory.QueryInterfaceOrNull<IDXGIFactory6>();
+            if (dxgiFactory6 != null)
             {
-                using ComPtr<IDXGIAdapter1> dxgiAdapter1 = default;
-
-                for (uint adapterIndex = 0;
-                    dxgiFactory6.Get()->EnumAdapterByGpuPreference(adapterIndex,
-                        powerPreference == GpuPowerPreference.HighPerformance ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER,
-                        __uuidof<IDXGIAdapter1>(),
-                        dxgiAdapter1.GetVoidAddressOf()) != DXGI_ERROR_NOT_FOUND;
+                for (int adapterIndex = 0;
+                    dxgiFactory6.EnumAdapterByGpuPreference(adapterIndex,
+                        powerPreference == GpuPowerPreference.HighPerformance ? GpuPreference.HighPerformance : GpuPreference.MinimumPower,
+                        out Adapter).Code != (int)Vortice.DXGI.ResultCode.NotFound;
                     adapterIndex++)
                 {
-                    DXGI_ADAPTER_DESC1 adapterDesc;
-                    dxgiAdapter1.Get()->GetDesc1(&adapterDesc).Assert();
+                    AdapterDescription1 desc = Adapter!.Description1;
 
-                    if (((DXGI_ADAPTER_FLAG)adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == DXGI_ADAPTER_FLAG_SOFTWARE)
+                    if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
                     {
                         // Don't select the Basic Render Driver adapter.
+                        Adapter.Dispose();
                         continue;
                     }
 
-                    using ComPtr<ID3D12Device2> d3dDevice = default;
-
-                    if (SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.AsIUnknown().Get(),
-                        MinFeatureLevel,
-                        __uuidof<ID3D12Device2>(),
-                        d3dDevice.GetVoidAddressOf())))
+                    if (D3D12CreateDevice(Adapter, MinFeatureLevel, out ID3D12Device2? device).Success)
                     {
-                        _adapter = dxgiAdapter1.Move();
-                        _handle = d3dDevice.Move();
+                        NativeDevice = device!;
                         break;
                     }
                 }
             }
             else
             {
-                using ComPtr<IDXGIAdapter1> dxgiAdapter1 = default;
-
-                for (uint adapterIndex = 0; _dxgiFactory4.Get()->EnumAdapters1(adapterIndex, dxgiAdapter1.GetAddressOf()) != DXGI_ERROR_NOT_FOUND; adapterIndex++)
+                for (int adapterIndex = 0;
+                    DXGIFactory.EnumAdapters1(adapterIndex, out Adapter).Code != (int)Vortice.DXGI.ResultCode.NotFound; adapterIndex++)
                 {
-                    DXGI_ADAPTER_DESC1 adapterDesc;
-                    dxgiAdapter1.Get()->GetDesc1(&adapterDesc).Assert();
+                    AdapterDescription1 desc = Adapter!.Description1;
 
-                    if (((DXGI_ADAPTER_FLAG)adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == DXGI_ADAPTER_FLAG_SOFTWARE)
+                    if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
                     {
                         // Don't select the Basic Render Driver adapter.
+                        Adapter.Dispose();
                         continue;
                     }
 
-                    using ComPtr<ID3D12Device2> d3dDevice = default;
-
-                    if (SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.AsIUnknown().Get(),
-                        MinFeatureLevel,
-                        __uuidof<ID3D12Device2>(),
-                        d3dDevice.GetVoidAddressOf())))
+                    if (D3D12CreateDevice(Adapter, MinFeatureLevel, out ID3D12Device2? device).Success)
                     {
-                        _adapter = dxgiAdapter1.Move();
-                        _handle = d3dDevice.Move();
+                        NativeDevice = device!;
                         break;
                     }
                 }
             }
         }
 
+        if (NativeDevice == null)
+        {
+            throw new GraphicsException("No Direct3D 12 device found");
+        }
+
         // Configure debug device (if active).
         if (validationMode != ValidationMode.Disabled)
         {
-            using ComPtr<ID3D12InfoQueue> d3d12InfoQueue = default;
-
-            if (SUCCEEDED(_handle.CopyTo(d3d12InfoQueue.GetAddressOf())))
+            ID3D12InfoQueue? d3d12InfoQueue = NativeDevice.QueryInterfaceOrNull<ID3D12InfoQueue>();
+            if (d3d12InfoQueue != null)
             {
 #if DEBUG
-                d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
-                d3d12InfoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+                d3d12InfoQueue.SetBreakOnSeverity(MessageSeverity.Corruption, true);
+                d3d12InfoQueue.SetBreakOnSeverity(MessageSeverity.Error, true);
 #endif
-                ReadOnlySpan<D3D12_MESSAGE_ID> hide = stackalloc D3D12_MESSAGE_ID[]
+                MessageId[] hide = new MessageId[]
                 {
-                    D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
-                    D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
-                    D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-                    D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-                    D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE
+                    MessageId.ClearRenderTargetViewMismatchingClearValue,
+                    MessageId.ClearDepthStencilViewMismatchingClearValue,
+                    MessageId.MapInvalidNullRange,
+                    MessageId.UnmapInvalidNullRange,
+                    MessageId.ExecuteCommandListsWrongSwapChainBufferReference,
+                    MessageId.ResourceBarrierMismatchingCommandListType,
                 };
 
-                fixed (D3D12_MESSAGE_ID* pIDList = hide)
+                Direct3D12.Debug.InfoQueueFilter filter = new()
                 {
-                    D3D12_INFO_QUEUE_FILTER filter = new()
+                    DenyList = new()
                     {
-                        DenyList = new()
-                        {
-                            NumIDs = (uint)hide.Length,
-                            pIDList = pIDList
-                        }
-                    };
+                        Ids = hide,
+                    }
+                };
 
-                    d3d12InfoQueue.Get()->AddStorageFilterEntries(&filter);
-                }
+                d3d12InfoQueue.AddStorageFilterEntries(filter);
+
 
                 // Break on DEVICE_REMOVAL_PROCESS_AT_FAULT
-                d3d12InfoQueue.Get()->SetBreakOnID(D3D12_MESSAGE_ID_DEVICE_REMOVAL_PROCESS_AT_FAULT, TRUE);
+                d3d12InfoQueue.SetBreakOnID(MessageId.DeviceRemovalProcessAtFault, true);
+                d3d12InfoQueue.Dispose();
             }
         }
 
@@ -244,46 +198,38 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
         //    NativeDevice->SetName(name);
         //}
 
-        // Create allocator.
-        D3D12MA_ALLOCATOR_DESC allocatorDesc = default;
-        allocatorDesc.pDevice = (ID3D12Device*)_handle.Get();
-        allocatorDesc.pAdapter = (IDXGIAdapter*)_adapter.Get();
-        HRESULT hr = D3D12MemAlloc.D3D12MA_CreateAllocator(&allocatorDesc, _allocator.GetAddressOf());
-        hr.Assert();
-
         // Create queues
         _queues[(int)CommandQueueType.Graphics] = new D3D12Queue(this, CommandQueueType.Graphics);
         _queues[(int)CommandQueueType.Compute] = new D3D12Queue(this, CommandQueueType.Compute);
 
         // Init capabilites.
         {
-            DXGI_ADAPTER_DESC1 adapterDesc;
-            Adapter->GetDesc1(&adapterDesc).Assert();
+            AdapterDescription1 adapterDesc = Adapter.Description1;
 
             // Init capabilites.
             VendorId = (GpuVendorId)adapterDesc.VendorId;
-            AdapterId = adapterDesc.DeviceId;
+            AdapterId = (uint)adapterDesc.DeviceId;
 
-            if (((DXGI_ADAPTER_FLAG)adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == DXGI_ADAPTER_FLAG_SOFTWARE)
+            if ((adapterDesc.Flags & AdapterFlags.Software) != AdapterFlags.Software)
             {
                 AdapterType = GpuAdapterType.CPU;
             }
             else
             {
-                D3D12_FEATURE_DATA_ARCHITECTURE1 architecture1 = _handle.Get()->CheckFeatureSupport<D3D12_FEATURE_DATA_ARCHITECTURE1>(D3D12_FEATURE_ARCHITECTURE1);
+                FeatureDataArchitecture1 architecture1 = NativeDevice.Architecture1;
 
-                AdapterType = architecture1.UMA == TRUE ? GpuAdapterType.IntegratedGPU : GpuAdapterType.DiscreteGPU;
-                IsCacheCoherentUMA = architecture1.CacheCoherentUMA == TRUE;
+                AdapterType = architecture1.Uma ? GpuAdapterType.IntegratedGPU : GpuAdapterType.DiscreteGPU;
+                IsCacheCoherentUMA = architecture1.CacheCoherentUMA;
             }
 
 
-            AdapterName = new string((char*)adapterDesc.Description);
+            AdapterName = adapterDesc.Description;
 
-            D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureDataOptions1 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(D3D12_FEATURE_D3D12_OPTIONS1);
-            D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureDataOptions5 = NativeDevice->CheckFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>(D3D12_FEATURE_D3D12_OPTIONS5);
+            FeatureDataD3D12Options1 featureDataOptions1 = NativeDevice.Options1;
+            FeatureDataD3D12Options5 featureDataOptions5 = NativeDevice.Options5;
 
             SupportsRenderPass = false;
-            if (featureDataOptions5.RenderPassesTier > D3D12_RENDER_PASS_TIER_0
+            if (featureDataOptions5.RenderPassesTier > RenderPassTier.Tier0
                 && adapterDesc.VendorId != (uint)GpuVendorId.Intel)
             {
                 SupportsRenderPass = true;
@@ -305,7 +251,7 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
                     TextureCompressionASTC_LDR = false,
                     TextureCompressionBC = true,
                     TextureCubeArray = true,
-                    Raytracing = featureDataOptions5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0
+                    Raytracing = featureDataOptions5.RaytracingTier >= RaytracingTier.Tier1_0
                 },
                 Limits = new GraphicsDeviceLimits
                 {
@@ -313,29 +259,29 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
                     MaxVertexBindings = 16,
                     MaxVertexAttributeOffset = 2047,
                     MaxVertexBindingStride = 2048,
-                    MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
-                    MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
-                    MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
-                    MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
-                    MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-                    MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
-                    MaxUniformBufferRange = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+                    MaxTextureDimension1D = RequestTexture1DUDimension,
+                    MaxTextureDimension2D = RequestTexture2DUOrVDimension,
+                    MaxTextureDimension3D = RequestTexture3DUVOrWDimension,
+                    MaxTextureDimensionCube = RequestTextureCubeDimension,
+                    MaxTextureArrayLayers = RequestTexture2DArrayAxisDimension,
+                    MaxColorAttachments = SimultaneousRenderTargetCount,
+                    MaxUniformBufferRange = RequestConstantBufferElementCount * 16,
                     MaxStorageBufferRange = uint.MaxValue,
-                    MinUniformBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
+                    MinUniformBufferOffsetAlignment = 256u,
                     MinStorageBufferOffsetAlignment = 16u,
-                    MaxSamplerAnisotropy = D3D12_MAX_MAXANISOTROPY,
-                    MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-                    MaxViewportWidth = D3D12_VIEWPORT_BOUNDS_MAX,
-                    MaxViewportHeight = D3D12_VIEWPORT_BOUNDS_MAX,
-                    MaxTessellationPatchSize = D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT,
-                    MaxComputeSharedMemorySize = D3D12_CS_THREAD_LOCAL_TEMP_REGISTER_POOL,
-                    MaxComputeWorkGroupCountX = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    MaxComputeWorkGroupCountY = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    MaxComputeWorkGroupCountZ = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-                    MaxComputeWorkGroupInvocations = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
-                    MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
-                    MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
-                    MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
+                    MaxSamplerAnisotropy = MaxMaxAnisotropy,
+                    MaxViewports = ViewportAndScissorRectObjectCountPerPipeline,
+                    MaxViewportWidth = ViewportBoundsMax,
+                    MaxViewportHeight = ViewportBoundsMax,
+                    MaxTessellationPatchSize = InputAssemblerPatchMaxControlPointCount,
+                    MaxComputeSharedMemorySize = ComputeShaderThreadLocalTempRegisterPool,
+                    MaxComputeWorkGroupCountX = ComputeShaderDispatchMaxThreadGroupsPerDimension,
+                    MaxComputeWorkGroupCountY = ComputeShaderDispatchMaxThreadGroupsPerDimension,
+                    MaxComputeWorkGroupCountZ = ComputeShaderDispatchMaxThreadGroupsPerDimension,
+                    MaxComputeWorkGroupInvocations = ComputeShaderThreadGroupMaxThreadsPerGroup,
+                    MaxComputeWorkGroupSizeX = ComputeShaderThreadGroupMaxX,
+                    MaxComputeWorkGroupSizeY = ComputeShaderThreadGroupMaxY,
+                    MaxComputeWorkGroupSizeZ = ComputeShaderThreadGroupMaxZ,
                 }
             };
         }
@@ -343,24 +289,14 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     private static bool CheckIsSupported()
     {
-        try
-        {
-            return SUCCEEDED(D3D12CreateDevice(null, MinFeatureLevel, null, null));
-        }
-        catch (DllNotFoundException)
-        {
-            return false;
-        }
+        return D3D12.IsSupported(IntPtr.Zero, MinFeatureLevel);
     }
 
-    public IDXGIFactory4* DXGIFactory => _dxgiFactory4;
-    public IDXGIAdapter1* Adapter => _adapter;
+    internal readonly IDXGIFactory4 DXGIFactory;
+    internal readonly IDXGIAdapter1 Adapter;
 
-    public bool IsTearingSupported { get; private set; }
-
-    public ID3D12Device2* NativeDevice => _handle;
-
-    internal D3D12MA_Allocator* Allocator => _allocator;
+    internal readonly bool IsTearingSupported;
+    internal readonly ID3D12Device2 NativeDevice;
 
     internal D3D12Queue GetQueue(CommandQueueType type = CommandQueueType.Graphics) => _queues[(int)type];
 
@@ -394,44 +330,30 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
             _queues[i]?.Dispose();
         }
 
-        // Allocator.
-        {
-            D3D12MA_Stats stats;
-            _allocator.Get()->CalculateStats(&stats);
-
-            if (stats.Total.UsedBytes > 0)
-            {
-                //LOGI("Total device memory leaked: {} bytes.", stats.Total.UsedBytes);
-            }
-
-            _allocator.Dispose();
-        }
-
 #if DEBUG
-        uint refCount = _handle.Get()->Release();
+        uint refCount = NativeDevice.Release();
         if (refCount > 0)
         {
             System.Diagnostics.Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
-            using ComPtr<ID3D12DebugDevice> d3d12DebugDevice = default;
-            if (SUCCEEDED(_handle.CopyTo(d3d12DebugDevice.GetAddressOf())))
+            ID3D12DebugDevice? d3d12DebugDevice = NativeDevice.QueryInterfaceOrNull<ID3D12DebugDevice>();
+            if (d3d12DebugDevice != null)
             {
-                d3d12DebugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+                d3d12DebugDevice.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail | ReportLiveDeviceObjectFlags.IgnoreInternal);
+                d3d12DebugDevice.Dispose();
             }
         }
 #else
             _handle.Dispose();
 #endif
-        _adapter.Dispose();
-        _dxgiFactory4.Dispose();
-
+        Adapter.Dispose();
+        DXGIFactory.Dispose();
 
 #if DEBUG
-        using ComPtr<IDXGIDebug1> dxgiDebug1 = default;
-
-        if (SUCCEEDED(DXGIGetDebugInterface1(0, __uuidof<IDXGIDebug1>(), dxgiDebug1.GetVoidAddressOf())))
+        if (DXGIGetDebugInterface1(out IDXGIDebug1? dxgiDebug1).Success)
         {
-            dxgiDebug1.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+            dxgiDebug1!.ReportLiveObjects(DebugAll, ReportLiveObjectFlags.Summary | ReportLiveObjectFlags.IgnoreInternal);
+            dxgiDebug1.Dispose();
         }
 #endif
     }

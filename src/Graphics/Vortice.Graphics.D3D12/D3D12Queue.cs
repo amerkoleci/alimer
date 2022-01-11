@@ -1,60 +1,48 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.Windows;
-using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
-using static TerraFX.Interop.DirectX.D3D12_FENCE_FLAGS;
+using Vortice.Direct3D12;
 
 namespace Vortice.Graphics;
 
 internal unsafe class D3D12Queue
 {
-    private readonly ComPtr<ID3D12CommandQueue> _handle;
-    private readonly ComPtr<ID3D12Fence> _fence;
-    private readonly HANDLE _fenceEventHandle;
+    private readonly ID3D12Fence _fence;
+    private readonly AutoResetEvent _fenceEvent;
     private ulong _nextFenceValue = 0;
     private ulong _lastCompletedFenceValue = 0;
 
     public D3D12Queue(D3D12GraphicsDevice device, CommandQueueType type)
     {
-        D3D12_COMMAND_QUEUE_DESC d3D12CommandQueueDesc;
-        d3D12CommandQueueDesc.Type = type.ToD3D12();
-        d3D12CommandQueueDesc.Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        d3D12CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        d3D12CommandQueueDesc.NodeMask = 0;
-
-        device.NativeDevice->CreateCommandQueue(
-            &d3D12CommandQueueDesc,
-            __uuidof<ID3D12CommandQueue>(),
-            _handle.GetVoidAddressOf()).Assert();
-
-        _handle.Get()->SetName($"{type} Command Queue");
-
-        device.NativeDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof<ID3D12Fence>(), _fence.GetVoidAddressOf()).Assert();
-        _fenceEventHandle = CreateEventExW(lpEventAttributes: null, lpName: null, dwFlags: 0, dwDesiredAccess: EVENT.EVENT_MODIFY_STATE | SYNCHRONIZE);
-        if (_fenceEventHandle == HANDLE.NULL)
+        CommandQueueDescription queueDesc = new CommandQueueDescription
         {
-            //ThrowForLastError(nameof(CreateEventW));
-        }
+            Type = type.ToD3D12(),
+            Priority = (int)CommandQueuePriority.Normal,
+            Flags = CommandQueueFlags.None,
+            NodeMask = 0
+        };
+
+        Handle = device.NativeDevice.CreateCommandQueue(queueDesc);
+        Handle.Name = $"{type} Command Queue";
+
+        _fence = device.NativeDevice.CreateFence(0);
+        _fenceEvent = new AutoResetEvent(false);
     }
 
-    public ID3D12CommandQueue* Handle => _handle;
+    public ID3D12CommandQueue Handle { get; }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        CloseHandle(_fenceEventHandle);
+        _fenceEvent.Dispose();
         _fence.Dispose();
-        _handle.Dispose();
+        Handle.Dispose();
     }
 
     public ulong Signal()
     {
         //std::lock_guard<std::mutex> LockGuard(m_FenceMutex);
-        _handle.Get()->Signal(_fence.Get(), _nextFenceValue);
+        Handle.Signal(_fence, _nextFenceValue);
         return _nextFenceValue++;
     }
 
@@ -68,8 +56,8 @@ internal unsafe class D3D12Queue
         {
             //std::lock_guard<std::mutex> LockGuard(m_EventMutex);
 
-            _fence.Get()->SetEventOnCompletion(fenceValue, _fenceEventHandle);
-            WaitForSingleObject(_fenceEventHandle, INFINITE);
+            _fence.SetEventOnCompletion(fenceValue, _fenceEvent);
+            _fenceEvent.WaitOne();
             _lastCompletedFenceValue = fenceValue;
         }
     }
@@ -86,7 +74,7 @@ internal unsafe class D3D12Queue
         // completed fence value to regress.
         if (fenceValue > _lastCompletedFenceValue)
         {
-            _lastCompletedFenceValue = Math.Max(_lastCompletedFenceValue, _fence.Get()->GetCompletedValue());
+            _lastCompletedFenceValue = Math.Max(_lastCompletedFenceValue, _fence.CompletedValue);
         }
 
         return fenceValue <= _lastCompletedFenceValue;

@@ -24,7 +24,7 @@ internal static partial class D3DUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Format ToDXGIFormat(this TextureFormat format)
+    public static Format ToDXGIFormat(TextureFormat format)
     {
         return format switch
         {
@@ -101,7 +101,7 @@ internal static partial class D3DUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Format GetTypelessFormatFromDepthFormat(this TextureFormat format)
+    public static Format GetTypelessFormatFromDepthFormat(TextureFormat format)
     {
         switch (format)
         {
@@ -121,7 +121,7 @@ internal static partial class D3DUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int ToD3D(this TextureSampleCount sampleCount)
+    public static int ToD3D(TextureSampleCount sampleCount)
     {
         return sampleCount switch
         {

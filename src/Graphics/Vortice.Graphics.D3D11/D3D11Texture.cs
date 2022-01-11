@@ -3,6 +3,7 @@
 
 using Microsoft.Toolkit.Diagnostics;
 using Vortice.Direct3D11;
+using static Vortice.Graphics.D3DUtils;
 
 namespace Vortice.Graphics;
 
@@ -17,8 +18,8 @@ internal unsafe class D3D11Texture : Texture
             Height = descriptor.Height,
             ArraySize = descriptor.DepthOrArraySize,
             MipLevels = descriptor.MipLevels,
-            Format = descriptor.Format.ToDXGIFormat(),
-            SampleDescription = new(descriptor.SampleCount.ToD3D(), 0),
+            Format = ToDXGIFormat(descriptor.Format),
+            SampleDescription = new(ToD3D(descriptor.SampleCount), 0),
         };
 
         if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
@@ -32,7 +33,7 @@ internal unsafe class D3D11Texture : Texture
             if ((descriptor.Usage & TextureUsage.ShaderRead) != 0
                 || (descriptor.Usage & TextureUsage.ShaderWrite) != 0)
             {
-                texture2DDesc.Format = descriptor.Format.GetTypelessFormatFromDepthFormat();
+                texture2DDesc.Format = GetTypelessFormatFromDepthFormat(descriptor.Format);
             }
         }
 
