@@ -5,5 +5,5 @@ namespace Vortice.Assets;
 
 public interface IAssetImporter
 {
-    Task<Asset> Import(string source);
+    Task<Asset> Import(string source, IServiceProvider services);
 }

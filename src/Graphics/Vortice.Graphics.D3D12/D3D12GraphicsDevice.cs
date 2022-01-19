@@ -344,7 +344,7 @@ public unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 #else
-            _handle.Dispose();
+        NativeDevice.Dispose();
 #endif
         Adapter.Dispose();
         DXGIFactory.Dispose();

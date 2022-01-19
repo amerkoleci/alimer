@@ -5,4 +5,5 @@ namespace Vortice.Assets;
 
 public abstract class AssetWithSource : Asset
 {
+    public string Source { get; set; } = string.Empty;
 }
