@@ -1,17 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
-    <RepositoryRootDirectory>$(MSBuildThisFileDirectory)</RepositoryRootDirectory>
-    <BinDir>$(RepositoryRootDirectory)bin</BinDir>
-    <OutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)bin\$(Configuration)'))\$(MSBuildProjectName)</OutputPath>
-    <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)bin\obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
-    <PackageOutputPath>$(BinDir)/packages</PackageOutputPath>
-  </PropertyGroup>
-  
-  <PropertyGroup>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta1</VersionSuffix>
-
     <LangVersion>10.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -24,13 +13,17 @@
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 
-    <Company>Amer Koleci</Company>
-    <Copyright>Copyright © 2021-2022 Amer Koleci and Contributors</Copyright>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Product>Vortice</Product>
+    <Authors>Amer Koleci</Authors>
+    <Owners>amerkoleci</Owners>
+    <NeutralLanguage>en</NeutralLanguage>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/amerkoleci/vortice.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/amerkoleci/vortice</PackageProjectUrl>
-    <PackageTags>dotnet net netcore netstandard csharp library graphics shader hlsl gamedev compute gpu vortice</PackageTags>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright © 2021-2022 Amer Koleci and Contributors</Copyright>
+    <PackageVersion>0.1.0-alpha1</PackageVersion>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)packages</PackageOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

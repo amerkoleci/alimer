@@ -20,8 +20,16 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Install NuGet
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: '5.x'
+
+    - name: NuGet Restore
+      run: nuget restore Vortice.sln
+
     - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.3
+      uses: microsoft/setup-msbuild@v1.1
 
     - name: Setup .NET 6 SDK
       uses: actions/setup-dotnet@v1
@@ -29,19 +37,20 @@ jobs:
         dotnet-version: 6.0.x
 
     - name: Build
-      run: msbuild -t:restore,build,pack /p:Configuration=Release /p:ContinuousIntegrationBuild=True
+      run: msbuild -t:build,pack /verbosity:normal /t:Rebuild /p:Configuration=Release
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: Packages
-        path: bin/packages
+        path: "*.nupkg"
 
     - name: Publish to NuGet
       if: github.event_name == 'push'
       run: |      
           if ( "${{github.ref}}" -match "^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$" ) {
-              dotnet nuget push bin/packages/**/*.nupkg -s "https://api.nuget.org/v3/index.json" -k ${{secrets.NUGET_TOKEN}} --skip-duplicate
+              dotnet nuget push "*.nupkg" -k ${{secrets.NUGET_TOKEN}} --skip-duplicate --source https://api.nuget.org/v3/index.json
           } else {
               echo "publish is only enabled by tagging with a release tag"
           }
+      working-directory: .
