@@ -28,6 +28,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer", "src\Alimer\Alimer
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Tests", "tests\Alimer.Tests\Alimer.Tests.csproj", "{F797B201-801E-4786-9C7E-C5B9929BCD57}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Samples", "samples\Alimer.Samples\Alimer.Samples.csproj", "{351AA2B8-1343-49BF-9E34-DECB218C8505}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,12 +44,17 @@ Global
 		{F797B201-801E-4786-9C7E-C5B9929BCD57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F797B201-801E-4786-9C7E-C5B9929BCD57}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F797B201-801E-4786-9C7E-C5B9929BCD57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F797B201-801E-4786-9C7E-C5B9929BCD57} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
+		{351AA2B8-1343-49BF-9E34-DECB218C8505} = {446FAFB5-D0FC-4A98-BEDF-7967B7C200E0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F91C04E-B42E-4037-8FF3-A9C768E70094}

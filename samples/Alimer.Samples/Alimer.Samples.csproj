@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Alimer.Samples</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishAot>true</PublishAot>
+    <StripSymbols>true</StripSymbols>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!--<DebuggerSupport>false</DebuggerSupport>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>-->
+    <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+    <IlcDisableReflection>false</IlcDisableReflection>
+    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+  </PropertyGroup>
+
+  <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+
+  <!-- Native Dependencies-->
+  <ItemGroup>
+    <None Include="$(AlimerSrcDirectory)Alimer\runtimes\win-x64\native\vgpu.dll" Link="vgpu.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+    <!--<None Include="$(AlimerSrcDirectory)Alimer\runtimes\win-x64\native\alimer_image.dll" Link="alimer_image.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Alimer\Alimer.csproj" />
+  </ItemGroup>
+
+</Project>

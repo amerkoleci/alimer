@@ -23,5 +23,39 @@ internal static class VGPUUtils
                 throw new InvalidOperationException();
         }
     }
+
+    public static VGPUValidationMode ToVGPU(this ValidationMode value)
+    {
+        switch (value)
+        {
+            case ValidationMode.Disabled:
+                return VGPUValidationMode.Disabled;
+            case ValidationMode.Enabled:
+                return VGPUValidationMode.Enabled;
+            case ValidationMode.Verbose:
+                return VGPUValidationMode.Verbose;
+            case ValidationMode.GPU:
+                return VGPUValidationMode.GPU;
+
+            default:
+                return VGPUValidationMode.Disabled;
+        }
+    }
+
+    public static VGPUPowerPreference ToVGPU(this GpuPowerPreference value)
+    {
+        switch (value)
+        {
+            case GpuPowerPreference.Undefined:
+                return VGPUPowerPreference.Undefined;
+            case GpuPowerPreference.LowPower:
+                return VGPUPowerPreference.LowPower;
+            case GpuPowerPreference.HighPerformance:
+                return VGPUPowerPreference.HighPerformance;
+
+            default:
+                return VGPUPowerPreference.Undefined;
+        }
+    }
 }
 

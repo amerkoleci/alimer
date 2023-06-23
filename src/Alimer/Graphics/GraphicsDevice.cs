@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Alimer.Graphics.VGPU;
 using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.VGPU.VGPU;
+using static Alimer.Graphics.VGPU.VGPUUtils;
 
 using static Alimer.Utilities.MarshalUtilities;
 
@@ -21,19 +22,31 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
         vgpuSetLogCallback(_logCallback, 0);
     }
 
-    public GraphicsDevice()
+    public GraphicsDevice(in GraphicsDeviceDescription description)
     {
-        VGPUDeviceDescriptor deviceDesc = new();
-        //deviceDesc.label = "test device";
-#if DEBUG
-        deviceDesc.validationMode = VGPUValidationMode.Enabled;
-#endif
+        VGPUDeviceDescriptor deviceDesc = new()
+        {
+            //deviceDesc.label = "test device";
+            preferredBackend = description.PreferredBackend.ToVGPU(),
+            validationMode = description.ValidationMode.ToVGPU(),
+            powerPreference = description.PowerPreference.ToVGPU(),
+        };
 
         Handle = vgpuCreateDevice(&deviceDesc);
         Guard.IsTrue(Handle.IsNotNull);
     }
 
     internal VGPUDevice Handle { get; }
+
+    /// <summary>
+    /// Get the device backend type.
+    /// </summary>
+    public GraphicsBackendType Backend { get; }
+
+    /// <summary>
+    /// Gets the device validation mode.
+    /// </summary>
+    public ValidationMode ValidationMode { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="GraphicsDevice" /> class.
@@ -46,6 +59,8 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
         if (disposing)
         {
             WaitIdle();
+
+            vgpuDestroyDevice(Handle);
         }
     }
 
@@ -54,12 +69,19 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     public void WaitIdle() => vgpuWaitIdle(Handle);
 
+    public static bool IsBackendSupport(GraphicsBackendType backend)
+    {
+        Guard.IsTrue(backend != GraphicsBackendType.Count, nameof(backend), "Invalid backend");
+
+        return vgpuIsBackendSupported(backend.ToVGPU());
+    }
+
 #if NET6_0_OR_GREATER
-    //[UnmanagedCallersOnly]
+        //[UnmanagedCallersOnly]
 #else
     [MonoPInvokeCallback(typeof(VGPULogCallbackDelegate))]
 #endif
-    private static void OnLogNative(VGPULogLevel level, sbyte* pMessage, nint userData)
+        private static void OnLogNative(VGPULogLevel level, sbyte* pMessage, nint userData)
     {
         string message = GetUtf8Span(pMessage).GetString()!;
 
@@ -75,10 +97,5 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
                 Log.Info(message);
                 break;
         }
-
-        //if (_logCallback != null)
-        //{
-        //    _logCallback(level, new string(message));
-        //}
     }
 }
