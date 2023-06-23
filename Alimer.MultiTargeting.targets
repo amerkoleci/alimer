@@ -1,0 +1,36 @@
+<Project>
+  <ItemGroup>
+    <Compile Remove="Platforms\**\*.cs" />
+    <None Include="Platforms\**\*.cs" />
+  </ItemGroup>
+
+  <!-- Standard -->
+  <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
+    <None Remove="Platforms\Standard\**\*.cs" />
+    <Compile Include="Platforms\Standard\**\*.cs" />
+  </ItemGroup>
+
+  <!-- Windows/WinUI -->
+  <ItemGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
+    <None Remove="Platforms\Windows\**\*.cs" />
+    <Compile Include="Platforms\Windows\**\*.cs" />
+  </ItemGroup>
+  
+  <!-- Windows -->
+  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' ">
+    <DefineConstants>WINDOWS;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard2')) ">
+    <PackageReference Include="System.Numerics.Vectors" />
+  </ItemGroup>
+
+  <!-- WinUI -->
+  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
+    <UseWinUI>true</UseWinUI>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+  </ItemGroup>
+  
+</Project>

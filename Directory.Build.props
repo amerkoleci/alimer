@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <AlimerRootDirectory>$(MSBuildThisFileDirectory)</AlimerRootDirectory>
+    <AlimerSrcDirectory>$(MSBuildThisFileDirectory)src/</AlimerSrcDirectory>
+    <AlimerNativeDirectory>$(MSBuildThisFileDirectory)native/</AlimerNativeDirectory>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepositoryUrl>https://github.com/amerkoleci/alimer</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <!-- Version -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta</VersionSuffix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <MinClientVersion>4.3</MinClientVersion>
+    <!-- Local builds should embed PDBs so we never lose them when a subsequent build occurs. -->
+    <DebugType Condition=" '$(CI)' != 'true' and '$(TF_BUILD)' != 'true' ">embedded</DebugType>
+    <Features>strict</Features>
+    <AnalysisLevel>preview</AnalysisLevel>
+    <RestoreConfigFile>$(MSBuildThisFileDirectory)NuGet.config</RestoreConfigFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Amer Koleci and Contributors</Authors>
+    <Copyright>Copyright © Amer Koleci and Contributors</Copyright>
+    <Product>Alimer</Product>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts/</PackageOutputPath>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_RUN_ID)' != ''">true</ContinuousIntegrationBuild>
+    <UseSharedCompilation>true</UseSharedCompilation>
+  </PropertyGroup>
+
+  <!-- https://github.com/dotnet/sourcelink -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols Condition=" '$(DebugType)' != 'embedded' ">true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <_AlimerTargetPlatformIdentifier>$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)'))</_AlimerTargetPlatformIdentifier>
+    <_AlimerNoTargetPlatform>false</_AlimerNoTargetPlatform>
+    <_AlimerNoTargetPlatform Condition="'$(_AlimerTargetPlatformIdentifier)' == ''">True</_AlimerNoTargetPlatform>
+    <_AlimerTargetPlatformIsWindows>false</_AlimerTargetPlatformIsWindows>
+    <_AlimerTargetPlatformIsWindows Condition="$(_AlimerTargetPlatformIdentifier.Contains('windows')) == 'True'">True</_AlimerTargetPlatformIsWindows>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IncludeWindowsTargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows')) or '$(Packing)' == 'true'">true</IncludeWindowsTargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AlimerWindowsPlatforms Condition="'$(AlimerWindowsPlatforms)' == ''">net7.0-windows10.0.22621</AlimerWindowsPlatforms>
+
+    <AlimerPlatforms Condition="'$(IncludeWindowsTargetFrameworks)' == 'true'">$(AlimerWindowsPlatforms);$(AlimerPlatforms)</AlimerPlatforms>
+  </PropertyGroup>
+
+</Project>

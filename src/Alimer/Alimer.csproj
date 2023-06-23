@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
+  </PropertyGroup>
+
+  <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+
+  <ItemGroup>
+    <None Include="$(AlimerRootDirectory)/README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Diagnostics" />
+  </ItemGroup>
+
+</Project>

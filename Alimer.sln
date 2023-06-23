@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33815.320
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".root", ".root", "{AC691932-DC68-4533-843F-D015070BE454}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		Alimer.MultiTargeting.targets = Alimer.MultiTargeting.targets
+		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
+		Directory.Packages.props = Directory.Packages.props
+		global.json = global.json
+		LICENSE = LICENSE
+		NuGet.config = NuGet.config
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{6E75A307-8EA0-441A-9882-967B5048E707}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{446FAFB5-D0FC-4A98-BEDF-7967B7C200E0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3A53E2F8-A5FB-401A-AAA4-0845842B3614}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer", "src\Alimer\Alimer.csproj", "{31201AEE-DCE6-4784-ACB8-DF3EB7B2F999}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{31201AEE-DCE6-4784-ACB8-DF3EB7B2F999}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31201AEE-DCE6-4784-ACB8-DF3EB7B2F999}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31201AEE-DCE6-4784-ACB8-DF3EB7B2F999}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31201AEE-DCE6-4784-ACB8-DF3EB7B2F999}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2F91C04E-B42E-4037-8FF3-A9C768E70094}
+	EndGlobalSection
+EndGlobal

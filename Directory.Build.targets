@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Settings that append the existing setting value -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn)</NoWarn>
+  </PropertyGroup>
+
+  <!-- Settings that are only set for executables -->
+  <PropertyGroup Condition="'$(OutputType)' != 'Library' AND '$(UseWindowsForms)' != 'true'">
+    <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- Settings that are only set for libraries -->
+  <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <!-- Assembly attributes to include for every project -->
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) != 'True' ">
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>windows10.0.17763.0</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- platform version number information -->
+  <PropertyGroup Condition="'$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <ExtrasUwpMetaPackageVersion>6.2.14</ExtrasUwpMetaPackageVersion>
+  </PropertyGroup>
+
+</Project>
