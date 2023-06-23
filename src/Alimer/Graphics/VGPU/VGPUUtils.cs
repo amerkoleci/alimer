@@ -16,10 +16,29 @@ internal static class VGPUUtils
             case GraphicsBackendType.D3D11:
                 return VGPUBackend.D3D11;
 
+            case GraphicsBackendType.Count:
+                return VGPUBackend.Default;
+
             default:
             case GraphicsBackendType.Null:
             case GraphicsBackendType.Metal:
             case GraphicsBackendType.WebGPU:
+                throw new InvalidOperationException();
+        }
+    }
+
+    public static GraphicsBackendType FromVGPU(this VGPUBackend value)
+    {
+        switch (value)
+        {
+            case VGPUBackend.Vulkan:
+                return GraphicsBackendType.Vulkan;
+            case VGPUBackend.D3D12:
+                return GraphicsBackendType.D3D12;
+            case VGPUBackend.D3D11:
+                return GraphicsBackendType.D3D11;
+
+            default:
                 throw new InvalidOperationException();
         }
     }

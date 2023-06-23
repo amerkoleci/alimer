@@ -34,6 +34,8 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
 
         Handle = vgpuCreateDevice(&deviceDesc);
         Guard.IsTrue(Handle.IsNotNull);
+
+        Backend = vgpuGetBackend(Handle).FromVGPU();
     }
 
     internal VGPUDevice Handle { get; }
@@ -77,11 +79,11 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
     }
 
 #if NET6_0_OR_GREATER
-        //[UnmanagedCallersOnly]
+    //[UnmanagedCallersOnly]
 #else
     [MonoPInvokeCallback(typeof(VGPULogCallbackDelegate))]
 #endif
-        private static void OnLogNative(VGPULogLevel level, sbyte* pMessage, nint userData)
+    private static void OnLogNative(VGPULogLevel level, sbyte* pMessage, nint userData)
     {
         string message = GetUtf8Span(pMessage).GetString()!;
 
