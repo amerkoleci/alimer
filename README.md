@@ -1,6 +1,7 @@
 # Alimer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/amerkoleci/alimer/blob/main/LICENSE)
+[![Build status](https://github.com/amerkoleci/alimer/workflows/Build/badge.svg)](https://github.com/amerkoleci/alimer/actions)
 
 **Alimer** is a modern cross-platform .NET 7 game engine written in C# 11.
 

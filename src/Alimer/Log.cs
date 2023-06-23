@@ -211,12 +211,9 @@ public static class Log
         return condition;
     }
 
-    public static void Warn(
-        string message,
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+    public static void Warn(string message)
     {
-        LogInternal(LogLevel.Warn, message, callerFilePath, callerLineNumber);
+        LogInternal(LogLevel.Warn, message);
     }
 
     public static bool ErrorIf(
