@@ -6,6 +6,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Define a pixel format.
 /// </summary>
+/// <unmanaged>Equivalent to VGPUTextureFormat</unmanaged>
 public enum PixelFormat
 {
     Undefined = 0,

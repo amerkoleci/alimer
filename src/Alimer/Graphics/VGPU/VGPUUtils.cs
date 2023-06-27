@@ -76,5 +76,25 @@ internal static class VGPUUtils
                 return VGPUPowerPreference.Undefined;
         }
     }
+
+    public static GraphicsAdapterType FromVGPU(this VGPUAdapterType value)
+    {
+        switch (value)
+        {
+            case VGPUAdapterType.Other:
+                return GraphicsAdapterType.Other;
+            case VGPUAdapterType.IntegratedGPU:
+                return GraphicsAdapterType.IntegratedGPU;
+            case VGPUAdapterType.DiscreteGPU:
+                return GraphicsAdapterType.DiscreteGPU;
+            case VGPUAdapterType.VirtualGPU:
+                return GraphicsAdapterType.VirtualGPU;
+            case VGPUAdapterType.CPU:
+                return GraphicsAdapterType.CPU;
+
+            default:
+                throw new InvalidOperationException();
+        }
+    }
 }
 

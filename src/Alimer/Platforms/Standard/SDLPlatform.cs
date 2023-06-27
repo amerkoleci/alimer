@@ -77,7 +77,11 @@ internal unsafe class SDLPlatform : GamePlatform
         while (!_exitRequested)
         {
             PollEvents();
-            OnTick();
+
+            if (!_exitRequested)
+            {
+                OnTick();
+            }
         }
 
         SDL_Quit();
@@ -139,7 +143,7 @@ internal unsafe class SDLPlatform : GamePlatform
         _idLookup.Remove(windowID);
     }
 
-    #if SDL3
+#if SDL3
     private static void OnLog(SDL_LogCategory category, SDL_LogPriority priority, string message)
     {
         Log.Info($"SDL: {message}");

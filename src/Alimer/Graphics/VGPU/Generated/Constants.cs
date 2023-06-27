@@ -21,6 +21,16 @@ internal static partial class VGPU
 	public const uint VGPU_MAX_INFLIGHT_FRAMES = 2u;
 	/// <unmanaged>VGPU_MAX_COLOR_ATTACHMENTS</unmanaged>
 	public const uint VGPU_MAX_COLOR_ATTACHMENTS = 8u;
+	/// <unmanaged>VGPU_MAX_VERTEX_ATTRIBUTES</unmanaged>
+	public const uint VGPU_MAX_VERTEX_ATTRIBUTES = 16u;
 	/// <unmanaged>VGPU_WHOLE_SIZE</unmanaged>
 	public const ulong VGPU_WHOLE_SIZE = 0xffffffffffffffffUL;
+	/// <unmanaged>VGPU_NATIVE_D3D12Device</unmanaged>
+	public const uint VGPU_NATIVE_D3D12Device = 0x00020001;
+	/// <unmanaged>VGPU_NATIVE_VkDevice</unmanaged>
+	public const uint VGPU_NATIVE_VkDevice = 0x00030001;
+	/// <unmanaged>VGPU_NATIVE_VkPhysicalDevice</unmanaged>
+	public const uint VGPU_NATIVE_VkPhysicalDevice = 0x00030002;
+	/// <unmanaged>VGPU_NATIVE_VkInstance</unmanaged>
+	public const uint VGPU_NATIVE_VkInstance = 0x00030003;
 }

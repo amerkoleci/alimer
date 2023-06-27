@@ -18,7 +18,7 @@
     
     <!-- Engine -->
     <PackageVersion Include="ppy.SDL2-CS" Version="1.0.669-alpha" />
-    <PackageVersion Include="JoltPhysicsSharp" Version="1.7.2" />
+    <PackageVersion Include="JoltPhysicsSharp" Version="1.8.1" />
 
     <!-- Asset Pipeline -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />

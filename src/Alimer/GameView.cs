@@ -16,15 +16,15 @@ public abstract class GameView
     public abstract bool IsMinimized { get; }
     public abstract Size ClientSize { get; }
 
-    //public abstract SwapChainSurface Surface { get; }
-    //
-    //public SwapChain? SwapChain { get; private set; }
-    //
-    //public void CreateSwapChain(GraphicsDevice device)
-    //{
-    //    SwapChainDescriptor descriptor = new(ClientSize.Width, ClientSize.Height);
-    //    SwapChain = device.CreateSwapChain(Surface, descriptor);
-    //}
+    public abstract SwapChainSurface Surface { get; }
+    
+    public SwapChain? SwapChain { get; private set; }
+    
+    public void CreateSwapChain(GraphicsDevice device)
+    {
+        SwapChainDescription descriptor = new(ClientSize.Width, ClientSize.Height);
+        SwapChain = new(device, Surface, descriptor);
+    }
 
     protected virtual void OnSizeChanged()
     {

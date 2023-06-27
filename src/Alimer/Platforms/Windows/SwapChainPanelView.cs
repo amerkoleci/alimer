@@ -27,14 +27,14 @@ internal unsafe class SwapChainPanelView : GameView
     public override Size ClientSize => _clientSize;
 
     /// <inheritdoc />
-    //public override SwapChainSurface Surface { get; }
+    public override SwapChainSurface Surface { get; }
 
     public SwapChainPanelView(WindowsPlatform platform, SwapChainPanel swapChainPanel)
     {
         _platform = platform;
         _swapChainPanel = swapChainPanel;
         //CoreWindow coreWindow = Window.Current.CoreWindow;
-        //Surface = SwapChainSurface.CreateSwapChainPanel(swapChainPanel);
+        Surface = SwapChainSurface.CreateSwapChainPanel(swapChainPanel);
     }
 
     public void Show()

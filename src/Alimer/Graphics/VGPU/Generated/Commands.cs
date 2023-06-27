@@ -20,26 +20,35 @@ internal unsafe delegate void VGPULogCallback(VGPULogLevel level, sbyte* message
 
 internal unsafe partial class VGPU
 {
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetLogCallback")]
-	public static extern void vgpuSetLogCallback(VGPULogCallback func, nint userData);
+	private static delegate* unmanaged<VGPULogCallback, nint, void> vgpuSetLogCallback_ptr;
+	public static void vgpuSetLogCallback(VGPULogCallback func, nint userData)
+	{
+		vgpuSetLogCallback_ptr(func, userData);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsBackendSupported")]
-	public static extern VGPUBool32 vgpuIsBackendSupported(VGPUBackend backend);
+	private static delegate* unmanaged<VGPUBackend, VGPUBool32> vgpuIsBackendSupported_ptr;
+	public static VGPUBool32 vgpuIsBackendSupported(VGPUBackend backend)
+	{
+		return vgpuIsBackendSupported_ptr(backend);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateDevice")]
-	public static extern VGPUDevice vgpuCreateDevice(VGPUDeviceDescriptor* descriptor);
+	private static delegate* unmanaged<VGPUDeviceDescriptor*, VGPUDevice> vgpuCreateDevice_ptr;
+	public static VGPUDevice vgpuCreateDevice(VGPUDeviceDescriptor* descriptor)
+	{
+		return vgpuCreateDevice_ptr(descriptor);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDestroyDevice")]
-	public static extern void vgpuDestroyDevice(VGPUDevice device);
-
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDeviceSetLabel")]
-	public static extern void vgpuDeviceSetLabel(VGPUDevice device, sbyte* label);
+	private static delegate* unmanaged<VGPUDevice, sbyte*, void> vgpuDeviceSetLabel_ptr;
+	public static void vgpuDeviceSetLabel(VGPUDevice device, sbyte* label)
+	{
+		vgpuDeviceSetLabel_ptr(device, label);
+	}
 
 	public static void vgpuDeviceSetLabel(VGPUDevice device, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuDeviceSetLabel(device, pLabel);
+			vgpuDeviceSetLabel_ptr(device, pLabel);
 		}
 	}
 
@@ -48,50 +57,113 @@ internal unsafe partial class VGPU
 		vgpuDeviceSetLabel(device, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuWaitIdle")]
-	public static extern void vgpuWaitIdle(VGPUDevice device);
+	private static delegate* unmanaged<VGPUDevice, uint> vgpuDeviceAddRef_ptr;
+	public static uint vgpuDeviceAddRef(VGPUDevice device)
+	{
+		return vgpuDeviceAddRef_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuGetBackend")]
-	public static extern VGPUBackend vgpuGetBackend(VGPUDevice device);
+	private static delegate* unmanaged<VGPUDevice, uint> vgpuDeviceRelease_ptr;
+	public static uint vgpuDeviceRelease(VGPUDevice device)
+	{
+		return vgpuDeviceRelease_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuQueryFeature")]
-	public static extern VGPUBool32 vgpuQueryFeature(VGPUDevice device, VGPUFeature feature);
+	private static delegate* unmanaged<VGPUDevice, void> vgpuDeviceWaitIdle_ptr;
+	public static void vgpuDeviceWaitIdle(VGPUDevice device)
+	{
+		vgpuDeviceWaitIdle_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuGetAdapterProperties")]
-	public static extern void vgpuGetAdapterProperties(VGPUDevice device, VGPUAdapterProperties* properties);
+	private static delegate* unmanaged<VGPUDevice, VGPUBackend> vgpuDeviceGetBackend_ptr;
+	public static VGPUBackend vgpuDeviceGetBackend(VGPUDevice device)
+	{
+		return vgpuDeviceGetBackend_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuGetLimits")]
-	public static extern void vgpuGetLimits(VGPUDevice device, VGPULimits* limits);
+	private static delegate* unmanaged<VGPUDevice, VGPUFeature, VGPUBool32> vgpuDeviceQueryFeatureSupport_ptr;
+	public static VGPUBool32 vgpuDeviceQueryFeatureSupport(VGPUDevice device, VGPUFeature feature)
+	{
+		return vgpuDeviceQueryFeatureSupport_ptr(device, feature);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSubmit")]
-	public static extern ulong vgpuSubmit(VGPUDevice device, VGPUCommandBuffer* commandBuffers, uint count);
+	private static delegate* unmanaged<VGPUDevice, VGPUAdapterProperties*, void> vgpuDeviceGetAdapterProperties_ptr;
+	public static void vgpuDeviceGetAdapterProperties(VGPUDevice device, VGPUAdapterProperties* properties)
+	{
+		vgpuDeviceGetAdapterProperties_ptr(device, properties);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuGetFrameCount")]
-	public static extern ulong vgpuGetFrameCount(VGPUDevice device);
+	private static delegate* unmanaged<VGPUDevice, VGPULimits*, void> vgpuDeviceGetLimits_ptr;
+	public static void vgpuDeviceGetLimits(VGPUDevice device, VGPULimits* limits)
+	{
+		vgpuDeviceGetLimits_ptr(device, limits);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuGetFrameIndex")]
-	public static extern uint vgpuGetFrameIndex(VGPUDevice device);
+	private static delegate* unmanaged<VGPUDevice, VGPUCommandBuffer*, uint, ulong> vgpuDeviceSubmit_ptr;
+	public static ulong vgpuDeviceSubmit(VGPUDevice device, VGPUCommandBuffer* commandBuffers, uint count)
+	{
+		return vgpuDeviceSubmit_ptr(device, commandBuffers, count);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateBuffer")]
-	public static extern VGPUBuffer vgpuCreateBuffer(VGPUDevice device, VGPUBufferDescriptor* descriptor, void* initialData);
+	private static delegate* unmanaged<VGPUDevice, ulong> vgpuDeviceGetFrameCount_ptr;
+	public static ulong vgpuDeviceGetFrameCount(VGPUDevice device)
+	{
+		return vgpuDeviceGetFrameCount_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBufferGetSize")]
-	public static extern ulong vgpuBufferGetSize(VGPUBuffer buffer);
+	private static delegate* unmanaged<VGPUDevice, uint> vgpuDeviceGetFrameIndex_ptr;
+	public static uint vgpuDeviceGetFrameIndex(VGPUDevice device)
+	{
+		return vgpuDeviceGetFrameIndex_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBufferGetUsage")]
-	public static extern VGPUBufferUsage vgpuBufferGetUsage(VGPUBuffer buffer);
+	private static delegate* unmanaged<VGPUDevice, ulong> vgpuDeviceGetTimestampFrequency_ptr;
+	public static ulong vgpuDeviceGetTimestampFrequency(VGPUDevice device)
+	{
+		return vgpuDeviceGetTimestampFrequency_ptr(device);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBufferGetAddress")]
-	public static extern ulong vgpuBufferGetAddress(VGPUBuffer buffer);
+	private static delegate* unmanaged<VGPUDevice, uint, nint> vgpuDeviceGetNativeObject_ptr;
+	public static nint vgpuDeviceGetNativeObject(VGPUDevice device, uint objectType)
+	{
+		return vgpuDeviceGetNativeObject_ptr(device, objectType);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBufferSetLabel")]
-	public static extern void vgpuBufferSetLabel(VGPUBuffer buffer, sbyte* label);
+	private static delegate* unmanaged<VGPUDevice, VGPUBufferDesc*, void*, VGPUBuffer> vgpuCreateBuffer_ptr;
+	public static VGPUBuffer vgpuCreateBuffer(VGPUDevice device, VGPUBufferDesc* desc, void* initialData)
+	{
+		return vgpuCreateBuffer_ptr(device, desc, initialData);
+	}
+
+	private static delegate* unmanaged<VGPUBuffer, ulong> vgpuBufferGetSize_ptr;
+	public static ulong vgpuBufferGetSize(VGPUBuffer buffer)
+	{
+		return vgpuBufferGetSize_ptr(buffer);
+	}
+
+	private static delegate* unmanaged<VGPUBuffer, VGPUBufferUsage> vgpuBufferGetUsage_ptr;
+	public static VGPUBufferUsage vgpuBufferGetUsage(VGPUBuffer buffer)
+	{
+		return vgpuBufferGetUsage_ptr(buffer);
+	}
+
+	private static delegate* unmanaged<VGPUBuffer, ulong> vgpuBufferGetAddress_ptr;
+	public static ulong vgpuBufferGetAddress(VGPUBuffer buffer)
+	{
+		return vgpuBufferGetAddress_ptr(buffer);
+	}
+
+	private static delegate* unmanaged<VGPUBuffer, sbyte*, void> vgpuBufferSetLabel_ptr;
+	public static void vgpuBufferSetLabel(VGPUBuffer buffer, sbyte* label)
+	{
+		vgpuBufferSetLabel_ptr(buffer, label);
+	}
 
 	public static void vgpuBufferSetLabel(VGPUBuffer buffer, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuBufferSetLabel(buffer, pLabel);
+			vgpuBufferSetLabel_ptr(buffer, pLabel);
 		}
 	}
 
@@ -100,26 +172,47 @@ internal unsafe partial class VGPU
 		vgpuBufferSetLabel(buffer, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBufferAddRef")]
-	public static extern uint vgpuBufferAddRef(VGPUBuffer buffer);
+	private static delegate* unmanaged<VGPUBuffer, uint> vgpuBufferAddRef_ptr;
+	public static uint vgpuBufferAddRef(VGPUBuffer buffer)
+	{
+		return vgpuBufferAddRef_ptr(buffer);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBufferRelease")]
-	public static extern uint vgpuBufferRelease(VGPUBuffer buffer);
+	private static delegate* unmanaged<VGPUBuffer, uint> vgpuBufferRelease_ptr;
+	public static uint vgpuBufferRelease(VGPUBuffer buffer)
+	{
+		return vgpuBufferRelease_ptr(buffer);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateTexture")]
-	public static extern VGPUTexture vgpuCreateTexture(VGPUDevice device, VGPUTextureDesc* desc, void* initialData);
+	private static delegate* unmanaged<VGPUDevice, VGPUTextureDesc*, void*, VGPUTexture> vgpuCreateTexture_ptr;
+	public static VGPUTexture vgpuCreateTexture(VGPUDevice device, VGPUTextureDesc* desc, void* initialData)
+	{
+		return vgpuCreateTexture_ptr(device, desc, initialData);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuTextureGetDimension")]
-	public static extern VGPUTextureDimension vgpuTextureGetDimension(VGPUTexture texture);
+	private static delegate* unmanaged<VGPUTexture, VGPUTextureDimension> vgpuTextureGetDimension_ptr;
+	public static VGPUTextureDimension vgpuTextureGetDimension(VGPUTexture texture)
+	{
+		return vgpuTextureGetDimension_ptr(texture);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuTextureSetLabel")]
-	public static extern void vgpuTextureSetLabel(VGPUTexture texture, sbyte* label);
+	private static delegate* unmanaged<VGPUTexture, VGPUTextureFormat> vgpuTextureGetFormat_ptr;
+	public static VGPUTextureFormat vgpuTextureGetFormat(VGPUTexture texture)
+	{
+		return vgpuTextureGetFormat_ptr(texture);
+	}
+
+	private static delegate* unmanaged<VGPUTexture, sbyte*, void> vgpuTextureSetLabel_ptr;
+	public static void vgpuTextureSetLabel(VGPUTexture texture, sbyte* label)
+	{
+		vgpuTextureSetLabel_ptr(texture, label);
+	}
 
 	public static void vgpuTextureSetLabel(VGPUTexture texture, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuTextureSetLabel(texture, pLabel);
+			vgpuTextureSetLabel_ptr(texture, pLabel);
 		}
 	}
 
@@ -128,23 +221,35 @@ internal unsafe partial class VGPU
 		vgpuTextureSetLabel(texture, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuTextureAddRef")]
-	public static extern uint vgpuTextureAddRef(VGPUTexture texture);
+	private static delegate* unmanaged<VGPUTexture, uint> vgpuTextureAddRef_ptr;
+	public static uint vgpuTextureAddRef(VGPUTexture texture)
+	{
+		return vgpuTextureAddRef_ptr(texture);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuTextureRelease")]
-	public static extern uint vgpuTextureRelease(VGPUTexture texture);
+	private static delegate* unmanaged<VGPUTexture, uint> vgpuTextureRelease_ptr;
+	public static uint vgpuTextureRelease(VGPUTexture texture)
+	{
+		return vgpuTextureRelease_ptr(texture);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateSampler")]
-	public static extern VGPUSampler vgpuCreateSampler(VGPUDevice device, VGPUSamplerDesc* desc);
+	private static delegate* unmanaged<VGPUDevice, VGPUSamplerDesc*, VGPUSampler> vgpuCreateSampler_ptr;
+	public static VGPUSampler vgpuCreateSampler(VGPUDevice device, VGPUSamplerDesc* desc)
+	{
+		return vgpuCreateSampler_ptr(device, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSamplerSetLabel")]
-	public static extern void vgpuSamplerSetLabel(VGPUSampler sampler, sbyte* label);
+	private static delegate* unmanaged<VGPUSampler, sbyte*, void> vgpuSamplerSetLabel_ptr;
+	public static void vgpuSamplerSetLabel(VGPUSampler sampler, sbyte* label)
+	{
+		vgpuSamplerSetLabel_ptr(sampler, label);
+	}
 
 	public static void vgpuSamplerSetLabel(VGPUSampler sampler, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuSamplerSetLabel(sampler, pLabel);
+			vgpuSamplerSetLabel_ptr(sampler, pLabel);
 		}
 	}
 
@@ -153,29 +258,35 @@ internal unsafe partial class VGPU
 		vgpuSamplerSetLabel(sampler, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSamplerAddRef")]
-	public static extern uint vgpuSamplerAddRef(VGPUSampler sampler);
+	private static delegate* unmanaged<VGPUSampler, uint> vgpuSamplerAddRef_ptr;
+	public static uint vgpuSamplerAddRef(VGPUSampler sampler)
+	{
+		return vgpuSamplerAddRef_ptr(sampler);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSamplerRelease")]
-	public static extern uint vgpuSamplerRelease(VGPUSampler sampler);
+	private static delegate* unmanaged<VGPUSampler, uint> vgpuSamplerRelease_ptr;
+	public static uint vgpuSamplerRelease(VGPUSampler sampler)
+	{
+		return vgpuSamplerRelease_ptr(sampler);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateShaderModule")]
-	public static extern VGPUShaderModule vgpuCreateShaderModule(VGPUDevice device, void* code, nuint codeSize);
+	private static delegate* unmanaged<VGPUDevice, VGPUPipelineLayoutDesc*, VGPUPipelineLayout> vgpuCreatePipelineLayout_ptr;
+	public static VGPUPipelineLayout vgpuCreatePipelineLayout(VGPUDevice device, VGPUPipelineLayoutDesc* desc)
+	{
+		return vgpuCreatePipelineLayout_ptr(device, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDestroyShaderModule")]
-	public static extern void vgpuDestroyShaderModule(VGPUDevice device, VGPUShaderModule module);
-
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreatePipelineLayout")]
-	public static extern VGPUPipelineLayout vgpuCreatePipelineLayout(VGPUDevice device, VGPUPipelineLayoutDescriptor* descriptor);
-
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineLayoutSetLabel")]
-	public static extern void vgpuPipelineLayoutSetLabel(VGPUPipelineLayout pipelineLayout, sbyte* label);
+	private static delegate* unmanaged<VGPUPipelineLayout, sbyte*, void> vgpuPipelineLayoutSetLabel_ptr;
+	public static void vgpuPipelineLayoutSetLabel(VGPUPipelineLayout pipelineLayout, sbyte* label)
+	{
+		vgpuPipelineLayoutSetLabel_ptr(pipelineLayout, label);
+	}
 
 	public static void vgpuPipelineLayoutSetLabel(VGPUPipelineLayout pipelineLayout, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuPipelineLayoutSetLabel(pipelineLayout, pLabel);
+			vgpuPipelineLayoutSetLabel_ptr(pipelineLayout, pLabel);
 		}
 	}
 
@@ -184,32 +295,53 @@ internal unsafe partial class VGPU
 		vgpuPipelineLayoutSetLabel(pipelineLayout, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineLayoutAddRef")]
-	public static extern uint vgpuPipelineLayoutAddRef(VGPUPipelineLayout pipelineLayout);
+	private static delegate* unmanaged<VGPUPipelineLayout, uint> vgpuPipelineLayoutAddRef_ptr;
+	public static uint vgpuPipelineLayoutAddRef(VGPUPipelineLayout pipelineLayout)
+	{
+		return vgpuPipelineLayoutAddRef_ptr(pipelineLayout);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineLayoutRelease")]
-	public static extern uint vgpuPipelineLayoutRelease(VGPUPipelineLayout pipelineLayout);
+	private static delegate* unmanaged<VGPUPipelineLayout, uint> vgpuPipelineLayoutRelease_ptr;
+	public static uint vgpuPipelineLayoutRelease(VGPUPipelineLayout pipelineLayout)
+	{
+		return vgpuPipelineLayoutRelease_ptr(pipelineLayout);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateRenderPipeline")]
-	public static extern VGPUPipeline vgpuCreateRenderPipeline(VGPUDevice device, VGPURenderPipelineDescriptor* descriptor);
+	private static delegate* unmanaged<VGPUDevice, VGPURenderPipelineDesc*, VGPUPipeline> vgpuCreateRenderPipeline_ptr;
+	public static VGPUPipeline vgpuCreateRenderPipeline(VGPUDevice device, VGPURenderPipelineDesc* desc)
+	{
+		return vgpuCreateRenderPipeline_ptr(device, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateComputePipeline")]
-	public static extern VGPUPipeline vgpuCreateComputePipeline(VGPUDevice device, VGPUComputePipelineDescriptor* descriptor);
+	private static delegate* unmanaged<VGPUDevice, VGPUComputePipelineDesc*, VGPUPipeline> vgpuCreateComputePipeline_ptr;
+	public static VGPUPipeline vgpuCreateComputePipeline(VGPUDevice device, VGPUComputePipelineDesc* desc)
+	{
+		return vgpuCreateComputePipeline_ptr(device, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateRayTracingPipeline")]
-	public static extern VGPUPipeline vgpuCreateRayTracingPipeline(VGPUDevice device, VGPURayTracingPipelineDescriptor* descriptor);
+	private static delegate* unmanaged<VGPUDevice, VGPURayTracingPipelineDesc*, VGPUPipeline> vgpuCreateRayTracingPipeline_ptr;
+	public static VGPUPipeline vgpuCreateRayTracingPipeline(VGPUDevice device, VGPURayTracingPipelineDesc* desc)
+	{
+		return vgpuCreateRayTracingPipeline_ptr(device, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineGetType")]
-	public static extern VGPUPipelineType vgpuPipelineGetType(VGPUPipeline pipeline);
+	private static delegate* unmanaged<VGPUPipeline, VGPUPipelineType> vgpuPipelineGetType_ptr;
+	public static VGPUPipelineType vgpuPipelineGetType(VGPUPipeline pipeline)
+	{
+		return vgpuPipelineGetType_ptr(pipeline);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineSetLabel")]
-	public static extern void vgpuPipelineSetLabel(VGPUPipeline pipeline, sbyte* label);
+	private static delegate* unmanaged<VGPUPipeline, sbyte*, void> vgpuPipelineSetLabel_ptr;
+	public static void vgpuPipelineSetLabel(VGPUPipeline pipeline, sbyte* label)
+	{
+		vgpuPipelineSetLabel_ptr(pipeline, label);
+	}
 
 	public static void vgpuPipelineSetLabel(VGPUPipeline pipeline, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuPipelineSetLabel(pipeline, pLabel);
+			vgpuPipelineSetLabel_ptr(pipeline, pLabel);
 		}
 	}
 
@@ -218,60 +350,114 @@ internal unsafe partial class VGPU
 		vgpuPipelineSetLabel(pipeline, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineAddRef")]
-	public static extern uint vgpuPipelineAddRef(VGPUPipeline pipeline);
+	private static delegate* unmanaged<VGPUPipeline, uint> vgpuPipelineAddRef_ptr;
+	public static uint vgpuPipelineAddRef(VGPUPipeline pipeline)
+	{
+		return vgpuPipelineAddRef_ptr(pipeline);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPipelineRelease")]
-	public static extern uint vgpuPipelineRelease(VGPUPipeline pipeline);
+	private static delegate* unmanaged<VGPUPipeline, uint> vgpuPipelineRelease_ptr;
+	public static uint vgpuPipelineRelease(VGPUPipeline pipeline)
+	{
+		return vgpuPipelineRelease_ptr(pipeline);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateQueryHeap")]
-	public static extern VGPUQueryHeap vgpuCreateQueryHeap(VGPUDevice device, VGPUQueryHeapDescriptor* descriptor);
+	private static delegate* unmanaged<VGPUDevice, VGPUQueryHeapDesc*, VGPUQueryHeap> vgpuCreateQueryHeap_ptr;
+	public static VGPUQueryHeap vgpuCreateQueryHeap(VGPUDevice device, VGPUQueryHeapDesc* desc)
+	{
+		return vgpuCreateQueryHeap_ptr(device, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuQueryHeapSetLabel")]
-	public static extern void vgpuQueryHeapSetLabel(VGPUQueryHeap heap, sbyte* label);
+	private static delegate* unmanaged<VGPUQueryHeap, VGPUQueryType> vgpuQueryHeapGetType_ptr;
+	public static VGPUQueryType vgpuQueryHeapGetType(VGPUQueryHeap queryHeap)
+	{
+		return vgpuQueryHeapGetType_ptr(queryHeap);
+	}
 
-	public static void vgpuQueryHeapSetLabel(VGPUQueryHeap heap, ReadOnlySpan<sbyte> label)
+	private static delegate* unmanaged<VGPUQueryHeap, uint> vgpuQuerySetGetCount_ptr;
+	public static uint vgpuQuerySetGetCount(VGPUQueryHeap queryHeap)
+	{
+		return vgpuQuerySetGetCount_ptr(queryHeap);
+	}
+
+	private static delegate* unmanaged<VGPUQueryHeap, sbyte*, void> vgpuQueryHeapSetLabel_ptr;
+	public static void vgpuQueryHeapSetLabel(VGPUQueryHeap queryHeap, sbyte* label)
+	{
+		vgpuQueryHeapSetLabel_ptr(queryHeap, label);
+	}
+
+	public static void vgpuQueryHeapSetLabel(VGPUQueryHeap queryHeap, ReadOnlySpan<sbyte> label)
 	{
 		fixed (sbyte* pLabel = label)
 		{
-			vgpuQueryHeapSetLabel(heap, pLabel);
+			vgpuQueryHeapSetLabel_ptr(queryHeap, pLabel);
 		}
 	}
 
-	public static void vgpuQueryHeapSetLabel(VGPUQueryHeap heap, string? label = default)
+	public static void vgpuQueryHeapSetLabel(VGPUQueryHeap queryHeap, string? label = default)
 	{
-		vgpuQueryHeapSetLabel(heap, label.GetUtf8Span());
+		vgpuQueryHeapSetLabel(queryHeap, label.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuQueryHeapAddRef")]
-	public static extern uint vgpuQueryHeapAddRef(VGPUQueryHeap heap);
+	private static delegate* unmanaged<VGPUQueryHeap, uint> vgpuQueryHeapAddRef_ptr;
+	public static uint vgpuQueryHeapAddRef(VGPUQueryHeap queryHeap)
+	{
+		return vgpuQueryHeapAddRef_ptr(queryHeap);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuQueryHeapRelease")]
-	public static extern uint vgpuQueryHeapRelease(VGPUQueryHeap heap);
+	private static delegate* unmanaged<VGPUQueryHeap, uint> vgpuQueryHeapRelease_ptr;
+	public static uint vgpuQueryHeapRelease(VGPUQueryHeap queryHeap)
+	{
+		return vgpuQueryHeapRelease_ptr(queryHeap);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuCreateSwapChain")]
-	public static extern VGPUSwapChain vgpuCreateSwapChain(VGPUDevice device, nint window, VGPUSwapChainDescriptor* descriptor);
+	private static delegate* unmanaged<VGPUDevice, nint, VGPUSwapChainDesc*, VGPUSwapChain> vgpuCreateSwapChain_ptr;
+	public static VGPUSwapChain vgpuCreateSwapChain(VGPUDevice device, nint window, VGPUSwapChainDesc* desc)
+	{
+		return vgpuCreateSwapChain_ptr(device, window, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSwapChainGetFormat")]
-	public static extern VGPUTextureFormat vgpuSwapChainGetFormat(VGPUSwapChain swapChain);
+	private static delegate* unmanaged<VGPUSwapChain, VGPUTextureFormat> vgpuSwapChainGetFormat_ptr;
+	public static VGPUTextureFormat vgpuSwapChainGetFormat(VGPUSwapChain swapChain)
+	{
+		return vgpuSwapChainGetFormat_ptr(swapChain);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSwapChainAddRef")]
-	public static extern uint vgpuSwapChainAddRef(VGPUSwapChain swapChain);
+	private static delegate* unmanaged<VGPUSwapChain, out uint, out uint, void> vgpuSwapChainGetSize_ptr;
+	public static void vgpuSwapChainGetSize(VGPUSwapChain swapChain, out uint width, out uint height)
+	{
+		vgpuSwapChainGetSize_ptr(swapChain, out width, out height);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSwapChainRelease")]
-	public static extern uint vgpuSwapChainRelease(VGPUSwapChain swapChain);
+	private static delegate* unmanaged<VGPUSwapChain, uint> vgpuSwapChainAddRef_ptr;
+	public static uint vgpuSwapChainAddRef(VGPUSwapChain swapChain)
+	{
+		return vgpuSwapChainAddRef_ptr(swapChain);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBeginCommandBuffer")]
-	public static extern VGPUCommandBuffer vgpuBeginCommandBuffer(VGPUDevice device, VGPUCommandQueue queueType, sbyte* label);
+	private static delegate* unmanaged<VGPUSwapChain, uint> vgpuSwapChainRelease_ptr;
+	public static uint vgpuSwapChainRelease(VGPUSwapChain swapChain)
+	{
+		return vgpuSwapChainRelease_ptr(swapChain);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPushDebugGroup")]
-	public static extern void vgpuPushDebugGroup(VGPUCommandBuffer commandBuffer, sbyte* groupLabel);
+	private static delegate* unmanaged<VGPUDevice, VGPUCommandQueue, sbyte*, VGPUCommandBuffer> vgpuBeginCommandBuffer_ptr;
+	public static VGPUCommandBuffer vgpuBeginCommandBuffer(VGPUDevice device, VGPUCommandQueue queueType, sbyte* label)
+	{
+		return vgpuBeginCommandBuffer_ptr(device, queueType, label);
+	}
+
+	private static delegate* unmanaged<VGPUCommandBuffer, sbyte*, void> vgpuPushDebugGroup_ptr;
+	public static void vgpuPushDebugGroup(VGPUCommandBuffer commandBuffer, sbyte* groupLabel)
+	{
+		vgpuPushDebugGroup_ptr(commandBuffer, groupLabel);
+	}
 
 	public static void vgpuPushDebugGroup(VGPUCommandBuffer commandBuffer, ReadOnlySpan<sbyte> groupLabel)
 	{
 		fixed (sbyte* pGroupLabel = groupLabel)
 		{
-			vgpuPushDebugGroup(commandBuffer, pGroupLabel);
+			vgpuPushDebugGroup_ptr(commandBuffer, pGroupLabel);
 		}
 	}
 
@@ -280,17 +466,23 @@ internal unsafe partial class VGPU
 		vgpuPushDebugGroup(commandBuffer, groupLabel.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuPopDebugGroup")]
-	public static extern void vgpuPopDebugGroup(VGPUCommandBuffer commandBuffer);
+	private static delegate* unmanaged<VGPUCommandBuffer, void> vgpuPopDebugGroup_ptr;
+	public static void vgpuPopDebugGroup(VGPUCommandBuffer commandBuffer)
+	{
+		vgpuPopDebugGroup_ptr(commandBuffer);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuInsertDebugMarker")]
-	public static extern void vgpuInsertDebugMarker(VGPUCommandBuffer commandBuffer, sbyte* markerLabel);
+	private static delegate* unmanaged<VGPUCommandBuffer, sbyte*, void> vgpuInsertDebugMarker_ptr;
+	public static void vgpuInsertDebugMarker(VGPUCommandBuffer commandBuffer, sbyte* markerLabel)
+	{
+		vgpuInsertDebugMarker_ptr(commandBuffer, markerLabel);
+	}
 
 	public static void vgpuInsertDebugMarker(VGPUCommandBuffer commandBuffer, ReadOnlySpan<sbyte> markerLabel)
 	{
 		fixed (sbyte* pMarkerLabel = markerLabel)
 		{
-			vgpuInsertDebugMarker(commandBuffer, pMarkerLabel);
+			vgpuInsertDebugMarker_ptr(commandBuffer, pMarkerLabel);
 		}
 	}
 
@@ -299,97 +491,318 @@ internal unsafe partial class VGPU
 		vgpuInsertDebugMarker(commandBuffer, markerLabel.GetUtf8Span());
 	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetPipeline")]
-	public static extern void vgpuSetPipeline(VGPUCommandBuffer commandBuffer, VGPUPipeline pipeline);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUPipeline, void> vgpuSetPipeline_ptr;
+	public static void vgpuSetPipeline(VGPUCommandBuffer commandBuffer, VGPUPipeline pipeline)
+	{
+		vgpuSetPipeline_ptr(commandBuffer, pipeline);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetPushConstants")]
-	public static extern void vgpuSetPushConstants(VGPUCommandBuffer commandBuffer, uint pushConstantIndex, void* data, uint size);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, void*, uint, void> vgpuSetPushConstants_ptr;
+	public static void vgpuSetPushConstants(VGPUCommandBuffer commandBuffer, uint pushConstantIndex, void* data, uint size)
+	{
+		vgpuSetPushConstants_ptr(commandBuffer, pushConstantIndex, data, size);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDispatch")]
-	public static extern void vgpuDispatch(VGPUCommandBuffer commandBuffer, uint groupCountX, uint groupCountY, uint groupCountZ);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, void> vgpuDispatch_ptr;
+	public static void vgpuDispatch(VGPUCommandBuffer commandBuffer, uint groupCountX, uint groupCountY, uint groupCountZ)
+	{
+		vgpuDispatch_ptr(commandBuffer, groupCountX, groupCountY, groupCountZ);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDispatchIndirect")]
-	public static extern void vgpuDispatchIndirect(VGPUCommandBuffer commandBuffer, VGPUBuffer buffer, ulong offset);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, uint, void> vgpuDispatch1D_ptr;
+	public static void vgpuDispatch1D(VGPUCommandBuffer commandBuffer, uint threadCountX, uint groupSizeX)
+	{
+		vgpuDispatch1D_ptr(commandBuffer, threadCountX, groupSizeX);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuAcquireSwapchainTexture")]
-	public static extern VGPUTexture vgpuAcquireSwapchainTexture(VGPUCommandBuffer commandBuffer, VGPUSwapChain swapChain, uint* width, uint* height);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, uint, void> vgpuDispatch2D_ptr;
+	public static void vgpuDispatch2D(VGPUCommandBuffer commandBuffer, uint threadCountX, uint threadCountY, uint groupSizeX, uint groupSizeY)
+	{
+		vgpuDispatch2D_ptr(commandBuffer, threadCountX, threadCountY, groupSizeX, groupSizeY);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBeginRenderPass")]
-	public static extern void vgpuBeginRenderPass(VGPUCommandBuffer commandBuffer, VGPURenderPassDesc* desc);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, uint, uint, uint, void> vgpuDispatch3D_ptr;
+	public static void vgpuDispatch3D(VGPUCommandBuffer commandBuffer, uint threadCountX, uint threadCountY, uint threadCountZ, uint groupSizeX, uint groupSizeY, uint groupSizeZ)
+	{
+		vgpuDispatch3D_ptr(commandBuffer, threadCountX, threadCountY, threadCountZ, groupSizeX, groupSizeY, groupSizeZ);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuEndRenderPass")]
-	public static extern void vgpuEndRenderPass(VGPUCommandBuffer commandBuffer);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, ulong, void> vgpuDispatchIndirect_ptr;
+	public static void vgpuDispatchIndirect(VGPUCommandBuffer commandBuffer, VGPUBuffer buffer, ulong offset)
+	{
+		vgpuDispatchIndirect_ptr(commandBuffer, buffer, offset);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetViewport")]
-	public static extern void vgpuSetViewport(VGPUCommandBuffer commandBuffer, VGPUViewport* viewport);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUSwapChain, VGPUTexture> vgpuAcquireSwapchainTexture_ptr;
+	public static VGPUTexture vgpuAcquireSwapchainTexture(VGPUCommandBuffer commandBuffer, VGPUSwapChain swapChain)
+	{
+		return vgpuAcquireSwapchainTexture_ptr(commandBuffer, swapChain);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetViewports")]
-	public static extern void vgpuSetViewports(VGPUCommandBuffer commandBuffer, uint count, VGPUViewport* viewports);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPURenderPassDesc*, void> vgpuBeginRenderPass_ptr;
+	public static void vgpuBeginRenderPass(VGPUCommandBuffer commandBuffer, VGPURenderPassDesc* desc)
+	{
+		vgpuBeginRenderPass_ptr(commandBuffer, desc);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetScissorRect")]
-	public static extern void vgpuSetScissorRect(VGPUCommandBuffer commandBuffer, VGPURect* scissorRect);
+	private static delegate* unmanaged<VGPUCommandBuffer, void> vgpuEndRenderPass_ptr;
+	public static void vgpuEndRenderPass(VGPUCommandBuffer commandBuffer)
+	{
+		vgpuEndRenderPass_ptr(commandBuffer);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetScissorRects")]
-	public static extern void vgpuSetScissorRects(VGPUCommandBuffer commandBuffer, uint count, VGPURect* scissorRects);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUViewport*, void> vgpuSetViewport_ptr;
+	public static void vgpuSetViewport(VGPUCommandBuffer commandBuffer, VGPUViewport* viewport)
+	{
+		vgpuSetViewport_ptr(commandBuffer, viewport);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetVertexBuffer")]
-	public static extern void vgpuSetVertexBuffer(VGPUCommandBuffer commandBuffer, uint index, VGPUBuffer buffer, ulong offset = 0);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, VGPUViewport*, void> vgpuSetViewports_ptr;
+	public static void vgpuSetViewports(VGPUCommandBuffer commandBuffer, uint count, VGPUViewport* viewports)
+	{
+		vgpuSetViewports_ptr(commandBuffer, count, viewports);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetIndexBuffer")]
-	public static extern void vgpuSetIndexBuffer(VGPUCommandBuffer commandBuffer, VGPUBuffer buffer, VGPUIndexType type, ulong offset = 0);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPURect*, void> vgpuSetScissorRect_ptr;
+	public static void vgpuSetScissorRect(VGPUCommandBuffer commandBuffer, VGPURect* scissorRect)
+	{
+		vgpuSetScissorRect_ptr(commandBuffer, scissorRect);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuSetStencilReference")]
-	public static extern void vgpuSetStencilReference(VGPUCommandBuffer commandBuffer, uint reference);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, VGPURect*, void> vgpuSetScissorRects_ptr;
+	public static void vgpuSetScissorRects(VGPUCommandBuffer commandBuffer, uint count, VGPURect* scissorRects)
+	{
+		vgpuSetScissorRects_ptr(commandBuffer, count, scissorRects);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDraw")]
-	public static extern void vgpuDraw(VGPUCommandBuffer commandBuffer, uint vertexStart, uint vertexCount, uint instanceCount = 1, uint firstInstance = 0);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, VGPUBuffer, ulong, void> vgpuSetVertexBuffer_ptr;
+	public static void vgpuSetVertexBuffer(VGPUCommandBuffer commandBuffer, uint index, VGPUBuffer buffer, ulong offset = 0)
+	{
+		vgpuSetVertexBuffer_ptr(commandBuffer, index, buffer, offset);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuDrawIndexed")]
-	public static extern void vgpuDrawIndexed(VGPUCommandBuffer commandBuffer, uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int baseVertex = 0, uint firstInstance = 0);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, VGPUIndexType, ulong, void> vgpuSetIndexBuffer_ptr;
+	public static void vgpuSetIndexBuffer(VGPUCommandBuffer commandBuffer, VGPUBuffer buffer, VGPUIndexType type, ulong offset = 0)
+	{
+		vgpuSetIndexBuffer_ptr(commandBuffer, buffer, type, offset);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuBeginQuery")]
-	public static extern void vgpuBeginQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap heap, uint index);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, void> vgpuSetStencilReference_ptr;
+	public static void vgpuSetStencilReference(VGPUCommandBuffer commandBuffer, uint reference)
+	{
+		vgpuSetStencilReference_ptr(commandBuffer, reference);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuEndQuery")]
-	public static extern void vgpuEndQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap heap, uint index);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, uint, void> vgpuDraw_ptr;
+	public static void vgpuDraw(VGPUCommandBuffer commandBuffer, uint vertexCount, uint instanceCount = 1, uint firstVertex = 0, uint firstInstance = 0)
+	{
+		vgpuDraw_ptr(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuResolveQuery")]
-	public static extern void vgpuResolveQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap heap, uint index, uint count, VGPUBuffer destinationBuffer, ulong destinationOffset);
+	private static delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, int, uint, void> vgpuDrawIndexed_ptr;
+	public static void vgpuDrawIndexed(VGPUCommandBuffer commandBuffer, uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int baseVertex = 0, uint firstInstance = 0)
+	{
+		vgpuDrawIndexed_ptr(commandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuResetQuery")]
-	public static extern void vgpuResetQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap heap, uint index, uint count);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, ulong, void> vgpuDrawIndirect_ptr;
+	public static void vgpuDrawIndirect(VGPUCommandBuffer commandBuffer, VGPUBuffer indirectBuffer, ulong indirectBufferOffset)
+	{
+		vgpuDrawIndirect_ptr(commandBuffer, indirectBuffer, indirectBufferOffset);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsDepthFormat")]
-	public static extern VGPUBool32 vgpuIsDepthFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, ulong, void> vgpuDrawIndexedIndirect_ptr;
+	public static void vgpuDrawIndexedIndirect(VGPUCommandBuffer commandBuffer, VGPUBuffer indirectBuffer, ulong indirectBufferOffset)
+	{
+		vgpuDrawIndexedIndirect_ptr(commandBuffer, indirectBuffer, indirectBufferOffset);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsDepthOnlyFormat")]
-	public static extern VGPUBool32 vgpuIsDepthOnlyFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, void> vgpuBeginQuery_ptr;
+	public static void vgpuBeginQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap queryHeap, uint index)
+	{
+		vgpuBeginQuery_ptr(commandBuffer, queryHeap, index);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsStencilOnlyFormat")]
-	public static extern VGPUBool32 vgpuIsStencilOnlyFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, void> vgpuEndQuery_ptr;
+	public static void vgpuEndQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap queryHeap, uint index)
+	{
+		vgpuEndQuery_ptr(commandBuffer, queryHeap, index);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsStencilFormat")]
-	public static extern VGPUBool32 vgpuIsStencilFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, uint, VGPUBuffer, ulong, void> vgpuResolveQuery_ptr;
+	public static void vgpuResolveQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap queryHeap, uint index, uint count, VGPUBuffer destinationBuffer, ulong destinationOffset)
+	{
+		vgpuResolveQuery_ptr(commandBuffer, queryHeap, index, count, destinationBuffer, destinationOffset);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsDepthStencilFormat")]
-	public static extern VGPUBool32 vgpuIsDepthStencilFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, uint, void> vgpuResetQuery_ptr;
+	public static void vgpuResetQuery(VGPUCommandBuffer commandBuffer, VGPUQueryHeap queryHeap, uint index, uint count)
+	{
+		vgpuResetQuery_ptr(commandBuffer, queryHeap, index, count);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuIsCompressedFormat")]
-	public static extern VGPUBool32 vgpuIsCompressedFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUBool32> vgpuIsDepthFormat_ptr;
+	public static VGPUBool32 vgpuIsDepthFormat(VGPUTextureFormat format)
+	{
+		return vgpuIsDepthFormat_ptr(format);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuGetPixelFormatKind")]
-	public static extern VGPUFormatKind vgpuGetPixelFormatKind(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUBool32> vgpuIsDepthOnlyFormat_ptr;
+	public static VGPUBool32 vgpuIsDepthOnlyFormat(VGPUTextureFormat format)
+	{
+		return vgpuIsDepthOnlyFormat_ptr(format);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuToDxgiFormat")]
-	public static extern uint vgpuToDxgiFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUBool32> vgpuIsStencilOnlyFormat_ptr;
+	public static VGPUBool32 vgpuIsStencilOnlyFormat(VGPUTextureFormat format)
+	{
+		return vgpuIsStencilOnlyFormat_ptr(format);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuFromDxgiFormat")]
-	public static extern VGPUTextureFormat vgpuFromDxgiFormat(uint dxgiFormat);
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUBool32> vgpuIsStencilFormat_ptr;
+	public static VGPUBool32 vgpuIsStencilFormat(VGPUTextureFormat format)
+	{
+		return vgpuIsStencilFormat_ptr(format);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuToVkFormat")]
-	public static extern uint vgpuToVkFormat(VGPUTextureFormat format);
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUBool32> vgpuIsDepthStencilFormat_ptr;
+	public static VGPUBool32 vgpuIsDepthStencilFormat(VGPUTextureFormat format)
+	{
+		return vgpuIsDepthStencilFormat_ptr(format);
+	}
 
-	[DllImport("vgpu", CallingConvention = CallingConvention.Cdecl, EntryPoint = "vgpuStencilTestEnabled")]
-	public static extern VGPUBool32 vgpuStencilTestEnabled(VGPUDepthStencilState* depthStencil);
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUBool32> vgpuIsCompressedFormat_ptr;
+	public static VGPUBool32 vgpuIsCompressedFormat(VGPUTextureFormat format)
+	{
+		return vgpuIsCompressedFormat_ptr(format);
+	}
 
+	private static delegate* unmanaged<VGPUTextureFormat, VGPUFormatKind> vgpuGetPixelFormatKind_ptr;
+	public static VGPUFormatKind vgpuGetPixelFormatKind(VGPUTextureFormat format)
+	{
+		return vgpuGetPixelFormatKind_ptr(format);
+	}
+
+	private static delegate* unmanaged<VGPUTextureFormat, uint> vgpuToDxgiFormat_ptr;
+	public static uint vgpuToDxgiFormat(VGPUTextureFormat format)
+	{
+		return vgpuToDxgiFormat_ptr(format);
+	}
+
+	private static delegate* unmanaged<uint, VGPUTextureFormat> vgpuFromDxgiFormat_ptr;
+	public static VGPUTextureFormat vgpuFromDxgiFormat(uint dxgiFormat)
+	{
+		return vgpuFromDxgiFormat_ptr(dxgiFormat);
+	}
+
+	private static delegate* unmanaged<VGPUTextureFormat, uint> vgpuToVkFormat_ptr;
+	public static uint vgpuToVkFormat(VGPUTextureFormat format)
+	{
+		return vgpuToVkFormat_ptr(format);
+	}
+
+	private static delegate* unmanaged<VGPUDepthStencilState*, VGPUBool32> vgpuStencilTestEnabled_ptr;
+	public static VGPUBool32 vgpuStencilTestEnabled(VGPUDepthStencilState* depthStencil)
+	{
+		return vgpuStencilTestEnabled_ptr(depthStencil);
+	}
+
+	private static void GenLoadCommands()
+	{
+		vgpuSetLogCallback_ptr = (delegate* unmanaged<VGPULogCallback, nint, void>) LoadFunctionPointer(nameof(vgpuSetLogCallback));
+		vgpuIsBackendSupported_ptr = (delegate* unmanaged<VGPUBackend, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsBackendSupported));
+		vgpuCreateDevice_ptr = (delegate* unmanaged<VGPUDeviceDescriptor*, VGPUDevice>) LoadFunctionPointer(nameof(vgpuCreateDevice));
+		vgpuDeviceSetLabel_ptr = (delegate* unmanaged<VGPUDevice, sbyte*, void>) LoadFunctionPointer(nameof(vgpuDeviceSetLabel));
+		vgpuDeviceAddRef_ptr = (delegate* unmanaged<VGPUDevice, uint>) LoadFunctionPointer(nameof(vgpuDeviceAddRef));
+		vgpuDeviceRelease_ptr = (delegate* unmanaged<VGPUDevice, uint>) LoadFunctionPointer(nameof(vgpuDeviceRelease));
+		vgpuDeviceWaitIdle_ptr = (delegate* unmanaged<VGPUDevice, void>) LoadFunctionPointer(nameof(vgpuDeviceWaitIdle));
+		vgpuDeviceGetBackend_ptr = (delegate* unmanaged<VGPUDevice, VGPUBackend>) LoadFunctionPointer(nameof(vgpuDeviceGetBackend));
+		vgpuDeviceQueryFeatureSupport_ptr = (delegate* unmanaged<VGPUDevice, VGPUFeature, VGPUBool32>) LoadFunctionPointer(nameof(vgpuDeviceQueryFeatureSupport));
+		vgpuDeviceGetAdapterProperties_ptr = (delegate* unmanaged<VGPUDevice, VGPUAdapterProperties*, void>) LoadFunctionPointer(nameof(vgpuDeviceGetAdapterProperties));
+		vgpuDeviceGetLimits_ptr = (delegate* unmanaged<VGPUDevice, VGPULimits*, void>) LoadFunctionPointer(nameof(vgpuDeviceGetLimits));
+		vgpuDeviceSubmit_ptr = (delegate* unmanaged<VGPUDevice, VGPUCommandBuffer*, uint, ulong>) LoadFunctionPointer(nameof(vgpuDeviceSubmit));
+		vgpuDeviceGetFrameCount_ptr = (delegate* unmanaged<VGPUDevice, ulong>) LoadFunctionPointer(nameof(vgpuDeviceGetFrameCount));
+		vgpuDeviceGetFrameIndex_ptr = (delegate* unmanaged<VGPUDevice, uint>) LoadFunctionPointer(nameof(vgpuDeviceGetFrameIndex));
+		vgpuDeviceGetTimestampFrequency_ptr = (delegate* unmanaged<VGPUDevice, ulong>) LoadFunctionPointer(nameof(vgpuDeviceGetTimestampFrequency));
+		vgpuDeviceGetNativeObject_ptr = (delegate* unmanaged<VGPUDevice, uint, nint>) LoadFunctionPointer(nameof(vgpuDeviceGetNativeObject));
+		vgpuCreateBuffer_ptr = (delegate* unmanaged<VGPUDevice, VGPUBufferDesc*, void*, VGPUBuffer>) LoadFunctionPointer(nameof(vgpuCreateBuffer));
+		vgpuBufferGetSize_ptr = (delegate* unmanaged<VGPUBuffer, ulong>) LoadFunctionPointer(nameof(vgpuBufferGetSize));
+		vgpuBufferGetUsage_ptr = (delegate* unmanaged<VGPUBuffer, VGPUBufferUsage>) LoadFunctionPointer(nameof(vgpuBufferGetUsage));
+		vgpuBufferGetAddress_ptr = (delegate* unmanaged<VGPUBuffer, ulong>) LoadFunctionPointer(nameof(vgpuBufferGetAddress));
+		vgpuBufferSetLabel_ptr = (delegate* unmanaged<VGPUBuffer, sbyte*, void>) LoadFunctionPointer(nameof(vgpuBufferSetLabel));
+		vgpuBufferAddRef_ptr = (delegate* unmanaged<VGPUBuffer, uint>) LoadFunctionPointer(nameof(vgpuBufferAddRef));
+		vgpuBufferRelease_ptr = (delegate* unmanaged<VGPUBuffer, uint>) LoadFunctionPointer(nameof(vgpuBufferRelease));
+		vgpuCreateTexture_ptr = (delegate* unmanaged<VGPUDevice, VGPUTextureDesc*, void*, VGPUTexture>) LoadFunctionPointer(nameof(vgpuCreateTexture));
+		vgpuTextureGetDimension_ptr = (delegate* unmanaged<VGPUTexture, VGPUTextureDimension>) LoadFunctionPointer(nameof(vgpuTextureGetDimension));
+		vgpuTextureGetFormat_ptr = (delegate* unmanaged<VGPUTexture, VGPUTextureFormat>) LoadFunctionPointer(nameof(vgpuTextureGetFormat));
+		vgpuTextureSetLabel_ptr = (delegate* unmanaged<VGPUTexture, sbyte*, void>) LoadFunctionPointer(nameof(vgpuTextureSetLabel));
+		vgpuTextureAddRef_ptr = (delegate* unmanaged<VGPUTexture, uint>) LoadFunctionPointer(nameof(vgpuTextureAddRef));
+		vgpuTextureRelease_ptr = (delegate* unmanaged<VGPUTexture, uint>) LoadFunctionPointer(nameof(vgpuTextureRelease));
+		vgpuCreateSampler_ptr = (delegate* unmanaged<VGPUDevice, VGPUSamplerDesc*, VGPUSampler>) LoadFunctionPointer(nameof(vgpuCreateSampler));
+		vgpuSamplerSetLabel_ptr = (delegate* unmanaged<VGPUSampler, sbyte*, void>) LoadFunctionPointer(nameof(vgpuSamplerSetLabel));
+		vgpuSamplerAddRef_ptr = (delegate* unmanaged<VGPUSampler, uint>) LoadFunctionPointer(nameof(vgpuSamplerAddRef));
+		vgpuSamplerRelease_ptr = (delegate* unmanaged<VGPUSampler, uint>) LoadFunctionPointer(nameof(vgpuSamplerRelease));
+		vgpuCreatePipelineLayout_ptr = (delegate* unmanaged<VGPUDevice, VGPUPipelineLayoutDesc*, VGPUPipelineLayout>) LoadFunctionPointer(nameof(vgpuCreatePipelineLayout));
+		vgpuPipelineLayoutSetLabel_ptr = (delegate* unmanaged<VGPUPipelineLayout, sbyte*, void>) LoadFunctionPointer(nameof(vgpuPipelineLayoutSetLabel));
+		vgpuPipelineLayoutAddRef_ptr = (delegate* unmanaged<VGPUPipelineLayout, uint>) LoadFunctionPointer(nameof(vgpuPipelineLayoutAddRef));
+		vgpuPipelineLayoutRelease_ptr = (delegate* unmanaged<VGPUPipelineLayout, uint>) LoadFunctionPointer(nameof(vgpuPipelineLayoutRelease));
+		vgpuCreateRenderPipeline_ptr = (delegate* unmanaged<VGPUDevice, VGPURenderPipelineDesc*, VGPUPipeline>) LoadFunctionPointer(nameof(vgpuCreateRenderPipeline));
+		vgpuCreateComputePipeline_ptr = (delegate* unmanaged<VGPUDevice, VGPUComputePipelineDesc*, VGPUPipeline>) LoadFunctionPointer(nameof(vgpuCreateComputePipeline));
+		vgpuCreateRayTracingPipeline_ptr = (delegate* unmanaged<VGPUDevice, VGPURayTracingPipelineDesc*, VGPUPipeline>) LoadFunctionPointer(nameof(vgpuCreateRayTracingPipeline));
+		vgpuPipelineGetType_ptr = (delegate* unmanaged<VGPUPipeline, VGPUPipelineType>) LoadFunctionPointer(nameof(vgpuPipelineGetType));
+		vgpuPipelineSetLabel_ptr = (delegate* unmanaged<VGPUPipeline, sbyte*, void>) LoadFunctionPointer(nameof(vgpuPipelineSetLabel));
+		vgpuPipelineAddRef_ptr = (delegate* unmanaged<VGPUPipeline, uint>) LoadFunctionPointer(nameof(vgpuPipelineAddRef));
+		vgpuPipelineRelease_ptr = (delegate* unmanaged<VGPUPipeline, uint>) LoadFunctionPointer(nameof(vgpuPipelineRelease));
+		vgpuCreateQueryHeap_ptr = (delegate* unmanaged<VGPUDevice, VGPUQueryHeapDesc*, VGPUQueryHeap>) LoadFunctionPointer(nameof(vgpuCreateQueryHeap));
+		vgpuQueryHeapGetType_ptr = (delegate* unmanaged<VGPUQueryHeap, VGPUQueryType>) LoadFunctionPointer(nameof(vgpuQueryHeapGetType));
+		vgpuQuerySetGetCount_ptr = (delegate* unmanaged<VGPUQueryHeap, uint>) LoadFunctionPointer(nameof(vgpuQuerySetGetCount));
+		vgpuQueryHeapSetLabel_ptr = (delegate* unmanaged<VGPUQueryHeap, sbyte*, void>) LoadFunctionPointer(nameof(vgpuQueryHeapSetLabel));
+		vgpuQueryHeapAddRef_ptr = (delegate* unmanaged<VGPUQueryHeap, uint>) LoadFunctionPointer(nameof(vgpuQueryHeapAddRef));
+		vgpuQueryHeapRelease_ptr = (delegate* unmanaged<VGPUQueryHeap, uint>) LoadFunctionPointer(nameof(vgpuQueryHeapRelease));
+		vgpuCreateSwapChain_ptr = (delegate* unmanaged<VGPUDevice, nint, VGPUSwapChainDesc*, VGPUSwapChain>) LoadFunctionPointer(nameof(vgpuCreateSwapChain));
+		vgpuSwapChainGetFormat_ptr = (delegate* unmanaged<VGPUSwapChain, VGPUTextureFormat>) LoadFunctionPointer(nameof(vgpuSwapChainGetFormat));
+		vgpuSwapChainGetSize_ptr = (delegate* unmanaged<VGPUSwapChain, out uint, out uint, void>) LoadFunctionPointer(nameof(vgpuSwapChainGetSize));
+		vgpuSwapChainAddRef_ptr = (delegate* unmanaged<VGPUSwapChain, uint>) LoadFunctionPointer(nameof(vgpuSwapChainAddRef));
+		vgpuSwapChainRelease_ptr = (delegate* unmanaged<VGPUSwapChain, uint>) LoadFunctionPointer(nameof(vgpuSwapChainRelease));
+		vgpuBeginCommandBuffer_ptr = (delegate* unmanaged<VGPUDevice, VGPUCommandQueue, sbyte*, VGPUCommandBuffer>) LoadFunctionPointer(nameof(vgpuBeginCommandBuffer));
+		vgpuPushDebugGroup_ptr = (delegate* unmanaged<VGPUCommandBuffer, sbyte*, void>) LoadFunctionPointer(nameof(vgpuPushDebugGroup));
+		vgpuPopDebugGroup_ptr = (delegate* unmanaged<VGPUCommandBuffer, void>) LoadFunctionPointer(nameof(vgpuPopDebugGroup));
+		vgpuInsertDebugMarker_ptr = (delegate* unmanaged<VGPUCommandBuffer, sbyte*, void>) LoadFunctionPointer(nameof(vgpuInsertDebugMarker));
+		vgpuSetPipeline_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUPipeline, void>) LoadFunctionPointer(nameof(vgpuSetPipeline));
+		vgpuSetPushConstants_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, void*, uint, void>) LoadFunctionPointer(nameof(vgpuSetPushConstants));
+		vgpuDispatch_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, void>) LoadFunctionPointer(nameof(vgpuDispatch));
+		vgpuDispatch1D_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, uint, void>) LoadFunctionPointer(nameof(vgpuDispatch1D));
+		vgpuDispatch2D_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, uint, void>) LoadFunctionPointer(nameof(vgpuDispatch2D));
+		vgpuDispatch3D_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, uint, uint, uint, void>) LoadFunctionPointer(nameof(vgpuDispatch3D));
+		vgpuDispatchIndirect_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, ulong, void>) LoadFunctionPointer(nameof(vgpuDispatchIndirect));
+		vgpuAcquireSwapchainTexture_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUSwapChain, VGPUTexture>) LoadFunctionPointer(nameof(vgpuAcquireSwapchainTexture));
+		vgpuBeginRenderPass_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPURenderPassDesc*, void>) LoadFunctionPointer(nameof(vgpuBeginRenderPass));
+		vgpuEndRenderPass_ptr = (delegate* unmanaged<VGPUCommandBuffer, void>) LoadFunctionPointer(nameof(vgpuEndRenderPass));
+		vgpuSetViewport_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUViewport*, void>) LoadFunctionPointer(nameof(vgpuSetViewport));
+		vgpuSetViewports_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, VGPUViewport*, void>) LoadFunctionPointer(nameof(vgpuSetViewports));
+		vgpuSetScissorRect_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPURect*, void>) LoadFunctionPointer(nameof(vgpuSetScissorRect));
+		vgpuSetScissorRects_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, VGPURect*, void>) LoadFunctionPointer(nameof(vgpuSetScissorRects));
+		vgpuSetVertexBuffer_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, VGPUBuffer, ulong, void>) LoadFunctionPointer(nameof(vgpuSetVertexBuffer));
+		vgpuSetIndexBuffer_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, VGPUIndexType, ulong, void>) LoadFunctionPointer(nameof(vgpuSetIndexBuffer));
+		vgpuSetStencilReference_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, void>) LoadFunctionPointer(nameof(vgpuSetStencilReference));
+		vgpuDraw_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, uint, void>) LoadFunctionPointer(nameof(vgpuDraw));
+		vgpuDrawIndexed_ptr = (delegate* unmanaged<VGPUCommandBuffer, uint, uint, uint, int, uint, void>) LoadFunctionPointer(nameof(vgpuDrawIndexed));
+		vgpuDrawIndirect_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, ulong, void>) LoadFunctionPointer(nameof(vgpuDrawIndirect));
+		vgpuDrawIndexedIndirect_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUBuffer, ulong, void>) LoadFunctionPointer(nameof(vgpuDrawIndexedIndirect));
+		vgpuBeginQuery_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, void>) LoadFunctionPointer(nameof(vgpuBeginQuery));
+		vgpuEndQuery_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, void>) LoadFunctionPointer(nameof(vgpuEndQuery));
+		vgpuResolveQuery_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, uint, VGPUBuffer, ulong, void>) LoadFunctionPointer(nameof(vgpuResolveQuery));
+		vgpuResetQuery_ptr = (delegate* unmanaged<VGPUCommandBuffer, VGPUQueryHeap, uint, uint, void>) LoadFunctionPointer(nameof(vgpuResetQuery));
+		vgpuIsDepthFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsDepthFormat));
+		vgpuIsDepthOnlyFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsDepthOnlyFormat));
+		vgpuIsStencilOnlyFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsStencilOnlyFormat));
+		vgpuIsStencilFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsStencilFormat));
+		vgpuIsDepthStencilFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsDepthStencilFormat));
+		vgpuIsCompressedFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUBool32>) LoadFunctionPointer(nameof(vgpuIsCompressedFormat));
+		vgpuGetPixelFormatKind_ptr = (delegate* unmanaged<VGPUTextureFormat, VGPUFormatKind>) LoadFunctionPointer(nameof(vgpuGetPixelFormatKind));
+		vgpuToDxgiFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, uint>) LoadFunctionPointer(nameof(vgpuToDxgiFormat));
+		vgpuFromDxgiFormat_ptr = (delegate* unmanaged<uint, VGPUTextureFormat>) LoadFunctionPointer(nameof(vgpuFromDxgiFormat));
+		vgpuToVkFormat_ptr = (delegate* unmanaged<VGPUTextureFormat, uint>) LoadFunctionPointer(nameof(vgpuToVkFormat));
+		vgpuStencilTestEnabled_ptr = (delegate* unmanaged<VGPUDepthStencilState*, VGPUBool32>) LoadFunctionPointer(nameof(vgpuStencilTestEnabled));
+	}
 }

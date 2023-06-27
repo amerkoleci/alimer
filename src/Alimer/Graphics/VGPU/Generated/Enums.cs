@@ -575,6 +575,32 @@ internal enum VGPUSamplerBorderColor
 	OpaqueWhite = 2,
 }
 
+internal enum VGPUFillMode
+{
+	/// <unmanaged>VGPUFillMode_Solid</unmanaged>
+	Solid = 0,
+	/// <unmanaged>VGPUFillMode_Wireframe</unmanaged>
+	Wireframe = 1,
+}
+
+internal enum VGPUCullMode
+{
+	/// <unmanaged>VGPUCullMode_Back</unmanaged>
+	Back = 0,
+	/// <unmanaged>VGPUCullMode_Front</unmanaged>
+	Front = 1,
+	/// <unmanaged>VGPUCullMode_None</unmanaged>
+	None = 2,
+}
+
+internal enum VGPUDepthClipMode
+{
+	/// <unmanaged>VGPUDepthClipMode_Clip</unmanaged>
+	Clip = 0,
+	/// <unmanaged>VGPUDepthClipMode_Clamp</unmanaged>
+	Clamp = 1,
+}
+
 internal enum VGPUPrimitiveTopology
 {
 	/// <unmanaged>_VGPUPrimitiveTopology_Default</unmanaged>

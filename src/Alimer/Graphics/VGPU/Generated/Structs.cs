@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
+#pragma warning disable CS0649;
 namespace Alimer.Graphics.VGPU;
 
 internal partial struct VGPUColor
@@ -91,22 +92,23 @@ internal partial struct VGPURenderPassDepthStencilAttachment
 	public VGPUTexture texture;
 	public uint level;
 	public uint slice;
-	public VGPULoadAction depthLoadOp;
-	public VGPUStoreAction depthStoreOp;
-	public float clearDepth;
-	public VGPULoadAction stencilLoadOp;
-	public VGPUStoreAction stencilStoreOp;
-	public byte clearStencil;
+	public VGPULoadAction depthLoadAction;
+	public VGPUStoreAction depthStoreAction;
+	public float depthClearValue;
+	public VGPULoadAction stencilLoadAction;
+	public VGPUStoreAction stencilStoreAction;
+	public uint stencilClearValue;
 }
 
 internal partial struct VGPURenderPassDesc
 {
+	public unsafe sbyte* label;
 	public uint colorAttachmentCount;
 	public unsafe VGPURenderPassColorAttachment* colorAttachments;
 	public unsafe VGPURenderPassDepthStencilAttachment* depthStencilAttachment;
 }
 
-internal partial struct VGPUBufferDescriptor
+internal partial struct VGPUBufferDesc
 {
 	public unsafe sbyte* label;
 	public ulong size;
@@ -168,13 +170,80 @@ internal partial struct VGPUPushConstantRange
 	public VGPUShaderStage visibility;
 }
 
-internal partial struct VGPUPipelineLayoutDescriptor
+internal partial struct VGPUPipelineLayoutDesc
 {
 	public unsafe sbyte* label;
 	public uint descriptorSetCount;
 	public unsafe VGPUDescriptorSetDesc* descriptorSets;
 	public uint pushConstantRangeCount;
 	public unsafe VGPUPushConstantRange* pushConstantRanges;
+}
+
+internal partial struct VGPUShaderStageDesc
+{
+	public VGPUShaderStage stage;
+	public unsafe void* bytecode;
+	public ulong size;
+	public unsafe sbyte* entryPoint;
+}
+
+internal partial struct VGPURenderTargetBlendState
+{
+	public VGPUBool32 blendEnabled;
+	public VGPUBlendFactor srcColorBlendFactor;
+	public VGPUBlendFactor dstColorBlendFactor;
+	public VGPUBlendOperation colorBlendOperation;
+	public VGPUBlendFactor srcAlphaBlendFactor;
+	public VGPUBlendFactor dstAlphaBlendFactor;
+	public VGPUBlendOperation alphaBlendOperation;
+	public VGPUColorWriteMask colorWriteMask;
+}
+
+internal partial struct VGPUBlendState
+{
+	public VGPUBool32 alphaToCoverageEnable;
+	public VGPUBool32 independentBlendEnable;
+	public renderTargets__FixedBuffer renderTargets;
+
+	public unsafe struct renderTargets__FixedBuffer
+	{
+		public VGPURenderTargetBlendState e0;
+		public VGPURenderTargetBlendState e1;
+		public VGPURenderTargetBlendState e2;
+		public VGPURenderTargetBlendState e3;
+		public VGPURenderTargetBlendState e4;
+		public VGPURenderTargetBlendState e5;
+		public VGPURenderTargetBlendState e6;
+		public VGPURenderTargetBlendState e7;
+
+		[UnscopedRef]
+		public ref VGPURenderTargetBlendState this[int index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get
+			{
+				return ref AsSpan()[index];
+			}
+		}
+
+		[UnscopedRef]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Span<VGPURenderTargetBlendState> AsSpan()
+		{
+			return MemoryMarshal.CreateSpan(ref e0, 8);
+		}
+	}
+}
+
+internal partial struct VGPURasterizerState
+{
+	public VGPUFillMode fillMode;
+	public VGPUCullMode cullMode;
+	public VGPUBool32 frontFaceCounterClockwise;
+	public VGPUDepthClipMode depthClipMode;
+	public float depthBias;
+	public float depthBiasClamp;
+	public float slopeScaledDepthBias;
 }
 
 internal partial struct VGPUStencilFaceState
@@ -187,26 +256,13 @@ internal partial struct VGPUStencilFaceState
 
 internal partial struct VGPUDepthStencilState
 {
-	public VGPUTextureFormat format;
 	public VGPUBool32 depthWriteEnabled;
 	public VGPUCompareFunction depthCompareFunction;
 	public VGPUStencilFaceState stencilFront;
 	public VGPUStencilFaceState stencilBack;
 	public uint stencilReadMask;
 	public uint stencilWriteMask;
-}
-
-internal partial struct VGPURenderPipelineColorAttachmentDesc
-{
-	public VGPUTextureFormat format;
-	public VGPUBool32 blendEnabled;
-	public VGPUBlendFactor srcColorBlendFactor;
-	public VGPUBlendFactor dstColorBlendFactor;
-	public VGPUBlendOperation colorBlendOperation;
-	public VGPUBlendFactor srcAlphaBlendFactor;
-	public VGPUBlendFactor dstAlphaBlendFactor;
-	public VGPUBlendOperation alphaBlendOperation;
-	public VGPUColorWriteMask colorWriteMask;
+	public VGPUBool32 depthBoundsTestEnable;
 }
 
 internal partial struct VGPUVertexAttribute
@@ -226,45 +282,42 @@ internal partial struct VGPUVertexBufferLayout
 
 internal partial struct VGPUVertexState
 {
-	public VGPUShaderModule module;
 	public uint layoutCount;
 	public unsafe VGPUVertexBufferLayout* layouts;
 }
 
-internal partial struct VGPUPrimitiveState
-{
-	public VGPUPrimitiveTopology topology;
-	public uint patchControlPoints;
-}
-
-internal partial struct VGPURenderPipelineDescriptor
+internal partial struct VGPURenderPipelineDesc
 {
 	public unsafe sbyte* label;
 	public VGPUPipelineLayout layout;
+	public uint shaderStageCount;
+	public unsafe VGPUShaderStageDesc* shaderStages;
 	public VGPUVertexState vertex;
-	public VGPUPrimitiveState primitive;
-	public VGPUShaderModule fragment;
+	public VGPUBlendState blendState;
+	public VGPURasterizerState rasterizerState;
 	public VGPUDepthStencilState depthStencilState;
-	public uint colorAttachmentCount;
-	public unsafe VGPURenderPipelineColorAttachmentDesc* colorAttachments;
+	public VGPUPrimitiveTopology primitiveTopology;
+	public uint patchControlPoints;
+	public uint colorFormatCount;
+	public unsafe VGPUTextureFormat* colorFormats;
+	public VGPUTextureFormat depthStencilFormat;
 	public uint sampleCount;
-	public VGPUBool32 alphaToCoverageEnabled;
 }
 
-internal partial struct VGPUComputePipelineDescriptor
+internal partial struct VGPUComputePipelineDesc
 {
 	public unsafe sbyte* label;
 	public VGPUPipelineLayout layout;
-	public VGPUShaderModule shader;
+	public VGPUShaderStageDesc computeShader;
 }
 
-internal partial struct VGPURayTracingPipelineDescriptor
+internal partial struct VGPURayTracingPipelineDesc
 {
 	public unsafe sbyte* label;
 	public VGPUPipelineLayout layout;
 }
 
-internal partial struct VGPUQueryHeapDescriptor
+internal partial struct VGPUQueryHeapDesc
 {
 	public unsafe sbyte* label;
 	public VGPUQueryType type;
@@ -272,7 +325,7 @@ internal partial struct VGPUQueryHeapDescriptor
 	public VGPUQueryPipelineStatistic pipelineStatistics;
 }
 
-internal partial struct VGPUSwapChainDescriptor
+internal partial struct VGPUSwapChainDesc
 {
 	public unsafe sbyte* label;
 	public uint width;

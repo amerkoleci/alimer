@@ -3,7 +3,7 @@
 
 using System.Drawing;
 using Alimer.Graphics;
-using static SDL2.SDL.SDL_EventType;
+using static SDL2.SDL.SDL_WindowEventID;
 using static SDL2.SDL.SDL_WindowFlags;
 using static SDL2.SDL;
 using System.Runtime.InteropServices;
@@ -51,7 +51,7 @@ internal unsafe class SDLWindow : GameView
         switch (wmInfo.subsystem)
         {
             case SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS:
-                //Surface = SwapChainSurface.CreateWin32(wmInfo.info.win.window);
+                Surface = SwapChainSurface.CreateWin32(wmInfo.info.win.window);
                 break;
 
             case SDL_SYSWM_TYPE.SDL_SYSWM_WINRT:
@@ -90,7 +90,7 @@ internal unsafe class SDLWindow : GameView
     public override Size ClientSize => _clientSize;
 
     /// <inheritdoc />
-    //public override SwapChainSurface Surface { get; }
+    public override SwapChainSurface Surface { get; }
 
     [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl)]
     private static extern void SDL_GetWindowSizeInPixels(IntPtr window, out int width, out int height);
@@ -107,40 +107,38 @@ internal unsafe class SDLWindow : GameView
 
     public void HandleEvent(in SDL_Event evt)
     {
-#if TODO
-        switch (evt.window.type)
+        switch (evt.window.windowEvent)
         {
-            case SDL_EVENT_WINDOW_MINIMIZED:
+            case SDL_WINDOWEVENT_MINIMIZED:
                 _minimized = true;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_MAXIMIZED:
-            case SDL_EVENT_WINDOW_RESTORED:
+            case SDL_WINDOWEVENT_MAXIMIZED:
+            case SDL_WINDOWEVENT_RESTORED:
                 _minimized = false;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_RESIZED:
+            case SDL_WINDOWEVENT_RESIZED:
                 _minimized = false;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            //case SDL_EVENT_WINDOW_CHANGED:
-            //    _minimized = false;
-            //    _clientSize = new(evt.window.data1, evt.window.data2);
-            //    OnSizeChanged();
-            //    break;
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                _minimized = false;
+                _clientSize = new(evt.window.data1, evt.window.data2);
+                OnSizeChanged();
+                break;
 
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            case SDL_WINDOWEVENT_CLOSE:
                 //DestroySurface(window);
                 _platform.WindowClosed(evt.window.windowID);
                 SDL_DestroyWindow(Handle);
                 break;
-        } 
-#endif
+        }
     }
 }

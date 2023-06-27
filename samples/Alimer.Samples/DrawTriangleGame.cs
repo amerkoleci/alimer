@@ -35,7 +35,15 @@ public sealed class DrawTriangleGame : Game
 
     protected override void Draw(GameTime time)
     {
-        //CommandBuffer commandBuffer = GraphicsDevice.BeginCommandBuffer(CommandQueue.Graphics, "Frame");
+        CommandBuffer commandBuffer = GraphicsDevice.BeginCommandBuffer(CommandQueue.Graphics, "Frame");
+        using Texture? swapChainTexture = commandBuffer.AcquireSwapchainTexture(MainView.SwapChain!);
+        if (swapChainTexture is not null)
+        {
+            commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
+            commandBuffer.EndRenderPass();
+        }
+
+        GraphicsDevice.Submit(commandBuffer);
         //commandBuffer.Commit();
 
         base.Draw(time);

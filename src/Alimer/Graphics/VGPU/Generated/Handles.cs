@@ -137,24 +137,24 @@ internal readonly partial struct VGPUSampler : IEquatable<VGPUSampler>
 /// A dispatchable handle.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal readonly partial struct VGPUShaderModule : IEquatable<VGPUShaderModule>
+internal readonly partial struct VGPUBindGroupLayout : IEquatable<VGPUBindGroupLayout>
 {
-	public VGPUShaderModule(nint handle) { Handle = handle; }
+	public VGPUBindGroupLayout(nint handle) { Handle = handle; }
 	public nint Handle { get; }
 	public bool IsNull => Handle == 0;
 	public bool IsNotNull => Handle != 0;
-	public static VGPUShaderModule Null => new(0);
-	public static implicit operator VGPUShaderModule(nint handle) => new(handle);
-	public static bool operator ==(VGPUShaderModule left, VGPUShaderModule right) => left.Handle == right.Handle;
-	public static bool operator !=(VGPUShaderModule left, VGPUShaderModule right) => left.Handle != right.Handle;
-	public static bool operator ==(VGPUShaderModule left, nint right) => left.Handle == right;
-	public static bool operator !=(VGPUShaderModule left, nint right) => left.Handle != right;
-	public bool Equals(VGPUShaderModule other) => Handle == other.Handle;
+	public static VGPUBindGroupLayout Null => new(0);
+	public static implicit operator VGPUBindGroupLayout(nint handle) => new(handle);
+	public static bool operator ==(VGPUBindGroupLayout left, VGPUBindGroupLayout right) => left.Handle == right.Handle;
+	public static bool operator !=(VGPUBindGroupLayout left, VGPUBindGroupLayout right) => left.Handle != right.Handle;
+	public static bool operator ==(VGPUBindGroupLayout left, nint right) => left.Handle == right;
+	public static bool operator !=(VGPUBindGroupLayout left, nint right) => left.Handle != right;
+	public bool Equals(VGPUBindGroupLayout other) => Handle == other.Handle;
 	/// <inheritdoc/>
-	public override bool Equals(object? obj) => obj is VGPUShaderModule handle && Equals(handle);
+	public override bool Equals(object? obj) => obj is VGPUBindGroupLayout handle && Equals(handle);
 	/// <inheritdoc/>
 	public override int GetHashCode() => Handle.GetHashCode();
-	private string DebuggerDisplay => $"{nameof(VGPUShaderModule)} [0x{Handle.ToString("X")}]";
+	private string DebuggerDisplay => $"{nameof(VGPUBindGroupLayout)} [0x{Handle.ToString("X")}]";
 }
 
 /// <summary>
@@ -227,6 +227,30 @@ internal readonly partial struct VGPUQueryHeap : IEquatable<VGPUQueryHeap>
 	/// <inheritdoc/>
 	public override int GetHashCode() => Handle.GetHashCode();
 	private string DebuggerDisplay => $"{nameof(VGPUQueryHeap)} [0x{Handle.ToString("X")}]";
+}
+
+/// <summary>
+/// A dispatchable handle.
+/// </summary>
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal readonly partial struct VGPUSurface : IEquatable<VGPUSurface>
+{
+	public VGPUSurface(nint handle) { Handle = handle; }
+	public nint Handle { get; }
+	public bool IsNull => Handle == 0;
+	public bool IsNotNull => Handle != 0;
+	public static VGPUSurface Null => new(0);
+	public static implicit operator VGPUSurface(nint handle) => new(handle);
+	public static bool operator ==(VGPUSurface left, VGPUSurface right) => left.Handle == right.Handle;
+	public static bool operator !=(VGPUSurface left, VGPUSurface right) => left.Handle != right.Handle;
+	public static bool operator ==(VGPUSurface left, nint right) => left.Handle == right;
+	public static bool operator !=(VGPUSurface left, nint right) => left.Handle != right;
+	public bool Equals(VGPUSurface other) => Handle == other.Handle;
+	/// <inheritdoc/>
+	public override bool Equals(object? obj) => obj is VGPUSurface handle && Equals(handle);
+	/// <inheritdoc/>
+	public override int GetHashCode() => Handle.GetHashCode();
+	private string DebuggerDisplay => $"{nameof(VGPUSurface)} [0x{Handle.ToString("X")}]";
 }
 
 /// <summary>

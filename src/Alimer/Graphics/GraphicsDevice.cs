@@ -1,13 +1,10 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 using Alimer.Graphics.VGPU;
 using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.VGPU.VGPU;
 using static Alimer.Graphics.VGPU.VGPUUtils;
-
 using static Alimer.Utilities.MarshalUtilities;
 
 namespace Alimer.Graphics;
@@ -15,6 +12,7 @@ namespace Alimer.Graphics;
 public sealed unsafe class GraphicsDevice : GraphicsObjectBase
 {
     private static VGPULogCallback _logCallback;
+    private readonly HashSet<WeakReference<GraphicsObject?>> _resources = new();
 
     static GraphicsDevice()
     {
@@ -35,7 +33,14 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
         Handle = vgpuCreateDevice(&deviceDesc);
         Guard.IsTrue(Handle.IsNotNull);
 
-        Backend = vgpuGetBackend(Handle).FromVGPU();
+        Backend = vgpuDeviceGetBackend(Handle).FromVGPU();
+
+        VGPUAdapterProperties adapterProps;
+        vgpuDeviceGetAdapterProperties(Handle, &adapterProps);
+        AdapterProperties = GraphicsAdapterProperties.FromVGPU(in adapterProps);
+
+        VGPULimits limits;
+        vgpuDeviceGetLimits(Handle, &limits);
     }
 
     internal VGPUDevice Handle { get; }
@@ -51,6 +56,31 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
     public ValidationMode ValidationMode { get; }
 
     /// <summary>
+    /// Get the adapter info.
+    /// </summary>
+    public GraphicsAdapterProperties AdapterProperties { get; }
+
+    /// <summary>
+    /// Get the device limits.
+    /// </summary>
+    //public GraphicsDeviceLimits Limits { get; }
+
+    /// <summary>
+    /// Get the timestamp frequency.
+    /// </summary>
+    public ulong TimestampFrequency { get; }
+
+    /// <summary>
+    /// Gets the number of frame being executed.
+    /// </summary>
+    public ulong FrameCount => vgpuDeviceGetFrameCount(Handle);
+
+    /// <summary>
+    /// Gets the current frame inde.
+    /// </summary>
+    public uint FrameIndex => vgpuDeviceGetFrameIndex(Handle);
+
+    /// <summary>
     /// Finalizes an instance of the <see cref="GraphicsDevice" /> class.
     /// </summary>
     ~GraphicsDevice() => Dispose(disposing: false);
@@ -62,14 +92,81 @@ public sealed unsafe class GraphicsDevice : GraphicsObjectBase
         {
             WaitIdle();
 
-            vgpuDestroyDevice(Handle);
+            lock (_resources)
+            {
+                foreach (WeakReference<GraphicsObject?> weakReference in _resources)
+                {
+                    if (weakReference.TryGetTarget(out GraphicsObject? target))
+                    {
+                        target.Dispose();
+                    }
+                }
+                _resources.Clear();
+            }
+
+
+            _ = vgpuDeviceRelease(Handle);
         }
     }
 
     /// <summary>
     /// Wait for device to finish pending GPU operations.
     /// </summary>
-    public void WaitIdle() => vgpuWaitIdle(Handle);
+    public void WaitIdle() => vgpuDeviceWaitIdle(Handle);
+
+    public bool QueryFeatureSupport(Feature feature)
+    {
+        return vgpuDeviceQueryFeatureSupport(Handle, (VGPUFeature)feature);
+    }
+
+    /// <summary>
+    /// Begin new <see cref="CommandBuffer"/> in recording state.
+    /// </summary>
+    /// <param name="label">Optional label.</param>
+    /// <returns></returns>
+    public CommandBuffer BeginCommandBuffer(CommandQueue queueType = CommandQueue.Graphics, string? label = default)
+    {
+        fixed (sbyte* pLabel = label.GetUtf8Span())
+        {
+            VGPUCommandQueue nativeQueueType = (VGPUCommandQueue)queueType;
+            VGPUCommandBuffer handle = vgpuBeginCommandBuffer(Handle, nativeQueueType, pLabel);
+            return new CommandBuffer(this, handle);
+        }
+    }
+
+    public void Submit(CommandBuffer commandBuffer)
+    {
+        VGPUCommandBuffer cmdBufferHandle = commandBuffer.Handle;
+        vgpuDeviceSubmit(Handle, &cmdBufferHandle, 1u);
+    }
+
+    public void Submit(CommandBuffer[] commandBuffers)
+    {
+        VGPUCommandBuffer* commandBufferPtrs = stackalloc VGPUCommandBuffer[commandBuffers.Length];
+
+        for (int i = 0; i < commandBuffers.Length; i += 1)
+        {
+            commandBufferPtrs[i] = commandBuffers[i].Handle;
+        }
+
+        vgpuDeviceSubmit(Handle, commandBufferPtrs, (uint)commandBuffers.Length);
+    }
+
+    internal void AddResourceReference(WeakReference<GraphicsObject?> @object)
+    {
+        lock (_resources)
+        {
+            _resources.Add(@object);
+        }
+    }
+
+    internal void RemoveResourceReference(WeakReference<GraphicsObject?> @object)
+    {
+        lock (_resources)
+        {
+            _resources.Remove(@object);
+        }
+    }
 
     public static bool IsBackendSupport(GraphicsBackendType backend)
     {

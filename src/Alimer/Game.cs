@@ -100,7 +100,7 @@ public abstract class Game : DisposableObject, IGame
         if (disposing)
         {
             GraphicsDevice.WaitIdle();
-            //MainView.SwapChain?.Dispose();
+            MainView.SwapChain?.Dispose();
             GraphicsDevice.Dispose();
             //AudioDevice.Dispose();
         }
@@ -212,7 +212,7 @@ public abstract class Game : DisposableObject, IGame
 
     private void InitializeBeforeRun()
     {
-        //MainView.CreateSwapChain(GraphicsDevice);
+        MainView.CreateSwapChain(GraphicsDevice);
         IsRunning = true;
 
         Initialize();
