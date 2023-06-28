@@ -264,12 +264,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     continue;
                 }
 
-                QueueFamilyIndices? candidateQueueFamilies = FindQueueFamilies(candidatePhysicalDevice, VkSurfaceKHR.Null, false);
-                if (candidateQueueFamilies is null)
-                {
-                    continue;
-                }
-
                 enabledDeviceExtensions = new()
                 {
                     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -503,9 +497,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         vkLoadDevice(_handle);
 
         // Queues
-        _queues[(int)CommandQueue.Graphics] = new VulkanCommandQueue(this, CommandQueue.Graphics, _queueFamilyIndices.GraphicsFamily, _queueFamilyIndices.GraphicsIndex);
-        _queues[(int)CommandQueue.Compute] = new VulkanCommandQueue(this, CommandQueue.Compute, _queueFamilyIndices.ComputeFamily, _queueFamilyIndices.ComputeIndex);
-        _queues[(int)CommandQueue.Copy] = new VulkanCommandQueue(this, CommandQueue.Copy, _queueFamilyIndices.CopyFamily, _queueFamilyIndices.CopyIndex);
+        for (int queue = 0; queue < (int)CommandQueue.Count; queue++)
+        {
+            if (_queueFamilyIndices.FamilyIndices[queue] != VK_QUEUE_FAMILY_IGNORED)
+            {
+                _queues[queue] = new VulkanCommandQueue(this, (CommandQueue)queue);
+            }
+        }
 
         VmaAllocatorCreateInfo allocatorCreateInfo;
         allocatorCreateInfo.VulkanApiVersion = VkVersion.Version_1_3;
@@ -594,9 +592,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkPhysicalDeviceProperties2 PhysicalDeviceProperties { get; }
     public bool DepthClipControl { get; }
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
-    public uint GraphicsFamily => _queueFamilyIndices.GraphicsFamily;
-    public uint ComputeFamily => _queueFamilyIndices.ComputeFamily;
-    public uint CopyFamily => _queueFamilyIndices.CopyFamily;
+    public uint GraphicsFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Graphics];
+    public uint ComputeFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Compute];
+    public uint CopyFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Copy];
 
     public VkDevice Handle => _handle;
     public VulkanCommandQueue GraphicsQueue => _queues[(int)CommandQueue.Graphics];
@@ -808,30 +806,38 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         ProcessDeletionQueue();
     }
 
+    public uint GetQueueFamily(CommandQueue queueType) => _queueFamilyIndices.GetQueueFamily(queueType);
+    public uint GetQueueIndex(CommandQueue queueType) => _queueFamilyIndices.GetQueueIndex(queueType);
+
     public VulkanUploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
     public void Submit(in VulkanUploadContext context) => _copyAllocator.Submit(in context);
 
+    public static void AddUniqueFamily(uint* sharingIndices, ref uint count, uint family)
+    {
+        if (family == VK_QUEUE_FAMILY_IGNORED)
+            return;
+
+        for (uint i = 0; i < count; i++)
+        {
+            if (sharingIndices[i] == family)
+                return;
+        }
+
+        sharingIndices[count++] = family;
+    }
+
     public void FillBufferSharingIndices(ref VkBufferCreateInfo info, uint* sharingIndices)
     {
-        if (_queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.ComputeFamily ||
-            _queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.CopyFamily)
+        for (uint i = 0; i < _queueFamilyIndices.FamilyIndices.Length; i++)
+        {
+            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, i);
+        }
+
+        if (info.queueFamilyIndexCount > 1)
         {
             // For buffers, always just use CONCURRENT access modes,
             // so we don't have to deal with acquire/release barriers in async compute.
             info.sharingMode = VkSharingMode.Concurrent;
-
-            sharingIndices[info.queueFamilyIndexCount++] = _queueFamilyIndices.GraphicsFamily;
-
-            if (_queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.ComputeFamily)
-            {
-                sharingIndices[info.queueFamilyIndexCount++] = _queueFamilyIndices.ComputeFamily;
-            }
-
-            if (_queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.CopyFamily
-                && _queueFamilyIndices.ComputeFamily != _queueFamilyIndices.CopyFamily)
-            {
-                sharingIndices[info.queueFamilyIndexCount++] = _queueFamilyIndices.CopyFamily;
-            }
 
             info.pQueueFamilyIndices = sharingIndices;
         }
@@ -845,25 +851,16 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public void FillImageSharingIndices(ref VkImageCreateInfo info, uint* sharingIndices)
     {
-        if (_queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.ComputeFamily ||
-            _queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.CopyFamily)
+        for (uint i = 0; i < _queueFamilyIndices.FamilyIndices.Length; i++)
+        {
+            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, i);
+        }
+
+        if (info.queueFamilyIndexCount > 1)
         {
             // For buffers, always just use CONCURRENT access modes,
             // so we don't have to deal with acquire/release barriers in async compute.
             info.sharingMode = VkSharingMode.Concurrent;
-
-            sharingIndices[info.queueFamilyIndexCount++] = _queueFamilyIndices.GraphicsFamily;
-
-            if (_queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.ComputeFamily)
-            {
-                sharingIndices[info.queueFamilyIndexCount++] = _queueFamilyIndices.ComputeFamily;
-            }
-
-            if (_queueFamilyIndices.GraphicsFamily != _queueFamilyIndices.CopyFamily
-                && _queueFamilyIndices.ComputeFamily != _queueFamilyIndices.CopyFamily)
-            {
-                sharingIndices[info.queueFamilyIndexCount++] = _queueFamilyIndices.CopyFamily;
-            }
 
             info.pQueueFamilyIndices = sharingIndices;
         }
@@ -936,7 +933,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         return vkFormat;
     }
 
-    private QueueFamilyIndices? FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, bool supports_video_queue)
+    private static QueueFamilyIndices? FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, bool supportsVideoQueue)
     {
         int queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, null);
@@ -947,7 +944,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         {
             queueFamilies[i] = new();
 
-            if (supports_video_queue)
+            if (supportsVideoQueue)
             {
                 queueFamilies[i].pNext = &queueFamiliesVideo[i];
                 queueFamiliesVideo[i].sType = VkStructureType.QueueFamilyVideoPropertiesKHR;
@@ -958,7 +955,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         QueueFamilyIndices indices = new(queueFamilyCount);
 
-        if (!FindVacantQueue(queueFamilyCount, ref indices.GraphicsFamily, ref indices.GraphicsIndex,
+        if (!FindVacantQueue(queueFamilyCount, CommandQueue.Graphics,
             VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 0.5f))
         {
             Log.Error("Vulkan: Could not find suitable graphics queue.");
@@ -967,46 +964,46 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         // Prefer another graphics queue since we can do async graphics that way.
         // The compute queue is to be treated as high priority since we also do async graphics on it.
-        if (!FindVacantQueue(queueFamilyCount, ref indices.ComputeFamily, ref indices.ComputeIndex, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0, 1.0f) &&
-            !FindVacantQueue(queueFamilyCount, ref indices.ComputeFamily, ref indices.ComputeIndex, VkQueueFlags.Compute, 0, 1.0f))
+        if (!FindVacantQueue(queueFamilyCount, CommandQueue.Compute, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0, 1.0f) &&
+            !FindVacantQueue(queueFamilyCount, CommandQueue.Compute, VkQueueFlags.Compute, 0, 1.0f))
         {
             // Fallback to the graphics queue if we must.
-            indices.ComputeFamily = indices.GraphicsFamily;
-            indices.ComputeIndex = indices.GraphicsIndex;
+            indices.SetQueueFamily(CommandQueue.Compute, indices.GetQueueFamily(CommandQueue.Graphics));
+            indices.SetQueueIndex(CommandQueue.Compute, indices.GetQueueIndex(CommandQueue.Graphics));
         }
 
         // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
         // If not, fallback to a dedicated compute queue.
         // Finally, fallback to same queue as compute.
-        if (!FindVacantQueue(queueFamilyCount, ref indices.CopyFamily, ref indices.CopyIndex, VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f) &&
-            !FindVacantQueue(queueFamilyCount, ref indices.CopyFamily, ref indices.CopyIndex, VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f))
+        if (!FindVacantQueue(queueFamilyCount, CommandQueue.Copy, VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f) &&
+            !FindVacantQueue(queueFamilyCount, CommandQueue.Copy, VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f))
         {
-            indices.CopyFamily = indices.ComputeFamily;
-            indices.CopyIndex = indices.ComputeIndex;
+            indices.SetQueueFamily(CommandQueue.Copy, indices.GetQueueFamily(CommandQueue.Compute));
+            indices.SetQueueIndex(CommandQueue.Copy, indices.GetQueueIndex(CommandQueue.Compute));
         }
 
-        if (supports_video_queue)
+        if (supportsVideoQueue)
         {
-            if (!FindVacantQueue(queueFamilyCount, ref indices.VideoDecodeFamily, ref indices.VideoDecodeIndex, VkQueueFlags.VideoDecodeKHR, 0, 0.5f))
+            if (!FindVacantQueue(queueFamilyCount, CommandQueue.VideoDecode, VkQueueFlags.VideoDecodeKHR, 0, 0.5f))
             {
-                indices.VideoDecodeFamily = VK_QUEUE_FAMILY_IGNORED;
-                indices.VideoDecodeIndex = uint.MaxValue;
+                indices.SetQueueFamily(CommandQueue.VideoDecode, VK_QUEUE_FAMILY_IGNORED);
+                indices.SetQueueIndex(CommandQueue.VideoDecode, uint.MaxValue);
             }
 
-            if (!FindVacantQueue(queueFamilyCount, ref indices.VideoEncodeFamily, ref indices.VideoEncodeIndex, VkQueueFlags.VideoEncodeKHR, 0, 0.5f))
+            if (!FindVacantQueue(queueFamilyCount, CommandQueue.VideoEncode, VkQueueFlags.VideoEncodeKHR, 0, 0.5f))
             {
-                indices.VideoEncodeFamily = VK_QUEUE_FAMILY_IGNORED;
-                indices.VideoEncodeIndex = uint.MaxValue;
+                indices.SetQueueFamily(CommandQueue.VideoEncode, VK_QUEUE_FAMILY_IGNORED);
+                indices.SetQueueIndex(CommandQueue.VideoEncode, uint.MaxValue);
             }
         }
 
         return indices;
 
-        bool FindVacantQueue(int queueFamilyCount, ref uint family, ref uint index, VkQueueFlags required, VkQueueFlags ignore_flags, float priority)
+        bool FindVacantQueue(int queueFamilyCount, CommandQueue queueType, VkQueueFlags required, VkQueueFlags ignoreFlags, float priority)
         {
             for (uint familyIndex = 0; familyIndex < (uint)queueFamilyCount; familyIndex++)
             {
-                if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignore_flags) != 0)
+                if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignoreFlags) != 0)
                     continue;
 
                 // A graphics queue candidate must support present for us to select it.
@@ -1060,9 +1057,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 if (queueFamilies[familyIndex].queueFamilyProperties.queueCount > 0 &&
                     (queueFamilies[familyIndex].queueFamilyProperties.queueFlags & required) == required)
                 {
-                    family = familyIndex;
+                    indices.FamilyIndices[(int)queueType] = familyIndex;
                     queueFamilies[familyIndex].queueFamilyProperties.queueCount--;
-                    index = (uint)(indices.QueueOffsets[(int)familyIndex]++);
+                    indices.QueueIndices[(int)queueType] = (uint)(indices.QueueOffsets[(int)familyIndex]++);
                     indices.QueuePriorities[familyIndex].Add(priority);
                     return true;
                 }
@@ -1085,17 +1082,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public class QueueFamilyIndices
     {
         public int QueueFamilyCount = 0;
-        public uint GraphicsFamily = VK_QUEUE_FAMILY_IGNORED;
-        public uint ComputeFamily = VK_QUEUE_FAMILY_IGNORED;
-        public uint CopyFamily = VK_QUEUE_FAMILY_IGNORED;
-        public uint VideoDecodeFamily = VK_QUEUE_FAMILY_IGNORED;
-        public uint VideoEncodeFamily = VK_QUEUE_FAMILY_IGNORED;
-
-        public uint GraphicsIndex = 0;
-        public uint ComputeIndex = 0;
-        public uint CopyIndex = 0;
-        public uint VideoDecodeIndex = 0;
-        public uint VideoEncodeIndex = 0;
 
         public uint[] FamilyIndices;
         public uint[] QueueIndices;
@@ -1118,17 +1104,24 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             QueueOffsets = new int[queueFamilyCount];
             QueuePriorities = new List<float>[queueFamilyCount];
 
-            for(int i = 0; i < queueFamilyCount; i++)
+            for (int i = 0; i < queueFamilyCount; i++)
             {
                 QueuePriorities[i] = new();
             }
         }
 
-        public bool IsComplete
+        public void SetQueueFamily(CommandQueue queueType, uint familyIndex)
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => GraphicsFamily != VK_QUEUE_FAMILY_IGNORED;
+            FamilyIndices[(int)queueType] = familyIndex;
         }
+
+        public void SetQueueIndex(CommandQueue queueType, uint familyIndex)
+        {
+            QueueIndices[(int)queueType] = familyIndex;
+        }
+
+        public uint GetQueueFamily(CommandQueue queueType) => FamilyIndices[(int)queueType];
+        public uint GetQueueIndex(CommandQueue queueType) => QueueIndices[(int)queueType];
     }
 
 

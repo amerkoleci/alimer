@@ -19,10 +19,14 @@ public class GraphicsDeviceTests
 #endif
         };
 
-        using GraphicsDevice device = new(in description);
+        using GraphicsDevice device = GraphicsDevice.CreateDefault(in description);
         if (OperatingSystem.IsWindows())
         {
             Guard.IsTrue(device.Backend == GraphicsBackendType.D3D12);
+        }
+        else if (OperatingSystem.IsAndroid() || OperatingSystem.IsLinux()) 
+        {
+            Guard.IsTrue(device.Backend == GraphicsBackendType.Vulkan);
         }
     }
 }

@@ -12,6 +12,7 @@ public enum CommandQueue : byte
     Compute,
     Copy,
     VideoDecode,
+    VideoEncode,
 
     Count
 }

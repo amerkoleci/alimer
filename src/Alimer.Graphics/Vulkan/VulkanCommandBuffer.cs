@@ -25,29 +25,10 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             VkCommandPoolCreateInfo poolInfo = new()
             {
                 sType = VkStructureType.CommandPoolCreateInfo,
-                flags = VkCommandPoolCreateFlags.Transient
+                flags = VkCommandPoolCreateFlags.Transient,
+                queueFamilyIndex = queue.Device.GetQueueFamily(queue.QueueType)
             };
 
-            switch (queue.QueueType)
-            {
-                case CommandQueue.Graphics:
-                    poolInfo.queueFamilyIndex = queue.Device.GraphicsFamily;
-                    break;
-
-                case CommandQueue.Compute:
-                    poolInfo.queueFamilyIndex = queue.Device.ComputeFamily;
-                    break;
-
-                case CommandQueue.Copy:
-                    poolInfo.queueFamilyIndex = queue.Device.CopyFamily;
-                    break;
-                //case CommandQueue.VideoDecode:
-                //    poolInfo.queueFamilyIndex = videoFamily;
-                //break;
-
-                default:
-                    throw new GraphicsException($"Invalid queue: {queue.QueueType}");
-            }
             vkCreateCommandPool(queue.Device.Handle, &poolInfo, null, out _commandPools[i]).DebugCheckResult();
 
             VkCommandBufferAllocateInfo commandBufferInfo = new();

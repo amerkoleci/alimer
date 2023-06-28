@@ -12,17 +12,12 @@
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- Native Dependencies-->
-  <!--<ItemGroup>
-    <None Include="$(AlimerSrcDirectory)Alimer\runtimes\win-x64\native\vgpu.dll" Link="vgpu.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>-->
-
   <ItemGroup>
     <Content Include="assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Alimer\Alimer.csproj" />
+    <ProjectReference Include="..\..\src\Alimer.Graphics\Alimer.Graphics.csproj" />
   </ItemGroup>
 
 </Project>

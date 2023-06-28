@@ -19,11 +19,13 @@ internal unsafe class VulkanCommandQueue : IDisposable
     private uint _commandBufferCount = 0;
     private List<VulkanCommandBuffer> _commandBuffers = new();
 
-    public VulkanCommandQueue(VulkanGraphicsDevice device, CommandQueue queueType, uint queueFamilyIndex, uint queueIndex)
+    public VulkanCommandQueue(VulkanGraphicsDevice device, CommandQueue queueType)
     {
         Device = device;
         QueueType = queueType;
 
+        uint queueFamilyIndex = device.GetQueueFamily(queueType);
+        uint queueIndex = device.GetQueueIndex(queueType);
         vkGetDeviceQueue(device.Handle, queueFamilyIndex, queueIndex, out Handle);
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo = new()
