@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
+    <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-windows10'))">
+    <ExcludeOpenAL>true</ExcludeOpenAL>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants Condition="'$(ExcludeXAudio2)' == 'true'">$(DefineConstants);EXCLUDE_XAUDIO2_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeOpenAL)' == 'true'">$(DefineConstants);EXCLUDE_OPENAL_BACKEND</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="OpenAL/**/*" Condition="'$(ExcludeOpenAL)' == 'true'" />
+    <Compile Remove="XAudio2/**/*" Condition="'$(ExcludeXAudio2)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Diagnostics" />
+    <PackageReference Include="Silk.NET.OpenAL.Soft.Native" Condition="'$(ExcludeOpenAL)' != 'true'" />
+    
+    <PackageReference Include="Vortice.Win32.Media.Audio.XAudio2" Condition="'$(ExcludeXAudio2)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer\Alimer.csproj" />
+  </ItemGroup>
+
+</Project>

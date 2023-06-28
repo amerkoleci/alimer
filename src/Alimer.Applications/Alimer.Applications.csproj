@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
+    <RootNamespace>Alimer</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Audio\Alimer.Audio.csproj" />
+    <ProjectReference Include="..\Alimer.Graphics\Alimer.Graphics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
+    <PackageReference Include="ppy.SDL2-CS" />
+  </ItemGroup>
+
+</Project>

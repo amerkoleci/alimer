@@ -3,12 +3,13 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Alimer.Engine;
 using Alimer.Graphics;
 
 namespace Alimer.Samples;
 
 // https://github.com/dotnet/runtime/tree/main/src/tests/nativeaot
-public sealed class DrawTriangleGame : Game
+public sealed class DrawTriangleGame : GameApplication
 {
     protected override void Initialize()
     {
@@ -33,18 +34,18 @@ public sealed class DrawTriangleGame : Game
         //SceneSystem.RootEntity = rootEntity;
     }
 
-    protected override void Draw(GameTime time)
+    protected override void Draw(AppTime time)
     {
         CommandBuffer commandBuffer = GraphicsDevice.BeginCommandBuffer(CommandQueue.Graphics, "Frame");
-        using Texture? swapChainTexture = commandBuffer.AcquireSwapchainTexture(MainView.SwapChain!);
-        if (swapChainTexture is not null)
-        {
-            commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
-            commandBuffer.EndRenderPass();
-        }
-
-        GraphicsDevice.Submit(commandBuffer);
-        //commandBuffer.Commit();
+        //using Texture? swapChainTexture = commandBuffer.AcquireSwapchainTexture(MainView.SwapChain!);
+        //if (swapChainTexture is not null)
+        //{
+        //    commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
+        //    commandBuffer.EndRenderPass();
+        //}
+        //
+        //GraphicsDevice.Submit(commandBuffer);
+        commandBuffer.Commit();
 
         base.Draw(time);
     }

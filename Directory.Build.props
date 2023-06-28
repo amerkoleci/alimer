@@ -39,6 +39,7 @@
     <Authors>Amer Koleci and Contributors</Authors>
     <Copyright>Copyright © Amer Koleci and Contributors</Copyright>
     <Product>Alimer</Product>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>

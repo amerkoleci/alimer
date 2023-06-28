@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Applications\Alimer.Applications.csproj" />
+    <ProjectReference Include="..\Alimer.Rendering\Alimer.Rendering.csproj" />
+  </ItemGroup>
+
+</Project>
