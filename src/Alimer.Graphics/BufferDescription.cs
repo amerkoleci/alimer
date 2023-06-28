@@ -8,10 +8,10 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="GraphicsBuffer"/>.
 /// </summary>
-public record struct BufferDescriptor
+public record struct BufferDescription
 {
     [SetsRequiredMembers]
-    public BufferDescriptor(
+    public BufferDescription(
         ulong size,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
         CpuAccessMode access = CpuAccessMode.None,

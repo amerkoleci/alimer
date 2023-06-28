@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
+using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -91,6 +92,175 @@ internal static unsafe class VulkanUtils
             instanceLayers.AddRange(validationLayers);
             return;
         }
+    }
+
+    public static VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
+    {
+
+        int count = 0;
+        VkResult result = vkEnumerateDeviceExtensionProperties(physicalDevice, null, &count, null);
+        if (result != VkResult.Success)
+            return default;
+
+        VkExtensionProperties* vk_extensions = stackalloc VkExtensionProperties[count];
+        vkEnumerateDeviceExtensionProperties(physicalDevice, null, &count, vk_extensions);
+
+        VulkanPhysicalDeviceExtensions extensions = new();
+
+        for (int i = 0; i < count; ++i)
+        {
+            string extensionName = vk_extensions[i].GetExtensionName();
+
+            if (extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
+            {
+                extensions.swapchain = true;
+            }
+            else if (extensionName == VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME)
+            {
+                extensions.depthClipEnable = true;
+            }
+            else if (extensionName == VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)
+            {
+                extensions.MemoryBudget = true;
+            }
+            else if (extensionName == VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME)
+            {
+                extensions.AMD_DeviceCoherentMemory = true;
+            }
+            else if (extensionName == VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME)
+            {
+                extensions.MemoryPriority = true;
+            }
+            else if (extensionName == VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME)
+            {
+                extensions.performance_query = true;
+            }
+            else if (extensionName == VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME)
+            {
+                extensions.host_query_reset = true;
+            }
+            else if (extensionName == VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+            {
+                extensions.deferred_host_operations = true;
+            }
+            // Core in 1.2
+            else if (extensionName == VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)
+            {
+                extensions.driverProperties = true;
+            }
+            else if (extensionName == VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME)
+            {
+                extensions.renderPass2 = true;
+            }
+            else if (extensionName == VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME)
+            {
+                extensions.sampler_filter_minmax = true;
+            }
+            else if (extensionName == VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME)
+            {
+                extensions.depth_stencil_resolve = true;
+            }
+            else if (extensionName == VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
+            {
+                extensions.accelerationStructure = true;
+            }
+            else if (extensionName == VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
+            {
+                extensions.raytracingPipeline = true;
+            }
+            else if (extensionName == VK_KHR_RAY_QUERY_EXTENSION_NAME)
+            {
+                extensions.rayQuery = true;
+            }
+            else if (extensionName == VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME)
+            {
+                extensions.fragment_shading_rate = true;
+            }
+            else if (extensionName == VK_NV_MESH_SHADER_EXTENSION_NAME)
+            {
+                extensions.NV_mesh_shader = true;
+            }
+            else if (extensionName == VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME)
+            {
+                extensions.EXT_conditional_rendering = true;
+            }
+            else if (extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+            {
+                extensions.dynamicRendering = true;
+            }
+            else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)
+            {
+                extensions.extended_dynamic_state = true;
+            }
+            else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME)
+            {
+                extensions.extended_dynamic_state2 = true;
+            }
+            else if (extensionName == VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME)
+            {
+                extensions.pipeline_creation_cache_control = true;
+            }
+            else if (extensionName == VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME)
+            {
+                extensions.format_feature_flags2 = true;
+            }
+            else if (extensionName == VK_KHR_VIDEO_QUEUE_EXTENSION_NAME)
+            {
+                extensions.Video.Queue = true;
+            }
+            else if (extensionName == VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME)
+            {
+                extensions.Video.DecodeQueue = true;
+            }
+            else if (extensionName == VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME)
+            {
+                extensions.Video.DecodeH264 = true;
+            }
+            else if (extensionName == VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME)
+            {
+                extensions.Video.DecodeH265 = true;
+            }
+            else if (extensionName == VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME)
+            {
+                extensions.Video.EncodeQueue = true;
+            }
+            else if (extensionName == VK_EXT_VIDEO_ENCODE_H264_EXTENSION_NAME)
+            {
+                extensions.Video.EncodeH264 = true;
+            }
+            else if (extensionName == VK_EXT_VIDEO_ENCODE_H265_EXTENSION_NAME)
+            {
+                extensions.Video.EncodeH265 = true;
+            }
+            else if (extensionName == VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME)
+            {
+                extensions.win32_full_screen_exclusive = true;
+            }
+        }
+
+        VkPhysicalDeviceProperties gpuProps;
+        vkGetPhysicalDeviceProperties(physicalDevice, &gpuProps);
+
+        // Core 1.2
+        if (gpuProps.apiVersion >= VkVersion.Version_1_2)
+        {
+            extensions.driverProperties = true;
+            extensions.renderPass2 = true;
+            extensions.sampler_filter_minmax = true;
+            extensions.depth_stencil_resolve = true;
+        }
+
+        // Core 1.3
+        if (gpuProps.apiVersion >= VkVersion.Version_1_3)
+        {
+            extensions.dynamicRendering = true;
+            extensions.extended_dynamic_state = true;
+            extensions.extended_dynamic_state2 = true;
+            extensions.pipeline_creation_cache_control = true;
+            extensions.format_feature_flags2 = true;
+        }
+
+        return extensions;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

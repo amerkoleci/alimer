@@ -8,11 +8,11 @@ namespace Alimer.Graphics;
 /// </summary>
 public abstract class GraphicsBuffer : GraphicsResource
 {
-    protected GraphicsBuffer(GraphicsDevice device, in BufferDescriptor descriptor)
-        : base(device, descriptor.Label)
+    protected GraphicsBuffer(GraphicsDevice device, in BufferDescription description)
+        : base(device, description.Label)
     {
-        Size = descriptor.Size;
-        Usage = descriptor.Usage;
+        Size = description.Size;
+        Usage = description.Usage;
     }
 
     public ulong Size { get; }

@@ -9,45 +9,47 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanCommandBuffer : CommandBuffer
 {
-    public readonly VulkanCommandQueue Queue;
+    private readonly VulkanCommandQueue _queue;
     private readonly VkCommandPool[] _commandPools = new VkCommandPool[MaxFramesInFlight];
     private readonly VkCommandBuffer[] _commandBuffers = new VkCommandBuffer[MaxFramesInFlight];
     private VkCommandBuffer _commandBuffer; // recording command buffer
-    private bool _hasLabel;
-
+    
     public VulkanCommandBuffer(VulkanCommandQueue queue)
         : base(queue.Device)
     {
-        Queue = queue;
+        _queue = queue;
 
         for (uint i = 0; i < MaxFramesInFlight; ++i)
         {
             VkCommandPoolCreateInfo poolInfo = new()
             {
-                sType = VkStructureType.CommandPoolCreateInfo,
                 flags = VkCommandPoolCreateFlags.Transient,
                 queueFamilyIndex = queue.Device.GetQueueFamily(queue.QueueType)
             };
 
             vkCreateCommandPool(queue.Device.Handle, &poolInfo, null, out _commandPools[i]).DebugCheckResult();
 
-            VkCommandBufferAllocateInfo commandBufferInfo = new();
-            commandBufferInfo.sType = VkStructureType.CommandBufferAllocateInfo;
-            commandBufferInfo.commandPool = _commandPools[i];
-            commandBufferInfo.level = VkCommandBufferLevel.Primary;
-            commandBufferInfo.commandBufferCount = 1;
+            VkCommandBufferAllocateInfo commandBufferInfo = new()
+            {
+                commandPool = _commandPools[i],
+                level = VkCommandBufferLevel.Primary,
+                commandBufferCount = 1
+            };
             vkAllocateCommandBuffer(queue.Device.Handle, &commandBufferInfo, out _commandBuffers[i]).DebugCheckResult();
 
             //binderPools[i].Init(device);
         }
     }
 
+    /// <inheritdoc />
+    public override CommandQueue Queue => _queue.QueueType;
+
     public void Destroy()
     {
         for (int i = 0; i < _commandPools.Length; ++i)
         {
             //vkFreeCommandBuffers(Queue.Device.Handle, _commandPools[i], 1, &commandBuffers[i]);
-            vkDestroyCommandPool(Queue.Device.Handle, _commandPools[i]);
+            vkDestroyCommandPool(_queue.Device.Handle, _commandPools[i]);
             //binderPools[i].Shutdown();
         }
     }
@@ -63,7 +65,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         //binder.reset();
         //presentSwapChains.clear();
 
-        vkResetCommandPool(Queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
+        vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
         _commandBuffer = _commandBuffers[frameIndex];
 
         VkCommandBufferBeginInfo beginInfo = new()
@@ -74,7 +76,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         };
         vkBeginCommandBuffer(_commandBuffer, &beginInfo).DebugCheckResult();
 
-        if (Queue.QueueType == CommandQueue.Graphics)
+        if (_queue.QueueType == CommandQueue.Graphics)
         {
             VkRect2D* scissors = stackalloc VkRect2D[16];
             for (uint i = 0; i < 16; ++i)
@@ -89,7 +91,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             vkCmdSetBlendConstants(_commandBuffer, 1.0f, 1.0f, 1.0f, 1.0f);
             vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, ~0u);
 
-            if (Queue.Device.PhysicalDeviceFeatures2.features.depthBounds == true)
+            if (_queue.Device.PhysicalDeviceFeatures2.features.depthBounds == true)
             {
                 vkCmdSetDepthBounds(_commandBuffer, 0.0f, 1.0f);
             }
@@ -104,15 +106,11 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             _hasLabel = true;
             PushDebugGroup(label);
         }
-        else
-        {
-            _hasLabel = false;
-        }
     }
 
     public override void PushDebugGroup(string groupLabel)
     {
-        if (!Queue.Device.DebugUtils)
+        if (!_queue.Device.DebugUtils)
             return;
 
         fixed (sbyte* pLabelName = groupLabel.GetUtf8Span())
@@ -132,7 +130,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
     public override void PopDebugGroup()
     {
-        if (!Queue.Device.DebugUtils)
+        if (!_queue.Device.DebugUtils)
             return;
 
         vkCmdEndDebugUtilsLabelEXT(_commandBuffer);
@@ -140,7 +138,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
     public override void InsertDebugMarker(string debugLabel)
     {
-        if (!Queue.Device.DebugUtils)
+        if (!_queue.Device.DebugUtils)
             return;
 
         fixed (sbyte* pLabelName = debugLabel.GetUtf8Span())
@@ -158,8 +156,55 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
+    public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
+    {
+        VulkanSwapChain vulkanSwapChain = (VulkanSwapChain)swapChain;
+
+        VkResult result = VkResult.Success;
+        uint imageIndex = 0;
+        lock (vulkanSwapChain.LockObject)
+        {
+            result = vkAcquireNextImageKHR(
+                _queue.Device.Handle,
+                vulkanSwapChain.Handle,
+                ulong.MaxValue,
+                vulkanSwapChain.AcquireSemaphore,
+                VkFence.Null,
+                out imageIndex);
+        }
+
+        if (result != VkResult.Success)
+        {
+            // Handle outdated error in acquire
+            if (result == VkResult.SuboptimalKHR || result == VkResult.ErrorOutOfDateKHR)
+            {
+                _queue.Device.WaitIdle();
+                //_queue.Device.UpdateSwapChain(vulkanSwapChain);
+                return AcquireSwapChainTexture(swapChain);
+            }
+        }
+
+        vulkanSwapChain.AcquiredImageIndex = imageIndex;
+        _queue.QueuePresent(vulkanSwapChain);
+
+        // TextureBarrier(swapChainTexture, ResourceStates.RenderTarget);
+        return vulkanSwapChain.CurrentTexture;
+    }
+
     public override void Commit()
     {
+        //for (auto & swapChain : presentSwapChains)
+        //{
+        //    VulkanTexture* swapChainTexture = swapChain->backbufferTextures[swapChain->imageIndex].Get();
+        //    TextureBarrier(swapChainTexture, ResourceStates::Present);
+        //}
 
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+        }
+
+        vkEndCommandBuffer(_commandBuffer).DebugCheckResult();
+        _queue.Commit(_commandBuffer);
     }
 }

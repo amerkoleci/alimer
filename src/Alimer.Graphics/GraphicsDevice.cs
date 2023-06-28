@@ -34,7 +34,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <summary>
     /// Get the adapter info.
     /// </summary>
-    public abstract GraphicsAdapterInfo AdapterInfo { get; }
+    public abstract GraphicsAdapterProperties AdapterInfo { get; }
 
     /// <summary>
     /// Get the device limits.
@@ -204,26 +204,26 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public abstract bool QueryFeature(Feature feature);
 
-    public GraphicsBuffer CreateBuffer(in BufferDescriptor descriptor)
+    public GraphicsBuffer CreateBuffer(in BufferDescription descriptor)
     {
         return CreateBuffer(descriptor, null);
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescriptor descriptor, IntPtr initialData)
+    public GraphicsBuffer CreateBuffer(in BufferDescription descriptor, IntPtr initialData)
     {
         return CreateBuffer(descriptor, initialData.ToPointer());
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescriptor descriptor, void* initialData)
+    public GraphicsBuffer CreateBuffer(in BufferDescription descriptor, void* initialData)
     {
-        Guard.IsGreaterThanOrEqualTo(descriptor.Size, 4, nameof(BufferDescriptor.Size));
+        Guard.IsGreaterThanOrEqualTo(descriptor.Size, 4, nameof(BufferDescription.Size));
 
         return CreateBufferCore(descriptor, initialData);
     }
 
-    public GraphicsBuffer CreateBuffer<T>(in BufferDescriptor descriptor, ref T initialData) where T : unmanaged
+    public GraphicsBuffer CreateBuffer<T>(in BufferDescription descriptor, ref T initialData) where T : unmanaged
     {
-        Guard.IsGreaterThanOrEqualTo(descriptor.Size, 4, nameof(BufferDescriptor.Size));
+        Guard.IsGreaterThanOrEqualTo(descriptor.Size, 4, nameof(BufferDescription.Size));
 
         fixed (void* initialDataPtr = &initialData)
         {
@@ -250,7 +250,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         int typeSize = sizeof(T);
         Guard.IsTrue(initialData.Length > 0, nameof(initialData));
 
-        BufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, cpuAccess, label);
+        BufferDescription description = new((uint)(initialData.Length * typeSize), usage, cpuAccess, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
@@ -290,7 +290,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer BeginCommandBuffer(CommandQueue queue = CommandQueue.Graphics, string? label = default);
 
-    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
+    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData);
 
     protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData);
 

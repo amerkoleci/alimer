@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public readonly struct GraphicsAdapterInfo
+public readonly struct GraphicsAdapterProperties
 {
     public readonly uint VendorId { get; init; }
     public readonly uint DeviceId { get; init; }

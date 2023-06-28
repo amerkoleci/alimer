@@ -7,6 +7,7 @@ namespace Alimer.Graphics;
 
 public abstract class CommandBuffer
 {
+    protected bool _hasLabel;
     protected bool _insideRenderPass;
     protected ShadingRate _currentShadingRate = ShadingRate.Invalid;
 
@@ -16,6 +17,11 @@ public abstract class CommandBuffer
 
         Device = device;
     }
+
+    /// <summary>
+    /// Get the <see cref="CommandQueue"/> object that will execute this CommandBuffer.
+    /// </summary>
+    public abstract CommandQueue Queue { get; }
 
     /// <summary>
     /// Get the <see cref="GraphicsDevice"/> object that created this object.
@@ -28,6 +34,8 @@ public abstract class CommandBuffer
     public abstract void PopDebugGroup();
     public abstract void InsertDebugMarker(string debugLabel);
 
+    public abstract Texture? AcquireSwapChainTexture(SwapChain swapChain);
+
     public IDisposable PushScopedDebugGroup(string groupLabel)
     {
         PushDebugGroup(groupLabel);
@@ -36,6 +44,7 @@ public abstract class CommandBuffer
 
     protected void Reset(uint frameIndex)
     {
+        _hasLabel = false;
         _insideRenderPass = false;
         _currentShadingRate = ShadingRate.Invalid;
         //frameAllocators[frameIndex].Reset();

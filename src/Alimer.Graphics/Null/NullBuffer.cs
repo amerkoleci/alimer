@@ -5,7 +5,7 @@ namespace Alimer.Graphics.Null;
 
 internal class NullBuffer : GraphicsBuffer
 {
-    public NullBuffer(NullGraphicsDevice device, in BufferDescriptor descriptor)
+    public NullBuffer(NullGraphicsDevice device, in BufferDescription descriptor)
         : base(device, descriptor)
     {
     }

@@ -8,7 +8,6 @@ using static Vortice.Vulkan.Vulkan;
 using static Vortice.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.VkUtils;
-using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
@@ -21,6 +20,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
 
     private readonly QueueFamilyIndices _queueFamilyIndices;
+    private readonly VulkanPhysicalDeviceExtensions _physicalDeviceExtensions;
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
     private readonly VkDevice _handle = VkDevice.Null;
     private readonly VulkanCopyAllocator _copyAllocator;
@@ -29,7 +29,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)CommandQueue.Count];
     private readonly VmaAllocator _allocator;
 
-    private readonly GraphicsAdapterInfo _adapterInfo;
+    private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
 
     public static bool IsSupported() => s_isSupported.Value;
@@ -77,10 +77,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 else if (extensionName == VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME)
                 {
                     instanceExtensions.Add(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
-                }
-                else if (extensionName == VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME)
-                {
-                    instanceExtensions.Add(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME);
                 }
                 else if (extensionName == VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
                 {
@@ -213,40 +209,39 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 #endif
         }
 
-        // Features
-        VkPhysicalDeviceFeatures2 features2 = default;
-        VkPhysicalDeviceVulkan11Features features1_1 = default;
-        VkPhysicalDeviceVulkan12Features features1_2 = default;
-        VkPhysicalDeviceVulkan13Features features1_3 = default;
 
-        VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
-        VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures = default;
-        VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = default;
-
-        // Properties
-        VkPhysicalDeviceProperties2 properties2 = default;
-        VkPhysicalDeviceVulkan11Properties properties1_1 = default;
-        VkPhysicalDeviceVulkan12Properties properties1_2 = default;
-        VkPhysicalDeviceVulkan13Properties properties1_3 = default;
-        VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = default;
-        VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = default;
-
-        bool swapchain = false;
-        bool supportsExternalSemaphore = false;
-        bool supportsExternalMemory = false;
-        bool video_queue = false;
-        bool video_decode_queue = false;
-        bool video_decode_h264 = false;
-        bool video_decode_h265 = false;
-
-        List<string> enabledDeviceExtensions = new()
+        // Enumerate physical device and create logical device.
         {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_KHR_MAINTENANCE_1_EXTENSION_NAME
-        };
+            // Features
+            VkPhysicalDeviceFeatures2 features2 = default;
+            VkPhysicalDeviceVulkan11Features features1_1 = default;
+            VkPhysicalDeviceVulkan12Features features1_2 = default;
+            VkPhysicalDeviceVulkan13Features features1_3 = default;
 
-        {
-            // Enumerate physical device and create logical device.
+            VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
+            VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures = default;
+            VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = default;
+
+            // Properties
+            VkPhysicalDeviceProperties2 properties2 = default;
+            VkPhysicalDeviceVulkan11Properties properties1_1 = default;
+            VkPhysicalDeviceVulkan12Properties properties1_2 = default;
+            VkPhysicalDeviceVulkan13Properties properties1_3 = default;
+
+            // Core 1.2
+            VkPhysicalDeviceDriverProperties driverProperties = default;
+            VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = default;
+            VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = default;
+
+            bool supportsExternalSemaphore = false;
+            bool supportsExternalMemory = false;
+            bool video_queue = false;
+            bool video_decode_queue = false;
+            bool video_decode_h264 = false;
+            bool video_decode_h265 = false;
+
+            List<string> enabledDeviceExtensions = new();
+
             ReadOnlySpan<VkPhysicalDevice> physicalDevices = vkEnumeratePhysicalDevices(_instance);
 
             if (physicalDevices.Length == 0)
@@ -264,11 +259,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     continue;
                 }
 
-                enabledDeviceExtensions = new()
+                VulkanPhysicalDeviceExtensions physicalDeviceExtensions = QueryPhysicalDeviceExtensions(candidatePhysicalDevice);
+                if (!physicalDeviceExtensions.swapchain)
                 {
-                    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                    VK_KHR_MAINTENANCE_1_EXTENSION_NAME
-                };
+                    continue;
+                }
 
                 // Features
                 void** featuresChain = null;
@@ -284,12 +279,18 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 features1_1.pNext = &features1_2;
                 if (physicalDeviceProperties.apiVersion >= VkVersion.Version_1_3)
                 {
+                    features1_1.pNext = &features1_2;
                     features1_2.pNext = &features1_3;
                     featuresChain = &features1_3.pNext;
                 }
+                else if (physicalDeviceProperties.apiVersion >= VkVersion.Version_1_2)
+                {
+                    features1_1.pNext = &features1_2;
+                    featuresChain = &features1_2.pNext;
+                }
                 else
                 {
-                    featuresChain = &features1_2.pNext;
+                    featuresChain = &features1_1.pNext;
                 }
 
                 // Properties
@@ -300,27 +301,98 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 properties1_3 = new();
 
                 properties2.pNext = &properties1_1;
-                properties1_1.pNext = &properties1_2;
                 if (physicalDeviceProperties.apiVersion >= VkVersion.Version_1_3)
                 {
+                    properties1_1.pNext = &properties1_2;
                     properties1_2.pNext = &properties1_3;
                     propertiesChain = &properties1_3.pNext;
                 }
-                else
+                else if (physicalDeviceProperties.apiVersion >= VkVersion.Version_1_2)
                 {
+                    properties1_1.pNext = &properties1_2;
                     propertiesChain = &properties1_2.pNext;
                 }
+                else
+                {
+                    propertiesChain = &properties1_1.pNext;
+                }
 
-
+                driverProperties = new();
                 samplerFilterMinmaxProperties = new();
-                *propertiesChain = &samplerFilterMinmaxProperties;
-                propertiesChain = &samplerFilterMinmaxProperties.pNext;
-
                 depthStencilResolveProperties = new();
-                *propertiesChain = &depthStencilResolveProperties;
-                propertiesChain = &depthStencilResolveProperties.pNext;
 
-                swapchain = false;
+                if (physicalDeviceExtensions.sampler_filter_minmax)
+                {
+                    *propertiesChain = &samplerFilterMinmaxProperties;
+                    propertiesChain = &samplerFilterMinmaxProperties.pNext;
+                }
+
+                if (physicalDeviceExtensions.depth_stencil_resolve)
+                {
+                    *propertiesChain = &depthStencilResolveProperties;
+                    propertiesChain = &depthStencilResolveProperties.pNext;
+                }
+
+                // Device extensions
+                enabledDeviceExtensions = new()
+                {
+                    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                    VK_KHR_MAINTENANCE_1_EXTENSION_NAME
+                };
+
+                // Core in 1.2
+                if (physicalDeviceProperties.apiVersion < VkVersion.Version_1_2)
+                {
+                    if (physicalDeviceExtensions.driverProperties)
+                    {
+                        enabledDeviceExtensions.Add(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+
+                        *propertiesChain = &driverProperties;
+                        propertiesChain = &driverProperties.pNext;
+                    }
+
+                    if (physicalDeviceExtensions.renderPass2)
+                    {
+                        enabledDeviceExtensions.Add(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+                    }
+
+                    if (physicalDeviceExtensions.sampler_filter_minmax)
+                    {
+                        enabledDeviceExtensions.Add(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME);
+                    }
+
+                    if (physicalDeviceExtensions.depth_stencil_resolve)
+                    {
+                        enabledDeviceExtensions.Add(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
+                    }
+                }
+
+                // Core in 1.3
+                if (physicalDeviceProperties.apiVersion < VkVersion.Version_1_3)
+                {
+                }
+
+                if (physicalDeviceExtensions.MemoryBudget)
+                {
+                    enabledDeviceExtensions.Add(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+                }
+
+                if (physicalDeviceExtensions.AMD_DeviceCoherentMemory)
+                {
+                    enabledDeviceExtensions.Add(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME);
+                }
+                if (physicalDeviceExtensions.MemoryPriority)
+                {
+                    enabledDeviceExtensions.Add(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+                }
+
+                if (physicalDeviceExtensions.depthClipEnable)
+                {
+                    enabledDeviceExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+                    *featuresChain = &depthClipEnableFeatures;
+                    featuresChain = &depthClipEnableFeatures.pNext;
+                }
+
                 supportsExternalSemaphore = false;
                 supportsExternalMemory = false;
                 video_queue = false;
@@ -332,17 +404,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 for (int i = 0; i < deviceExtensions.Length; ++i)
                 {
                     string extensionName = deviceExtensions[i].GetExtensionName();
-                    if (extensionName == VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME)
-                    {
-                        enabledDeviceExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
-                        *featuresChain = &depthClipEnableFeatures;
-                        featuresChain = &depthClipEnableFeatures.pNext;
-                    }
-                    else if (extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
-                    {
-                        swapchain = true;
-                    }
-                    else if (extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
+
+
+                    if (extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 
@@ -398,11 +462,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     }
                 }
 
-                if (!swapchain)
-                {
-                    continue;
-                }
-
                 vkGetPhysicalDeviceFeatures2(candidatePhysicalDevice, &features2);
                 vkGetPhysicalDeviceProperties2(candidatePhysicalDevice, &properties2);
 
@@ -422,79 +481,121 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     }
                 }
             }
+
+            if (_physicalDevice.IsNull)
+            {
+                throw new GraphicsException("Vulkan: Failed to find a suitable GPU");
+            }
+
+            _physicalDeviceExtensions = QueryPhysicalDeviceExtensions(_physicalDevice);
+            vkGetPhysicalDeviceFeatures2(_physicalDevice, &features2);
+            vkGetPhysicalDeviceProperties2(_physicalDevice, &properties2);
+
+            PhysicalDeviceFeatures2 = features2;
+            PhysicalDeviceFeatures1_2 = features1_2;
+            PhysicalDeviceFeatures1_3 = features1_3;
+
+            PhysicalDeviceProperties = properties2;
+            SupportsExternal = supportsExternalSemaphore & supportsExternalMemory;
+
+            VkPhysicalDeviceMemoryProperties2 memoryProperties2 = new();
+            vkGetPhysicalDeviceMemoryProperties2(_physicalDevice, &memoryProperties2);
+
+            Guard.IsTrue(features2.features.robustBufferAccess);
+            Guard.IsTrue(features2.features.depthBiasClamp);
+            Guard.IsTrue(features2.features.fragmentStoresAndAtomics);
+            Guard.IsTrue(features2.features.imageCubeArray);
+            Guard.IsTrue(features2.features.independentBlend);
+            Guard.IsTrue(features2.features.fullDrawIndexUint32);
+            Guard.IsTrue(features2.features.sampleRateShading);
+            Guard.IsTrue(features2.features.shaderClipDistance);
+
+            //ALIMER_VERIFY(features2.features.occlusionQueryPrecise == VK_TRUE);
+            //Guard.IsTrue(features_1_2.descriptorIndexing == VK_TRUE);
+            //Guard.IsTrue(features_1_2.runtimeDescriptorArray == VK_TRUE);
+            //Guard.IsTrue(features_1_2.descriptorBindingPartiallyBound == VK_TRUE);
+            //Guard.IsTrue(features_1_2.descriptorBindingVariableDescriptorCount == VK_TRUE);
+            //Guard.IsTrue(features_1_2.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+            Guard.IsTrue(features1_2.timelineSemaphore);
+            //Guard.IsTrue(features_1_3.synchronization2 == VK_TRUE);
+            //Guard.IsTrue(features_1_3.dynamicRendering == VK_TRUE);
+
+            if (!features2.features.textureCompressionBC &&
+                !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
+            {
+                Log.Error("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
+                return;
+            }
+
+            DepthClipControl = features2.features.depthClamp && depthClipEnableFeatures.depthClipEnable;
+
+            _queueFamilyIndices = FindQueueFamilies(_physicalDevice, VkSurfaceKHR.Null, video_queue)!;
+
+            List<VkDeviceQueueCreateInfo> queueCreateInfos = _queueFamilyIndices.GetQueueCreateInfos();
+            VkDeviceCreateInfo deviceCreateInfo = new(queueCreateInfos.ToArray(), enabledDeviceExtensions.ToArray(), pNext: &features2);
+
+            result = vkCreateDevice(PhysicalDevice, in deviceCreateInfo, out _handle);
+            if (result != VkResult.Success)
+            {
+                throw new GraphicsException($"Failed to create Vulkan Logical Device, {result}");
+            }
+
+            vkLoadDevice(_handle);
+
+            // Init adapter information
+            string driverDescription;
+            if (properties2.properties.apiVersion >= VkVersion.Version_1_3)
+            {
+                driverDescription = new string(properties1_2.driverName);
+                if (properties1_2.driverInfo[0] != '\0')
+                {
+                    driverDescription += ": " + new string(properties1_2.driverInfo);
+                }
+            }
+            else if (_physicalDeviceExtensions.driverProperties)
+            {
+                driverDescription = new string(driverProperties.driverName);
+                if (driverProperties.driverInfo[0] != '\0')
+                {
+                    driverDescription += ": " + new string(driverProperties.driverInfo);
+                }
+            }
+            else
+            {
+                driverDescription = "Vulkan driver version: " + new VkVersion(properties2.properties.driverVersion);
+            }
+
+            GpuAdapterType adapterType = GpuAdapterType.Other;
+            switch (properties2.properties.deviceType)
+            {
+                case VkPhysicalDeviceType.IntegratedGpu:
+                    adapterType = GpuAdapterType.IntegratedGpu;
+                    break;
+                case VkPhysicalDeviceType.DiscreteGpu:
+                    adapterType = GpuAdapterType.DiscreteGpu;
+                    break;
+                case VkPhysicalDeviceType.Cpu:
+                    adapterType = GpuAdapterType.Cpu;
+                    break;
+
+                case VkPhysicalDeviceType.VirtualGpu:
+                    adapterType = GpuAdapterType.VirtualGpu;
+                    break;
+
+                default:
+                    adapterType = GpuAdapterType.Other;
+                    break;
+            }
+
+            _adapterProperties = new()
+            {
+                VendorId = properties2.properties.vendorID,
+                DeviceId = properties2.properties.deviceID,
+                AdapterName = new string(properties2.properties.deviceName),
+                DriverDescription = driverDescription,
+                AdapterType = adapterType,
+            };
         }
-
-        if (_physicalDevice.IsNull)
-        {
-            throw new GraphicsException("Vulkan: Failed to find a suitable GPU");
-        }
-
-        vkGetPhysicalDeviceFeatures2(_physicalDevice, &features2);
-        vkGetPhysicalDeviceProperties2(_physicalDevice, &properties2);
-
-        PhysicalDeviceFeatures2 = features2;
-        PhysicalDeviceFeatures1_2 = features1_2;
-        PhysicalDeviceFeatures1_3 = features1_3;
-
-        PhysicalDeviceProperties = properties2;
-        SupportsExternal = supportsExternalSemaphore & supportsExternalMemory;
-
-        VkPhysicalDeviceMemoryProperties2 memoryProperties2 = new();
-        vkGetPhysicalDeviceMemoryProperties2(_physicalDevice, &memoryProperties2);
-
-        Guard.IsTrue(features2.features.robustBufferAccess);
-        Guard.IsTrue(features2.features.depthBiasClamp);
-        Guard.IsTrue(features2.features.fragmentStoresAndAtomics);
-        Guard.IsTrue(features2.features.imageCubeArray);
-        Guard.IsTrue(features2.features.independentBlend);
-        Guard.IsTrue(features2.features.fullDrawIndexUint32);
-        Guard.IsTrue(features2.features.sampleRateShading);
-        Guard.IsTrue(features2.features.shaderClipDistance);
-
-        //ALIMER_VERIFY(features2.features.occlusionQueryPrecise == VK_TRUE);
-        //Guard.IsTrue(features_1_2.descriptorIndexing == VK_TRUE);
-        //Guard.IsTrue(features_1_2.runtimeDescriptorArray == VK_TRUE);
-        //Guard.IsTrue(features_1_2.descriptorBindingPartiallyBound == VK_TRUE);
-        //Guard.IsTrue(features_1_2.descriptorBindingVariableDescriptorCount == VK_TRUE);
-        //Guard.IsTrue(features_1_2.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
-        Guard.IsTrue(features1_2.timelineSemaphore);
-        //Guard.IsTrue(features_1_3.synchronization2 == VK_TRUE);
-        //Guard.IsTrue(features_1_3.dynamicRendering == VK_TRUE);
-
-        if (!features2.features.textureCompressionBC &&
-            !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
-        {
-            Log.Error("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
-            return;
-        }
-
-        DepthClipControl = features2.features.depthClamp && depthClipEnableFeatures.depthClipEnable;
-
-        _queueFamilyIndices = FindQueueFamilies(_physicalDevice, VkSurfaceKHR.Null, video_queue)!;
-
-        List<VkDeviceQueueCreateInfo> queueCreateInfos = new(_queueFamilyIndices.QueueFamilyCount);
-
-        for (int familyIndex = 0; familyIndex < _queueFamilyIndices.QueueFamilyCount; familyIndex++)
-        {
-            if (_queueFamilyIndices.QueueOffsets[familyIndex] == 0)
-                continue;
-
-            VkDeviceQueueCreateInfo queueInfo = new(
-                (uint)familyIndex,
-                _queueFamilyIndices.QueueOffsets[familyIndex],
-                _queueFamilyIndices.QueuePriorities[familyIndex].ToArray());
-            queueCreateInfos.Add(queueInfo);
-        }
-
-        VkDeviceCreateInfo deviceCreateInfo = new(queueCreateInfos.ToArray(), enabledDeviceExtensions.ToArray(), pNext: &features2);
-
-        result = vkCreateDevice(PhysicalDevice, in deviceCreateInfo, out _handle);
-        if (result != VkResult.Success)
-        {
-            throw new GraphicsException($"Failed to create Vulkan Logical Device, {result}");
-        }
-
-        vkLoadDevice(_handle);
 
         // Queues
         for (int queue = 0; queue < (int)CommandQueue.Count; queue++)
@@ -505,60 +606,41 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
-        VmaAllocatorCreateInfo allocatorCreateInfo;
-        allocatorCreateInfo.VulkanApiVersion = VkVersion.Version_1_3;
-        allocatorCreateInfo.PhysicalDevice = PhysicalDevice;
-        allocatorCreateInfo.Device = Handle;
-        allocatorCreateInfo.Instance = Instance;
-
-        // Core in 1.1
-        allocatorCreateInfo.flags = VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
-
-        if (features1_2.bufferDeviceAddress)
+        // Memory Allocator
         {
-            allocatorCreateInfo.flags = VmaAllocatorCreateFlags.BufferDeviceAddress;
-        }
+            VmaAllocatorCreateInfo allocatorCreateInfo;
+            allocatorCreateInfo.VulkanApiVersion = VkVersion.Version_1_3;
+            allocatorCreateInfo.PhysicalDevice = PhysicalDevice;
+            allocatorCreateInfo.Device = Handle;
+            allocatorCreateInfo.Instance = Instance;
 
-        vmaCreateAllocator(&allocatorCreateInfo, out _allocator).CheckResult();
+            // Core in 1.1
+            allocatorCreateInfo.flags = VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
+
+            if (_physicalDeviceExtensions.MemoryBudget)
+            {
+                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.ExtMemoryBudget;
+            }
+
+            if (_physicalDeviceExtensions.AMD_DeviceCoherentMemory)
+            {
+                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.AMDDeviceCoherentMemory;
+            }
+
+            if (PhysicalDeviceFeatures1_2.bufferDeviceAddress)
+            {
+                allocatorCreateInfo.flags = VmaAllocatorCreateFlags.BufferDeviceAddress;
+            }
+
+            if (_physicalDeviceExtensions.MemoryPriority)
+            {
+                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.ExtMemoryPriority;
+            }
+
+            vmaCreateAllocator(&allocatorCreateInfo, out _allocator).CheckResult();
+        }
 
         _copyAllocator = new(this);
-
-        string driverDescription = new string(properties1_2.driverName);
-        if (properties1_2.driverInfo[0] != '\0')
-        {
-            driverDescription += ": " + new string(properties1_2.driverInfo);
-        }
-
-        GpuAdapterType adapterType = GpuAdapterType.Other;
-        switch (properties2.properties.deviceType)
-        {
-            case VkPhysicalDeviceType.IntegratedGpu:
-                adapterType = GpuAdapterType.IntegratedGpu;
-                break;
-            case VkPhysicalDeviceType.DiscreteGpu:
-                adapterType = GpuAdapterType.DiscreteGpu;
-                break;
-            case VkPhysicalDeviceType.Cpu:
-                adapterType = GpuAdapterType.Cpu;
-                break;
-
-            case VkPhysicalDeviceType.VirtualGpu:
-                adapterType = GpuAdapterType.VirtualGpu;
-                break;
-
-            default:
-                adapterType = GpuAdapterType.Other;
-                break;
-        }
-
-        _adapterInfo = new()
-        {
-            VendorId = properties2.properties.vendorID,
-            DeviceId = properties2.properties.deviceID,
-            AdapterName = new string(properties2.properties.deviceName),
-            DriverDescription = driverDescription,
-            AdapterType = adapterType,
-        };
 
         SupportsS8 = IsDepthStencilFormatSupported(VkFormat.S8Uint);
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
@@ -566,16 +648,16 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         Debug.Assert(SupportsD24S8 || SupportsD32S8);
 
-        TimestampFrequency = (ulong)(1.0 / properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
+        TimestampFrequency = (ulong)(1.0 / PhysicalDeviceProperties.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
 
         _limits = new GraphicsDeviceLimits
         {
-            MaxTextureDimension1D = properties2.properties.limits.maxImageDimension1D,
-            MaxTextureDimension2D = properties2.properties.limits.maxImageDimension2D,
-            MaxTextureDimension3D = properties2.properties.limits.maxImageDimension3D,
-            MaxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube,
-            MaxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers,
-            MaxTexelBufferDimension2D = properties2.properties.limits.maxTexelBufferElements,
+            MaxTextureDimension1D = PhysicalDeviceProperties.properties.limits.maxImageDimension1D,
+            MaxTextureDimension2D = PhysicalDeviceProperties.properties.limits.maxImageDimension2D,
+            MaxTextureDimension3D = PhysicalDeviceProperties.properties.limits.maxImageDimension3D,
+            MaxTextureDimensionCube = PhysicalDeviceProperties.properties.limits.maxImageDimensionCube,
+            MaxTextureArrayLayers = PhysicalDeviceProperties.properties.limits.maxImageArrayLayers,
+            MaxTexelBufferDimension2D = PhysicalDeviceProperties.properties.limits.maxTexelBufferElements,
         };
     }
 
@@ -594,18 +676,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
     public uint GraphicsFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Graphics];
     public uint ComputeFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Compute];
-    public uint CopyFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Copy];
+    public uint CopyQueueFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Copy];
+    public uint VideoDecodeQueueFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.VideoDecode];
+    public uint VideoEncodeQueueFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.VideoEncode];
 
     public VkDevice Handle => _handle;
     public VulkanCommandQueue GraphicsQueue => _queues[(int)CommandQueue.Graphics];
     public VulkanCommandQueue ComputeQueue => _queues[(int)CommandQueue.Compute];
     public VulkanCommandQueue CopyQueue => _queues[(int)CommandQueue.Copy];
+    public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)CommandQueue.VideoDecode];
+    public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)CommandQueue.VideoEncode];
 
     public VmaAllocator MemoryAllocator => _allocator;
     public VkPipelineCache PipelineCache => _pipelineCache;
 
     /// <inheritdoc />
-    public override GraphicsAdapterInfo AdapterInfo => _adapterInfo;
+    public override GraphicsAdapterProperties AdapterInfo => _adapterProperties;
 
     /// <inheritdoc />
     public override GraphicsDeviceLimits Limits => _limits;
@@ -830,7 +916,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     {
         for (uint i = 0; i < _queueFamilyIndices.FamilyIndices.Length; i++)
         {
-            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, i);
+            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, _queueFamilyIndices.FamilyIndices[i]);
         }
 
         if (info.queueFamilyIndexCount > 1)
@@ -853,7 +939,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     {
         for (uint i = 0; i < _queueFamilyIndices.FamilyIndices.Length; i++)
         {
-            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, i);
+            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, _queueFamilyIndices.FamilyIndices[i]);
         }
 
         if (info.queueFamilyIndexCount > 1)
@@ -873,7 +959,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData)
     {
         return new VulkanBuffer(this, descriptor, initialData);
     }
@@ -1122,6 +1208,25 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         public uint GetQueueFamily(CommandQueue queueType) => FamilyIndices[(int)queueType];
         public uint GetQueueIndex(CommandQueue queueType) => QueueIndices[(int)queueType];
+
+        public List<VkDeviceQueueCreateInfo> GetQueueCreateInfos()
+        {
+            List<VkDeviceQueueCreateInfo> result = new(QueueFamilyCount);
+
+            for (int familyIndex = 0; familyIndex < QueueFamilyCount; familyIndex++)
+            {
+                if (QueueOffsets[familyIndex] == 0)
+                    continue;
+
+                VkDeviceQueueCreateInfo queueInfo = new(
+                    (uint)familyIndex,
+                    QueueOffsets[familyIndex],
+                    QueuePriorities[familyIndex].ToArray());
+                result.Add(queueInfo);
+            }
+
+            return result;
+        }
     }
 
 

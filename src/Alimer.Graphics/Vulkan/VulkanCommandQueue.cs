@@ -17,7 +17,9 @@ internal unsafe class VulkanCommandQueue : IDisposable
     private readonly VkFence[] _frameFences;
 
     private uint _commandBufferCount = 0;
-    private List<VulkanCommandBuffer> _commandBuffers = new();
+    private readonly List<VulkanCommandBuffer> _commandBuffers = new();
+    private readonly List<VkCommandBuffer> _submitCommandBuffers = new();
+    private readonly List<VulkanSwapChain> _presentSwapChains = new();
 
     public VulkanCommandQueue(VulkanGraphicsDevice device, CommandQueue queueType)
     {
@@ -30,6 +32,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo = new()
         {
+            sType = VkStructureType.SemaphoreTypeCreateInfo,
             pNext = null,
             semaphoreType = VkSemaphoreType.Timeline,
             initialValue = 0
@@ -41,7 +44,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
             flags = 0
         };
 
-        vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
+        vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).DebugCheckResult();
 
         _frameFences = new VkFence[MaxFramesInFlight];
         for (int frameIndex = 0; frameIndex < MaxFramesInFlight; ++frameIndex)
@@ -62,7 +65,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
             vkDestroyFence(Device.Handle, _frameFences[frameIndex]);
         }
 
-        foreach(VulkanCommandBuffer commandBuffer in _commandBuffers)
+        foreach (VulkanCommandBuffer commandBuffer in _commandBuffers)
         {
             commandBuffer.Destroy();
         }
@@ -72,11 +75,23 @@ internal unsafe class VulkanCommandQueue : IDisposable
     public void FinishFrame()
     {
         _commandBufferCount = 0;
+        _submitCommandBuffers.Clear();
+        _presentSwapChains.Clear();
     }
 
     public void WaitIdle()
     {
         vkQueueWaitIdle(Handle);
+    }
+
+    public void Commit(VkCommandBuffer commandBuffer)
+    {
+        _submitCommandBuffers.Add(commandBuffer);
+    }
+
+    public void QueuePresent(VulkanSwapChain swapChain)
+    {
+        _presentSwapChains.Add(swapChain);
     }
 
     public void Submit(VkFence fence)
@@ -86,47 +101,80 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
         lock (LockObject)
         {
-            VkSubmitInfo2 submitInfo = new()
+            if (Device.PhysicalDeviceFeatures1_3.synchronization2 == true)
             {
-                sType = VkStructureType.SubmitInfo2
-            };
-            //submitInfo.waitSemaphoreInfoCount = (uint32_t)submit_waitSemaphoreInfos.size();
-            //submitInfo.pWaitSemaphoreInfos = submit_waitSemaphoreInfos.data();
-            //submitInfo.commandBufferInfoCount = (uint32_t)submit_cmds.size();
-            //submitInfo.pCommandBufferInfos = submit_cmds.data();
-            //submitInfo.signalSemaphoreInfoCount = (uint32_t)submit_signalSemaphoreInfos.size();
-            //submitInfo.pSignalSemaphoreInfos = submit_signalSemaphoreInfos.data();
+                uint waitSemaphoreInfoCount = (uint)_presentSwapChains.Count;
+                uint signalSemaphoreInfoCount = (uint)_presentSwapChains.Count;
+                VkSemaphoreSubmitInfo* waitSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[_presentSwapChains.Count];
+                VkSemaphoreSubmitInfo* signalSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[_presentSwapChains.Count];
 
-            vkQueueSubmit2(Handle, 1, &submitInfo, fence).DebugCheckResult();
+                for (int i = 0; i < _presentSwapChains.Count; i++)
+                {
+                    waitSemaphoreInfos[i] = new()
+                    {
+                        semaphore = _presentSwapChains[i].AcquireSemaphore,
+                        value = 0, // not a timeline semaphore
+                        stageMask = VkPipelineStageFlags2.ColorAttachmentOutput
+                    };
 
-            //if (!submitSwapchains.empty())
-            //{
-            //    VkPresentInfoKHR presentInfo = { };
-            //    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-            //    presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
-            //    presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
-            //    presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
-            //    presentInfo.pSwapchains = submit_swapchains.data();
-            //    presentInfo.pImageIndices = submit_swapChainImageIndices.data();
-            //    res = vkQueuePresentKHR(queue, &presentInfo);
-            //    if (res != VK_SUCCESS)
-            //    {
-            //        // Handle outdated error in present:
-            //        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
-            //        {
-            //            for (auto & swapchain : swapchain_updates)
-            //            {
-            //                auto internal_state = to_internal(&swapchain);
-            //                bool success = CreateSwapChainInternal(internal_state, device->physicalDevice, device->device, device->allocationhandler);
-            //                assert(success);
-            //            }
-            //        }
-            //        else
-            //        {
-            //            assert(0);
-            //        }
-            //    }
-            //}
+                    signalSemaphoreInfos[i] = new()
+                    {
+                        semaphore = _presentSwapChains[i].ReleaseSemaphore,
+                        value = 0, // not a timeline semaphore
+                    };
+                }
+
+                uint commandBufferInfoCount = (uint)_submitCommandBuffers.Count;
+                VkCommandBufferSubmitInfo* commandBufferInfos = stackalloc VkCommandBufferSubmitInfo[_submitCommandBuffers.Count];
+                for (int i = 0; i < _submitCommandBuffers.Count; i++)
+                {
+                    commandBufferInfos[i] = new()
+                    {
+                        commandBuffer = _submitCommandBuffers[i]
+                    };
+                }
+
+                VkSubmitInfo2 submitInfo = new()
+                {
+                    waitSemaphoreInfoCount = waitSemaphoreInfoCount,
+                    pWaitSemaphoreInfos = waitSemaphoreInfos,
+                    commandBufferInfoCount = commandBufferInfoCount,
+                    pCommandBufferInfos = commandBufferInfos,
+                    signalSemaphoreInfoCount = signalSemaphoreInfoCount,
+                    pSignalSemaphoreInfos = signalSemaphoreInfos
+                };
+
+                vkQueueSubmit2(Handle, 1, &submitInfo, fence).DebugCheckResult();
+
+                //if (!submitSwapchains.empty())
+                //{
+                //    VkPresentInfoKHR presentInfo = { };
+                //    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+                //    presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
+                //    presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
+                //    presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
+                //    presentInfo.pSwapchains = submit_swapchains.data();
+                //    presentInfo.pImageIndices = submit_swapChainImageIndices.data();
+                //    res = vkQueuePresentKHR(queue, &presentInfo);
+                //    if (res != VK_SUCCESS)
+                //    {
+                //        // Handle outdated error in present:
+                //        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
+                //        {
+                //            for (auto & swapchain : swapchain_updates)
+                //            {
+                //                auto internal_state = to_internal(&swapchain);
+                //                bool success = CreateSwapChainInternal(internal_state, device->physicalDevice, device->device, device->allocationhandler);
+                //                assert(success);
+                //            }
+                //        }
+                //        else
+                //        {
+                //            assert(0);
+                //        }
+                //    }
+                //}
+            }
 
             //swapchain_updates.clear();
             //submit_swapchains.clear();

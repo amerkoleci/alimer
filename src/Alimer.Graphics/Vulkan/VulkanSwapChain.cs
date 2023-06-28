@@ -15,6 +15,7 @@ internal unsafe class VulkanSwapChain : SwapChain
     private VkSemaphore _acquireSemaphore = VkSemaphore.Null;
     private VkSemaphore _releaseSemaphore = VkSemaphore.Null;
     private VulkanTexture[]? _backbufferTextures;
+    public readonly object LockObject = new();
 
     public VulkanSwapChain(VulkanGraphicsDevice device, SwapChainSurface surfaceSource, in SwapChainDescriptor descriptor)
         : base(device, surfaceSource, descriptor)
@@ -75,6 +76,11 @@ internal unsafe class VulkanSwapChain : SwapChain
     public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
     public VkPhysicalDevice PhysicalDevice => ((VulkanGraphicsDevice)Device).PhysicalDevice;
     public VkFormat VkFormat { get; }
+    public VkSwapchainKHR Handle => _handle;
+    public VkSemaphore AcquireSemaphore => _acquireSemaphore;
+    public VkSemaphore ReleaseSemaphore => _releaseSemaphore;
+    public uint AcquiredImageIndex { get; set; }
+    public VulkanTexture CurrentTexture => _backbufferTextures[AcquiredImageIndex];
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanSwapChain" /> class.

@@ -28,7 +28,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)CommandQueue.Count];
 
     private readonly D3D12Features _features = default;
-    private readonly GraphicsAdapterInfo _adapterInfo;
+    private readonly GraphicsAdapterProperties _adapterInfo;
     private readonly GraphicsDeviceLimits _limits;
 
     public static bool IsSupported() => s_isSupported.Value;
@@ -252,7 +252,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 adapterType = _features.UMA() ? GpuAdapterType.IntegratedGpu : GpuAdapterType.DiscreteGpu;
             }
 
-            _adapterInfo = new GraphicsAdapterInfo
+            _adapterInfo = new GraphicsAdapterProperties
             {
                 VendorId = adapterDesc.VendorId,
                 DeviceId = adapterDesc.DeviceId,
@@ -278,7 +278,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue CopyQueue => _queues[(int)CommandQueue.Copy];
 
     /// <inheritdoc />
-    public override GraphicsAdapterInfo AdapterInfo => _adapterInfo;
+    public override GraphicsAdapterProperties AdapterInfo => _adapterInfo;
 
     /// <inheritdoc />
     public override GraphicsDeviceLimits Limits => _limits;
@@ -374,7 +374,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData)
     {
         return new D3D12Buffer(this, descriptor, initialData);
     }

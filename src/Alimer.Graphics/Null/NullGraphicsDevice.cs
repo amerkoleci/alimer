@@ -11,7 +11,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override GraphicsAdapterInfo AdapterInfo => default;
+    public override GraphicsAdapterProperties AdapterInfo => default;
 
     /// <inheritdoc />
     public override GraphicsDeviceLimits Limits => default;
@@ -50,7 +50,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override unsafe GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override unsafe GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData)
     {
         return new NullBuffer(this, descriptor);
     }

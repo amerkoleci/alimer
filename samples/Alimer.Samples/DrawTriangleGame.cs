@@ -18,12 +18,13 @@ public sealed class DrawTriangleGame : GameApplication
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
         //
-        //ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
-        //    new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
-        //    new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
-        //    new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
-        //};
-        //using GraphicsBuffer vertexBuffer = GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex);
+        ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
+            new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
+            new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
+            new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
+        };
+        using GraphicsBuffer vertexBuffer = GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex);
+
         //
         //Entity cameraEntity = new Entity();
         //cameraEntity.GetOrCreate<CameraComponent>();
@@ -37,13 +38,13 @@ public sealed class DrawTriangleGame : GameApplication
     protected override void Draw(AppTime time)
     {
         CommandBuffer commandBuffer = GraphicsDevice.BeginCommandBuffer(CommandQueue.Graphics, "Frame");
-        //using Texture? swapChainTexture = commandBuffer.AcquireSwapchainTexture(MainView.SwapChain!);
-        //if (swapChainTexture is not null)
-        //{
+        using Texture? swapChainTexture = commandBuffer.AcquireSwapChainTexture(MainView.SwapChain!);
+        if (swapChainTexture is not null)
+        {
         //    commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
         //    commandBuffer.EndRenderPass();
-        //}
-        //
+        }
+        
         //GraphicsDevice.Submit(commandBuffer);
         commandBuffer.Commit();
 

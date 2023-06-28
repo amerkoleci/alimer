@@ -14,75 +14,71 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     private readonly VkBuffer _handle = VkBuffer.Null;
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
     private readonly void* pMappedData;
+    private readonly ulong _mappedSize;
     private ulong _gpuAddress;
 
-    public VulkanBuffer(VulkanGraphicsDevice device, in BufferDescriptor descriptor, void* initialData)
-        : base(device, descriptor)
+    public VulkanBuffer(VulkanGraphicsDevice device, in BufferDescription description, void* initialData)
+        : base(device, description)
     {
         VkBufferCreateInfo createInfo = new()
         {
             flags = 0,
-            size = descriptor.Size,
+            size = description.Size,
             usage = VkBufferUsageFlags.None
         };
 
-        bool needShaderDeviceAddress = false;
-        if ((descriptor.Usage & BufferUsage.Vertex) != 0)
+        if ((description.Usage & BufferUsage.Vertex) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.VertexBuffer;
-            needShaderDeviceAddress = true;
         }
 
-        if ((descriptor.Usage & BufferUsage.Index) != 0)
+        if ((description.Usage & BufferUsage.Index) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.IndexBuffer;
-            needShaderDeviceAddress = true;
         }
 
-        if ((descriptor.Usage & BufferUsage.Constant) != 0)
+        if ((description.Usage & BufferUsage.Constant) != 0)
         {
-            createInfo.size = MathHelper.AlignUp(descriptor.Size, device.PhysicalDeviceProperties.properties.limits.minUniformBufferOffsetAlignment);
+            createInfo.size = MathHelper.AlignUp(description.Size, device.PhysicalDeviceProperties.properties.limits.minUniformBufferOffsetAlignment);
             createInfo.usage |= VkBufferUsageFlags.UniformBuffer;
         }
 
-        if ((descriptor.Usage & BufferUsage.ShaderRead) != 0)
+        if ((description.Usage & BufferUsage.ShaderRead) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.StorageBuffer; // read only ByteAddressBuffer is also storage buffer
             createInfo.usage |= VkBufferUsageFlags.UniformTexelBuffer;
         }
-        if ((descriptor.Usage & BufferUsage.ShaderWrite) != 0)
+        if ((description.Usage & BufferUsage.ShaderWrite) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.StorageBuffer;
             createInfo.usage |= VkBufferUsageFlags.StorageTexelBuffer;
         }
-        if ((descriptor.Usage & BufferUsage.Indirect) != 0)
+        if ((description.Usage & BufferUsage.Indirect) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.IndirectBuffer;
         }
 
-        if ((descriptor.Usage & BufferUsage.Predication) != 0 &&
+        if ((description.Usage & BufferUsage.Predication) != 0 &&
             device.QueryFeature(Feature.ConditionalRendering))
         {
             createInfo.usage |= VkBufferUsageFlags.ConditionalRenderingEXT;
         }
 
-        if ((descriptor.Usage & BufferUsage.RayTracing) != 0 &&
+        if ((description.Usage & BufferUsage.RayTracing) != 0 &&
             device.QueryFeature(Feature.RayTracing))
         {
-            needShaderDeviceAddress = true;
             createInfo.usage |= VkBufferUsageFlags.AccelerationStructureStorageKHR;
             createInfo.usage |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyKHR;
             createInfo.usage |= VkBufferUsageFlags.ShaderBindingTableKHR;
         }
 
         // VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT require bufferDeviceAddress enabled.
-        if (device.PhysicalDeviceFeatures1_2.bufferDeviceAddress == true &&
-            needShaderDeviceAddress)
+        if (device.PhysicalDeviceFeatures1_2.bufferDeviceAddress == true)
         {
             createInfo.usage |= VkBufferUsageFlags.ShaderDeviceAddress;
         }
 
-        uint* sharingIndices = stackalloc uint[3];
+        uint* sharingIndices = stackalloc uint[(int)CommandQueue.Count];
         device.FillBufferSharingIndices(ref createInfo, sharingIndices);
 
         // TODO: Add sparse buffer support
@@ -91,12 +87,12 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         {
             usage = VmaMemoryUsage.Auto
         };
-        if (descriptor.CpuAccess == CpuAccessMode.Read)
+        if (description.CpuAccess == CpuAccessMode.Read)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferDst;
             memoryInfo.flags = VmaAllocationCreateFlags.HostAccessRandom | VmaAllocationCreateFlags.Mapped;
         }
-        else if (descriptor.CpuAccess == CpuAccessMode.Write)
+        else if (description.CpuAccess == CpuAccessMode.Write)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferSrc;
             memoryInfo.flags = VmaAllocationCreateFlags.HostAccessSequentialWrite | VmaAllocationCreateFlags.Mapped;
@@ -120,15 +116,15 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             return;
         }
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!string.IsNullOrEmpty(description.Label))
         {
-            OnLabelChanged(descriptor.Label!);
+            OnLabelChanged(description.Label!);
         }
 
         if ((memoryInfo.flags & VmaAllocationCreateFlags.Mapped) != 0)
         {
             pMappedData = allocationInfo.pMappedData;
-            //pMappedData = allocation->GetMappedData();
+            _mappedSize = allocationInfo.size;
         }
 
         if ((createInfo.usage & VkBufferUsageFlags.ShaderDeviceAddress) != 0)
@@ -146,7 +142,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         {
             VulkanUploadContext context = default;
             void* pMappedData = null;
-            if (descriptor.CpuAccess == CpuAccessMode.Write)
+            if (description.CpuAccess == CpuAccessMode.Write)
             {
                 pMappedData = this.pMappedData;
             }
@@ -156,15 +152,17 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                 pMappedData = context.UploadBuffer.pMappedData;
             }
 
-            Unsafe.CopyBlockUnaligned(pMappedData, initialData, (uint)descriptor.Size);
+            Unsafe.CopyBlockUnaligned(pMappedData, initialData, (uint)description.Size);
             //std::memcpy(pMappedData, initialData, desc.size);
 
             if (context.IsValid)
             {
-                VkBufferCopy copyRegion = new();
-                copyRegion.size = descriptor.Size;
-                copyRegion.srcOffset = 0;
-                copyRegion.dstOffset = 0;
+                VkBufferCopy copyRegion = new()
+                {
+                    size = description.Size,
+                    srcOffset = 0,
+                    dstOffset = 0
+                };
 
                 vkCmdCopyBuffer(
                     context.TransferCommandBuffer,
@@ -174,73 +172,97 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                     &copyRegion
                 );
 
-                VkBufferMemoryBarrier2 barrier = new()
+                if (device.PhysicalDeviceFeatures1_3.synchronization2)
                 {
-                    sType = VkStructureType.BufferMemoryBarrier2,
-                    buffer = _handle,
-                    srcStageMask = VkPipelineStageFlags2.Transfer,
-                    srcAccessMask = VkAccessFlags2.TransferWrite,
-                    dstStageMask = VkPipelineStageFlags2.AllCommands,
-                    dstAccessMask = VkAccessFlags2.MemoryRead | VkAccessFlags2.MemoryWrite,
-                    size = VK_WHOLE_SIZE,
-                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
-                };
+                    VkBufferMemoryBarrier2 barrier = new()
+                    {
+                        sType = VkStructureType.BufferMemoryBarrier2,
+                        buffer = _handle,
+                        srcStageMask = VkPipelineStageFlags2.Transfer,
+                        dstStageMask = VkPipelineStageFlags2.AllCommands,
+                        srcAccessMask = VkAccessFlags2.TransferWrite,
+                        dstAccessMask = VkAccessFlags2.MemoryRead | VkAccessFlags2.MemoryWrite,
+                        size = VK_WHOLE_SIZE,
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
+                    };
 
-                if ((descriptor.Usage & BufferUsage.Vertex) != 0)
-                {
-                    barrier.dstStageMask |= VkPipelineStageFlags2.VertexAttributeInput;
-                    barrier.dstAccessMask |= VkAccessFlags2.VertexAttributeRead;
-                }
+                    if ((description.Usage & BufferUsage.Vertex) != 0)
+                    {
+                        barrier.dstStageMask |= VkPipelineStageFlags2.VertexAttributeInput;
+                        barrier.dstAccessMask |= VkAccessFlags2.VertexAttributeRead;
+                    }
 
-                if ((descriptor.Usage & BufferUsage.Index) != 0)
-                {
-                    barrier.dstStageMask |= VkPipelineStageFlags2.IndexInput;
-                    barrier.dstAccessMask |= VkAccessFlags2.IndexRead;
-                }
+                    if ((description.Usage & BufferUsage.Index) != 0)
+                    {
+                        barrier.dstStageMask |= VkPipelineStageFlags2.IndexInput;
+                        barrier.dstAccessMask |= VkAccessFlags2.IndexRead;
+                    }
 
-                if ((descriptor.Usage & BufferUsage.Constant) != 0)
-                {
-                    barrier.dstAccessMask |= VkAccessFlags2.UniformRead;
-                }
+                    if ((description.Usage & BufferUsage.Constant) != 0)
+                    {
+                        barrier.dstAccessMask |= VkAccessFlags2.UniformRead;
+                    }
 
-                if ((descriptor.Usage & BufferUsage.ShaderRead) != 0)
-                {
-                    barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
-                }
-                if ((descriptor.Usage & BufferUsage.ShaderWrite) != 0)
-                {
-                    barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
-                    barrier.dstAccessMask |= VkAccessFlags2.ShaderWrite;
-                }
-                if ((descriptor.Usage & BufferUsage.Indirect) != 0)
-                {
-                    barrier.dstAccessMask |= VkAccessFlags2.IndirectCommandRead;
-                }
-                if ((descriptor.Usage & BufferUsage.RayTracing) != 0)
-                {
-                    barrier.dstAccessMask |= VkAccessFlags2.AccelerationStructureReadKHR;
-                }
-                //if ((descriptor.Usage & BufferUsage.VideoDecode) != 0)
-                //{
-                //    barrier.dstAccessMask |= VkAccessFlags2.VideoDecodeReadKHR;
-                //}
+                    if ((description.Usage & BufferUsage.ShaderRead) != 0)
+                    {
+                        barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
+                    }
+                    if ((description.Usage & BufferUsage.ShaderWrite) != 0)
+                    {
+                        barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
+                        barrier.dstAccessMask |= VkAccessFlags2.ShaderWrite;
+                    }
+                    if ((description.Usage & BufferUsage.Indirect) != 0)
+                    {
+                        barrier.dstAccessMask |= VkAccessFlags2.IndirectCommandRead;
+                    }
+                    if ((description.Usage & BufferUsage.RayTracing) != 0)
+                    {
+                        barrier.dstAccessMask |= VkAccessFlags2.AccelerationStructureReadKHR;
+                    }
+                    //if ((description.Usage & BufferUsage.VideoDecode) != 0)
+                    //{
+                    //    barrier.dstAccessMask |= VkAccessFlags2.VideoDecodeReadKHR;
+                    //}
 
-                VkDependencyInfo dependencyInfo = new()
-                {
-                    sType = VkStructureType.DependencyInfo,
-                    bufferMemoryBarrierCount = 1,
-                    pBufferMemoryBarriers = &barrier
-                };
+                    VkDependencyInfo dependencyInfo = new()
+                    {
+                        sType = VkStructureType.DependencyInfo,
+                        bufferMemoryBarrierCount = 1,
+                        pBufferMemoryBarriers = &barrier
+                    };
 
-                vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+                    vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+                }
+                else
+                {
+                    VkBufferMemoryBarrier barrier = new();
+                    barrier.sType = VkStructureType.BufferMemoryBarrier;
+                    barrier.srcAccessMask = VkAccessFlags.TransferWrite;
+                    barrier.dstAccessMask = VkAccessFlags.MemoryRead | VkAccessFlags.MemoryWrite;
+                    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    barrier.buffer = _handle;
+                    barrier.offset = 0;
+                    barrier.size = VK_WHOLE_SIZE;
+
+                    vkCmdPipelineBarrier(context.TransitionCommandBuffer,
+                        VkPipelineStageFlags.Transfer,
+                        VkPipelineStageFlags.AllCommands,
+                        0,
+                        0, null,
+                        1, &barrier,
+                        0, null
+                    );
+                }
 
                 device.Submit(in context);
             }
         }
     }
 
-    public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in BufferDescriptor descriptor)
+    public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in BufferDescription descriptor)
     : base(device, descriptor)
     {
         _handle = existingHandle;

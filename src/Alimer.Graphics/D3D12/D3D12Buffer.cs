@@ -14,7 +14,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
 {
     private readonly ComPtr<ID3D12Resource> _handle;
 
-    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescriptor descriptor, void* initialData)
+    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription descriptor, void* initialData)
         : base(device, descriptor)
     {
         ulong alignedSize = descriptor.Size;
@@ -73,7 +73,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         }
     }
 
-    public D3D12Buffer(GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescriptor descriptor)
+    public D3D12Buffer(GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescription descriptor)
         : base(device, descriptor)
     {
         _handle = existingHandle;
