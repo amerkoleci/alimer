@@ -30,7 +30,7 @@ internal unsafe class XAudio2Device : AudioDevice
 
     public static bool IsSupported() => s_isSupported.Value;
 
-    public XAudio2Device(in AudioDeviceDescriptor descriptor)
+    public XAudio2Device(in AudioDeviceOptions descriptor)
         : base(AudioBackendType.XAudio2)
     {
         ApiName = "XAudio2";

@@ -36,7 +36,7 @@ public abstract class Application : DisposableObject, IApplication
         Log.Info($"Version: {Version}");
         PrintSystemInformation();
 
-        GraphicsDeviceDescriptor deviceDescriptor = new()
+        GraphicsDeviceDescription deviceDescription = new()
         {
 #if DEBUG
             ValidationMode = ValidationMode.Enabled
@@ -44,14 +44,14 @@ public abstract class Application : DisposableObject, IApplication
         };
 
 #if !WINDOWS
-        deviceDescriptor.PreferredBackend = GraphicsBackendType.Vulkan;
+        deviceDescription.PreferredBackend = GraphicsBackendType.Vulkan;
         //deviceDescriptor.PreferredBackend = GraphicsBackendType.D3D11;
 #endif
 
-        GraphicsDevice = GraphicsDevice.CreateDefault(in deviceDescriptor);
+        GraphicsDevice = GraphicsDevice.CreateDefault(in deviceDescription);
 
-        AudioDeviceDescriptor audioDeviceDescriptor = new();
-        AudioDevice = AudioDevice.CreateDefault(in audioDeviceDescriptor);
+        AudioDeviceOptions audioOptions = new();
+        AudioDevice = AudioDevice.CreateDefault(in audioOptions);
     }
 
     /// <summary>

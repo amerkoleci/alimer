@@ -5,16 +5,10 @@ namespace Alimer.Graphics;
 
 public abstract class Pipeline : GraphicsObject
 {
-    protected Pipeline(GraphicsDevice device, in RenderPipelineDescriptor descriptor)
-        : base(device, descriptor.Label)
+    protected Pipeline(GraphicsDevice device, PipelineType pipelineType, string? label)
+        : base(device, label)
     {
-        PipelineType = PipelineType.Render;
-    }
-
-    protected Pipeline(GraphicsDevice device, in ComputePipelineDescriptor descriptor)
-        : base(device, descriptor.Label)
-    {
-        PipelineType = PipelineType.Compute;
+        PipelineType = pipelineType;
     }
 
     public PipelineType PipelineType { get; }

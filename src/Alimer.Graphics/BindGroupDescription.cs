@@ -4,14 +4,12 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="Pipeline"/>.
+/// Structure that describes a compute <see cref="BindGroup"/>.
 /// </summary>
-public readonly record struct ComputePipelineDescriptor
+public readonly record struct BindGroupDescription
 {
-    public ReadOnlyMemory<byte> ComputeShader { get; init; }
-
     /// <summary>
-    /// Gets or sets the label of <see cref="Pipeline"/>.
+    /// The label of <see cref="BindGroup"/>.
     /// </summary>
     public string? Label { get; init; }
 }

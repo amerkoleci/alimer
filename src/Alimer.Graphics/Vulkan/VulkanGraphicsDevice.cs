@@ -7,6 +7,7 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Vortice.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
+using static Vortice.Vulkan.VkUtils;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -33,8 +34,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public static bool IsSupported() => s_isSupported.Value;
 
-    public VulkanGraphicsDevice(in GraphicsDeviceDescriptor descriptor)
-        : base(GraphicsBackendType.Vulkan, descriptor)
+    public VulkanGraphicsDevice(in GraphicsDeviceDescription description)
+        : base(GraphicsBackendType.Vulkan, description)
     {
         Guard.IsTrue(IsSupported(), nameof(VulkanGraphicsDevice), "Vulkan is not supported");
 
@@ -43,9 +44,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         // Create instance first.
         {
             int instanceLayerCount = 0;
-            vkEnumerateInstanceLayerProperties(&instanceLayerCount, null).CheckResult();
+            vkEnumerateInstanceLayerProperties(&instanceLayerCount, null).DebugCheckResult();
             VkLayerProperties* availableInstanceLayers = stackalloc VkLayerProperties[instanceLayerCount];
-            vkEnumerateInstanceLayerProperties(&instanceLayerCount, availableInstanceLayers).CheckResult();
+            vkEnumerateInstanceLayerProperties(&instanceLayerCount, availableInstanceLayers).DebugCheckResult();
 
             int extensionCount = 0;
             vkEnumerateInstanceExtensionProperties(null, &extensionCount, null).CheckResult();
@@ -129,106 +130,87 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = new();
 
-            fixed (sbyte* pApplicationName = Label.GetUtf8Span())
+            VkApplicationInfo appInfo = new()
             {
-                fixed (sbyte* pEngineName = "Alimer".GetUtf8Span())
+                ApplicationName = Label,
+                ApplicationVersion = new VkVersion(1, 0, 0),
+                EngineName = "Alimer",
+                EngineVersion = new VkVersion(1, 0, 0),
+                ApiVersion = VkVersion.Version_1_3
+            };
+
+            VkInstanceCreateInfo createInfo = new(appInfo, instanceLayers.ToArray(), instanceExtensions.ToArray());
+
+            if (ValidationMode != ValidationMode.Disabled && DebugUtils)
+            {
+                debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
+                debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
+
+                if (ValidationMode == ValidationMode.Verbose)
                 {
-                    VkApplicationInfo appInfo = new()
-                    {
-                        sType = VkStructureType.ApplicationInfo,
-                        pApplicationName = pApplicationName,
-                        applicationVersion = new VkVersion(1, 0, 0),
-                        pEngineName = pEngineName,
-                        engineVersion = new VkVersion(1, 0, 0),
-                        apiVersion = VkVersion.Version_1_3
-                    };
+                    debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Verbose;
+                    debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Info;
+                }
 
-                    using VkStringArray vkLayerNames = new(instanceLayers);
-                    using VkStringArray vkExtensionNames = new(instanceExtensions);
+                debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
+                createInfo.pNext = &debugUtilsCreateInfo;
+            }
 
-                    VkInstanceCreateInfo createInfo = new()
-                    {
-                        sType = VkStructureType.InstanceCreateInfo,
-                        flags = HasPortability ? VkInstanceCreateFlags.EnumeratePortabilityKHR : VkInstanceCreateFlags.None,
-                        pApplicationInfo = &appInfo,
-                        enabledLayerCount = vkLayerNames.Length,
-                        ppEnabledLayerNames = vkLayerNames,
-                        enabledExtensionCount = vkExtensionNames.Length,
-                        ppEnabledExtensionNames = vkExtensionNames
-                    };
+            VkValidationFeaturesEXT validationFeaturesInfo = new();
 
-                    if (ValidationMode != ValidationMode.Disabled && DebugUtils)
-                    {
-                        debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
-                        debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
+            if (ValidationMode == ValidationMode.GPU && validationFeatures)
+            {
+                VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[2]
+                {
+                    VkValidationFeatureEnableEXT.GpuAssistedReserveBindingSlot,
+                    VkValidationFeatureEnableEXT.GpuAssisted
+                };
 
-                        if (ValidationMode == ValidationMode.Verbose)
-                        {
-                            debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Verbose;
-                            debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Info;
-                        }
+                validationFeaturesInfo.enabledValidationFeatureCount = 2;
+                validationFeaturesInfo.pEnabledValidationFeatures = enabledValidationFeatures;
+                validationFeaturesInfo.pNext = createInfo.pNext;
 
-                        debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
-                        createInfo.pNext = &debugUtilsCreateInfo;
-                    }
+                createInfo.pNext = &validationFeaturesInfo;
+            }
 
-                    VkValidationFeaturesEXT validationFeaturesInfo = new();
+            if (HasPortability)
+            {
+                createInfo.Flags |= VkInstanceCreateFlags.EnumeratePortabilityKHR;
+            }
 
-                    if (ValidationMode == ValidationMode.GPU && validationFeatures)
-                    {
-                        VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[2]
-                        {
-                            VkValidationFeatureEnableEXT.GpuAssistedReserveBindingSlot,
-                            VkValidationFeatureEnableEXT.GpuAssisted
-                        };
+            result = vkCreateInstance(in createInfo, out _instance);
+            if (result != VkResult.Success)
+            {
+                throw new InvalidOperationException($"Failed to create vulkan instance: {result}");
+            }
 
-                        validationFeaturesInfo.enabledValidationFeatureCount = 2;
-                        validationFeaturesInfo.pEnabledValidationFeatures = enabledValidationFeatures;
-                        validationFeaturesInfo.pNext = createInfo.pNext;
+            vkLoadInstanceOnly(_instance);
 
-                        createInfo.pNext = &validationFeaturesInfo;
-                    }
-
-                    if (HasPortability)
-                    {
-                        createInfo.flags |= VkInstanceCreateFlags.EnumeratePortabilityKHR;
-                    }
-
-                    result = vkCreateInstance(&createInfo, null, out _instance);
-                    if (result != VkResult.Success)
-                    {
-                        throw new InvalidOperationException($"Failed to create vulkan instance: {result}");
-                    }
-
-                    vkLoadInstanceOnly(_instance);
-
-                    if (ValidationMode != ValidationMode.Disabled && DebugUtils)
-                    {
-                        vkCreateDebugUtilsMessengerEXT(_instance, &debugUtilsCreateInfo, null, out _debugMessenger).CheckResult();
-                    }
+            if (ValidationMode != ValidationMode.Disabled && DebugUtils)
+            {
+                vkCreateDebugUtilsMessengerEXT(_instance, &debugUtilsCreateInfo, null, out _debugMessenger).CheckResult();
+            }
 
 
 #if DEBUG
-                    Log.Info($"Created VkInstance with version: {appInfo.apiVersion.Major}.{appInfo.apiVersion.Minor}.{appInfo.apiVersion.Patch}");
+            Log.Info($"Created VkInstance with version: {appInfo.ApiVersion.Major}.{appInfo.ApiVersion.Minor}.{appInfo.ApiVersion.Patch}");
 
-                    if (createInfo.enabledLayerCount > 0)
-                    {
-                        Log.Info($"Enabled {createInfo.enabledLayerCount} Validation Layers:");
+            if (createInfo.EnabledLayerNames?.Length > 0)
+            {
+                Log.Info($"Enabled {createInfo.EnabledLayerNames.Length} Validation Layers:");
 
-                        for (uint i = 0; i < createInfo.enabledLayerCount; ++i)
-                        {
-                            Log.Info($"\t{Vortice.Vulkan.Interop.GetString(Interop.GetUtf8Span(createInfo.ppEnabledLayerNames[i]))}");
-                        }
-                    }
-
-                    Log.Info($"Enabled {createInfo.enabledExtensionCount} Instance Extensions:");
-                    for (uint i = 0; i < createInfo.enabledExtensionCount; ++i)
-                    {
-                        Log.Info($"\t{Vortice.Vulkan.Interop.GetString(Interop.GetUtf8Span(createInfo.ppEnabledExtensionNames[i]))}");
-                    }
-#endif
+                foreach (string layer in createInfo.EnabledLayerNames)
+                {
+                    Log.Info($"\t{layer}");
                 }
             }
+
+            Log.Info($"Enabled {createInfo.EnabledExtensionNames!.Length} Instance Extensions:");
+            foreach (string extensionName in createInfo.EnabledExtensionNames!)
+            {
+                Log.Info($"\t{extensionName}");
+            }
+#endif
         }
 
         // Features
@@ -257,7 +239,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         bool video_decode_h264 = false;
         bool video_decode_h265 = false;
 
-        List<string> enabledExtensions = new()
+        List<string> enabledDeviceExtensions = new()
         {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             VK_KHR_MAINTENANCE_1_EXTENSION_NAME
@@ -287,9 +269,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 {
                     continue;
                 }
-                candidateQueueFamilies.Free();
 
-                enabledExtensions = new()
+                enabledDeviceExtensions = new()
                 {
                     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                     VK_KHR_MAINTENANCE_1_EXTENSION_NAME
@@ -359,7 +340,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     string extensionName = deviceExtensions[i].GetExtensionName();
                     if (extensionName == VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
                         *featuresChain = &depthClipEnableFeatures;
                         featuresChain = &depthClipEnableFeatures.pNext;
                     }
@@ -369,56 +350,56 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     }
                     else if (extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 
                         *featuresChain = &portabilityFeatures;
                         featuresChain = &portabilityFeatures.pNext;
                     }
                     else if (extensionName == VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
 
                         *featuresChain = &performanceQueryFeatures;
                         featuresChain = &performanceQueryFeatures.pNext;
                     }
                     else if (extensionName == VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
                         supportsExternalSemaphore = true;
                     }
                     else if (extensionName == VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
                         supportsExternalSemaphore = true;
                     }
                     else if (extensionName == VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
                         supportsExternalMemory = true;
                     }
                     else if (extensionName == VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
                         supportsExternalMemory = true;
                     }
                     else if (extensionName == VK_KHR_VIDEO_QUEUE_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME);
                         video_queue = true;
                     }
                     else if (extensionName == VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
                         video_decode_queue = true;
                     }
                     else if (extensionName == VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME);
                         video_decode_h264 = true;
                     }
                     else if (extensionName == VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME)
                     {
-                        enabledExtensions.Add(VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME);
                         video_decode_h265 = true;
                     }
                 }
@@ -431,14 +412,18 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 vkGetPhysicalDeviceFeatures2(candidatePhysicalDevice, &features2);
                 vkGetPhysicalDeviceProperties2(candidatePhysicalDevice, &properties2);
 
-                bool discrete = properties2.properties.deviceType == VkPhysicalDeviceType.DiscreteGpu;
+                bool priority = properties2.properties.deviceType == VkPhysicalDeviceType.DiscreteGpu;
+                if (description.PowerPreference == GpuPowerPreference.LowPower)
+                {
+                    priority = properties2.properties.deviceType == VkPhysicalDeviceType.IntegratedGpu;
+                }
 
-                if (discrete || _physicalDevice.IsNull)
+                if (priority || _physicalDevice.IsNull)
                 {
                     _physicalDevice = candidatePhysicalDevice;
-                    if (discrete)
+                    if (priority)
                     {
-                        // If this is discrete GPU, look no further (prioritize discrete GPU)
+                        // If this is prioritized GPU type, look no further
                         break;
                     }
                 }
@@ -493,40 +478,23 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         _queueFamilyIndices = FindQueueFamilies(_physicalDevice, VkSurfaceKHR.Null, video_queue)!;
 
-        uint queueCount = 0;
-        VkDeviceQueueCreateInfo* queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[_queueFamilyIndices.QueueFamilyCount];
+        List<VkDeviceQueueCreateInfo> queueCreateInfos = new(_queueFamilyIndices.QueueFamilyCount);
 
-        uint queuePrioritiesCount = 0;
-        for (uint familyIndex = 0; familyIndex < (uint)_queueFamilyIndices.QueueFamilyCount; familyIndex++)
+        for (int familyIndex = 0; familyIndex < _queueFamilyIndices.QueueFamilyCount; familyIndex++)
         {
             if (_queueFamilyIndices.QueueOffsets[familyIndex] == 0)
                 continue;
 
-            queueCreateInfos[queueCount] = new VkDeviceQueueCreateInfo
-            {
-                sType = VkStructureType.DeviceQueueCreateInfo,
-                queueFamilyIndex = familyIndex,
-                queueCount = _queueFamilyIndices.QueueOffsets[familyIndex],
-                pQueuePriorities = &_queueFamilyIndices.QueuePriorities[queuePrioritiesCount]
-            };
-
-            queueCount++;
-            queuePrioritiesCount += _queueFamilyIndices.QueueOffsets[familyIndex];
+            VkDeviceQueueCreateInfo queueInfo = new(
+                (uint)familyIndex,
+                _queueFamilyIndices.QueueOffsets[familyIndex],
+                _queueFamilyIndices.QueuePriorities[familyIndex].ToArray());
+            queueCreateInfos.Add(queueInfo);
         }
 
-        using VkStringArray deviceExtensionNames = new(enabledExtensions);
+        VkDeviceCreateInfo deviceCreateInfo = new(queueCreateInfos.ToArray(), enabledDeviceExtensions.ToArray(), pNext: &features2);
 
-        VkDeviceCreateInfo deviceCreateInfo = new()
-        {
-            pNext = &features2,
-            queueCreateInfoCount = (uint)queueCount,
-            pQueueCreateInfos = queueCreateInfos,
-            enabledExtensionCount = deviceExtensionNames.Length,
-            ppEnabledExtensionNames = deviceExtensionNames,
-            pEnabledFeatures = null,
-        };
-
-        result = vkCreateDevice(PhysicalDevice, &deviceCreateInfo, null, out _handle);
+        result = vkCreateDevice(PhysicalDevice, in deviceCreateInfo, out _handle);
         if (result != VkResult.Success)
         {
             throw new GraphicsException($"Failed to create Vulkan Logical Device, {result}");
@@ -600,7 +568,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         Debug.Assert(SupportsD24S8 || SupportsD32S8);
 
-        TimestampFrequency = (ulong)(1.0 / (double)(properties2.properties.limits.timestampPeriod) * 1000 * 1000 * 1000);
+        TimestampFrequency = (ulong)(1.0 / properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
 
         _limits = new GraphicsDeviceLimits
         {
@@ -666,6 +634,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             for (int i = 0; i < (int)CommandQueue.Count; i++)
             {
+                if (_queues[i] is null)
+                    continue;
+
                 _queues[i].Dispose();
             }
 
@@ -706,7 +677,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
 
             vkDestroyInstance(_instance);
-            _queueFamilyIndices.Free();
         }
     }
 
@@ -797,7 +767,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override void WaitIdle()
     {
-        vkDeviceWaitIdle(Handle).CheckResult();
+        ThrowIfFailed(vkDeviceWaitIdle(Handle));
     }
 
     /// <inheritdoc />
@@ -819,13 +789,19 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         {
             for (int i = 0; i < (int)CommandQueue.Count; i++)
             {
-                vkWaitForFences(_handle, _queues[i].FrameFence, true, 0xFFFFFFFFFFFFFFFF).CheckResult();
-                vkResetFences(_handle, _queues[i].FrameFence).CheckResult();
+                if (_queues[i] is null)
+                    continue;
+
+                vkWaitForFences(_handle, _queues[i].FrameFence, true, 0xFFFFFFFFFFFFFFFF).DebugCheckResult();
+                vkResetFences(_handle, _queues[i].FrameFence).DebugCheckResult();
             }
         }
 
         for (int i = 0; i < (int)CommandQueue.Count; i++)
         {
+            if (_queues[i] is null)
+                continue;
+
             _queues[i].FinishFrame();
         }
 
@@ -909,6 +885,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     protected override Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
+    }
+
+    /// <inheritdoc />
+    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
+    {
+        return new VulkanPipeline(this, description);
     }
 
     /// <inheritdoc />
@@ -1080,8 +1062,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 {
                     family = familyIndex;
                     queueFamilies[familyIndex].queueFamilyProperties.queueCount--;
-                    index = indices.QueueOffsets[familyIndex]++;
-                    indices.QueuePriorities[indices.QueuePrioritiesCount++] = priority;
+                    index = (uint)(indices.QueueOffsets[(int)familyIndex]++);
+                    indices.QueuePriorities[familyIndex].Add(priority);
                     return true;
                 }
             }
@@ -1090,24 +1072,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
     }
 
-    public void SetObjectName(VkObjectType type, ulong handle, string name)
+    public void SetObjectName(VkObjectType objectType, ulong objectHandle, string? name = default)
     {
         if (!DebugUtils)
         {
             return;
         }
 
-        fixed (sbyte* pName = name.GetUtf8Span())
-        {
-            VkDebugUtilsObjectNameInfoEXT info = new()
-            {
-                sType = VkStructureType.DebugUtilsObjectNameInfoEXT,
-                objectType = type,
-                objectHandle = handle,
-                pObjectName = pName
-            };
-            _ = vkSetDebugUtilsObjectNameEXT(_handle, &info);
-        }
+        vkSetDebugUtilsObjectNameEXT(_handle, objectType, objectHandle, name).DebugCheckResult();
     }
 
     public class QueueFamilyIndices
@@ -1125,21 +1097,31 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         public uint VideoDecodeIndex = 0;
         public uint VideoEncodeIndex = 0;
 
-        public uint* QueueOffsets;
-        public float* QueuePriorities;
-        public int QueuePrioritiesCount;
+        public uint[] FamilyIndices;
+        public uint[] QueueIndices;
+        public int[] QueueCounts;
+
+        public int[] QueueOffsets;
+        public List<float>[] QueuePriorities;
 
         public QueueFamilyIndices(int queueFamilyCount)
         {
-            QueueFamilyCount = queueFamilyCount;
-            QueueOffsets = (uint*)NativeMemory.AllocZeroed((nuint)queueFamilyCount, sizeof(uint));
-            QueuePriorities = (float*)NativeMemory.AllocZeroed((nuint)queueFamilyCount, sizeof(float));
-        }
+            FamilyIndices = new uint[(int)CommandQueue.Count];
+            QueueIndices = new uint[(int)CommandQueue.Count];
+            QueueCounts = new int[(int)CommandQueue.Count];
+            for (int i = 0; i < (int)CommandQueue.Count; i++)
+            {
+                FamilyIndices[i] = VK_QUEUE_FAMILY_IGNORED;
+            }
 
-        public void Free()
-        {
-            NativeMemory.Free(QueueOffsets);
-            NativeMemory.Free(QueuePriorities);
+            QueueFamilyCount = queueFamilyCount;
+            QueueOffsets = new int[queueFamilyCount];
+            QueuePriorities = new List<float>[queueFamilyCount];
+
+            for(int i = 0; i < queueFamilyCount; i++)
+            {
+                QueuePriorities[i] = new();
+            }
         }
 
         public bool IsComplete

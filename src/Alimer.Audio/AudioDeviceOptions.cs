@@ -4,11 +4,11 @@
 namespace Alimer.Audio;
 
 /// <summary>
-/// Structure that describes the <see cref="AudioDevice"/>.
+/// Structure that describes options the <see cref="AudioDevice"/>.
 /// </summary>
-public record struct AudioDeviceDescriptor
+public record struct AudioDeviceOptions
 {
-    public AudioDeviceDescriptor()
+    public AudioDeviceOptions()
     {
     }
 
@@ -34,7 +34,7 @@ public record struct AudioDeviceDescriptor
     public int SampleChannels { get; set; } = 2;
 
     // <summary>
-    /// Gets or sets the label of <see cref="GraphicsDevice"/>.
+    /// Gets or sets the label of <see cref="AudioDevice"/>.
     /// </summary>
     public string? Label { get; set; } = default;
 }

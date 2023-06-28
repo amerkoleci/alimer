@@ -14,11 +14,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected readonly ConcurrentQueue<Tuple<GraphicsObject, ulong>> _deferredDestroyObjects = new();
     protected bool _shuttingDown;
 
-    public GraphicsDevice(GraphicsBackendType backend, in GraphicsDeviceDescriptor descriptor)
-        : base(descriptor.Label)
+    public GraphicsDevice(GraphicsBackendType backend, in GraphicsDeviceDescription description)
+        : base(description.Label)
     {
         Backend = backend;
-        ValidationMode = descriptor.ValidationMode;
+        ValidationMode = description.ValidationMode;
     }
 
     /// <summary>
@@ -89,9 +89,9 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
     }
 
-    public static GraphicsDevice CreateDefault(in GraphicsDeviceDescriptor descriptor)
+    public static GraphicsDevice CreateDefault(in GraphicsDeviceDescription description)
     {
-        GraphicsBackendType backend = descriptor.PreferredBackend;
+        GraphicsBackendType backend = description.PreferredBackend;
         if (backend == GraphicsBackendType.Count)
         {
             if (IsBackendSupport(GraphicsBackendType.D3D12))
@@ -115,7 +115,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             case GraphicsBackendType.Vulkan:
                 if (Vulkan.VulkanGraphicsDevice.IsSupported())
                 {
-                    device = new Vulkan.VulkanGraphicsDevice(in descriptor);
+                    device = new Vulkan.VulkanGraphicsDevice(in description);
                 }
                 break;
 #endif
@@ -124,7 +124,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             case GraphicsBackendType.D3D12:
                 if (D3D12.D3D12GraphicsDevice.IsSupported())
                 {
-                    device = new D3D12.D3D12GraphicsDevice(in descriptor);
+                    device = new D3D12.D3D12GraphicsDevice(in description);
                 }
                 break;
 #endif
@@ -146,7 +146,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
             default:
             case GraphicsBackendType.Null:
-                return new Null.NullGraphicsDevice(in descriptor);
+                return new Null.NullGraphicsDevice(in description);
         }
 
         if (device == null)
@@ -170,6 +170,37 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         _frameCount++;
         _frameIndex = (uint)(_frameCount % Constants.MaxFramesInFlight);
     }
+
+    protected void ProcessDeletionQueue()
+    {
+        while (!_deferredDestroyObjects.IsEmpty)
+        {
+            if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item) &&
+                item.Item2 + Constants.MaxFramesInFlight < _frameCount)
+            {
+                if (_deferredDestroyObjects.TryDequeue(out item))
+                {
+                    item.Item1.Destroy();
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    internal void QueueDestroy(GraphicsObject @object)
+    {
+        if (_shuttingDown)
+        {
+            @object.Destroy();
+            return;
+        }
+
+        _deferredDestroyObjects.Enqueue(Tuple.Create(@object, _frameCount));
+    }
+
 
     public abstract bool QueryFeature(Feature feature);
 
@@ -232,6 +263,13 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateTextureCore(descriptor, default);
     }
 
+    public Pipeline CreateComputePipeline(in ComputePipelineDescription description)
+    {
+        Guard.IsGreaterThanOrEqualTo(description.ComputeShader.Length, 1, nameof(ComputePipelineDescription.ComputeShader));
+
+        return CreateComputePipelineCore(description);
+    }
+
     public QueryHeap CreateQueryHeap(in QueryHeapDescription description)
     {
         return CreateQueryHeapCore(description);
@@ -252,39 +290,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer BeginCommandBuffer(CommandQueue queue = CommandQueue.Graphics, string? label = default);
 
-    protected void ProcessDeletionQueue()
-    {
-        while (!_deferredDestroyObjects.IsEmpty)
-        {
-            if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item) &&
-                item.Item2 + Constants.MaxFramesInFlight < _frameCount)
-            {
-                if (_deferredDestroyObjects.TryDequeue(out item))
-                {
-                    item.Item1.Destroy();
-                }
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    internal void QueueDestroy(GraphicsObject @object)
-    {
-        if (_shuttingDown)
-        {
-            @object.Destroy();
-            return;
-        }
-
-        _deferredDestroyObjects.Enqueue(Tuple.Create(@object, _frameCount));
-    }
-
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
 
     protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData);
+
+    protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
 
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription description);
 

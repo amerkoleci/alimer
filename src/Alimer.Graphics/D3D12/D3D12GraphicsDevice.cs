@@ -33,8 +33,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     public static bool IsSupported() => s_isSupported.Value;
 
-    public D3D12GraphicsDevice(in GraphicsDeviceDescriptor descriptor)
-        : base(GraphicsBackendType.D3D12, descriptor)
+    public D3D12GraphicsDevice(in GraphicsDeviceDescription description)
+        : base(GraphicsBackendType.D3D12, description)
     {
         Guard.IsTrue(IsSupported(), nameof(D3D12GraphicsDevice), "Direct3D12 is not supported");
 
@@ -119,7 +119,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
         TearingSupported = tearingSupported;
 
-        GpuPreference gpuPreference = (descriptor.PowerPreference == GpuPowerPreference.LowPower) ? GpuPreference.MinimumPower : GpuPreference.HighPerformance;
+        GpuPreference gpuPreference = (description.PowerPreference == GpuPowerPreference.LowPower) ? GpuPreference.MinimumPower : GpuPreference.HighPerformance;
 
         for (uint i = 0;
             _factory.Get()->EnumAdapterByGpuPreference(i, gpuPreference, __uuidof<IDXGIAdapter1>(), (void**)_adapter.ReleaseAndGetAddressOf()).Success;
@@ -389,6 +389,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
     {
         return new D3D12QueryHeap(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
+    {
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />

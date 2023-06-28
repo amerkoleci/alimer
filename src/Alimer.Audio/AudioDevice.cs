@@ -63,9 +63,9 @@ public abstract class AudioDevice : AudioObjectBase
         }
     }
 
-    public static AudioDevice CreateDefault(in AudioDeviceDescriptor descriptor)
+    public static AudioDevice CreateDefault(in AudioDeviceOptions options)
     {
-        AudioBackendType backend = descriptor.PreferredBackend;
+        AudioBackendType backend = options.PreferredBackend;
         if (backend == AudioBackendType.Count)
         {
             if (IsBackendSupport(AudioBackendType.XAudio2))
@@ -85,7 +85,7 @@ public abstract class AudioDevice : AudioObjectBase
             case AudioBackendType.XAudio2:
                 if (XAudio2.XAudio2Device.IsSupported())
                 {
-                    device = new XAudio2.XAudio2Device(in descriptor);
+                    device = new XAudio2.XAudio2Device(in options);
                 }
                 break;
 #endif
@@ -94,7 +94,7 @@ public abstract class AudioDevice : AudioObjectBase
             case AudioBackendType.OpenAL:
                 if (OpenAL.OpenALDevice.IsSupported())
                 {
-                    device = new OpenAL.OpenALDevice(in descriptor);
+                    device = new OpenAL.OpenALDevice(in options);
                 }
                 break;
 #endif

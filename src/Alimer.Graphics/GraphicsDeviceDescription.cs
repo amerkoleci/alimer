@@ -6,9 +6,9 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="GraphicsDevice"/>.
 /// </summary>
-public record struct GraphicsDeviceDescriptor
+public record struct GraphicsDeviceDescription
 {
-    public GraphicsDeviceDescriptor()
+    public GraphicsDeviceDescription()
     {
     }
 

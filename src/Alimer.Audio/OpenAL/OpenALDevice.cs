@@ -15,7 +15,7 @@ internal unsafe class OpenALDevice : AudioDevice
     private readonly ALCdevice _device;
     private readonly ALCcontext _context;
 
-    public OpenALDevice(in AudioDeviceDescriptor descriptor)
+    public OpenALDevice(in AudioDeviceOptions descriptor)
         : base(AudioBackendType.OpenAL)
     {
         ApiName = "OpenAL";

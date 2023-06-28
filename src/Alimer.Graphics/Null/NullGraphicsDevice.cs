@@ -5,8 +5,8 @@ namespace Alimer.Graphics.Null;
 
 internal class NullGraphicsDevice : GraphicsDevice
 {
-    public NullGraphicsDevice(in GraphicsDeviceDescriptor descriptor)
-        : base(GraphicsBackendType.Null, descriptor)
+    public NullGraphicsDevice(in GraphicsDeviceDescription description)
+        : base(GraphicsBackendType.Null, description)
     {
     }
 
@@ -65,6 +65,12 @@ internal class NullGraphicsDevice : GraphicsDevice
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
     {
         return new NullQueryHeap(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
+    {
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />
