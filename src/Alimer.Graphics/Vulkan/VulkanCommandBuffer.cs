@@ -42,7 +42,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     }
 
     /// <inheritdoc />
-    public override CommandQueue Queue => _queue.QueueType;
+    public override QueueType Queue => _queue.QueueType;
 
     public void Destroy()
     {
@@ -70,13 +70,12 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
         VkCommandBufferBeginInfo beginInfo = new()
         {
-            sType = VkStructureType.CommandBufferBeginInfo,
             flags = VkCommandBufferUsageFlags.OneTimeSubmit,
             pInheritanceInfo = null // Optional
         };
         vkBeginCommandBuffer(_commandBuffer, &beginInfo).DebugCheckResult();
 
-        if (_queue.QueueType == CommandQueue.Graphics)
+        if (_queue.QueueType == QueueType.Graphics)
         {
             VkRect2D* scissors = stackalloc VkRect2D[16];
             for (uint i = 0; i < 16; ++i)
@@ -117,7 +116,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         {
             VkDebugUtilsLabelEXT label = new()
             {
-                sType = VkStructureType.DebugUtilsLabelEXT,
                 pLabelName = pLabelName
             };
             label.color[0] = 0.0f;
@@ -145,7 +143,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         {
             VkDebugUtilsLabelEXT label = new()
             {
-                sType = VkStructureType.DebugUtilsLabelEXT,
                 pLabelName = pLabelName
             };
             label.color[0] = 0.0f;

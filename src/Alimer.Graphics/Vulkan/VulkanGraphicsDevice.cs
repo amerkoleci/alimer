@@ -7,7 +7,6 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Vortice.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
-using static Vortice.Vulkan.VkUtils;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
@@ -19,14 +18,17 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkInstance _instance;
     private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
 
-    private readonly QueueFamilyIndices _queueFamilyIndices;
+    private readonly uint[] _queueFamilyIndices;
+    private readonly uint[] _queueIndices;
+    private readonly uint[] _queueCounts;
+
     private readonly VulkanPhysicalDeviceExtensions _physicalDeviceExtensions;
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
     private readonly VkDevice _handle = VkDevice.Null;
     private readonly VulkanCopyAllocator _copyAllocator;
     private readonly VkPipelineCache _pipelineCache = VkPipelineCache.Null;
 
-    private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)CommandQueue.Count];
+    private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)QueueType.Count];
     private readonly VmaAllocator _allocator;
 
     private readonly GraphicsAdapterProperties _adapterProperties;
@@ -38,6 +40,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         : base(GraphicsBackendType.Vulkan, description)
     {
         Guard.IsTrue(IsSupported(), nameof(VulkanGraphicsDevice), "Vulkan is not supported");
+
+        _queueFamilyIndices = new uint[(int)QueueType.Count];
+        _queueIndices = new uint[(int)QueueType.Count];
+        _queueCounts = new uint[(int)QueueType.Count];
+        for (int i = 0; i < (int)QueueType.Count; i++)
+        {
+            _queueFamilyIndices[i] = VK_QUEUE_FAMILY_IGNORED;
+        }
 
         VkResult result = VkResult.Success;
 
@@ -126,16 +136,29 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = new();
 
+            using VkString pApplicationName = new(Label);
+            using VkString pEngineName = new("Vortice");
+
             VkApplicationInfo appInfo = new()
             {
-                ApplicationName = Label,
-                ApplicationVersion = new VkVersion(1, 0, 0),
-                EngineName = "Alimer",
-                EngineVersion = new VkVersion(1, 0, 0),
-                ApiVersion = VkVersion.Version_1_3
+                pApplicationName = pApplicationName,
+                applicationVersion = new VkVersion(1, 0, 0),
+                pEngineName = pEngineName,
+                engineVersion = new VkVersion(1, 0, 0),
+                apiVersion = VkVersion.Version_1_3
             };
 
-            VkInstanceCreateInfo createInfo = new(appInfo, instanceLayers.ToArray(), instanceExtensions.ToArray());
+            using VkStringArray vkLayerNames = new(instanceLayers);
+            using VkStringArray vkInstanceExtensions = new(instanceExtensions);
+
+            VkInstanceCreateInfo createInfo = new()
+            {
+                pApplicationInfo = &appInfo,
+                enabledLayerCount = vkLayerNames.Length,
+                ppEnabledLayerNames = vkLayerNames,
+                enabledExtensionCount = vkInstanceExtensions.Length,
+                ppEnabledExtensionNames = vkInstanceExtensions
+            };
 
             if (ValidationMode != ValidationMode.Disabled && DebugUtils)
             {
@@ -171,10 +194,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             if (HasPortability)
             {
-                createInfo.Flags |= VkInstanceCreateFlags.EnumeratePortabilityKHR;
+                createInfo.flags |= VkInstanceCreateFlags.EnumeratePortabilityKHR;
             }
 
-            result = vkCreateInstance(in createInfo, out _instance);
+            result = vkCreateInstance(&createInfo, null, out _instance);
             if (result != VkResult.Success)
             {
                 throw new InvalidOperationException($"Failed to create vulkan instance: {result}");
@@ -189,23 +212,23 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
 
 #if DEBUG
-            Log.Info($"Created VkInstance with version: {appInfo.ApiVersion.Major}.{appInfo.ApiVersion.Minor}.{appInfo.ApiVersion.Patch}");
+            Log.Info($"Created VkInstance with version: {appInfo.apiVersion.Major}.{appInfo.apiVersion.Minor}.{appInfo.apiVersion.Patch}");
 
-            if (createInfo.EnabledLayerNames?.Length > 0)
+            if (createInfo.enabledLayerCount > 0)
             {
-                Log.Info($"Enabled {createInfo.EnabledLayerNames.Length} Validation Layers:");
+                Log.Info($"Enabled {createInfo.enabledLayerCount} Validation Layers:");
 
-                foreach (string layer in createInfo.EnabledLayerNames)
-                {
-                    Log.Info($"\t{layer}");
-                }
+                //foreach (string layer in createInfo.EnabledLayerNames)
+                //{
+                //    Log.Info($"\t{layer}");
+                //}
             }
 
-            Log.Info($"Enabled {createInfo.EnabledExtensionNames!.Length} Instance Extensions:");
-            foreach (string extensionName in createInfo.EnabledExtensionNames!)
-            {
-                Log.Info($"\t{extensionName}");
-            }
+            Log.Info($"Enabled {createInfo.enabledExtensionCount} Instance Extensions:");
+            //foreach (string extensionName in createInfo.EnabledExtensionNames!)
+            //{
+            //    Log.Info($"\t{extensionName}");
+            //}
 #endif
         }
 
@@ -529,12 +552,175 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             DepthClipControl = features2.features.depthClamp && depthClipEnableFeatures.depthClipEnable;
 
-            _queueFamilyIndices = FindQueueFamilies(_physicalDevice, VkSurfaceKHR.Null, video_queue)!;
+            int count = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, &count, null);
 
-            List<VkDeviceQueueCreateInfo> queueCreateInfos = _queueFamilyIndices.GetQueueCreateInfos();
-            VkDeviceCreateInfo deviceCreateInfo = new(queueCreateInfos.ToArray(), enabledDeviceExtensions.ToArray(), pNext: &features2);
+            VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[count];
+            VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[count];
+            for (int i = 0; i < count; ++i)
+            {
+                queueProps[i] = new();
 
-            result = vkCreateDevice(PhysicalDevice, in deviceCreateInfo, out _handle);
+                if (_physicalDeviceExtensions.Video.Queue)
+                {
+                    queueProps[i].pNext = &queueFamiliesVideo[i];
+                    queueFamiliesVideo[i] = new();
+                }
+            }
+
+            vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, &count, queueProps);
+            int queueFamilyCount = count;
+
+            VkSurfaceKHR surface = VkSurfaceKHR.Null;
+
+            uint* offsets = stackalloc uint[queueFamilyCount];
+            float* priorities = stackalloc float[queueFamilyCount * (int)QueueType.Count];
+            bool FindVacantQueue(VkQueueFlags required, VkQueueFlags ignored, float priority, ref uint family, ref uint index)
+            {
+                for (uint i = 0; i < queueFamilyCount; i++)
+                {
+                    // Skip queues with undesired flags
+                    if ((queueProps[i].queueFamilyProperties.queueFlags & ignored) != 0)
+                        continue;
+
+                    // Check for present on graphics queues
+                    if ((required & VkQueueFlags.Graphics) != 0 && surface != VkSurfaceKHR.Null)
+                    {
+                        VkBool32 presentSupport = false;
+                        if (surface != VkSurfaceKHR.Null)
+                        {
+                            if (vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &presentSupport) != VkResult.Success)
+                                continue;
+                        }
+                        else
+                        {
+                            if (OperatingSystem.IsWindows())
+                            {
+                                presentSupport = vkGetPhysicalDeviceWin32PresentationSupportKHR(_physicalDevice, i);
+                            }
+                            else if (OperatingSystem.IsAndroid())
+                            {
+                                // All Android queues surfaces support present.
+                                presentSupport = true;
+                            }
+                        }
+
+                        if (!presentSupport)
+                            continue;
+                    }
+
+                    if ((required & VkQueueFlags.VideoDecodeKHR) != 0)
+                    {
+                        VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
+
+                        if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH264) == 0 &&
+                            (videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH265) == 0)
+                        {
+                            continue;
+                        }
+                    }
+
+                    if ((required & VkQueueFlags.VideoEncodeKHR) != 0)
+                    {
+                        VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
+
+                        if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH264EXT) == 0 &&
+                            (videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH265EXT) == 0)
+                        {
+                            continue;
+                        }
+                    }
+
+
+                    if (queueProps[i].queueFamilyProperties.queueCount > 0 &&
+                        (queueProps[i].queueFamilyProperties.queueFlags & required) == required)
+                    {
+                        family = i;
+                        queueProps[i].queueFamilyProperties.queueCount--;
+                        index = offsets[i]++;
+                        priorities[i * (int)QueueType.Count + index] = priority;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Find graphics queue
+            if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute,
+                VkQueueFlags.None, 0.5f,
+                ref _queueFamilyIndices[(int)QueueType.Graphics],
+                ref _queueIndices[(int)QueueType.Graphics]))
+            {
+                throw new GraphicsException("Vulkan: Could not find graphics queue with compute and present");
+            }
+
+            // Prefer another graphics queue since we can do async graphics that way.
+            // The compute queue is to be treated as high priority since we also do async graphics on it.
+            if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]) &&
+                !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]))
+            {
+                _queueFamilyIndices[(int)QueueType.Compute] = _queueFamilyIndices[(int)QueueType.Graphics];
+                _queueIndices[(int)QueueType.Compute] = _queueIndices[(int)QueueType.Graphics];
+            }
+
+            // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
+            // If not, fallback to a dedicated compute queue.
+            // Finally, fallback to same queue as compute.
+            if (!FindVacantQueue(VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]) &&
+                !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]))
+            {
+                _queueFamilyIndices[(int)QueueType.Copy] = _queueFamilyIndices[(int)QueueType.Compute];
+                _queueIndices[(int)QueueType.Copy] = _queueIndices[(int)QueueType.Compute];
+            }
+
+            if (_physicalDeviceExtensions.Video.Queue)
+            {
+                if (!FindVacantQueue(VkQueueFlags.VideoDecodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoDecode], ref _queueIndices[(int)QueueType.VideoDecode]))
+                {
+                    _queueFamilyIndices[(int)QueueType.VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
+                    _queueIndices[(int)QueueType.VideoDecode] = uint.MaxValue;
+                }
+
+                if (!FindVacantQueue(VkQueueFlags.VideoEncodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoEncode], ref _queueIndices[(int)QueueType.VideoEncode]))
+                {
+                    _queueFamilyIndices[(int)QueueType.VideoEncode] = VK_QUEUE_FAMILY_IGNORED;
+                    _queueIndices[(int)QueueType.VideoEncode] = uint.MaxValue;
+                }
+            }
+
+            VkDeviceQueueCreateInfo* queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[queueFamilyCount];
+            uint queueCreateInfosCount = 0;
+            for (uint i = 0; i < queueFamilyCount; i++)
+            {
+                if (offsets[i] == 0)
+                    continue;
+
+                VkDeviceQueueCreateInfo queueCreateInfo = new()
+                {
+                    queueFamilyIndex = i,
+                    queueCount = offsets[i],
+                    pQueuePriorities = &priorities[i * (int)QueueType.Count]
+                };
+                queueCreateInfos[queueCreateInfosCount] = queueCreateInfo;
+                queueCreateInfosCount++;
+
+                _queueCounts[i] = offsets[_queueFamilyIndices[i]];
+            }
+
+
+            using VkStringArray deviceExtensionNames = new(enabledDeviceExtensions);
+
+            VkDeviceCreateInfo deviceCreateInfo = new()
+            {
+                pNext = &features2,
+                queueCreateInfoCount = queueCreateInfosCount,
+                pQueueCreateInfos = queueCreateInfos,
+                enabledExtensionCount = deviceExtensionNames.Length,
+                ppEnabledExtensionNames = deviceExtensionNames,
+                pEnabledFeatures = null,
+            };
+
+            result = vkCreateDevice(PhysicalDevice, &deviceCreateInfo, null, out _handle);
             if (result != VkResult.Success)
             {
                 throw new GraphicsException($"Failed to create Vulkan Logical Device, {result}");
@@ -598,11 +784,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         // Queues
-        for (int queue = 0; queue < (int)CommandQueue.Count; queue++)
+        for (int i = 0; i < (int)QueueType.Count; i++)
         {
-            if (_queueFamilyIndices.FamilyIndices[queue] != VK_QUEUE_FAMILY_IGNORED)
+            if (_queueFamilyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
             {
-                _queues[queue] = new VulkanCommandQueue(this, (CommandQueue)queue);
+                _queues[i] = new VulkanCommandQueue(this, (QueueType)i);
             }
         }
 
@@ -674,18 +860,18 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkPhysicalDeviceProperties2 PhysicalDeviceProperties { get; }
     public bool DepthClipControl { get; }
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
-    public uint GraphicsFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Graphics];
-    public uint ComputeFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Compute];
-    public uint CopyQueueFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.Copy];
-    public uint VideoDecodeQueueFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.VideoDecode];
-    public uint VideoEncodeQueueFamily => _queueFamilyIndices.FamilyIndices[(int)CommandQueue.VideoEncode];
+    public uint GraphicsFamily => _queueFamilyIndices[(int)QueueType.Graphics];
+    public uint ComputeFamily => _queueFamilyIndices[(int)QueueType.Compute];
+    public uint CopyQueueFamily => _queueFamilyIndices[(int)QueueType.Copy];
+    public uint VideoDecodeQueueFamily => _queueFamilyIndices[(int)QueueType.VideoDecode];
+    public uint VideoEncodeQueueFamily => _queueFamilyIndices[(int)QueueType.VideoEncode];
 
     public VkDevice Handle => _handle;
-    public VulkanCommandQueue GraphicsQueue => _queues[(int)CommandQueue.Graphics];
-    public VulkanCommandQueue ComputeQueue => _queues[(int)CommandQueue.Compute];
-    public VulkanCommandQueue CopyQueue => _queues[(int)CommandQueue.Copy];
-    public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)CommandQueue.VideoDecode];
-    public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)CommandQueue.VideoEncode];
+    public VulkanCommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
+    public VulkanCommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
+    public VulkanCommandQueue CopyQueue => _queues[(int)QueueType.Copy];
+    public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)QueueType.VideoDecode];
+    public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)QueueType.VideoEncode];
 
     public VmaAllocator MemoryAllocator => _allocator;
     public VkPipelineCache PipelineCache => _pipelineCache;
@@ -716,7 +902,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             WaitIdle();
             _shuttingDown = true;
 
-            for (int i = 0; i < (int)CommandQueue.Count; i++)
+            for (int i = 0; i < (int)QueueType.Count; i++)
             {
                 if (_queues[i] is null)
                     continue;
@@ -858,7 +1044,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public override void FinishFrame()
     {
         // Final submits with fences
-        for (int i = 0; i < (int)CommandQueue.Count; i++)
+        for (int i = 0; i < (int)QueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
@@ -871,7 +1057,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         // Initiate stalling CPU when GPU is not yet finished with next frame
         if (_frameCount >= Constants.MaxFramesInFlight)
         {
-            for (int i = 0; i < (int)CommandQueue.Count; i++)
+            for (int i = 0; i < (int)QueueType.Count; i++)
             {
                 if (_queues[i] is null)
                     continue;
@@ -881,7 +1067,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
-        for (int i = 0; i < (int)CommandQueue.Count; i++)
+        for (int i = 0; i < (int)QueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
@@ -892,8 +1078,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         ProcessDeletionQueue();
     }
 
-    public uint GetQueueFamily(CommandQueue queueType) => _queueFamilyIndices.GetQueueFamily(queueType);
-    public uint GetQueueIndex(CommandQueue queueType) => _queueFamilyIndices.GetQueueIndex(queueType);
+    public uint GetQueueFamily(QueueType queueType) => _queueFamilyIndices[(int)queueType];
+    public uint GetQueueIndex(QueueType queueType) => _queueIndices[(int)queueType];
 
     public VulkanUploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
     public void Submit(in VulkanUploadContext context) => _copyAllocator.Submit(in context);
@@ -914,9 +1100,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public void FillBufferSharingIndices(ref VkBufferCreateInfo info, uint* sharingIndices)
     {
-        for (uint i = 0; i < _queueFamilyIndices.FamilyIndices.Length; i++)
+        for (uint i = 0; i < _queueFamilyIndices.Length; i++)
         {
-            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, _queueFamilyIndices.FamilyIndices[i]);
+            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, _queueFamilyIndices[i]);
         }
 
         if (info.queueFamilyIndexCount > 1)
@@ -937,9 +1123,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public void FillImageSharingIndices(ref VkImageCreateInfo info, uint* sharingIndices)
     {
-        for (uint i = 0; i < _queueFamilyIndices.FamilyIndices.Length; i++)
+        for (uint i = 0; i < _queueFamilyIndices.Length; i++)
         {
-            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, _queueFamilyIndices.FamilyIndices[i]);
+            AddUniqueFamily(sharingIndices, ref info.queueFamilyIndexCount, _queueFamilyIndices[i]);
         }
 
         if (info.queueFamilyIndexCount > 1)
@@ -989,7 +1175,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandBuffer BeginCommandBuffer(CommandQueue queue, string? label = null)
+    public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
     {
         return _queues[(int)queue].BeginCommandBuffer(label);
     }
@@ -1019,142 +1205,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         return vkFormat;
     }
 
-    private static QueueFamilyIndices? FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, bool supportsVideoQueue)
-    {
-        int queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, null);
-
-        VkQueueFamilyProperties2* queueFamilies = stackalloc VkQueueFamilyProperties2[queueFamilyCount];
-        VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[queueFamilyCount];
-        for (int i = 0; i < queueFamilyCount; ++i)
-        {
-            queueFamilies[i] = new();
-
-            if (supportsVideoQueue)
-            {
-                queueFamilies[i].pNext = &queueFamiliesVideo[i];
-                queueFamiliesVideo[i].sType = VkStructureType.QueueFamilyVideoPropertiesKHR;
-            }
-        }
-
-        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, queueFamilies);
-
-        QueueFamilyIndices indices = new(queueFamilyCount);
-
-        if (!FindVacantQueue(queueFamilyCount, CommandQueue.Graphics,
-            VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 0.5f))
-        {
-            Log.Error("Vulkan: Could not find suitable graphics queue.");
-            return default;
-        }
-
-        // Prefer another graphics queue since we can do async graphics that way.
-        // The compute queue is to be treated as high priority since we also do async graphics on it.
-        if (!FindVacantQueue(queueFamilyCount, CommandQueue.Compute, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0, 1.0f) &&
-            !FindVacantQueue(queueFamilyCount, CommandQueue.Compute, VkQueueFlags.Compute, 0, 1.0f))
-        {
-            // Fallback to the graphics queue if we must.
-            indices.SetQueueFamily(CommandQueue.Compute, indices.GetQueueFamily(CommandQueue.Graphics));
-            indices.SetQueueIndex(CommandQueue.Compute, indices.GetQueueIndex(CommandQueue.Graphics));
-        }
-
-        // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
-        // If not, fallback to a dedicated compute queue.
-        // Finally, fallback to same queue as compute.
-        if (!FindVacantQueue(queueFamilyCount, CommandQueue.Copy, VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f) &&
-            !FindVacantQueue(queueFamilyCount, CommandQueue.Copy, VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f))
-        {
-            indices.SetQueueFamily(CommandQueue.Copy, indices.GetQueueFamily(CommandQueue.Compute));
-            indices.SetQueueIndex(CommandQueue.Copy, indices.GetQueueIndex(CommandQueue.Compute));
-        }
-
-        if (supportsVideoQueue)
-        {
-            if (!FindVacantQueue(queueFamilyCount, CommandQueue.VideoDecode, VkQueueFlags.VideoDecodeKHR, 0, 0.5f))
-            {
-                indices.SetQueueFamily(CommandQueue.VideoDecode, VK_QUEUE_FAMILY_IGNORED);
-                indices.SetQueueIndex(CommandQueue.VideoDecode, uint.MaxValue);
-            }
-
-            if (!FindVacantQueue(queueFamilyCount, CommandQueue.VideoEncode, VkQueueFlags.VideoEncodeKHR, 0, 0.5f))
-            {
-                indices.SetQueueFamily(CommandQueue.VideoEncode, VK_QUEUE_FAMILY_IGNORED);
-                indices.SetQueueIndex(CommandQueue.VideoEncode, uint.MaxValue);
-            }
-        }
-
-        return indices;
-
-        bool FindVacantQueue(int queueFamilyCount, CommandQueue queueType, VkQueueFlags required, VkQueueFlags ignoreFlags, float priority)
-        {
-            for (uint familyIndex = 0; familyIndex < (uint)queueFamilyCount; familyIndex++)
-            {
-                if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignoreFlags) != 0)
-                    continue;
-
-                // A graphics queue candidate must support present for us to select it.
-                if ((required & VkQueueFlags.Graphics) != 0)
-                {
-                    VkBool32 presentSupport = false;
-                    if (surface != VkSurfaceKHR.Null)
-                    {
-                        if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, familyIndex, surface, &presentSupport) != VkResult.Success)
-                            continue;
-                    }
-                    else
-                    {
-                        if (OperatingSystem.IsWindows())
-                        {
-                            presentSupport = vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, familyIndex);
-                        }
-                        else if (OperatingSystem.IsAndroid())
-                        {
-                            // All Android queues surfaces support present.
-                            presentSupport = true;
-                        }
-                    }
-
-                    if (!presentSupport)
-                        continue;
-                }
-
-                if ((required & VkQueueFlags.VideoDecodeKHR) != 0)
-                {
-                    VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[familyIndex].videoCodecOperations;
-
-                    if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH264) == 0 &&
-                        (videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH265) == 0)
-                    {
-                        continue;
-                    }
-                }
-
-                if ((required & VkQueueFlags.VideoEncodeKHR) != 0)
-                {
-                    VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[familyIndex].videoCodecOperations;
-
-                    if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH264EXT) == 0 &&
-                        (videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH265EXT) == 0)
-                    {
-                        continue;
-                    }
-                }
-
-                if (queueFamilies[familyIndex].queueFamilyProperties.queueCount > 0 &&
-                    (queueFamilies[familyIndex].queueFamilyProperties.queueFlags & required) == required)
-                {
-                    indices.FamilyIndices[(int)queueType] = familyIndex;
-                    queueFamilies[familyIndex].queueFamilyProperties.queueCount--;
-                    indices.QueueIndices[(int)queueType] = (uint)(indices.QueueOffsets[(int)familyIndex]++);
-                    indices.QueuePriorities[familyIndex].Add(priority);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-    }
-
     public void SetObjectName(VkObjectType objectType, ulong objectHandle, string? name = default)
     {
         if (!DebugUtils)
@@ -1164,71 +1214,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         vkSetDebugUtilsObjectNameEXT(_handle, objectType, objectHandle, name).DebugCheckResult();
     }
-
-    public class QueueFamilyIndices
-    {
-        public int QueueFamilyCount = 0;
-
-        public uint[] FamilyIndices;
-        public uint[] QueueIndices;
-        public int[] QueueCounts;
-
-        public int[] QueueOffsets;
-        public List<float>[] QueuePriorities;
-
-        public QueueFamilyIndices(int queueFamilyCount)
-        {
-            FamilyIndices = new uint[(int)CommandQueue.Count];
-            QueueIndices = new uint[(int)CommandQueue.Count];
-            QueueCounts = new int[(int)CommandQueue.Count];
-            for (int i = 0; i < (int)CommandQueue.Count; i++)
-            {
-                FamilyIndices[i] = VK_QUEUE_FAMILY_IGNORED;
-            }
-
-            QueueFamilyCount = queueFamilyCount;
-            QueueOffsets = new int[queueFamilyCount];
-            QueuePriorities = new List<float>[queueFamilyCount];
-
-            for (int i = 0; i < queueFamilyCount; i++)
-            {
-                QueuePriorities[i] = new();
-            }
-        }
-
-        public void SetQueueFamily(CommandQueue queueType, uint familyIndex)
-        {
-            FamilyIndices[(int)queueType] = familyIndex;
-        }
-
-        public void SetQueueIndex(CommandQueue queueType, uint familyIndex)
-        {
-            QueueIndices[(int)queueType] = familyIndex;
-        }
-
-        public uint GetQueueFamily(CommandQueue queueType) => FamilyIndices[(int)queueType];
-        public uint GetQueueIndex(CommandQueue queueType) => QueueIndices[(int)queueType];
-
-        public List<VkDeviceQueueCreateInfo> GetQueueCreateInfos()
-        {
-            List<VkDeviceQueueCreateInfo> result = new(QueueFamilyCount);
-
-            for (int familyIndex = 0; familyIndex < QueueFamilyCount; familyIndex++)
-            {
-                if (QueueOffsets[familyIndex] == 0)
-                    continue;
-
-                VkDeviceQueueCreateInfo queueInfo = new(
-                    (uint)familyIndex,
-                    QueueOffsets[familyIndex],
-                    QueuePriorities[familyIndex].ToArray());
-                result.Add(queueInfo);
-            }
-
-            return result;
-        }
-    }
-
 
     [UnmanagedCallersOnly]
     private static uint DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,

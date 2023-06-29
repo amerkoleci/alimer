@@ -86,7 +86,6 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
         VkCommandBufferBeginInfo beginInfo = new()
         {
-            sType = VkStructureType.CommandBufferBeginInfo,
             flags = VkCommandBufferUsageFlags.OneTimeSubmit,
             pInheritanceInfo = null
         };
@@ -124,20 +123,17 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         {
             VkCommandBufferSubmitInfo commandBufferSubmitInfo = new()
             {
-                sType = VkStructureType.CommandBufferSubmitInfo,
                 commandBuffer = context.TransferCommandBuffer
             };
 
             VkSemaphoreSubmitInfo signalSemaphoreInfo = new()
             {
-                sType = VkStructureType.SemaphoreSubmitInfo,
                 semaphore = context.Semaphores[0], // Signal for graphics queue
                 stageMask = VkPipelineStageFlags2.AllCommands
             };
 
             VkSubmitInfo2 submitInfo = new()
             {
-                sType = VkStructureType.SubmitInfo2,
                 commandBufferInfoCount = 1,
                 pCommandBufferInfos = &commandBufferSubmitInfo,
                 signalSemaphoreInfoCount = 1,
@@ -154,27 +150,24 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         {
             VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
             {
-                sType = VkStructureType.SemaphoreSubmitInfo,
                 semaphore = context.Semaphores[0], // Wait for copy queue
                 stageMask = VkPipelineStageFlags2.AllCommands
             };
 
             VkCommandBufferSubmitInfo commandBufferSubmitInfo = new()
             {
-                sType = VkStructureType.CommandBufferSubmitInfo,
                 commandBuffer = context.TransitionCommandBuffer
             };
 
             VkSemaphoreSubmitInfo* signalSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[2];
-            signalSemaphoreInfos[0].sType = VkStructureType.SemaphoreSubmitInfo;
-            signalSemaphoreInfos[1].sType = VkStructureType.SemaphoreSubmitInfo;
+            signalSemaphoreInfos[0] = new();
+            signalSemaphoreInfos[1] = new();
 
             signalSemaphoreInfos[0].semaphore = context.Semaphores[1]; // Signal for compute queue
             signalSemaphoreInfos[0].stageMask = VkPipelineStageFlags2.AllCommands; 
 
             VkSubmitInfo2 submitInfo = new()
             {
-                sType = VkStructureType.SubmitInfo2,
                 waitSemaphoreInfoCount = 1,
                 pWaitSemaphoreInfos = &waitSemaphoreInfo,
                 commandBufferInfoCount = 1,
@@ -201,14 +194,12 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         {
             VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
             {
-                sType = VkStructureType.SemaphoreSubmitInfo,
                 semaphore = context.Semaphores[2], // Wait for graphics queue
                 stageMask = VkPipelineStageFlags2.AllCommands
             };
 
             VkSubmitInfo2 submitInfo = new()
             {
-                sType = VkStructureType.SubmitInfo2,
                 waitSemaphoreInfoCount = 1,
                 pWaitSemaphoreInfos = &waitSemaphoreInfo,
                 commandBufferInfoCount = 0,
@@ -228,14 +219,12 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         {
             VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
             {
-                sType = VkStructureType.SemaphoreSubmitInfo,
                 semaphore = context.Semaphores[1], // Wait for graphics queue
                 stageMask = VkPipelineStageFlags2.AllCommands
             };
 
             VkSubmitInfo2 submitInfo = new()
             {
-                sType = VkStructureType.SubmitInfo2,
                 waitSemaphoreInfoCount = 1,
                 pWaitSemaphoreInfos = &waitSemaphoreInfo,
                 commandBufferInfoCount = 0,
@@ -256,8 +245,8 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         VkCommandBufferSubmitInfo cbSubmitInfo = new();
 
         VkSemaphoreSubmitInfo* signalSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[2];
-        signalSemaphoreInfos[0].sType = VkStructureType.SemaphoreSubmitInfo;
-        signalSemaphoreInfos[1].sType = VkStructureType.SemaphoreSubmitInfo;
+        signalSemaphoreInfos[0] = new();
+        signalSemaphoreInfos[1] = new();
 
         // Copy queue first
         {
@@ -281,7 +270,6 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         {
             VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
             {
-                sType = VkStructureType.SemaphoreSubmitInfo,
                 semaphore = context.Semaphores[0], // Wait for copy queue
                 stageMask = VkPipelineStageFlags2.AllCommands
             };
@@ -339,7 +327,6 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         {
             VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
             {
-                sType = VkStructureType.SemaphoreSubmitInfo,
                 semaphore = context.Semaphores[1], // Wait for graphics queue
                 stageMask = VkPipelineStageFlags2.AllCommands
             };

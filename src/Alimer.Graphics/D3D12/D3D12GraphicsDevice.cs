@@ -25,7 +25,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<IDXGIAdapter1> _adapter;
     private readonly ComPtr<ID3D12Device5> _handle;
 
-    private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)CommandQueue.Count];
+    private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
 
     private readonly D3D12Features _features = default;
     private readonly GraphicsAdapterProperties _adapterInfo;
@@ -214,9 +214,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 #endif
 
         // Create command queue's
-        for (int i = 0; i < (int)CommandQueue.Count; i++)
+        for (int i = 0; i < (int)QueueType.Count; i++)
         {
-            CommandQueue queue = (CommandQueue)i;
+            QueueType queue = (QueueType)i;
             _queues[i] = new D3D12CommandQueue(this, queue);
         }
 
@@ -272,10 +272,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public IDXGIAdapter1* Adapter => _adapter;
     public ID3D12Device5* Handle => _handle;
 
-    public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)CommandQueue.Graphics].Handle;
-    public D3D12CommandQueue GraphicsQueue => _queues[(int)CommandQueue.Graphics];
-    public D3D12CommandQueue ComputeQueue => _queues[(int)CommandQueue.Compute];
-    public D3D12CommandQueue CopyQueue => _queues[(int)CommandQueue.Copy];
+    public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)QueueType.Graphics].Handle;
+    public D3D12CommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
+    public D3D12CommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
+    public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
 
     /// <inheritdoc />
     public override GraphicsAdapterProperties AdapterInfo => _adapterInfo;
@@ -305,7 +305,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _frameIndex = 0;
 
             // Destroy CommandQueue's
-            for (int i = 0; i < (int)CommandQueue.Count; i++)
+            for (int i = 0; i < (int)QueueType.Count; i++)
             {
                 _queues[i].Dispose();
             }
@@ -352,7 +352,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         using ComPtr<ID3D12Fence> fence = default;
         ThrowIfFailed(_handle.Get()->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence>(), fence.GetVoidAddressOf()));
 
-        for (int i = 0; i < (int)CommandQueue.Count; i++)
+        for (int i = 0; i < (int)QueueType.Count; i++)
         {
             ThrowIfFailed(_queues[i].Handle->Signal(fence.Get(), 1));
 
@@ -404,7 +404,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandBuffer BeginCommandBuffer(CommandQueue queue, string? label = null)
+    public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
     {
         throw new NotImplementedException();
     }

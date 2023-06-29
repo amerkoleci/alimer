@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />

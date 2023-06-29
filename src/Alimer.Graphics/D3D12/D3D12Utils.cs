@@ -19,18 +19,18 @@ internal static unsafe class D3D12Utils
     };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CommandListType ToD3D12(this CommandQueue queue)
+    public static CommandListType ToD3D12(this QueueType queue)
     {
         switch (queue)
         {
             default:
-            case CommandQueue.Graphics:
+            case QueueType.Graphics:
                 return CommandListType.Direct;
 
-            case CommandQueue.Compute:
+            case QueueType.Compute:
                 return CommandListType.Compute;
 
-            case CommandQueue.Copy:
+            case QueueType.Copy:
                 return CommandListType.Copy;
         }
     }

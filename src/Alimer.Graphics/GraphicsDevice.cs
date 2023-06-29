@@ -285,10 +285,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <summary>
     /// Begin new <see cref="CommandBuffer"/> in recording state.
     /// </summary>
-    /// <param name="queue">The <see cref="CommandQueue"/>.</param>
+    /// <param name="queue">The <see cref="QueueType"/>.</param>
     /// <param name="label">Optional label.</param>
     /// <returns></returns>
-    public abstract CommandBuffer BeginCommandBuffer(CommandQueue queue = CommandQueue.Graphics, string? label = default);
+    public abstract CommandBuffer BeginCommandBuffer(QueueType queue = QueueType.Graphics, string? label = default);
 
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData);
 

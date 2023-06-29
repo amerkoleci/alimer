@@ -3,9 +3,6 @@
 
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
-using static Vortice.Vulkan.Vma;
-using Alimer.Numerics;
-using System.Runtime.CompilerServices;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -16,10 +13,7 @@ internal unsafe class VulkanPipeline : Pipeline
     public VulkanPipeline(VulkanGraphicsDevice device, in ComputePipelineDescription description)
         : base(device, PipelineType.Compute, description.Label)
     {
-        VkComputePipelineCreateInfo createInfo = new()
-        {
-            sType = VkStructureType.ComputePipelineCreateInfo
-        };
+        VkComputePipelineCreateInfo createInfo = new();
         //createInfo.stage = stage;
         //createInfo.layout = pipeline->layout->handle;
 

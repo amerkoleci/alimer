@@ -4,9 +4,9 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines the type of <see cref="CommandQueue"/>.
+/// Defines the type of <see cref="QueueType"/>.
 /// </summary>
-public enum CommandQueue : byte
+public enum QueueType
 {
     Graphics = 0,
     Compute,

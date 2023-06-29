@@ -13,7 +13,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
     private readonly ComPtr<ID3D12CommandQueue> _handle;
     private readonly ComPtr<ID3D12Fence> _fence;
 
-    public D3D12CommandQueue(D3D12GraphicsDevice device, CommandQueue type)
+    public D3D12CommandQueue(D3D12GraphicsDevice device, QueueType type)
     {
         _device = device;
 
@@ -32,15 +32,15 @@ internal unsafe class D3D12CommandQueue : IDisposable
 
         switch (type)
         {
-            case CommandQueue.Graphics:
+            case QueueType.Graphics:
                 _handle.Get()->SetName("Graphics Queue");
                 _fence.Get()->SetName("GraphicsQueue - Fence");
                 break;
-            case CommandQueue.Compute:
+            case QueueType.Compute:
                 _handle.Get()->SetName("Compute Queue");
                 _fence.Get()->SetName("ComputeQueue - Fence");
                 break;
-            case CommandQueue.Copy:
+            case QueueType.Copy:
                 _handle.Get()->SetName("CopyQueue");
                 _fence.Get()->SetName("CopyQueue - Fence");
                 break;

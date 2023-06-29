@@ -80,7 +80,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandBuffer BeginCommandBuffer(CommandQueue queue, string? label = null)
+    public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
     {
         throw new NotImplementedException();
     }

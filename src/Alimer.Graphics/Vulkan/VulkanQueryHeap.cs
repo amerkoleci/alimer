@@ -15,7 +15,6 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     {
         VkQueryPoolCreateInfo createInfo = new()
         {
-            sType = VkStructureType.QueryPoolCreateInfo,
             queryType = description.Type.ToVk(),
             queryCount = (uint)description.Count
         };

@@ -19,9 +19,9 @@ public abstract class CommandBuffer
     }
 
     /// <summary>
-    /// Get the <see cref="CommandQueue"/> object that will execute this CommandBuffer.
+    /// Get the <see cref="QueueType"/> object that will execute this CommandBuffer.
     /// </summary>
-    public abstract CommandQueue Queue { get; }
+    public abstract QueueType Queue { get; }
 
     /// <summary>
     /// Get the <see cref="GraphicsDevice"/> object that created this object.

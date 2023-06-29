@@ -192,7 +192,6 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         VkSwapchainCreateInfoKHR createInfo = new()
         {
-            sType = VkStructureType.SwapchainCreateInfoKHR,
             surface = _surface,
             minImageCount = imageCount,
             imageFormat = surfaceFormat.format,

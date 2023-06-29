@@ -78,7 +78,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             createInfo.usage |= VkBufferUsageFlags.ShaderDeviceAddress;
         }
 
-        uint* sharingIndices = stackalloc uint[(int)CommandQueue.Count];
+        uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
         device.FillBufferSharingIndices(ref createInfo, sharingIndices);
 
         // TODO: Add sparse buffer support
@@ -131,7 +131,6 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         {
             VkBufferDeviceAddressInfo info = new()
             {
-                sType = VkStructureType.BufferDeviceAddressInfo,
                 buffer = _handle
             };
             _gpuAddress = vkGetBufferDeviceAddress(device.Handle, &info);
@@ -176,7 +175,6 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                 {
                     VkBufferMemoryBarrier2 barrier = new()
                     {
-                        sType = VkStructureType.BufferMemoryBarrier2,
                         buffer = _handle,
                         srcStageMask = VkPipelineStageFlags2.Transfer,
                         dstStageMask = VkPipelineStageFlags2.AllCommands,
@@ -228,7 +226,6 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
                     VkDependencyInfo dependencyInfo = new()
                     {
-                        sType = VkStructureType.DependencyInfo,
                         bufferMemoryBarrierCount = 1,
                         pBufferMemoryBarriers = &barrier
                     };
@@ -237,15 +234,16 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                 }
                 else
                 {
-                    VkBufferMemoryBarrier barrier = new();
-                    barrier.sType = VkStructureType.BufferMemoryBarrier;
-                    barrier.srcAccessMask = VkAccessFlags.TransferWrite;
-                    barrier.dstAccessMask = VkAccessFlags.MemoryRead | VkAccessFlags.MemoryWrite;
-                    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    barrier.buffer = _handle;
-                    barrier.offset = 0;
-                    barrier.size = VK_WHOLE_SIZE;
+                    VkBufferMemoryBarrier barrier = new()
+                    {
+                        srcAccessMask = VkAccessFlags.TransferWrite,
+                        dstAccessMask = VkAccessFlags.MemoryRead | VkAccessFlags.MemoryWrite,
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        buffer = _handle,
+                        offset = 0,
+                        size = VK_WHOLE_SIZE
+                    };
 
                     vkCmdPipelineBarrier(context.TransitionCommandBuffer,
                         VkPipelineStageFlags.Transfer,
