@@ -500,6 +500,7 @@ internal static unsafe class VulkanUtils
                 return VkPresentModeKHR.Mailbox;
         }
     }
+
     public static uint MinImageCountForPresentMode(this VkPresentModeKHR mode)
     {
         switch (mode)
@@ -528,6 +529,37 @@ internal static unsafe class VulkanUtils
 
             case QueryType.PipelineStatistics:
                 return VkQueryType.PipelineStatistics;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkAttachmentLoadOp ToVk(this LoadAction value)
+    {
+        switch (value)
+        {
+            default:
+            case LoadAction.Load:
+                return VkAttachmentLoadOp.Load;
+
+            case LoadAction.Clear:
+                return VkAttachmentLoadOp.Clear;
+
+            case LoadAction.Discard:
+                return VkAttachmentLoadOp.DontCare;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkAttachmentStoreOp ToVk(this StoreAction value)
+    {
+        switch (value)
+        {
+            default:
+            case StoreAction.Store:
+                return VkAttachmentStoreOp.Store;
+
+            case StoreAction.Discard:
+                return VkAttachmentStoreOp.DontCare;
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Alimer.Engine;
 using Alimer.Graphics;
+using Alimer.Numerics;
 
 namespace Alimer.Samples;
 
@@ -41,10 +42,19 @@ public sealed class DrawTriangleGame : GameApplication
         using Texture? swapChainTexture = commandBuffer.AcquireSwapChainTexture(MainView.SwapChain!);
         if (swapChainTexture is not null)
         {
-        //    commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
-        //    commandBuffer.EndRenderPass();
+            RenderPassDescription backBufferRenderPass = new(new RenderPassColorAttachment(swapChainTexture, new Color(0.3f, 0.3f, 0.3f)))
+            {
+                Label = "BackBuffer"
+            };
+
+            using (commandBuffer.PushScopedPassPass(backBufferRenderPass))
+            {
+            }
+
+            //    commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
+            //    commandBuffer.EndRenderPass();
         }
-        
+
         //GraphicsDevice.Submit(commandBuffer);
         commandBuffer.Commit();
 

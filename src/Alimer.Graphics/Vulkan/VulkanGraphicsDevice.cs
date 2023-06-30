@@ -1226,7 +1226,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         {
             if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
             {
-                Log.Error($"[Vulkan]: Validation: {messageSeverity} - {message}");
+                //Log.Error($"[Vulkan]: Validation: {messageSeverity} - {message}");
             }
             else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Warning)
             {

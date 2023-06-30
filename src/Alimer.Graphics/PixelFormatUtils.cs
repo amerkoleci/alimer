@@ -278,6 +278,20 @@ public static class PixelFormatUtils
     }
 
     /// <summary>
+    /// Check if the format has depth only components.
+    /// </summary>
+    /// <param name="format">The <see cref="PixelFormat"/> to check.</param>
+    /// <returns>True if format has depth or stencil component, false otherwise.</returns>
+    public static bool IsDepthOnlyFormat(this PixelFormat format)
+    {
+        return format switch
+        {
+            PixelFormat.Depth16Unorm or PixelFormat.Depth32Float => true,
+            _ => false,
+        };
+    }
+
+    /// <summary>
     /// Get the number of bytes per row. If format is compressed, width should be evenly divisible by the compression ratio.
     /// </summary>
     /// <param name="format"></param>

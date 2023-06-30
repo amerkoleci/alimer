@@ -36,11 +36,34 @@ public abstract class CommandBuffer
 
     public abstract Texture? AcquireSwapChainTexture(SwapChain swapChain);
 
+    public void BeginRenderPass(in RenderPassDescription renderPass)
+    {
+        Guard.IsFalse(_insideRenderPass);
+
+        BeginRenderPassCore(in renderPass);
+        _insideRenderPass = true;
+    }
+
+    public void EndRenderPass()
+    {
+        Guard.IsTrue(_insideRenderPass);
+
+        EndRenderPassCore();
+        _insideRenderPass = false;
+    }
+
     public IDisposable PushScopedDebugGroup(string groupLabel)
     {
         PushDebugGroup(groupLabel);
         return new ScopedDebugGroup(this);
     }
+
+    public IDisposable PushScopedPassPass(in RenderPassDescription renderPass)
+    {
+        BeginRenderPass(renderPass);
+        return new ScopedRenderPass(this);
+    }
+
 
     protected void Reset(uint frameIndex)
     {
@@ -50,6 +73,10 @@ public abstract class CommandBuffer
         //frameAllocators[frameIndex].Reset();
     }
 
+    protected abstract void BeginRenderPassCore(in RenderPassDescription renderPass);
+    protected abstract void EndRenderPassCore();
+
+    #region Nested
     readonly struct ScopedDebugGroup : IDisposable
     {
         private readonly CommandBuffer _commandBuffer;
@@ -61,4 +88,20 @@ public abstract class CommandBuffer
 
         public void Dispose() => _commandBuffer.PopDebugGroup();
     }
+
+    readonly struct ScopedRenderPass : IDisposable
+    {
+        private readonly CommandBuffer _commandBuffer;
+
+        public ScopedRenderPass(CommandBuffer commandBuffer)
+        {
+            _commandBuffer = commandBuffer;
+        }
+
+        public void Dispose()
+        {
+            _commandBuffer.EndRenderPass();
+        }
+    }
+    #endregion
 }

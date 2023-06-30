@@ -88,7 +88,7 @@ internal unsafe class VulkanTexture : Texture
             isShared = true;
 
             // Ensure that the handle type is supported.
-            
+
             VkExternalImageFormatProperties external_props = new();
 
             VkPhysicalDeviceExternalImageFormatInfo externalFormatInfo = new();
@@ -191,6 +191,7 @@ internal unsafe class VulkanTexture : Texture
         }
     }
 
+    public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
     public VkImage Handle => _handle;
     public VkFormat VkFormat { get; }
 
@@ -214,5 +215,29 @@ internal unsafe class VulkanTexture : Texture
     protected override void OnLabelChanged(string newLabel)
     {
         ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.Image, _handle.Handle, newLabel);
+    }
+
+    public VkImageView GetView(int baseMipLevel, int baseArrayLayer = 0, uint mipLevelCount = VK_REMAINING_MIP_LEVELS, uint arrayLayerCount = VK_REMAINING_ARRAY_LAYERS)
+    {
+        VkImageAspectFlags aspectFlags = VkImageAspectFlags.Color;   // GetImageAspectFlags(vkFormat);
+        VkImageViewCreateInfo createInfo = new()
+        {
+            pNext = null,
+            flags = 0,
+            image = _handle,
+            viewType = VkImageViewType.Image2D,
+            format = VkFormat,
+            components = VkComponentMapping.Identity,
+            subresourceRange = new VkImageSubresourceRange(aspectFlags, (uint)baseMipLevel, mipLevelCount, (uint)baseArrayLayer, arrayLayerCount)
+        };
+
+        VkImageView view;
+        VkResult result = vkCreateImageView(VkDevice, &createInfo, null, &view);
+        if (result != VkResult.Success)
+        {
+            Log.Error($"Vulkan: Failed to create ImageView, error: {result}");
+            return VkImageView.Null;
+        }
+        return view;
     }
 }
