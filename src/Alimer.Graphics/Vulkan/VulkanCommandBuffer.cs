@@ -4,7 +4,9 @@
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
+using static Alimer.Graphics.Vulkan.VulkanUtils;
 using CommunityToolkit.Diagnostics;
+using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -15,11 +17,13 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     private readonly VkCommandBuffer[] _commandBuffers = new VkCommandBuffer[MaxFramesInFlight];
     private VkCommandBuffer _commandBuffer; // recording command buffer
     private RenderPassDescription _currentRenderPass;
+    private bool _synchronization2;
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
         : base(queue.Device)
     {
         _queue = queue;
+        _synchronization2 = queue.Device.PhysicalDeviceFeatures1_3.synchronization2;
 
         for (uint i = 0; i < MaxFramesInFlight; ++i)
         {
@@ -147,6 +151,63 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             label.color[2] = 0.0f;
             label.color[3] = 1.0f;
             vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &label);
+        }
+    }
+
+    public void TextureBarrier(VulkanTexture texture, ResourceStates newState)
+    {
+        if (texture.CurrentState == newState)
+            return;
+
+        // Transition from undefined -> render target
+        VkImageSubresourceRange range = new()
+        {
+            aspectMask = texture.VkFormat.GetVkImageAspectFlags(),
+            baseMipLevel = 0,
+            levelCount = VK_REMAINING_MIP_LEVELS,
+            baseArrayLayer = 0,
+            layerCount = VK_REMAINING_ARRAY_LAYERS
+        };
+        ImageMemoryBarrier(texture.Handle, texture.CurrentState, newState, range);
+        texture.CurrentState = newState;
+    }
+
+    public void ImageMemoryBarrier(VkImage image, ResourceStates before, ResourceStates after, VkImageSubresourceRange range)
+    {
+        if (_synchronization2)
+        {
+            ResourceStateMapping mappingBefore = ConvertResourceState(before);
+            ResourceStateMapping mappingAfter = ConvertResourceState(after);
+
+            Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+            VkImageMemoryBarrier2 barrier = new()
+            {
+                srcStageMask = mappingBefore.StageFlags,
+                srcAccessMask = mappingBefore.AccessMask,
+                oldLayout = mappingBefore.ImageLayout,
+
+                dstStageMask = mappingAfter.StageFlags,
+                dstAccessMask = mappingAfter.AccessMask,
+                newLayout = mappingAfter.ImageLayout,
+
+                srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                image = image,
+                subresourceRange = range
+            };
+
+            VkDependencyInfo dependencyInfo = new()
+            {
+                imageMemoryBarrierCount = 1,
+                pImageMemoryBarriers = &barrier
+            };
+
+            vkCmdPipelineBarrier2(_commandBuffer, &dependencyInfo);
+        }
+        else
+        {
+
         }
     }
 
@@ -286,24 +347,17 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         vulkanSwapChain.AcquiredImageIndex = imageIndex;
         _queue.QueuePresent(vulkanSwapChain);
 
-        // TextureBarrier(swapChainTexture, ResourceStates.RenderTarget);
+        TextureBarrier(vulkanSwapChain.CurrentTexture, ResourceStates.RenderTarget);
         return vulkanSwapChain.CurrentTexture;
     }
 
     public override void Commit()
     {
-        //for (auto & swapChain : presentSwapChains)
-        //{
-        //    VulkanTexture* swapChainTexture = swapChain->backbufferTextures[swapChain->imageIndex].Get();
-        //    TextureBarrier(swapChainTexture, ResourceStates::Present);
-        //}
-
         if (_hasLabel)
         {
             PopDebugGroup();
         }
 
-        vkEndCommandBuffer(_commandBuffer).DebugCheckResult();
-        _queue.Commit(_commandBuffer);
+        _queue.Commit(this, _commandBuffer);
     }
 }

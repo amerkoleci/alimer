@@ -55,7 +55,7 @@ public abstract class Texture : GraphicsResource
     /// </summary>
     public CpuAccessMode CpuAccess { get; }
 
-    protected Texture(GraphicsDevice device, in TextureDescriptor descriptor)
+    protected Texture(GraphicsDevice device, in TextureDescription descriptor)
         : base(device, descriptor.Label)
     {
         Dimension = descriptor.Dimension;

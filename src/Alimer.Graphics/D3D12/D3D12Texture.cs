@@ -7,6 +7,7 @@ using Win32.Graphics.Dxgi.Common;
 using static Win32.Apis;
 using static Alimer.Graphics.D3D12.D3D12Utils;
 using static Alimer.Graphics.D3D.D3DUtils;
+using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -15,27 +16,27 @@ internal unsafe class D3D12Texture : Texture
     private readonly ComPtr<ID3D12Resource> _handle;
     private Handle _sharedHandle = Win32.Handle.Null;
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor, void* initialData)
-        : base(device, descriptor)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, void* initialData)
+        : base(device, description)
     {
-        DxgiFormat = (Format)descriptor.Format.ToDxgiFormat();
-        bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
+        DxgiFormat = (Format)description.Format.ToDxgiFormat();
+        bool isDepthStencil = description.Format.IsDepthStencilFormat();
 
         // If ShaderRead or ShaderWrite and depth format, set to typeless.
-        if (isDepthStencil && (descriptor.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
         {
-            DxgiFormat = (Format)descriptor.Format.GetTypelessFormatFromDepthFormat();
+            DxgiFormat = (Format)description.Format.GetTypelessFormatFromDepthFormat();
         }
 
         HeapProperties heapProps = DefaultHeapProps;
         ResourceFlags resourceFlags = ResourceFlags.None;
 
-        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
+        if ((description.Usage & TextureUsage.RenderTarget) != 0)
         {
             if (isDepthStencil)
             {
                 resourceFlags |= ResourceFlags.AllowDepthStencil;
-                if ((descriptor.Usage & TextureUsage.ShaderRead) == 0)
+                if ((description.Usage & TextureUsage.ShaderRead) == 0)
                 {
                     resourceFlags |= ResourceFlags.DenyShaderResource;
                 }
@@ -46,14 +47,14 @@ internal unsafe class D3D12Texture : Texture
             }
         }
 
-        if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
+        if ((description.Usage & TextureUsage.ShaderWrite) != 0)
         {
             resourceFlags |= ResourceFlags.AllowUnorderedAccess;
         }
 
         HeapFlags heapFlags = HeapFlags.None;
         bool isShared = false;
-        if ((descriptor.Usage & TextureUsage.Shared) != 0)
+        if ((description.Usage & TextureUsage.Shared) != 0)
         {
             heapFlags |= HeapFlags.Shared;
             isShared = true;
@@ -63,13 +64,13 @@ internal unsafe class D3D12Texture : Texture
 
         ResourceDescription resourceDesc = ResourceDescription.Tex2D(
             DxgiFormat,
-            descriptor.Width,
-            descriptor.Height,
-            (ushort)descriptor.DepthOrArrayLayers,
-            (ushort)descriptor.MipLevelCount,
-            descriptor.SampleCount.ToSampleCount(), 0,
+            description.Width,
+            description.Height,
+            (ushort)description.DepthOrArrayLayers,
+            (ushort)description.MipLevelCount,
+            description.SampleCount.ToSampleCount(), 0,
             resourceFlags);
-        ResourceStates initialState = ResourceStates.Common;
+        D3DResourceStates initialState = D3DResourceStates.Common;
 
         HResult hr = device.Handle->CreateCommittedResource(&heapProps,
             heapFlags,
@@ -82,7 +83,8 @@ internal unsafe class D3D12Texture : Texture
 
         if (hr.Failure)
         {
-            //return nullptr;
+            Log.Error("D3D12: Failed to create Texture.");
+            return;
         }
 
         if (isShared)
@@ -96,13 +98,13 @@ internal unsafe class D3D12Texture : Texture
             _sharedHandle = sharedHandle;
         }
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!string.IsNullOrEmpty(description.Label))
         {
-            OnLabelChanged(descriptor.Label!);
+            OnLabelChanged(description.Label!);
         }
     }
 
-    public D3D12Texture(GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor descriptor)
+    public D3D12Texture(GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription descriptor)
         : base(device, descriptor)
     {
         DxgiFormat = (Format)descriptor.Format.ToDxgiFormat();

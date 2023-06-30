@@ -26,6 +26,8 @@ public sealed class DrawTriangleGame : GameApplication
         };
         using GraphicsBuffer vertexBuffer = GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex);
 
+        using Texture texture = GraphicsDevice.CreateTexture(TextureDescription.Texture2D(PixelFormat.Rgba8Unorm, 256, 256));
+
         //
         //Entity cameraEntity = new Entity();
         //cameraEntity.GetOrCreate<CameraComponent>();
@@ -39,7 +41,7 @@ public sealed class DrawTriangleGame : GameApplication
     protected override void Draw(AppTime time)
     {
         CommandBuffer commandBuffer = GraphicsDevice.BeginCommandBuffer(QueueType.Graphics, "Frame");
-        using Texture? swapChainTexture = commandBuffer.AcquireSwapChainTexture(MainView.SwapChain!);
+        Texture? swapChainTexture = commandBuffer.AcquireSwapChainTexture(MainView.SwapChain!);
         if (swapChainTexture is not null)
         {
             RenderPassDescription backBufferRenderPass = new(new RenderPassColorAttachment(swapChainTexture, new Color(0.3f, 0.3f, 0.3f)))
@@ -50,9 +52,6 @@ public sealed class DrawTriangleGame : GameApplication
             using (commandBuffer.PushScopedPassPass(backBufferRenderPass))
             {
             }
-
-            //    commandBuffer.BeginRenderPass(swapChainTexture, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
-            //    commandBuffer.EndRenderPass();
         }
 
         //GraphicsDevice.Submit(commandBuffer);

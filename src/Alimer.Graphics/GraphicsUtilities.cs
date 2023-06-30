@@ -19,7 +19,7 @@ public static class GraphicsUtilities
         return mipLevelCount;
     }
 
-    public static ulong ComputeTextureMemorySizeInBytes(in TextureDescriptor descriptor)
+    public static ulong ComputeTextureMemorySizeInBytes(in TextureDescription descriptor)
     {
         ulong size = 0;
         uint bytes_per_block = descriptor.Format.GetFormatBytesPerBlock();

@@ -374,15 +374,21 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData)
     {
-        return new D3D12Buffer(this, descriptor, initialData);
+        return new D3D12Buffer(this, description, initialData);
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription description, void* initialData)
     {
-        return new D3D12Texture(this, descriptor, initialData);
+        return new D3D12Texture(this, description, initialData);
+    }
+
+    /// <inheritdoc />
+    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    {
+        return new D3D12Sampler(this, description);
     }
 
     /// <inheritdoc />
@@ -392,15 +398,21 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
+    protected override Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description)
     {
-        throw new NotImplementedException();
+        return new D3D12Pipeline(this, description);
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescriptor descriptor)
+    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
     {
-        return new D3D12SwapChain(this, surface, descriptor);
+        return new D3D12Pipeline(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription description)
+    {
+        return new D3D12SwapChain(this, surface, description);
     }
 
     /// <inheritdoc />

@@ -5,14 +5,14 @@ using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
-public readonly record struct SwapChainDescriptor
+public readonly record struct SwapChainDescription
 {
-    public SwapChainDescriptor()
+    public SwapChainDescription()
     {
 
     }
 
-    public SwapChainDescriptor(
+    public SwapChainDescription(
         int width,
         int height,
         PixelFormat colorFormat = PixelFormat.Bgra8UnormSrgb,

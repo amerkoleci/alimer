@@ -7,7 +7,7 @@ namespace Alimer.Graphics;
 
 public abstract class SwapChain : GraphicsObject
 {
-    public SwapChain(GraphicsDevice device, SwapChainSurface surface, in SwapChainDescriptor descriptor)
+    public SwapChain(GraphicsDevice device, SwapChainSurface surface, in SwapChainDescription descriptor)
         : base(device, descriptor.Label)
     {
         Surface = surface;

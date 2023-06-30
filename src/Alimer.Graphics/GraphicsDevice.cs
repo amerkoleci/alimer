@@ -134,7 +134,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             case GraphicsBackendType.D3D11:
                 if (D3D11.D3D11GraphicsDevice.IsSupported())
                 {
-                    device = new D3D11.D3D11GraphicsDevice(in descriptor);
+                    device = new D3D11.D3D11GraphicsDevice(in description);
                 }
                 break;
 #endif
@@ -204,30 +204,30 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public abstract bool QueryFeature(Feature feature);
 
-    public GraphicsBuffer CreateBuffer(in BufferDescription descriptor)
+    public GraphicsBuffer CreateBuffer(in BufferDescription description)
     {
-        return CreateBuffer(descriptor, null);
+        return CreateBuffer(description, null);
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescription descriptor, IntPtr initialData)
+    public GraphicsBuffer CreateBuffer(in BufferDescription description, IntPtr initialData)
     {
-        return CreateBuffer(descriptor, initialData.ToPointer());
+        return CreateBuffer(description, initialData.ToPointer());
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescription descriptor, void* initialData)
+    public GraphicsBuffer CreateBuffer(in BufferDescription description, void* initialData)
     {
-        Guard.IsGreaterThanOrEqualTo(descriptor.Size, 4, nameof(BufferDescription.Size));
+        Guard.IsGreaterThanOrEqualTo(description.Size, 4, nameof(BufferDescription.Size));
 
-        return CreateBufferCore(descriptor, initialData);
+        return CreateBufferCore(description, initialData);
     }
 
-    public GraphicsBuffer CreateBuffer<T>(in BufferDescription descriptor, ref T initialData) where T : unmanaged
+    public GraphicsBuffer CreateBuffer<T>(in BufferDescription description, ref T initialData) where T : unmanaged
     {
-        Guard.IsGreaterThanOrEqualTo(descriptor.Size, 4, nameof(BufferDescription.Size));
+        Guard.IsGreaterThanOrEqualTo(description.Size, 4, nameof(BufferDescription.Size));
 
         fixed (void* initialDataPtr = &initialData)
         {
-            return CreateBuffer(descriptor, initialDataPtr);
+            return CreateBuffer(description, initialDataPtr);
         }
     }
 
@@ -254,20 +254,32 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
-    public Texture CreateTexture(in TextureDescriptor descriptor)
+    public Texture CreateTexture(in TextureDescription description)
     {
-        Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(descriptor.Height, 1, nameof(TextureDescriptor.Height));
-        Guard.IsGreaterThanOrEqualTo(descriptor.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));
+        Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescription.Height));
+        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
 
-        return CreateTextureCore(descriptor, default);
+        return CreateTextureCore(description, default);
+    }
+
+    public Sampler CreateSampler(in SamplerDescription description)
+    {
+        return CreateSamplerCore(description);
+    }
+
+    public Pipeline CreateRenderPipeline(in RenderPipelineDescription description)
+    {
+        Guard.IsGreaterThanOrEqualTo(description.VertexShader.Length, 1, nameof(RenderPipelineDescription.VertexShader));
+
+        return CreateRenderPipelineCore(in description);
     }
 
     public Pipeline CreateComputePipeline(in ComputePipelineDescription description)
     {
         Guard.IsGreaterThanOrEqualTo(description.ComputeShader.Length, 1, nameof(ComputePipelineDescription.ComputeShader));
 
-        return CreateComputePipelineCore(description);
+        return CreateComputePipelineCore(in description);
     }
 
     public QueryHeap CreateQueryHeap(in QueryHeapDescription description)
@@ -275,11 +287,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateQueryHeapCore(description);
     }
 
-    public SwapChain CreateSwapChain(SwapChainSurface surface, in SwapChainDescriptor descriptor)
+    public SwapChain CreateSwapChain(SwapChainSurface surface, in SwapChainDescription description)
     {
         Guard.IsNotNull(surface, nameof(surface));
 
-        return CreateSwapChainCore(surface, descriptor);
+        return CreateSwapChainCore(surface, description);
     }
 
     /// <summary>
@@ -290,13 +302,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer BeginCommandBuffer(QueueType queue = QueueType.Graphics, string? label = default);
 
-    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData);
-
-    protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData);
-
+    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
+    protected abstract Texture CreateTextureCore(in TextureDescription description, void* initialData);
+    protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
+    protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
     protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
-
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription description);
-
-    protected abstract SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescriptor descriptor);
+    protected abstract SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription description);
 }

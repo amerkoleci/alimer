@@ -10,6 +10,25 @@ internal unsafe class VulkanPipeline : Pipeline
 {
     private readonly VkPipeline _handle = VkPipeline.Null;
 
+    public VulkanPipeline(VulkanGraphicsDevice device, in RenderPipelineDescription description)
+        : base(device, PipelineType.Render, description.Label)
+    {
+        VkGraphicsPipelineCreateInfo createInfo = new();
+        //createInfo.stage = stage;
+        //createInfo.layout = pipeline->layout->handle;
+
+        VkPipeline pipeline;
+        VkResult result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+
+        if (result != VkResult.Success)
+        {
+            Log.Error("Vulkan: Failed to create Render Pipeline.");
+            return;
+        }
+
+        _handle = pipeline;
+    }
+
     public VulkanPipeline(VulkanGraphicsDevice device, in ComputePipelineDescription description)
         : base(device, PipelineType.Compute, description.Label)
     {

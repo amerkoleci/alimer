@@ -3,18 +3,18 @@
 
 namespace Alimer.Graphics.Null;
 
-internal class NullTexture : Texture
+internal class NullSampler : Sampler
 {
-    public NullTexture(NullGraphicsDevice device, in TextureDescription descriptor)
+    public NullSampler(NullGraphicsDevice device, in SamplerDescription descriptor)
         : base(device, descriptor)
     {
         
     }
 
     /// <summary>
-    /// Finalizes an instance of the <see cref="NullTexture" /> class.
+    /// Finalizes an instance of the <see cref="NullSampler" /> class.
     /// </summary>
-    ~NullTexture() => Dispose(disposing: false);
+    ~NullSampler() => Dispose(disposing: false);
 
     /// <inheitdoc />
     protected internal override void Destroy()

@@ -1,7 +1,9 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
@@ -562,4 +564,157 @@ internal static unsafe class VulkanUtils
                 return VkAttachmentStoreOp.DontCare;
         }
     }
+
+    private static readonly ResourceStateMapping[] s_ResourceStateMap = new ResourceStateMapping[] {
+        new(ResourceStates.Common,
+            VkPipelineStageFlags2.TopOfPipe,
+            VkAccessFlags2.None,
+            VkImageLayout.Undefined),
+        new(ResourceStates.ConstantBuffer,
+            VkPipelineStageFlags2.AllCommands,
+            VkAccessFlags2.UniformRead,
+            VkImageLayout.Undefined),
+        new (ResourceStates.VertexBuffer,
+            VkPipelineStageFlags2.VertexInput,
+            VkAccessFlags2.VertexAttributeRead,
+            VkImageLayout.Undefined),
+        new (ResourceStates.IndexBuffer,
+            VkPipelineStageFlags2.VertexInput,
+            VkAccessFlags2.IndexRead,
+            VkImageLayout.Undefined),
+        new(ResourceStates.IndirectArgument,
+            VkPipelineStageFlags2.DrawIndirect,
+            VkAccessFlags2.IndirectCommandRead,
+            VkImageLayout.Undefined),
+        new(ResourceStates.ShaderResource,
+            VkPipelineStageFlags2.AllCommands,
+            VkAccessFlags2.ShaderRead,
+            VkImageLayout.ShaderReadOnlyOptimal),
+        new(ResourceStates.UnorderedAccess,
+            VkPipelineStageFlags2.AllCommands,
+            VkAccessFlags2.ShaderRead | VkAccessFlags2.ShaderWrite,
+            VkImageLayout.General),
+        new(ResourceStates.RenderTarget,
+            VkPipelineStageFlags2.ColorAttachmentOutput,
+            VkAccessFlags2.ColorAttachmentRead | VkAccessFlags2.ColorAttachmentWrite,
+            VkImageLayout.ColorAttachmentOptimal),
+        new(ResourceStates.DepthWrite,
+            VkPipelineStageFlags2.EarlyFragmentTests | VkPipelineStageFlags2.LateFragmentTests,
+            VkAccessFlags2.DepthStencilAttachmentRead | VkAccessFlags2.DepthStencilAttachmentWrite,
+            VkImageLayout.DepthStencilAttachmentOptimal),
+        new(ResourceStates.DepthRead,
+            VkPipelineStageFlags2.EarlyFragmentTests | VkPipelineStageFlags2.LateFragmentTests,
+            VkAccessFlags2.DepthStencilAttachmentRead,
+            VkImageLayout.DepthStencilReadOnlyOptimal),
+        new(ResourceStates.StreamOut,
+            VkPipelineStageFlags2.TransformFeedbackEXT,
+            VkAccessFlags2.TransformFeedbackWriteEXT,
+            VkImageLayout.Undefined),
+        new(ResourceStates.CopyDest,
+            VkPipelineStageFlags2.Transfer,
+            VkAccessFlags2.TransferWrite,
+            VkImageLayout.TransferDstOptimal),
+        new(ResourceStates.CopySource,
+            VkPipelineStageFlags2.Transfer,
+            VkAccessFlags2.TransferRead,
+            VkImageLayout.TransferSrcOptimal),
+        new(ResourceStates.ResolveDest,
+            VkPipelineStageFlags2.Transfer,
+            VkAccessFlags2.TransferWrite,
+            VkImageLayout.TransferDstOptimal),
+        new(ResourceStates.ResolveSource,
+            VkPipelineStageFlags2.Transfer,
+            VkAccessFlags2.TransferRead,
+            VkImageLayout.TransferSrcOptimal),
+        new(ResourceStates.Present,
+            VkPipelineStageFlags2.AllCommands,
+            VkAccessFlags2.MemoryRead,
+            VkImageLayout.PresentSrcKHR),
+        new(ResourceStates.AccelStructRead,
+            VkPipelineStageFlags2.RayTracingShaderKHR | VkPipelineStageFlags2.ComputeShader,
+            VkAccessFlags2.AccelerationStructureReadKHR,
+            VkImageLayout.Undefined),
+        new(ResourceStates.AccelStructWrite,
+            VkPipelineStageFlags2.AccelerationStructureBuildKHR,
+            VkAccessFlags2.AccelerationStructureWriteKHR,
+            VkImageLayout.Undefined),
+        new(ResourceStates.AccelStructBuildInput,
+            VkPipelineStageFlags2.AccelerationStructureBuildKHR,
+            VkAccessFlags2.AccelerationStructureReadKHR,
+            VkImageLayout.Undefined),
+        new(ResourceStates.AccelStructBuildBlas,
+            VkPipelineStageFlags2.AccelerationStructureBuildKHR,
+            VkAccessFlags2.AccelerationStructureReadKHR,
+            VkImageLayout.Undefined),
+        new(ResourceStates.ShadingRateSurface,
+            VkPipelineStageFlags2.FragmentShadingRateAttachmentKHR,
+            VkAccessFlags2.FragmentShadingRateAttachmentReadKHR,
+            VkImageLayout.FragmentShadingRateAttachmentOptimalKHR),
+        new(ResourceStates.OpacityMicromapWrite,
+            VkPipelineStageFlags2.MicromapBuildEXT,
+            VkAccessFlags2.MicromapWriteEXT,
+            VkImageLayout.Undefined),
+        new(ResourceStates.OpacityMicromapBuildInput,
+            VkPipelineStageFlags2.MicromapBuildEXT,
+            VkAccessFlags2.ShaderRead,
+            VkImageLayout.Undefined),
+    };
+
+    public static ResourceStateMapping ConvertResourceState(ResourceStates state)
+    {
+        ResourceStates resultState = ResourceStates.Unknown;
+        VkPipelineStageFlags2 resultStageFlags = VkPipelineStageFlags2.None;
+        VkAccessFlags2 resultAccessMask = VkAccessFlags2.None;
+        VkImageLayout resultImageLayout = VkImageLayout.Undefined;
+
+        int numStateBits = s_ResourceStateMap.Length;
+
+        uint stateTmp = (uint)state;
+        uint bitIndex = 0;
+
+        while (stateTmp != 0 && bitIndex < numStateBits)
+        {
+            uint bit = (1u << (int)bitIndex);
+
+            if ((stateTmp & bit) != 0)
+            {
+                ref ResourceStateMapping mapping = ref s_ResourceStateMap[bitIndex];
+
+                Debug.Assert((uint)mapping.State == bit);
+                Debug.Assert(resultImageLayout == VkImageLayout.Undefined || mapping.ImageLayout == VkImageLayout.Undefined || resultImageLayout == mapping.ImageLayout);
+
+                resultState |= mapping.State;
+                resultAccessMask |= mapping.AccessMask;
+                resultStageFlags |= mapping.StageFlags;
+                if (mapping.ImageLayout != VkImageLayout.Undefined)
+                {
+                    resultImageLayout = mapping.ImageLayout;
+                }
+
+                stateTmp &= ~bit;
+            }
+
+            bitIndex++;
+        }
+
+        Debug.Assert(resultState == state);
+
+        return new ResourceStateMapping(resultState, resultStageFlags, resultAccessMask, resultImageLayout);
+    }
+
+    public static ResourceStateMappingLegacy ConvertResourceStateLegacy(ResourceStates state)
+    {
+        ResourceStateMapping mapping = ConvertResourceState(state);
+
+        // It's safe to cast vk::AccessFlags2 -> vk::AccessFlags and vk::PipelineStageFlags2 -> vk::PipelineStageFlags (as long as the enum exist in both versions!),
+        // synchronization2 spec says: "The new flags are identical to the old values within the 32-bit range, with new stages and bits beyond that."
+        // The below stages are exclustive to synchronization2
+        Debug.Assert((mapping.StageFlags & VkPipelineStageFlags2.MicromapBuildEXT) != VkPipelineStageFlags2.MicromapBuildEXT);
+        Debug.Assert((mapping.AccessMask & VkAccessFlags2.MicromapWriteEXT) != VkAccessFlags2.MicromapWriteEXT);
+
+        return new ResourceStateMappingLegacy(mapping.State, (VkPipelineStageFlags)mapping.StageFlags, (VkAccessFlags)mapping.AccessMask, mapping.ImageLayout);
+    }
+
+    public readonly record struct ResourceStateMapping(ResourceStates State, VkPipelineStageFlags2 StageFlags, VkAccessFlags2 AccessMask, VkImageLayout ImageLayout);
+    public readonly record struct ResourceStateMappingLegacy(ResourceStates State, VkPipelineStageFlags StageFlags, VkAccessFlags AccessMask, VkImageLayout ImageLayout);
 }

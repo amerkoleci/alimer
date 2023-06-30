@@ -6,9 +6,9 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="Pipeline"/>.
 /// </summary>
-public readonly record struct RenderPipelineDescriptor
+public readonly record struct RenderPipelineDescription
 {
-    public RenderPipelineDescriptor()
+    public RenderPipelineDescription()
     {
         BlendState = BlendState.Opaque;
         RasterizerState = RasterizerState.CullBack;

@@ -23,18 +23,18 @@ internal unsafe class D3D12SwapChain : SwapChain
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
 
-    public D3D12SwapChain(D3D12GraphicsDevice device, SwapChainSurface surface, in SwapChainDescriptor descriptor)
-        : base(device, surface, descriptor)
+    public D3D12SwapChain(D3D12GraphicsDevice device, SwapChainSurface surface, in SwapChainDescription description)
+        : base(device, surface, description)
     {
         SwapChainDescription1 swapChainDesc = new()
         {
-            Width = (uint)descriptor.Width,
-            Height = (uint)descriptor.Height,
-            Format = descriptor.Format.ToDxgiSwapChainFormat(),
+            Width = (uint)description.Width,
+            Height = (uint)description.Height,
+            Format = description.Format.ToDxgiSwapChainFormat(),
             Stereo = false,
             SampleDesc = new(1, 0),
             BufferUsage = DxgiUsage.RenderTargetOutput,
-            BufferCount = PresentModeToBufferCount(descriptor.PresentMode),
+            BufferCount = PresentModeToBufferCount(description.PresentMode),
             Scaling = Scaling.Stretch,
             SwapEffect = SwapEffect.FlipDiscard,
             AlphaMode = AlphaMode.Ignore,
@@ -47,7 +47,7 @@ internal unsafe class D3D12SwapChain : SwapChain
             case Win32SwapChainSurface win32Source:
                 SwapChainFullscreenDescription fsSwapChainDesc = new()
                 {
-                    Windowed = !descriptor.IsFullscreen
+                    Windowed = !description.IsFullscreen
                 };
 
                 ThrowIfFailed(device.Factory->CreateSwapChainForHwnd(
@@ -138,7 +138,7 @@ internal unsafe class D3D12SwapChain : SwapChain
         _backbufferTextures = new D3D12Texture[swapChainDesc.BufferCount];
         for (uint i = 0; i < swapChainDesc.BufferCount; ++i)
         {
-            TextureDescriptor descriptor = TextureDescriptor.Texture2D(
+            TextureDescription descriptor = TextureDescription.Texture2D(
                 dxgiFormat.FromDxgiFormat(),
                 swapChainDesc.Width,
                 swapChainDesc.Height,

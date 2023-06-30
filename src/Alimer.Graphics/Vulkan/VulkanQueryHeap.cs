@@ -61,7 +61,17 @@ internal unsafe class VulkanQueryHeap : QueryHeap
                 createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.MeshShaderInvocationsEXT;
         }
 
-        vkCreateQueryPool(device.Handle, &createInfo, null, out _handle).CheckResult();
+        VkResult result = vkCreateQueryPool(device.Handle, &createInfo, null, out _handle);
+        if (result != VkResult.Success)
+        {
+            Log.Error("Vulkan: Failed to create QueryHeap.");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(description.Label))
+        {
+            OnLabelChanged(description.Label!);
+        }
     }
 
     public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
@@ -81,5 +91,6 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
+        ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.QueryPool, _handle.Handle, newLabel);
     }
 }

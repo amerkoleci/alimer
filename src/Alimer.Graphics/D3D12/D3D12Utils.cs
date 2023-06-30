@@ -39,6 +39,67 @@ internal static unsafe class D3D12Utils
     public static ResourceDimension ToD3D12(this TextureDimension value) => s_d3dImageTypeMap[(uint)value];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ComparisonFunction ToD3D12(this CompareFunction function)
+    {
+        switch (function)
+        {
+            case CompareFunction.Never: return ComparisonFunction.Never;
+            case CompareFunction.Less: return ComparisonFunction.Less;
+            case CompareFunction.Equal: return ComparisonFunction.Equal;
+            case CompareFunction.LessEqual: return ComparisonFunction.LessEqual;
+            case CompareFunction.Greater: return ComparisonFunction.Greater;
+            case CompareFunction.NotEqual: return ComparisonFunction.NotEqual;
+            case CompareFunction.GreaterEqual: return ComparisonFunction.GreaterEqual;
+            case CompareFunction.Always: return ComparisonFunction.Always;
+
+            default:
+                return ComparisonFunction.Never;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FilterType ToD3D12(this SamplerMinMagFilter filter)
+    {
+        switch (filter)
+        {
+            case SamplerMinMagFilter.Nearest: return FilterType.Point;
+            case SamplerMinMagFilter.Linear: return FilterType.Linear;
+
+            default:
+                return FilterType.Point;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FilterType ToD3D12(this SamplerMipFilter filter)
+    {
+        switch (filter)
+        {
+            case SamplerMipFilter.Nearest: return FilterType.Point;
+            case SamplerMipFilter.Linear: return FilterType.Linear;
+
+            default:
+                return FilterType.Point;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TextureAddressMode ToD3D12(this SamplerAddressMode filter)
+    {
+        switch (filter)
+        {
+            case SamplerAddressMode.Wrap: return TextureAddressMode.Wrap;
+            case SamplerAddressMode.Mirror: return TextureAddressMode.Mirror;
+            case SamplerAddressMode.Clamp: return TextureAddressMode.Clamp;
+            case SamplerAddressMode.Border: return TextureAddressMode.Border;
+            case SamplerAddressMode.MirrorOnce: return TextureAddressMode.MirrorOnce;
+
+            default:
+                return TextureAddressMode.Wrap;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static QueryHeapType ToD3D12(this QueryType value)
     {
         switch (value)

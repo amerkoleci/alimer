@@ -50,15 +50,21 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override unsafe GraphicsBuffer CreateBufferCore(in BufferDescription descriptor, void* initialData)
+    protected override unsafe GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData)
     {
-        return new NullBuffer(this, descriptor);
+        return new NullBuffer(this, description);
     }
 
     /// <inheritdoc />
-    protected override unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData)
+    protected override unsafe Texture CreateTextureCore(in TextureDescription description, void* initialData)
     {
-        return new NullTexture(this, descriptor);
+        return new NullTexture(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    {
+        return new NullSampler(this, description);
     }
 
     /// <inheritdoc />
@@ -68,13 +74,19 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    protected override Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
     protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
     {
         throw new NotImplementedException();
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescriptor descriptor)
+    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription description)
     {
         throw new NotImplementedException();
     }

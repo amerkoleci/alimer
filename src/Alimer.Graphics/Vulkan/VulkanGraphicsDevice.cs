@@ -1151,9 +1151,21 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, void* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription descriptor, void* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
+    }
+
+    /// <inheritdoc />
+    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    {
+        return new VulkanSampler(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description)
+    {
+        return new VulkanPipeline(this, description);
     }
 
     /// <inheritdoc />
@@ -1169,7 +1181,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescriptor descriptor)
+    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription descriptor)
     {
         return new VulkanSwapChain(this, surface, descriptor);
     }
@@ -1226,7 +1238,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         {
             if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
             {
-                //Log.Error($"[Vulkan]: Validation: {messageSeverity} - {message}");
+                Log.Error($"[Vulkan]: Validation: {messageSeverity} - {message}");
             }
             else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Warning)
             {

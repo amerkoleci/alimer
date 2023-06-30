@@ -7,6 +7,7 @@ using Win32.Graphics.Direct3D12;
 using static Alimer.Graphics.D3D12.D3D12Utils;
 using static Win32.Graphics.Direct3D12.Apis;
 using static Win32.Apis;
+using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -14,40 +15,40 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
 {
     private readonly ComPtr<ID3D12Resource> _handle;
 
-    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription descriptor, void* initialData)
-        : base(device, descriptor)
+    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
+        : base(device, description)
     {
-        ulong alignedSize = descriptor.Size;
-        if ((descriptor.Usage & BufferUsage.Constant) != 0)
+        ulong alignedSize = description.Size;
+        if ((description.Usage & BufferUsage.Constant) != 0)
         {
             alignedSize = MathHelper.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         ResourceFlags resourceFlags = ResourceFlags.None;
-        if ((descriptor.Usage & BufferUsage.ShaderWrite) != 0)
+        if ((description.Usage & BufferUsage.ShaderWrite) != 0)
         {
             resourceFlags |= ResourceFlags.AllowUnorderedAccess;
         }
 
-        if ((descriptor.Usage & BufferUsage.ShaderRead) == 0 &&
-            (descriptor.Usage & BufferUsage.RayTracing) == 0)
+        if ((description.Usage & BufferUsage.ShaderRead) == 0 &&
+            (description.Usage & BufferUsage.RayTracing) == 0)
         {
             resourceFlags |= ResourceFlags.DenyShaderResource;
         }
 
         ResourceDescription resourceDesc = ResourceDescription.Buffer(alignedSize, resourceFlags);
-        ResourceStates initialState = ResourceStates.Common;
+        D3DResourceStates initialState = D3DResourceStates.Common;
         HeapProperties heapProps = DefaultHeapProps;
-        if (descriptor.CpuAccess == CpuAccessMode.Read)
+        if (description.CpuAccess == CpuAccessMode.Read)
         {
             heapProps = ReadbackHeapProps;
-            initialState = ResourceStates.CopyDest;
+            initialState = D3DResourceStates.CopyDest;
             resourceDesc.Flags |= ResourceFlags.DenyShaderResource;
         }
-        else if (descriptor.CpuAccess == CpuAccessMode.Write)
+        else if (description.CpuAccess == CpuAccessMode.Write)
         {
             heapProps = UploadHeapProps;
-            initialState = ResourceStates.GenericRead;
+            initialState = D3DResourceStates.GenericRead;
         }
         else
         {
@@ -64,12 +65,13 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
 
         if (hr.Failure)
         {
-            //return nullptr;
+            Log.Error("D3D12: Failed to create Buffer.");
+            return;
         }
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!string.IsNullOrEmpty(description.Label))
         {
-            OnLabelChanged(descriptor.Label!);
+            OnLabelChanged(description.Label!);
         }
     }
 

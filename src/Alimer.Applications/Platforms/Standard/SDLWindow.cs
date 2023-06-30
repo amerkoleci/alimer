@@ -32,7 +32,6 @@ internal unsafe class SDLWindow : AppView
 #else
         Handle = SDL_CreateWindow("Alimer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, flags);
 #endif
-        SDL_ShowWindow(Handle);
         Id = SDL_GetWindowID(Handle);
         SDL_GetWindowSizeInPixels(Handle, out int width, out int height);
         _clientSize = new Size(width, height);

@@ -22,7 +22,7 @@ public abstract class AppView
     
     public void CreateSwapChain(GraphicsDevice device)
     {
-        SwapChainDescriptor descriptor = new(ClientSize.Width, ClientSize.Height);
+        SwapChainDescription descriptor = new(ClientSize.Width, ClientSize.Height);
         SwapChain = device.CreateSwapChain(Surface, descriptor);
     }
 

@@ -4,6 +4,7 @@
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
+using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -19,7 +20,9 @@ internal unsafe class VulkanCommandQueue : IDisposable
     private uint _commandBufferCount = 0;
     private readonly List<VulkanCommandBuffer> _commandBuffers = new();
     private readonly List<VkCommandBuffer> _submitCommandBuffers = new();
+
     private readonly List<VulkanSwapChain> _presentSwapChains = new();
+    private readonly List<VkSemaphore> _submitSignalSemaphores = new();
 
     public VulkanCommandQueue(VulkanGraphicsDevice device, QueueType queueType)
     {
@@ -83,14 +86,31 @@ internal unsafe class VulkanCommandQueue : IDisposable
         vkQueueWaitIdle(Handle);
     }
 
-    public void Commit(VkCommandBuffer commandBuffer)
+    public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
     {
+        foreach (VulkanSwapChain swapChain in _presentSwapChains)
+        {
+            VulkanTexture swapChainTexture = swapChain.CurrentTexture;
+            vulkanCommandBuffer.TextureBarrier(swapChainTexture, ResourceStates.Present);
+        }
+
+        vkEndCommandBuffer(commandBuffer).DebugCheckResult();
+
         _submitCommandBuffers.Add(commandBuffer);
     }
 
     public void QueuePresent(VulkanSwapChain swapChain)
     {
         _presentSwapChains.Add(swapChain);
+        _submitSignalSemaphores.Add(swapChain.ReleaseSemaphore);
+
+        if (Device.PhysicalDeviceFeatures1_3.synchronization2 == true)
+        {
+        }
+        else
+        {
+
+        }
     }
 
     public void Submit(VkFence fence)
@@ -144,42 +164,58 @@ internal unsafe class VulkanCommandQueue : IDisposable
                 };
 
                 vkQueueSubmit2(Handle, 1, &submitInfo, fence).DebugCheckResult();
+            }
+            else
+            {
 
-                //if (!submitSwapchains.empty())
-                //{
-                //    VkPresentInfoKHR presentInfo = { };
-                //    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-                //    presentInfo.waitSemaphoreCount = (uint32_t)submit_signalSemaphores.size();
-                //    presentInfo.pWaitSemaphores = submit_signalSemaphores.data();
-                //    presentInfo.swapchainCount = (uint32_t)submit_swapchains.size();
-                //    presentInfo.pSwapchains = submit_swapchains.data();
-                //    presentInfo.pImageIndices = submit_swapChainImageIndices.data();
-                //    res = vkQueuePresentKHR(queue, &presentInfo);
-                //    if (res != VK_SUCCESS)
-                //    {
-                //        // Handle outdated error in present:
-                //        if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
-                //        {
-                //            for (auto & swapchain : swapchain_updates)
-                //            {
-                //                auto internal_state = to_internal(&swapchain);
-                //                bool success = CreateSwapChainInternal(internal_state, device->physicalDevice, device->device, device->allocationhandler);
-                //                assert(success);
-                //            }
-                //        }
-                //        else
-                //        {
-                //            assert(0);
-                //        }
-                //    }
-                //}
+            }
+
+            if (_presentSwapChains.Count > 0)
+            {
+                VkSemaphore* pWaitSemaphores = stackalloc VkSemaphore[_presentSwapChains.Count];
+                VkSwapchainKHR* pSwapchains = stackalloc VkSwapchainKHR[_presentSwapChains.Count];
+                uint* pImageIndices = stackalloc uint[_presentSwapChains.Count];
+
+                for (int i = 0; i < _presentSwapChains.Count; i++)
+                {
+                    pWaitSemaphores[i] = _submitSignalSemaphores[i];
+                    pSwapchains[i] = _presentSwapChains[i].Handle;
+                    pImageIndices[i] = _presentSwapChains[i].AcquiredImageIndex;
+                }
+
+                VkPresentInfoKHR presentInfo = new()
+                {
+                    waitSemaphoreCount = (uint)_submitSignalSemaphores.Count,
+                    pWaitSemaphores = pWaitSemaphores,
+                    swapchainCount = (uint)_presentSwapChains.Count,
+                    pSwapchains = pSwapchains,
+                    pImageIndices = pImageIndices
+                };
+
+                VkResult result = vkQueuePresentKHR(Handle, &presentInfo);
+                if (result != VkResult.Success)
+                {
+                    // Handle outdated error in present
+                    if (result == VkResult.SuboptimalKHR || result == VkResult.ErrorOutOfDateKHR)
+                    {
+                        //for (auto & swapchain : swapchain_updates)
+                        //{
+                        //    auto internal_state = to_internal(&swapchain);
+                        //    bool success = CreateSwapChainInternal(internal_state, device->physicalDevice, device->device, device->allocationhandler);
+                        //    assert(success);
+                        //}
+                    }
+                    else
+                    {
+                        Debug.Assert(false);
+                    }
+                }
             }
 
             //swapchain_updates.clear();
-            //submit_swapchains.clear();
-            //submit_swapChainImageIndices.clear();
+            _presentSwapChains.Clear();
             //submit_waitSemaphoreInfos.clear();
-            //submit_signalSemaphores.clear();
+            _submitSignalSemaphores.Clear();
             //submit_signalSemaphoreInfos.clear();
             //submit_cmds.clear();
         }
