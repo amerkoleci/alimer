@@ -5,6 +5,11 @@ namespace Alimer.Graphics;
 
 public readonly record struct BlendState
 {
+    public static BlendState Opaque => new(RenderTargetBlendState.Opaque);
+    public static BlendState AlphaBlend => new(RenderTargetBlendState.AlphaBlend);
+    public static BlendState Additive => new(RenderTargetBlendState.Additive);
+    public static BlendState NonPremultiplied => new(RenderTargetBlendState.NonPremultiplied);
+
     public BlendState(params RenderTargetBlendState[] renderTargets)
     {
         AlphaToCoverageEnabled = false;
@@ -20,9 +25,4 @@ public readonly record struct BlendState
     public bool AlphaToCoverageEnabled { get; init; }
 
     public RenderTargetBlendState[] RenderTargets { get; init; }
-
-    public static readonly BlendState Opaque = new(RenderTargetBlendState.Opaque);
-    public static readonly BlendState AlphaBlend = new(RenderTargetBlendState.AlphaBlend);
-    public static readonly BlendState Additive = new(RenderTargetBlendState.Additive);
-    public static readonly BlendState NonPremultiplied = new(RenderTargetBlendState.NonPremultiplied);
 }

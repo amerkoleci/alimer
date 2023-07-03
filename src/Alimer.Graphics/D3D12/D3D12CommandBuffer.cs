@@ -9,14 +9,34 @@ using Win32.Graphics.Direct3D12;
 using static Win32.Apis;
 using System.Drawing;
 using static Win32.Graphics.Direct3D12.Apis;
+using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12CommandBuffer : CommandBuffer
 {
+    private const int MaxBarriers = 16;
+
+    /// <summary>
+    /// Allowed states for <see cref="QueueType.Compute"/>
+    /// </summary>
+    private static readonly D3DResourceStates s_ValidComputeResourceStates =
+       D3DResourceStates.UnorderedAccess
+       | D3DResourceStates.NonPixelShaderResource
+       | D3DResourceStates.CopyDest
+       | D3DResourceStates.CopySource;
+
+    /// <summary>
+    /// Allowed states for <see cref="QueueType.Copy"/>
+    /// </summary>
+    private static readonly D3DResourceStates s_ValidCopyResourceStates = D3DResourceStates.CopyDest | D3DResourceStates.CopySource;
+
     private readonly D3D12CommandQueue _queue;
     private readonly ComPtr<ID3D12CommandAllocator>[] _commandAllocators = new ComPtr<ID3D12CommandAllocator>[MaxFramesInFlight];
     private readonly ComPtr<ID3D12GraphicsCommandList6> _commandList;
+    private readonly ResourceBarrier[] _resourceBarriers = new ResourceBarrier[MaxBarriers];
+    private int _numBarriersToFlush;
+
     private RenderPassDescription _currentRenderPass;
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
@@ -67,6 +87,76 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         {
             _hasLabel = true;
             PushDebugGroup(label);
+        }
+    }
+
+    public void TransitionResource(ID3D12GpuResource resource, ResourceStates newState, bool flushImmediate = false)
+    {
+        ResourceStates oldState = resource.State;
+        D3DResourceStates oldStateD3D12 = resource.State.ToD3D12();
+        D3DResourceStates newStateD3D12 = newState.ToD3D12();
+
+        if (_queue.QueueType == QueueType.Compute)
+        {
+            Guard.IsTrue((oldStateD3D12 & s_ValidComputeResourceStates) == oldStateD3D12);
+            Guard.IsTrue((newStateD3D12 & s_ValidComputeResourceStates) == newStateD3D12);
+        }
+
+        if (oldState != newState)
+        {
+            Guard.IsTrue(_numBarriersToFlush < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
+            ref ResourceBarrier barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
+
+            barrierDesc.Type = ResourceBarrierType.Transition;
+            barrierDesc.Transition.pResource = resource.Handle;
+            barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrierDesc.Transition.StateBefore = oldStateD3D12;
+            barrierDesc.Transition.StateAfter = newStateD3D12;
+
+            // Check to see if we already started the transition
+            if (newState == resource.TransitioningState)
+            {
+                barrierDesc.Flags = ResourceBarrierFlags.EndOnly;
+                resource.TransitioningState = (ResourceStates)uint.MaxValue;
+            }
+            else
+            {
+                barrierDesc.Flags = ResourceBarrierFlags.None;
+            }
+
+            resource.State = newState;
+        }
+        else if (newState == ResourceStates.UnorderedAccess)
+        {
+            InsertUAVBarrier(resource, flushImmediate);
+        }
+
+        if (flushImmediate || _numBarriersToFlush == MaxBarriers)
+        {
+            FlushResourceBarriers();
+        }
+    }
+
+    public void InsertUAVBarrier(ID3D12GpuResource resource, bool flushImmediate = false)
+    {
+        Guard.IsTrue(_numBarriersToFlush < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
+        ref ResourceBarrier barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
+
+        barrierDesc.Type = ResourceBarrierType.Uav;
+        barrierDesc.Flags = ResourceBarrierFlags.None;
+        barrierDesc.UAV.pResource = resource.Handle;
+
+        if (flushImmediate)
+            FlushResourceBarriers();
+    }
+
+    public void FlushResourceBarriers()
+    {
+        if (_numBarriersToFlush > 0)
+        {
+            _commandList.Get()->ResourceBarrier(_numBarriersToFlush, _resourceBarriers);
+
+            _numBarriersToFlush = 0;
         }
     }
 
@@ -154,7 +244,8 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
                     break;
             }
 
-            // TODO: Barrier -> D3D12_RESOURCE_STATE_RENDER_TARGET
+            // Barrier -> D3D12_RESOURCE_STATE_RENDER_TARGET
+            TransitionResource(texture, ResourceStates.RenderTarget, true);
 
             ++numRTVS;
         }

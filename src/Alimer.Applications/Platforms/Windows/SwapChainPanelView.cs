@@ -5,7 +5,9 @@ using System.Drawing;
 using Alimer.Graphics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Win32;
 using Windows.UI.Core;
+using WinRT;
 
 namespace Alimer;
 
@@ -17,24 +19,30 @@ internal unsafe class SwapChainPanelView : AppView
     private bool _minimized;
     private bool _isFullscreen;
 
-    public readonly nint Handle;
     public readonly uint Id;
 
     /// <inheritdoc />
     public override bool IsMinimized => _minimized;
 
     /// <inheritdoc />
-    public override Size ClientSize => _clientSize;
+    public override SizeF ClientSize => _clientSize;
 
     /// <inheritdoc />
-    public override SwapChainSurface Surface { get; }
+    public override SwapChainSurfaceType Kind { get; }
+
+    /// <inheritdoc />
+    public override nint ContextHandle { get; }
+
+    /// <inheritdoc />
+    public override nint Handle { get; }
 
     public SwapChainPanelView(WindowsPlatform platform, SwapChainPanel swapChainPanel)
     {
         _platform = platform;
         _swapChainPanel = swapChainPanel;
         //CoreWindow coreWindow = Window.Current.CoreWindow;
-        Surface = SwapChainSurface.CreateSwapChainPanel(swapChainPanel);
+        Kind = SwapChainSurfaceType.SwapChainPanel;
+        Handle = ((IWinRTObject)_swapChainPanel).NativeObject.GetRef();
     }
 
     public void Show()

@@ -565,7 +565,7 @@ internal static unsafe class VulkanUtils
         }
     }
 
-    private static readonly ResourceStateMapping[] s_ResourceStateMap = new ResourceStateMapping[] {
+    private static readonly ResourceStateMapping[] s_resourceStateMap = new ResourceStateMapping[] {
         new(ResourceStates.Common,
             VkPipelineStageFlags2.TopOfPipe,
             VkAccessFlags2.None,
@@ -667,7 +667,7 @@ internal static unsafe class VulkanUtils
         VkAccessFlags2 resultAccessMask = VkAccessFlags2.None;
         VkImageLayout resultImageLayout = VkImageLayout.Undefined;
 
-        int numStateBits = s_ResourceStateMap.Length;
+        int numStateBits = s_resourceStateMap.Length;
 
         uint stateTmp = (uint)state;
         uint bitIndex = 0;
@@ -678,7 +678,7 @@ internal static unsafe class VulkanUtils
 
             if ((stateTmp & bit) != 0)
             {
-                ref ResourceStateMapping mapping = ref s_ResourceStateMap[bitIndex];
+                ref ResourceStateMapping mapping = ref s_resourceStateMap[bitIndex];
 
                 Debug.Assert((uint)mapping.State == bit);
                 Debug.Assert(resultImageLayout == VkImageLayout.Undefined || mapping.ImageLayout == VkImageLayout.Undefined || resultImageLayout == mapping.ImageLayout);

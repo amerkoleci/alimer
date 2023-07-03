@@ -11,7 +11,7 @@ using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Texture : Texture
+internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly ComPtr<ID3D12Resource> _handle;
     private Handle _sharedHandle = Win32.Handle.Null;
@@ -120,6 +120,8 @@ internal unsafe class D3D12Texture : Texture
 
     public Format DxgiFormat { get; }
     public ID3D12Resource* Handle => _handle;
+    public ResourceStates State { get; set; }
+    public ResourceStates TransitioningState { get; set; } = (ResourceStates)uint.MaxValue;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12Texture" /> class.

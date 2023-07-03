@@ -26,13 +26,13 @@ internal unsafe class D3D12SwapChain : SwapChain
     private uint _syncInterval = 1;
     private PresentFlags _presentFlags = PresentFlags.None;
 
-    public D3D12SwapChain(D3D12GraphicsDevice device, SwapChainSurface surface, in SwapChainDescription description)
+    public D3D12SwapChain(D3D12GraphicsDevice device, ISwapChainSurface surface, in SwapChainDescription description)
         : base(device, surface, description)
     {
         SwapChainDescription1 swapChainDesc = new()
         {
-            Width = (uint)description.Width,
-            Height = (uint)description.Height,
+            Width = (uint)surface.PixelWidth,
+            Height = (uint)surface.PixelHeight,
             Format = description.Format.ToDxgiSwapChainFormat(),
             Stereo = false,
             SampleDesc = new(1, 0),
@@ -45,9 +45,9 @@ internal unsafe class D3D12SwapChain : SwapChain
         };
 
         using ComPtr<IDXGISwapChain1> tempSwapChain = default;
-        switch (surface)
+        switch (surface.Kind)
         {
-            case Win32SwapChainSurface win32Source:
+            case SwapChainSurfaceType.Win32:
                 SwapChainFullscreenDescription fsSwapChainDesc = new()
                 {
                     Windowed = !description.IsFullscreen
@@ -55,7 +55,7 @@ internal unsafe class D3D12SwapChain : SwapChain
 
                 ThrowIfFailed(device.Factory->CreateSwapChainForHwnd(
                     (IUnknown*)device.D3D12GraphicsQueue,
-                    win32Source.Hwnd,
+                    surface.Handle,
                     &swapChainDesc,
                     &fsSwapChainDesc,
                     null,
@@ -63,17 +63,18 @@ internal unsafe class D3D12SwapChain : SwapChain
                     );
 
                 // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                ThrowIfFailed(device.Factory->MakeWindowAssociation(win32Source.Hwnd, WindowAssociationFlags.NoAltEnter));
+                ThrowIfFailed(device.Factory->MakeWindowAssociation(surface.Handle, WindowAssociationFlags.NoAltEnter));
                 ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
                 break;
 
-#if WINDOWS
-            case CoreWindowSwapChainSurface coreWindowSurface:
+            case SwapChainSurfaceType.CoreWindow:
                 {
                     swapChainDesc.Scaling = Scaling.Stretch;
 
                     using ComPtr<IUnknown> coreWindow = default;
-                    coreWindow.Attach((IUnknown*)((IWinRTObject)coreWindowSurface.CoreWindow).NativeObject.GetRef());
+                    //coreWindow.Attach((IUnknown*)((IWinRTObject)coreWindowSurface.CoreWindow).NativeObject.GetRef());
+                    coreWindow.Attach((IUnknown*)surface.Handle);
+
                     ThrowIfFailed(device.Factory->CreateSwapChainForCoreWindow(
                         (IUnknown*)device.D3D12GraphicsQueue,
                         coreWindow.Get(),
@@ -85,7 +86,7 @@ internal unsafe class D3D12SwapChain : SwapChain
                 }
                 break;
 
-            case SwapChainPanelSwapChainSurface swapChainPanelSurface:
+            case SwapChainSurfaceType.SwapChainPanel:
                 {
                     ThrowIfFailed(device.Factory->CreateSwapChainForComposition(
                         (IUnknown*)device.D3D12GraphicsQueue,
@@ -98,7 +99,9 @@ internal unsafe class D3D12SwapChain : SwapChain
                     fixed (ISwapChainPanelNative** swapChainPanelNative = _swapChainPanelNative)
                     {
                         using ComPtr<IUnknown> swapChainPanel = default;
-                        swapChainPanel.Attach((IUnknown*)((IWinRTObject)swapChainPanelSurface.Panel).NativeObject.GetRef());
+                        //swapChainPanel.Attach((IUnknown*)((IWinRTObject)swapChainPanelSurface.Panel).NativeObject.GetRef());
+                        swapChainPanel.Attach((IUnknown*)surface.Handle);
+
                         ThrowIfFailed(swapChainPanel.CopyTo(
                             (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(new Guid(0x63AAD0B8, 0x7C24, 0x40FF, 0x85, 0xA8, 0x64, 0x0D, 0x94, 0x4C, 0xC3, 0x25))),
                             (void**)swapChainPanelNative)
@@ -107,15 +110,14 @@ internal unsafe class D3D12SwapChain : SwapChain
 
                     ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
                     ThrowIfFailed(_swapChainPanelNative.Get()->SetSwapChain((IDXGISwapChain*)tempSwapChain.Get()));
-                    Matrix3x2 transformMatrix = new()
-                    {
-                        M11 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleX,
-                        M22 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleY
-                    };
-                    ThrowIfFailed(_handle.Get()->SetMatrixTransform(&transformMatrix));
+                    //Matrix3x2 transformMatrix = new()
+                    //{
+                    //    M11 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleX,
+                    //    M22 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleY
+                    //};
+                    //ThrowIfFailed(_handle.Get()->SetMatrixTransform(&transformMatrix));
                 }
                 break;
-#endif
 
             default:
                 throw new GraphicsException("Surface not supported");

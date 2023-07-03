@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Win32.Graphics.Direct3D12;
+using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -121,5 +122,121 @@ internal static unsafe class D3D12Utils
             case QueryType.PipelineStatistics:
                 return QueryHeapType.PipelineStatistics;
         }
+    }
+
+    public static D3DResourceStates ToD3D12(this ResourceStates states)
+    {
+        if (states == ResourceStates.Common || states == ResourceStates.Present)
+            return D3DResourceStates.Common;
+
+        D3DResourceStates result = D3DResourceStates.Common; // also 0
+
+        if ((states & ResourceStates.ConstantBuffer) != 0)
+        {
+            result |= D3DResourceStates.VertexAndConstantBuffer;
+        }
+
+        if ((states & ResourceStates.VertexBuffer) != 0)
+        {
+            result |= D3DResourceStates.VertexAndConstantBuffer;
+        }
+
+        if ((states & ResourceStates.IndexBuffer) != 0)
+        {
+            result |= D3DResourceStates.IndexBuffer;
+        }
+
+        if ((states & ResourceStates.IndirectArgument) != 0)
+        {
+            result |= D3DResourceStates.IndirectArgument;
+        }
+
+        if ((states & ResourceStates.ShaderResource) != 0)
+        {
+            result |= D3DResourceStates.PixelShaderResource;
+            result |= D3DResourceStates.NonPixelShaderResource;
+        }
+
+        if ((states & ResourceStates.UnorderedAccess) != 0)
+        {
+            result |= D3DResourceStates.UnorderedAccess;
+        }
+
+        if ((states & ResourceStates.RenderTarget) != 0)
+        {
+            result |= D3DResourceStates.RenderTarget;
+        }
+
+        if ((states & ResourceStates.DepthWrite) != 0)
+        {
+            result |= D3DResourceStates.DepthWrite;
+        }
+
+        if ((states & ResourceStates.DepthRead) != 0)
+        {
+            result |= D3DResourceStates.DepthRead;
+        }
+
+        if ((states & ResourceStates.StreamOut) != 0)
+        {
+            result |= D3DResourceStates.StreamOut;
+        }
+
+        if ((states & ResourceStates.CopyDest) != 0)
+        {
+            result |= D3DResourceStates.CopyDest;
+        }
+
+        if ((states & ResourceStates.CopySource) != 0)
+        {
+            result |= D3DResourceStates.CopySource;
+        }
+
+        if ((states & ResourceStates.ResolveDest) != 0)
+        {
+            result |= D3DResourceStates.ResolveDest;
+        }
+
+        if ((states & ResourceStates.ResolveSource) != 0)
+        {
+            result |= D3DResourceStates.ResolveSource;
+        }
+
+        if ((states & ResourceStates.AccelStructRead) != 0)
+        {
+            result |= D3DResourceStates.RaytracingAccelerationStructure;
+        }
+
+        if ((states & ResourceStates.AccelStructWrite) != 0)
+        {
+            result |= D3DResourceStates.RaytracingAccelerationStructure;
+        }
+
+        if ((states & ResourceStates.AccelStructBuildInput) != 0)
+        {
+            result |= D3DResourceStates.NonPixelShaderResource;
+        }
+
+        if ((states & ResourceStates.AccelStructBuildBlas) != 0)
+        {
+            result |= D3DResourceStates.RaytracingAccelerationStructure;
+        }
+
+        if ((states & ResourceStates.ShadingRateSurface) != 0)
+        {
+            result |= D3DResourceStates.ShadingRateSource;
+        }
+
+        if ((states & ResourceStates.OpacityMicromapBuildInput) != 0)
+        {
+            result |= D3DResourceStates.NonPixelShaderResource;
+        }
+
+        if ((states & ResourceStates.OpacityMicromapWrite) != 0)
+        {
+            result |= D3DResourceStates.RaytracingAccelerationStructure;
+        }
+
+        return result;
     }
 }

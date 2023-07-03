@@ -17,7 +17,7 @@ internal unsafe class SDLWindow : AppView
     private bool _minimized;
     private bool _isFullscreen;
 
-    public readonly nint Handle;
+    public readonly nint _sdlWindowHandle;
     public readonly uint Id;
 
     public SDLWindow(SDLPlatform platform)
@@ -27,22 +27,22 @@ internal unsafe class SDLWindow : AppView
         SDL_WindowFlags flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
 
 #if SDL3
-        Handle = SDL_CreateWindow("Alimer", 1200, 800, flags);
+        _sdlWindowHandle = SDL_CreateWindow("Alimer", 1200, 800, flags);
         SDL_SetWindowPosition(Handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 #else
-        Handle = SDL_CreateWindow("Alimer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, flags);
+        _sdlWindowHandle = SDL_CreateWindow("Alimer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, flags);
 #endif
-        Id = SDL_GetWindowID(Handle);
-        SDL_GetWindowSizeInPixels(Handle, out int width, out int height);
+        Id = SDL_GetWindowID(_sdlWindowHandle);
+        SDL_GetWindowSizeInPixels(_sdlWindowHandle, out int width, out int height);
         _clientSize = new Size(width, height);
 
         // Native handle
         SDL_SysWMinfo wmInfo = default;
 #if SDL3
-        SDL_GetWindowWMInfo(Handle, &wmInfo);
+        SDL_GetWindowWMInfo(_sdlWindowHandle, &wmInfo);
 #else
         SDL_GetVersion(out wmInfo.version);
-        SDL_GetWindowWMInfo(Handle, ref wmInfo);
+        SDL_GetWindowWMInfo(_sdlWindowHandle, ref wmInfo);
 #endif
 
         // Window handle is selected per subsystem as defined at:
@@ -50,31 +50,36 @@ internal unsafe class SDLWindow : AppView
         switch (wmInfo.subsystem)
         {
             case SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS:
-                Surface = SwapChainSurface.CreateWin32(wmInfo.info.win.window);
+                Kind = SwapChainSurfaceType.Win32;
+                ContextHandle = GetModuleHandleW(null);
+                Handle = wmInfo.info.win.window;
                 break;
 
             case SDL_SYSWM_TYPE.SDL_SYSWM_WINRT:
-                //Surface = SwapChainSurface.CreateCoreWindow(wmInfo.info.winrt.window);
+                Kind = SwapChainSurfaceType.CoreWindow;
+                Handle = wmInfo.info.winrt.window;
                 break;
 
             case SDL_SYSWM_TYPE.SDL_SYSWM_X11:
-                //return wmInfo.info.x11.window;
+                Kind = SwapChainSurfaceType.Xlib;
+                ContextHandle = wmInfo.info.x11.display;
+                Handle = wmInfo.info.x11.window;
                 break;
 
             case SDL_SYSWM_TYPE.SDL_SYSWM_COCOA:
-                //return wmInfo.info.cocoa.window;
-                break;
-
-            case SDL_SYSWM_TYPE.SDL_SYSWM_UIKIT:
-                //return wmInfo.info.uikit.window;
+                Kind = SwapChainSurfaceType.MetalLayer;
+                Handle = wmInfo.info.cocoa.window;
                 break;
 
             case SDL_SYSWM_TYPE.SDL_SYSWM_WAYLAND:
-                //return wmInfo.info.wl.shell_surface;
+                Kind = SwapChainSurfaceType.Wayland;
+                ContextHandle = wmInfo.info.wl.display;
+                Handle = wmInfo.info.wl.surface;
                 break;
 
             case SDL_SYSWM_TYPE.SDL_SYSWM_ANDROID:
-                //return wmInfo.info.android.window;
+                Kind = SwapChainSurfaceType.Android;
+                Handle = wmInfo.info.android.window;
                 break;
 
             default:
@@ -86,22 +91,28 @@ internal unsafe class SDLWindow : AppView
     public override bool IsMinimized => _minimized;
 
     /// <inheritdoc />
-    public override Size ClientSize => _clientSize;
+    public override SizeF ClientSize => _clientSize;
 
     /// <inheritdoc />
-    public override SwapChainSurface Surface { get; }
+    public override SwapChainSurfaceType Kind { get; }
+
+    /// <inheritdoc />
+    public override nint ContextHandle { get; }
+
+    /// <inheritdoc />
+    public override nint Handle { get; }
 
     [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl)]
     public static extern void SDL_GetWindowSizeInPixels(IntPtr window, out int width, out int height);
 
     public void Destroy()
     {
-        SDL_DestroyWindow(Handle);
+        SDL_DestroyWindow(_sdlWindowHandle);
     }
 
     public void Show()
     {
-        SDL_ShowWindow(Handle);
+        SDL_ShowWindow(_sdlWindowHandle);
     }
 
     public void HandleEvent(in SDL_Event evt)
@@ -142,4 +153,8 @@ internal unsafe class SDLWindow : AppView
         } 
 #endif
     }
+
+    [DllImport("kernel32", ExactSpelling = true)]
+    //[SetsLastSystemError]
+    private static extern nint GetModuleHandleW(ushort* lpModuleName);
 }

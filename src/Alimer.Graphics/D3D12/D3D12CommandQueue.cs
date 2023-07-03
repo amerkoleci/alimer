@@ -126,8 +126,9 @@ internal unsafe class D3D12CommandQueue : IDisposable
             foreach (D3D12SwapChain swapChain in _presentSwapChains)
             {
                 D3D12Texture swapChainTexture = swapChain.CurrentBackBufferTexture;
-                //commandBuffer.TextureBarrier(swapChainTexture, ResourceStates.Present);
+                commandBuffer.TransitionResource(swapChainTexture, ResourceStates.Present);
             }
+            commandBuffer.FlushResourceBarriers();
 
             ID3D12GraphicsCommandList6* commandList = commandBuffer.CommandList;
             ThrowIfFailed(commandList->Close());

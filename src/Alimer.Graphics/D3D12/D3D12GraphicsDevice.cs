@@ -332,6 +332,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 _queues[i].Dispose();
             }
 
+            for (int i = 0; i < (int)DescriptorHeapType.NumTypes; i++)
+            {
+                _descriptorAllocators[i].Dispose();
+            }
+
 #if DEBUG
             uint refCount = _handle.Get()->Release();
             if (refCount > 0)
@@ -380,7 +385,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _descriptorAllocators[(int)type].Free(in handle);
     }
 
-    public uint GetDescriptorHandleIncrementSize(DescriptorHeapType type) 
+    public uint GetDescriptorHandleIncrementSize(DescriptorHeapType type)
     {
         return _descriptorAllocators[(int)type].DescriptorSize;
     }
@@ -476,7 +481,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription description)
+    protected override SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description)
     {
         return new D3D12SwapChain(this, surface, description);
     }

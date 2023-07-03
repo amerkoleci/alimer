@@ -287,7 +287,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateQueryHeapCore(description);
     }
 
-    public SwapChain CreateSwapChain(SwapChainSurface surface, in SwapChainDescription description)
+    public SwapChain CreateSwapChain(ISwapChainSurface surface, in SwapChainDescription description)
     {
         Guard.IsNotNull(surface, nameof(surface));
 
@@ -308,5 +308,5 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
     protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription description);
-    protected abstract SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription description);
+    protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description);
 }

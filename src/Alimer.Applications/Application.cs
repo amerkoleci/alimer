@@ -44,8 +44,7 @@ public abstract class Application : DisposableObject, IApplication
         };
 
 #if !WINDOWS
-        deviceDescription.PreferredBackend = GraphicsBackendType.Vulkan;
-        //deviceDescriptor.PreferredBackend = GraphicsBackendType.D3D11;
+        //deviceDescription.PreferredBackend = GraphicsBackendType.Vulkan;
 #endif
 
         GraphicsDevice = GraphicsDevice.CreateDefault(in deviceDescription);

@@ -86,7 +86,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription description)
+    protected override SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description)
     {
         throw new NotImplementedException();
     }

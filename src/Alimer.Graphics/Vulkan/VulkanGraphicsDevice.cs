@@ -88,10 +88,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 {
                     instanceExtensions.Add(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
                 }
+                else if (extensionName == VK_KHR_XLIB_SURFACE_EXTENSION_NAME)
+                {
+                    HasXlibSurface = true;
+                }
+                else if (extensionName == VK_KHR_XCB_SURFACE_EXTENSION_NAME)
+                {
+                    HasXcbSurface = true;
+                }
+                else if (extensionName == VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME)
+                {
+                    HasWaylandSurface = true;
+                }
                 else if (extensionName == VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
                 {
                     HasHeadlessSurface = true;
-                    //instanceExtensions.Add(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+
                 }
             }
             instanceExtensions.Add(VK_KHR_SURFACE_EXTENSION_NAME);
@@ -105,14 +117,31 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 instanceExtensions.Add(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
             }
+            else if (OperatingSystem.IsLinux())
+            {
+                if (HasXlibSurface)
+                {
+                    instanceExtensions.Add(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+                }
+                else if (HasXcbSurface)
+                {
+                    instanceExtensions.Add(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+                }
+
+                if (HasWaylandSurface)
+                {
+                    instanceExtensions.Add(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+                }
+            }
             else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
             {
                 instanceExtensions.Add(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
             }
-            else
-            {
-                instanceExtensions.Add(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-            }
+
+            //if (HasHeadlessSurface)
+            //{
+            //    instanceExtensions.Add(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+            //}
 
             if (ValidationMode != ValidationMode.Disabled)
             {
@@ -850,6 +879,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public bool DebugUtils { get; }
     public bool HasPortability { get; }
     public bool HasHeadlessSurface { get; }
+    public bool HasXlibSurface { get; }
+    public bool HasXcbSurface { get; }
+    public bool HasWaylandSurface { get; }
     public VkInstance Instance => _instance;
 
     public bool SupportsExternal { get; }
@@ -1181,7 +1213,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(SwapChainSurface surface, in SwapChainDescription descriptor)
+    protected override SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription descriptor)
     {
         return new VulkanSwapChain(this, surface, descriptor);
     }

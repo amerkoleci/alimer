@@ -9,21 +9,36 @@ namespace Alimer;
 /// <summary>
 /// Defines an application view.
 /// </summary>
-public abstract class AppView
+public abstract class AppView : ISwapChainSurface
 {
     public event EventHandler? SizeChanged;
 
-    public abstract bool IsMinimized { get; }
-    public abstract Size ClientSize { get; }
+    protected AppView()
+    {
 
-    public abstract SwapChainSurface Surface { get; }
-    
+    }
+
+    public abstract bool IsMinimized { get; }
+    public abstract SizeF ClientSize { get; }
+
+    /// <inheritdoc />
+    public abstract SwapChainSurfaceType Kind { get; }
+
+    /// <inheritdoc />
+    public abstract nint ContextHandle { get; }
+
+    /// <inheritdoc />
+    public abstract nint Handle { get; }
+
+    /// <inheritdoc />
+    SizeF ISwapChainSurface.Size => ClientSize;
+
     public SwapChain? SwapChain { get; private set; }
     
     public void CreateSwapChain(GraphicsDevice device)
     {
-        SwapChainDescription descriptor = new(ClientSize.Width, ClientSize.Height);
-        SwapChain = device.CreateSwapChain(Surface, descriptor);
+        SwapChainDescription description = new();
+        SwapChain = device.CreateSwapChain(this, description);
     }
 
     protected virtual void OnSizeChanged()

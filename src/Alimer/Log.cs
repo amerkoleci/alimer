@@ -22,7 +22,7 @@ public static class Log
         new("DEBUG ", LogColor.Cyan),
         new("TRACE ", LogColor.White)
     };
-    private static readonly bool colorEnabled;
+    private static readonly bool s_colorEnabled;
 
 #if DEBUG
     public static LogLevel Verbosity { get; set; } = LogLevel.Trace;
@@ -38,13 +38,13 @@ public static class Log
         {
             nint stdOut = Kernel32.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
-            colorEnabled = Kernel32.GetConsoleMode(stdOut, out uint outConsoleMode) &&
+            s_colorEnabled = Kernel32.GetConsoleMode(stdOut, out uint outConsoleMode) &&
                            Kernel32.SetConsoleMode(stdOut, outConsoleMode | Kernel32.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
         }
         else
 #endif
         {
-            colorEnabled = false;
+            s_colorEnabled = false;
         }
 
         Log.System($"Logging Enabled ({Enum.GetName(typeof(LogLevel), Verbosity)})");
@@ -75,7 +75,7 @@ public static class Log
         if (PrintToConsole)
         {
             Console.WriteLine(
-                colorEnabled
+                s_colorEnabled
                     ? $"\u001b[{LogColor.Gray}m{DateTime.Now:HH:mm:ss} \u001b[{logAttribute.Color}m[{logAttribute.Name}] \u001b[{LogColor.White}m{message}\u001b[0m"
                     : $"{DateTime.Now:HH:mm:ss} {logLevel} {message}");
         }
@@ -101,7 +101,7 @@ public static class Log
         if (PrintToConsole)
         {
             Console.WriteLine(
-                colorEnabled
+                s_colorEnabled
                     ? $"\u001b[{LogColor.Gray}m{DateTime.Now:HH:mm:ss} \u001b[{logAttribute.Color}m[{logAttribute.Name}]\u001b[{LogColor.Gray}m {callSite,-32} \u001b[{LogColor.White}m{message}\u001b[0m"
                     : $"{DateTime.Now:HH:mm:ss} {logLevel} {callSite,-32} {message}");
         }
