@@ -32,6 +32,12 @@ internal static unsafe class D3D12Utils
 
             case QueueType.Copy:
                 return CommandListType.Copy;
+
+            case QueueType.VideoDecode:
+                return CommandListType.VideoDecode;
+
+            case QueueType.VideoEncode:
+                return CommandListType.VideoEncode;
         }
     }
 

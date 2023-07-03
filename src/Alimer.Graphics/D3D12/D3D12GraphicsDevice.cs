@@ -24,12 +24,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<IDXGIFactory6> _factory;
     private readonly ComPtr<IDXGIAdapter1> _adapter;
     private readonly ComPtr<ID3D12Device5> _handle;
-
-    private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
+    //private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
 
     private readonly D3D12Features _features = default;
-    private readonly GraphicsAdapterProperties _adapterInfo;
+    private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
+
+    private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
+    private readonly D3D12DescriptorAllocator[] _descriptorAllocators = new D3D12DescriptorAllocator[(int)DescriptorHeapType.NumTypes];
+    private readonly D3D12CopyAllocator _copyAllocator;
 
     public static bool IsSupported() => s_isSupported.Value;
 
@@ -166,9 +169,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                     MessageSeverity.Info
                 };
 
-                const int disabledMessagesCount = 9;
+                const int disabledMessagesCount = 12;
                 MessageId* disabledMessages = stackalloc MessageId[disabledMessagesCount]
                 {
+                    MessageId.SetPrivateDataChangingParams,
                     MessageId.ClearRenderTargetViewMismatchingClearValue,
                     MessageId.ClearDepthStencilViewMismatchingClearValue,
                     MessageId.MapInvalidNullRange,
@@ -176,6 +180,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                     MessageId.ExecuteCommandListsWrongSwapchainBufferReference,
                     MessageId.ResourceBarrierMismatchingCommandListType,
                     MessageId.ExecuteCommandListsGpuWrittenReadbackResourceMapped,
+                    MessageId.CreatePipelinelibraryDriverVersionMismatch,
+                    MessageId.CreatePipelinelibraryAdapterVersionMismatch,
                     MessageId.LoadPipelineNameNotFound,
                     MessageId.StorePipelineDuplicateName
                 };
@@ -217,8 +223,20 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
             QueueType queue = (QueueType)i;
+            if (queue >= QueueType.VideoDecode)
+                continue;
+
             _queues[i] = new D3D12CommandQueue(this, queue);
         }
+
+        // Init CPU descriptor allocators
+        _descriptorAllocators[(int)DescriptorHeapType.CbvSrvUav] = new(this, DescriptorHeapType.CbvSrvUav, 4096);
+        _descriptorAllocators[(int)DescriptorHeapType.Sampler] = new(this, DescriptorHeapType.Sampler, 256);
+        _descriptorAllocators[(int)DescriptorHeapType.Rtv] = new(this, DescriptorHeapType.Rtv, 512);
+        _descriptorAllocators[(int)DescriptorHeapType.Dsv] = new(this, DescriptorHeapType.Dsv, 128);
+
+        // Init CopyAllocator
+        _copyAllocator = new D3D12CopyAllocator(this);
 
         // Init adapter info, caps and limits
         {
@@ -252,7 +270,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 adapterType = _features.UMA() ? GpuAdapterType.IntegratedGpu : GpuAdapterType.DiscreteGpu;
             }
 
-            _adapterInfo = new GraphicsAdapterProperties
+            _adapterProperties = new GraphicsAdapterProperties
             {
                 VendorId = adapterDesc.VendorId,
                 DeviceId = adapterDesc.DeviceId,
@@ -276,9 +294,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
     public D3D12CommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
     public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
+    public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.Copy];
 
     /// <inheritdoc />
-    public override GraphicsAdapterProperties AdapterInfo => _adapterInfo;
+    public override GraphicsAdapterProperties AdapterInfo => _adapterProperties;
 
     /// <inheritdoc />
     public override GraphicsDeviceLimits Limits => _limits;
@@ -307,6 +326,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             // Destroy CommandQueue's
             for (int i = 0; i < (int)QueueType.Count; i++)
             {
+                if (_queues[i] == null)
+                    continue;
+
                 _queues[i].Dispose();
             }
 
@@ -340,6 +362,29 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
     }
 
+    public void OnDeviceRemoved()
+    {
+
+    }
+
+    public CpuDescriptorHandle AllocateDescriptor(DescriptorHeapType type)
+    {
+        return _descriptorAllocators[(int)type].Allocate();
+    }
+
+    public void FreeDescriptor(DescriptorHeapType type, in CpuDescriptorHandle handle)
+    {
+        if (handle.ptr == 0)
+            return;
+
+        _descriptorAllocators[(int)type].Free(in handle);
+    }
+
+    public uint GetDescriptorHandleIncrementSize(DescriptorHeapType type) 
+    {
+        return _descriptorAllocators[(int)type].DescriptorSize;
+    }
+
     /// <inheritdoc />
     public override bool QueryFeature(Feature feature)
     {
@@ -349,26 +394,47 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override void WaitIdle()
     {
-        using ComPtr<ID3D12Fence> fence = default;
-        ThrowIfFailed(_handle.Get()->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence>(), fence.GetVoidAddressOf()));
-
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
-            ThrowIfFailed(_queues[i].Handle->Signal(fence.Get(), 1));
+            if (_queues[i] == null)
+                continue;
 
-            if (fence.Get()->GetCompletedValue() < 1)
-            {
-                ThrowIfFailed(fence.Get()->SetEventOnCompletion(1, Win32.Handle.Null));
-            }
-
-            ThrowIfFailed(fence.Get()->Signal(0));
+            _queues[i].WaitIdle();
         }
     }
 
     /// <inheritdoc />
     public override void FinishFrame()
     {
+        for (int i = 0; i < (int)QueueType.Count; i++)
+        {
+            if (_queues[i] is null)
+                continue;
+
+            _queues[i].Submit();
+        }
+
         AdvanceFrame();
+
+        // Initiate stalling CPU when GPU is not yet finished with next frame
+        if (_frameCount >= Constants.MaxFramesInFlight)
+        {
+            for (int i = 0; i < (int)QueueType.Count; i++)
+            {
+                if (_queues[i] is null)
+                    continue;
+
+                _queues[i].WaitIdle();
+            }
+        }
+
+        for (int i = 0; i < (int)QueueType.Count; i++)
+        {
+            if (_queues[i] is null)
+                continue;
+
+            _queues[i].FinishFrame();
+        }
 
         ProcessDeletionQueue();
     }
@@ -418,7 +484,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
     {
-        throw new NotImplementedException();
+        return _queues[(int)queue].BeginCommandBuffer(label);
     }
 
     private static bool CheckIsSupported()

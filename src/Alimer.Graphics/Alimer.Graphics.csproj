@@ -1,44 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
-		<DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
+    <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
     <ExcludeD3D11>true</ExcludeD3D11>
-		<ExcludeMetal>true</ExcludeMetal>
-	</PropertyGroup>
+    <ExcludeMetal>true</ExcludeMetal>
+  </PropertyGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
-	<PropertyGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
-		<ExcludeVulkan>true</ExcludeVulkan>
-		<ExcludeMetal>true</ExcludeMetal>
-	</PropertyGroup>
+  <PropertyGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
+    <ExcludeVulkan>true</ExcludeVulkan>
+    <ExcludeMetal>true</ExcludeMetal>
+  </PropertyGroup>
 
-	<PropertyGroup>
+  <PropertyGroup>
     <DefineConstants Condition="'$(ExcludeD3D11)' == 'true'">$(DefineConstants);EXCLUDE_D3D11_BACKEND</DefineConstants>
-		<DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
-		<DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
-		<DefineConstants Condition="'$(ExcludeMetal)' == 'true'">$(DefineConstants);EXCLUDE_METAL_BACKEND</DefineConstants>
-	</PropertyGroup>
+    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeMetal)' == 'true'">$(DefineConstants);EXCLUDE_METAL_BACKEND</DefineConstants>
+  </PropertyGroup>
 
-	<ItemGroup>
+  <ItemGroup>
     <Compile Remove="D3D/**/*" Condition="'$(ExcludeD3D11)' == 'true' AND '$(ExcludeD3D12)' == 'true'" />
     <Compile Remove="D3D11/**/*" Condition="'$(ExcludeD3D11)' == 'true'" />
-		<Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
-		<Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
-		<Compile Remove="Metal/**/*" Condition="'$(ExcludeMetal)' == 'true'" />
-	</ItemGroup>
+    <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
+    <Compile Remove="Metal/**/*" Condition="'$(ExcludeMetal)' == 'true'" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Diagnostics" />
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Diagnostics" />
 
-		<PackageReference Include="Vortice.Win32.Graphics.Dxgi" Condition="'$(ExcludeD3D12)' != 'true'" />
+    <PackageReference Include="Vortice.Win32.Graphics.Dxgi" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="Vortice.Win32.Graphics.Direct3D11" Condition="'$(ExcludeD3D11)' != 'true'" />
-		<PackageReference Include="Vortice.Win32.Graphics.Direct3D12" Condition="'$(ExcludeD3D12)' != 'true'" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D12" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="Vortice.Win32.Graphics.Direct3D11on12" Condition="'$(ExcludeD3D12)' != 'true'" />
-		<PackageReference Include="Vortice.VulkanMemoryAllocator" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" />
+    <PackageReference Include="Vortice.VulkanMemoryAllocator" Condition="'$(ExcludeVulkan)' != 'true'" />
 
-		<ProjectReference Include="..\Alimer\Alimer.csproj" />
-	</ItemGroup>
+    <ProjectReference Include="..\Alimer\Alimer.csproj" />
+  </ItemGroup>
 
 </Project>

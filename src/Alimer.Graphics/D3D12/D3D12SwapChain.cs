@@ -1,16 +1,17 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Win32;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi.Common;
-using DxgiUsage = Win32.Graphics.Dxgi.Usage;
-using static Alimer.Graphics.D3D.D3DUtils;
-using Win32.Graphics.Dxgi;
-using static Win32.Apis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Alimer.Graphics.D3D;
-using System.Numerics;
+using Win32;
+using Win32.Graphics.Direct3D12;
+using Win32.Graphics.Dxgi;
+using Win32.Graphics.Dxgi.Common;
+using static Alimer.Graphics.D3D.D3DUtils;
+using static Win32.Apis;
+using static Win32.Graphics.Dxgi.Apis;
+using DxgiUsage = Win32.Graphics.Dxgi.Usage;
 #if WINDOWS
 using WinRT;
 #endif
@@ -22,6 +23,8 @@ internal unsafe class D3D12SwapChain : SwapChain
     private readonly ComPtr<IDXGISwapChain3> _handle;
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
+    private uint _syncInterval = 1;
+    private PresentFlags _presentFlags = PresentFlags.None;
 
     public D3D12SwapChain(D3D12GraphicsDevice device, SwapChainSurface surface, in SwapChainDescription description)
         : base(device, surface, description)
@@ -122,6 +125,9 @@ internal unsafe class D3D12SwapChain : SwapChain
     }
 
     public Format DxgiFormat { get; }
+    public IDXGISwapChain3* Handle => _handle;
+    public uint CurrentBackBufferIndex => _handle.Get()->GetCurrentBackBufferIndex();
+    public D3D12Texture CurrentBackBufferTexture => _backbufferTextures[_handle.Get()->GetCurrentBackBufferIndex()]!;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12SwapChain" /> class.
@@ -186,5 +192,16 @@ internal unsafe class D3D12SwapChain : SwapChain
     protected override void ResizeBackBuffer(int width, int height)
     {
 
+    }
+
+    public bool Present()
+    {
+        HResult hr = _handle.Get()->Present(_syncInterval, _presentFlags);
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

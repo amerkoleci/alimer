@@ -15,6 +15,8 @@ internal unsafe class D3D12Texture : Texture
 {
     private readonly ComPtr<ID3D12Resource> _handle;
     private Handle _sharedHandle = Win32.Handle.Null;
+    private readonly Dictionary<int, CpuDescriptorHandle> _RTVs = new();
+    private readonly Dictionary<int, CpuDescriptorHandle> _DSVs = new();
 
     public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, void* initialData)
         : base(device, description)
@@ -127,6 +129,12 @@ internal unsafe class D3D12Texture : Texture
     /// <inheitdoc />
     protected internal override void Destroy()
     {
+        foreach (CpuDescriptorHandle view in _RTVs.Values)
+        {
+            ((D3D12GraphicsDevice)Device).FreeDescriptor(DescriptorHeapType.Rtv, in view);
+        }
+        _RTVs.Clear();
+
         if (_sharedHandle.Value != null)
         {
             _ = CloseHandle(_sharedHandle);
@@ -142,5 +150,26 @@ internal unsafe class D3D12Texture : Texture
         {
             _ = _handle.Get()->SetName((ushort*)pName);
         }
+    }
+
+    public CpuDescriptorHandle GetRTV(int mipSlice, int arraySlice, Format format = Win32.Graphics.Dxgi.Common.Format.Unknown)
+    {
+        int hash = HashCode.Combine(mipSlice, arraySlice, format);
+
+        if (!_RTVs.TryGetValue(hash, out CpuDescriptorHandle rtvHandle))
+        {
+            ResourceDescription desc = _handle.Get()->GetDesc();
+
+            RenderTargetViewDescription viewDesc = default;
+            viewDesc.Format = format;
+            viewDesc.ViewDimension = RtvDimension.Texture2D;
+
+            rtvHandle = ((D3D12GraphicsDevice)Device).AllocateDescriptor(DescriptorHeapType.Rtv);
+            ((D3D12GraphicsDevice)Device).Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, rtvHandle);
+
+            _RTVs.Add(hash, rtvHandle);
+        }
+
+        return rtvHandle;
     }
 }

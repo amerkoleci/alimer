@@ -64,7 +64,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
     private void BlockAllocate()
     {
-        using ComPtr<ID3D12DescriptorHeap> heap = default;
+        ComPtr<ID3D12DescriptorHeap> heap = default;
         DescriptorHeapDescription heapDesc = new()
         {
             Type = Type,

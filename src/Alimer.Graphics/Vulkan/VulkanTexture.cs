@@ -227,7 +227,7 @@ internal unsafe class VulkanTexture : Texture
 
     public VkImageView GetView(int baseMipLevel, int baseArrayLayer = 0, uint mipLevelCount = VK_REMAINING_MIP_LEVELS, uint arrayLayerCount = VK_REMAINING_ARRAY_LAYERS)
     {
-        int hash = HashCode.Combine(mipLevelCount, mipLevelCount, baseArrayLayer, arrayLayerCount);
+        int hash = HashCode.Combine(baseMipLevel, baseArrayLayer, mipLevelCount, arrayLayerCount);
 
         if (!_views.TryGetValue(hash, out VkImageView view))
         {

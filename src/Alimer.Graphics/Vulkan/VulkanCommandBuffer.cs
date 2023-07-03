@@ -230,8 +230,8 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             VkRenderingAttachmentInfo depthAttachment = new();
             VkRenderingAttachmentInfo stencilAttachment = new();
 
-            PixelFormat depthStencilFormat = PixelFormat.Undefined; //desc.depthStencilAttachment.texture != nullptr ? desc.depthStencilAttachment.texture->GetFormat() : PixelFormat::Undefined;
-            bool hasDepthOrStencil = false; // desc.depthStencilAttachment.texture != nullptr;
+            PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+            bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
 
             for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
             {
@@ -259,7 +259,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
             if (hasDepthOrStencil)
             {
-                RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment.Value;
+                RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
                 VulkanTexture texture = (VulkanTexture)attachment.Texture;
                 int mipLevel = attachment.MipLevel;

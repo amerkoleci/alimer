@@ -8,11 +8,13 @@ public readonly record struct RenderPassDescription
     public RenderPassDescription()
     {
         ColorAttachments = Array.Empty<RenderPassColorAttachment>();
+        DepthStencilAttachment = default;
     }
 
     public RenderPassDescription(params RenderPassColorAttachment[] colorAttachments)
     {
         ColorAttachments = colorAttachments;
+        DepthStencilAttachment = default;
     }
 
     public RenderPassDescription(RenderPassDepthStencilAttachment depthStencilAttachment, params RenderPassColorAttachment[] colorAttachments)
@@ -22,7 +24,7 @@ public readonly record struct RenderPassDescription
     }
 
     public RenderPassColorAttachment[] ColorAttachments { get; init; }
-    public RenderPassDepthStencilAttachment? DepthStencilAttachment { get; init; }
+    public RenderPassDepthStencilAttachment DepthStencilAttachment { get; init; }
 
     /// <summary>
     /// Gets or sets the label of the render pass.
