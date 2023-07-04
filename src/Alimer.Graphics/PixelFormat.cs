@@ -63,7 +63,6 @@ public enum PixelFormat
     Rgba32Sint,
     Rgba32Float,
     // Depth-stencil formats
-    Stencil8,
     Depth16Unorm,
     Depth24UnormStencil8,
     Depth32Float,

@@ -98,7 +98,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
+    public override RenderContext BeginRenderContext(string? label = default)
     {
         throw new NotImplementedException();
     }

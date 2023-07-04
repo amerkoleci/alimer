@@ -26,36 +26,36 @@ public sealed class DrawTriangleGame : GameApplication
         };
         using GraphicsBuffer vertexBuffer = GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex);
 
-        using Texture texture = GraphicsDevice.CreateTexture(TextureDescription.Texture2D(PixelFormat.Rgba8Unorm, 256, 256));
-
-        //
-        //Entity cameraEntity = new Entity();
-        //cameraEntity.GetOrCreate<CameraComponent>();
-        //
-        //Entity rootEntity = new Entity();
-        //rootEntity.Children.Add(cameraEntity);
-        //
-        //SceneSystem.RootEntity = rootEntity;
+        // Create some teste entities
+        Entity cameraEntity = new Entity();
+        cameraEntity.GetOrCreate<CameraComponent>();
+        
+        Entity rootEntity = new Entity();
+        rootEntity.Children.Add(cameraEntity);
+        
+        SceneSystem.RootEntity = rootEntity;
     }
 
     protected override void Draw(AppTime time)
     {
-        CommandBuffer commandBuffer = GraphicsDevice.BeginCommandBuffer(QueueType.Graphics, "Frame");
-        Texture? swapChainTexture = commandBuffer.AcquireSwapChainTexture(MainView.SwapChain!);
+        RenderContext context = GraphicsDevice.BeginRenderContext("Frame");
+        Texture? swapChainTexture = context.AcquireSwapChainTexture(MainView.SwapChain!);
         if (swapChainTexture is not null)
         {
-            RenderPassDescription backBufferRenderPass = new(new RenderPassColorAttachment(swapChainTexture, new Color(0.3f, 0.3f, 0.3f)))
+            RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
+            RenderPassDepthStencilAttachment depthStencilAttachment = new(MainView.DepthStencilTexture!);
+            RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
             {
                 Label = "BackBuffer"
             };
 
-            using (commandBuffer.PushScopedPassPass(backBufferRenderPass))
+            using (context.PushScopedPassPass(backBufferRenderPass))
             {
             }
         }
 
         //GraphicsDevice.Submit(commandBuffer);
-        commandBuffer.Commit();
+        context.Flush(waitForCompletion: false);
 
         base.Draw(time);
     }

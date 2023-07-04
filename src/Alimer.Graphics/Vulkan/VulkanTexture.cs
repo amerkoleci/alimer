@@ -48,6 +48,16 @@ internal unsafe class VulkanTexture : Texture
                 break;
         }
 
+        if ((description.Usage & TextureUsage.Transient) != 0)
+        {
+            usage |= VkImageUsageFlags.TransientAttachment;
+        }
+        else
+        {
+            usage |= VkImageUsageFlags.TransferSrc;
+            usage |= VkImageUsageFlags.TransferDst;
+        }
+
         if ((description.Usage & TextureUsage.ShaderRead) != 0)
         {
             usage |= VkImageUsageFlags.Sampled;
@@ -75,14 +85,14 @@ internal unsafe class VulkanTexture : Texture
             }
         }
 
-        if ((description.Usage & TextureUsage.Transient) != 0)
+        if ((description.Usage & TextureUsage.ShadingRate) != 0)
         {
-            usage |= VkImageUsageFlags.TransientAttachment;
-
+            usage |= VkImageUsageFlags.FragmentShadingRateAttachmentKHR;
         }
-        else
+
+        if (!isDepthStencil && (description.Usage & (TextureUsage.ShaderRead | TextureUsage.RenderTarget)) != 0)
         {
-            usage |= VkImageUsageFlags.TransferSrc | VkImageUsageFlags.TransferDst;
+            usage |= VkImageUsageFlags.InputAttachment;
         }
 
         VkExternalMemoryImageCreateInfo externalInfo = new();
@@ -156,7 +166,7 @@ internal unsafe class VulkanTexture : Texture
             mipLevels = MipLevelCount,
             arrayLayers = arrayLayers,
             samples = SampleCount.ToVkSampleCount(),
-            tiling = VkImageTiling.Linear,
+            tiling = VkImageTiling.Optimal,
             usage = usage
         };
 

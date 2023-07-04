@@ -1225,9 +1225,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
+    public override RenderContext BeginRenderContext(string? label = null)
     {
-        return _queues[(int)queue].BeginCommandBuffer(label);
+        return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
     }
 
     public bool IsDepthStencilFormatSupported(VkFormat format)
@@ -1241,10 +1241,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VkFormat ToVkFormat(PixelFormat format)
     {
-        if (format == PixelFormat.Stencil8 && !SupportsS8)
-        {
-            return VkFormat.D24UnormS8Uint;
-        }
+        //if (format == PixelFormat.Stencil8 && !SupportsS8)
+        //{
+        //    return VkFormat.D24UnormS8Uint;
+        //}
 
         if (format == PixelFormat.Depth24UnormStencil8 && !SupportsD24S8)
         {

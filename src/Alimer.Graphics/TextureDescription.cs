@@ -110,6 +110,28 @@ public record struct TextureDescription
             label);
     }
 
+    public static TextureDescription TextureCube(
+        PixelFormat format,
+        uint size,
+        uint mipLevels = 1u,
+        uint arrayLayers = 1u,
+        TextureUsage usage = TextureUsage.ShaderRead,
+        CpuAccessMode access = CpuAccessMode.None,
+        string? label = default)
+    {
+        return new TextureDescription(
+            TextureDimension.Texture2D,
+            format,
+            size,
+            size,
+            arrayLayers * 6,
+            mipLevels,
+            usage,
+            TextureSampleCount.Count1,
+            access,
+            label);
+    }
+
     /// <summary>
     /// Gets the dimension of <see cref="Texture"/>
     /// </summary>

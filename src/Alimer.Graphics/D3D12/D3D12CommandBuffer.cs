@@ -13,7 +13,7 @@ using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12CommandBuffer : CommandBuffer
+internal unsafe class D3D12CommandBuffer : RenderContext
 {
     private const int MaxBarriers = 16;
 
@@ -40,7 +40,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     private RenderPassDescription _currentRenderPass;
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
-        : base(queue.Device)
     {
         _queue = queue;
 
@@ -59,7 +58,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     }
 
     /// <inheritdoc />
-    public override QueueType Queue => _queue.QueueType;
+    public override GraphicsDevice Device => _queue.Device;
 
     public ID3D12GraphicsCommandList6* CommandList => _commandList;
 
@@ -71,6 +70,16 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
 
         _commandList.Dispose();
+    }
+
+    public override void Flush(bool waitForCompletion = false)
+    {
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+        }
+
+        _ = _queue.Commit(this);
     }
 
     public void Begin(uint frameIndex, string? label = null)
@@ -183,6 +192,19 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandList.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
 
+    #region ComputeContext Methods
+    public override void SetPipeline(Pipeline pipeline)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        _commandList.Get()->Dispatch(groupCountX, groupCountY, groupCountZ);
+    }
+    #endregion ComputeContext Methods
+
+    #region RenderContext Methods
     protected override void BeginRenderPassCore(in RenderPassDescription renderPass)
     {
         if (!string.IsNullOrEmpty(renderPass.Label))
@@ -295,14 +317,5 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _queue.QueuePresent(d3dSwapChain);
         return swapChainTexture;
     }
-
-    public override void Commit()
-    {
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-        }
-
-        _ = _queue.Commit(this);
-    }
+    #endregion RenderContext Methods
 }

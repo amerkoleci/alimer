@@ -10,7 +10,7 @@ using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanCommandBuffer : CommandBuffer
+internal unsafe class VulkanCommandBuffer : RenderContext
 {
     private readonly VulkanCommandQueue _queue;
     private readonly VkCommandPool[] _commandPools = new VkCommandPool[MaxFramesInFlight];
@@ -20,7 +20,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     private bool _synchronization2;
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
-        : base(queue.Device)
     {
         _queue = queue;
         _synchronization2 = queue.Device.PhysicalDeviceFeatures1_3.synchronization2;
@@ -48,7 +47,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     }
 
     /// <inheritdoc />
-    public override QueueType Queue => _queue.QueueType;
+    public override GraphicsDevice Device => _queue.Device;
 
     public void Destroy()
     {
@@ -58,6 +57,16 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             vkDestroyCommandPool(_queue.Device.Handle, _commandPools[i]);
             //binderPools[i].Shutdown();
         }
+    }
+
+    public override void Flush(bool waitForCompletion = false)
+    {
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+        }
+
+        _queue.Commit(this, _commandBuffer);
     }
 
     public void Begin(uint frameIndex, string? label = null)
@@ -211,6 +220,19 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
+    #region ComputeContext Methods
+    public override void SetPipeline(Pipeline pipeline)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        vkCmdDispatch(_commandBuffer, groupCountX, groupCountY, groupCountZ);
+    }
+    #endregion ComputeContext Methods
+
+    #region RenderContext Methods
     protected override void BeginRenderPassCore(in RenderPassDescription renderPass)
     {
         if (!string.IsNullOrEmpty(renderPass.Label))
@@ -261,25 +283,35 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             {
                 RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
-                VulkanTexture texture = (VulkanTexture)attachment.Texture;
+                VulkanTexture texture = (VulkanTexture)attachment.Texture!;
                 int mipLevel = attachment.MipLevel;
                 int slice = attachment.Slice;
 
                 renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
                 renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
 
-                //depthAttachment.imageView = texture->GetView(mipLevel, slice);
-                //depthAttachment.imageLayout = desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                //depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-                //depthAttachment.loadOp = ToVk(desc.depthStencilAttachment.depthLoadAction);
-                //depthAttachment.storeOp = ToVk(desc.depthStencilAttachment.depthStoreAction);
-                //depthAttachment.clearValue.depthStencil.depth = desc.depthStencilAttachment.clearDepth;
+                depthAttachment.imageView = texture.GetView(mipLevel, slice);
+                depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                depthAttachment.resolveMode = VkResolveModeFlags.NoneKHR;
+                depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
+                depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
+                depthAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
+                renderingInfo.pDepthAttachment = &depthAttachment;
+
+                if (depthStencilFormat.IsStencilFormat())
+                {
+                    stencilAttachment.imageView = depthAttachment.imageView;
+                    stencilAttachment.imageLayout = VkImageLayout.StencilAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                    stencilAttachment.resolveMode = VkResolveModeFlags.NoneKHR;
+                    stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
+                    stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
+                    stencilAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
+                    renderingInfo.pStencilAttachment = &stencilAttachment;
+                }
             }
 
             renderingInfo.renderArea = renderArea;
             renderingInfo.pColorAttachments = renderingInfo.colorAttachmentCount > 0 ? colorAttachments : null;
-            renderingInfo.pDepthAttachment = hasDepthOrStencil ? &depthAttachment : null;
-            renderingInfo.pStencilAttachment = !depthStencilFormat.IsDepthOnlyFormat() ? &depthAttachment : null;
 
             vkCmdBeginRendering(_commandBuffer, &renderingInfo);
 
@@ -287,8 +319,8 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             VkViewport viewport = new()
             {
                 x = 0.0f,
-                y = (float)(renderArea.extent.height),
-                width = (float)(renderArea.extent.width),
+                y = renderArea.extent.height,
+                width = renderArea.extent.width,
                 height = -(float)(renderArea.extent.height),
                 minDepth = 0.0f,
                 maxDepth = 1.0f
@@ -350,14 +382,5 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         TextureBarrier(vulkanSwapChain.CurrentTexture, ResourceStates.RenderTarget);
         return vulkanSwapChain.CurrentTexture;
     }
-
-    public override void Commit()
-    {
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-        }
-
-        _queue.Commit(this, _commandBuffer);
-    }
+    #endregion RenderContext Methods
 }

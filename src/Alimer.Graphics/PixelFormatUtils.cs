@@ -73,7 +73,6 @@ public static class PixelFormatUtils
         new(PixelFormat.Rgba32Sint,            16, 1, 1, FormatKind.Sint),
         new(PixelFormat.Rgba32Float,           16, 1, 1, FormatKind.Float),
         // Depth-stencil formats
-        new(PixelFormat.Stencil8,              1, 1, 1, FormatKind.Unorm),
         new(PixelFormat.Depth16Unorm,          2, 1, 1, FormatKind.Unorm),
         new(PixelFormat.Depth24UnormStencil8,  4, 1, 1, FormatKind.Unorm),
         new(PixelFormat.Depth32Float,          4, 1, 1, FormatKind.Float),
@@ -255,16 +254,11 @@ public static class PixelFormatUtils
     /// <returns>True if format has stencil component, false otherwise.</returns>
     public static bool IsStencilFormat(this PixelFormat format)
     {
-        switch (format)
+        return format switch
         {
-            case PixelFormat.Stencil8:
-            case PixelFormat.Depth24UnormStencil8:
-            case PixelFormat.Depth32FloatStencil8:
-                return true;
-
-            default:
-                return false;
-        }
+            PixelFormat.Depth24UnormStencil8 or PixelFormat.Depth32FloatStencil8 => true,
+            _ => false,
+        };
     }
 
     /// <summary>
@@ -498,11 +492,11 @@ public static class PixelFormatUtils
             case PixelFormat.Rgba32Sint: return DxgiFormat.R32G32B32A32Sint;
             case PixelFormat.Rgba32Float: return DxgiFormat.R32G32B32A32Float;
             // Depth-stencil formats
-            case PixelFormat.Stencil8: return DxgiFormat.D24UnormS8Uint;
-            case PixelFormat.Depth16Unorm: return DxgiFormat.D16Unorm;
-            case PixelFormat.Depth32Float: return DxgiFormat.D32Float;
-            case PixelFormat.Depth24UnormStencil8: return DxgiFormat.D24UnormS8Uint;
-            case PixelFormat.Depth32FloatStencil8: return DxgiFormat.D32FloatS8X24Uint;
+            //case PixelFormat.Stencil8:              return DxgiFormat.D24UnormS8Uint;
+            case PixelFormat.Depth16Unorm:          return DxgiFormat.D16Unorm;
+            case PixelFormat.Depth32Float:          return DxgiFormat.D32Float;
+            case PixelFormat.Depth24UnormStencil8:  return DxgiFormat.D24UnormS8Uint;
+            case PixelFormat.Depth32FloatStencil8:  return DxgiFormat.D32FloatS8X24Uint;
             // Compressed BC formats
             case PixelFormat.Bc1RgbaUnorm: return DxgiFormat.BC1Unorm;
             case PixelFormat.Bc1RgbaUnormSrgb: return DxgiFormat.BC1UnormSrgb;
@@ -614,8 +608,8 @@ public static class PixelFormatUtils
     {
         switch (format)
         {
-            case PixelFormat.Stencil8:
-                return DxgiFormat.R24G8Typeless;
+            //case PixelFormat.Stencil8:
+            //    return DxgiFormat.R24G8Typeless;
             case PixelFormat.Depth16Unorm:
                 return DxgiFormat.R16Typeless;
 

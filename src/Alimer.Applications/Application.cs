@@ -99,7 +99,7 @@ public abstract class Application : DisposableObject, IApplication
         if (disposing)
         {
             GraphicsDevice.WaitIdle();
-            MainView.SwapChain?.Dispose();
+            MainView.Destroy();
             GraphicsDevice.Dispose();
             AudioDevice.Dispose();
         }

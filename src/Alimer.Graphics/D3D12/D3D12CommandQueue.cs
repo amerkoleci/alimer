@@ -67,7 +67,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
         _handle.Dispose();
     }
 
-    public CommandBuffer BeginCommandBuffer(string? label = null)
+    public RenderContext BeginCommandContext(string? label = null)
     {
         uint index = _commandBufferCount++;
         D3D12CommandBuffer commandBuffer;

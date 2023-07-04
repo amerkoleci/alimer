@@ -503,9 +503,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandBuffer BeginCommandBuffer(QueueType queue, string? label = null)
+    public override RenderContext BeginRenderContext(string? label = null)
     {
-        return _queues[(int)queue].BeginCommandBuffer(label);
+        return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
     }
 
     private static bool CheckIsSupported()

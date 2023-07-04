@@ -300,12 +300,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     }
 
     /// <summary>
-    /// Begin new <see cref="CommandBuffer"/> in recording state.
+    /// Begin new <see cref="RenderContext"/> in recording state.
     /// </summary>
-    /// <param name="queue">The <see cref="QueueType"/>.</param>
     /// <param name="label">Optional label.</param>
     /// <returns></returns>
-    public abstract CommandBuffer BeginCommandBuffer(QueueType queue = QueueType.Graphics, string? label = default);
+    public abstract RenderContext BeginRenderContext(string? label = default);
 
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescription description, void* initialData);

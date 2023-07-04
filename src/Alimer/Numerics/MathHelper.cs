@@ -176,4 +176,16 @@ public static class MathHelper
         Debug.Assert(IsPow2(alignment));
         return (address + (alignment - 1)) & ~(alignment - 1);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint DivideByMultiple(uint value, uint alignment)
+    {
+        return ((value + alignment - 1) / alignment);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong DivideByMultiple(ulong value, ulong alignment)
+    {
+        return ((value + alignment - 1) / alignment);
+    }
 }
