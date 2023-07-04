@@ -5,8 +5,8 @@ namespace Alimer.Graphics;
 
 public abstract class BindGroup : GraphicsObject
 {
-    protected BindGroup(GraphicsDevice device, in BindGroupDescription description)
-        : base(device, description.Label)
+    protected BindGroup(in BindGroupDescription description)
+        : base(description.Label)
     {
     }
 }

@@ -6,9 +6,13 @@ namespace Alimer.Graphics.Null;
 internal class NullQueryHeap : QueryHeap
 {
     public NullQueryHeap(NullGraphicsDevice device, in QueryHeapDescription description)
-        : base(device, description)
+        : base(description)
     {
+        Device = device;
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="NullQueryHeap" /> class.

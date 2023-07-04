@@ -196,8 +196,8 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         RenderPassDepthStencilDescription DSV = default;
         RenderPassFlags renderPassFlags = RenderPassFlags.None;
 
+        bool hasDepthOrStencil = renderPass.DepthStencilAttachment.Texture != null;
         PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
-        bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
 
         for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
         {
@@ -254,7 +254,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         {
             RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
-            D3D12Texture texture = (D3D12Texture)attachment.Texture;
+            D3D12Texture texture = (D3D12Texture)attachment.Texture!;
             int mipLevel = attachment.MipLevel;
             int slice = attachment.Slice;
 

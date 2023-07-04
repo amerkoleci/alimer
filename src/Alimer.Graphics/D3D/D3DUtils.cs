@@ -88,11 +88,11 @@ internal static unsafe class D3DUtils
     {
         switch (indexType)
         {
-            case IndexType.UInt16: return Format.R16Uint;
-            case IndexType.UInt32: return Format.R32Uint;
+            case IndexType.Uint16: return Format.R16Uint;
+            case IndexType.Uint32: return Format.R32Uint;
 
             default:
-                return Format.R16Uint;
+                return Format.Unknown;
         }
     }
 

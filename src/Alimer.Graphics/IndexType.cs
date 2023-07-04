@@ -5,6 +5,6 @@ namespace Alimer.Graphics;
 
 public enum IndexType
 {
-    UInt16,
-    UInt32,
+    Uint16,
+    Uint32,
 }

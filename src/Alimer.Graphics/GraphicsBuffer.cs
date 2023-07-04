@@ -8,8 +8,8 @@ namespace Alimer.Graphics;
 /// </summary>
 public abstract class GraphicsBuffer : GraphicsResource
 {
-    protected GraphicsBuffer(GraphicsDevice device, in BufferDescription description)
-        : base(device, description.Label)
+    protected GraphicsBuffer(in BufferDescription description)
+        : base(description.Label)
     {
         Size = description.Size;
         Usage = description.Usage;

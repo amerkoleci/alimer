@@ -8,8 +8,8 @@ namespace Alimer.Graphics;
 /// </summary>
 public abstract class QueryHeap : GraphicsObject
 {
-    protected QueryHeap(GraphicsDevice device, in QueryHeapDescription description)
-        : base(device, description.Label)
+    protected QueryHeap(in QueryHeapDescription description)
+        : base(description.Label)
     {
         Type = description.Type;
         Count = description.Count;

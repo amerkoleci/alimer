@@ -268,6 +268,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateSamplerCore(description);
     }
 
+    public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescription description)
+    {
+        return CreatePipelineLayoutCore(in description);
+    }
+
     public Pipeline CreateRenderPipeline(in RenderPipelineDescription description)
     {
         Guard.IsGreaterThanOrEqualTo(description.VertexShader.Length, 1, nameof(RenderPipelineDescription.VertexShader));
@@ -305,6 +310,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescription description, void* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
+    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
     protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
     protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription description);

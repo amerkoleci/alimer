@@ -14,20 +14,16 @@ public abstract class GraphicsObject : GraphicsObjectBase
     /// <summary>
     /// Initializes a new instance of the <see cref="GraphicsObject" /> class.
     /// </summary>
-    /// <param name="device">The device object that created the object.</param>
     /// <param name="label">The label of the object or <c>null</c> to use <see cref="MemberInfo.Name" />.</param>
-    protected GraphicsObject(GraphicsDevice device, string? label = default)
+    protected GraphicsObject(string? label = default)
         : base(label)
     {
-        Guard.IsNotNull(device, nameof(device));
-
-        Device = device;
     }
 
     /// <summary>
     /// Get the <see cref="GraphicsDevice"/> object that created this object.
     /// </summary>
-    public GraphicsDevice Device { get; }
+    public abstract GraphicsDevice Device { get; }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

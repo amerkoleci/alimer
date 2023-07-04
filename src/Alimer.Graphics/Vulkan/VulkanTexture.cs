@@ -9,13 +9,15 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanTexture : Texture
 {
+    private readonly VulkanGraphicsDevice _device;
     private readonly VkImage _handle = VkImage.Null;
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
     private readonly Dictionary<int, VkImageView> _views = new();
 
     public VulkanTexture(VulkanGraphicsDevice device, in TextureDescription description, void* initialData)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
         VkFormat = device.ToVkFormat(description.Format);
         bool isDepthStencil = description.Format.IsDepthStencilFormat();
         VkImageCreateFlags flags = VkImageCreateFlags.None;
@@ -180,11 +182,12 @@ internal unsafe class VulkanTexture : Texture
         }
     }
 
-    public VulkanTexture(GraphicsDevice device, VkImage existingTexture, in TextureDescription descriptor)
-        : base(device, descriptor)
+    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescription descriptor)
+        : base( descriptor)
     {
+        _device = device;
         _handle = existingTexture;
-        VkFormat = ((VulkanGraphicsDevice)device).ToVkFormat(descriptor.Format);
+        VkFormat = device.ToVkFormat(descriptor.Format);
 
         if (!string.IsNullOrEmpty(descriptor.Label))
         {
@@ -192,7 +195,8 @@ internal unsafe class VulkanTexture : Texture
         }
     }
 
-    public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
     public VkImage Handle => _handle;
     public VkFormat VkFormat { get; }
     public ResourceStates CurrentState { get; set; }
@@ -205,11 +209,11 @@ internal unsafe class VulkanTexture : Texture
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        VmaAllocator memoryAllocator = ((VulkanGraphicsDevice)Device).MemoryAllocator;
+        VmaAllocator memoryAllocator = _device.MemoryAllocator;
 
         foreach (VkImageView view in _views.Values)
         {
-            vkDestroyImageView(VkDevice, view);
+            vkDestroyImageView(_device.Handle, view);
         }
         _views.Clear();
 
@@ -222,7 +226,7 @@ internal unsafe class VulkanTexture : Texture
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.Image, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Image, _handle.Handle, newLabel);
     }
 
     public VkImageView GetView(int baseMipLevel, int baseArrayLayer = 0, uint mipLevelCount = VK_REMAINING_MIP_LEVELS, uint arrayLayerCount = VK_REMAINING_ARRAY_LAYERS)
@@ -243,7 +247,7 @@ internal unsafe class VulkanTexture : Texture
                 subresourceRange = new VkImageSubresourceRange(aspectFlags, (uint)baseMipLevel, mipLevelCount, (uint)baseArrayLayer, arrayLayerCount)
             };
 
-            VkResult result = vkCreateImageView(VkDevice, &createInfo, null, &view);
+            VkResult result = vkCreateImageView(_device.Handle, &createInfo, null, &view);
             if (result != VkResult.Success)
             {
                 Log.Error($"Vulkan: Failed to create ImageView, error: {result}");

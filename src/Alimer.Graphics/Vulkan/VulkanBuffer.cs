@@ -11,6 +11,7 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanBuffer : GraphicsBuffer
 {
+    private readonly VulkanGraphicsDevice _device;
     private readonly VkBuffer _handle = VkBuffer.Null;
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
     private readonly void* pMappedData;
@@ -18,8 +19,10 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     private ulong _gpuAddress;
 
     public VulkanBuffer(VulkanGraphicsDevice device, in BufferDescription description, void* initialData)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
+
         VkBufferCreateInfo createInfo = new()
         {
             flags = 0,
@@ -261,8 +264,9 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     }
 
     public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in BufferDescription descriptor)
-    : base(device, descriptor)
+        : base(descriptor)
     {
+        _device = device;
         _handle = existingHandle;
 
         if (!string.IsNullOrEmpty(descriptor.Label))
@@ -271,7 +275,8 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         }
     }
 
-    public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
 
     public VkBuffer Handle => _handle;
 
@@ -283,13 +288,13 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.Buffer, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Buffer, _handle.Handle, newLabel);
     }
 
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        VmaAllocator memoryAllocator = ((VulkanGraphicsDevice)Device).MemoryAllocator;
+        VmaAllocator memoryAllocator = _device.MemoryAllocator;
 
         if (!_allocation.IsNull)
         {

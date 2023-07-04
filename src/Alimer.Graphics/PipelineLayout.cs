@@ -3,9 +3,9 @@
 
 namespace Alimer.Graphics;
 
-public abstract class Sampler : GraphicsResource
+public abstract class PipelineLayout : GraphicsObject
 {
-    protected Sampler(in SamplerDescription description)
+    protected PipelineLayout(in PipelineLayout description)
         : base(description.Label)
     {
     }

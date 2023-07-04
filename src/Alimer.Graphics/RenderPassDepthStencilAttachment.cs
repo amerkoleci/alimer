@@ -17,7 +17,7 @@ public readonly record struct RenderPassDepthStencilAttachment
     /// <summary>
     /// The <see cref="Graphics.Texture"/> associated with this attachment.
     /// </summary>
-    public Texture Texture { get; init; }
+    public Texture? Texture { get; init; }
 
     /// <summary>
     /// The mipmap level of the texture used for rendering to the attachment.

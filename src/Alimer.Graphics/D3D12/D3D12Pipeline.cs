@@ -1,23 +1,21 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Numerics;
 using Win32;
 using Win32.Graphics.Direct3D12;
-using static Alimer.Graphics.D3D12.D3D12Utils;
-using static Win32.Graphics.Direct3D12.Apis;
 using static Win32.Apis;
-using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Pipeline : Pipeline
 {
+    private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12PipelineState> _handle;
 
     public D3D12Pipeline(D3D12GraphicsDevice device, in RenderPipelineDescription description)
-        : base(device, PipelineType.Render, description.Label)
+        : base(PipelineType.Render, description.Label)
     {
+        _device = device;
         GraphicsPipelineStateDescription d3dDesc = new();
         HResult hr = device.Handle->CreateGraphicsPipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
         if (hr.Failure)
@@ -28,8 +26,9 @@ internal unsafe class D3D12Pipeline : Pipeline
     }
 
     public D3D12Pipeline(D3D12GraphicsDevice device, in ComputePipelineDescription description)
-        : base(device, PipelineType.Compute, description.Label)
+        : base(PipelineType.Compute, description.Label)
     {
+        _device = device;
         ComputePipelineStateDescription d3dDesc = new();
         HResult hr = device.Handle->CreateComputePipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
         if (hr.Failure)
@@ -38,6 +37,9 @@ internal unsafe class D3D12Pipeline : Pipeline
             return;
         }
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
 
     public ID3D12PipelineState* Handle => _handle;
 

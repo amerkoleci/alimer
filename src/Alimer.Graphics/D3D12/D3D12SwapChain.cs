@@ -20,6 +20,7 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12SwapChain : SwapChain
 {
+    private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<IDXGISwapChain3> _handle;
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
@@ -27,8 +28,9 @@ internal unsafe class D3D12SwapChain : SwapChain
     private PresentFlags _presentFlags = PresentFlags.None;
 
     public D3D12SwapChain(D3D12GraphicsDevice device, ISwapChainSurface surface, in SwapChainDescription description)
-        : base(device, surface, description)
+        : base(surface, description)
     {
+        _device = device;
         SwapChainDescription1 swapChainDesc = new()
         {
             Width = (uint)surface.PixelWidth,
@@ -126,6 +128,9 @@ internal unsafe class D3D12SwapChain : SwapChain
         AfterReset();
     }
 
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
+
     public Format DxgiFormat { get; }
     public IDXGISwapChain3* Handle => _handle;
     public uint CurrentBackBufferIndex => _handle.Get()->GetCurrentBackBufferIndex();
@@ -156,9 +161,8 @@ internal unsafe class D3D12SwapChain : SwapChain
 
             using ComPtr<ID3D12Resource> backbufferTexture = default;
             ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), backbufferTexture.GetVoidAddressOf()));
-            _backbufferTextures[i] = new D3D12Texture(Device, backbufferTexture.Get(), descriptor);
+            _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), descriptor);
         }
-
     }
 
     protected override void Dispose(bool disposing)
@@ -191,9 +195,9 @@ internal unsafe class D3D12SwapChain : SwapChain
         //_handle.Get()->SetDebugName(newLabel);
     }
 
-    protected override void ResizeBackBuffer(int width, int height)
+    protected override void ResizeBackBuffer()
     {
-
+        _device.WaitIdle();
     }
 
     public bool Present()

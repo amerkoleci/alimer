@@ -68,9 +68,9 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
-        return new NullQueryHeap(this, description);
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />
@@ -83,6 +83,12 @@ internal class NullGraphicsDevice : GraphicsDevice
     protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
     {
         throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    {
+        return new NullQueryHeap(this, description);
     }
 
     /// <inheritdoc />

@@ -6,10 +6,13 @@ namespace Alimer.Graphics.Null;
 internal class NullSampler : Sampler
 {
     public NullSampler(NullGraphicsDevice device, in SamplerDescription descriptor)
-        : base(device, descriptor)
+        : base(descriptor)
     {
-        
+        Device = device;
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="NullSampler" /> class.

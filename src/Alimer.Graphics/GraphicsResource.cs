@@ -5,8 +5,8 @@ namespace Alimer.Graphics;
 
 public abstract class GraphicsResource : GraphicsObject
 {
-    protected GraphicsResource(GraphicsDevice device, string? label = default)
-        : base(device, label)
+    protected GraphicsResource(string? label = default)
+        : base(label)
     {
     }
 }

@@ -8,11 +8,13 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanQueryHeap : QueryHeap
 {
+    private readonly VulkanGraphicsDevice _device;
     private readonly VkQueryPool _handle = VkQueryPool.Null;
 
     public VulkanQueryHeap(VulkanGraphicsDevice device, in QueryHeapDescription description)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
         VkQueryPoolCreateInfo createInfo = new()
         {
             queryType = description.Type.ToVk(),
@@ -74,7 +76,8 @@ internal unsafe class VulkanQueryHeap : QueryHeap
         }
     }
 
-    public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
     public VkQueryPool Handle => _handle;
 
     /// <summary>
@@ -85,12 +88,12 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        vkDestroyQueryPool(VkDevice, _handle);
+        vkDestroyQueryPool(_device.Handle, _handle);
     }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.QueryPool, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.QueryPool, _handle.Handle, newLabel);
     }
 }

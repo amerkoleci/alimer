@@ -8,11 +8,13 @@ namespace Alimer.Graphics.D3D12;
 
 internal sealed unsafe class D3D12Sampler : Sampler
 {
+    private readonly D3D12GraphicsDevice _device;
     private readonly CpuDescriptorHandle _handle;
 
     public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
         FilterType minFilter = description.MinFilter.ToD3D12();
         FilterType magFilter = description.MagFilter.ToD3D12();
         FilterType mipmapFilter = description.MipFilter.ToD3D12();
@@ -48,13 +50,17 @@ internal sealed unsafe class D3D12Sampler : Sampler
         d3dDesc.MinLOD = description.LodMinClamp;
         d3dDesc.MaxLOD = description.LodMaxClamp;
 
-        //device.NativeDevice->CreateSampler(&d3dDesc, _handle);
+        _handle = device.AllocateDescriptor(DescriptorHeapType.Sampler);
+        device.Handle->CreateSampler(&d3dDesc, _handle);
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
 
     public CpuDescriptorHandle Handle => _handle;
 
     protected internal override void Destroy()
     {
-
+        _device.FreeDescriptor(DescriptorHeapType.Sampler, _handle);
     }
 }

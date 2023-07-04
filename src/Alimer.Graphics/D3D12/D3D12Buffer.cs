@@ -13,11 +13,14 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
 {
+    private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
+
         ulong alignedSize = description.Size;
         if ((description.Usage & BufferUsage.Constant) != 0)
         {
@@ -75,11 +78,15 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         }
     }
 
-    public D3D12Buffer(GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescription descriptor)
-        : base(device, descriptor)
+    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescription descriptor)
+        : base(descriptor)
     {
+        _device = device;
         _handle = existingHandle;
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
 
     public ID3D12Resource* Handle => _handle;
     public ResourceStates State { get; set; }

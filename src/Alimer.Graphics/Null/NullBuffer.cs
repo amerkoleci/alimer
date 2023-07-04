@@ -6,9 +6,13 @@ namespace Alimer.Graphics.Null;
 internal class NullBuffer : GraphicsBuffer
 {
     public NullBuffer(NullGraphicsDevice device, in BufferDescription descriptor)
-        : base(device, descriptor)
+        : base(descriptor)
     {
+        Device = device;
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="NullQueryHeap" /> class.

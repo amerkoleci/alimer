@@ -5,8 +5,8 @@ namespace Alimer.Graphics;
 
 public abstract class Pipeline : GraphicsObject
 {
-    protected Pipeline(GraphicsDevice device, PipelineType pipelineType, string? label)
-        : base(device, label)
+    protected Pipeline(PipelineType pipelineType, string? label)
+        : base(label)
     {
         PipelineType = pipelineType;
     }

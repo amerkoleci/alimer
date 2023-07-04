@@ -279,6 +279,16 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 DriverDescription = driverDescription
             };
 
+            _limits = new GraphicsDeviceLimits
+            {
+                MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
+                MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
+                MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
+                MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
+                MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
+                MaxTexelBufferDimension2D = (1u << (int)D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+            };
+
             ulong timestampFrequency = 0;
             ThrowIfFailed(D3D12GraphicsQueue->GetTimestampFrequency(&timestampFrequency));
             TimestampFrequency = timestampFrequency;
@@ -463,9 +473,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
-        return new D3D12QueryHeap(this, description);
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />
@@ -478,6 +488,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
     {
         return new D3D12Pipeline(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    {
+        return new D3D12QueryHeap(this, description);
     }
 
     /// <inheritdoc />

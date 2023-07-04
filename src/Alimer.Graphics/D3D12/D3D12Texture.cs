@@ -13,14 +13,16 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
+    private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
     private Handle _sharedHandle = Win32.Handle.Null;
     private readonly Dictionary<int, CpuDescriptorHandle> _RTVs = new();
     private readonly Dictionary<int, CpuDescriptorHandle> _DSVs = new();
 
     public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, void* initialData)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
         DxgiFormat = (Format)description.Format.ToDxgiFormat();
         bool isDepthStencil = description.Format.IsDepthStencilFormat();
 
@@ -106,9 +108,10 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         }
     }
 
-    public D3D12Texture(GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription descriptor)
-        : base(device, descriptor)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription descriptor)
+        : base(descriptor)
     {
+        _device = device;
         DxgiFormat = (Format)descriptor.Format.ToDxgiFormat();
         _handle = existingTexture;
 
@@ -117,6 +120,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             OnLabelChanged(descriptor.Label!);
         }
     }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
 
     public Format DxgiFormat { get; }
     public ID3D12Resource* Handle => _handle;
@@ -133,7 +139,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     {
         foreach (CpuDescriptorHandle view in _RTVs.Values)
         {
-            ((D3D12GraphicsDevice)Device).FreeDescriptor(DescriptorHeapType.Rtv, in view);
+            _device.FreeDescriptor(DescriptorHeapType.Rtv, in view);
         }
         _RTVs.Clear();
 
@@ -166,8 +172,8 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             viewDesc.Format = format;
             viewDesc.ViewDimension = RtvDimension.Texture2D;
 
-            rtvHandle = ((D3D12GraphicsDevice)Device).AllocateDescriptor(DescriptorHeapType.Rtv);
-            ((D3D12GraphicsDevice)Device).Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, rtvHandle);
+            rtvHandle = _device.AllocateDescriptor(DescriptorHeapType.Rtv);
+            _device.Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, rtvHandle);
 
             _RTVs.Add(hash, rtvHandle);
         }

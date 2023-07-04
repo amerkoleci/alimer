@@ -8,11 +8,14 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanSampler : Sampler
 {
+    private readonly VulkanGraphicsDevice _device;
     private readonly VkSampler _handle = VkSampler.Null;
 
     public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescription description)
-        : base(device, description)
+        : base(description)
     {
+        _device = device;
+
         VkSamplerCreateInfo createInfo = new()
         {
         };
@@ -31,7 +34,8 @@ internal unsafe class VulkanSampler : Sampler
         }
     }
 
-    public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
     public VkSampler Handle => _handle;
 
     /// <summary>
@@ -42,12 +46,12 @@ internal unsafe class VulkanSampler : Sampler
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        vkDestroySampler(VkDevice, _handle);
+        vkDestroySampler(_device.Handle, _handle);
     }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.Sampler, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Sampler, _handle.Handle, newLabel);
     }
 }

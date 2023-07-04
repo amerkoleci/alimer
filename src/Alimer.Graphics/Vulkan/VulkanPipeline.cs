@@ -8,11 +8,13 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanPipeline : Pipeline
 {
+    private readonly VulkanGraphicsDevice _device;
     private readonly VkPipeline _handle = VkPipeline.Null;
 
     public VulkanPipeline(VulkanGraphicsDevice device, in RenderPipelineDescription description)
-        : base(device, PipelineType.Render, description.Label)
+        : base(PipelineType.Render, description.Label)
     {
+        _device = device;
         VkGraphicsPipelineCreateInfo createInfo = new();
         //createInfo.stage = stage;
         //createInfo.layout = pipeline->layout->handle;
@@ -30,8 +32,9 @@ internal unsafe class VulkanPipeline : Pipeline
     }
 
     public VulkanPipeline(VulkanGraphicsDevice device, in ComputePipelineDescription description)
-        : base(device, PipelineType.Compute, description.Label)
+        : base(PipelineType.Compute, description.Label)
     {
+        _device = device;
         VkComputePipelineCreateInfo createInfo = new();
         //createInfo.stage = stage;
         //createInfo.layout = pipeline->layout->handle;
@@ -48,7 +51,8 @@ internal unsafe class VulkanPipeline : Pipeline
         _handle = pipeline;
     }
 
-    public VkDevice VkDevice => ((VulkanGraphicsDevice)Device).Handle;
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
 
     public VkPipeline Handle => _handle;
 
@@ -60,12 +64,12 @@ internal unsafe class VulkanPipeline : Pipeline
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        ((VulkanGraphicsDevice)Device).SetObjectName(VkObjectType.Pipeline, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Pipeline, _handle.Handle, newLabel);
     }
 
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        vkDestroyPipeline(VkDevice, _handle);
+        vkDestroyPipeline(_device.Handle, _handle);
     }
 }
