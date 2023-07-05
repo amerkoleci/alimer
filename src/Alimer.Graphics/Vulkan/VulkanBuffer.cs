@@ -168,7 +168,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
                 vkCmdCopyBuffer(
                     context.TransferCommandBuffer,
-                    context.UploadBuffer.Handle,
+                    context.UploadBuffer!.Handle,
                     _handle,
                     1,
                     &copyRegion

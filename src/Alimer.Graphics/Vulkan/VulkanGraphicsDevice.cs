@@ -1197,7 +1197,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
-        throw new NotImplementedException();
+        return new VulkanPipelineLayout(this, description);
     }
 
     /// <inheritdoc />

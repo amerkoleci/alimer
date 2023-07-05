@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Engine\Alimer.Engine.csproj" />
+    
+    <PackageReference Include="JoltPhysicsSharp" />
+  </ItemGroup>
+
+</Project>

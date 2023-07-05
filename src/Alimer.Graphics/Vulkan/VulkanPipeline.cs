@@ -29,6 +29,11 @@ internal unsafe class VulkanPipeline : Pipeline
         }
 
         _handle = pipeline;
+
+        if (!string.IsNullOrEmpty(description.Label))
+        {
+            OnLabelChanged(description.Label!);
+        }
     }
 
     public VulkanPipeline(VulkanGraphicsDevice device, in ComputePipelineDescription description)
@@ -49,6 +54,11 @@ internal unsafe class VulkanPipeline : Pipeline
         }
 
         _handle = pipeline;
+
+        if (!string.IsNullOrEmpty(description.Label))
+        {
+            OnLabelChanged(description.Label!);
+        }
     }
 
     /// <inheritdoc />

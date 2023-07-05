@@ -42,6 +42,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Audio", "src\Alimer.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics.Tests", "tests\Alimer.Graphics.Tests\Alimer.Graphics.Tests.csproj", "{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Shaders", "src\assets\Alimer.Shaders\Alimer.Shaders.csproj", "{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Assets", "src\assets\Alimer.Assets\Alimer.Assets.csproj", "{A80A537D-096C-4916-9222-0F65FBFD64A8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Physics", "src\Alimer.Physics\Alimer.Physics.csproj", "{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,6 +90,18 @@ Global
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -92,6 +110,8 @@ Global
 		{F797B201-801E-4786-9C7E-C5B9929BCD57} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
 		{351AA2B8-1343-49BF-9E34-DECB218C8505} = {446FAFB5-D0FC-4A98-BEDF-7967B7C200E0}
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
+		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08} = {6E75A307-8EA0-441A-9882-967B5048E707}
+		{A80A537D-096C-4916-9222-0F65FBFD64A8} = {6E75A307-8EA0-441A-9882-967B5048E707}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F91C04E-B42E-4037-8FF3-A9C768E70094}

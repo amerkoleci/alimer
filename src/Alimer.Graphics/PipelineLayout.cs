@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public abstract class PipelineLayout : GraphicsObject
 {
-    protected PipelineLayout(in PipelineLayout description)
+    protected PipelineLayout(in PipelineLayoutDescription description)
         : base(description.Label)
     {
     }
