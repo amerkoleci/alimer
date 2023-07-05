@@ -22,6 +22,8 @@ public readonly record struct RenderPipelineDescription
         RasterizerState = RasterizerState.CullBack;
         DepthStencilState = DepthStencilState.DepthDefault;
         PrimitiveTopology = PrimitiveTopology.TriangleList;
+        PatchControlPoints = 0;
+        SampleCount = TextureSampleCount.Count1;
     }
 
     public PipelineLayout Layout { get; init; }
@@ -36,6 +38,10 @@ public readonly record struct RenderPipelineDescription
     //public VertexDescriptor VertexDescriptor { get; init; }
 
     public PrimitiveTopology PrimitiveTopology { get; init; }
+
+    public int PatchControlPoints { get; init; } = 0;
+
+    public TextureSampleCount SampleCount { get; init; } = 0;
 
     /// <summary>
     /// Gets or sets the label of <see cref="Pipeline"/>.

@@ -12,6 +12,32 @@ namespace Alimer.Numerics;
 /// </summary>
 public static class MathHelper
 {
+    /// <summary>Gets a value used to determine if a value is near zero.</summary>
+    public static float NearZeroEpsilon
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            return 4.7683716E-07f; // 2^-21: 0x35000000
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the specified value is close to zero (0.0f).
+    /// </summary>
+    /// <param name="a">The floating value.</param>
+    /// <returns><c>true</c> if the specified value is close to zero (0.0f); otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsZero(float a) => MathF.Abs(a) < NearZeroEpsilon;
+
+    /// <summary>
+    /// Determines whether the specified value is close to one (1.0f).
+    /// </summary>
+    /// <param name="a">The floating value.</param>
+    /// <returns><c>true</c> if the specified value is close to one (1.0f); otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsOne(float a) => IsZero(a - 1.0f);
+
     /// <summary>Computes the absolute value of a given 16-bit signed integer.</summary>
     /// <param name="value">The integer for which to compute its absolute.</param>
     /// <returns>The absolute value of <paramref name="value" />.</returns>

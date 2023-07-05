@@ -33,7 +33,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override bool QueryFeature(Feature feature)
+    public override bool QueryFeatureSupport(Feature feature)
     {
         return false;
     }

@@ -201,8 +201,12 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         _deferredDestroyObjects.Enqueue(Tuple.Create(@object, _frameCount));
     }
 
+    public abstract bool QueryFeatureSupport(Feature feature);
 
-    public abstract bool QueryFeature(Feature feature);
+    public virtual void WriteShadingRateValue(ShadingRate rate, void* dest)
+    {
+
+    }
 
     public GraphicsBuffer CreateBuffer(in BufferDescription description)
     {
@@ -247,7 +251,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         string? label = default)
         where T : unmanaged
     {
-        int typeSize = sizeof(T);
+        var typeSize = sizeof(T);
         Guard.IsTrue(initialData.Length > 0, nameof(initialData));
 
         BufferDescription description = new((uint)(initialData.Length * typeSize), usage, cpuAccess, label);

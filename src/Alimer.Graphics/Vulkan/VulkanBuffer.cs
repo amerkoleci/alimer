@@ -62,13 +62,13 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         }
 
         if ((description.Usage & BufferUsage.Predication) != 0 &&
-            device.QueryFeature(Feature.ConditionalRendering))
+            device.QueryFeatureSupport(Feature.Predication))
         {
             createInfo.usage |= VkBufferUsageFlags.ConditionalRenderingEXT;
         }
 
         if ((description.Usage & BufferUsage.RayTracing) != 0 &&
-            device.QueryFeature(Feature.RayTracing))
+            device.QueryFeatureSupport(Feature.RayTracing))
         {
             createInfo.usage |= VkBufferUsageFlags.AccelerationStructureStorageKHR;
             createInfo.usage |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyKHR;

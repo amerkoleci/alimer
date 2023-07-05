@@ -23,7 +23,7 @@ public enum Feature
     SamplerMinMax,
     DepthResolveMinMax,
     StencilResolveMinMax,
-    ConditionalRendering,
+    Predication,
 
     DescriptorIndexing,
     VariableRateShading,

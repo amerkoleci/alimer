@@ -414,7 +414,7 @@ internal static unsafe class VulkanUtils
         }
     }
 
-    public static VkSampleCountFlags ToVkSampleCount(this TextureSampleCount sampleCount)
+    public static VkSampleCountFlags ToVk(this TextureSampleCount sampleCount)
     {
         switch (sampleCount)
         {
@@ -574,6 +574,39 @@ internal static unsafe class VulkanUtils
             flags |= VkShaderStageFlags.MeshEXT;
 
         return flags;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkPrimitiveTopology ToVk(this PrimitiveTopology type)
+    {
+        switch (type)
+        {
+            case PrimitiveTopology.PointList: return VkPrimitiveTopology.PointList;
+            case PrimitiveTopology.LineList: return VkPrimitiveTopology.LineList;
+            case PrimitiveTopology.LineStrip: return VkPrimitiveTopology.LineStrip;
+            case PrimitiveTopology.TriangleStrip: return VkPrimitiveTopology.TriangleStrip;
+            case PrimitiveTopology.PatchList: return VkPrimitiveTopology.PatchList;
+            default:
+                return VkPrimitiveTopology.TriangleList;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkCompareOp ToVk(this CompareFunction value)
+    {
+        switch (value)
+        {
+            case CompareFunction.Never: return VkCompareOp.Never;
+            case CompareFunction.Less: return VkCompareOp.Less;
+            case CompareFunction.Equal: return VkCompareOp.Equal;
+            case CompareFunction.LessEqual: return VkCompareOp.LessOrEqual;
+            case CompareFunction.Greater: return VkCompareOp.Greater;
+            case CompareFunction.NotEqual: return VkCompareOp.NotEqual;
+            case CompareFunction.GreaterEqual: return VkCompareOp.GreaterOrEqual;
+            case CompareFunction.Always: return VkCompareOp.Always;
+            default:
+                return VkCompareOp.Never;
+        }
     }
 
     private static readonly ResourceStateMapping[] s_resourceStateMap = new ResourceStateMapping[] {

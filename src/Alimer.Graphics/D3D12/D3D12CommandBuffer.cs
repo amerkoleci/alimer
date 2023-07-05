@@ -1,15 +1,15 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.Graphics.Constants;
+using System.Drawing;
 using CommunityToolkit.Diagnostics;
-using System.Diagnostics;
 using Win32;
 using Win32.Graphics.Direct3D12;
+using static Alimer.Graphics.Constants;
 using static Win32.Apis;
-using System.Drawing;
 using static Win32.Graphics.Direct3D12.Apis;
 using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
+using D3DShadingRate = Win32.Graphics.Direct3D12.ShadingRate;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -64,7 +64,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public void Destroy()
     {
-        for (int i = 0; i < _commandAllocators.Length; ++i)
+        for (var i = 0; i < _commandAllocators.Length; ++i)
         {
             _commandAllocators[i].Dispose();
         }
@@ -173,8 +173,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     {
         // TODO: Use Pix3 (WinPixEventRuntime)
 
-        int bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
-        void* buffer = stackalloc byte[bufferSize];
+        var bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
+        var buffer = stackalloc byte[bufferSize];
         PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_BeginEvent_NoArgs, 0, groupLabel);
         _commandList.Get()->BeginEvent(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
@@ -186,8 +186,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public override void InsertDebugMarker(string debugLabel)
     {
-        int bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
-        void* buffer = stackalloc byte[bufferSize];
+        var bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
+        var buffer = stackalloc byte[bufferSize];
         PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_SetMarker_NoArgs, 0, debugLabel);
         _commandList.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
@@ -223,7 +223,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
         for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
         {
-            ref RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
+            ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
             Guard.IsTrue(attachment.Texture is not null);
 
             D3D12Texture texture = (D3D12Texture)attachment.Texture;
@@ -276,7 +276,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
-            D3D12Texture texture = (D3D12Texture)attachment.Texture!;
+            var texture = (D3D12Texture)attachment.Texture!;
             int mipLevel = attachment.MipLevel;
             int slice = attachment.Slice;
 
@@ -308,9 +308,70 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->EndRenderPass();
     }
 
+    public override void SetViewport(in Viewport viewport)
+    {
+        Win32.Numerics.Viewport d3d12Viewport = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+        _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
+    }
+
+    public override void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0)
+    {
+        if (count == 0)
+        {
+            count = viewports.Length;
+        }
+        Win32.Numerics.Viewport* d3d12Viewports = stackalloc Win32.Numerics.Viewport[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            ref readonly Viewport viewport = ref viewports[(int)i];
+
+            d3d12Viewports[i] = new Win32.Numerics.Viewport(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+        }
+        _commandList.Get()->RSSetViewports((uint)count, d3d12Viewports);
+    }
+
+    public override void SetScissorRect(in Rectangle rect)
+    {
+        Win32.Numerics.Rect scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
+        _commandList.Get()->RSSetScissorRects(1, &scissorRect);
+    }
+
+    public override void SetStencilReference(uint reference)
+    {
+
+    }
+
+    public override void SetBlendColor(in Numerics.Color color)
+    {
+    }
+
+    public override void SetShadingRate(ShadingRate rate)
+    {
+        if (_queue.Device.QueryFeatureSupport(Feature.VariableRateShading) && _currentShadingRate != rate)
+        {
+            _currentShadingRate = rate;
+
+            D3DShadingRate d3dRate = D3DShadingRate.Rate1x1;
+            _queue.Device.WriteShadingRateValue(rate, &d3dRate);
+
+            ShadingRateCombiner* combiners = stackalloc ShadingRateCombiner[2]
+            {
+                ShadingRateCombiner.Max,
+                ShadingRateCombiner.Max,
+            };
+            _commandList.Get()->RSSetShadingRate(d3dRate, combiners);
+        }
+    }
+
+    public override void SetDepthBounds(float minBounds, float maxBounds)
+    {
+
+    }
+
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
     {
-        D3D12SwapChain d3dSwapChain = (D3D12SwapChain)swapChain;
+        var d3dSwapChain = (D3D12SwapChain)swapChain;
 
         D3D12Texture swapChainTexture = d3dSwapChain.CurrentBackBufferTexture;
 

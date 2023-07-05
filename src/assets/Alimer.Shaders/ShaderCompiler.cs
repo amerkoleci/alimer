@@ -3,13 +3,15 @@
 
 using System.Runtime.CompilerServices;
 using Win32;
+using Win32.Graphics.Direct3D;
 using Win32.Graphics.Direct3D.Dxc;
+using Win32.Graphics.Direct3D12;
 using static Win32.Apis;
 using static Win32.Graphics.Direct3D.Dxc.Apis;
 
 namespace Alimer.Shaders;
 
-public sealed partial class ShaderCompiler
+public sealed unsafe partial class ShaderCompiler
 {
     /// <summary>
     /// The thread local <see cref="ShaderCompiler"/> instance.
@@ -36,7 +38,7 @@ public sealed partial class ShaderCompiler
     /// <summary>
     /// Creates a new <see cref="ShaderCompiler"/> instance.
     /// </summary>
-    private unsafe ShaderCompiler()
+    private ShaderCompiler()
     {
         using ComPtr<IDxcUtils> dxcUtils = default;
         using ComPtr<IDxcCompiler3> dxcCompiler = default;
@@ -77,7 +79,10 @@ public sealed partial class ShaderCompiler
     /// </summary>
     public static ShaderCompiler Instance => s_instance ??= new();
 
-    public unsafe ShaderCompilationResult Compile(ReadOnlySpan<char> source, ReadOnlySpan<char> entryPoint, ReadOnlySpan<char> target)
+    public ShaderCompilationResult Compile(
+        ShaderFormat format,
+        ReadOnlySpan<char> source,
+        ReadOnlySpan<char> entryPoint, ReadOnlySpan<char> target)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
         using ComPtr<IDxcResult> results = default;
@@ -105,21 +110,42 @@ public sealed partial class ShaderCompiler
         fixed (char* pEntryPoint = entryPoint)
         fixed (char* pShaderProfileName = "-T")
         fixed (char* pShaderProfile = target)
-        //fixed (char* optimization = "-O3")
-        //fixed (char* rowMajor = "-Zpr")
-        //fixed (char* warningsAsErrors = "-Werror")
+        fixed (char* pIncludeParameter = "-I")
+        fixed (char* pDefineParameter = "-D")
+        fixed (char* pStripReflect = "-Qstrip_reflect")
+        fixed (char* pSpirvArg = "-spirv")
+        fixed (char* pSpvTargetEnvArg = "-fspv-target-env=vulkan1.2")
+        fixed (char* pVkUseDxLayoutArg = "-fvk-use-dx-layout")
+        fixed (char* pVkUseDxDxPositionArg = "-fvk-use-dx-position-w")
+        fixed (char* pSpirvDefine = "SPIRV")
         {
-            uint argCount = 5;
-            char** arguments = stackalloc char*[5] {
-                shaderName,
-                pEntryPointName,
-                pEntryPoint,
-                pShaderProfileName,
-                pShaderProfile/*,
-                //optimization,
-                //rowMajor,
-                //warningsAsErrors*/
-            };
+            uint argCount = 0;
+            char** arguments = stackalloc char*[32];
+            arguments[argCount++] = shaderName;
+            // -E
+            arguments[argCount++] = pEntryPointName;
+            arguments[argCount++] = pEntryPoint;
+
+            // -T
+            arguments[argCount++] = pShaderProfileName;
+            arguments[argCount++] = pShaderProfile;
+
+            if (format == ShaderFormat.SPIRV)
+            {
+                arguments[argCount++] = pDefineParameter;
+                arguments[argCount++] = pSpirvDefine;
+
+                arguments[argCount++] = pSpirvArg;
+                arguments[argCount++] = pSpvTargetEnvArg;
+
+                arguments[argCount++] = pVkUseDxLayoutArg;
+                arguments[argCount++] = pVkUseDxDxPositionArg;
+            }
+            else
+            {
+                // -Qstrip_reflect
+                arguments[argCount++] = pStripReflect;
+            }
 
             HResult hr = _dxcCompiler.Get()->Compile(
                 &buffer,
@@ -171,6 +197,96 @@ public sealed partial class ShaderCompiler
             if (byteCode.Get() is null)
             {
                 return new DxcShaderCompilationResult("The compiled shader is invalid");
+            }
+
+            // Save pdb.
+            using ComPtr<IDxcBlob> pPDB = default;
+            using ComPtr<IDxcBlobUtf16> pPDBName = default;
+            results.Get()->GetOutput(DxcOutKind.Pdb,
+                __uuidof<IDxcBlob>(),
+                pPDB.GetVoidAddressOf(),
+                pPDBName.GetAddressOf());
+            if (pPDB.Get() is null)
+            {
+            }
+
+            // Print hash.
+            using ComPtr<IDxcBlob> hash = default;
+            results.Get()->GetOutput(DxcOutKind.ShaderHash,
+                __uuidof<IDxcBlob>(),
+                hash.GetVoidAddressOf(),
+                null);
+            if (hash.Get() is not null)
+            {
+            }
+
+            if (format == ShaderFormat.DXIL)
+            {
+                using ComPtr<IDxcBlob> reflectionData = default;
+                results.Get()->GetOutput(DxcOutKind.Reflection, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
+                if (reflectionData.Get() is not null)
+                {
+                    // Create reflection interface.
+                    var ReflectionData = new DxcBuffer
+                    {
+                        Encoding = DxcCp.Acp,
+                        Ptr = reflectionData.Get()->GetBufferPointer(),
+                        Size = reflectionData.Get()->GetBufferSize()
+                    };
+
+                    using ComPtr<ID3D12ShaderReflection> reflection = default;
+                    _dxcUtils.Get()->CreateReflection(&ReflectionData, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
+
+                    ShaderDescription description;
+                    ThrowIfFailed(reflection.Get()->GetDesc(&description));
+
+                    // Iterate on all Constant buffers used by this shader
+                    // Build all ParameterBuffers
+                    for (uint i = 0; i < description.ConstantBuffers; i++)
+                    {
+                        ID3D12ShaderReflectionConstantBuffer* reflectConstantBuffer = reflection.Get()->GetConstantBufferByIndex(i);
+                        ShaderBufferDescription reflectConstantBufferDescription = default;
+                        ThrowIfFailed(reflectConstantBuffer->GetDesc(&reflectConstantBufferDescription));
+
+                        // Skip non pure constant-buffers and texture buffers
+                        if (reflectConstantBufferDescription.Type != ConstantBufferType.ConstantBuffer
+                            && reflectConstantBufferDescription.Type != ConstantBufferType.TextureBuffer)
+                        {
+                            continue;
+                        }
+
+                        string name = new(reflectConstantBufferDescription.Name);
+
+                        // Create the buffer
+                        //var parameterBuffer = new EffectData.ConstantBuffer()
+                        //{
+                        //    Name = reflectConstantBufferDescription.Name,
+                        //    Size = reflectConstantBufferDescription.Size,
+                        //    Parameters = new List<EffectData.ValueTypeParameter>(),
+                        //};
+                        //shader.ConstantBuffers.Add(parameterBuffer);
+                        //
+                        //// Iterate on each variable declared inside this buffer
+                        //for (int j = 0; j < reflectConstantBufferDescription.VariableCount; j++)
+                        //{
+                        //    var variableBuffer = reflectConstantBuffer.GetVariable(j);
+                        //
+                        //    // Build constant buffer parameter
+                        //    var parameter = BuildConstantBufferParameter(variableBuffer);
+                        //
+                        //    // Add this parameter to the ConstantBuffer
+                        //    parameterBuffer.Parameters.Add(parameter);
+                        //}
+                    }
+
+                    for (uint i = 0; i < description.BoundResources; ++i)
+                    {
+                        ShaderInputBindDescription shaderInputBindDesc = default;
+                        ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &shaderInputBindDesc));
+                        string name = new(shaderInputBindDesc.Name);
+
+                    }
+                }
             }
 
             return new DxcShaderCompilationResult(byteCode);

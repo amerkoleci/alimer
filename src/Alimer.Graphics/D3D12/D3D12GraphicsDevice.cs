@@ -11,7 +11,7 @@ using Win32;
 using MessageId = Win32.Graphics.Direct3D12.MessageId;
 using InfoQueueFilter = Win32.Graphics.Direct3D12.InfoQueueFilter;
 using DxgiInfoQueueFilter = Win32.Graphics.Dxgi.InfoQueueFilter;
-
+using D3DShadingRate = Win32.Graphics.Direct3D12.ShadingRate;
 using System.Diagnostics;
 using Win32.Graphics.Direct3D;
 
@@ -400,9 +400,80 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override bool QueryFeature(Feature feature)
+    public override bool QueryFeatureSupport(Feature feature)
     {
-        return false;
+        switch (feature)  // NOLINT(clang-diagnostic-switch-enum)
+        {
+            // Always supported features
+            case Feature.DepthClipControl:
+            case Feature.Depth32FloatStencil8:
+            case Feature.TimestampQuery:
+            case Feature.PipelineStatisticsQuery:
+            case Feature.TextureCompressionBC:
+            case Feature.IndirectFirstInstance:
+            case Feature.GeometryShader:
+            case Feature.TessellationShader:
+            case Feature.SamplerAnisotropy:
+            case Feature.DepthResolveMinMax:
+            case Feature.StencilResolveMinMax:
+            case Feature.Predication:
+                return true;
+
+            // Always unsupported features
+            case Feature.TextureCompressionETC2:
+            case Feature.TextureCompressionASTC:
+                return false;
+
+            case Feature.ShaderFloat16:
+                //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
+                return _features.HighestShaderModel >= ShaderModel.SM_6_2 && _features.Native16BitShaderOpsSupported;
+
+            case Feature.RG11B10UfloatRenderable:
+                return true;
+
+            case Feature.BGRA8UnormStorage:
+                {
+                    FeatureDataFormatSupport bgra8unormFormatInfo = default;
+                    bgra8unormFormatInfo.Format = Win32.Graphics.Dxgi.Common.Format.B8G8R8A8Unorm;
+                    HResult hr = _handle.Get()->CheckFeatureSupport(Win32.Graphics.Direct3D12.Feature.FormatSupport, &bgra8unormFormatInfo, sizeof(FeatureDataFormatSupport));
+                    if (hr.Success &&
+                        (bgra8unormFormatInfo.Support1 & FormatSupport1.TypedUnorderedAccessView) != 0)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+
+            case Feature.DepthBoundsTest:
+                return _features.DepthBoundsTestSupported;
+
+            case Feature.SamplerMinMax:
+                if (_features.TiledResourcesTier >= TiledResourcesTier.Tier2)
+                {
+                    // Tier 2 for tiled resources
+                    // https://learn.microsoft.com/en-us/windows/win32/direct3d11/tiled-resources-texture-sampling-features
+                }
+
+                return (_features.MaxSupportedFeatureLevel >= FeatureLevel.Level_11_1);
+
+            case Feature.VariableRateShading:
+                return (_features.VariableShadingRateTier >= VariableShadingRateTier.Tier1);
+
+            case Feature.VariableRateShadingTier2:
+                return (_features.VariableShadingRateTier >= VariableShadingRateTier.Tier2);
+
+            case Feature.RayTracing:
+                return (_features.RaytracingTier >= RaytracingTier.Tier1_0);
+
+            case Feature.RayTracingTier2:
+                return (_features.RaytracingTier >= RaytracingTier.Tier1_1);
+
+            case Feature.MeshShader:
+                return (_features.MeshShaderTier >= MeshShaderTier.Tier1);
+
+            default:
+                return false;
+        }
     }
 
     /// <inheritdoc />
@@ -451,6 +522,16 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         ProcessDeletionQueue();
+    }
+
+    public override void WriteShadingRateValue(ShadingRate rate, void* dest)
+    {
+        byte d3dRate = (byte)rate.ToD3D12();
+        if (!_features.AdditionalShadingRatesSupported)
+        {
+            d3dRate = Math.Min(d3dRate, (byte)D3DShadingRate.Rate2x2);
+        }
+        *(byte*)dest = d3dRate;
     }
 
     /// <inheritdoc />

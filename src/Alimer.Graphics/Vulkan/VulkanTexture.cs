@@ -166,7 +166,7 @@ internal unsafe class VulkanTexture : Texture
             extent = new(description.Width, description.Height, depth),
             mipLevels = MipLevelCount,
             arrayLayers = arrayLayers,
-            samples = SampleCount.ToVkSampleCount(),
+            samples = SampleCount.ToVk(),
             tiling = VkImageTiling.Optimal,
             usage = usage
         };

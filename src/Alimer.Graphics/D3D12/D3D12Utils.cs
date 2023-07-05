@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Win32.Graphics.Direct3D12;
 using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
+using D3DShadingRate = Win32.Graphics.Direct3D12.ShadingRate;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -121,6 +122,28 @@ internal static unsafe class D3D12Utils
 
             case QueryType.PipelineStatistics:
                 return QueryHeapType.PipelineStatistics;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3DShadingRate ToD3D12(this ShadingRate value)
+    {
+        switch (value)
+        {
+            case ShadingRate.Rate1x2:
+                return D3DShadingRate.Rate1x2;
+            case ShadingRate.Rate2x1:
+                return D3DShadingRate.Rate2x1;
+            case ShadingRate.Rate2x2:
+                return D3DShadingRate.Rate2x2;
+            case ShadingRate.Rate2x4:
+                return D3DShadingRate.Rate2x4;
+            case ShadingRate.Rate4x2:
+                return D3DShadingRate.Rate4x2;
+            case ShadingRate.Rate4x4:
+                return D3DShadingRate.Rate4x4;
+            default:
+                return D3DShadingRate.Rate1x1;
         }
     }
 

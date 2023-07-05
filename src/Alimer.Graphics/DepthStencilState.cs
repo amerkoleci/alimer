@@ -79,4 +79,6 @@ public readonly record struct DepthStencilState
 
     public StencilFaceState StencilFront { get; init; }
     public StencilFaceState StencilBack { get; init; }
+
+    public bool DepthBoundsTestEnable { get; init; }
 }

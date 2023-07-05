@@ -969,7 +969,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override bool QueryFeature(Feature feature)
+    public override bool QueryFeatureSupport(Feature feature)
     {
         switch (feature)
         {
@@ -1094,6 +1094,38 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         ProcessDeletionQueue();
+    }
+
+    public override void WriteShadingRateValue(ShadingRate rate, void* dest)
+    {
+        // How to compute shading rate value texel data:
+        // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#primsrast-fragment-shading-rate-attachment
+
+        switch (rate)
+        {
+            default:
+            case ShadingRate.Rate1x1:
+                *(byte*)dest = 0;
+                break;
+            case ShadingRate.Rate1x2:
+                *(byte*)dest = 0x1;
+                break;
+            case ShadingRate.Rate2x1:
+                *(byte*)dest = 0x4;
+                break;
+            case ShadingRate.Rate2x2:
+                *(byte*)dest = 0x5;
+                break;
+            case ShadingRate.Rate2x4:
+                *(byte*)dest = 0x6;
+                break;
+            case ShadingRate.Rate4x2:
+                *(byte*)dest = 0x9;
+                break;
+            case ShadingRate.Rate4x4:
+                *(byte*)dest = 0xa;
+                break;
+        }
     }
 
     public uint GetQueueFamily(QueueType queueType) => _queueFamilyIndices[(int)queueType];

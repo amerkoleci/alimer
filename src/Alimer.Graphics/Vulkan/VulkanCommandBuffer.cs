@@ -7,6 +7,7 @@ using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
+using System.Drawing;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -260,7 +261,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                 ref RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
                 Guard.IsTrue(attachment.Texture is not null);
 
-                VulkanTexture texture = (VulkanTexture)attachment.Texture;
+                var texture = (VulkanTexture)attachment.Texture;
                 int mipLevel = attachment.MipLevel;
                 int slice = attachment.Slice;
                 VkImageView imageView = texture.GetView(mipLevel, slice);
@@ -283,7 +284,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             {
                 RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
-                VulkanTexture texture = (VulkanTexture)attachment.Texture!;
+                var texture = (VulkanTexture)attachment.Texture!;
                 int mipLevel = attachment.MipLevel;
                 int slice = attachment.Slice;
 
@@ -348,9 +349,145 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         }
     }
 
+    public override void SetViewport(in Viewport viewport)
+    {
+        // Flip viewport to match DirectX coordinate system
+        VkViewport vkViewport = new()
+        {
+            x = viewport.X,
+            y = viewport.Height - viewport.Y,
+            width = viewport.Width,
+            height = -viewport.Height,
+            minDepth = viewport.MinDepth,
+            maxDepth = viewport.MaxDepth
+        };
+        vkCmdSetViewport(_commandBuffer, 0, 1, &vkViewport);
+    }
+
+    public override void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0)
+    {
+        if (count == 0)
+        {
+            count = viewports.Length;
+        }
+        VkViewport* vkViewports = stackalloc VkViewport[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            ref readonly Viewport viewport = ref viewports[(int)i];
+
+            vkViewports[i] = new()
+            {
+                x = viewport.X,
+                y = viewport.Height - viewport.Y,
+                width = viewport.Width,
+                height = -viewport.Height,
+                minDepth = viewport.MinDepth,
+                maxDepth = viewport.MaxDepth
+            };
+        }
+
+        vkCmdSetViewport(_commandBuffer, firstViewport: 0, 1, vkViewports);
+    }
+
+    public override void SetScissorRect(in Rectangle rect)
+    {
+        VkRect2D vkRect = new(rect.X, rect.Y, rect.Width, rect.Height);
+        vkCmdSetScissor(_commandBuffer, 0, 1, &vkRect);
+    }
+
+    public override void SetStencilReference(uint reference)
+    {
+        vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, reference);
+    }
+
+    public override void SetBlendColor(in Numerics.Color color)
+    {
+        vkCmdSetBlendConstants(_commandBuffer, color.R, color.G, color.B, color.A);
+    }
+
+    public override void SetShadingRate(ShadingRate rate)
+    {
+        if (_queue.Device.QueryFeatureSupport(Feature.VariableRateShading) && _currentShadingRate != rate)
+        {
+            _currentShadingRate = rate;
+
+            VkExtent2D fragmentSize;
+            switch (rate)
+            {
+                case ShadingRate.Rate1x1:
+                    fragmentSize.width = 1;
+                    fragmentSize.height = 1;
+                    break;
+                case ShadingRate.Rate1x2:
+                    fragmentSize.width = 1;
+                    fragmentSize.height = 2;
+                    break;
+                case ShadingRate.Rate2x1:
+                    fragmentSize.width = 2;
+                    fragmentSize.height = 1;
+                    break;
+                case ShadingRate.Rate2x2:
+                    fragmentSize.width = 2;
+                    fragmentSize.height = 2;
+                    break;
+                case ShadingRate.Rate2x4:
+                    fragmentSize.width = 2;
+                    fragmentSize.height = 4;
+                    break;
+                case ShadingRate.Rate4x2:
+                    fragmentSize.width = 4;
+                    fragmentSize.height = 2;
+                    break;
+                case ShadingRate.Rate4x4:
+                    fragmentSize.width = 4;
+                    fragmentSize.height = 4;
+                    break;
+                default:
+                    break;
+            }
+
+            var combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2]
+            {
+                VkFragmentShadingRateCombinerOpKHR.Keep,
+                VkFragmentShadingRateCombinerOpKHR.Keep
+            };
+
+            //if (_queue.Device.fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps == VK_TRUE)
+            //{
+            //    if (device->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
+            //    {
+            //        combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
+            //    }
+            //    if (device->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+            //    {
+            //        combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
+            //    }
+            //}
+            //else
+            //{
+            //    if (device->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
+            //    {
+            //        combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+            //    }
+            //    if (device->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+            //    {
+            //        combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+            //    }
+            //}
+
+            vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
+        }
+    }
+
+    public override void SetDepthBounds(float minBounds, float maxBounds)
+    {
+
+    }
+
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
     {
-        VulkanSwapChain vulkanSwapChain = (VulkanSwapChain)swapChain;
+        var vulkanSwapChain = (VulkanSwapChain)swapChain;
 
         VkResult result = VkResult.Success;
         uint imageIndex = 0;

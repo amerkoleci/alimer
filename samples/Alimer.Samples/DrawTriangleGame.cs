@@ -85,11 +85,13 @@ public sealed class DrawTriangleGame : GameApplication
         base.Draw(time);
     }
 
-    private static byte[] Compile(string fileName, string entryPoint, string target)
+    private byte[] Compile(string fileName, string entryPoint, string target)
     {
+        ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
+
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));
-        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderSource, entryPoint, target);
+        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource, entryPoint, target);
         if (result.Failed)
         {
             throw new GraphicsException(result.ErrorMessage);
