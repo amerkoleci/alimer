@@ -23,7 +23,6 @@ internal unsafe class VulkanTexture : Texture
         VkImageCreateFlags flags = VkImageCreateFlags.None;
         VkImageType imageType = description.Dimension.ToVk();
         VkImageUsageFlags usage = VkImageUsageFlags.None;
-        VkImageTiling tiling = VkImageTiling.Optimal;
         uint depth = 1u;
         uint arrayLayers = 1u;
 
@@ -95,6 +94,7 @@ internal unsafe class VulkanTexture : Texture
             usage |= VkImageUsageFlags.InputAttachment;
         }
 
+#if TODO_SHARED
         VkExternalMemoryImageCreateInfo externalInfo = new();
         bool isShared = false;
         if ((description.Usage & TextureUsage.Shared) != 0)
@@ -149,7 +149,8 @@ internal unsafe class VulkanTexture : Texture
             externalInfo.handleTypes = externalFormatInfo.handleType;
             externalInfo.pNext = info.pNext;
             info.pNext = &externalInfo;
-        }
+        } 
+#endif
 
         VmaAllocationInfo allocationInfo = default;
         VmaAllocationCreateInfo memoryInfo = new()

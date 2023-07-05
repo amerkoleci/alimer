@@ -8,7 +8,9 @@ namespace Alimer.Graphics;
 /// </summary>
 public readonly record struct ComputePipelineDescription
 {
-    public ReadOnlyMemory<byte> ComputeShader { get; init; }
+    public PipelineLayout Layout { get; init; }
+
+    public ShaderStageDescription ComputeShader { get; init; }
 
     /// <summary>
     /// Gets or sets the label of <see cref="Pipeline"/>.

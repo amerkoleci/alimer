@@ -18,6 +18,7 @@ internal unsafe class DxcShaderCompilationResult : ShaderCompilationResult
     public DxcShaderCompilationResult(ComPtr<IDxcBlob> byteCode)
     {
         _byteCode = byteCode.Move();
+        _byteCode.Get()->AddRef();
     }
 
     public override void Dispose()

@@ -8,6 +8,6 @@ public sealed class GraphicsException : Exception
     public GraphicsException(string message)
         : base(message)
     {
-
+        Log.Error(message);
     }
 }

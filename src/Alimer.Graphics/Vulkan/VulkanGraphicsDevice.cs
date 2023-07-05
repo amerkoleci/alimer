@@ -781,26 +781,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
 
             GpuAdapterType adapterType = GpuAdapterType.Other;
-            switch (properties2.properties.deviceType)
+            adapterType = properties2.properties.deviceType switch
             {
-                case VkPhysicalDeviceType.IntegratedGpu:
-                    adapterType = GpuAdapterType.IntegratedGpu;
-                    break;
-                case VkPhysicalDeviceType.DiscreteGpu:
-                    adapterType = GpuAdapterType.DiscreteGpu;
-                    break;
-                case VkPhysicalDeviceType.Cpu:
-                    adapterType = GpuAdapterType.Cpu;
-                    break;
-
-                case VkPhysicalDeviceType.VirtualGpu:
-                    adapterType = GpuAdapterType.VirtualGpu;
-                    break;
-
-                default:
-                    adapterType = GpuAdapterType.Other;
-                    break;
-            }
+                VkPhysicalDeviceType.IntegratedGpu => GpuAdapterType.IntegratedGpu,
+                VkPhysicalDeviceType.DiscreteGpu => GpuAdapterType.DiscreteGpu,
+                VkPhysicalDeviceType.Cpu => GpuAdapterType.Cpu,
+                VkPhysicalDeviceType.VirtualGpu => GpuAdapterType.VirtualGpu,
+                _ => GpuAdapterType.Other,
+            };
 
             _adapterProperties = new()
             {
@@ -857,7 +845,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         _copyAllocator = new(this);
 
-        SupportsS8 = IsDepthStencilFormatSupported(VkFormat.S8Uint);
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
         SupportsD32S8 = IsDepthStencilFormatSupported(VkFormat.D32SfloatS8Uint);
 
@@ -876,6 +863,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         };
     }
 
+    /// <inheritdoc />
+    public override GraphicsAdapterProperties AdapterInfo => _adapterProperties;
+
+    /// <inheritdoc />
+    public override GraphicsDeviceLimits Limits => _limits;
+
+    /// <inheritdoc />
+    public override ulong TimestampFrequency { get; }
+
     public bool DebugUtils { get; }
     public bool HasPortability { get; }
     public bool HasHeadlessSurface { get; }
@@ -885,6 +881,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkInstance Instance => _instance;
 
     public bool SupportsExternal { get; }
+    public bool SupportsD24S8 { get; }
+    public bool SupportsD32S8 { get; }
+
     public VkPhysicalDeviceFeatures2 PhysicalDeviceFeatures2 { get; }
 
     public VkPhysicalDeviceVulkan12Features PhysicalDeviceFeatures1_2 { get; }
@@ -907,19 +906,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VmaAllocator MemoryAllocator => _allocator;
     public VkPipelineCache PipelineCache => _pipelineCache;
-
-    /// <inheritdoc />
-    public override GraphicsAdapterProperties AdapterInfo => _adapterProperties;
-
-    /// <inheritdoc />
-    public override GraphicsDeviceLimits Limits => _limits;
-
-    /// <inheritdoc />
-    public override ulong TimestampFrequency { get; }
-
-    public bool SupportsS8 { get; }
-    public bool SupportsD24S8 { get; }
-    public bool SupportsD32S8 { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanGraphicsDevice" /> class.

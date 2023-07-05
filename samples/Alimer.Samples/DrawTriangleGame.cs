@@ -6,34 +6,59 @@ using System.Runtime.InteropServices;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Numerics;
+using Alimer.Shaders;
 
 namespace Alimer.Samples;
 
 // https://github.com/dotnet/runtime/tree/main/src/tests/nativeaot
 public sealed class DrawTriangleGame : GameApplication
 {
+    private GraphicsBuffer? _vertexBuffer;
+    private PipelineLayout? _pipelineLayout;
+    private Pipeline? _renderPipeline;
+
     protected override void Initialize()
     {
         base.Initialize();
 
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
-        //
+
         ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
             new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
             new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
             new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
         };
-        using GraphicsBuffer vertexBuffer = GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex);
+        _vertexBuffer = GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex);
 
-        // Create some teste entities
-        Entity cameraEntity = new Entity();
-        cameraEntity.GetOrCreate<CameraComponent>();
-        
-        Entity rootEntity = new Entity();
-        rootEntity.Children.Add(cameraEntity);
-        
-        SceneSystem.RootEntity = rootEntity;
+        PipelineLayoutDescription pipelineLayoutDescription = new();
+        _pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription);
+
+        byte[] vertexShader = Compile("Triangle.hlsl", "vertexMain", "vs_6_5");
+        byte[] fragmentShader = Compile("Triangle.hlsl", "fragmentMain", "ps_6_5");
+
+        var shaderStages = new ShaderStageDescription[2]
+        {
+            new ShaderStageDescription(ShaderStages.Vertex, vertexShader, "vertexMain"),
+            new ShaderStageDescription(ShaderStages.Fragment, fragmentShader, "fragmentMain"),
+        };
+
+        var renderPipelineDesc = new RenderPipelineDescription(_pipelineLayout, shaderStages)
+        {
+        };
+        _renderPipeline = GraphicsDevice.CreateRenderPipeline(renderPipelineDesc);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _vertexBuffer!.Dispose();
+            _pipelineLayout!.Dispose();
+            _renderPipeline!.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     protected override void Draw(AppTime time)
@@ -58,6 +83,19 @@ public sealed class DrawTriangleGame : GameApplication
         context.Flush(waitForCompletion: false);
 
         base.Draw(time);
+    }
+
+    private static byte[] Compile(string fileName, string entryPoint, string target)
+    {
+        string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
+        string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));
+        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderSource, entryPoint, target);
+        if (result.Failed)
+        {
+            throw new GraphicsException(result.ErrorMessage);
+        }
+
+        return result.GetByteCode().ToArray();
     }
 
     public static void Main()

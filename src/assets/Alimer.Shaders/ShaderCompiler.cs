@@ -77,7 +77,7 @@ public sealed partial class ShaderCompiler
     /// </summary>
     public static ShaderCompiler Instance => s_instance ??= new();
 
-    public unsafe ShaderCompilationResult Compile(ReadOnlySpan<char> source, ReadOnlySpan<char> entryPoint)
+    public unsafe ShaderCompilationResult Compile(ReadOnlySpan<char> source, ReadOnlySpan<char> entryPoint, ReadOnlySpan<char> target)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
         using ComPtr<IDxcResult> results = default;
@@ -97,14 +97,14 @@ public sealed partial class ShaderCompiler
         {
             Ptr = dxcBlobEncoding.Get()->GetBufferPointer(),
             Size = dxcBlobEncoding.Get()->GetBufferSize(),
-            Encoding = (uint)DxcCp.Acp,
+            Encoding = DxcCp.Utf16,
         };
 
         fixed (char* shaderName = "")
         fixed (char* pEntryPointName = "-E")
         fixed (char* pEntryPoint = entryPoint)
         fixed (char* pShaderProfileName = "-T")
-        fixed (char* pShaderProfile = "cs_6_0")
+        fixed (char* pShaderProfile = target)
         //fixed (char* optimization = "-O3")
         //fixed (char* rowMajor = "-Zpr")
         //fixed (char* warningsAsErrors = "-Werror")
@@ -149,7 +149,8 @@ public sealed partial class ShaderCompiler
             // will be zero if there are no warnings or errors.
             if (errors.Get() is not null && errors.Get()->GetStringLength() != 0)
             {
-                //wprintf(L"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
+                string warningAndErrors = new(errors.Get()->GetStringPointer());
+                //Log.Warn"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
             }
 
             // Quit if the compilation failed.

@@ -275,14 +275,16 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public Pipeline CreateRenderPipeline(in RenderPipelineDescription description)
     {
-        Guard.IsGreaterThanOrEqualTo(description.VertexShader.Length, 1, nameof(RenderPipelineDescription.VertexShader));
+        Guard.IsGreaterThanOrEqualTo(description.ShaderStages.Length, 1, nameof(RenderPipelineDescription.ShaderStages));
 
         return CreateRenderPipelineCore(in description);
     }
 
     public Pipeline CreateComputePipeline(in ComputePipelineDescription description)
     {
-        Guard.IsGreaterThanOrEqualTo(description.ComputeShader.Length, 1, nameof(ComputePipelineDescription.ComputeShader));
+        Guard.IsTrue(description.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescription.ComputeShader));
+        Guard.IsNotNull(description.ComputeShader.ByteCode != null, nameof(ComputePipelineDescription.ComputeShader.ByteCode));
+        Guard.IsGreaterThan(description.ComputeShader.ByteCode!.Length, 0);
 
         return CreateComputePipelineCore(in description);
     }

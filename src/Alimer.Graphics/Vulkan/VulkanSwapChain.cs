@@ -124,7 +124,7 @@ internal unsafe class VulkanSwapChain : SwapChain
     public VkSemaphore AcquireSemaphore => _acquireSemaphore;
     public VkSemaphore ReleaseSemaphore => _releaseSemaphore;
     public uint AcquiredImageIndex { get; set; }
-    public VulkanTexture CurrentTexture => _backbufferTextures[AcquiredImageIndex]!;
+    public VulkanTexture CurrentTexture => _backbufferTextures![AcquiredImageIndex];
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanSwapChain" /> class.

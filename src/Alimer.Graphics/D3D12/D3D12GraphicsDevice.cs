@@ -145,8 +145,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
         if (_adapter.Get() is null)
         {
-            Log.Error("D3D12: No capable adapter found!");
-            return;
+            throw new GraphicsException("D3D12: No capable adapter found!");
         }
 
         if (ValidationMode != ValidationMode.Disabled)

@@ -9,18 +9,59 @@ namespace Alimer.Graphics.Vulkan;
 internal unsafe class VulkanPipeline : Pipeline
 {
     private readonly VulkanGraphicsDevice _device;
+    private readonly VulkanPipelineLayout _layout;
     private readonly VkPipeline _handle = VkPipeline.Null;
 
     public VulkanPipeline(VulkanGraphicsDevice device, in RenderPipelineDescription description)
         : base(PipelineType.Render, description.Label)
     {
         _device = device;
-        VkGraphicsPipelineCreateInfo createInfo = new();
-        //createInfo.stage = stage;
-        //createInfo.layout = pipeline->layout->handle;
+        _layout = (VulkanPipelineLayout)description.Layout;
+
+        var shaderStageCount = description.ShaderStages.Length;
+        var shaderStages = stackalloc VkPipelineShaderStageCreateInfo[shaderStageCount];
+        var vkShaderNames = stackalloc sbyte*[shaderStageCount];
+
+        for (var i = 0; i < shaderStageCount; i++)
+        {
+            ref var shaderDesc = ref description.ShaderStages[i];
+
+            var entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
+            var entryPointNameLength = entryPointName.Length + 1;
+
+            var pName = Interop.AllocateArray<sbyte>((uint)entryPointNameLength);
+            var destination = new Span<sbyte>(pName, entryPointNameLength);
+
+            entryPointName.CopyTo(destination);
+            destination[entryPointName.Length] = 0x00;
+
+            vkShaderNames[i] = pName;
+
+            shaderStages[i] = new()
+            {
+                stage = shaderDesc.Stage.ToVk(),
+                pName = pName,
+            };
+
+            var vkResult = vkCreateShaderModule(device.Handle, shaderDesc.ByteCode, null, out shaderStages[i].module);
+            if (vkResult != VkResult.Success)
+            {
+                Log.Error("Failed to create a pipeline shader module");
+                return;
+            }
+        }
+
+        VkGraphicsPipelineCreateInfo createInfo = new()
+        {
+            stageCount = (uint)shaderStageCount,
+            pStages = shaderStages,
+            layout = _layout.Handle,
+            basePipelineHandle = VkPipeline.Null,
+            basePipelineIndex = 0
+        };
 
         VkPipeline pipeline;
-        VkResult result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        var result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
 
         if (result != VkResult.Success)
         {
@@ -40,12 +81,32 @@ internal unsafe class VulkanPipeline : Pipeline
         : base(PipelineType.Compute, description.Label)
     {
         _device = device;
-        VkComputePipelineCreateInfo createInfo = new();
-        //createInfo.stage = stage;
-        //createInfo.layout = pipeline->layout->handle;
+        _layout = (VulkanPipelineLayout)description.Layout;
+
+        var result = vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out VkShaderModule shaderModule);
+        if (result != VkResult.Success)
+        {
+            Log.Error("Failed to create a pipeline shader module");
+            return;
+        }
+
+        VkString entryPoint = new(description.ComputeShader.EntryPoint);
+
+        var createInfo = new VkComputePipelineCreateInfo()
+        {
+            stage = new()
+            {
+                stage = VkShaderStageFlags.Compute,
+                module = shaderModule,
+                pName = entryPoint
+            },
+            layout = _layout.Handle,
+            basePipelineHandle = VkPipeline.Null,
+            basePipelineIndex = 0
+        };
 
         VkPipeline pipeline;
-        VkResult result = vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        result = vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
 
         if (result != VkResult.Success)
         {

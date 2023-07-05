@@ -5,12 +5,11 @@ namespace Alimer.Shaders;
 
 public abstract class ShaderCompilationResult : IDisposable
 {
-    protected ShaderCompilationResult() => Error = string.Empty;
-    protected ShaderCompilationResult(string error) => Error = error;
+    protected ShaderCompilationResult() => ErrorMessage = string.Empty;
+    protected ShaderCompilationResult(string error) => ErrorMessage = error;
 
-
-    public string Error { get; }
-    public bool Failed => !string.IsNullOrWhiteSpace(Error);
+    public string ErrorMessage { get; }
+    public bool Failed => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool Succeeded => !Failed;
 
     public abstract void Dispose();

@@ -27,9 +27,9 @@ public enum ShaderStages : ushort
     Domain = 1 << 2,
 
     /// <summary>
-    /// Pixel shader stage.
+    /// Fragment (pixel) shader stage.
     /// </summary>
-    Pixel = 1 << 3,
+    Fragment = 1 << 3,
 
     /// <summary>
     /// Compute shader stage.

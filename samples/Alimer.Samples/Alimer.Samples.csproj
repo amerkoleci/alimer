@@ -22,9 +22,6 @@
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
   
   <!-- Native Dependencies-->
-  <ItemGroup>
-    <!--<None Include="$(AlimerSrcDirectory)Alimer\runtimes\win-x64\native\alimer_image.dll" Link="alimer_image.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />-->
-  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
@@ -32,6 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Alimer.Engine\Alimer.Engine.csproj" />
+    <ProjectReference Include="..\..\src\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>
 
 </Project>
