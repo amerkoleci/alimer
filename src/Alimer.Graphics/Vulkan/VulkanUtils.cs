@@ -390,7 +390,7 @@ internal static unsafe class VulkanUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static VkFormat ToVkFormat(VertexFormat format)
+    public static VkFormat ToVk(this VertexFormat format)
     {
         switch (format)
         {
@@ -630,6 +630,109 @@ internal static unsafe class VulkanUtils
             default:
                 return VkCompareOp.Never;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkVertexInputRate ToVk(this VertexStepMode value)
+    {
+        return value switch
+        {
+            VertexStepMode.Instance => VkVertexInputRate.Instance,
+            _ => VkVertexInputRate.Vertex,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkCullModeFlags ToVk(this CullMode value)
+    {
+        return value switch
+        {
+            CullMode.Front => VkCullModeFlags.Front,
+            CullMode.None => VkCullModeFlags.None,
+            _ => VkCullModeFlags.Back,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkBlendFactor ToVk(this BlendFactor value)
+    {
+        switch (value)
+        {
+            case BlendFactor.Zero:
+                return VkBlendFactor.Zero;
+            case BlendFactor.One:
+                return VkBlendFactor.One;
+            case BlendFactor.SourceColor:
+                return VkBlendFactor.SrcColor;
+            case BlendFactor.OneMinusSourceColor:
+                return VkBlendFactor.OneMinusSrcColor;
+            case BlendFactor.SourceAlpha:
+                return VkBlendFactor.SrcAlpha;
+            case BlendFactor.OneMinusSourceAlpha:
+                return VkBlendFactor.OneMinusSrcAlpha;
+            case BlendFactor.DestinationColor:
+                return VkBlendFactor.DstColor;
+            case BlendFactor.OneMinusDestinationColor:
+                return VkBlendFactor.OneMinusDstColor;
+            case BlendFactor.DestinationAlpha:
+                return VkBlendFactor.DstAlpha;
+            case BlendFactor.OneMinusDestinationAlpha:
+                return VkBlendFactor.OneMinusDstAlpha;
+            case BlendFactor.SourceAlphaSaturate:
+                return VkBlendFactor.SrcAlphaSaturate;
+            case BlendFactor.BlendColor:
+                return VkBlendFactor.ConstantColor;
+            case BlendFactor.OneMinusBlendColor:
+                return VkBlendFactor.OneMinusConstantColor;
+            case BlendFactor.BlendAlpha:
+                return VkBlendFactor.ConstantAlpha;
+            case BlendFactor.OneMinusBlendAlpha:
+                return VkBlendFactor.OneMinusConstantAlpha;
+            case BlendFactor.Source1Color:
+                return VkBlendFactor.Src1Color;
+            case BlendFactor.OneMinusSource1Color:
+                return VkBlendFactor.OneMinusSrc1Color;
+            case BlendFactor.Source1Alpha:
+                return VkBlendFactor.Src1Alpha;
+            case BlendFactor.OneMinusSource1Alpha:
+                return VkBlendFactor.OneMinusSrc1Alpha;
+            default:
+                return VkBlendFactor.Zero;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkBlendOp ToVk(this BlendOperation value)
+    {
+        switch (value)
+        {
+            case BlendOperation.Subtract: return VkBlendOp.Subtract;
+            case BlendOperation.ReverseSubtract: return VkBlendOp.ReverseSubtract;
+            case BlendOperation.Min: return VkBlendOp.Min;
+            case BlendOperation.Max: return VkBlendOp.Max;
+            default:
+                return VkBlendOp.Add;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkColorComponentFlags ToVk(this ColorWriteMask value)
+    {
+        VkColorComponentFlags result = VkColorComponentFlags.None;
+
+        if ((value & ColorWriteMask.Red) != 0)
+            result |= VkColorComponentFlags.R;
+
+        if ((value & ColorWriteMask.Green) != 0)
+            result |= VkColorComponentFlags.G;
+
+        if ((value & ColorWriteMask.Blue) != 0)
+            result |= VkColorComponentFlags.B;
+
+        if ((value & ColorWriteMask.Alpha) != 0)
+            result |= VkColorComponentFlags.A;
+
+        return result;
     }
 
     private static readonly ResourceStateMapping[] s_resourceStateMap = new ResourceStateMapping[] {

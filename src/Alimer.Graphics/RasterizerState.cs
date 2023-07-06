@@ -7,34 +7,35 @@ public readonly record struct RasterizerState
 {
     public FillMode FillMode { get; init; }
     public CullMode CullMode { get; init; }
-    public FrontFaceWinding FrontFace { get; init; }
+    public bool FrontFaceCounterClockwise { get; init; }
+    public DepthClipMode DepthClipMode { get; init; }
 
     public RasterizerState()
     {
         FillMode = FillMode.Solid;
         CullMode = CullMode.Back;
-        FrontFace = FrontFaceWinding.Clockwise;
+        FrontFaceCounterClockwise = false;
     }
 
     public static readonly RasterizerState CullNone = new()
     {
         FillMode = FillMode.Solid,
         CullMode = CullMode.None,
-        FrontFace = FrontFaceWinding.Clockwise,
+        FrontFaceCounterClockwise = false,
     };
 
     public static readonly RasterizerState CullFront = new()
     {
         FillMode = FillMode.Solid,
         CullMode = CullMode.Front,
-        FrontFace = FrontFaceWinding.Clockwise,
+        FrontFaceCounterClockwise = false,
     };
 
     public static readonly RasterizerState CullBack = new()
     {
         FillMode = FillMode.Solid,
         CullMode = CullMode.Back,
-        FrontFace = FrontFaceWinding.Clockwise,
+        FrontFaceCounterClockwise = false,
     };
 
     public static readonly RasterizerState Default = CullBack;

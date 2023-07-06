@@ -3,14 +3,14 @@
 
 namespace Alimer.Graphics;
 
-public enum FrontFaceWinding
+public enum VertexStepMode
 {
     /// <summary>
-    /// Clockwise winding order.
+    /// Vertex data is advanced every vertex.
     /// </summary>
-    Clockwise,
+    Vertex = 0,
     /// <summary>
-    /// Counter-clockwise winding order.
+    /// Vertex data is advanced every instance.
     /// </summary>
-    CounterClockwise,
+    Instance = 1
 }

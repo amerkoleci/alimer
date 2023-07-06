@@ -16,7 +16,7 @@ public readonly record struct DepthStencilState
     public static DepthStencilState DepthReadReverseZ => new(false, CompareFunction.GreaterEqual);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DepthStencilState"/> struct.
+    /// Initializes a new instance of the <see cref="DepthStencilState"/> struct with default values.
     /// </summary>
     public DepthStencilState()
     {

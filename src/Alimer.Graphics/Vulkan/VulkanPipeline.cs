@@ -21,13 +21,13 @@ internal unsafe class VulkanPipeline : Pipeline
         _layout = (VulkanPipelineLayout)description.Layout;
 
         // ShaderStages
-        var shaderStageCount = description.ShaderStages.Length;
+        int shaderStageCount = description.ShaderStages.Length;
         var shaderStages = stackalloc VkPipelineShaderStageCreateInfo[shaderStageCount];
         var vkShaderNames = stackalloc sbyte*[shaderStageCount];
 
-        for (var i = 0; i < shaderStageCount; i++)
+        for (int i = 0; i < shaderStageCount; i++)
         {
-            ref var shaderDesc = ref description.ShaderStages[i];
+            ref ShaderStageDescription shaderDesc = ref description.ShaderStages[i];
 
             var entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
             var entryPointNameLength = entryPointName.Length + 1;
@@ -55,37 +55,42 @@ internal unsafe class VulkanPipeline : Pipeline
         }
 
         // VertexInputState
-        VkVertexInputBindingDescription* vertexBindings = stackalloc VkVertexInputBindingDescription[MaxVertexBufferBindings];
+        int vertexBufferLayoutsCount = 0;
+        int vertexAttributesCount = 0;
+        VkVertexInputBindingDescription* vertexBindings = stackalloc VkVertexInputBindingDescription[description.VertexBufferLayouts.Length];
         VkVertexInputAttributeDescription* vertexAttributes = stackalloc VkVertexInputAttributeDescription[MaxVertexAttributes];
 
-        VkPipelineVertexInputStateCreateInfo vertexInputState = new();
-        vertexInputState.pVertexBindingDescriptions = vertexBindings;
-        vertexInputState.pVertexAttributeDescriptions = vertexAttributes;
+        for (uint binding = 0; binding < description.VertexBufferLayouts.Length; binding++)
+        {
+            ref readonly VertexBufferLayout layout = ref description.VertexBufferLayouts[binding];
 
-        //for (var index = 0; index < MaxVertexBufferBindings; ++index)
-        //{
-        //    if (!description.V.vertexLayout.layouts[index].stride)
-        //        break;
+            if (layout.Stride == 0)
+                continue;
 
-        //    const VertexBufferLayout* layout = &desc.vertexLayout.layouts[index];
-        //    VkVertexInputBindingDescription* bindingDesc = &vertexBindings[vertexInputState.vertexBindingDescriptionCount++];
-        //    bindingDesc->binding = index;
-        //    bindingDesc->stride = layout->stride;
-        //    bindingDesc->inputRate = ToVk(layout->stepMode);
-        //}
+            VkVertexInputBindingDescription* bindingDesc = &vertexBindings[vertexBufferLayoutsCount++];
+            bindingDesc->binding = binding;
+            bindingDesc->stride = layout.Stride;
+            bindingDesc->inputRate = layout.StepMode.ToVk();
 
-        //for (var index = 0; index < MaxVertexAttributes; index++)
-        //{
-        //    const VertexAttribute* attribute = &desc.vertexLayout.attributes[index];
-        //    if (attribute->format == VertexFormat::Undefined)
-        //        continue;
+            for (int i = 0; i < layout.Attributes.Length; i++)
+            {
+                ref readonly VertexAttribute attribute = ref layout.Attributes[i];
 
-        //    VkVertexInputAttributeDescription* attributeDesc = &vertexAttributes[vertexInputState.vertexAttributeDescriptionCount++];
-        //    attributeDesc->location = index;
-        //    attributeDesc->binding = attribute->bufferIndex;
-        //    attributeDesc->format = ToVkFormat(attribute->format);
-        //    attributeDesc->offset = attribute->offset;
-        //}
+                VkVertexInputAttributeDescription* attributeDesc = &vertexAttributes[vertexAttributesCount++];
+                attributeDesc->location = attribute.ShaderLocation;
+                attributeDesc->binding = binding;
+                attributeDesc->format = attribute.Format.ToVk();
+                attributeDesc->offset = attribute.Offset;
+            }
+        }
+
+        VkPipelineVertexInputStateCreateInfo vertexInputState = new()
+        {
+            vertexBindingDescriptionCount = (uint)vertexBufferLayoutsCount,
+            pVertexBindingDescriptions = vertexBindings,
+            vertexAttributeDescriptionCount = (uint)vertexAttributesCount,
+            pVertexAttributeDescriptions = vertexAttributes
+        };
 
         // InputAssemblyState
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = new();
@@ -123,29 +128,28 @@ internal unsafe class VulkanPipeline : Pipeline
         VkPipelineRasterizationStateCreateInfo rasterizationState = new();
         rasterizationState.depthClampEnable = false;
 
-        //VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = new()
-        //
-        //if (desc.rasterizerState.depthClipMode == DepthClipMode::Clip &&
-        //    depthClipEnableFeatures.depthClipEnable == VK_TRUE)
-        //{
-        //    rasterizationState.pNext = &depthClipStateInfo;
-        //    depthClipStateInfo.depthClipEnable = VK_TRUE;
-        //}
-        //else
-        //{
-        //    rasterizationState.depthClampEnable = VK_TRUE;
-        //}
-        //
-        //rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-        //rasterizationState.polygonMode = ToVk(features2, desc.rasterizerState.fillMode);
-        //rasterizationState.cullMode = ToVk(desc.rasterizerState.cullMode);
-        //rasterizationState.frontFace = desc.rasterizerState.frontFaceCounterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
-        //// Can be managed by command buffer
+        VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = new();
+
+        if (description.RasterizerState.DepthClipMode == DepthClipMode.Clip && device.DepthClipEnable)
+        {
+            rasterizationState.pNext = &depthClipStateInfo;
+            depthClipStateInfo.depthClipEnable = true;
+        }
+        else
+        {
+            rasterizationState.depthClampEnable = true;
+        }
+
+        rasterizationState.rasterizerDiscardEnable = false;
+        rasterizationState.polygonMode = VkPolygonMode.Fill; // ToVk(features2, desc.rasterizerState.fillMode);
+        rasterizationState.cullMode = description.RasterizerState.CullMode.ToVk();
+        rasterizationState.frontFace = description.RasterizerState.FrontFaceCounterClockwise ? VkFrontFace.CounterClockwise : VkFrontFace.Clockwise;
+        // Can be managed by command buffer
         //rasterizationState.depthBiasEnable = desc.rasterizerState.depthBias != 0.0f || desc.rasterizerState.slopeScaledDepthBias != 0.0f;
         //rasterizationState.depthBiasConstantFactor = desc.rasterizerState.depthBias;
         //rasterizationState.depthBiasClamp = desc.rasterizerState.depthBiasClamp;
         //rasterizationState.depthBiasSlopeFactor = desc.rasterizerState.slopeScaledDepthBias;
-        //rasterizationState.lineWidth = 1.0f;
+        rasterizationState.lineWidth = 1.0f;
 
         // MultisampleState
         VkPipelineMultisampleStateCreateInfo multisampleState = new();
@@ -163,10 +167,14 @@ internal unsafe class VulkanPipeline : Pipeline
         multisampleState.pSampleMask = &sampleMask;
 
         // DepthStencilState
-        VkPipelineDepthStencilStateCreateInfo depthStencilState = new();
-        depthStencilState.depthTestEnable = (description.DepthStencilState.DepthCompare != CompareFunction.Always || description.DepthStencilState.DepthWriteEnabled);
-        depthStencilState.depthWriteEnable = description.DepthStencilState.DepthWriteEnabled;
-        depthStencilState.depthCompareOp = description.DepthStencilState.DepthCompare.ToVk();
+        VkPipelineDepthStencilStateCreateInfo depthStencilState = new()
+        {
+            depthTestEnable = (description.DepthStencilState.DepthCompare != CompareFunction.Always || description.DepthStencilState.DepthWriteEnabled),
+            depthWriteEnable = description.DepthStencilState.DepthWriteEnabled,
+            depthCompareOp = description.DepthStencilState.DepthCompare.ToVk(),
+            minDepthBounds = 0.0f,
+            maxDepthBounds = 1.0f
+        };
         if (_device.PhysicalDeviceFeatures2.features.depthBounds)
         {
             depthStencilState.depthBoundsTestEnable = description.DepthStencilState.DepthBoundsTestEnable;
@@ -175,8 +183,6 @@ internal unsafe class VulkanPipeline : Pipeline
         {
             depthStencilState.depthBoundsTestEnable = false;
         }
-        depthStencilState.minDepthBounds = 0.0f;
-        depthStencilState.maxDepthBounds = 1.0f;
 
         //depthStencilState.stencilTestEnable = StencilTestEnabled(&desc.depthStencilState) ? VK_TRUE : VK_FALSE;
         //depthStencilState.front.failOp = ToVk(desc.depthStencilState.frontFace.failOp);
@@ -196,10 +202,41 @@ internal unsafe class VulkanPipeline : Pipeline
         //depthStencilState.back.reference = 0;
 
         // BlendState
+        int colorAttachmentCount = 0;
+        VkPipelineColorBlendAttachmentState* blendAttachmentStates = stackalloc VkPipelineColorBlendAttachmentState[description.ColorFormats.Length];
+
+        for (int i = 0; i < description.ColorFormats.Length; i++)
+        {
+            if (description.ColorFormats[i] == PixelFormat.Undefined)
+                continue;
+
+            ref readonly RenderTargetBlendState attachment = ref description.BlendState.RenderTargets[i];
+
+            blendAttachmentStates[colorAttachmentCount].blendEnable = GraphicsUtilities.BlendEnabled(in attachment);
+            blendAttachmentStates[colorAttachmentCount].srcColorBlendFactor = attachment.SourceColorBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].dstColorBlendFactor = attachment.DestinationColorBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].colorBlendOp = attachment.ColorBlendOperation.ToVk();
+            blendAttachmentStates[colorAttachmentCount].srcAlphaBlendFactor = attachment.SourceAlphaBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].dstAlphaBlendFactor = attachment.DestinationAlphaBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
+            blendAttachmentStates[colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
+            colorAttachmentCount++;
+        }
+        VkPipelineColorBlendStateCreateInfo blendState = new()
+        {
+            logicOpEnable = false,
+            logicOp = VkLogicOp.Clear,
+            attachmentCount = (uint)colorAttachmentCount,
+            pAttachments = blendAttachmentStates
+        };
+        blendState.blendConstants[0] = 0.0f;
+        blendState.blendConstants[1] = 0.0f;
+        blendState.blendConstants[2] = 0.0f;
+        blendState.blendConstants[3] = 0.0f;
 
         // DynamicState
         int dynamicStateCount = 4;
-        var vkDynamicStates = stackalloc VkDynamicState[6] {
+        VkDynamicState* vkDynamicStates = stackalloc VkDynamicState[6] {
             VkDynamicState.Viewport,
             VkDynamicState.Scissor,
             VkDynamicState.StencilReference,
@@ -216,7 +253,7 @@ internal unsafe class VulkanPipeline : Pipeline
         //    dynamicStateCount++;
         //}
 
-        var dynamicState = new VkPipelineDynamicStateCreateInfo
+        VkPipelineDynamicStateCreateInfo dynamicState = new()
         {
             pNext = null,
             flags = 0,
@@ -235,7 +272,7 @@ internal unsafe class VulkanPipeline : Pipeline
             pRasterizationState = &rasterizationState,
             pMultisampleState = &multisampleState,
             pDepthStencilState = &depthStencilState,
-            pColorBlendState = null,
+            pColorBlendState = &blendState,
             pDynamicState = &dynamicState,
             layout = _layout.Handle,
             basePipelineHandle = VkPipeline.Null,
@@ -243,7 +280,7 @@ internal unsafe class VulkanPipeline : Pipeline
         };
 
         VkPipeline pipeline;
-        var result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        VkResult result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
 
         if (result != VkResult.Success)
         {

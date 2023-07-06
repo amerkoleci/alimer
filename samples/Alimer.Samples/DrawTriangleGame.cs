@@ -43,7 +43,17 @@ public sealed class DrawTriangleGame : GameApplication
             new ShaderStageDescription(ShaderStages.Fragment, fragmentShader, "fragmentMain"),
         };
 
-        var renderPipelineDesc = new RenderPipelineDescription(_pipelineLayout, shaderStages)
+        var vertexBufferLayout = new VertexBufferLayout[1]
+        {
+            new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
+        };
+
+        var colorFormats = new PixelFormat[1]
+        {
+            MainView.SwapChain.ColorFormat
+        };
+
+        var renderPipelineDesc = new RenderPipelineDescription(_pipelineLayout, shaderStages, vertexBufferLayout, colorFormats)
         {
         };
         _renderPipeline = GraphicsDevice.CreateRenderPipeline(renderPipelineDesc);
@@ -111,7 +121,13 @@ public sealed class DrawTriangleGame : GameApplication
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public readonly struct VertexPositionColor
 {
-    public static unsafe readonly int SizeInBytes = sizeof(VertexPositionColor);
+    public static unsafe readonly uint SizeInBytes = (uint)sizeof(VertexPositionColor);
+
+    public static readonly VertexAttribute[] VertexAttributes = new[]
+    {
+        new VertexAttribute(VertexFormat.Float3, 0, 0),
+        new VertexAttribute(VertexFormat.Float4, 12, 1)
+    };
 
     public VertexPositionColor(in Vector3 position, in Vector4 color)
     {

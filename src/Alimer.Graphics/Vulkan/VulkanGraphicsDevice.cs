@@ -579,7 +579,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 return;
             }
 
-            DepthClipControl = features2.features.depthClamp && depthClipEnableFeatures.depthClipEnable;
+            DepthClipEnable = depthClipEnableFeatures.depthClipEnable;
 
             int count = 0;
             vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, &count, null);
@@ -891,7 +891,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkPhysicalDeviceVulkan13Features PhysicalDeviceFeatures1_3 { get; }
     public VkPhysicalDeviceFragmentShadingRateFeaturesKHR FragmentShadingRateFeatures => _fragmentShadingRateFeatures;
     public VkPhysicalDeviceProperties2 PhysicalDeviceProperties { get; }
-    public bool DepthClipControl { get; }
+    public bool DepthClipEnable { get; }
+    public bool DepthClipControl => PhysicalDeviceFeatures2.features.depthClamp && DepthClipEnable;
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
     public uint GraphicsFamily => _queueFamilyIndices[(int)QueueType.Graphics];
     public uint ComputeFamily => _queueFamilyIndices[(int)QueueType.Compute];

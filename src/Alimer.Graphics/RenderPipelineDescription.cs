@@ -10,25 +10,44 @@ namespace Alimer.Graphics;
 /// </summary>
 public readonly record struct RenderPipelineDescription
 {
-    public RenderPipelineDescription(PipelineLayout layout, ShaderStageDescription[] shaderStages)
+    public RenderPipelineDescription(
+        PipelineLayout layout, 
+        ShaderStageDescription[] shaderStages, 
+        PixelFormat[] colorFormats, 
+        PixelFormat depthStencilFormat = PixelFormat.Undefined)
+        : this(layout, shaderStages, Array.Empty<VertexBufferLayout>(), colorFormats, depthStencilFormat)
+    {
+    }
+
+    public RenderPipelineDescription(
+        PipelineLayout layout, 
+        ShaderStageDescription[] shaderStages, 
+        VertexBufferLayout[] vertexBufferLayouts, 
+        PixelFormat[] colorFormats,
+        PixelFormat depthStencilFormat = PixelFormat.Undefined)
     {
         Guard.IsNotNull(layout, nameof(layout));
         Guard.IsNotNull(shaderStages, nameof(shaderStages));
 
         Layout = layout;
         ShaderStages = shaderStages;
+        VertexBufferLayouts = vertexBufferLayouts;
 
         BlendState = BlendState.Opaque;
         RasterizerState = RasterizerState.CullBack;
         DepthStencilState = DepthStencilState.DepthDefault;
         PrimitiveTopology = PrimitiveTopology.TriangleList;
         PatchControlPoints = 0;
+        ColorFormats = colorFormats;
+        DepthStencilFormat = depthStencilFormat;
         SampleCount = TextureSampleCount.Count1;
     }
 
     public PipelineLayout Layout { get; init; }
 
     public ShaderStageDescription[] ShaderStages { get; init; }
+
+    public VertexBufferLayout[] VertexBufferLayouts { get; init; }
 
     public BlendState BlendState { get; init; }
 
@@ -40,6 +59,9 @@ public readonly record struct RenderPipelineDescription
     public PrimitiveTopology PrimitiveTopology { get; init; }
 
     public int PatchControlPoints { get; init; } = 0;
+
+    public PixelFormat[] ColorFormats { get; init; }
+    public PixelFormat DepthStencilFormat  { get; init; } = PixelFormat.Undefined;
 
     public TextureSampleCount SampleCount { get; init; } = 0;
 
