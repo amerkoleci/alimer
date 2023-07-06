@@ -53,14 +53,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         // Create instance first.
         {
-            int instanceLayerCount = 0;
+            uint instanceLayerCount = 0;
             vkEnumerateInstanceLayerProperties(&instanceLayerCount, null).DebugCheckResult();
-            VkLayerProperties* availableInstanceLayers = stackalloc VkLayerProperties[instanceLayerCount];
+            VkLayerProperties* availableInstanceLayers = stackalloc VkLayerProperties[(int)instanceLayerCount];
             vkEnumerateInstanceLayerProperties(&instanceLayerCount, availableInstanceLayers).DebugCheckResult();
 
-            int extensionCount = 0;
+            uint extensionCount = 0;
             vkEnumerateInstanceExtensionProperties(null, &extensionCount, null).CheckResult();
-            VkExtensionProperties* availableInstanceExtensions = stackalloc VkExtensionProperties[extensionCount];
+            VkExtensionProperties* availableInstanceExtensions = stackalloc VkExtensionProperties[(int)extensionCount];
             vkEnumerateInstanceExtensionProperties(null, &extensionCount, availableInstanceExtensions).CheckResult();
 
             List<string> instanceExtensions = new();
@@ -581,11 +581,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             DepthClipEnable = depthClipEnableFeatures.depthClipEnable;
 
-            int count = 0;
+            uint count = 0;
             vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, &count, null);
 
-            VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[count];
-            VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[count];
+            VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[(int)count];
+            VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[(int)count];
             for (int i = 0; i < count; ++i)
             {
                 queueProps[i] = new();
@@ -598,7 +598,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
 
             vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, &count, queueProps);
-            int queueFamilyCount = count;
+            int queueFamilyCount = (int)count;
 
             VkSurfaceKHR surface = VkSurfaceKHR.Null;
 

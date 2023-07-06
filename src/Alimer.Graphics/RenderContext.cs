@@ -1,6 +1,7 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Drawing;
 using CommunityToolkit.Diagnostics;
 
@@ -41,12 +42,37 @@ public abstract class RenderContext : ComputeContext
         return new ScopedRenderPass(this);
     }
 
-
     protected override void Reset(uint frameIndex)
     {
         base.Reset(frameIndex);
         _currentShadingRate = ShadingRate.Invalid;
         //frameAllocators[frameIndex].Reset();
+    }
+
+    public void SetVertexBuffer(uint slot, GraphicsBuffer buffer, ulong offset = 0)
+    {
+#if VALIDATE_USAGE
+        if ((buffer.Usage & BufferUsage.Vertex) == 0)
+        {
+            throw new GraphicsException(
+                $"Buffer cannot be bound as Vertex buffer because it was not created with BufferUsage.Vertex.");
+        }
+#endif
+
+        SetVertexBufferCore(slot, buffer, offset);
+    }
+
+    public void SetIndexBuffer(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
+    {
+#if VALIDATE_USAGE
+        if ((buffer.Usage & BufferUsage.Index) == 0)
+        {
+            throw new GraphicsException(
+                $"Buffer cannot be bound as index buffer because it was not created with BufferUsage.Index.");
+        }
+#endif
+
+        SetIndexBufferCore(buffer, indexType, offset);
     }
 
     public void SetViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f)
@@ -77,8 +103,36 @@ public abstract class RenderContext : ComputeContext
     public abstract void SetShadingRate(ShadingRate rate);
     public abstract void SetDepthBounds(float minBounds, float maxBounds);
 
+    /// <summary>
+    /// Draw non-indexed geometry.
+    /// </summary>
+    /// <param name="vertexCount"></param>
+    /// <param name="instanceCount"></param>
+    /// <param name="firstVertex"></param>
+    /// <param name="firstInstance"></param>
+    public void Draw(uint vertexCount, uint instanceCount = 1, uint firstVertex = 0, uint firstInstance = 0)
+    {
+        PreDrawValidation();
+
+        DrawCore(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
+    protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);
+
     protected abstract void BeginRenderPassCore(in RenderPassDescription renderPass);
     protected abstract void EndRenderPassCore();
+
+    protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+
+    [Conditional("VALIDATE_USAGE")]
+    private void PreDrawValidation()
+    {
+        if (!_insideRenderPass)
+        {
+            throw new GraphicsException($"Drawing needs to happen inside render pass.");
+        }
+    }
 
     #region Nested
     readonly struct ScopedRenderPass : IDisposable

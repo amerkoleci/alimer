@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
@@ -18,12 +17,12 @@ internal static unsafe class VulkanUtils
     };
 
     #region Layers Methods
-    public static bool ValidateLayers(List<string> required, VkLayerProperties* availableLayers, int availableLayersCount)
+    public static bool ValidateLayers(List<string> required, VkLayerProperties* availableLayers, uint availableLayersCount)
     {
         foreach (string layer in required)
         {
             bool found = false;
-            for (int i = 0; i < availableLayersCount; i++)
+            for (uint i = 0; i < availableLayersCount; i++)
             {
                 string availableLayer = availableLayers[i].GetLayerName();
 
@@ -44,7 +43,7 @@ internal static unsafe class VulkanUtils
         return true;
     }
 
-    public static void GetOptimalValidationLayers(VkLayerProperties* availableLayers, int availableLayersCount, List<string> instanceLayers)
+    public static void GetOptimalValidationLayers(VkLayerProperties* availableLayers, uint availableLayersCount, List<string> instanceLayers)
     {
         // The preferred validation layer is "VK_LAYER_KHRONOS_validation"
         List<string> validationLayers = new()
@@ -100,13 +99,12 @@ internal static unsafe class VulkanUtils
 
     public static VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
     {
-
-        int count = 0;
+        uint count = 0;
         VkResult result = vkEnumerateDeviceExtensionProperties(physicalDevice, null, &count, null);
         if (result != VkResult.Success)
             return default;
 
-        VkExtensionProperties* vk_extensions = stackalloc VkExtensionProperties[count];
+        VkExtensionProperties* vk_extensions = stackalloc VkExtensionProperties[(int)count];
         vkEnumerateDeviceExtensionProperties(physicalDevice, null, &count, vk_extensions);
 
         VulkanPhysicalDeviceExtensions extensions = new();

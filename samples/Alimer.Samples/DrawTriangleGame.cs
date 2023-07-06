@@ -52,8 +52,9 @@ public sealed class DrawTriangleGame : GameApplication
         {
             MainView.SwapChain.ColorFormat
         };
+        var depthStencilFormat = MainView.DepthStencilFormat;
 
-        var renderPipelineDesc = new RenderPipelineDescription(_pipelineLayout, shaderStages, vertexBufferLayout, colorFormats)
+        var renderPipelineDesc = new RenderPipelineDescription(_pipelineLayout, shaderStages, vertexBufferLayout, colorFormats, depthStencilFormat)
         {
         };
         _renderPipeline = GraphicsDevice.CreateRenderPipeline(renderPipelineDesc);
@@ -86,6 +87,9 @@ public sealed class DrawTriangleGame : GameApplication
 
             using (context.PushScopedPassPass(backBufferRenderPass))
             {
+                context.SetVertexBuffer(0, _vertexBuffer!);
+                context.SetPipeline(_renderPipeline!);
+                context.Draw(3);
             }
         }
 
@@ -121,7 +125,7 @@ public sealed class DrawTriangleGame : GameApplication
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public readonly struct VertexPositionColor
 {
-    public static unsafe readonly uint SizeInBytes = (uint)sizeof(VertexPositionColor);
+    public static readonly unsafe uint SizeInBytes = (uint)sizeof(VertexPositionColor);
 
     public static readonly VertexAttribute[] VertexAttributes = new[]
     {

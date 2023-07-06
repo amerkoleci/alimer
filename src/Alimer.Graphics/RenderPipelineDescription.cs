@@ -54,7 +54,6 @@ public readonly record struct RenderPipelineDescription
     public RasterizerState RasterizerState { get; init; }
 
     public DepthStencilState DepthStencilState { get; init; }
-    //public VertexDescriptor VertexDescriptor { get; init; }
 
     public PrimitiveTopology PrimitiveTopology { get; init; }
 

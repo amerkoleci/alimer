@@ -24,7 +24,12 @@ public abstract class ComputeContext : CopyContext
         //frameAllocators[frameIndex].Reset();
     }
 
-    public abstract void SetPipeline(Pipeline pipeline);
+    public void SetPipeline(Pipeline pipeline)
+    {
+        Guard.IsNotNull(pipeline, nameof(pipeline));
+
+        SetPipelineCore(pipeline);
+    }
 
     public void Dispatch1D(uint threadCountX, uint groupSizeX = 64u)
     {
@@ -59,5 +64,6 @@ public abstract class ComputeContext : CopyContext
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
+    protected abstract void SetPipelineCore(Pipeline pipeline);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
 }

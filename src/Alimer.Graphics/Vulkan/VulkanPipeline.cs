@@ -19,21 +19,24 @@ internal unsafe class VulkanPipeline : Pipeline
     {
         _device = device;
         _layout = (VulkanPipelineLayout)description.Layout;
+        BindPoint = VkPipelineBindPoint.Graphics;
+
+        VkResult result = VkResult.Success;
 
         // ShaderStages
         int shaderStageCount = description.ShaderStages.Length;
-        var shaderStages = stackalloc VkPipelineShaderStageCreateInfo[shaderStageCount];
-        var vkShaderNames = stackalloc sbyte*[shaderStageCount];
+        VkPipelineShaderStageCreateInfo* shaderStages = stackalloc VkPipelineShaderStageCreateInfo[shaderStageCount];
+        sbyte** vkShaderNames = stackalloc sbyte*[shaderStageCount];
 
         for (int i = 0; i < shaderStageCount; i++)
         {
             ref ShaderStageDescription shaderDesc = ref description.ShaderStages[i];
 
-            var entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
-            var entryPointNameLength = entryPointName.Length + 1;
+            ReadOnlySpan<sbyte> entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
+            int entryPointNameLength = entryPointName.Length + 1;
 
-            var pName = Interop.AllocateArray<sbyte>((uint)entryPointNameLength);
-            var destination = new Span<sbyte>(pName, entryPointNameLength);
+            sbyte* pName = Interop.AllocateArray<sbyte>((uint)entryPointNameLength);
+            Span<sbyte> destination = new(pName, entryPointNameLength);
 
             entryPointName.CopyTo(destination);
             destination[entryPointName.Length] = 0x00;
@@ -46,8 +49,8 @@ internal unsafe class VulkanPipeline : Pipeline
                 pName = pName,
             };
 
-            var vkResult = vkCreateShaderModule(device.Handle, shaderDesc.ByteCode, null, out shaderStages[i].module);
-            if (vkResult != VkResult.Success)
+            result = vkCreateShaderModule(device.Handle, shaderDesc.ByteCode, null, out shaderStages[i].module);
+            if (result != VkResult.Success)
             {
                 Log.Error("Failed to create a pipeline shader module");
                 return;
@@ -202,7 +205,8 @@ internal unsafe class VulkanPipeline : Pipeline
         //depthStencilState.back.reference = 0;
 
         // BlendState
-        int colorAttachmentCount = 0;
+        VkPipelineRenderingCreateInfo renderingInfo = new();
+        VkFormat* pColorAttachmentFormats = stackalloc VkFormat[description.ColorFormats.Length];
         VkPipelineColorBlendAttachmentState* blendAttachmentStates = stackalloc VkPipelineColorBlendAttachmentState[description.ColorFormats.Length];
 
         for (int i = 0; i < description.ColorFormats.Length; i++)
@@ -212,27 +216,37 @@ internal unsafe class VulkanPipeline : Pipeline
 
             ref readonly RenderTargetBlendState attachment = ref description.BlendState.RenderTargets[i];
 
-            blendAttachmentStates[colorAttachmentCount].blendEnable = GraphicsUtilities.BlendEnabled(in attachment);
-            blendAttachmentStates[colorAttachmentCount].srcColorBlendFactor = attachment.SourceColorBlendFactor.ToVk();
-            blendAttachmentStates[colorAttachmentCount].dstColorBlendFactor = attachment.DestinationColorBlendFactor.ToVk();
-            blendAttachmentStates[colorAttachmentCount].colorBlendOp = attachment.ColorBlendOperation.ToVk();
-            blendAttachmentStates[colorAttachmentCount].srcAlphaBlendFactor = attachment.SourceAlphaBlendFactor.ToVk();
-            blendAttachmentStates[colorAttachmentCount].dstAlphaBlendFactor = attachment.DestinationAlphaBlendFactor.ToVk();
-            blendAttachmentStates[colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
-            blendAttachmentStates[colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
-            colorAttachmentCount++;
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].blendEnable = GraphicsUtilities.BlendEnabled(in attachment);
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].srcColorBlendFactor = attachment.SourceColorBlendFactor.ToVk();
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].dstColorBlendFactor = attachment.DestinationColorBlendFactor.ToVk();
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].colorBlendOp = attachment.ColorBlendOperation.ToVk();
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].srcAlphaBlendFactor = attachment.SourceAlphaBlendFactor.ToVk();
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].dstAlphaBlendFactor = attachment.DestinationAlphaBlendFactor.ToVk();
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
+            blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
+
+            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.ToVkFormat(description.ColorFormats[i]);
+            renderingInfo.colorAttachmentCount++;
         }
+
         VkPipelineColorBlendStateCreateInfo blendState = new()
         {
             logicOpEnable = false,
             logicOp = VkLogicOp.Clear,
-            attachmentCount = (uint)colorAttachmentCount,
+            attachmentCount = renderingInfo.colorAttachmentCount,
             pAttachments = blendAttachmentStates
         };
         blendState.blendConstants[0] = 0.0f;
         blendState.blendConstants[1] = 0.0f;
         blendState.blendConstants[2] = 0.0f;
         blendState.blendConstants[3] = 0.0f;
+
+        renderingInfo.pColorAttachmentFormats = pColorAttachmentFormats;
+        renderingInfo.depthAttachmentFormat = _device.ToVkFormat(description.DepthStencilFormat);
+        if (!description.DepthStencilFormat.IsDepthOnlyFormat())
+        {
+            renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
+        }
 
         // DynamicState
         int dynamicStateCount = 4;
@@ -279,8 +293,22 @@ internal unsafe class VulkanPipeline : Pipeline
             basePipelineIndex = 0
         };
 
+        if (_device.PhysicalDeviceFeatures1_3.dynamicRendering)
+        {
+            createInfo.pNext = &renderingInfo;
+        }
+        else
+        {
+
+        }
+
         VkPipeline pipeline;
-        VkResult result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+
+        for (int i = 0; i < shaderStageCount; i++)
+        {
+            vkDestroyShaderModule(device.Handle, shaderStages[i].module, null);
+        }
 
         if (result != VkResult.Success)
         {
@@ -301,6 +329,7 @@ internal unsafe class VulkanPipeline : Pipeline
     {
         _device = device;
         _layout = (VulkanPipelineLayout)description.Layout;
+        BindPoint = VkPipelineBindPoint.Compute;
 
         var result = vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out VkShaderModule shaderModule);
         if (result != VkResult.Success)
@@ -345,6 +374,7 @@ internal unsafe class VulkanPipeline : Pipeline
     public override GraphicsDevice Device => _device;
 
     public VkPipeline Handle => _handle;
+    public VkPipelineBindPoint BindPoint { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanPipeline" /> class.

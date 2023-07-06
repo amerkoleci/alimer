@@ -2,12 +2,14 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D.Dxc;
-using Win32.Graphics.Direct3D12;
-using static Win32.Apis;
-using static Win32.Graphics.Direct3D.Dxc.Apis;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
+using static TerraFX.Interop.Windows.CLSID;
+using static TerraFX.Interop.DirectX.D3D_CBUFFER_TYPE;
+using static TerraFX.Interop.DirectX.DXC;
 
 namespace Alimer.Shaders;
 
@@ -93,7 +95,7 @@ public sealed unsafe partial class ShaderCompiler
             ThrowIfFailed(_dxcUtils.Get()->CreateBlobFromPinned(
                 pSource,
                 (uint)source.Length * 2,
-                DxcCp.Utf16,
+                DXC_CP_UTF16,
                 dxcBlobEncoding.GetAddressOf())
                 );
         }
@@ -102,7 +104,7 @@ public sealed unsafe partial class ShaderCompiler
         {
             Ptr = dxcBlobEncoding.Get()->GetBufferPointer(),
             Size = dxcBlobEncoding.Get()->GetBufferSize(),
-            Encoding = DxcCp.Utf16,
+            Encoding = DXC_CP_UTF16,
         };
 
         fixed (char* shaderName = "")
@@ -147,7 +149,7 @@ public sealed unsafe partial class ShaderCompiler
                 arguments[argCount++] = pStripReflect;
             }
 
-            HResult hr = _dxcCompiler.Get()->Compile(
+            HRESULT hr = _dxcCompiler.Get()->Compile(
                 &buffer,
                 (ushort**)arguments,
                 argCount,
@@ -156,7 +158,7 @@ public sealed unsafe partial class ShaderCompiler
                 results.GetVoidAddressOf()
                 );
 
-            if (hr.Failure)
+            if (hr.FAILED)
             {
                 return new DxcShaderCompilationResult($"Compile failed with HRESULT {hr}");
             }
@@ -165,7 +167,7 @@ public sealed unsafe partial class ShaderCompiler
             // Print errors if present.
             //
             using ComPtr<IDxcBlobUtf8> errors = default;
-            results.Get()->GetOutput(DxcOutKind.Errors,
+            results.Get()->GetOutput(DXC_OUT_ERRORS,
                 __uuidof<IDxcBlobUtf8>(),
                 errors.GetVoidAddressOf(),
                 null
@@ -180,16 +182,16 @@ public sealed unsafe partial class ShaderCompiler
             }
 
             // Quit if the compilation failed.
-            HResult hrStatus;
+            HRESULT hrStatus;
             results.Get()->GetStatus(&hrStatus);
-            if (hrStatus.Failure)
+            if (hrStatus.FAILED)
             {
                 return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus}");
             }
 
             using ComPtr<IDxcBlob> byteCode = default;
             using ComPtr<IDxcBlobUtf16> pShaderName = default;
-            results.Get()->GetOutput(DxcOutKind.Object,
+            results.Get()->GetOutput(DXC_OUT_OBJECT,
                 __uuidof<IDxcBlob>(),
                 byteCode.GetVoidAddressOf(),
                 pShaderName.GetAddressOf()
@@ -202,7 +204,7 @@ public sealed unsafe partial class ShaderCompiler
             // Save pdb.
             using ComPtr<IDxcBlob> pPDB = default;
             using ComPtr<IDxcBlobUtf16> pPDBName = default;
-            results.Get()->GetOutput(DxcOutKind.Pdb,
+            results.Get()->GetOutput(DXC_OUT_PDB,
                 __uuidof<IDxcBlob>(),
                 pPDB.GetVoidAddressOf(),
                 pPDBName.GetAddressOf());
@@ -212,7 +214,7 @@ public sealed unsafe partial class ShaderCompiler
 
             // Print hash.
             using ComPtr<IDxcBlob> hash = default;
-            results.Get()->GetOutput(DxcOutKind.ShaderHash,
+            results.Get()->GetOutput(DXC_OUT_SHADER_HASH,
                 __uuidof<IDxcBlob>(),
                 hash.GetVoidAddressOf(),
                 null);
@@ -223,21 +225,21 @@ public sealed unsafe partial class ShaderCompiler
             if (format == ShaderFormat.DXIL)
             {
                 using ComPtr<IDxcBlob> reflectionData = default;
-                results.Get()->GetOutput(DxcOutKind.Reflection, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
+                results.Get()->GetOutput(DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
                 if (reflectionData.Get() is not null)
                 {
                     // Create reflection interface.
-                    var ReflectionData = new DxcBuffer
+                    var reflectionDataBuffer = new DxcBuffer
                     {
-                        Encoding = DxcCp.Acp,
+                        Encoding = DXC_CP_ACP,
                         Ptr = reflectionData.Get()->GetBufferPointer(),
                         Size = reflectionData.Get()->GetBufferSize()
                     };
 
                     using ComPtr<ID3D12ShaderReflection> reflection = default;
-                    _dxcUtils.Get()->CreateReflection(&ReflectionData, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
+                    _dxcUtils.Get()->CreateReflection(&reflectionDataBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
 
-                    ShaderDescription description;
+                    D3D12_SHADER_DESC description;
                     ThrowIfFailed(reflection.Get()->GetDesc(&description));
 
                     // Iterate on all Constant buffers used by this shader
@@ -245,12 +247,12 @@ public sealed unsafe partial class ShaderCompiler
                     for (uint i = 0; i < description.ConstantBuffers; i++)
                     {
                         ID3D12ShaderReflectionConstantBuffer* reflectConstantBuffer = reflection.Get()->GetConstantBufferByIndex(i);
-                        ShaderBufferDescription reflectConstantBufferDescription = default;
+                        D3D12_SHADER_BUFFER_DESC reflectConstantBufferDescription = default;
                         ThrowIfFailed(reflectConstantBuffer->GetDesc(&reflectConstantBufferDescription));
 
                         // Skip non pure constant-buffers and texture buffers
-                        if (reflectConstantBufferDescription.Type != ConstantBufferType.ConstantBuffer
-                            && reflectConstantBufferDescription.Type != ConstantBufferType.TextureBuffer)
+                        if (reflectConstantBufferDescription.Type != D3D_CT_CBUFFER
+                            && reflectConstantBufferDescription.Type != D3D_CT_TBUFFER)
                         {
                             continue;
                         }
@@ -281,7 +283,7 @@ public sealed unsafe partial class ShaderCompiler
 
                     for (uint i = 0; i < description.BoundResources; ++i)
                     {
-                        ShaderInputBindDescription shaderInputBindDesc = default;
+                        D3D12_SHADER_INPUT_BIND_DESC shaderInputBindDesc = default;
                         ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &shaderInputBindDesc));
                         string name = new(shaderInputBindDesc.Name);
 

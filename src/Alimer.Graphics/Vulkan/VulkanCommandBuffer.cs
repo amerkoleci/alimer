@@ -18,6 +18,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private readonly VkCommandBuffer[] _commandBuffers = new VkCommandBuffer[MaxFramesInFlight];
     private VkCommandBuffer _commandBuffer; // recording command buffer
     private RenderPassDescription _currentRenderPass;
+    private VulkanPipeline? _currentPipeline;
     private bool _synchronization2;
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
@@ -73,7 +74,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     public void Begin(uint frameIndex, string? label = null)
     {
         base.Reset(frameIndex);
-        //currentPipeline.Reset();
+        _currentPipeline = default;
         _currentRenderPass = default;
 
         vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
@@ -222,9 +223,15 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     }
 
     #region ComputeContext Methods
-    public override void SetPipeline(Pipeline pipeline)
+    protected override void SetPipelineCore(Pipeline pipeline)
     {
-        throw new NotImplementedException();
+        if (_currentPipeline == pipeline)
+            return;
+
+        VulkanPipeline newPipeline = (VulkanPipeline)pipeline;
+
+        vkCmdBindPipeline(_commandBuffer, newPipeline.BindPoint, newPipeline.Handle);
+        _currentPipeline = newPipeline;
     }
 
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -347,6 +354,22 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         {
             PopDebugGroup();
         }
+    }
+
+    protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
+    {
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
+        VkBuffer vkBuffer = vulkanBuffer.Handle;
+
+        vkCmdBindVertexBuffers(_commandBuffer, slot, 1, &vkBuffer, &offset);
+    }
+
+    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
+    {
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
+        VkIndexType vkIndexType = (indexType == IndexType.Uint16) ? VkIndexType.Uint16 : VkIndexType.Uint32;
+
+        vkCmdBindIndexBuffer(_commandBuffer, vulkanBuffer.Handle, offset, vkIndexType);
     }
 
     public override void SetViewport(in Viewport viewport)
@@ -486,6 +509,17 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         {
             vkCmdSetDepthBounds(_commandBuffer, minBounds, maxBounds);
         }
+    }
+
+    protected override void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+    {
+        PrepareDraw();
+
+        vkCmdDraw(_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    private void PrepareDraw()
+    {
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
