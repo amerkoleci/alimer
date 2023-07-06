@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using Win32;
 using Win32.Graphics.Direct3D12;
@@ -339,11 +340,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public override void SetStencilReference(uint reference)
     {
-
+        _commandList.Get()->OMSetStencilRef(reference);
     }
 
-    public override void SetBlendColor(in Numerics.Color color)
+    public override void SetBlendColor(Numerics.Color color)
     {
+        _commandList.Get()->OMSetBlendFactor((float*)&color);
     }
 
     public override void SetShadingRate(ShadingRate rate)
@@ -355,7 +357,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             D3DShadingRate d3dRate = D3DShadingRate.Rate1x1;
             _queue.Device.WriteShadingRateValue(rate, &d3dRate);
 
-            ShadingRateCombiner* combiners = stackalloc ShadingRateCombiner[2]
+            var combiners = stackalloc ShadingRateCombiner[2]
             {
                 ShadingRateCombiner.Max,
                 ShadingRateCombiner.Max,
@@ -366,7 +368,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public override void SetDepthBounds(float minBounds, float maxBounds)
     {
-
+        if (_queue.Device.QueryFeatureSupport(Feature.DepthBoundsTest))
+        {
+            _commandList.Get()->OMSetDepthBounds(minBounds, maxBounds);
+        }
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

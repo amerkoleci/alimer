@@ -171,10 +171,10 @@ internal unsafe class VulkanTexture : Texture
             usage = usage
         };
 
-        uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
+        var sharingIndices = stackalloc uint[(int)QueueType.Count];
         device.FillImageSharingIndices(ref createInfo, sharingIndices);
 
-        VkResult result = vmaCreateImage(device.MemoryAllocator,
+        var result = vmaCreateImage(device.MemoryAllocator,
             &createInfo,
             &memoryInfo,
             out _handle,
@@ -220,9 +220,7 @@ internal unsafe class VulkanTexture : Texture
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        VmaAllocator memoryAllocator = _device.MemoryAllocator;
-
-        foreach (VkImageView view in _views.Values)
+        foreach (var view in _views.Values)
         {
             vkDestroyImageView(_device.Handle, view);
         }
@@ -230,7 +228,7 @@ internal unsafe class VulkanTexture : Texture
 
         if (!_allocation.IsNull)
         {
-            vmaDestroyImage(memoryAllocator, _handle, _allocation);
+            vmaDestroyImage(_device.MemoryAllocator, _handle, _allocation);
         }
     }
 
@@ -242,12 +240,12 @@ internal unsafe class VulkanTexture : Texture
 
     public VkImageView GetView(int baseMipLevel, int baseArrayLayer = 0, uint mipLevelCount = VK_REMAINING_MIP_LEVELS, uint arrayLayerCount = VK_REMAINING_ARRAY_LAYERS)
     {
-        int hash = HashCode.Combine(baseMipLevel, baseArrayLayer, mipLevelCount, arrayLayerCount);
+        var hash = HashCode.Combine(baseMipLevel, baseArrayLayer, mipLevelCount, arrayLayerCount);
 
         if (!_views.TryGetValue(hash, out VkImageView view))
         {
             VkImageAspectFlags aspectFlags = VkFormat.GetVkImageAspectFlags();
-            VkImageViewCreateInfo createInfo = new()
+            var createInfo = new VkImageViewCreateInfo()
             {
                 pNext = null,
                 flags = 0,
@@ -258,7 +256,7 @@ internal unsafe class VulkanTexture : Texture
                 subresourceRange = new VkImageSubresourceRange(aspectFlags, (uint)baseMipLevel, mipLevelCount, (uint)baseArrayLayer, arrayLayerCount)
             };
 
-            VkResult result = vkCreateImageView(_device.Handle, &createInfo, null, &view);
+            var result = vkCreateImageView(_device.Handle, &createInfo, null, &view);
             if (result != VkResult.Success)
             {
                 Log.Error($"Vulkan: Failed to create ImageView, error: {result}");

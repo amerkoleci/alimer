@@ -74,11 +74,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
                 return D3D12.D3D12GraphicsDevice.IsSupported();
 #endif
 
-#if !EXCLUDE_D3D11_BACKEND
-            case GraphicsBackendType.D3D11:
-                return D3D11.D3D11GraphicsDevice.IsSupported();
-#endif
-
 #if !EXCLUDE_METAL_BACKEND
             case GraphicsBackendType.Metal:
                 return false;
@@ -125,16 +120,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
                 if (D3D12.D3D12GraphicsDevice.IsSupported())
                 {
                     device = new D3D12.D3D12GraphicsDevice(in description);
-                }
-                break;
-#endif
-
-
-#if !EXCLUDE_D3D11_BACKEND
-            case GraphicsBackendType.D3D11:
-                if (D3D11.D3D11GraphicsDevice.IsSupported())
-                {
-                    device = new D3D11.D3D11GraphicsDevice(in description);
                 }
                 break;
 #endif

@@ -253,18 +253,18 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             VkRenderingAttachmentInfo depthAttachment = new();
             VkRenderingAttachmentInfo stencilAttachment = new();
 
-            PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
-            bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
+            var depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+            var hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
 
-            for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
+            for (var slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
             {
-                ref RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
+                ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
                 Guard.IsTrue(attachment.Texture is not null);
 
                 var texture = (VulkanTexture)attachment.Texture;
-                int mipLevel = attachment.MipLevel;
-                int slice = attachment.Slice;
-                VkImageView imageView = texture.GetView(mipLevel, slice);
+                var mipLevel = attachment.MipLevel;
+                var slice = attachment.Slice;
+                var imageView = texture.GetView(mipLevel, slice);
 
                 renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
                 renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
@@ -282,11 +282,11 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
             if (hasDepthOrStencil)
             {
-                RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
+                var attachment = renderPass.DepthStencilAttachment;
 
                 var texture = (VulkanTexture)attachment.Texture!;
-                int mipLevel = attachment.MipLevel;
-                int slice = attachment.Slice;
+                var mipLevel = attachment.MipLevel;
+                var slice = attachment.Slice;
 
                 renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
                 renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
@@ -401,9 +401,9 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, reference);
     }
 
-    public override void SetBlendColor(in Numerics.Color color)
+    public override void SetBlendColor(Numerics.Color color)
     {
-        vkCmdSetBlendConstants(_commandBuffer, color.R, color.G, color.B, color.A);
+        vkCmdSetBlendConstants(_commandBuffer, (float*)&color);
     }
 
     public override void SetShadingRate(ShadingRate rate)
@@ -482,7 +482,10 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     public override void SetDepthBounds(float minBounds, float maxBounds)
     {
-
+        if (_queue.Device.PhysicalDeviceFeatures2.features.depthBounds)
+        {
+            vkCmdSetDepthBounds(_commandBuffer, minBounds, maxBounds);
+        }
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

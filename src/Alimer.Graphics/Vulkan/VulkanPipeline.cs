@@ -195,6 +195,35 @@ internal unsafe class VulkanPipeline : Pipeline
         //depthStencilState.back.writeMask = desc.depthStencilState.stencilWriteMask;
         //depthStencilState.back.reference = 0;
 
+        // BlendState
+
+        // DynamicState
+        int dynamicStateCount = 4;
+        var vkDynamicStates = stackalloc VkDynamicState[6] {
+            VkDynamicState.Viewport,
+            VkDynamicState.Scissor,
+            VkDynamicState.StencilReference,
+            VkDynamicState.BlendConstants,
+            VkDynamicState.DepthBounds,
+            VkDynamicState.FragmentShadingRateKHR
+        };
+        if (_device.PhysicalDeviceFeatures2.features.depthBounds)
+        {
+            dynamicStateCount++;
+        }
+        //if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+        //{
+        //    dynamicStateCount++;
+        //}
+
+        var dynamicState = new VkPipelineDynamicStateCreateInfo
+        {
+            pNext = null,
+            flags = 0,
+            dynamicStateCount = (uint)dynamicStateCount,
+            pDynamicStates = vkDynamicStates,
+        };
+
         VkGraphicsPipelineCreateInfo createInfo = new()
         {
             stageCount = (uint)shaderStageCount,
@@ -206,6 +235,8 @@ internal unsafe class VulkanPipeline : Pipeline
             pRasterizationState = &rasterizationState,
             pMultisampleState = &multisampleState,
             pDepthStencilState = &depthStencilState,
+            pColorBlendState = null,
+            pDynamicState = &dynamicState,
             layout = _layout.Handle,
             basePipelineHandle = VkPipeline.Null,
             basePipelineIndex = 0

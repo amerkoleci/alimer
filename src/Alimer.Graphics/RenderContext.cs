@@ -73,7 +73,7 @@ public abstract class RenderContext : ComputeContext
     public abstract void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0);
     public abstract void SetScissorRect(in Rectangle rect);
     public abstract void SetStencilReference(uint reference);
-    public abstract void SetBlendColor(in Numerics.Color color);
+    public abstract void SetBlendColor(Numerics.Color color);
     public abstract void SetShadingRate(ShadingRate rate);
     public abstract void SetDepthBounds(float minBounds, float maxBounds);
 

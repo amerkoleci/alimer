@@ -95,7 +95,7 @@ internal static unsafe class VulkanUtils
             instanceLayers.AddRange(validationLayers);
             return;
         }
-    } 
+    }
     #endregion
 
     public static VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
@@ -117,11 +117,11 @@ internal static unsafe class VulkanUtils
 
             if (extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             {
-                extensions.swapchain = true;
+                extensions.Swapchain = true;
             }
             else if (extensionName == VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME)
             {
-                extensions.depthClipEnable = true;
+                extensions.DepthClipEnable = true;
             }
             else if (extensionName == VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)
             {
@@ -158,11 +158,11 @@ internal static unsafe class VulkanUtils
             }
             else if (extensionName == VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME)
             {
-                extensions.sampler_filter_minmax = true;
+                extensions.samplerFilterMinMax = true;
             }
             else if (extensionName == VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME)
             {
-                extensions.depth_stencil_resolve = true;
+                extensions.depthStencilResolve = true;
             }
             else if (extensionName == VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
             {
@@ -236,9 +236,32 @@ internal static unsafe class VulkanUtils
             {
                 extensions.Video.EncodeH265 = true;
             }
-            else if (extensionName == VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME)
+
+            if (OperatingSystem.IsWindows())
             {
-                extensions.win32_full_screen_exclusive = true;
+                if (extensionName == VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME)
+                {
+                    extensions.win32_full_screen_exclusive = true;
+                }
+                else if (extensionName == VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME)
+                {
+                    extensions.SupportsExternalSemaphore = true;
+                }
+                else if (extensionName == VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME)
+                {
+                    extensions.SupportsExternalMemory = true;
+                }
+            }
+            else
+            {
+                if (extensionName == VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME)
+                {
+                    extensions.SupportsExternalSemaphore = true;
+                }
+                else if (extensionName == VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME)
+                {
+                    extensions.SupportsExternalMemory = true;
+                }
             }
         }
 
@@ -250,8 +273,8 @@ internal static unsafe class VulkanUtils
         {
             extensions.driverProperties = true;
             extensions.renderPass2 = true;
-            extensions.sampler_filter_minmax = true;
-            extensions.depth_stencil_resolve = true;
+            extensions.samplerFilterMinMax = true;
+            extensions.depthStencilResolve = true;
         }
 
         // Core 1.3

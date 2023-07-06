@@ -8,7 +8,6 @@ public enum GraphicsBackendType
     Null,
     Vulkan,
     D3D12,
-    D3D11,
     Metal,
 
     Count,
