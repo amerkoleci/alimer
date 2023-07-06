@@ -34,6 +34,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly D3D12DescriptorAllocator[] _descriptorAllocators = new D3D12DescriptorAllocator[(int)DescriptorHeapType.NumTypes];
     private readonly D3D12CopyAllocator _copyAllocator;
 
+
+    private readonly ComPtr<ID3D12CommandSignature> _dispatchIndirectCommandSignature = default;
+    private readonly ComPtr<ID3D12CommandSignature> _drawIndirectCommandSignature = default;
+    private readonly ComPtr<ID3D12CommandSignature> _drawIndexedIndirectCommandSignature = default;
+    private readonly ComPtr<ID3D12CommandSignature> _dispatchMeshIndirectCommandSignature = default;
+
     public static bool IsSupported() => s_isSupported.Value;
 
     public D3D12GraphicsDevice(in GraphicsDeviceDescription description)
@@ -237,6 +243,25 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         // Init CopyAllocator
         _copyAllocator = new D3D12CopyAllocator(this);
 
+        // Create command signatures
+        {
+            // DispatchIndirectCommand
+            IndirectArgumentDescription dispatchArg = new()
+            {
+                Type = IndirectArgumentType.Dispatch
+            };
+
+            CommandSignatureDescription cmdSignatureDesc = new()
+            {
+                ByteStride = (uint)sizeof(DispatchArguments),
+                NumArgumentDescs = 1,
+                pArgumentDescs = &dispatchArg
+            };
+
+            ThrowIfFailed(_handle.Get()->CreateCommandSignature(&cmdSignatureDesc, null,
+                __uuidof<ID3D12CommandSignature>(), _dispatchIndirectCommandSignature.GetVoidAddressOf()));
+        }
+
         // Init adapter info, caps and limits
         {
             AdapterDescription1 adapterDesc;
@@ -294,6 +319,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
     }
 
+    /// <inheritdoc />
+    public override GraphicsAdapterProperties AdapterInfo => _adapterProperties;
+
+    /// <inheritdoc />
+    public override GraphicsDeviceLimits Limits => _limits;
+
+    /// <inheritdoc />
+    public override ulong TimestampFrequency { get; }
+
     public IDXGIFactory6* Factory => _factory;
     public bool TearingSupported { get; }
     public IDXGIAdapter1* Adapter => _adapter;
@@ -305,14 +339,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
     public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.Copy];
 
-    /// <inheritdoc />
-    public override GraphicsAdapterProperties AdapterInfo => _adapterProperties;
-
-    /// <inheritdoc />
-    public override GraphicsDeviceLimits Limits => _limits;
-
-    /// <inheritdoc />
-    public override ulong TimestampFrequency { get; }
+    public ID3D12CommandSignature* DispatchIndirectCommandSignature => _dispatchIndirectCommandSignature;
+    public ID3D12CommandSignature* DrawIndirectCommandSignature => _drawIndirectCommandSignature;
+    public ID3D12CommandSignature* DrawIndexedIndirectCommandSignature => _drawIndexedIndirectCommandSignature;
+    public ID3D12CommandSignature* DispatchMeshIndirectCommandSignature => _dispatchMeshIndirectCommandSignature;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
@@ -345,6 +375,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             {
                 _descriptorAllocators[i].Dispose();
             }
+
+            _dispatchIndirectCommandSignature.Dispose();
+            _drawIndirectCommandSignature.Dispose();
+            _drawIndexedIndirectCommandSignature.Dispose();
+            _dispatchMeshIndirectCommandSignature.Dispose();
 
 #if DEBUG
             uint refCount = _handle.Get()->Release();

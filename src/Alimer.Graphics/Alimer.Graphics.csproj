@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net7.0</TargetFrameworks>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
-    <ExcludeD3D12>true</ExcludeD3D12>
+    <ExcludeD3D12>false</ExcludeD3D12>
     <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 

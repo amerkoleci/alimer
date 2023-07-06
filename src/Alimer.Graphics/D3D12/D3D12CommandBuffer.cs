@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Drawing;
-using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using Win32;
 using Win32.Graphics.Direct3D12;
@@ -38,6 +37,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     private readonly ResourceBarrier[] _resourceBarriers = new ResourceBarrier[MaxBarriers];
     private int _numBarriersToFlush;
 
+    private D3D12Pipeline? _currentPipeline;
     private RenderPassDescription _currentRenderPass;
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
@@ -65,7 +65,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public void Destroy()
     {
-        for (var i = 0; i < _commandAllocators.Length; ++i)
+        for (int i = 0; i < _commandAllocators.Length; ++i)
         {
             _commandAllocators[i].Dispose();
         }
@@ -86,7 +86,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     public void Begin(uint frameIndex, string? label = null)
     {
         base.Reset(frameIndex);
-        //currentPipeline.Reset();
+        _currentPipeline = default;
         _currentRenderPass = default;
 
         // Start the command list in a default state:
@@ -194,14 +194,37 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     }
 
     #region ComputeContext Methods
-    public override void SetPipeline(Pipeline pipeline)
+    protected override void SetPipelineCore(Pipeline pipeline)
     {
-        throw new NotImplementedException();
+        if (_currentPipeline == pipeline)
+            return;
+
+        D3D12Pipeline newPipeline = (D3D12Pipeline)pipeline;
+
+        _commandList.Get()->SetPipelineState(newPipeline.Handle);
+
+        if (newPipeline.PipelineType == PipelineType.Render)
+        {
+            //_commandList.Get()->SetGraphicsRootSignature(newPipelineLayout->handle);
+            //_commandList.Get()->IASetPrimitiveTopology(newPipeline.primitiveTopology);
+        }
+        else
+        {
+            //_commandList.Get()->SetComputeRootSignature(newPipelineLayout->handle);
+        }
+
+        _currentPipeline = newPipeline;
     }
 
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         _commandList.Get()->Dispatch(groupCountX, groupCountY, groupCountZ);
+    }
+
+    protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
     #endregion ComputeContext Methods
 
@@ -309,6 +332,14 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->EndRenderPass();
     }
 
+    protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
+    {
+    }
+
+    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
+    {
+    }
+
     public override void SetViewport(in Viewport viewport)
     {
         Win32.Numerics.Viewport d3d12Viewport = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
@@ -372,6 +403,39 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             _commandList.Get()->OMSetDepthBounds(minBounds, maxBounds);
         }
+    }
+
+    protected override void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+    {
+        PrepareDraw();
+
+        _commandList.Get()->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    protected override void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance)
+    {
+        PrepareDraw();
+
+        _commandList.Get()->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        PrepareDraw();
+
+        //vkCmdDrawMeshTasksEXT(_commandBuffer, groupCountX, groupCountY, groupCountZ);
+    }
+
+    protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        D3D12Buffer vulkanBuffer = (D3D12Buffer)indirectBuffer;
+        //vkCmdDrawMeshTasksIndirectEXT(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
+    }
+
+    private void PrepareDraw()
+    {
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

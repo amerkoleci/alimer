@@ -10,6 +10,10 @@ namespace Alimer.Graphics;
 public abstract class RenderContext : ComputeContext
 {
     protected ShadingRate _currentShadingRate = ShadingRate.Invalid;
+#if VALIDATE_USAGE
+    private GraphicsBuffer? _indexBuffer;
+    private IndexType _indexType;
+#endif
 
     protected RenderContext()
     {
@@ -47,6 +51,11 @@ public abstract class RenderContext : ComputeContext
         base.Reset(frameIndex);
         _currentShadingRate = ShadingRate.Invalid;
         //frameAllocators[frameIndex].Reset();
+
+#if VALIDATE_USAGE
+        _indexBuffer = default;
+        _indexType = IndexType.Uint16;
+#endif
     }
 
     public void SetVertexBuffer(uint slot, GraphicsBuffer buffer, ulong offset = 0)
@@ -70,6 +79,9 @@ public abstract class RenderContext : ComputeContext
             throw new GraphicsException(
                 $"Buffer cannot be bound as index buffer because it was not created with BufferUsage.Index.");
         }
+
+        _indexBuffer = buffer;
+        _indexType = indexType;
 #endif
 
         SetIndexBufferCore(buffer, indexType, offset);
@@ -117,6 +129,37 @@ public abstract class RenderContext : ComputeContext
         DrawCore(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
+    /// <summary>
+    /// Draw indexed geometry.
+    /// </summary>
+    /// <param name="indexCount"></param>
+    /// <param name="instanceCount"></param>
+    /// <param name="firstIndex"></param>
+    /// <param name="baseVertex"></param>
+    /// <param name="firstInstance"></param>
+    public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int baseVertex = 0, uint firstInstance = 0)
+    {
+        PreDrawValidation();
+
+        DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        PreDispatchMeshValidation();
+
+        DispatchMeshCore(groupCountX, groupCountY, groupCountZ);
+    }
+
+    public void DispatchMeshIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    {
+        PreDispatchMeshValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+
+        DispatchMeshIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
     protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
     protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);
 
@@ -124,14 +167,47 @@ public abstract class RenderContext : ComputeContext
     protected abstract void EndRenderPassCore();
 
     protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+    protected abstract void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance);
+    protected abstract void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ);
+    protected abstract void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
 
     [Conditional("VALIDATE_USAGE")]
     private void PreDrawValidation()
     {
         if (!_insideRenderPass)
         {
-            throw new GraphicsException($"Drawing needs to happen inside render pass.");
+            throw new GraphicsException($"Drawing needs to happen Inside render pass.");
         }
+    }
+
+    [Conditional("VALIDATE_USAGE")]
+    private void PreDispatchMeshValidation()
+    {
+        PreDrawValidation();
+
+        if (!Device.QueryFeatureSupport(Feature.MeshShader))
+        {
+            throw new GraphicsException($"Device doesn't support Feature.MeshShader.");
+        }
+    }
+
+    [Conditional("VALIDATE_USAGE")]
+    private void ValidateIndexBuffer(uint indexCount)
+    {
+#if VALIDATE_USAGE
+        if (_indexBuffer == null)
+        {
+            throw new GraphicsException($"An index buffer must be bound before {nameof(RenderContext)}.{nameof(DrawIndexed)} can be called.");
+        }
+
+        ulong indexFormatSize = _indexType == IndexType.Uint16 ? 2u : 4u;
+        ulong bytesNeeded = indexCount * indexFormatSize;
+        if (_indexBuffer.Size < bytesNeeded)
+        {
+            throw new GraphicsException(
+                $"The active index buffer does not contain enough data to satisfy the given draw command. {bytesNeeded} bytes are needed, but the buffer only contains {_indexBuffer.Size}.");
+        }
+#endif
     }
 
     #region Nested

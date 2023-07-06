@@ -14,12 +14,13 @@ namespace Alimer.Graphics.Vulkan;
 internal unsafe class VulkanCommandBuffer : RenderContext
 {
     private readonly VulkanCommandQueue _queue;
+    private bool _synchronization2;
     private readonly VkCommandPool[] _commandPools = new VkCommandPool[MaxFramesInFlight];
     private readonly VkCommandBuffer[] _commandBuffers = new VkCommandBuffer[MaxFramesInFlight];
     private VkCommandBuffer _commandBuffer; // recording command buffer
-    private RenderPassDescription _currentRenderPass;
+
     private VulkanPipeline? _currentPipeline;
-    private bool _synchronization2;
+    private RenderPassDescription _currentRenderPass;
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
     {
@@ -238,6 +239,12 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     {
         vkCmdDispatch(_commandBuffer, groupCountX, groupCountY, groupCountZ);
     }
+
+    protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        vkCmdDispatchIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset);
+    }
     #endregion ComputeContext Methods
 
     #region RenderContext Methods
@@ -260,18 +267,18 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             VkRenderingAttachmentInfo depthAttachment = new();
             VkRenderingAttachmentInfo stencilAttachment = new();
 
-            var depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
-            var hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
+            PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+            bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
 
-            for (var slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
+            for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
             {
                 ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
                 Guard.IsTrue(attachment.Texture is not null);
 
-                var texture = (VulkanTexture)attachment.Texture;
-                var mipLevel = attachment.MipLevel;
-                var slice = attachment.Slice;
-                var imageView = texture.GetView(mipLevel, slice);
+                VulkanTexture texture = (VulkanTexture)attachment.Texture;
+                int mipLevel = attachment.MipLevel;
+                int slice = attachment.Slice;
+                VkImageView imageView = texture.GetView(mipLevel, slice);
 
                 renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
                 renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
@@ -516,6 +523,28 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         PrepareDraw();
 
         vkCmdDraw(_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    protected override void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance)
+    {
+        PrepareDraw();
+
+        vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        PrepareDraw();
+
+        vkCmdDrawMeshTasksEXT(_commandBuffer, groupCountX, groupCountY, groupCountZ);
+    }
+
+    protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        vkCmdDrawMeshTasksIndirectEXT(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
     }
 
     private void PrepareDraw()
