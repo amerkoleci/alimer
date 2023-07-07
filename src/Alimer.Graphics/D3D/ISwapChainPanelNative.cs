@@ -4,8 +4,9 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Win32;
-using Win32.Graphics.Dxgi;
+using TerraFX.Interop;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 using static Alimer.Graphics.D3D.IID;
 
 #pragma warning disable CS0649
@@ -22,7 +23,7 @@ internal unsafe partial struct ISwapChainPanelNative : ISwapChainPanelNative.Int
 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public HResult QueryInterface(Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface(Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged<ISwapChainPanelNative*, Guid*, void**, int>)(lpVtbl[0]))((ISwapChainPanelNative*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -42,13 +43,13 @@ internal unsafe partial struct ISwapChainPanelNative : ISwapChainPanelNative.Int
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public HResult SetSwapChain(IDXGISwapChain* swapChain)
+    public HRESULT SetSwapChain(IDXGISwapChain* swapChain)
     {
         return ((delegate* unmanaged<ISwapChainPanelNative*, IDXGISwapChain*, int>)(lpVtbl[3]))((ISwapChainPanelNative*)Unsafe.AsPointer(ref this), swapChain);
     }
 
     public interface Interface : IUnknown.Interface
     {
-        HResult SetSwapChain(IDXGISwapChain* swapChain);
+        HRESULT SetSwapChain(IDXGISwapChain* swapChain);
     }
 }

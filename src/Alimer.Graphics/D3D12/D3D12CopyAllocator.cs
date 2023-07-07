@@ -2,9 +2,12 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using Win32;
-using Win32.Graphics.Direct3D12;
-using static Win32.Apis;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_FENCE_FLAGS;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -60,10 +63,10 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         // If no buffer was found that fits the data, create one
         if (!context.IsValid)
         {
-            HResult hr = _device.Handle->CreateCommandAllocator(CommandListType.Copy, __uuidof<ID3D12CommandAllocator>(), context.CommandAllocator.GetVoidAddressOf());
+            HRESULT hr = _device.Handle->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, __uuidof<ID3D12CommandAllocator>(), context.CommandAllocator.GetVoidAddressOf());
             ThrowIfFailed(hr);
 
-            hr = _device.Handle->CreateCommandList(0, CommandListType.Copy,
+            hr = _device.Handle->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY,
                 context.CommandAllocator.Get(),
                 null,
                 __uuidof<ID3D12CommandList>(), context.CommandList.GetVoidAddressOf()
@@ -71,7 +74,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
             ThrowIfFailed(hr);
 
             ThrowIfFailed(context.CommandList.Get()->Close());
-            ThrowIfFailed(_device.Handle->CreateFence(0, FenceFlags.None, __uuidof<ID3D12Fence>(), context.Fence.GetVoidAddressOf()));
+            context.Fence = _device.Handle->CreateFence();
 
             context.UploadBufferSize = BitOperations.RoundUpToPowerOf2(size);
 

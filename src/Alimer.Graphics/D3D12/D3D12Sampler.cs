@@ -1,37 +1,40 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Win32.Graphics.Direct3D12;
-using static Win32.Graphics.Direct3D12.Apis;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.D3D12_FILTER_REDUCTION_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_COMPARISON_FUNC;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using TerraFX.Interop.DirectX;
 
 namespace Alimer.Graphics.D3D12;
 
 internal sealed unsafe class D3D12Sampler : Sampler
 {
     private readonly D3D12GraphicsDevice _device;
-    private readonly CpuDescriptorHandle _handle;
+    private readonly D3D12_CPU_DESCRIPTOR_HANDLE _handle;
 
     public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
         : base(description)
     {
         _device = device;
-        FilterType minFilter = description.MinFilter.ToD3D12();
-        FilterType magFilter = description.MagFilter.ToD3D12();
-        FilterType mipmapFilter = description.MipFilter.ToD3D12();
+        D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
+        D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
+        D3D12_FILTER_TYPE mipmapFilter = description.MipFilter.ToD3D12();
 
-        FilterReductionType reduction = description.Compare != CompareFunction.Never ? FilterReductionType.Comparison : FilterReductionType.Standard;
+        D3D12_FILTER_REDUCTION_TYPE reduction = description.Compare != CompareFunction.Never ? D3D12_FILTER_REDUCTION_TYPE_COMPARISON : D3D12_FILTER_REDUCTION_TYPE_STANDARD;
 
-        Win32.Graphics.Direct3D12.SamplerDescription d3dDesc = new();
+        D3D12_SAMPLER_DESC d3dDesc = new();
 
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
         d3dDesc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), 16u);
         if (d3dDesc.MaxAnisotropy > 1)
         {
-            d3dDesc.Filter = EncodeAnisotropicFilter(reduction);
+            d3dDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reduction);
         }
         else
         {
-            d3dDesc.Filter = EncodeBasicFilter(minFilter, magFilter, mipmapFilter, reduction);
+            d3dDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reduction);
         }
 
         d3dDesc.AddressU = description.AddressModeU.ToD3D12();
@@ -45,22 +48,22 @@ internal sealed unsafe class D3D12Sampler : Sampler
         else
         {
             // Still set the function so it's not garbage.
-            d3dDesc.ComparisonFunc = ComparisonFunction.Never;
+            d3dDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         }
         d3dDesc.MinLOD = description.LodMinClamp;
         d3dDesc.MaxLOD = description.LodMaxClamp;
 
-        _handle = device.AllocateDescriptor(DescriptorHeapType.Sampler);
+        _handle = device.AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
         device.Handle->CreateSampler(&d3dDesc, _handle);
     }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    public CpuDescriptorHandle Handle => _handle;
+    public D3D12_CPU_DESCRIPTOR_HANDLE Handle => _handle;
 
     protected internal override void Destroy()
     {
-        _device.FreeDescriptor(DescriptorHeapType.Sampler, _handle);
+        _device.FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, _handle);
     }
 }

@@ -1,10 +1,10 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Win32;
-using Win32.Graphics.Direct3D12;
-using static Win32.Apis;
-using D3DQueryHeapDescription = Win32.Graphics.Direct3D12.QueryHeapDescription;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.Windows.Windows;
+using TerraFX.Interop.Windows;
+using TerraFX.Interop.DirectX;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -17,14 +17,14 @@ internal unsafe class D3D12QueryHeap : QueryHeap
         : base(description)
     {
         _device = device;
-        D3DQueryHeapDescription heapDesc = new()
+        D3D12_QUERY_HEAP_DESC heapDesc = new()
         {
             Type = description.Type.ToD3D12(),
             Count = (uint)description.Count,
             NodeMask = 0u
         };
-        HResult hr = device.Handle->CreateQueryHeap(&heapDesc, __uuidof<ID3D12QueryHeap>(), _handle.GetVoidAddressOf());
-        if (hr.Failure)
+        HRESULT hr = device.Handle->CreateQueryHeap(&heapDesc, __uuidof<ID3D12QueryHeap>(), _handle.GetVoidAddressOf());
+        if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create QueryHeap.");
             return;

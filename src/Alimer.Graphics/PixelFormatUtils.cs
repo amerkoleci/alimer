@@ -602,28 +602,4 @@ public static class PixelFormatUtils
                 return PixelFormat.Undefined;
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DxgiFormat GetTypelessFormatFromDepthFormat(this PixelFormat format)
-    {
-        switch (format)
-        {
-            //case PixelFormat.Stencil8:
-            //    return DxgiFormat.R24G8Typeless;
-            case PixelFormat.Depth16Unorm:
-                return DxgiFormat.R16Typeless;
-
-            case PixelFormat.Depth32Float:
-                return DxgiFormat.R32Typeless;
-
-            case PixelFormat.Depth24UnormStencil8:
-                return DxgiFormat.R24G8Typeless;
-            case PixelFormat.Depth32FloatStencil8:
-                return DxgiFormat.R32G8X24Typeless;
-
-            default:
-                Guard.IsFalse(format.IsDepthFormat(), nameof(format));
-                return ToDxgiFormat(format);
-        }
-    }
 }

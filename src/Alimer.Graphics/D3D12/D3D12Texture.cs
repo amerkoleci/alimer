@@ -1,13 +1,18 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Win32;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi.Common;
-using static Win32.Apis;
-using static Alimer.Graphics.D3D12.D3D12Utils;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Graphics.D3D.D3DUtils;
-using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
+using static Alimer.Graphics.D3D12.D3D12Utils;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -15,58 +20,58 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private Handle _sharedHandle = Win32.Handle.Null;
-    private readonly Dictionary<int, CpuDescriptorHandle> _RTVs = new();
-    private readonly Dictionary<int, CpuDescriptorHandle> _DSVs = new();
+    private HANDLE _sharedHandle = HANDLE.NULL;
+    private readonly Dictionary<int, D3D12_CPU_DESCRIPTOR_HANDLE> _RTVs = new();
+    private readonly Dictionary<int, D3D12_CPU_DESCRIPTOR_HANDLE> _DSVs = new();
 
     public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, void* initialData)
         : base(description)
     {
         _device = device;
-        DxgiFormat = (Format)description.Format.ToDxgiFormat();
+        DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
         bool isDepthStencil = description.Format.IsDepthStencilFormat();
 
         // If ShaderRead or ShaderWrite and depth format, set to typeless.
         if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
         {
-            DxgiFormat = (Format)description.Format.GetTypelessFormatFromDepthFormat();
+            DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
         }
 
-        HeapProperties heapProps = DefaultHeapProps;
-        ResourceFlags resourceFlags = ResourceFlags.None;
+        D3D12_HEAP_PROPERTIES heapProps = DefaultHeapProps;
+        D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
         if ((description.Usage & TextureUsage.RenderTarget) != 0)
         {
             if (isDepthStencil)
             {
-                resourceFlags |= ResourceFlags.AllowDepthStencil;
+                resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
                 if ((description.Usage & TextureUsage.ShaderRead) == 0)
                 {
-                    resourceFlags |= ResourceFlags.DenyShaderResource;
+                    resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
                 }
             }
             else
             {
-                resourceFlags |= ResourceFlags.AllowRenderTarget;
+                resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
             }
         }
 
         if ((description.Usage & TextureUsage.ShaderWrite) != 0)
         {
-            resourceFlags |= ResourceFlags.AllowUnorderedAccess;
+            resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        HeapFlags heapFlags = HeapFlags.None;
+        D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
         bool isShared = false;
         if ((description.Usage & TextureUsage.Shared) != 0)
         {
-            heapFlags |= HeapFlags.Shared;
+            heapFlags |= D3D12_HEAP_FLAG_SHARED;
             isShared = true;
 
             // TODO: What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
         }
 
-        ResourceDescription resourceDesc = ResourceDescription.Tex2D(
+        D3D12_RESOURCE_DESC resourceDesc = D3D12_RESOURCE_DESC.Tex2D(
             DxgiFormat,
             description.Width,
             description.Height,
@@ -74,9 +79,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             (ushort)description.MipLevelCount,
             description.SampleCount.ToSampleCount(), 0,
             resourceFlags);
-        D3DResourceStates initialState = D3DResourceStates.Common;
+        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
 
-        HResult hr = device.Handle->CreateCommittedResource(&heapProps,
+        HRESULT hr = device.Handle->CreateCommittedResource(&heapProps,
             heapFlags,
             &resourceDesc,
             initialState,
@@ -85,7 +90,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _handle.GetVoidAddressOf()
             );
 
-        if (hr.Failure)
+        if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create Texture.");
             return;
@@ -93,8 +98,8 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
         if (isShared)
         {
-            Handle sharedHandle = Win32.Handle.Null;
-            if (device.Handle->CreateSharedHandle((ID3D12DeviceChild*)_handle.Get(), null, GENERIC_ALL, null, &sharedHandle).Failure)
+            HANDLE sharedHandle = default;
+            if (device.Handle->CreateSharedHandle((ID3D12DeviceChild*)_handle.Get(), null, GENERIC_ALL, null, &sharedHandle).FAILED)
             {
                 return;
             }
@@ -112,7 +117,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         : base(descriptor)
     {
         _device = device;
-        DxgiFormat = (Format)descriptor.Format.ToDxgiFormat();
+        DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
         _handle = existingTexture;
 
         if (!string.IsNullOrEmpty(descriptor.Label))
@@ -124,7 +129,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    public Format DxgiFormat { get; }
+    public DXGI_FORMAT DxgiFormat { get; }
     public ID3D12Resource* Handle => _handle;
     public ResourceStates State { get; set; }
     public ResourceStates TransitioningState { get; set; } = (ResourceStates)uint.MaxValue;
@@ -137,9 +142,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        foreach (CpuDescriptorHandle view in _RTVs.Values)
+        foreach (D3D12_CPU_DESCRIPTOR_HANDLE view in _RTVs.Values)
         {
-            _device.FreeDescriptor(DescriptorHeapType.Rtv, in view);
+            _device.FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, in view);
         }
         _RTVs.Clear();
 
@@ -160,19 +165,19 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         }
     }
 
-    public CpuDescriptorHandle GetRTV(int mipSlice, int arraySlice, Format format = Win32.Graphics.Dxgi.Common.Format.Unknown)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(int mipSlice, int arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
     {
         int hash = HashCode.Combine(mipSlice, arraySlice, format);
 
-        if (!_RTVs.TryGetValue(hash, out CpuDescriptorHandle rtvHandle))
+        if (!_RTVs.TryGetValue(hash, out D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle))
         {
-            ResourceDescription desc = _handle.Get()->GetDesc();
+            D3D12_RESOURCE_DESC desc = _handle.Get()->GetDesc();
 
-            RenderTargetViewDescription viewDesc = default;
+            D3D12_RENDER_TARGET_VIEW_DESC viewDesc = default;
             viewDesc.Format = format;
-            viewDesc.ViewDimension = RtvDimension.Texture2D;
+            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-            rtvHandle = _device.AllocateDescriptor(DescriptorHeapType.Rtv);
+            rtvHandle = _device.AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             _device.Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, rtvHandle);
 
             _RTVs.Add(hash, rtvHandle);

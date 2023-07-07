@@ -1,9 +1,10 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Win32;
-using Win32.Graphics.Direct3D12;
-using static Win32.Apis;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -16,9 +17,9 @@ internal unsafe class D3D12Pipeline : Pipeline
         : base(PipelineType.Render, description.Label)
     {
         _device = device;
-        GraphicsPipelineStateDescription d3dDesc = new();
-        HResult hr = device.Handle->CreateGraphicsPipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
-        if (hr.Failure)
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC d3dDesc = new();
+        HRESULT hr = device.Handle->CreateGraphicsPipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
+        if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create Render Pipeline.");
             return;
@@ -29,9 +30,9 @@ internal unsafe class D3D12Pipeline : Pipeline
         : base(PipelineType.Compute, description.Label)
     {
         _device = device;
-        ComputePipelineStateDescription d3dDesc = new();
-        HResult hr = device.Handle->CreateComputePipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
-        if (hr.Failure)
+        D3D12_COMPUTE_PIPELINE_STATE_DESC d3dDesc = new();
+        HRESULT hr = device.Handle->CreateComputePipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
+        if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create Compute Pipeline.");
             return;

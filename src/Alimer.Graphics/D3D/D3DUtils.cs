@@ -2,97 +2,121 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Win32;
-using Win32.Graphics.Dxgi.Common;
+using CommunityToolkit.Diagnostics;
+using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 
 namespace Alimer.Graphics.D3D;
 
 internal static unsafe class D3DUtils
 {
-    public const int GENERIC_ALL = (0x10000000);
-
-    public static Format ToDxgiFormat(this VertexFormat format)
+    public static DXGI_FORMAT ToDxgiFormat(this VertexFormat format)
     {
         switch (format)
         {
-            case VertexFormat.UByte2: return Format.R8G8Uint;
-            case VertexFormat.UByte4: return Format.R8G8B8A8Uint;
-            case VertexFormat.Byte2: return Format.R8G8Sint;
-            case VertexFormat.Byte4: return Format.R8G8B8A8Sint;
-            case VertexFormat.UByte2Normalized: return Format.R8G8Unorm;
-            case VertexFormat.UByte4Normalized: return Format.R8G8B8A8Unorm;
-            case VertexFormat.Byte2Normalized: return Format.R8G8Snorm;
-            case VertexFormat.Byte4Normalized: return Format.R8G8B8A8Snorm;
+            case VertexFormat.UByte2: return DXGI_FORMAT_R8G8_UINT;
+            case VertexFormat.UByte4: return DXGI_FORMAT_R8G8B8A8_UINT;
+            case VertexFormat.Byte2: return DXGI_FORMAT_R8G8_SINT;
+            case VertexFormat.Byte4: return DXGI_FORMAT_R8G8B8A8_SINT;
+            case VertexFormat.UByte2Normalized: return DXGI_FORMAT_R8G8_UNORM;
+            case VertexFormat.UByte4Normalized: return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case VertexFormat.Byte2Normalized: return DXGI_FORMAT_R8G8_SNORM;
+            case VertexFormat.Byte4Normalized: return DXGI_FORMAT_R8G8B8A8_SNORM;
 
-            case VertexFormat.UShort2: return Format.R16G16Uint;
-            case VertexFormat.UShort4: return Format.R16G16B16A16Uint;
-            case VertexFormat.Short2: return Format.R16G16Sint;
-            case VertexFormat.Short4: return Format.R16G16B16A16Sint;
-            case VertexFormat.UShort2Normalized: return Format.R16G16Unorm;
-            case VertexFormat.UShort4Normalized: return Format.R16G16B16A16Unorm;
-            case VertexFormat.Short2Normalized: return Format.R16G16Snorm;
-            case VertexFormat.Short4Normalized: return Format.R16G16B16A16Snorm;
-            case VertexFormat.Half2: return Format.R16G16Float;
-            case VertexFormat.Half4: return Format.R16G16B16A16Float;
+            case VertexFormat.UShort2: return DXGI_FORMAT_R16G16_UINT;
+            case VertexFormat.UShort4: return DXGI_FORMAT_R16G16B16A16_UINT;
+            case VertexFormat.Short2: return DXGI_FORMAT_R16G16_SINT;
+            case VertexFormat.Short4: return DXGI_FORMAT_R16G16B16A16_SINT;
+            case VertexFormat.UShort2Normalized: return DXGI_FORMAT_R16G16_UNORM;
+            case VertexFormat.UShort4Normalized: return DXGI_FORMAT_R16G16B16A16_UNORM;
+            case VertexFormat.Short2Normalized: return DXGI_FORMAT_R16G16_SNORM;
+            case VertexFormat.Short4Normalized: return DXGI_FORMAT_R16G16B16A16_SNORM;
+            case VertexFormat.Half2: return DXGI_FORMAT_R16G16_FLOAT;
+            case VertexFormat.Half4: return DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-            case VertexFormat.Float: return Format.R32Float;
-            case VertexFormat.Float2: return Format.R32G32Float;
-            case VertexFormat.Float3: return Format.R32G32B32Float;
-            case VertexFormat.Float4: return Format.R32G32B32A32Float;
+            case VertexFormat.Float: return DXGI_FORMAT_R32_FLOAT;
+            case VertexFormat.Float2: return DXGI_FORMAT_R32G32_FLOAT;
+            case VertexFormat.Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
+            case VertexFormat.Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 
-            case VertexFormat.UInt: return Format.R32Uint;
-            case VertexFormat.UInt2: return Format.R32G32Uint;
-            case VertexFormat.UInt3: return Format.R32G32B32Uint;
-            case VertexFormat.UInt4: return Format.R32G32B32A32Uint;
+            case VertexFormat.UInt: return DXGI_FORMAT_R32_UINT;
+            case VertexFormat.UInt2: return DXGI_FORMAT_R32G32_UINT;
+            case VertexFormat.UInt3: return DXGI_FORMAT_R32G32B32_UINT;
+            case VertexFormat.UInt4: return DXGI_FORMAT_R32G32B32A32_UINT;
 
-            case VertexFormat.Int: return Format.R32Sint;
-            case VertexFormat.Int2: return Format.R32G32Sint;
-            case VertexFormat.Int3: return Format.R32G32B32Sint;
-            case VertexFormat.Int4: return Format.R32G32B32A32Sint;
+            case VertexFormat.Int: return DXGI_FORMAT_R32_SINT;
+            case VertexFormat.Int2: return DXGI_FORMAT_R32G32_SINT;
+            case VertexFormat.Int3: return DXGI_FORMAT_R32G32B32_SINT;
+            case VertexFormat.Int4: return DXGI_FORMAT_R32G32B32A32_SINT;
 
-            case VertexFormat.Int1010102Normalized: return Format.R10G10B10A2Unorm;
-            case VertexFormat.UInt1010102Normalized: return Format.R10G10B10A2Uint;
+            case VertexFormat.Int1010102Normalized: return DXGI_FORMAT_R10G10B10A2_UNORM;
+            case VertexFormat.UInt1010102Normalized: return DXGI_FORMAT_R10G10B10A2_UINT;
 
             default:
-                return Format.Unknown;
+                return DXGI_FORMAT_UNKNOWN;
+        }
+    }
+
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DXGI_FORMAT GetTypelessFormatFromDepthFormat(this PixelFormat format)
+    {
+        switch (format)
+        {
+            //case PixelFormat.Stencil8:
+            //    return DxgiFormat.R24G8Typeless;
+            case PixelFormat.Depth16Unorm:
+                return DXGI_FORMAT_R16_TYPELESS;
+
+            case PixelFormat.Depth32Float:
+                return DXGI_FORMAT_R32_TYPELESS;
+
+            case PixelFormat.Depth24UnormStencil8:
+                return DXGI_FORMAT_R24G8_TYPELESS;
+            case PixelFormat.Depth32FloatStencil8:
+                return DXGI_FORMAT_R32G8X24_TYPELESS;
+
+            default:
+                Guard.IsFalse(format.IsDepthFormat(), nameof(format));
+                return (DXGI_FORMAT)format.ToDxgiFormat();
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Format ToDxgiSwapChainFormat(this PixelFormat format)
+    public static DXGI_FORMAT ToDxgiSwapChainFormat(this PixelFormat format)
     {
         // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
         switch (format)
         {
             case PixelFormat.Rgba16Float:
-                return Format.R16G16B16A16Float;
+                return DXGI_FORMAT_R16G16B16A16_FLOAT;
 
             case PixelFormat.Bgra8Unorm:
             case PixelFormat.Bgra8UnormSrgb:
-                return Format.B8G8R8A8Unorm;
+                return DXGI_FORMAT_B8G8R8A8_UNORM;
 
             case PixelFormat.Rgba8Unorm:
             case PixelFormat.Rgba8UnormSrgb:
-                return Format.R8G8B8A8Unorm;
+                return DXGI_FORMAT_R8G8B8A8_UNORM;
 
             case PixelFormat.Rgb10a2Unorm:
-                return Format.R10G10B10A2Unorm;
+                return DXGI_FORMAT_R10G10B10A2_UNORM;
 
             default:
-                return Format.B8G8R8A8Unorm;
+                return DXGI_FORMAT_B8G8R8A8_UNORM;
         }
     }
 
-    public static Format ToDxgiFormat(this IndexType indexType)
+    public static DXGI_FORMAT ToDxgiFormat(this IndexType indexType)
     {
         switch (indexType)
         {
-            case IndexType.Uint16: return Format.R16Uint;
-            case IndexType.Uint32: return Format.R32Uint;
+            case IndexType.Uint16: return DXGI_FORMAT_R16_UINT;
+            case IndexType.Uint32: return DXGI_FORMAT_R32_UINT;
 
             default:
-                return Format.Unknown;
+                return DXGI_FORMAT_UNKNOWN;
         }
     }
 
@@ -138,8 +162,4 @@ internal static unsafe class D3DUtils
                 return 1u;
         }
     }
-
-    [DllImport("kernel32", ExactSpelling = true)]
-    //[SetsLastSystemError]
-    public static extern int CloseHandle(Handle hObject);
 }

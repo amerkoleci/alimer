@@ -1,10 +1,11 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.InteropServices;
-using Win32;
-using Win32.Graphics.Direct3D12;
-using static Win32.Apis;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -31,18 +32,20 @@ internal unsafe class D3D12CommandQueue : IDisposable
         _nextFenceValue = (ulong)CommandListType << 56 | 1;
         _lastCompletedFenceValue = (ulong)CommandListType << 56;
 
-        CommandQueueDescription d3dDesc = new(CommandListType, CommandQueuePriority.Normal);
-        HResult hr = device.Handle->CreateCommandQueue(&d3dDesc, __uuidof<ID3D12CommandQueue>(), _handle.GetVoidAddressOf());
-        if (hr.Failure)
+        D3D12_COMMAND_QUEUE_DESC queueDesc = new()
+        {
+            Type = CommandListType,
+            Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+            Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
+            NodeMask = 0
+        };
+        HRESULT hr = device.Handle->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), _handle.GetVoidAddressOf());
+        if (hr.FAILED)
         {
             throw new GraphicsException("D3D12: Failed to create CommandQueue");
         }
 
-        hr = device.Handle->CreateFence(0, FenceFlags.Shared, __uuidof<ID3D12Fence>(), _fence.GetVoidAddressOf());
-        if (hr.Failure)
-        {
-            throw new GraphicsException("D3D12: Failed to create Fence");
-        }
+        _fence = device.Handle->CreateFence(true);
         _fence.Get()->Signal(_lastCompletedFenceValue);
 
         _handle.Get()->SetName($"{type}Queue");
@@ -51,7 +54,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
 
     public D3D12GraphicsDevice Device => _device;
     public QueueType QueueType { get; }
-    public CommandListType CommandListType { get; }
+    public D3D12_COMMAND_LIST_TYPE CommandListType { get; }
     public ID3D12CommandQueue* Handle => _handle;
 
     /// <inheritdoc />
@@ -182,7 +185,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
         // 100 before it knows 99 is ready.  Maybe insert sequential events?
         lock (_eventMutex)
         {
-            _fence.Get()->SetEventOnCompletion(fenceValue, Win32.Handle.Null);
+            _fence.Get()->SetEventOnCompletion(fenceValue, HANDLE.NULL);
             _lastCompletedFenceValue = fenceValue;
         }
     }

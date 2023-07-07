@@ -3,13 +3,21 @@
 
 using System.Drawing;
 using CommunityToolkit.Diagnostics;
-using Win32;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 using static Alimer.Graphics.Constants;
-using static Win32.Apis;
-using static Win32.Graphics.Direct3D12.Apis;
-using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
-using D3DShadingRate = Win32.Graphics.Direct3D12.ShadingRate;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BARRIER_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BARRIER_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
+using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE_COMBINER;
+using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -20,22 +28,22 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     /// <summary>
     /// Allowed states for <see cref="QueueType.Compute"/>
     /// </summary>
-    private static readonly D3DResourceStates s_ValidComputeResourceStates =
-       D3DResourceStates.UnorderedAccess
-       | D3DResourceStates.NonPixelShaderResource
-       | D3DResourceStates.CopyDest
-       | D3DResourceStates.CopySource;
+    private static readonly D3D12_RESOURCE_STATES s_ValidComputeResourceStates =
+       D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+       | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+       | D3D12_RESOURCE_STATE_COPY_DEST
+       | D3D12_RESOURCE_STATE_COPY_SOURCE;
 
     /// <summary>
     /// Allowed states for <see cref="QueueType.Copy"/>
     /// </summary>
-    private static readonly D3DResourceStates s_ValidCopyResourceStates = D3DResourceStates.CopyDest | D3DResourceStates.CopySource;
+    private static readonly D3D12_RESOURCE_STATES s_ValidCopyResourceStates = D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_COPY_SOURCE;
 
     private readonly D3D12CommandQueue _queue;
     private readonly ComPtr<ID3D12CommandAllocator>[] _commandAllocators = new ComPtr<ID3D12CommandAllocator>[MaxFramesInFlight];
     private readonly ComPtr<ID3D12GraphicsCommandList6> _commandList;
-    private readonly ResourceBarrier[] _resourceBarriers = new ResourceBarrier[MaxBarriers];
-    private int _numBarriersToFlush;
+    private readonly D3D12_RESOURCE_BARRIER[] _resourceBarriers = new D3D12_RESOURCE_BARRIER[MaxBarriers];
+    private uint _numBarriersToFlush;
 
     private D3D12Pipeline? _currentPipeline;
     private RenderPassDescription _currentRenderPass;
@@ -53,7 +61,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         }
 
         ThrowIfFailed(
-           queue.Device.Handle->CreateCommandList1(0, queue.CommandListType, CommandListFlags.None,
+           queue.Device.Handle->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
             __uuidof<ID3D12GraphicsCommandList6>(), _commandList.GetVoidAddressOf()
         ));
     }
@@ -103,8 +111,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     public void TransitionResource(ID3D12GpuResource resource, ResourceStates newState, bool flushImmediate = false)
     {
         ResourceStates oldState = resource.State;
-        D3DResourceStates oldStateD3D12 = resource.State.ToD3D12();
-        D3DResourceStates newStateD3D12 = newState.ToD3D12();
+        D3D12_RESOURCE_STATES oldStateD3D12 = resource.State.ToD3D12();
+        D3D12_RESOURCE_STATES newStateD3D12 = newState.ToD3D12();
 
         if (_queue.QueueType == QueueType.Compute)
         {
@@ -115,9 +123,9 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         if (oldState != newState)
         {
             Guard.IsTrue(_numBarriersToFlush < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
-            ref ResourceBarrier barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
+            ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
 
-            barrierDesc.Type = ResourceBarrierType.Transition;
+            barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrierDesc.Transition.pResource = resource.Handle;
             barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             barrierDesc.Transition.StateBefore = oldStateD3D12;
@@ -126,12 +134,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             // Check to see if we already started the transition
             if (newState == resource.TransitioningState)
             {
-                barrierDesc.Flags = ResourceBarrierFlags.EndOnly;
+                barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
                 resource.TransitioningState = (ResourceStates)uint.MaxValue;
             }
             else
             {
-                barrierDesc.Flags = ResourceBarrierFlags.None;
+                barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
             }
 
             resource.State = newState;
@@ -150,10 +158,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     public void InsertUAVBarrier(ID3D12GpuResource resource, bool flushImmediate = false)
     {
         Guard.IsTrue(_numBarriersToFlush < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
-        ref ResourceBarrier barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
+        ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
 
-        barrierDesc.Type = ResourceBarrierType.Uav;
-        barrierDesc.Flags = ResourceBarrierFlags.None;
+        barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+        barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         barrierDesc.UAV.pResource = resource.Handle;
 
         if (flushImmediate)
@@ -164,7 +172,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     {
         if (_numBarriersToFlush > 0)
         {
-            _commandList.Get()->ResourceBarrier(_numBarriersToFlush, _resourceBarriers);
+            fixed (D3D12_RESOURCE_BARRIER* pBarriers = _resourceBarriers)
+            {
+                _commandList.Get()->ResourceBarrier(_numBarriersToFlush, pBarriers);
+            }
 
             _numBarriersToFlush = 0;
         }
@@ -238,9 +249,9 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
         Size renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
-        RenderPassRenderTargetDescription* RTVs = stackalloc RenderPassRenderTargetDescription[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-        RenderPassDepthStencilDescription DSV = default;
-        RenderPassFlags renderPassFlags = RenderPassFlags.None;
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
+        D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
 
         bool hasDepthOrStencil = renderPass.DepthStencilAttachment.Texture != null;
         PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
@@ -264,18 +275,18 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             {
                 default:
                 case LoadAction.Load:
-                    RTVs[slot].BeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+                    RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                     break;
 
                 case LoadAction.Clear:
-                    RTVs[slot].BeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                    RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
                     RTVs[slot].BeginningAccess.Clear.ClearValue.Color[0] = attachment.ClearColor.R;
                     RTVs[slot].BeginningAccess.Clear.ClearValue.Color[1] = attachment.ClearColor.G;
                     RTVs[slot].BeginningAccess.Clear.ClearValue.Color[2] = attachment.ClearColor.B;
                     RTVs[slot].BeginningAccess.Clear.ClearValue.Color[3] = attachment.ClearColor.A;
                     break;
                 case LoadAction.Discard:
-                    RTVs[slot].BeginningAccess.Type = RenderPassBeginningAccessType.Discard;
+                    RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
@@ -283,10 +294,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             {
                 default:
                 case StoreAction.Store:
-                    RTVs[slot].EndingAccess.Type = RenderPassEndingAccessType.Preserve;
+                    RTVs[slot].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
                     break;
                 case StoreAction.Discard:
-                    RTVs[slot].EndingAccess.Type = RenderPassEndingAccessType.Discard;
+                    RTVs[slot].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
@@ -314,8 +325,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
          );
 
         // The viewport and scissor default to cover all of the attachments
-        Win32.Numerics.Viewport viewport = new((float)renderArea.Width, (float)renderArea.Height);
-        Win32.Numerics.Rect scissorRect = new(0, 0, renderArea.Width, renderArea.Height);
+        D3D12_VIEWPORT viewport = new(0.0f, 0.0f, (float)renderArea.Width, (float)renderArea.Height);
+        RECT scissorRect = new(0, 0, renderArea.Width, renderArea.Height);
         _commandList.Get()->RSSetViewports(1, &viewport);
         _commandList.Get()->RSSetScissorRects(1, &scissorRect);
 
@@ -342,7 +353,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public override void SetViewport(in Viewport viewport)
     {
-        Win32.Numerics.Viewport d3d12Viewport = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+        D3D12_VIEWPORT d3d12Viewport = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
         _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
     }
 
@@ -352,20 +363,20 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             count = viewports.Length;
         }
-        Win32.Numerics.Viewport* d3d12Viewports = stackalloc Win32.Numerics.Viewport[count];
+        D3D12_VIEWPORT* d3d12Viewports = stackalloc D3D12_VIEWPORT[count];
 
         for (int i = 0; i < count; i++)
         {
             ref readonly Viewport viewport = ref viewports[(int)i];
 
-            d3d12Viewports[i] = new Win32.Numerics.Viewport(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+            d3d12Viewports[i] = new D3D12_VIEWPORT(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
         }
         _commandList.Get()->RSSetViewports((uint)count, d3d12Viewports);
     }
 
     public override void SetScissorRect(in Rectangle rect)
     {
-        Win32.Numerics.Rect scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
+        RECT scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
         _commandList.Get()->RSSetScissorRects(1, &scissorRect);
     }
 
@@ -385,13 +396,13 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             _currentShadingRate = rate;
 
-            D3DShadingRate d3dRate = D3DShadingRate.Rate1x1;
+            D3D12_SHADING_RATE d3dRate = D3D12_SHADING_RATE_1X1;
             _queue.Device.WriteShadingRateValue(rate, &d3dRate);
 
-            var combiners = stackalloc ShadingRateCombiner[2]
+            var combiners = stackalloc D3D12_SHADING_RATE_COMBINER[2]
             {
-                ShadingRateCombiner.Max,
-                ShadingRateCombiner.Max,
+                D3D12_SHADING_RATE_COMBINER_MAX,
+                D3D12_SHADING_RATE_COMBINER_MAX,
             };
             _commandList.Get()->RSSetShadingRate(d3dRate, combiners);
         }

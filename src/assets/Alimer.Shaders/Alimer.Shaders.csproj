@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" />
+    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

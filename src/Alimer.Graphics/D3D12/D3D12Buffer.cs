@@ -2,12 +2,17 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Numerics;
-using Win32;
-using Win32.Graphics.Direct3D12;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 using static Alimer.Graphics.D3D12.D3D12Utils;
-using static Win32.Graphics.Direct3D12.Apis;
-using static Win32.Apis;
-using D3DResourceStates = Win32.Graphics.Direct3D12.ResourceStates;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -27,46 +32,46 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
             alignedSize = MathHelper.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
-        ResourceFlags resourceFlags = ResourceFlags.None;
+        D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
         if ((description.Usage & BufferUsage.ShaderWrite) != 0)
         {
-            resourceFlags |= ResourceFlags.AllowUnorderedAccess;
+            resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
         if ((description.Usage & BufferUsage.ShaderRead) == 0 &&
             (description.Usage & BufferUsage.RayTracing) == 0)
         {
-            resourceFlags |= ResourceFlags.DenyShaderResource;
+            resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
 
-        ResourceDescription resourceDesc = ResourceDescription.Buffer(alignedSize, resourceFlags);
-        D3DResourceStates initialState = D3DResourceStates.Common;
-        HeapProperties heapProps = DefaultHeapProps;
+        D3D12_RESOURCE_DESC resourceDesc = D3D12_RESOURCE_DESC.Buffer(alignedSize, resourceFlags);
+        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
+        D3D12_HEAP_PROPERTIES heapProps = DefaultHeapProps;
         if (description.CpuAccess == CpuAccessMode.Read)
         {
             heapProps = ReadbackHeapProps;
-            initialState = D3DResourceStates.CopyDest;
-            resourceDesc.Flags |= ResourceFlags.DenyShaderResource;
+            initialState = D3D12_RESOURCE_STATE_COPY_DEST;
+            resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
         else if (description.CpuAccess == CpuAccessMode.Write)
         {
             heapProps = UploadHeapProps;
-            initialState = D3DResourceStates.GenericRead;
+            initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
         }
         else
         {
             //initialState = ConvertResourceStates(desc.initialState);
         }
 
-        HResult hr = device.Handle->CreateCommittedResource(&heapProps,
-            HeapFlags.None,
+        HRESULT hr = device.Handle->CreateCommittedResource(&heapProps,
+            D3D12_HEAP_FLAG_NONE,
             &resourceDesc,
             initialState,
             null,
             __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
             );
 
-        if (hr.Failure)
+        if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create Buffer.");
             return;

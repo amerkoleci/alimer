@@ -10,6 +10,7 @@ using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
 using static TerraFX.Interop.Windows.CLSID;
 using static TerraFX.Interop.DirectX.D3D_CBUFFER_TYPE;
 using static TerraFX.Interop.DirectX.DXC;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Shaders;
 
@@ -36,6 +37,7 @@ public sealed unsafe partial class ShaderCompiler
     /// The <see cref="IDxcIncludeHandler"/> instance used to compile shaders with <see cref="_dxcCompiler"/>.
     /// </summary>
     private readonly ComPtr<IDxcIncludeHandler> _dxcDefaultIncludeHandler;
+
 
     /// <summary>
     /// Creates a new <see cref="ShaderCompiler"/> instance.

@@ -1,11 +1,13 @@
-
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Win32;
-using Win32.Graphics.Direct3D;
-using Win32.Graphics.Direct3D12;
-using D3D12Feature = Win32.Graphics.Direct3D12.Feature;
+using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.D3D12_FEATURE;
+using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
+using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
+using static TerraFX.Interop.DirectX.D3D_ROOT_SIGNATURE_VERSION;
+using static TerraFX.Interop.Windows.E;
+using TerraFX.Interop.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -13,65 +15,65 @@ internal unsafe readonly struct D3D12Features
 {
     private readonly ID3D12Device* _device;
     // Feature support data structs
-    private readonly FeatureDataD3D12Options _options;
-    private readonly FeatureDataD3D12Options1 _options1;
-    private readonly FeatureDataD3D12Options2 _options2;
-    private readonly FeatureDataD3D12Options3 _options3;
-    private readonly FeatureDataD3D12Options4 _options4;
-    private readonly FeatureDataD3D12Options5 _options5;
-    private readonly FeatureDataD3D12Options6 _options6;
-    private readonly FeatureDataD3D12Options7 _options7;
-    private readonly FeatureDataGpuVirtualAddressSupport _gpuVASupport;
-    private readonly FeatureDataArchitecture1[] _architecture1;
-    private readonly FeatureLevel _maxSupportedFeatureLevel;
-    private readonly ShaderModel _highestShaderModel;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS _options;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS1 _options1;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS2 _options2;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS3 _options3;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS4 _options4;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS5 _options5;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS6 _options6;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS7 _options7;
+    private readonly D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT _gpuVASupport;
+    private readonly D3D12_FEATURE_DATA_ARCHITECTURE1[] _architecture1;
+    private readonly D3D_FEATURE_LEVEL _maxSupportedFeatureLevel;
+    private readonly D3D_SHADER_MODEL _highestShaderModel;
 
     public D3D12Features(ID3D12Device* device)
     {
         _device = device;
 
         // Initialize static feature support data structures
-        if (device->CheckFeatureSupport(D3D12Feature.Options, ref _options).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, ref _options).FAILED)
         {
             _options = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options1, ref _options1).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, ref _options1).FAILED)
         {
             _options1 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options2, ref _options2).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, ref _options2).FAILED)
         {
             _options2 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options3, ref _options3).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, ref _options3).FAILED)
         {
             _options3 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options4, ref _options4).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, ref _options4).FAILED)
         {
             _options4 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options5, ref _options5).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, ref _options5).FAILED)
         {
             _options5 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options6, ref _options6).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, ref _options6).FAILED)
         {
             _options6 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.Options7, ref _options7).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, ref _options7).FAILED)
         {
             _options7 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12Feature.GpuVirtualAddressSupport, ref _gpuVASupport).Failure)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).FAILED)
         {
             _gpuVASupport = default;
         }
@@ -79,111 +81,144 @@ internal unsafe readonly struct D3D12Features
         // Initialize per-node feature support data structures
         NodeCount = device->GetNodeCount();
         //m_dProtectedResourceSessionSupport.resize(uNodeCount);
-        _architecture1 = new FeatureDataArchitecture1[NodeCount];
+        _architecture1 = new D3D12_FEATURE_DATA_ARCHITECTURE1[NodeCount];
 
         for (uint nodeIndex = 0; nodeIndex < NodeCount; nodeIndex++)
         {
         }
 
         _maxSupportedFeatureLevel = QueryHighestFeatureLevel();
+        RootSignatureHighestVersion = QueryHighestRootSignatureVersion();
         _highestShaderModel = QueryHighestShaderModel();
     }
 
     public uint NodeCount { get; }
     public bool UMA(uint nodeIndex = 0) => _architecture1[nodeIndex].UMA;
-    public FeatureLevel MaxSupportedFeatureLevel => _maxSupportedFeatureLevel;
-    public ShaderModel HighestShaderModel => _highestShaderModel;
-    public TiledResourcesTier TiledResourcesTier => _options.TiledResourcesTier;
+    public D3D_FEATURE_LEVEL MaxSupportedFeatureLevel => _maxSupportedFeatureLevel;
+    public D3D_ROOT_SIGNATURE_VERSION RootSignatureHighestVersion { get; }
+    public D3D_SHADER_MODEL HighestShaderModel => _highestShaderModel;
+    public D3D12_TILED_RESOURCES_TIER TiledResourcesTier => _options.TiledResourcesTier;
     public bool DepthBoundsTestSupported => _options2.DepthBoundsTestSupported;
     public bool Native16BitShaderOpsSupported => _options4.Native16BitShaderOpsSupported;
 
     public bool SRVOnlyTiledResourceTier3 => _options5.SRVOnlyTiledResourceTier3;
-    public RenderPassTier RenderPassesTier => _options5.RenderPassesTier;
-    public RaytracingTier RaytracingTier => _options5.RaytracingTier;
+    public D3D12_RENDER_PASS_TIER RenderPassesTier => _options5.RenderPassesTier;
+    public D3D12_RAYTRACING_TIER RaytracingTier => _options5.RaytracingTier;
 
     public bool AdditionalShadingRatesSupported => _options6.AdditionalShadingRatesSupported;
     public bool PerPrimitiveShadingRateSupportedWithViewportIndexing => _options6.PerPrimitiveShadingRateSupportedWithViewportIndexing;
-    public VariableShadingRateTier VariableShadingRateTier => _options6.VariableShadingRateTier;
+    public D3D12_VARIABLE_SHADING_RATE_TIER VariableShadingRateTier => _options6.VariableShadingRateTier;
     public uint ShadingRateImageTileSize => _options6.ShadingRateImageTileSize;
     public bool BackgroundProcessingSupported => _options6.BackgroundProcessingSupported;
 
-    public MeshShaderTier MeshShaderTier => _options7.MeshShaderTier;
-    public SamplerFeedbackTier SamplerFeedbackTier => _options7.SamplerFeedbackTier;
+    public D3D12_MESH_SHADER_TIER MeshShaderTier => _options7.MeshShaderTier;
+    public D3D12_SAMPLER_FEEDBACK_TIER SamplerFeedbackTier => _options7.SamplerFeedbackTier;
 
-    private FeatureLevel QueryHighestFeatureLevel()
+    private D3D_FEATURE_LEVEL QueryHighestFeatureLevel()
     {
         // Check against a list of all feature levels present in d3dcommon.h
         // Needs to be updated for future feature levels
-        ReadOnlySpan<FeatureLevel> featureLevels = stackalloc FeatureLevel[]
+        ReadOnlySpan<D3D_FEATURE_LEVEL> featureLevels = stackalloc D3D_FEATURE_LEVEL[]
         {
-            FeatureLevel.Level_12_2,
-            FeatureLevel.Level_12_1,
-            FeatureLevel.Level_12_0,
-            FeatureLevel.Level_11_1,
-            FeatureLevel.Level_11_0,
-            FeatureLevel.Level_10_1,
-            FeatureLevel.Level_10_0,
-            FeatureLevel.Level_9_3,
-            FeatureLevel.Level_9_2,
-            FeatureLevel.Level_9_1,
-            FeatureLevel.Level_1_0_Core
+            D3D_FEATURE_LEVEL_12_2,
+            D3D_FEATURE_LEVEL_12_1,
+            D3D_FEATURE_LEVEL_12_0,
+            D3D_FEATURE_LEVEL_11_1,
+            D3D_FEATURE_LEVEL_11_0,
+            D3D_FEATURE_LEVEL_10_1,
+            D3D_FEATURE_LEVEL_10_0,
+            D3D_FEATURE_LEVEL_9_3,
+            D3D_FEATURE_LEVEL_9_2,
+            D3D_FEATURE_LEVEL_9_1,
+            D3D_FEATURE_LEVEL_1_0_CORE
         };
 
-        fixed (FeatureLevel* pFeatureLevels = featureLevels)
+        fixed (D3D_FEATURE_LEVEL* pFeatureLevels = featureLevels)
         {
-            FeatureDataFeatureLevels dFeatureLevel = new()
+            D3D12_FEATURE_DATA_FEATURE_LEVELS dFeatureLevel = new()
             {
                 NumFeatureLevels = (uint)featureLevels.Length,
                 pFeatureLevelsRequested = pFeatureLevels
             };
 
-            HResult result = _device->CheckFeatureSupport(D3D12Feature.FeatureLevels, &dFeatureLevel, sizeof(FeatureDataFeatureLevels));
-            if (result.Success)
+            HRESULT result = _device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &dFeatureLevel, (uint)sizeof(D3D12_FEATURE_DATA_FEATURE_LEVELS));
+            if (result.SUCCEEDED)
             {
                 return dFeatureLevel.MaxSupportedFeatureLevel;
             }
-            else
-            {
-                return FeatureLevel.Level_11_0;
-            }
+
+            return D3D_FEATURE_LEVEL_11_0;
         }
     }
 
+    private D3D_ROOT_SIGNATURE_VERSION QueryHighestRootSignatureVersion()
+    {
+        // Check against a list of all feature levels present in d3dcommon.h
+        // Needs to be updated for future feature levels
+        ReadOnlySpan<D3D_ROOT_SIGNATURE_VERSION> allRootSignatureVersions = stackalloc D3D_ROOT_SIGNATURE_VERSION[]
+        {
+            //(D3D_ROOT_SIGNATURE_VERSION)0x3, //D3D_ROOT_SIGNATURE_VERSION_1_2,
+            D3D_ROOT_SIGNATURE_VERSION_1_1,
+            D3D_ROOT_SIGNATURE_VERSION_1_0,
+        };
 
-    private ShaderModel QueryHighestShaderModel()
+        for (int i = 0; i < allRootSignatureVersions.Length; i++)
+        {
+            D3D12_FEATURE_DATA_ROOT_SIGNATURE rootSignatureData = new()
+            {
+                HighestVersion = allRootSignatureVersions[i]
+            };
+
+            HRESULT result = _device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &rootSignatureData, (uint)sizeof(D3D12_FEATURE_DATA_ROOT_SIGNATURE));
+            if (result != E_INVALIDARG)
+            {
+                if (result.FAILED)
+                {
+                    rootSignatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+                }
+
+                // If succeeded, the highest version is already written into the member struct
+                return rootSignatureData.HighestVersion;
+            }
+
+            return rootSignatureData.HighestVersion;
+        }
+
+        return D3D_ROOT_SIGNATURE_VERSION_1_0;
+    }
+
+    private D3D_SHADER_MODEL QueryHighestShaderModel()
     {
         // Check support in descending order
-        HResult result;
-
-        ReadOnlySpan<ShaderModel> allModelVersions = stackalloc ShaderModel[]
+        ReadOnlySpan<D3D_SHADER_MODEL> allModelVersions = stackalloc D3D_SHADER_MODEL[]
         {
-            ShaderModel.SM_6_8,
-            ShaderModel.SM_6_7,
-            ShaderModel.SM_6_6,
-            ShaderModel.SM_6_5,
-            ShaderModel.SM_6_4,
-            ShaderModel.SM_6_3,
-            ShaderModel.SM_6_2,
-            ShaderModel.SM_6_1,
-            ShaderModel.SM_6_0,
-            ShaderModel.SM_5_1
+            D3D_SHADER_MODEL_6_8,
+            D3D_SHADER_MODEL_6_7,
+            D3D_SHADER_MODEL_6_6,
+            D3D_SHADER_MODEL_6_5,
+            D3D_SHADER_MODEL_6_4,
+            D3D_SHADER_MODEL_6_3,
+            D3D_SHADER_MODEL_6_2,
+            D3D_SHADER_MODEL_6_1,
+            D3D_SHADER_MODEL_6_0,
+            D3D_SHADER_MODEL_5_1
         };
         var numModelVersions = allModelVersions.Length;
 
-        for (var i = 0; i < numModelVersions; i++)
+        for (int i = 0; i < numModelVersions; i++)
         {
-            FeatureDataShaderModel shaderModel = new()
+            D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = new()
             {
                 HighestShaderModel = allModelVersions[i]
             };
-            result = _device->CheckFeatureSupport(D3D12Feature.ShaderModel, &shaderModel, sizeof(FeatureDataShaderModel));
-            if (result != HResult.InvalidArg)
+            HRESULT result = _device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, (uint)sizeof(D3D12_FEATURE_DATA_SHADER_MODEL));
+            if (result != E_INVALIDARG)
             {
                 // Indicates that the version is recognizable by the runtime and stored in the struct
                 // Also terminate on unexpected error code
-                if (result.Failure)
+                if (result.FAILED)
                 {
-                    shaderModel.HighestShaderModel = (ShaderModel)0;
+                    shaderModel.HighestShaderModel = (D3D_SHADER_MODEL)0;
                 }
 
                 return shaderModel.HighestShaderModel;
@@ -191,6 +226,6 @@ internal unsafe readonly struct D3D12Features
         }
 
         // Shader model may not be supported. Continue the rest initializations
-        return (ShaderModel)0;
+        return (D3D_SHADER_MODEL)0;
     }
 }

@@ -1,17 +1,18 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using Alimer.Graphics.D3D;
-using Win32;
-using Win32.Graphics.Direct3D12;
-using Win32.Graphics.Dxgi;
-using Win32.Graphics.Dxgi.Common;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 using static Alimer.Graphics.D3D.D3DUtils;
-using static Win32.Apis;
-using static Win32.Graphics.Dxgi.Apis;
-using DxgiUsage = Win32.Graphics.Dxgi.Usage;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.DXGI;
+using static TerraFX.Interop.DirectX.DXGI_SCALING;
+using static TerraFX.Interop.DirectX.DXGI_SWAP_EFFECT;
+using static TerraFX.Interop.DirectX.DXGI_ALPHA_MODE;
+using static TerraFX.Interop.DirectX.DXGI_SWAP_CHAIN_FLAG;
+
 #if WINDOWS
 using WinRT;
 #endif
@@ -25,39 +26,39 @@ internal unsafe class D3D12SwapChain : SwapChain
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
     private uint _syncInterval = 1;
-    private PresentFlags _presentFlags = PresentFlags.None;
+    private uint _presentFlags = 0;
 
     public D3D12SwapChain(D3D12GraphicsDevice device, ISwapChainSurface surface, in SwapChainDescription description)
         : base(surface, description)
     {
         _device = device;
-        SwapChainDescription1 swapChainDesc = new()
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = new()
         {
             Width = (uint)surface.PixelWidth,
             Height = (uint)surface.PixelHeight,
             Format = description.Format.ToDxgiSwapChainFormat(),
             Stereo = false,
             SampleDesc = new(1, 0),
-            BufferUsage = DxgiUsage.RenderTargetOutput,
+            BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
             BufferCount = PresentModeToBufferCount(description.PresentMode),
-            Scaling = Scaling.Stretch,
-            SwapEffect = SwapEffect.FlipDiscard,
-            AlphaMode = AlphaMode.Ignore,
-            Flags = device.TearingSupported ? SwapChainFlags.AllowTearing : SwapChainFlags.None
+            Scaling = DXGI_SCALING_STRETCH,
+            SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+            AlphaMode = DXGI_ALPHA_MODE_IGNORE,
+            Flags = device.TearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
         };
 
         using ComPtr<IDXGISwapChain1> tempSwapChain = default;
         switch (surface.Kind)
         {
             case SwapChainSurfaceType.Win32:
-                SwapChainFullscreenDescription fsSwapChainDesc = new()
+                DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new()
                 {
                     Windowed = !description.IsFullscreen
                 };
 
                 ThrowIfFailed(device.Factory->CreateSwapChainForHwnd(
                     (IUnknown*)device.D3D12GraphicsQueue,
-                    surface.Handle,
+                    (HWND)surface.Handle,
                     &swapChainDesc,
                     &fsSwapChainDesc,
                     null,
@@ -65,13 +66,13 @@ internal unsafe class D3D12SwapChain : SwapChain
                     );
 
                 // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                ThrowIfFailed(device.Factory->MakeWindowAssociation(surface.Handle, WindowAssociationFlags.NoAltEnter));
+                ThrowIfFailed(device.Factory->MakeWindowAssociation((HWND)surface.Handle, DXGI_MWA_NO_ALT_ENTER));
                 ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
                 break;
 
             case SwapChainSurfaceType.CoreWindow:
                 {
-                    swapChainDesc.Scaling = Scaling.Stretch;
+                    swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 
                     using ComPtr<IUnknown> coreWindow = default;
                     //coreWindow.Attach((IUnknown*)((IWinRTObject)coreWindowSurface.CoreWindow).NativeObject.GetRef());
@@ -131,7 +132,7 @@ internal unsafe class D3D12SwapChain : SwapChain
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    public Format DxgiFormat { get; }
+    public DXGI_FORMAT DxgiFormat { get; }
     public IDXGISwapChain3* Handle => _handle;
     public uint CurrentBackBufferIndex => _handle.Get()->GetCurrentBackBufferIndex();
     public D3D12Texture CurrentBackBufferTexture => _backbufferTextures![_handle.Get()->GetCurrentBackBufferIndex()];
@@ -143,7 +144,7 @@ internal unsafe class D3D12SwapChain : SwapChain
 
     private void AfterReset()
     {
-        SwapChainDescription1 swapChainDesc;
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(_handle.Get()->GetDesc1(&swapChainDesc));
 
         DxgiFormat dxgiFormat = (DxgiFormat)swapChainDesc.Format;
@@ -202,7 +203,7 @@ internal unsafe class D3D12SwapChain : SwapChain
 
     public bool Present()
     {
-        HResult hr = _handle.Get()->Present(_syncInterval, _presentFlags);
+        HRESULT hr = _handle.Get()->Present(_syncInterval, _presentFlags);
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
         {
             return false;
