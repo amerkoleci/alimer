@@ -144,6 +144,56 @@ public abstract class RenderContext : ComputeContext
         DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
+    /// <summary>
+    /// Draw primitives with indirect parameters
+    /// </summary>
+    /// <param name="indirectBuffer"></param>
+    /// <param name="indirectBufferOffset"></param>
+    public void DrawIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    {
+        PreDrawValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+
+        DrawIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    public void DrawIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    {
+        PreDrawValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(countBuffer);
+        ValidateIndirectOffset(countBufferOffset);
+
+        DrawIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
+    }
+
+    /// <summary>
+    /// Draw primitives with indirect parameters and indexed vertices
+    /// </summary>
+    /// <param name="indirectBuffer"></param>
+    /// <param name="indirectBufferOffset"></param>
+    public void DrawIndexedIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    {
+        PreDrawValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+
+        DrawIndexedIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    public void DrawIndexedIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    {
+        PreDrawValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(countBuffer);
+        ValidateIndirectOffset(countBufferOffset);
+
+        DrawIndexedIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
+    }
+
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         PreDispatchMeshValidation();
@@ -160,6 +210,17 @@ public abstract class RenderContext : ComputeContext
         DispatchMeshIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
+    public void DispatchMeshIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    {
+        PreDispatchMeshValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(countBuffer);
+        ValidateIndirectOffset(countBufferOffset);
+
+        DispatchMeshIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
+    }
+
     protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
     protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);
 
@@ -168,8 +229,14 @@ public abstract class RenderContext : ComputeContext
 
     protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
     protected abstract void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance);
+    protected abstract void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+    protected abstract void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+
     protected abstract void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ);
     protected abstract void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
 
     [Conditional("VALIDATE_USAGE")]
     private void PreDrawValidation()

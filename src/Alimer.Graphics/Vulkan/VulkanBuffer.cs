@@ -143,19 +143,19 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         if (initialData != null)
         {
             VulkanUploadContext context = default;
-            void* pMappedData = null;
+            void* mappedData = null;
             if (description.CpuAccess == CpuAccessMode.Write)
             {
-                pMappedData = this.pMappedData;
+                mappedData = this.pMappedData;
             }
             else
             {
                 context = device.Allocate(createInfo.size);
-                pMappedData = context.UploadBuffer.pMappedData;
+                mappedData = context.UploadBuffer.pMappedData;
             }
 
-            Unsafe.CopyBlockUnaligned(pMappedData, initialData, (uint)description.Size);
-            //std::memcpy(pMappedData, initialData, desc.size);
+            Unsafe.CopyBlockUnaligned(mappedData, initialData, (uint)description.Size);
+            //std::memcpy(mappedData, initialData, desc.size);
 
             if (context.IsValid)
             {

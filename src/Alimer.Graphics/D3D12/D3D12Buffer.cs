@@ -1,19 +1,15 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Runtime.CompilerServices;
 using Alimer.Numerics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static Alimer.Graphics.D3D12.D3D12Utils;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -22,6 +18,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private readonly ComPtr<ID3D12Resource> _handle;
+    private readonly void* pMappedData;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
         : base(description)
@@ -68,7 +65,6 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
             //initialState = ConvertResourceStates(desc.initialState);
         }
 
-
         HRESULT hr = device.MemoryAllocator->CreateResource(
             &allocationDesc,
             &resourceDesc,
@@ -88,6 +84,57 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         {
             OnLabelChanged(description.Label!);
         }
+
+        ulong allocatedSize;
+        device.Handle->GetCopyableFootprints(&resourceDesc, 0, 1, 0, null, null, null, &allocatedSize);
+        GpuAddress = _handle.Get()->GetGPUVirtualAddress();
+        AllocatedSize = allocatedSize;
+
+        if (description.CpuAccess == CpuAccessMode.Read)
+        {
+            void* mappedData;
+            ThrowIfFailed(_handle.Get()->Map(0, null, &mappedData));
+            pMappedData = mappedData;
+        }
+        else if (description.CpuAccess == CpuAccessMode.Write)
+        {
+            D3D12_RANGE readRange = default;
+            void* mappedData;
+            ThrowIfFailed(_handle.Get()->Map(0, &readRange, &mappedData));
+            pMappedData = mappedData;
+        }
+
+        // Issue data copy on request
+        if (initialData != null)
+        {
+            D3D12UploadContext context = default;
+            void* mappedData = null;
+            if (description.CpuAccess == CpuAccessMode.Write)
+            {
+                mappedData = pMappedData;
+            }
+            else
+            {
+                context = device.Allocate(description.Size);
+                mappedData = context.UploadBuffer.pMappedData;
+            }
+
+            Unsafe.CopyBlockUnaligned(mappedData, initialData, (uint)description.Size);
+            //std::memcpy(mappedData, initialData, desc.size);
+
+            if (context.IsValid)
+            {
+                context.CommandList.Get()->CopyBufferRegion(
+                    _handle.Get(),
+                    0,
+                    context.UploadBuffer!.Handle,
+                    0,
+                    description.Size
+                );
+
+                device.Submit(in context);
+            }
+        }
     }
 
     public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescription descriptor)
@@ -103,6 +150,9 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     public ID3D12Resource* Handle => _handle;
     public ResourceStates State { get; set; }
     public ResourceStates TransitioningState { get; set; } = (ResourceStates)uint.MaxValue;
+
+    public ulong GpuAddress { get; }
+    public ulong AllocatedSize { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12Buffer" /> class.

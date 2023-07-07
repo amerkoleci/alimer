@@ -230,6 +230,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
                 ThrowIfFailed(infoQueue.Get()->AddStorageFilterEntries(&filter));
             }
+
+            _features = new D3D12Features((ID3D12Device*)_handle.Get());
         }
 
         // Create fence to detect device removal
@@ -265,13 +267,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
             allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
 
-            D3D12MA_Allocator* memoryAllocator = default;
-            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, &memoryAllocator)))
+            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, _memoryAllocator.GetAddressOf())))
             {
                 return;
             }
-
-            _memoryAllocator = memoryAllocator;
         }
 
         // Create command queue's
@@ -308,8 +307,40 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 pArgumentDescs = &dispatchArg
             };
 
-            ThrowIfFailed(_handle.Get()->CreateCommandSignature(&cmdSignatureDesc, null,
-                __uuidof<ID3D12CommandSignature>(), _dispatchIndirectCommandSignature.GetVoidAddressOf()));
+            _dispatchIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+
+            // DrawIndirectCommand
+            D3D12_INDIRECT_ARGUMENT_DESC drawInstancedArg = new()
+            {
+                Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW
+            };
+
+            cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DRAW_ARGUMENTS);
+            cmdSignatureDesc.NumArgumentDescs = 1;
+            cmdSignatureDesc.pArgumentDescs = &drawInstancedArg;
+            _drawIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+
+            // DrawIndexedIndirectCommand
+            D3D12_INDIRECT_ARGUMENT_DESC drawIndexedInstancedArg = new()
+            {
+                Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED
+            };
+
+            cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+            cmdSignatureDesc.NumArgumentDescs = 1;
+            cmdSignatureDesc.pArgumentDescs = &drawIndexedInstancedArg;
+            _drawIndexedIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+
+            if (_features.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1)
+            {
+                D3D12_INDIRECT_ARGUMENT_DESC dispatchMeshArg = new();
+                dispatchMeshArg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
+
+                cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
+                cmdSignatureDesc.NumArgumentDescs = 1;
+                cmdSignatureDesc.pArgumentDescs = &dispatchMeshArg;
+                _dispatchMeshIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+            }
         }
 
         // Init adapter info, caps and limits
@@ -317,7 +348,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             DXGI_ADAPTER_DESC1 adapterDesc;
             ThrowIfFailed(_adapter.Get()->GetDesc1(&adapterDesc));
 
-            _features = new D3D12Features((ID3D12Device*)_handle.Get());
 
             // Convert the adapter's D3D12 driver version to a readable string like "24.21.13.9793".
             string driverDescription = string.Empty;
@@ -409,6 +439,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         {
             WaitIdle();
             _shuttingDown = true;
+
+            _copyAllocator.Dispose();
 
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
@@ -524,6 +556,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
         return _descriptorAllocators[(int)type].DescriptorSize;
     }
+
+    public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
+    public void Submit(in D3D12UploadContext context) => _copyAllocator.Submit(in context);
 
     /// <inheritdoc />
     public override bool QueryFeatureSupport(Feature feature)

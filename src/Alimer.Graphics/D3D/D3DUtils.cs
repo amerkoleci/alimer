@@ -122,8 +122,18 @@ internal static unsafe class D3DUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value)
+    public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value, uint patchControlPoints = 1u)
     {
+        if (value == PrimitiveTopology.PatchList)
+        {
+            if (patchControlPoints == 0 || patchControlPoints > 32)
+            {
+                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+            }
+
+            return (D3D_PRIMITIVE_TOPOLOGY)((uint)D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (patchControlPoints - 1));
+        }
+
         return value switch
         {
             PrimitiveTopology.PointList => D3D_PRIMITIVE_TOPOLOGY_POINTLIST,
@@ -131,7 +141,6 @@ internal static unsafe class D3DUtils
             PrimitiveTopology.LineStrip => D3D_PRIMITIVE_TOPOLOGY_LINESTRIP,
             PrimitiveTopology.TriangleList => D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
             PrimitiveTopology.TriangleStrip => D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
-            PrimitiveTopology.PatchList => D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST,
             _ => D3D_PRIMITIVE_TOPOLOGY_UNDEFINED,
         };
     }

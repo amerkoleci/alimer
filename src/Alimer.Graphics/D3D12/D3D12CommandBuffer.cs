@@ -18,6 +18,7 @@ using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE_COMBINER;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
+using Alimer.Graphics.D3D;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -44,6 +45,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     private readonly ComPtr<ID3D12GraphicsCommandList6> _commandList;
     private readonly D3D12_RESOURCE_BARRIER[] _resourceBarriers = new D3D12_RESOURCE_BARRIER[MaxBarriers];
     private uint _numBarriersToFlush;
+
+    private readonly D3D12_VERTEX_BUFFER_VIEW[] _vboViews = new D3D12_VERTEX_BUFFER_VIEW[MaxVertexBufferBindings];
 
     private D3D12Pipeline? _currentPipeline;
     private RenderPassDescription _currentRenderPass;
@@ -105,6 +108,33 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             _hasLabel = true;
             PushDebugGroup(label);
+        }
+
+        if (_queue.QueueType != QueueType.Copy)
+        {
+            //ID3D12DescriptorHeap* heaps[2] = {
+            //    device->resourceDescriptorHeap.handle,
+            //    device->samplerDescriptorHeap.handle
+            //};
+            //_commandList.Get()->SetDescriptorHeaps(ALIMER_STATIC_ARRAY_SIZE(heaps), heaps);
+        }
+
+        if (_queue.QueueType == QueueType.Graphics)
+        {
+            for (int i = 0; i < MaxVertexBufferBindings; ++i)
+            {
+                _vboViews[i] = default;
+            }
+
+            RECT* scissorRects = stackalloc RECT[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
+            for (int i = 0; i < D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX; ++i)
+            {
+                scissorRects[i].bottom = D3D12_VIEWPORT_BOUNDS_MAX;
+                scissorRects[i].left = D3D12_VIEWPORT_BOUNDS_MIN;
+                scissorRects[i].right = D3D12_VIEWPORT_BOUNDS_MAX;
+                scissorRects[i].top = D3D12_VIEWPORT_BOUNDS_MIN;
+            }
+            _commandList.Get()->RSSetScissorRects(D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX, scissorRects);
         }
     }
 
@@ -348,6 +378,36 @@ internal unsafe class D3D12CommandBuffer : RenderContext
                     DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
                     break;
             }
+
+            if (!texture.Format.IsDepthOnlyFormat())
+            {
+                switch (attachment.StencilLoadAction)
+                {
+                    default:
+                    case LoadAction.Load:
+                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                        break;
+
+                    case LoadAction.Clear:
+                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                        DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = (byte)attachment.ClearStencil;
+                        break;
+                    case LoadAction.Discard:
+                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                        break;
+                }
+
+                switch (attachment.StencilStoreAction)
+                {
+                    default:
+                    case StoreAction.Store:
+                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                        break;
+                    case StoreAction.Discard:
+                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                        break;
+                }
+            }
         }
 
         _commandList.Get()->BeginRenderPass(numRTVS, RTVs,
@@ -376,10 +436,22 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
     {
+        D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
+
+        _vboViews[slot].BufferLocation = d3d12Buffer.GpuAddress + offset;
+        _vboViews[slot].SizeInBytes = (uint)(d3d12Buffer.Size - offset);
+        _vboViews[slot].StrideInBytes = 0;
     }
 
     protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
     {
+        D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
+
+        D3D12_INDEX_BUFFER_VIEW view;
+        view.BufferLocation = d3d12Buffer.GpuAddress + offset;
+        view.SizeInBytes = (uint)(d3d12Buffer.Size - offset);
+        view.Format = indexType.ToDxgiFormat();
+        _commandList.Get()->IASetIndexBuffer(&view);
     }
 
     public override void SetViewport(in Viewport viewport)
@@ -461,23 +533,88 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
+    protected override void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+    }
+
+    protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
+        D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
+
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndirectCommandSignature, maxCount,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset);
+    }
+
+    protected override void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndexedIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+    }
+
+    protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
+        D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
+
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndexedIndirectCommandSignature, maxCount,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset);
+    }
+
     protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         PrepareDraw();
 
-        //vkCmdDrawMeshTasksEXT(_commandBuffer, groupCountX, groupCountY, groupCountZ);
+        _commandList.Get()->DispatchMesh(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
-        D3D12Buffer vulkanBuffer = (D3D12Buffer)indirectBuffer;
-        //vkCmdDrawMeshTasksIndirectEXT(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
+        D3D12Buffer backendBuffer = (D3D12Buffer)indirectBuffer;
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchMeshIndirectCommandSignature, 1, backendBuffer.Handle, indirectBufferOffset, null, 0);
+    }
+
+    protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
+        D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
+
+        _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchMeshIndirectCommandSignature,
+            maxCount,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset);
     }
 
     private void PrepareDraw()
     {
+        if (_currentPipeline!.NumVertexBindings > 0)
+        {
+            for (uint i = 0; i < _currentPipeline.NumVertexBindings; ++i)
+            {
+                _vboViews[i].StrideInBytes = _currentPipeline.GetStride(i);
+            }
+
+            fixed (D3D12_VERTEX_BUFFER_VIEW* pViews = _vboViews)
+            {
+                _commandList.Get()->IASetVertexBuffers(0, _currentPipeline.NumVertexBindings, pViews);
+            }
+        }
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

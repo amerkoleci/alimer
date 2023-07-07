@@ -8,6 +8,7 @@ using static Alimer.Graphics.Vulkan.VulkanUtils;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using System.Drawing;
+using Alimer.Utilities;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -125,7 +126,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         if (!_queue.Device.DebugUtils)
             return;
 
-        fixed (sbyte* pLabelName = groupLabel.GetUtf8Span())
+        fixed (sbyte* pLabelName = Interop.GetUtf8Span(groupLabel))
         {
             VkDebugUtilsLabelEXT label = new()
             {
@@ -152,7 +153,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         if (!_queue.Device.DebugUtils)
             return;
 
-        fixed (sbyte* pLabelName = debugLabel.GetUtf8Span())
+        fixed (sbyte* pLabelName = Interop.GetUtf8Span(debugLabel))
         {
             VkDebugUtilsLabelEXT label = new()
             {
@@ -532,6 +533,50 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
+    protected override void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        vkCmdDrawIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndirectCommand));
+    }
+
+    protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
+        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
+
+        vkCmdDrawIndirectCount(_commandBuffer,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset,
+            maxCount, (uint)sizeof(VkDrawIndirectCommand)
+            );
+    }
+
+    protected override void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        vkCmdDrawIndexedIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndexedIndirectCommand));
+    }
+
+    protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
+        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
+
+        vkCmdDrawIndexedIndirectCount(_commandBuffer,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset,
+            maxCount, (uint)sizeof(VkDrawIndexedIndirectCommand)
+            );
+    }
+
     protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         PrepareDraw();
@@ -545,6 +590,19 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
         VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
         vkCmdDrawMeshTasksIndirectEXT(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
+    }
+
+    protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
+        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
+        vkCmdDrawMeshTasksIndirectCountEXT(_commandBuffer,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset,
+            maxCount, (uint)sizeof(VkDispatchIndirectCommand)
+            );
     }
 
     private void PrepareDraw()

@@ -20,6 +20,8 @@ internal unsafe class D3D12Pipeline : Pipeline
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12PipelineLayout _layout;
     private readonly ComPtr<ID3D12PipelineState> _handle;
+    private readonly uint _numVertexBindings = 0;
+    private readonly uint[] _strides = new uint[MaxVertexBufferBindings];
 
     public D3D12Pipeline(D3D12GraphicsDevice device, in RenderPipelineDescription description)
         : base(PipelineType.Render, description.Label)
@@ -90,8 +92,8 @@ internal unsafe class D3D12Pipeline : Pipeline
                 element.InputSlot = binding;
                 element.AlignedByteOffset = attribute.Offset;
 
-                //pipeline->numVertexBindings = std::max(attribute->bufferIndex + 1, pipeline->numVertexBindings);
-                //pipeline->strides[attribute->bufferIndex] = layout->stride;
+                _numVertexBindings = Math.Max(binding + 1, _numVertexBindings);
+                _strides[binding] = layout.Stride;
 
                 if (layout.StepMode == VertexStepMode.Vertex)
                 {
@@ -123,7 +125,7 @@ internal unsafe class D3D12Pipeline : Pipeline
             return;
         }
 
-        PrimitiveTopology = description.PrimitiveTopology.ToD3DPrimitiveTopology();
+        PrimitiveTopology = description.PrimitiveTopology.ToD3DPrimitiveTopology(description.PatchControlPoints);
     }
 
     public D3D12Pipeline(D3D12GraphicsDevice device, in ComputePipelineDescription description)
@@ -155,6 +157,8 @@ internal unsafe class D3D12Pipeline : Pipeline
     public ID3D12RootSignature* RootSignature => _layout.Handle;
 
     public D3D_PRIMITIVE_TOPOLOGY PrimitiveTopology { get; }
+    public uint NumVertexBindings => _numVertexBindings;
+    public uint GetStride(uint slot) => _strides[slot];
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12Pipeline" /> class.

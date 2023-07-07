@@ -60,4 +60,14 @@ internal static unsafe partial class ID3D12Extensions
 
         return d3D12Fence.Move();
     }
+
+    public static ComPtr<ID3D12CommandSignature> CreateCommandSignature<TD3D12Device>(this ref TD3D12Device d3D12Device, D3D12_COMMAND_SIGNATURE_DESC* desc)
+        where TD3D12Device : unmanaged, ID3D12Device.Interface
+    {
+        using ComPtr<ID3D12CommandSignature> result = default;
+
+        ThrowIfFailed(d3D12Device.CreateCommandSignature(desc, null, __uuidof<ID3D12CommandSignature>(), result.GetVoidAddressOf()));
+
+        return result.Move();
+    }
 }

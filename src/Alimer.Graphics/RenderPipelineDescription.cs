@@ -57,7 +57,7 @@ public readonly record struct RenderPipelineDescription
 
     public PrimitiveTopology PrimitiveTopology { get; init; }
 
-    public int PatchControlPoints { get; init; } = 0;
+    public uint PatchControlPoints { get; init; } = 1u;
 
     public PixelFormat[] ColorFormats { get; init; }
     public PixelFormat DepthStencilFormat  { get; init; } = PixelFormat.Undefined;
