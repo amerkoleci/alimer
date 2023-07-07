@@ -147,13 +147,11 @@ internal unsafe class D3D12SwapChain : SwapChain
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
         ThrowIfFailed(_handle.Get()->GetDesc1(&swapChainDesc));
 
-        DxgiFormat dxgiFormat = (DxgiFormat)swapChainDesc.Format;
-
         _backbufferTextures = new D3D12Texture[swapChainDesc.BufferCount];
         for (uint i = 0; i < swapChainDesc.BufferCount; ++i)
         {
             TextureDescription descriptor = TextureDescription.Texture2D(
-                dxgiFormat.FromDxgiFormat(),
+                ColorFormat,
                 swapChainDesc.Width,
                 swapChainDesc.Height,
                 usage: TextureUsage.RenderTarget,

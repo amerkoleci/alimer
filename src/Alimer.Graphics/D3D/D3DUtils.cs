@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D_PRIMITIVE_TOPOLOGY;
 
 namespace Alimer.Graphics.D3D;
 
@@ -118,6 +119,21 @@ internal static unsafe class D3DUtils
             default:
                 return DXGI_FORMAT_UNKNOWN;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value)
+    {
+        return value switch
+        {
+            PrimitiveTopology.PointList => D3D_PRIMITIVE_TOPOLOGY_POINTLIST,
+            PrimitiveTopology.LineList => D3D_PRIMITIVE_TOPOLOGY_LINELIST,
+            PrimitiveTopology.LineStrip => D3D_PRIMITIVE_TOPOLOGY_LINESTRIP,
+            PrimitiveTopology.TriangleList => D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+            PrimitiveTopology.TriangleStrip => D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
+            PrimitiveTopology.PatchList => D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST,
+            _ => D3D_PRIMITIVE_TOPOLOGY_UNDEFINED,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

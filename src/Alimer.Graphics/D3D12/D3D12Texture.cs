@@ -3,16 +3,16 @@
 
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Graphics.D3D.D3DUtils;
-using static Alimer.Graphics.D3D12.D3D12Utils;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -20,6 +20,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
+    private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private HANDLE _sharedHandle = HANDLE.NULL;
     private readonly Dictionary<int, D3D12_CPU_DESCRIPTOR_HANDLE> _RTVs = new();
     private readonly Dictionary<int, D3D12_CPU_DESCRIPTOR_HANDLE> _DSVs = new();
@@ -37,7 +38,6 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
         }
 
-        D3D12_HEAP_PROPERTIES heapProps = DefaultHeapProps;
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
         if ((description.Usage & TextureUsage.RenderTarget) != 0)
@@ -80,12 +80,38 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             description.SampleCount.ToSampleCount(), 0,
             resourceFlags);
         D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
+        if (initialData == null)
+        {
+            if ((description.Usage & TextureUsage.RenderTarget) != 0)
+            {
+                if (isDepthStencil)
+                {
+                    initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+                }
+                else
+                {
+                    initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                }
+            }
+            else if ((description.Usage & TextureUsage.ShaderWrite) != 0)
+            {
+                initialState |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            }
+            else if ((description.Usage & TextureUsage.ShaderRead) != 0)
+            {
+                initialState |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            }
+        }
 
-        HRESULT hr = device.Handle->CreateCommittedResource(&heapProps,
-            heapFlags,
+        D3D12MA_ALLOCATION_DESC allocationDesc = new();
+        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+        HRESULT hr = device.MemoryAllocator->CreateResource(
+            &allocationDesc,
             &resourceDesc,
             initialState,
             null,
+            _allocation.GetAddressOf(),
             __uuidof<ID3D12Resource>(),
             _handle.GetVoidAddressOf()
             );
@@ -153,6 +179,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _ = CloseHandle(_sharedHandle);
         }
 
+        _allocation.Dispose();
         _handle.Dispose();
     }
 
@@ -181,6 +208,27 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _device.Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, rtvHandle);
 
             _RTVs.Add(hash, rtvHandle);
+        }
+
+        return rtvHandle;
+    }
+
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(int mipSlice, int arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
+    {
+        int hash = HashCode.Combine(mipSlice, arraySlice, format);
+
+        if (!_DSVs.TryGetValue(hash, out D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle))
+        {
+            D3D12_RESOURCE_DESC desc = _handle.Get()->GetDesc();
+
+            D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = default;
+            viewDesc.Format = format;
+            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+            rtvHandle = _device.AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+            _device.Handle->CreateDepthStencilView(_handle.Get(), &viewDesc, rtvHandle);
+
+            _DSVs.Add(hash, rtvHandle);
         }
 
         return rtvHandle;

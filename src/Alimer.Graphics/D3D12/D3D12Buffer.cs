@@ -13,12 +13,14 @@ using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
+    private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private readonly ComPtr<ID3D12Resource> _handle;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
@@ -46,16 +48,19 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
 
         D3D12_RESOURCE_DESC resourceDesc = D3D12_RESOURCE_DESC.Buffer(alignedSize, resourceFlags);
         D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-        D3D12_HEAP_PROPERTIES heapProps = DefaultHeapProps;
+
+        D3D12MA_ALLOCATION_DESC allocationDesc = new();
+        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
         if (description.CpuAccess == CpuAccessMode.Read)
         {
-            heapProps = ReadbackHeapProps;
+            allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
             initialState = D3D12_RESOURCE_STATE_COPY_DEST;
             resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
         else if (description.CpuAccess == CpuAccessMode.Write)
         {
-            heapProps = UploadHeapProps;
+            allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
             initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
         }
         else
@@ -63,11 +68,13 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
             //initialState = ConvertResourceStates(desc.initialState);
         }
 
-        HRESULT hr = device.Handle->CreateCommittedResource(&heapProps,
-            D3D12_HEAP_FLAG_NONE,
+
+        HRESULT hr = device.MemoryAllocator->CreateResource(
+            &allocationDesc,
             &resourceDesc,
             initialState,
             null,
+            _allocation.GetAddressOf(),
             __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
             );
 
@@ -105,6 +112,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     /// <inheitdoc />
     protected internal override void Destroy()
     {
+        _allocation.Dispose();
         _handle.Dispose();
     }
 

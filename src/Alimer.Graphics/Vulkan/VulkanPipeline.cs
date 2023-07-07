@@ -21,13 +21,12 @@ internal unsafe class VulkanPipeline : Pipeline
         _layout = (VulkanPipelineLayout)description.Layout;
         BindPoint = VkPipelineBindPoint.Graphics;
 
-        VkResult result = VkResult.Success;
-
         // ShaderStages
         int shaderStageCount = description.ShaderStages.Length;
         VkPipelineShaderStageCreateInfo* shaderStages = stackalloc VkPipelineShaderStageCreateInfo[shaderStageCount];
         sbyte** vkShaderNames = stackalloc sbyte*[shaderStageCount];
 
+        VkResult result;
         for (int i = 0; i < shaderStageCount; i++)
         {
             ref ShaderStageDescription shaderDesc = ref description.ShaderStages[i];

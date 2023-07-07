@@ -34,13 +34,13 @@ public sealed class DrawTriangleGame : GameApplication
         PipelineLayoutDescription pipelineLayoutDescription = new();
         _pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription);
 
-        byte[] vertexShader = Compile("Triangle.hlsl", "vertexMain", "vs_6_5");
-        byte[] fragmentShader = Compile("Triangle.hlsl", "fragmentMain", "ps_6_5");
+        ShaderStageDescription vertexShader = Compile("Triangle.hlsl", "vertexMain", ShaderStages.Vertex);
+        ShaderStageDescription fragmentShader = Compile("Triangle.hlsl", "fragmentMain", ShaderStages.Fragment);
 
         var shaderStages = new ShaderStageDescription[2]
         {
-            new ShaderStageDescription(ShaderStages.Vertex, vertexShader, "vertexMain"),
-            new ShaderStageDescription(ShaderStages.Fragment, fragmentShader, "fragmentMain"),
+            vertexShader,
+            fragmentShader,
         };
 
         var vertexBufferLayout = new VertexBufferLayout[1]
@@ -50,7 +50,7 @@ public sealed class DrawTriangleGame : GameApplication
 
         var colorFormats = new PixelFormat[1]
         {
-            MainView.SwapChain.ColorFormat
+            MainView.SwapChain!.ColorFormat
         };
         var depthStencilFormat = MainView.DepthStencilFormat;
 
@@ -99,19 +99,45 @@ public sealed class DrawTriangleGame : GameApplication
         base.Draw(time);
     }
 
-    private byte[] Compile(string fileName, string entryPoint, string target)
+    private ShaderStageDescription Compile(string fileName, string entryPoint, ShaderStages stage)
     {
         ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));
-        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource, entryPoint, target);
+
+        ShaderStage shaderCompilerStage = ShaderStage.Vertex;
+        switch (stage)
+        {
+            case ShaderStages.Vertex:
+                shaderCompilerStage = ShaderStage.Vertex;
+                break;
+
+            case ShaderStages.Fragment:
+                shaderCompilerStage = ShaderStage.Fragment;
+                break;
+
+            case ShaderStages.Compute:
+                shaderCompilerStage = ShaderStage.Compute;
+                break;
+
+            default:
+                throw new NotImplementedException();
+        }
+
+        ShaderCompilationOptions options = new()
+        {
+            ShaderStage = shaderCompilerStage,
+            EntryPoint = entryPoint,
+        };
+
+        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource,  in options);
         if (result.Failed)
         {
             throw new GraphicsException(result.ErrorMessage);
         }
 
-        return result.GetByteCode().ToArray();
+        return new ShaderStageDescription(stage, result.GetByteCode().ToArray(), entryPoint);
     }
 
     public static void Main()

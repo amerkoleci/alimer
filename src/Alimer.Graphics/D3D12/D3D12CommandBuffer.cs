@@ -216,12 +216,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
         if (newPipeline.PipelineType == PipelineType.Render)
         {
-            //_commandList.Get()->SetGraphicsRootSignature(newPipelineLayout->handle);
-            //_commandList.Get()->IASetPrimitiveTopology(newPipeline.primitiveTopology);
+            _commandList.Get()->SetGraphicsRootSignature(newPipeline.RootSignature);
+            _commandList.Get()->IASetPrimitiveTopology(newPipeline.PrimitiveTopology);
         }
         else
         {
-            //_commandList.Get()->SetComputeRootSignature(newPipelineLayout->handle);
+            _commandList.Get()->SetComputeRootSignature(newPipeline.RootSignature);
         }
 
         _currentPipeline = newPipeline;
@@ -315,8 +315,39 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             int mipLevel = attachment.MipLevel;
             int slice = attachment.Slice;
 
-            //renderArea.Width = Math.Min(renderArea.Width, texture.GetWidth(mipLevel));
-            //renderArea.Height = Math.Min(renderArea.Height, texture.GetHeight(mipLevel));
+            renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
+            renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
+
+            DSV.cpuDescriptor = texture.GetDSV(mipLevel, slice/*, attachment.depthReadOnly, attachment.stencilReadOnly*/);
+            DSV.DepthBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
+            DSV.StencilBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
+
+            switch (attachment.DepthLoadAction)
+            {
+                default:
+                case LoadAction.Load:
+                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case LoadAction.Clear:
+                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.ClearDepth;
+                    break;
+                case LoadAction.Discard:
+                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            switch (attachment.DepthStoreAction)
+            {
+                default:
+                case StoreAction.Store:
+                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+                case StoreAction.Discard:
+                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
         }
 
         _commandList.Get()->BeginRenderPass(numRTVS, RTVs,

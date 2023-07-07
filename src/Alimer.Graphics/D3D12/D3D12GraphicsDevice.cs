@@ -35,7 +35,7 @@ using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
-
+using static Alimer.Utilities.MarshalUtilities;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -50,6 +50,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
+    private readonly GCHandle _deviceHandle;
+    private readonly HANDLE _deviceRemovedEvent = HANDLE.NULL;
     private readonly HANDLE _deviceRemovedWaitHandle = HANDLE.NULL;
 
     private readonly D3D12Features _features = default;
@@ -234,17 +236,17 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         {
             _deviceRemovedFence = _handle.Get()->CreateFence();
 
-            HANDLE deviceRemovedEvent = CreateEventW(null, FALSE, FALSE, null);
-            ThrowIfFailed(_deviceRemovedFence.Get()->SetEventOnCompletion(UINT64_MAX, deviceRemovedEvent));
+            _deviceRemovedEvent = CreateEventW(null, FALSE, FALSE, null);
+            ThrowIfFailed(_deviceRemovedFence.Get()->SetEventOnCompletion(UINT64_MAX, _deviceRemovedEvent));
 
-            GCHandle handle = GCHandle.Alloc(this, GCHandleType.Weak);
+            _deviceHandle = GCHandle.Alloc(this, GCHandleType.Weak);
 
             HANDLE deviceRemovedWaitHandle = default;
             RegisterWaitForSingleObject(
                 &deviceRemovedWaitHandle,
-                deviceRemovedEvent,
+                _deviceRemovedEvent,
                 &HandleDeviceRemoved,
-                (void*)GCHandle.ToIntPtr(handle), // Pass the device as our context
+                (void*)GCHandle.ToIntPtr(_deviceHandle), // Pass the device as our context
                 INFINITE, // No timeout
                 0 // No flags
             );
@@ -347,7 +349,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             {
                 VendorId = adapterDesc.VendorId,
                 DeviceId = adapterDesc.DeviceId,
-                AdapterName = new((char*)adapterDesc.Description),
+                AdapterName = GetUtf16Span(adapterDesc.Description, 128).GetString() ?? string.Empty,
                 AdapterType = adapterType,
                 DriverDescription = driverDescription
             };
@@ -359,7 +361,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
                 MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
                 MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-                MaxTexelBufferDimension2D = (1u << (int)D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+                MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
             };
 
             ulong timestampFrequency = 0;
@@ -381,6 +383,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public bool TearingSupported { get; }
     public IDXGIAdapter1* Adapter => _adapter;
     public ID3D12Device5* Handle => _handle;
+    public D3D12MA_Allocator* MemoryAllocator => _memoryAllocator;
     public D3D12Features D3D12Features => _features;
 
     public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)QueueType.Graphics].Handle;
@@ -430,6 +433,33 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _drawIndirectCommandSignature.Dispose();
             _drawIndexedIndirectCommandSignature.Dispose();
             _dispatchMeshIndirectCommandSignature.Dispose();
+
+            // Allocator.
+            if (_memoryAllocator.Get() is not null)
+            {
+                D3D12MA_TotalStatistics stats;
+                _memoryAllocator.Get()->CalculateStatistics(&stats);
+
+                if (stats.Total.Stats.AllocationBytes > 0)
+                {
+                    Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
+                }
+
+                _memoryAllocator.Dispose();
+            }
+
+
+            // Device removed event
+            {
+                if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
+                    _deviceHandle.IsAllocated)
+                {
+                    _deviceHandle.Free();
+                }
+
+                CloseHandle(_deviceRemovedEvent);
+                _deviceRemovedFence.Dispose();
+            }
 
 #if DEBUG
             uint refCount = _handle.Get()->Release();

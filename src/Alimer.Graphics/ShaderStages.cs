@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 [Flags]
-public enum ShaderStages : ushort
+public enum ShaderStages 
 {
     /// <summary>
     /// No stages.
