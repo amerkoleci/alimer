@@ -330,23 +330,24 @@ internal unsafe class VulkanPipeline : Pipeline
         _layout = (VulkanPipelineLayout)description.Layout;
         BindPoint = VkPipelineBindPoint.Compute;
 
-        var result = vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out VkShaderModule shaderModule);
+        VkString entryPoint = new(description.ComputeShader.EntryPoint);
+
+        VkPipelineShaderStageCreateInfo stage = new()
+        {
+            stage = VkShaderStageFlags.Compute,
+            pName = entryPoint
+        };
+
+        VkResult result = vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out stage.module);
         if (result != VkResult.Success)
         {
             Log.Error("Failed to create a pipeline shader module");
             return;
         }
 
-        VkString entryPoint = new(description.ComputeShader.EntryPoint);
-
-        var createInfo = new VkComputePipelineCreateInfo()
+        VkComputePipelineCreateInfo createInfo = new()
         {
-            stage = new()
-            {
-                stage = VkShaderStageFlags.Compute,
-                module = shaderModule,
-                pName = entryPoint
-            },
+            stage = stage,
             layout = _layout.Handle,
             basePipelineHandle = VkPipeline.Null,
             basePipelineIndex = 0
@@ -354,6 +355,9 @@ internal unsafe class VulkanPipeline : Pipeline
 
         VkPipeline pipeline;
         result = vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+
+        // Delete shader module.
+        vkDestroyShaderModule(device.Handle, stage.module);
 
         if (result != VkResult.Success)
         {

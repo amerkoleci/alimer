@@ -230,8 +230,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
                 ThrowIfFailed(infoQueue.Get()->AddStorageFilterEntries(&filter));
             }
-
-            _features = new D3D12Features((ID3D12Device*)_handle.Get());
         }
 
         // Create fence to detect device removal
@@ -272,6 +270,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 return;
             }
         }
+
+        // Init features
+        _features = new D3D12Features((ID3D12Device*)_handle.Get());
 
         // Create command queue's
         for (int i = 0; i < (int)QueueType.Count; i++)
@@ -711,6 +712,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     protected override Sampler CreateSamplerCore(in SamplerDescription description)
     {
         return new D3D12Sampler(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description)
+    {
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />

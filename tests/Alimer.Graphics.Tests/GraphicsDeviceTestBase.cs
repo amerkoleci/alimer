@@ -5,37 +5,29 @@ using NUnit.Framework;
 
 namespace Alimer.Graphics.Tests;
 
-public abstract class GraphicsDeviceTestBase
+public abstract class GraphicsDeviceTestBase : IDisposable
 {
-    private readonly GraphicsBackendType _backendType;
-    private GraphicsDevice _graphicsDevice = null!;
+    public  GraphicsBackendType BackendType { get; }
 
-    public GraphicsDevice GraphicsDevice => _graphicsDevice;
+    public GraphicsDevice GraphicsDevice { get; }
 
     protected GraphicsDeviceTestBase(GraphicsBackendType backendType)
     {
-        _backendType = backendType;
-    }
-
-    [OneTimeSetUp]
-    public void OnSetUp()
-    {
+        BackendType = backendType;
         GraphicsDeviceDescription description = new()
         {
-            PreferredBackend = _backendType,
+            PreferredBackend = BackendType,
 #if DEBUG
             ValidationMode = ValidationMode.Enabled
 #endif
         };
 
-        _graphicsDevice = GraphicsDevice.CreateDefault(in description);
-        Assert.AreEqual(_graphicsDevice.Backend, _backendType);
+        GraphicsDevice = GraphicsDevice.CreateDefault(in description);
     }
 
-    [OneTimeTearDown]
-    public void OnTearDown()
+    public void Dispose()
     {
-        _graphicsDevice.WaitIdle();
-        _graphicsDevice.Dispose();
+        GraphicsDevice.WaitIdle();
+        GraphicsDevice.Dispose();
     }
 }

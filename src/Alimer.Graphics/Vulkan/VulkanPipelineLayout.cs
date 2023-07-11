@@ -15,9 +15,25 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
         : base(description)
     {
         _device = device;
-        VkPipelineLayoutCreateInfo createInfo = new();
-        //createInfo.stage = stage;
-        //createInfo.layout = pipeline->layout->handle;
+
+        int setLayoutCount = description.BindGroupLayouts.Length;
+        VkDescriptorSetLayout* pSetLayouts = stackalloc VkDescriptorSetLayout[setLayoutCount];
+
+        for (int i = 0; i < setLayoutCount; i++)
+        {
+            pSetLayouts[i] = ((VulkanBindGroupLayout)description.BindGroupLayouts[i]).Handle;
+        }
+
+        int pushConstantRangeCount = 0;
+        VkPushConstantRange* pPushConstantRanges = stackalloc VkPushConstantRange[setLayoutCount];
+
+        VkPipelineLayoutCreateInfo createInfo = new()
+        {
+            setLayoutCount = (uint)setLayoutCount,
+            pSetLayouts = pSetLayouts,
+            pushConstantRangeCount = (uint)pushConstantRangeCount,
+            pPushConstantRanges = pPushConstantRanges
+        };
 
         VkResult result = vkCreatePipelineLayout(device.Handle, &createInfo, null, out _handle);
         if (result != VkResult.Success)

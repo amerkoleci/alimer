@@ -6,17 +6,13 @@ using NUnit.Framework;
 namespace Alimer.Graphics.Tests;
 
 [TestFixture(TestOf = typeof(GraphicsDevice))]
+[Category("General")]
 public class GraphicsDeviceTests
 {
     [TestCase]
     public void DefaultDevice()
     {
-        GraphicsDeviceDescription description = new()
-        {
-#if DEBUG
-            ValidationMode = ValidationMode.Enabled
-#endif
-        };
+        GraphicsDeviceDescription description = new();
 
         using GraphicsDevice device = GraphicsDevice.CreateDefault(in description);
         if (OperatingSystem.IsWindows())

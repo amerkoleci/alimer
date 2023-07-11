@@ -5,18 +5,22 @@ using NUnit.Framework;
 
 namespace Alimer.Graphics.Tests;
 
-[TestFixture]
-public class ComputeTests : GraphicsDeviceTestBase
+[TestFixture(TestOf = typeof(Pipeline))]
+public abstract class ComputeTests : GraphicsDeviceTestBase
 {
     protected ComputeTests(GraphicsBackendType backendType)
         : base(backendType)
     {
     }
 
-    [TestCase]
+    [Test]
     public void ComputeTest1()
     {
-        PipelineLayoutDescription pipelineLayoutDescription = new();
+        BindGroupLayoutDescription bindGroupLayoutDescription = new();
+        using BindGroupLayout bindGroupLayout = GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription);
+        Assert.IsNotNull(bindGroupLayout);
+
+        PipelineLayoutDescription pipelineLayoutDescription = new(new[] { bindGroupLayout });
         using PipelineLayout pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription);
         Assert.IsNotNull(pipelineLayout);
 
@@ -28,7 +32,7 @@ public class ComputeTests : GraphicsDeviceTestBase
     }
 }
 
-[TestFixture(Description = "D3D12ComputeTests", TestOf = typeof(Pipeline))]
+[Category("D3D12")]
 public class D3D12ComputeTests : ComputeTests
 {
     public D3D12ComputeTests()
@@ -38,7 +42,7 @@ public class D3D12ComputeTests : ComputeTests
     }
 }
 
-[TestFixture(Description = "VulkanComputeTests", TestOf = typeof(Pipeline))]
+[Category("Vulkan")]
 public class VulkanComputeTests : ComputeTests
 {
     public VulkanComputeTests()

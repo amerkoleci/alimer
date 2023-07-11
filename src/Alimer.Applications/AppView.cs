@@ -34,13 +34,15 @@ public abstract class AppView : ISwapChainSurface
     SizeF ISwapChainSurface.Size => ClientSize;
 
     public SwapChain? SwapChain { get; private set; }
+    public PixelFormat ColorFormat { get; set; } = PixelFormat.Bgra8UnormSrgb;
     public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
     public Texture? DepthStencilTexture { get; private set; }
 
     public void CreateSwapChain(GraphicsDevice device)
     {
-        SwapChainDescription description = new();
+        SwapChainDescription description = new(ColorFormat);
         SwapChain = device.CreateSwapChain(this, description);
+        ColorFormat = SwapChain.ColorFormat;
 
         if (DepthStencilFormat != PixelFormat.Undefined)
         {
