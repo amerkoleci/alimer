@@ -3,6 +3,7 @@
 
 using System.Drawing;
 using Alimer.Graphics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer;
 
@@ -13,9 +14,29 @@ public abstract class AppView : ISwapChainSurface
 {
     public event EventHandler? SizeChanged;
 
+    protected string _title = string.Empty;
+
     protected AppView()
     {
 
+    }
+
+    /// <summary>
+    /// Gets and sets the title of the window.
+    /// </summary>
+    public string Title
+    {
+        get => _title;
+        set
+        {
+            Guard.IsNotNullOrEmpty(value, nameof(value));
+
+            if (_title != value)
+            {
+                _title = value;
+                SetTitle(_title);
+            }
+        }
     }
 
     public abstract bool IsMinimized { get; }
@@ -57,6 +78,8 @@ public abstract class AppView : ISwapChainSurface
 
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    protected abstract void SetTitle(string title);
 
     internal void Destroy()
     {

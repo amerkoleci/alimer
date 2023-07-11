@@ -598,6 +598,19 @@ internal static unsafe class VulkanUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkDescriptorType ToVk(this DescriptorType value)
+    {
+        switch(value)
+        {
+            case DescriptorType.ConstantBuffer:
+                return VkDescriptorType.UniformBuffer;
+
+            default:
+                return VkDescriptorType.Sampler;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkPrimitiveTopology ToVk(this PrimitiveTopology type)
     {
         switch (type)

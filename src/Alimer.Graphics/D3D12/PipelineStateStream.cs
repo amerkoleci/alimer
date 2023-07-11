@@ -14,23 +14,61 @@ internal struct AlignedSubObjectType<T> where T : unmanaged
     internal T _inner;
 }
 
+[StructLayout(LayoutKind.Explicit)]
+internal readonly struct CD3DX12_PIPELINE_STATE_STREAM_FLAGS
+{
+    [FieldOffset(0)]
+    internal readonly AlignedSubObjectType<D3D12_PIPELINE_STATE_FLAGS> _type;
+
+    [FieldOffset(0)]
+    internal readonly nint _pad;
+
+    public CD3DX12_PIPELINE_STATE_STREAM_FLAGS(D3D12_PIPELINE_STATE_FLAGS flags)
+    {
+        _pad = default;
+        _type._type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_FLAGS;
+        _type._inner = flags;
+    }
+
+    public static implicit operator CD3DX12_PIPELINE_STATE_STREAM_FLAGS(D3D12_PIPELINE_STATE_FLAGS flags) => new(flags);
+}
+
+[StructLayout(LayoutKind.Explicit)]
+internal readonly struct CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK
+{
+    [FieldOffset(0)]
+    internal readonly AlignedSubObjectType<uint> _type;
+
+    [FieldOffset(0)]
+    internal readonly nint _pad;
+
+    public CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK(uint nodeMask)
+    {
+        _pad = default;
+        _type._type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_NODE_MASK;
+        _type._inner = nodeMask;
+    }
+
+    public static implicit operator CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK(uint nodeMask) => new(nodeMask);
+}
+
 [StructLayout(LayoutKind.Sequential)]
-public unsafe readonly struct PipelineStateSubObjectTypeRootSignature
+internal unsafe readonly struct CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE
 {
     public readonly D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type;
     public readonly ID3D12RootSignature* RootSignature;
 
-    public PipelineStateSubObjectTypeRootSignature(ID3D12RootSignature* rootSignature)
+    public CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE(ID3D12RootSignature* rootSignature)
     {
         Type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE;
         RootSignature = rootSignature;
     }
 
-    public static implicit operator PipelineStateSubObjectTypeRootSignature(ID3D12RootSignature* rootSignature) => new(rootSignature);
+    public static implicit operator CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE(ID3D12RootSignature* rootSignature) => new(rootSignature);
 }
 
 [StructLayout(LayoutKind.Explicit)]
-public readonly unsafe struct PipelineStateSubObjectTypeComputeShader
+internal readonly unsafe struct CD3DX12_PIPELINE_STATE_STREAM_CS
 {
     [FieldOffset(0)]
     internal readonly AlignedSubObjectType<D3D12_SHADER_BYTECODE> _type;
@@ -38,40 +76,21 @@ public readonly unsafe struct PipelineStateSubObjectTypeComputeShader
     [FieldOffset(0)]
     internal readonly nint _pad;
 
-    public PipelineStateSubObjectTypeComputeShader(ReadOnlySpan<byte> byteCode)
-    {
-        _pad = default;
-        _type._type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS;
-        fixed (byte* sourcePtr = byteCode)
-        {
-            _type._inner = new D3D12_SHADER_BYTECODE()
-            {
-                pShaderBytecode = sourcePtr,
-                BytecodeLength = (nuint)byteCode.Length
-            };
-        }
-    }
-
-    public PipelineStateSubObjectTypeComputeShader(void* pShaderBytecode, nuint bytecodeLength)
+    public CD3DX12_PIPELINE_STATE_STREAM_CS(void* pShaderBytecode, nuint bytecodeLength)
     {
         _pad = default;
         _type._type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS;
         _type._inner = new D3D12_SHADER_BYTECODE(pShaderBytecode, bytecodeLength);
     }
 
-    public PipelineStateSubObjectTypeComputeShader(D3D12_SHADER_BYTECODE byteCode)
+    public CD3DX12_PIPELINE_STATE_STREAM_CS(D3D12_SHADER_BYTECODE byteCode)
     {
         _pad = default;
         _type._type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS;
         _type._inner = byteCode;
     }
 
-    public static implicit operator PipelineStateSubObjectTypeComputeShader(ReadOnlySpan<byte> byteCode)
-    {
-        return new(byteCode);
-    }
-
-    public static implicit operator PipelineStateSubObjectTypeComputeShader(D3D12_SHADER_BYTECODE byteCode)
+    public static implicit operator CD3DX12_PIPELINE_STATE_STREAM_CS(D3D12_SHADER_BYTECODE byteCode)
     {
         return new(byteCode);
     }

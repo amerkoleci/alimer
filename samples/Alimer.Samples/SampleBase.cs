@@ -9,9 +9,14 @@ namespace Alimer.Samples;
 
 public abstract class SampleBase : IDisposable
 {
-    protected SampleBase()
+    protected SampleBase(string name)
     {
+        Guard.IsNotNullOrEmpty(name, nameof(name));
+
+        Name = name;
     }
+
+    public string Name { get; }
 
     /// <summary>
     /// Gets or sets the disposables.
@@ -64,7 +69,8 @@ public abstract class SampleBase : IDisposable
 
 public abstract class GraphicsSampleBase : SampleBase
 {
-    protected GraphicsSampleBase(GraphicsDevice graphicsDevice, AppView mainView)
+    protected GraphicsSampleBase(string name, GraphicsDevice graphicsDevice, AppView mainView)
+        : base(name)
     {
         GraphicsDevice = graphicsDevice;
         MainView = mainView;

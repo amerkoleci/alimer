@@ -16,9 +16,29 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     {
         _device = device;
 
-        VkDescriptorSetLayoutCreateInfo createInfo = new();
-        //createInfo.stage = stage;
-        //createInfo.layout = pipeline->layout->handle;
+        VkDescriptorSetLayoutCreateFlags flags = VkDescriptorSetLayoutCreateFlags.None;
+        int bindingCount = description.Entries.Length;
+        VkDescriptorSetLayoutBinding* pBindings = stackalloc VkDescriptorSetLayoutBinding[bindingCount];
+
+        for (int i = 0; i < bindingCount; i++)
+        {
+            ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
+
+            pBindings[i] = new VkDescriptorSetLayoutBinding
+            {
+                binding = entry.ShaderRegister,
+                descriptorType = entry.Type.ToVk(),
+                descriptorCount = 1u,
+                stageFlags = entry.Visibility.ToVk()
+            };
+        }
+
+        VkDescriptorSetLayoutCreateInfo createInfo = new()
+        {
+            flags = flags,
+            bindingCount = (uint)bindingCount,
+            pBindings = pBindings
+        };
 
         VkResult result = vkCreateDescriptorSetLayout(device.Handle, &createInfo, null, out _handle);
         if (result != VkResult.Success)

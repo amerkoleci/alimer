@@ -147,6 +147,12 @@ internal unsafe class D3D12Pipeline : Pipeline
         d3dDesc.SampleDesc = new(1, 0);
         d3dDesc.NodeMask = 0;
 
+        //D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
+        //{
+        //    pPipelineStateSubobjectStream = &stream,
+        //    SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
+        //};
+
         HRESULT hr = device.Handle->CreateGraphicsPipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
         if (hr.FAILED)
         {
@@ -167,13 +173,16 @@ internal unsafe class D3D12Pipeline : Pipeline
         {
             ComputePipelineStateStream stream = new()
             {
-                RootSignature = _layout.Handle,
-                CS = new(pByteCode, (nuint)description.ComputeShader.ByteCode.Length)
+                pRootSignature = _layout.Handle,
+                CS = new(pByteCode, (nuint)description.ComputeShader.ByteCode.Length),
+                NodeMask = 0
             };
 
-            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new();
-            streamDesc.pPipelineStateSubobjectStream = &stream;
-            streamDesc.SizeInBytes = (nuint)sizeof(ComputePipelineStateStream);
+            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
+            {
+                pPipelineStateSubobjectStream = &stream,
+                SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
+            };
 
             HRESULT hr = device.Handle->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
             if (hr.FAILED)
@@ -217,7 +226,8 @@ internal unsafe class D3D12Pipeline : Pipeline
     [StructLayout(LayoutKind.Sequential)]
     public struct ComputePipelineStateStream
     {
-        public PipelineStateSubObjectTypeRootSignature RootSignature;
-        public PipelineStateSubObjectTypeComputeShader CS;
+        public CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK NodeMask;
+        public CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        public CD3DX12_PIPELINE_STATE_STREAM_CS CS;
     }
 }

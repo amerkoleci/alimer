@@ -717,7 +717,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description)
     {
-        throw new NotImplementedException();
+        return new D3D12BindGroupLayout(this, description);
     }
 
     /// <inheritdoc />

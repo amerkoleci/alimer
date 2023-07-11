@@ -38,6 +38,7 @@ internal unsafe class SwapChainPanelView : AppView
     {
         _platform = platform;
         _swapChainPanel = swapChainPanel;
+        _title = Window.Current.Title;
         //CoreWindow coreWindow = Window.Current.CoreWindow;
         Kind = SwapChainSurfaceType.SwapChainPanel;
         Handle = ((IWinRTObject)_swapChainPanel).NativeObject.GetRef();
@@ -46,5 +47,10 @@ internal unsafe class SwapChainPanelView : AppView
     public void Show()
     {
         Window.Current.AppWindow.Show(activateWindow: true);
+    }
+
+    protected override void SetTitle(string title)
+    {
+        Window.Current.Title = title;
     }
 }

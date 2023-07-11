@@ -8,16 +8,17 @@ using Alimer.Numerics;
 
 namespace Alimer.Samples.Graphics;
 
-[Description("Graphics - DrawIndexed Quad")]
-public sealed class DrawIndexedQuadSample : GraphicsSampleBase
+[Description("Graphics - Draw Cube")]
+public sealed class DrawCubeSample : GraphicsSampleBase
 {
     private GraphicsBuffer _vertexBuffer;
     private GraphicsBuffer _indexBuffer;
+    private BindGroupLayout _bindGroupLayout;
     private PipelineLayout _pipelineLayout;
     private Pipeline _renderPipeline;
 
-    public DrawIndexedQuadSample(GraphicsDevice graphicsDevice, AppView mainView)
-        : base("Graphics - DrawIndexed Quad", graphicsDevice, mainView)
+    public DrawCubeSample(GraphicsDevice graphicsDevice, AppView mainView)
+        : base("Graphics - Draw Cube", graphicsDevice, mainView)
     {
         ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
             new(new Vector3(-0.5f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
@@ -30,14 +31,19 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         ReadOnlySpan<ushort> indexData = stackalloc ushort[6] { 0, 1, 2, 0, 2, 3 };
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, BufferUsage.Index));
 
-        PipelineLayoutDescription pipelineLayoutDescription = new()
+        BindGroupLayoutEntry[] entries = new BindGroupLayoutEntry[1]
         {
-            Label = "PipelineLayout"
+            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStages.Vertex),
         };
+
+        BindGroupLayoutDescription bindGroupLayoutDescription = new(entries, "BindGroupLayout");
+        _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
+
+        PipelineLayoutDescription pipelineLayoutDescription = new(_bindGroupLayout, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        ShaderStageDescription vertexShader = CompileShader("Triangle.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("Triangle.hlsl", "fragmentMain", ShaderStages.Fragment);
+        ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStages.Vertex);
+        ShaderStageDescription fragmentShader = CompileShader("Cube.hlsl", "fragmentMain", ShaderStages.Fragment);
 
         var shaderStages = new ShaderStageDescription[2]
         {

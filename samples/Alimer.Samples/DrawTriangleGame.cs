@@ -25,6 +25,9 @@ public sealed class DrawTriangleGame : GameApplication
 
         //_samplerBase = new DrawTriangleSample(GraphicsDevice, MainView);
         _samplerBase = new DrawIndexedQuadSample(GraphicsDevice, MainView);
+        //_samplerBase = new DrawCubeSample(GraphicsDevice, MainView);
+
+        MainView.Title = $"{_samplerBase.Name} - {GraphicsDevice.Backend}";
     }
 
     protected override void Dispose(bool disposing)

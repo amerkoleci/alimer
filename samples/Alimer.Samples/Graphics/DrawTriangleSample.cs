@@ -16,7 +16,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
     private Pipeline _renderPipeline;
 
     public DrawTriangleSample(GraphicsDevice graphicsDevice, AppView mainView)
-        : base(graphicsDevice, mainView)
+        : base("Graphics - Draw Triangle", graphicsDevice, mainView)
     {
         ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
             new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),

@@ -26,11 +26,12 @@ internal unsafe class SDLWindow : AppView
 
         SDL_WindowFlags flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
 
+        _title = "Alimer";
 #if SDL3
-        _sdlWindowHandle = SDL_CreateWindow("Alimer", 1200, 800, flags);
+        _sdlWindowHandle = SDL_CreateWindow(_title, 1200, 800, flags);
         SDL_SetWindowPosition(Handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 #else
-        _sdlWindowHandle = SDL_CreateWindow("Alimer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, flags);
+        _sdlWindowHandle = SDL_CreateWindow(_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, flags);
 #endif
         Id = SDL_GetWindowID(_sdlWindowHandle);
         SDL_GetWindowSizeInPixels(_sdlWindowHandle, out int width, out int height);
@@ -105,14 +106,14 @@ internal unsafe class SDLWindow : AppView
     [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl)]
     public static extern void SDL_GetWindowSizeInPixels(IntPtr window, out int width, out int height);
 
-    public void Destroy()
-    {
-        SDL_DestroyWindow(_sdlWindowHandle);
-    }
-
     public void Show()
     {
         SDL_ShowWindow(_sdlWindowHandle);
+    }
+
+    protected override void SetTitle(string title)
+    {
+        SDL_SetWindowTitle(_sdlWindowHandle, title);
     }
 
     public void HandleEvent(in SDL_Event evt)

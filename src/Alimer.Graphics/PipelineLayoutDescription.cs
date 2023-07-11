@@ -6,13 +6,21 @@ using CommunityToolkit.Diagnostics;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes a compute <see cref="PipelineLayout"/>.
+/// Structure that describes a <see cref="PipelineLayout"/>.
 /// </summary>
 public readonly record struct PipelineLayoutDescription
 {
     public PipelineLayoutDescription()
     {
         BindGroupLayouts = Array.Empty<BindGroupLayout>();
+    }
+
+    public PipelineLayoutDescription(BindGroupLayout bindGroupLayout, string? label = default)
+    {
+        Guard.IsNotNull(bindGroupLayout, nameof(bindGroupLayout));
+
+        BindGroupLayouts = new[] { bindGroupLayout };
+        Label = label;
     }
 
     public PipelineLayoutDescription(BindGroupLayout[] bindGroupLayouts, string? label = default)

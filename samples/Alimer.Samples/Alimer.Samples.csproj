@@ -28,6 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Assets\Shaders\Cube.hlsl" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Alimer.Engine\Alimer.Engine.csproj" />
     <ProjectReference Include="..\..\src\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>
