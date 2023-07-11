@@ -5,8 +5,6 @@ using System.Drawing;
 using Alimer.Graphics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Win32;
-using Windows.UI.Core;
 using WinRT;
 
 namespace Alimer;

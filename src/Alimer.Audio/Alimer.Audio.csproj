@@ -24,9 +24,9 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
+
+    <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeXAudio2)' != 'true'" />
     <PackageReference Include="Silk.NET.OpenAL.Soft.Native" Condition="'$(ExcludeOpenAL)' != 'true'" />
-    
-    <PackageReference Include="Vortice.Win32.Media.Audio.XAudio2" Condition="'$(ExcludeXAudio2)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>

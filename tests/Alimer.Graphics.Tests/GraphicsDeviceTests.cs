@@ -1,7 +1,6 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
 using NUnit.Framework;
 
 namespace Alimer.Graphics.Tests;
@@ -22,11 +21,11 @@ public class GraphicsDeviceTests
         using GraphicsDevice device = GraphicsDevice.CreateDefault(in description);
         if (OperatingSystem.IsWindows())
         {
-            Guard.IsTrue(device.Backend == GraphicsBackendType.D3D12);
+            Assert.IsTrue(device.Backend == GraphicsBackendType.D3D12);
         }
         else if (OperatingSystem.IsAndroid() || OperatingSystem.IsLinux()) 
         {
-            Guard.IsTrue(device.Backend == GraphicsBackendType.Vulkan);
+            Assert.IsTrue(device.Backend == GraphicsBackendType.Vulkan);
         }
     }
 }

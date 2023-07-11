@@ -247,7 +247,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         if (newPipeline.PipelineType == PipelineType.Render)
         {
             _commandList.Get()->SetGraphicsRootSignature(newPipeline.RootSignature);
-            _commandList.Get()->IASetPrimitiveTopology(newPipeline.PrimitiveTopology);
+            _commandList.Get()->IASetPrimitiveTopology(newPipeline.D3DPrimitiveTopology);
         }
         else
         {

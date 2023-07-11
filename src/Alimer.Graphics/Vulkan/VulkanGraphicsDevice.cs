@@ -812,17 +812,17 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         // Memory Allocator
         {
             VmaAllocatorCreateInfo allocatorCreateInfo;
-            allocatorCreateInfo.VulkanApiVersion = VkVersion.Version_1_3;
-            allocatorCreateInfo.PhysicalDevice = PhysicalDevice;
-            allocatorCreateInfo.Device = Handle;
-            allocatorCreateInfo.Instance = Instance;
+            allocatorCreateInfo.vulkanApiVersion = VkVersion.Version_1_3;
+            allocatorCreateInfo.physicalDevice = PhysicalDevice;
+            allocatorCreateInfo.device = Handle;
+            allocatorCreateInfo.instance = Instance;
 
             // Core in 1.1
             allocatorCreateInfo.flags = VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
 
             if (PhysicalDeviceExtensions.MemoryBudget)
             {
-                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.ExtMemoryBudget;
+                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.EXTMemoryBudget;
             }
 
             if (PhysicalDeviceExtensions.AMD_DeviceCoherentMemory)
@@ -837,7 +837,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             if (PhysicalDeviceExtensions.MemoryPriority)
             {
-                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.ExtMemoryPriority;
+                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.EXTMemoryPriority;
             }
 
             vmaCreateAllocator(&allocatorCreateInfo, out _allocator).CheckResult();

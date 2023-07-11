@@ -12,6 +12,7 @@ using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
 using static Alimer.Graphics.Constants;
 using Alimer.Utilities;
 using Alimer.Graphics.D3D;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -110,8 +111,36 @@ internal unsafe class D3D12Pipeline : Pipeline
 
         d3dDesc.InputLayout = inputLayoutDesc;
 
-        d3dDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-        d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        // Handle index strip
+        if (description.PrimitiveTopology != PrimitiveTopology.TriangleStrip &&
+            description.PrimitiveTopology != PrimitiveTopology.LineStrip)
+        {
+            d3dDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+        }
+        else
+        {
+            d3dDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+        }
+
+        // PrimitiveTopologyType
+        switch (description.PrimitiveTopology)
+        {
+            case PrimitiveTopology.PointList:
+                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+                break;
+            case PrimitiveTopology.LineList:
+            case PrimitiveTopology.LineStrip:
+                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+                break;
+            case PrimitiveTopology.TriangleList:
+            case PrimitiveTopology.TriangleStrip:
+                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+                break;
+            case PrimitiveTopology.PatchList:
+                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+                break;
+        }
+
         d3dDesc.NumRenderTargets = 1u;
         d3dDesc.RTVFormats[0] = (DXGI_FORMAT)description.ColorFormats[0].ToDxgiFormat();
         d3dDesc.DSVFormat = (DXGI_FORMAT)description.DepthStencilFormat.ToDxgiFormat();
@@ -125,7 +154,7 @@ internal unsafe class D3D12Pipeline : Pipeline
             return;
         }
 
-        PrimitiveTopology = description.PrimitiveTopology.ToD3DPrimitiveTopology(description.PatchControlPoints);
+        D3DPrimitiveTopology = description.PrimitiveTopology.ToD3DPrimitiveTopology(description.PatchControlPoints);
     }
 
     public D3D12Pipeline(D3D12GraphicsDevice device, in ComputePipelineDescription description)
@@ -136,12 +165,17 @@ internal unsafe class D3D12Pipeline : Pipeline
 
         fixed (byte* pByteCode = description.ComputeShader.ByteCode)
         {
-            D3D12_COMPUTE_PIPELINE_STATE_DESC d3dDesc = new()
+            ComputePipelineStateStream stream = new()
             {
-                pRootSignature = _layout.Handle,
+                RootSignature = _layout.Handle,
                 CS = new(pByteCode, (nuint)description.ComputeShader.ByteCode.Length)
             };
-            HRESULT hr = device.Handle->CreateComputePipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
+
+            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new();
+            streamDesc.pPipelineStateSubobjectStream = &stream;
+            streamDesc.SizeInBytes = (nuint)sizeof(ComputePipelineStateStream);
+
+            HRESULT hr = device.Handle->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
             if (hr.FAILED)
             {
                 Log.Error("D3D12: Failed to create Compute Pipeline.");
@@ -156,7 +190,7 @@ internal unsafe class D3D12Pipeline : Pipeline
     public ID3D12PipelineState* Handle => _handle;
     public ID3D12RootSignature* RootSignature => _layout.Handle;
 
-    public D3D_PRIMITIVE_TOPOLOGY PrimitiveTopology { get; }
+    public D3D_PRIMITIVE_TOPOLOGY D3DPrimitiveTopology { get; }
     public uint NumVertexBindings => _numVertexBindings;
     public uint GetStride(uint slot) => _strides[slot];
 
@@ -178,5 +212,12 @@ internal unsafe class D3D12Pipeline : Pipeline
         {
             _ = _handle.Get()->SetName((ushort*)pName);
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ComputePipelineStateStream
+    {
+        public PipelineStateSubObjectTypeRootSignature RootSignature;
+        public PipelineStateSubObjectTypeComputeShader CS;
     }
 }
