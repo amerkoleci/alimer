@@ -376,6 +376,9 @@ internal unsafe class VulkanPipeline : Pipeline
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
+    /// <inheritdoc />
+    public override PipelineLayout Layout => _layout;
+
     public VkPipeline Handle => _handle;
     public VkPipelineBindPoint BindPoint { get; }
 

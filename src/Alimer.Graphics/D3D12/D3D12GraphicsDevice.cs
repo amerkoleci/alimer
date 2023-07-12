@@ -45,7 +45,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     private readonly ComPtr<IDXGIFactory6> _factory;
     private readonly ComPtr<IDXGIAdapter1> _adapter;
-    private readonly ComPtr<ID3D12Device5> _handle;
+    private readonly ComPtr<ID3D12Device5> _handle = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
     private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
 
@@ -393,9 +393,74 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
                 MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
                 MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+                UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
+                UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+                ConstantBufferMinOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
+                ConstantBufferMaxRange = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+                StorageBufferMinOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
+                StorageBufferMaxRange = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+
+                MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
+                MaxPushConstantsSize = Constants.MaxPushConstantsSize, // D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+
+                // Slot values can be 0-15, inclusive:
+                // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
+                MaxVertexBuffers = 16,
+                MaxVertexAttributes = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
+                MaxVertexBufferArrayStride = D3D12_SO_BUFFER_MAX_STRIDE_IN_BYTES,
+
+                MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
+                MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
+
+                // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
+                // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
+                // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
+                MaxComputeWorkgroupStorageSize = 32768,
+
+                MaxComputeInvocationsPerWorkGroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
+
+                // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
+                MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
+                MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
+                MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
+                // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
+                MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+
+                SamplerMaxAnisotropy = D3D12_DEFAULT_MAX_ANISOTROPY,
+                SamplerMinLodBias = D3D12_MIP_LOD_BIAS_MIN,
+                SamplerMaxLodBias = D3D12_MIP_LOD_BIAS_MAX,
             };
 
-            ulong timestampFrequency = 0;
+            if (_features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
+            {
+                _limits.VariableRateShadingTileSize = _features.ShadingRateImageTileSize;
+            }
+
+            if (_features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
+            {
+                _limits.RayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
+                _limits.RayTracingShaderTableAligment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
+                _limits.RayTracingShaderTableMaxStride = ulong.MaxValue;
+                _limits.RayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
+                _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
+            }
+
+            //if (_features.IndependentFrontAndBackStencilRefMaskSupported() == TRUE)
+            //{
+            //    LOGD("D3D12: IndependentFrontAndBackStencilRefMaskSupported supported");
+            //}
+            //
+            //if (_features.DynamicDepthBiasSupported() == TRUE)
+            //{
+            //    LOGD("D3D12: DynamicDepthBiasSupported supported");
+            //}
+            //
+            //if (d3dFeatures.GPUUploadHeapSupported() == TRUE)
+            //{
+            //    LOGD("D3D12: GPUUploadHeapSupported supported");
+            //}
+
+            ulong timestampFrequency;
             ThrowIfFailed(D3D12GraphicsQueue->GetTimestampFrequency(&timestampFrequency));
             TimestampFrequency = timestampFrequency;
         }
@@ -573,7 +638,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.PipelineStatisticsQuery:
             case Feature.TextureCompressionBC:
             case Feature.IndirectFirstInstance:
-            case Feature.GeometryShader:
             case Feature.TessellationShader:
             case Feature.SamplerAnisotropy:
             case Feature.DepthResolveMinMax:
@@ -617,6 +681,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 }
 
                 return (_features.MaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
+
+            case Feature.DescriptorIndexing:
+                return true;
 
             case Feature.VariableRateShading:
                 return (_features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1);

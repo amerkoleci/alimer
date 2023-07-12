@@ -1,6 +1,8 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using TerraFX.Interop.DirectX;
+
 namespace Alimer.Graphics.Vulkan;
 
 public struct VulkanPhysicalDeviceVideoExtensions
@@ -23,7 +25,9 @@ public struct VulkanPhysicalDeviceExtensions
     public bool samplerFilterMinMax;
     public bool depthStencilResolve;
     // Core in 1.3
+    public bool maintenance4;
     public bool dynamicRendering;
+    public bool synchronization2;
     public bool extended_dynamic_state;
     public bool extended_dynamic_state2;
     public bool pipeline_creation_cache_control;
@@ -41,12 +45,13 @@ public struct VulkanPhysicalDeviceExtensions
     public bool performance_query;
     public bool host_query_reset;
     public bool deferred_host_operations;
+    public bool portability_subset;
     public bool accelerationStructure;
     public bool raytracingPipeline;
     public bool rayQuery;
-    public bool fragment_shading_rate;
-    public bool NV_mesh_shader;
-    public bool EXT_conditional_rendering;
+    public bool FragmentShadingRate;
+    public bool MeshShader;
+    public bool ConditionalRendering;
     public bool win32_full_screen_exclusive;
 
     public readonly bool SupportsExternal => SupportsExternalSemaphore && SupportsExternalMemory;

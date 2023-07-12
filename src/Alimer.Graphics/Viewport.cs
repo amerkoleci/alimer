@@ -145,9 +145,8 @@ public struct Viewport : IEquatable<Viewport>
     public readonly RectangleF Bounds => new(X, Y, Width, Height);
 
     /// <summary>
-    /// Gets the aspect ratio used by the viewport.
+    /// Gets the viewport aspect ratio.
     /// </summary>
-    /// <value>The aspect ratio.</value>
     public readonly float AspectRatio
     {
         get

@@ -32,6 +32,17 @@ public abstract class ComputeContext : CopyContext
         SetPipelineCore(pipeline);
     }
 
+    public unsafe void SetPushConstants<T>(uint pushConstantIndex, T data)
+         where T : unmanaged
+    {
+        SetPushConstantsCore(pushConstantIndex, &data, (uint)sizeof(T));
+    }
+
+    public unsafe void SetPushConstants(uint pushConstantIndex, void* data, uint size)
+    {
+        SetPushConstantsCore(pushConstantIndex, data, size);
+    }
+
     public void Dispatch1D(uint threadCountX, uint groupSizeX = 64u)
     {
         Dispatch(
@@ -75,6 +86,7 @@ public abstract class ComputeContext : CopyContext
     }
 
     protected abstract void SetPipelineCore(Pipeline pipeline);
+    public unsafe abstract void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
     protected abstract void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
 

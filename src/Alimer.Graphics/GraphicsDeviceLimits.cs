@@ -12,21 +12,42 @@ public struct GraphicsDeviceLimits
     public uint MaxTextureArrayLayers;
     public uint MaxTexelBufferDimension2D;
 
-    public ulong MaxConstantBufferBindingSize;
-    public ulong MaxStorageBufferBindingSize;
-    public uint MinUniformBufferOffsetAlignment;
-    public uint MinStorageBufferOffsetAlignment;
+    public uint UploadBufferTextureRowAlignment;
+    public uint UploadBufferTextureSliceAlignment;
+    public uint ConstantBufferMinOffsetAlignment;
+    public uint ConstantBufferMaxRange;
+
+    public uint StorageBufferMinOffsetAlignment;
+    public uint StorageBufferMaxRange;
+
+    public ulong MaxBufferSize;
+    public uint MaxPushConstantsSize;
+
     public uint MaxVertexBuffers;
     public uint MaxVertexAttributes;
     public uint MaxVertexBufferArrayStride;
+
+    public uint MaxViewports;
+    public uint MaxColorAttachments;
+
     public uint MaxComputeWorkgroupStorageSize;
     public uint MaxComputeInvocationsPerWorkGroup;
     public uint MaxComputeWorkGroupSizeX;
     public uint MaxComputeWorkGroupSizeY;
     public uint MaxComputeWorkGroupSizeZ;
     public uint MaxComputeWorkGroupsPerDimension;
-    public uint MaxViewports;
-    public uint MaxViewportDimensions1;
-    public uint MaxViewportDimensions2;
-    public uint MaxColorAttachments;
+
+    public ushort SamplerMaxAnisotropy;
+    public float SamplerMinLodBias;
+    public float SamplerMaxLodBias;
+
+    // VariableRateShading
+    public uint VariableRateShadingTileSize;
+
+    // Ray tracing
+    public ulong RayTracingShaderGroupIdentifierSize;
+    public ulong RayTracingShaderTableAligment;
+    public ulong RayTracingShaderTableMaxStride;
+    public uint RayTracingShaderRecursionMaxDepth;
+    public uint RayTracingMaxGeometryCount;
 }

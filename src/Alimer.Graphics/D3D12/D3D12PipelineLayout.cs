@@ -19,13 +19,27 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     {
         _device = device;
 
+        int pushConstantRangeCount = description.PushConstantRanges.Length;
         int descriptorRangeCount = 0;
         int rootParameterCount = 0;
         int staticSamplerDescCount = 0;
 
         D3D12_DESCRIPTOR_RANGE1* descriptorRanges = stackalloc D3D12_DESCRIPTOR_RANGE1[descriptorRangeCount];
-        D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParameterCount];
+        D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[pushConstantRangeCount];
         D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = stackalloc D3D12_STATIC_SAMPLER_DESC[staticSamplerDescCount];
+
+        if (pushConstantRangeCount > 0)
+        {
+            PushConstantsBaseIndex = (uint)rootParameterCount;
+
+            for (int i = 0; i < pushConstantRangeCount; i++)
+            {
+                ref readonly PushConstantRange pushConstantRange = ref description.PushConstantRanges[i];
+
+                rootParameters[rootParameterCount].InitAsConstants(pushConstantRange.Size / 4, pushConstantRange.ShaderRegister);
+                rootParameterCount++;
+            }
+        }
 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC.Init_1_1(
             out D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc,
@@ -64,15 +78,17 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         }
     }
 
+    /// <summary>
+    /// Finalizes an instance of the <see cref="D3D12PipelineLayout" /> class.
+    /// </summary>
+    ~D3D12PipelineLayout() => Dispose(disposing: false);
+
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
     public ID3D12RootSignature* Handle => _handle;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12PipelineLayout" /> class.
-    /// </summary>
-    ~D3D12PipelineLayout() => Dispose(disposing: false);
+    public uint PushConstantsBaseIndex { get; }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)

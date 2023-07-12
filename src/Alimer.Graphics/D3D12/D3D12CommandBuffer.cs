@@ -19,6 +19,7 @@ using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
 using Alimer.Graphics.D3D;
+using System.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -49,6 +50,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     private readonly D3D12_VERTEX_BUFFER_VIEW[] _vboViews = new D3D12_VERTEX_BUFFER_VIEW[MaxVertexBufferBindings];
 
     private D3D12Pipeline? _currentPipeline;
+    private D3D12PipelineLayout? _currentPipelineLayout;
     private RenderPassDescription _currentRenderPass;
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
@@ -98,6 +100,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     {
         base.Reset(frameIndex);
         _currentPipeline = default;
+        _currentPipelineLayout = default;
         _currentRenderPass = default;
 
         // Start the command list in a default state:
@@ -255,6 +258,35 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         }
 
         _currentPipeline = newPipeline;
+        _currentPipelineLayout = (D3D12PipelineLayout)newPipeline.Layout;
+    }
+
+    public override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
+    {
+        Debug.Assert(_currentPipeline != null);
+        Debug.Assert(_currentPipelineLayout != null);
+
+        uint rootParameterIndex = _currentPipelineLayout.PushConstantsBaseIndex + pushConstantIndex;
+        uint num32BitValuesToSet = size / 4;
+
+        if (_currentPipeline.PipelineType == PipelineType.Render)
+        {
+            _commandList.Get()->SetGraphicsRoot32BitConstants(
+                rootParameterIndex,
+                num32BitValuesToSet,
+                data,
+                0
+            );
+        }
+        else
+        {
+            _commandList.Get()->SetComputeRoot32BitConstants(
+                rootParameterIndex,
+                num32BitValuesToSet,
+                data,
+                0
+            );
+        }
     }
 
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)

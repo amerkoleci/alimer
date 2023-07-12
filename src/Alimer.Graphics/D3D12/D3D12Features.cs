@@ -27,6 +27,18 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_ARCHITECTURE1[] _architecture1;
     private readonly D3D_FEATURE_LEVEL _maxSupportedFeatureLevel;
     private readonly D3D_SHADER_MODEL _highestShaderModel;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS8 _options8;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS9 _options9;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS10 _options10;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS11 _options11;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS12 _options12;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS13 _options13;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS14 _options14;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS15 _options15;
+#if TODO
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS16 _options16;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS17 _options17;
+#endif
 
     public D3D12Features(ID3D12Device* device)
     {
@@ -71,6 +83,36 @@ internal unsafe readonly struct D3D12Features
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, ref _options7).FAILED)
         {
             _options7 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, ref _options8).FAILED)
+        {
+            _options8 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, ref _options9).FAILED)
+        {
+            _options9 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, ref _options10).FAILED)
+        {
+            _options10 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS11, ref _options11).FAILED)
+        {
+            _options11 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, ref _options12).FAILED)
+        {
+            _options12 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).FAILED)
+        {
+            _options13 = default;
         }
 
         if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).FAILED)
@@ -180,8 +222,6 @@ internal unsafe readonly struct D3D12Features
                 // If succeeded, the highest version is already written into the member struct
                 return rootSignatureData.HighestVersion;
             }
-
-            return rootSignatureData.HighestVersion;
         }
 
         return D3D_ROOT_SIGNATURE_VERSION_1_0;
@@ -228,4 +268,38 @@ internal unsafe readonly struct D3D12Features
         // Shader model may not be supported. Continue the rest initializations
         return (D3D_SHADER_MODEL)0;
     }
+
+    // Until TerraFX supports those
+#if TODO
+    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS16
+    {
+        public BOOL DynamicDepthBiasSupported;
+        public BOOL GPUUploadHeapSupported;
+    }
+
+    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS17
+    {
+        public BOOL NonNormalizedCoordinateSamplersSupported;
+        public BOOL ManualWriteTrackingResourceSupported;
+    }
+
+    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS18
+    {
+        public BOOL RenderPassesValid;
+    }
+
+    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS19
+    {
+        public BOOL MismatchingOutputDimensionsSupported;
+        public uint SupportedSampleCountsWithNoOutputs;
+        public BOOL PointSamplingAddressesNeverRoundUp;
+        public BOOL RasterizerDesc2Supported;
+        public BOOL NarrowQuadrilateralLinesSupported;
+        public BOOL AnisoFilterWithPointMipSupported;
+        public uint MaxSamplerDescriptorHeapSize;
+        public uint MaxSamplerDescriptorHeapSizeWithStaticSamplers;
+        public uint MaxViewDescriptorHeapSize;
+        public BOOL ComputeOnlyCustomHeapSupported;
+    } 
+#endif
 }

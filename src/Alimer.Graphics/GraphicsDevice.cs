@@ -230,6 +230,16 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(dataSpan, usage, cpuAccess);
     }
 
+    public GraphicsBuffer CreateBuffer<T>(List<T> initialData,
+       BufferUsage usage = BufferUsage.ShaderReadWrite,
+       CpuAccessMode cpuAccess = CpuAccessMode.None)
+       where T : unmanaged
+    {
+        ReadOnlySpan<T> dataSpan = CollectionsMarshal.AsSpan(initialData);
+
+        return CreateBuffer(dataSpan, usage, cpuAccess);
+    }
+
     public GraphicsBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
         CpuAccessMode cpuAccess = CpuAccessMode.None,

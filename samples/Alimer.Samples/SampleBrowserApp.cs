@@ -12,7 +12,7 @@ using Alimer.Shaders;
 namespace Alimer.Samples;
 
 // https://github.com/dotnet/runtime/tree/main/src/tests/nativeaot
-public sealed class DrawTriangleGame : GameApplication
+public sealed class SampleBrowserApp : GameApplication
 {
     private SampleBase _samplerBase = null!;
 
@@ -24,8 +24,8 @@ public sealed class DrawTriangleGame : GameApplication
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
         //_samplerBase = new DrawTriangleSample(GraphicsDevice, MainView);
-        _samplerBase = new DrawIndexedQuadSample(GraphicsDevice, MainView);
-        //_samplerBase = new DrawCubeSample(GraphicsDevice, MainView);
+        //_samplerBase = new DrawIndexedQuadSample(GraphicsDevice, MainView);
+        _samplerBase = new DrawCubeSample(GraphicsDevice, MainView);
 
         MainView.Title = $"{_samplerBase.Name} - {GraphicsDevice.Backend}";
     }
@@ -60,29 +60,7 @@ public sealed class DrawTriangleGame : GameApplication
 
     public static void Main()
     {
-        using DrawTriangleGame game = new();
+        using SampleBrowserApp game = new();
         game.Run();
     }
-}
-
-
-[StructLayout(LayoutKind.Sequential, Pack = 4)]
-public readonly struct VertexPositionColor
-{
-    public static readonly unsafe uint SizeInBytes = (uint)sizeof(VertexPositionColor);
-
-    public static readonly VertexAttribute[] VertexAttributes = new[]
-    {
-        new VertexAttribute(VertexFormat.Float3, 0, 0),
-        new VertexAttribute(VertexFormat.Float4, 12, 1)
-    };
-
-    public VertexPositionColor(in Vector3 position, in Vector4 color)
-    {
-        Position = position;
-        Color = color;
-    }
-
-    public readonly Vector3 Position;
-    public readonly Vector4 Color;
 }

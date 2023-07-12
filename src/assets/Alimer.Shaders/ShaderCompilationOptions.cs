@@ -5,10 +5,11 @@ namespace Alimer.Shaders;
 
 public readonly struct ShaderCompilationOptions
 {
+    public string SourceFileName { get; init; } = string.Empty;
     public ShaderStage ShaderStage { get; init; } = ShaderStage.Vertex;
     public string EntryPoint { get; init; } = "main";
-    public Dictionary<string, string>? Defines { get; init; }
-    public List<string>? IncludeDirs { get; init; }
+    public Dictionary<string, string> Defines { get; } = new();
+    public List<string> IncludeDirs { get; } = new();
 
     public DxcShaderModel ShaderModel { get; init; } = DxcShaderModel.Model6_5;
 

@@ -21,14 +21,9 @@
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
   
-  <!-- Native Dependencies-->
-
+  <!-- Assets-->
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Assets\Shaders\Cube.hlsl" />
   </ItemGroup>
 
   <ItemGroup>

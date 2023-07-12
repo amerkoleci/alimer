@@ -204,6 +204,9 @@ internal unsafe class D3D12Pipeline : Pipeline
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
+    /// <inheritdoc />
+    public override PipelineLayout Layout => _layout;
+
     public ID3D12PipelineState* Handle => _handle;
     public ID3D12RootSignature* RootSignature => _layout.Handle;
 

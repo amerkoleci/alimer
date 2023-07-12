@@ -59,6 +59,23 @@ public abstract class AppView : ISwapChainSurface
     public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
     public Texture? DepthStencilTexture { get; private set; }
 
+    /// <summary>
+    /// Gets the view aspect ratio.
+    /// </summary>
+    public float AspectRatio
+    {
+        get
+        {
+            var size = ClientSize;
+            if (size.Width != 0 && size.Height != 0)
+            {
+                return size.Width / size.Height;
+            }
+
+            return 0.0f;
+        }
+    }
+
     public void CreateSwapChain(GraphicsDevice device)
     {
         SwapChainDescription description = new(ColorFormat);
@@ -81,7 +98,7 @@ public abstract class AppView : ISwapChainSurface
 
     protected abstract void SetTitle(string title);
 
-    internal void Destroy()
+    protected internal void Destroy()
     {
         DepthStencilTexture?.Dispose();
         SwapChain?.Dispose();

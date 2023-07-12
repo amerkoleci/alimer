@@ -3,7 +3,7 @@
 
 using System.Drawing;
 using Alimer.Graphics;
-using static SDL2.SDL.SDL_EventType;
+using static SDL2.SDL.SDL_WindowEventID;
 using static SDL2.SDL.SDL_WindowFlags;
 using static SDL2.SDL;
 using System.Runtime.InteropServices;
@@ -118,41 +118,38 @@ internal unsafe class SDLWindow : AppView
 
     public void HandleEvent(in SDL_Event evt)
     {
-#if TODO
-        switch (evt.window.type)
+        switch (evt.window.windowEvent)
         {
-            case SDL_EVENT_WINDOW_MINIMIZED:
+            case SDL_WINDOWEVENT_MINIMIZED: // SDL_EVENT_WINDOW_MINIMIZED
                 _minimized = true;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_MAXIMIZED:
-            case SDL_EVENT_WINDOW_RESTORED:
+            case SDL_WINDOWEVENT_MAXIMIZED: // SDL_EVENT_WINDOW_MAXIMIZED:
+            case SDL_WINDOWEVENT_RESTORED: // SDL_EVENT_WINDOW_RESTORED:
                 _minimized = false;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_RESIZED:
+            case SDL_WINDOWEVENT_RESIZED: // SDL_EVENT_WINDOW_RESIZED:
                 _minimized = false;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            //case SDL_EVENT_WINDOW_CHANGED:
-            //    _minimized = false;
-            //    _clientSize = new(evt.window.data1, evt.window.data2);
-            //    OnSizeChanged();
-            //    break;
+            case SDL_WINDOWEVENT_SIZE_CHANGED: // SDL_EVENT_WINDOW_CHANGED:
+                _minimized = false;
+                _clientSize = new(evt.window.data1, evt.window.data2);
+                OnSizeChanged();
+                break;
 
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-                //DestroySurface(window);
+            case SDL_WINDOWEVENT_CLOSE: // SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                Destroy();
                 _platform.WindowClosed(evt.window.windowID);
-                SDL_DestroyWindow(Handle);
                 break;
-        } 
-#endif
+        }
     }
 
     [DllImport("kernel32", ExactSpelling = true)]

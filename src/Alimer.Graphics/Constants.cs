@@ -13,6 +13,7 @@ public static class Constants
     public const int MaxVertexBufferStride = 2048;
     public const int MaxMipLevels = 16;
     public const int MaxSamplerAnisotropy = 16;
+    public const int MaxPushConstantsSize = 256;
 
     public const int QuerySetMaxQueries = 8192;
 }

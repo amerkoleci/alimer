@@ -92,21 +92,35 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcResult> results = default;
 
         string shaderTarget = GetShaderTarget(options.ShaderStage, options.ShaderModel);
-        List<string> arguments = new(32);
-        arguments.Add("");
+        List<string> arguments = new(32)
+        {
+            options.SourceFileName,
 
-        // -T
-        arguments.Add("-T");
-        arguments.Add(shaderTarget);
+            // -T
+            "-T",
+            shaderTarget,
 
-        // -E
-        arguments.Add("-E");
-        arguments.Add(options.EntryPoint);
+            // -E
+            "-E",
+            options.EntryPoint
+        };
 
         // Defines
-        if (options.Defines != null && options.Defines.Count > 0)
+        arguments.Add("-D");
+        arguments.Add("COMPILER_DXC");
+
+        if (format == ShaderFormat.SPIRV)
         {
-            foreach (var definePair in options.Defines)
+            arguments.Add("-D");
+            arguments.Add("SPIRV");
+
+            arguments.Add("-D");
+            arguments.Add("VULKAN");
+        }
+
+        if (options.Defines.Count > 0)
+        {
+            foreach (KeyValuePair<string, string> definePair in options.Defines)
             {
                 arguments.Add("-D");
                 arguments.Add($"{definePair.Key}={definePair.Value}");
@@ -114,7 +128,7 @@ public sealed unsafe partial class ShaderCompiler
         }
 
         // Include directories
-        if (options.IncludeDirs != null && options.IncludeDirs.Count > 0)
+        if (options.IncludeDirs.Count > 0)
         {
             foreach (string dir in options.IncludeDirs)
             {
@@ -160,9 +174,6 @@ public sealed unsafe partial class ShaderCompiler
 
         if (format == ShaderFormat.SPIRV)
         {
-            arguments.Add("-D");
-            arguments.Add("SPIRV");
-
             arguments.Add("-spirv");
             arguments.Add($"-fspv-target-env=vulkan{options.SpvTargetEnvMajor}.{options.SpvTargetEnvMinor}");
 

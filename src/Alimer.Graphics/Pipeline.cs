@@ -12,4 +12,9 @@ public abstract class Pipeline : GraphicsObject
     }
 
     public PipelineType PipelineType { get; }
+
+    /// <summary>
+    /// Get the <see cref="PipelineLayout"/>.
+    /// </summary>
+    public abstract PipelineLayout Layout { get; }
 }

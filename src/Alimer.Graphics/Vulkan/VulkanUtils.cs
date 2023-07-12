@@ -145,6 +145,10 @@ internal static unsafe class VulkanUtils
             {
                 extensions.deferred_host_operations = true;
             }
+            else if (extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
+            {
+                extensions.portability_subset = true;
+            }
             // Core in 1.2
             else if (extensionName == VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)
             {
@@ -176,19 +180,27 @@ internal static unsafe class VulkanUtils
             }
             else if (extensionName == VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME)
             {
-                extensions.fragment_shading_rate = true;
+                extensions.FragmentShadingRate = true;
             }
-            else if (extensionName == VK_NV_MESH_SHADER_EXTENSION_NAME)
+            else if (extensionName == VK_EXT_MESH_SHADER_EXTENSION_NAME)
             {
-                extensions.NV_mesh_shader = true;
+                extensions.MeshShader = true;
             }
             else if (extensionName == VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME)
             {
-                extensions.EXT_conditional_rendering = true;
+                extensions.ConditionalRendering = true;
+            }
+            else if (extensionName == VK_KHR_MAINTENANCE_4_EXTENSION_NAME)
+            {
+                extensions.maintenance4 = true;
             }
             else if (extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
             {
                 extensions.dynamicRendering = true;
+            }
+            else if (extensionName == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
+            {
+                extensions.synchronization2 = true;
             }
             else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)
             {
@@ -278,7 +290,9 @@ internal static unsafe class VulkanUtils
         // Core 1.3
         if (gpuProps.apiVersion >= VkVersion.Version_1_3)
         {
+            extensions.maintenance4 = true;
             extensions.dynamicRendering = true;
+            extensions.synchronization2 = true;
             extensions.extended_dynamic_state = true;
             extensions.extended_dynamic_state2 = true;
             extensions.pipeline_creation_cache_control = true;
@@ -566,7 +580,7 @@ internal static unsafe class VulkanUtils
     public static VkShaderStageFlags ToVk(this ShaderStages stage)
     {
         //if (CheckBitsAny(stage, ShaderStages::Library))
-        //    return VK_SHADER_STAGE_ALL;
+        //    return VkShaderStageFlags.All;
 
         VkShaderStageFlags flags = 0;
 

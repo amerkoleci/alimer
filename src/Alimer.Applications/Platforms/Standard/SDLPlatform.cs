@@ -119,7 +119,7 @@ internal unsafe class SDLPlatform : AppPlatform
                     HandleWindowEvent(evt);
                 }
 #else
-            case SDL_EventType.SDL_WINDOWEVENT:
+            case SDL_WINDOWEVENT:
                 HandleWindowEvent(evt);
 #endif
                 break;

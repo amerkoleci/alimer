@@ -3,6 +3,7 @@
 
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Utilities.MemoryUtilities;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -10,6 +11,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly VkPipelineLayout _handle = VkPipelineLayout.Null;
+    private VkPushConstantRange* _pushConstantRanges;
 
     public VulkanPipelineLayout(VulkanGraphicsDevice device, in PipelineLayoutDescription description)
         : base(description)
@@ -24,15 +26,30 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             pSetLayouts[i] = ((VulkanBindGroupLayout)description.BindGroupLayouts[i]).Handle;
         }
 
-        int pushConstantRangeCount = 0;
-        VkPushConstantRange* pPushConstantRanges = stackalloc VkPushConstantRange[setLayoutCount];
+        int pushConstantRangeCount = description.PushConstantRanges.Length;
+        _pushConstantRanges = AllocateArray<VkPushConstantRange>((nuint)pushConstantRangeCount);
+        {
+            uint offset = 0;
+            for (int i = 0; i < pushConstantRangeCount; i++)
+            {
+                _pushConstantRanges[i] = new VkPushConstantRange()
+                {
+                    stageFlags = VkShaderStageFlags.All,
+                    offset = offset,
+                    size = description.PushConstantRanges[i].Size,
+                };
+
+                offset += _pushConstantRanges[i].size;
+            }
+        }
+
 
         VkPipelineLayoutCreateInfo createInfo = new()
         {
             setLayoutCount = (uint)setLayoutCount,
             pSetLayouts = pSetLayouts,
             pushConstantRangeCount = (uint)pushConstantRangeCount,
-            pPushConstantRanges = pPushConstantRanges
+            pPushConstantRanges = _pushConstantRanges
         };
 
         VkResult result = vkCreatePipelineLayout(device.Handle, &createInfo, null, out _handle);
@@ -53,6 +70,8 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
 
     public VkPipelineLayout Handle => _handle;
 
+    public ref VkPushConstantRange GetPushConstantRange(uint index) => ref _pushConstantRanges[index];
+
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanPipelineLayout" /> class.
     /// </summary>
@@ -67,6 +86,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     /// <inheitdoc />
     protected internal override void Destroy()
     {
+        Free(_pushConstantRanges);
         vkDestroyPipelineLayout(_device.Handle, _handle);
     }
 }

@@ -21,6 +21,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private VkCommandBuffer _commandBuffer; // recording command buffer
 
     private VulkanPipeline? _currentPipeline;
+    private VulkanPipelineLayout? _currentPipelineLayout;
     private RenderPassDescription _currentRenderPass;
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
@@ -77,6 +78,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     {
         base.Reset(frameIndex);
         _currentPipeline = default;
+        _currentPipelineLayout = default;
         _currentRenderPass = default;
 
         vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
@@ -234,6 +236,16 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
         vkCmdBindPipeline(_commandBuffer, newPipeline.BindPoint, newPipeline.Handle);
         _currentPipeline = newPipeline;
+        _currentPipelineLayout = (VulkanPipelineLayout) newPipeline.Layout;
+    }
+
+    public override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
+    {
+        //Debug.Assert(size <= device->limits.pushConstantsMaxSize);
+        Debug.Assert(_currentPipelineLayout != null);
+
+        ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);
+        vkCmdPushConstants(_commandBuffer, _currentPipelineLayout.Handle, range.stageFlags, range.offset, size, data);
     }
 
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -484,28 +496,28 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                 VkFragmentShadingRateCombinerOpKHR.Keep
             };
 
-            //if (_queue.Device.fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps == VK_TRUE)
-            //{
-            //    if (device->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
-            //    {
-            //        combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
-            //    }
-            //    if (device->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
-            //    {
-            //        combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
-            //    }
-            //}
-            //else
-            //{
-            //    if (device->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
-            //    {
-            //        combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
-            //    }
-            //    if (device->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
-            //    {
-            //        combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
-            //    }
-            //}
+            if (_queue.Device.FragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps)
+            {
+                if (_queue.Device.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
+                {
+                    combiner[0] = VkFragmentShadingRateCombinerOpKHR.Max;
+                }
+                if (_queue.Device.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
+                {
+                    combiner[1] = VkFragmentShadingRateCombinerOpKHR.Max;
+                }
+            }
+            else
+            {
+                if (_queue.Device.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
+                {
+                    combiner[0] = VkFragmentShadingRateCombinerOpKHR.Replace;
+                }
+                if (_queue.Device.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
+                {
+                    combiner[1] = VkFragmentShadingRateCombinerOpKHR.Replace;
+                }
+            }
 
             vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
         }
