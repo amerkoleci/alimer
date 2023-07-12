@@ -30,8 +30,8 @@ internal unsafe class D3D12Pipeline : Pipeline
         _device = device;
         _layout = (D3D12PipelineLayout)description.Layout;
 
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC d3dDesc = new();
-        d3dDesc.pRootSignature = _layout.Handle;
+        GraphicsPipelineStateStream stream = new();
+        stream.stream1.pRootSignature = _layout.Handle;
 
         // ShaderStages
         int shaderStageCount = description.ShaderStages.Length;
@@ -45,30 +45,30 @@ internal unsafe class D3D12Pipeline : Pipeline
             switch (shaderDesc.Stage)
             {
                 case ShaderStages.Vertex:
-                    d3dDesc.VS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    stream.stream1.VS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
                 case ShaderStages.Hull:
-                    d3dDesc.HS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    stream.stream1.HS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
                 case ShaderStages.Domain:
-                    d3dDesc.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
                 case ShaderStages.Fragment:
-                    d3dDesc.PS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    stream.stream1.PS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                    //case ShaderStages.Amplification:
-                    //    d3dDesc.AS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    //    break;
-                    //case ShaderStages.Mesh:
-                    //    d3dDesc.MS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    //    break;
+                case ShaderStages.Amplification:
+                    stream.stream2.AS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    break;
+                case ShaderStages.Mesh:
+                    stream.stream2.MS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    break;
             }
         }
 
-        d3dDesc.BlendState = D3D12_BLEND_DESC.DEFAULT;
-        d3dDesc.SampleMask = uint.MaxValue;
-        d3dDesc.RasterizerState = D3D12_RASTERIZER_DESC.DEFAULT;
-        d3dDesc.DepthStencilState = D3D12_DEPTH_STENCIL_DESC.DEFAULT;
+        stream.stream1.BlendState = D3D12_BLEND_DESC.DEFAULT;
+        stream.stream1.SampleMask = uint.MaxValue;
+        stream.stream1.RasterizerState = D3D12_RASTERIZER_DESC.DEFAULT;
+        stream.stream1.DepthStencilState = D3D12_DEPTH_STENCIL_DESC1.DEFAULT;
 
         // Input Layout
         ReadOnlySpan<byte> semanticName = "ATTRIBUTE"u8;
@@ -109,51 +109,59 @@ internal unsafe class D3D12Pipeline : Pipeline
             }
         }
 
-        d3dDesc.InputLayout = inputLayoutDesc;
+        stream.stream1.InputLayout = inputLayoutDesc;
 
         // Handle index strip
         if (description.PrimitiveTopology != PrimitiveTopology.TriangleStrip &&
             description.PrimitiveTopology != PrimitiveTopology.LineStrip)
         {
-            d3dDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+            stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
         }
         else
         {
-            d3dDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+            stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
         }
 
         // PrimitiveTopologyType
         switch (description.PrimitiveTopology)
         {
             case PrimitiveTopology.PointList:
-                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+                stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
                 break;
             case PrimitiveTopology.LineList:
             case PrimitiveTopology.LineStrip:
-                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+                stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
                 break;
             case PrimitiveTopology.TriangleList:
             case PrimitiveTopology.TriangleStrip:
-                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+                stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
                 break;
             case PrimitiveTopology.PatchList:
-                d3dDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+                stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
                 break;
         }
 
-        d3dDesc.NumRenderTargets = 1u;
-        d3dDesc.RTVFormats[0] = (DXGI_FORMAT)description.ColorFormats[0].ToDxgiFormat();
-        d3dDesc.DSVFormat = (DXGI_FORMAT)description.DepthStencilFormat.ToDxgiFormat();
-        d3dDesc.SampleDesc = new(1, 0);
-        d3dDesc.NodeMask = 0;
+        // Color Attachments + RTV
+        D3D12_RT_FORMAT_ARRAY RTVFormats = new();
+        RTVFormats.NumRenderTargets = 1;
+        RTVFormats.RTFormats[0] = (DXGI_FORMAT)description.ColorFormats[0].ToDxgiFormat();
 
-        //D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
-        //{
-        //    pPipelineStateSubobjectStream = &stream,
-        //    SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
-        //};
+        stream.stream1.RTVFormats = RTVFormats;
+        stream.stream1.DSVFormat = (DXGI_FORMAT)description.DepthStencilFormat.ToDxgiFormat();
+        stream.stream1.SampleDesc = new(1, 0);
+        stream.stream1.NodeMask = 0;
 
-        HRESULT hr = device.Handle->CreateGraphicsPipelineState(&d3dDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
+        D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
+        {
+            pPipelineStateSubobjectStream = &stream,
+            SizeInBytes = (nuint)sizeof(GraphicsPipelineStateStream1)
+        };
+        if (device.QueryFeatureSupport(Feature.MeshShader))
+        {
+            streamDesc.SizeInBytes += (nuint)sizeof(GraphicsPipelineStateStream2);
+        }
+
+        HRESULT hr = device.Handle->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
         if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create Render Pipeline.");
@@ -220,6 +228,66 @@ internal unsafe class D3D12Pipeline : Pipeline
         fixed (char* pName = newLabel)
         {
             _ = _handle.Get()->SetName((ushort*)pName);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GraphicsPipelineStateStream1
+    {
+        public CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        public CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
+        public CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
+        public CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
+        public CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+        public CD3DX12_PIPELINE_STATE_STREAM_HS HS;
+        public CD3DX12_PIPELINE_STATE_STREAM_DS DS;
+        //public CD3DX12_PIPELINE_STATE_STREAM_GS GS;
+        public CD3DX12_PIPELINE_STATE_STREAM_PS PS;
+        public CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
+        public CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
+        public CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+        public CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterizerState;
+        public CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+        public CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
+        public CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK SampleMask;
+        public CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK NodeMask;
+
+        public GraphicsPipelineStateStream1()
+        {
+            pRootSignature = new();
+            InputLayout = new();
+            IBStripCutValue = new();
+            PrimitiveTopologyType = new();
+            VS = new();
+            HS = new();
+            DS = new();
+            PS = new();
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GraphicsPipelineStateStream2
+    {
+        public CD3DX12_PIPELINE_STATE_STREAM_AS AS;
+        public CD3DX12_PIPELINE_STATE_STREAM_MS MS;
+
+        public GraphicsPipelineStateStream2()
+        {
+            AS = new();
+            MS = new();
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GraphicsPipelineStateStream
+    {
+        public GraphicsPipelineStateStream1 stream1;
+        public GraphicsPipelineStateStream2 stream2;
+
+        public GraphicsPipelineStateStream()
+        {
+            stream1 = new();
+            stream2 = new();
         }
     }
 
