@@ -11,8 +11,8 @@ namespace Alimer.Graphics.D3D12;
 internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 {
     private readonly D3D12GraphicsDevice _device;
-    private readonly List<D3D12_DESCRIPTOR_RANGE1> _cbvUavSrvDescriptorRanges = new();
-    private readonly List<D3D12_DESCRIPTOR_RANGE1> _samplerDescriptorRanges = new();
+    public readonly List<D3D12_DESCRIPTOR_RANGE1> _cbvUavSrvDescriptorRanges = new();
+    public readonly List<D3D12_DESCRIPTOR_RANGE1> _samplerDescriptorRanges = new();
 
     public D3D12BindGroupLayout(D3D12GraphicsDevice device, in BindGroupLayoutDescription description)
         : base(description)
@@ -27,14 +27,16 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 
             D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.Type.ToD3D12();
 
-            D3D12_DESCRIPTOR_RANGE1 range = new();
-            range.RangeType = descriptorRangeType;
-            range.NumDescriptors = 1;
-            range.BaseShaderRegister = entry.ShaderRegister;
-            range.RegisterSpace = D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START;
-            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            D3D12_DESCRIPTOR_RANGE1 range = new()
+            {
+                RangeType = descriptorRangeType,
+                NumDescriptors = 1,
+                BaseShaderRegister = entry.ShaderRegister,
+                RegisterSpace = D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START,
+                OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
+            };
 
-            switch(descriptorRangeType)
+            switch (descriptorRangeType)
             {
                 case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
                     range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;

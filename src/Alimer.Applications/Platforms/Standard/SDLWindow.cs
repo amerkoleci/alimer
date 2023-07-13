@@ -20,16 +20,34 @@ internal unsafe class SDLWindow : Window
     public readonly nint SDLWindowHandle;
     public readonly uint Id;
 
-    public SDLWindow(SDLPlatform platform)
+    public SDLWindow(SDLPlatform platform, WindowFlags flags)
     {
         _platform = platform;
 
         SDL_WindowFlags sdlWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
-        //if (flags.HasFlag(WindowFlags.Fullscreen))
-        //{
-        //    sdlWindowFlags |= SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP;
-        //    isFullscreen = true;
-        //}
+
+        if ((flags & WindowFlags.Borderless) != 0)
+            sdlWindowFlags |= SDL_WINDOW_BORDERLESS;
+
+        if ((flags & WindowFlags.Resizable) != 0)
+            sdlWindowFlags |= SDL_WINDOW_RESIZABLE;
+
+        if ((flags & WindowFlags.Fullscreen) != 0)
+        {
+            sdlWindowFlags |= SDL_WINDOW_FULLSCREEN;
+            _isFullscreen = true;
+        }
+
+        if ((flags & WindowFlags.FullscreenDesktop) != 0)
+        {
+            sdlWindowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+            _isFullscreen = true;
+        }
+
+        if ((flags & WindowFlags.Maximized) != 0)
+        {
+            sdlWindowFlags |= SDL_WINDOW_MAXIMIZED;
+        }
 
         _title = "Alimer";
 #if SDL3

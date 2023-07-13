@@ -6,6 +6,12 @@ using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_ROOT_PARAMETER_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using static TerraFX.Interop.DirectX.D3D12;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -19,13 +25,43 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     {
         _device = device;
 
-        int pushConstantRangeCount = description.PushConstantRanges.Length;
-        int descriptorRangeCount = 0;
+        CbvUavSrvRootParameterIndex = ~0u;
+        SamplerRootParameterIndex = ~0u;
+        PushConstantsBaseIndex = ~0u;
+
         int rootParameterCount = 0;
+
+        int setLayoutCount = description.BindGroupLayouts.Length;
+        D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[16];
+        for (int i = 0; i < setLayoutCount; i++)
+        {
+            D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
+            if (bindGroupLayout._cbvUavSrvDescriptorRanges.Count > 0)
+            {
+                CbvUavSrvRootParameterIndex = (uint)rootParameterCount;
+
+                uint numDescriptorRanges = (uint)bindGroupLayout._cbvUavSrvDescriptorRanges.Count;
+                Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout._cbvUavSrvDescriptorRanges);
+                foreach (ref D3D12_DESCRIPTOR_RANGE1 range in descriptorRanges)
+                {
+                    Debug.Assert(range.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
+                    range.RegisterSpace = (uint)i;
+                }
+
+                rootParameters[rootParameterCount].InitAsDescriptorTable(
+                    numDescriptorRanges,
+                    (D3D12_DESCRIPTOR_RANGE1*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(descriptorRanges)),
+                    D3D12_SHADER_VISIBILITY_ALL
+                );
+
+                rootParameterCount++;
+            }
+        }
+
+        int pushConstantRangeCount = description.PushConstantRanges.Length;
+        rootParameterCount += pushConstantRangeCount;
         int staticSamplerDescCount = 0;
 
-        D3D12_DESCRIPTOR_RANGE1* descriptorRanges = stackalloc D3D12_DESCRIPTOR_RANGE1[descriptorRangeCount];
-        D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[pushConstantRangeCount];
         D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = stackalloc D3D12_STATIC_SAMPLER_DESC[staticSamplerDescCount];
 
         if (pushConstantRangeCount > 0)
@@ -87,6 +123,9 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     public override GraphicsDevice Device => _device;
 
     public ID3D12RootSignature* Handle => _handle;
+
+    public uint CbvUavSrvRootParameterIndex { get; }
+    public uint SamplerRootParameterIndex { get; }
 
     public uint PushConstantsBaseIndex { get; }
 

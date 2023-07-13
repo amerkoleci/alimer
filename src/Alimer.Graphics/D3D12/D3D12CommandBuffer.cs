@@ -115,11 +115,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
         if (_queue.QueueType != QueueType.Copy)
         {
-            //ID3D12DescriptorHeap* heaps[2] = {
-            //    device->resourceDescriptorHeap.handle,
-            //    device->samplerDescriptorHeap.handle
-            //};
-            //_commandList.Get()->SetDescriptorHeaps(ALIMER_STATIC_ARRAY_SIZE(heaps), heaps);
+            ID3D12DescriptorHeap** descriptorHeaps = stackalloc ID3D12DescriptorHeap*[2]
+            {
+                _queue.Device.ShaderVisibleResourceHeap,
+                _queue.Device.ShaderVisibleSamplerHeap,
+            };
+            _commandList.Get()->SetDescriptorHeaps(2, descriptorHeaps);
         }
 
         if (_queue.QueueType == QueueType.Graphics)
@@ -263,7 +264,15 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
     {
+        Debug.Assert(_currentPipelineLayout != null);
+        Debug.Assert(_currentPipeline != null);
 
+        var backendBindGroup = (D3D12BindGroup)group;
+        uint rootParameterOffset = 0;
+        _commandList.Get()->SetGraphicsRootDescriptorTable(
+            rootParameterOffset + _currentPipelineLayout.CbvUavSrvRootParameterIndex,
+            _queue.Device.GetResourceHeapGpuHandle(0)
+            );
     }
 
     protected override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)

@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 

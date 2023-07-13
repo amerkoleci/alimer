@@ -1,20 +1,22 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Drawing;
-using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
-
 namespace Alimer;
 
 /// <summary>
-/// Window Creation Flags
+/// <see cref="Window"/> Creation Flags
 /// </summary>
 [Flags]
 public enum WindowFlags
 {
     /// <summary>
-    /// No Flags
+    /// None,
     /// </summary>
     None = 0,
+
+    Borderless = (1 << 0),
+    Resizable = (1 << 1),
+    Maximized = (1 << 2),
+    Fullscreen = (1 << 3),
+    FullscreenDesktop = (1 << 4),
 }

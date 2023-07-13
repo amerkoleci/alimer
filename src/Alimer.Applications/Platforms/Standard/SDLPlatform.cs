@@ -38,7 +38,7 @@ internal unsafe class SDLPlatform : AppPlatform
         }
 
         _input = new SDLInput(this);
-        MainWindow = (_window = new SDLWindow(this));
+        MainWindow = (_window = new SDLWindow(this, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
     }
 
