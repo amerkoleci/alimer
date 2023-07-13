@@ -1426,6 +1426,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description)
+    {
+        return new VulkanBindGroup(this, layout, description);
+    }
+
+    /// <inheritdoc />
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
         return new VulkanPipelineLayout(this, description);

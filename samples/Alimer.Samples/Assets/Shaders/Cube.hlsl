@@ -21,8 +21,8 @@ struct DrawData
     float4x4 worldMatrix;
 };
 
-PUSH_CONSTANT(DrawData, draw, 0);
-//ConstantBuffer<DrawData> draw : register(b0);
+//PUSH_CONSTANT(DrawData, draw, 0);
+ConstantBuffer<DrawData> draw : register(b0);
 
 VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 {

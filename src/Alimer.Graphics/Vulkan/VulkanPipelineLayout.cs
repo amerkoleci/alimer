@@ -11,7 +11,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly VkPipelineLayout _handle = VkPipelineLayout.Null;
-    private VkPushConstantRange* _pushConstantRanges;
+    private readonly VkPushConstantRange* _pushConstantRanges;
 
     public VulkanPipelineLayout(VulkanGraphicsDevice device, in PipelineLayoutDescription description)
         : base(description)
@@ -43,7 +43,6 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             }
         }
 
-
         VkPipelineLayoutCreateInfo createInfo = new()
         {
             setLayoutCount = (uint)setLayoutCount,
@@ -65,17 +64,17 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
         }
     }
 
+    /// <summary>
+    /// Finalizes an instance of the <see cref="VulkanPipelineLayout" /> class.
+    /// </summary>
+    ~VulkanPipelineLayout() => Dispose(disposing: false);
+
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
     public VkPipelineLayout Handle => _handle;
 
     public ref VkPushConstantRange GetPushConstantRange(uint index) => ref _pushConstantRanges[index];
-
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanPipelineLayout" /> class.
-    /// </summary>
-    ~VulkanPipelineLayout() => Dispose(disposing: false);
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)

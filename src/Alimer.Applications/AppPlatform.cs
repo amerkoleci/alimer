@@ -20,9 +20,9 @@ public abstract class AppPlatform : DisposableObject
     public abstract bool SupportsMultipleViews { get; }
 
     /// <summary>
-    /// Gets the main view.
+    /// Gets the main window.
     /// </summary>
-    public abstract AppView MainView { get; }
+    public abstract Window MainWindow { get; }
 
     /// <summary>
     /// Gets the input manager.

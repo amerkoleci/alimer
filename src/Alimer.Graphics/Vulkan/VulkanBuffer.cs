@@ -301,4 +301,16 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             vmaDestroyBuffer(memoryAllocator, _handle, _allocation);
         }
     }
+
+    /// <inheitdoc />
+    protected override void SetDataUnsafe(void* dataPtr, int offsetInBytes)
+    {
+        Unsafe.CopyBlockUnaligned((byte*)pMappedData + offsetInBytes, dataPtr, (uint)Size);
+    }
+
+    /// <inheitdoc />
+    protected override void GetDataUnsafe(void* destPtr, int offsetInBytes)
+    {
+        Unsafe.CopyBlockUnaligned(destPtr, (byte*)pMappedData + offsetInBytes, (uint)Size);
+    }
 }

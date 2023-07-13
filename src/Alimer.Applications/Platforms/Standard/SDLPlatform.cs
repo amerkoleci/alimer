@@ -38,7 +38,7 @@ internal unsafe class SDLPlatform : AppPlatform
         }
 
         _input = new SDLInput(this);
-        MainView = (_window = new SDLWindow(this));
+        MainWindow = (_window = new SDLWindow(this));
         _idLookup.Add(_window.Id, _window);
     }
 
@@ -51,7 +51,7 @@ internal unsafe class SDLPlatform : AppPlatform
     public override bool SupportsMultipleViews => true;
 
     // <inheritdoc />
-    public override AppView MainView { get; }
+    public override Window MainWindow { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="SDLPlatform" /> class.

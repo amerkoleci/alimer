@@ -8,18 +8,19 @@ namespace Alimer.Samples;
 
 public abstract class GraphicsSampleBase : SampleBase
 {
-    protected GraphicsSampleBase(string name, GraphicsDevice graphicsDevice, AppView mainView)
+    protected GraphicsSampleBase(string name, GraphicsDevice graphicsDevice, Window mainWindow)
         : base(name)
     {
         GraphicsDevice = graphicsDevice;
-        MainView = mainView;
+        MainWindow = mainWindow;
     }
 
     public GraphicsDevice GraphicsDevice { get; }
-    public AppView MainView { get; }
-    public PixelFormat[] ColorFormats => new[] { MainView.ColorFormat };
-    public PixelFormat DepthStencilFormat => MainView.DepthStencilFormat;
-    public float AspectRatio => MainView.AspectRatio;
+    public Window MainWindow { get; }
+    public PixelFormat[] ColorFormats => new[] { MainWindow.ColorFormat };
+    public PixelFormat DepthStencilFormat => MainWindow.DepthStencilFormat;
+    public Texture? DepthStencilTexture => MainWindow.DepthStencilTexture;
+    public float AspectRatio => MainWindow.AspectRatio;
 
     public abstract void Draw(RenderContext context, Texture swapChainTexture);
 

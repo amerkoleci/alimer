@@ -8,15 +8,15 @@ using CommunityToolkit.Diagnostics;
 namespace Alimer;
 
 /// <summary>
-/// Defines an application view.
+/// Defines an application window.
 /// </summary>
-public abstract class AppView : ISwapChainSurface
+public abstract class Window : ISwapChainSurface
 {
     public event EventHandler? SizeChanged;
 
     protected string _title = string.Empty;
 
-    protected AppView()
+    protected Window()
     {
 
     }
@@ -39,9 +39,7 @@ public abstract class AppView : ISwapChainSurface
         }
     }
 
-    public abstract bool IsMinimized { get; }
-    public abstract SizeF ClientSize { get; }
-
+    #region ISwapChainSurface Members
     /// <inheritdoc />
     public abstract SwapChainSurfaceType Kind { get; }
 
@@ -53,6 +51,15 @@ public abstract class AppView : ISwapChainSurface
 
     /// <inheritdoc />
     SizeF ISwapChainSurface.Size => ClientSize;
+    #endregion ISwapChainSurface Members
+
+    public abstract bool IsMinimized { get; }
+
+    /// <summary>
+    /// Gets or Sets whether the Window is in Fullscreen Mode
+    /// </summary>
+    public abstract bool IsFullscreen { get; set; }
+    public abstract SizeF ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.Bgra8UnormSrgb;

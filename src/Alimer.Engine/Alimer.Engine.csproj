@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Remove="System.Linq" />
+    
     <ProjectReference Include="..\Alimer.Applications\Alimer.Applications.csproj" />
     <ProjectReference Include="..\Alimer.Rendering\Alimer.Rendering.csproj" />
   </ItemGroup>

@@ -9,4 +9,9 @@ public abstract class BindGroup : GraphicsObject
         : base(description.Label)
     {
     }
+
+    /// <summary>
+    /// Get the <see cref="BindGroupLayout"/>.
+    /// </summary>
+    public abstract BindGroupLayout Layout { get; }
 }

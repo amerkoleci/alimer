@@ -74,6 +74,12 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
         throw new NotImplementedException();

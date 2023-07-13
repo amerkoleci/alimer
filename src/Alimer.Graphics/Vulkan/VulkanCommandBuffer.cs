@@ -239,7 +239,23 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _currentPipelineLayout = (VulkanPipelineLayout) newPipeline.Layout;
     }
 
-    public override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
+    protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
+    {
+        Debug.Assert(_currentPipelineLayout != null);
+        Debug.Assert(_currentPipeline != null);
+
+        var vulkanBindGroup = (VulkanBindGroup)group;
+
+        vkCmdBindDescriptorSets(
+            _commandBuffer,
+            _currentPipeline.BindPoint,
+            _currentPipelineLayout.Handle,
+            groupIndex,
+            vulkanBindGroup.Handle
+        );
+    }
+
+    protected override void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
     {
         //Debug.Assert(size <= device->limits.pushConstantsMaxSize);
         Debug.Assert(_currentPipelineLayout != null);

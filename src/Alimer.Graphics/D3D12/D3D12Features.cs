@@ -25,8 +25,7 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS7 _options7;
     private readonly D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT _gpuVASupport;
     private readonly D3D12_FEATURE_DATA_ARCHITECTURE1[] _architecture1;
-    private readonly D3D_FEATURE_LEVEL _maxSupportedFeatureLevel;
-    private readonly D3D_SHADER_MODEL _highestShaderModel;
+#if TODO
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS8 _options8;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS9 _options9;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS10 _options10;
@@ -35,7 +34,6 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS13 _options13;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS14 _options14;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS15 _options15;
-#if TODO
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS16 _options16;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS17 _options17;
 #endif
@@ -85,6 +83,7 @@ internal unsafe readonly struct D3D12Features
             _options7 = default;
         }
 
+#if TODO
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, ref _options8).FAILED)
         {
             _options8 = default;
@@ -113,7 +112,8 @@ internal unsafe readonly struct D3D12Features
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).FAILED)
         {
             _options13 = default;
-        }
+        } 
+#endif
 
         if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).FAILED)
         {
@@ -122,23 +122,39 @@ internal unsafe readonly struct D3D12Features
 
         // Initialize per-node feature support data structures
         NodeCount = device->GetNodeCount();
-        //m_dProtectedResourceSessionSupport.resize(uNodeCount);
         _architecture1 = new D3D12_FEATURE_DATA_ARCHITECTURE1[NodeCount];
 
         for (uint nodeIndex = 0; nodeIndex < NodeCount; nodeIndex++)
         {
+            _architecture1[nodeIndex].NodeIndex = nodeIndex;
+            if (device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, ref _architecture1[nodeIndex]).FAILED)
+            {
+                D3D12_FEATURE_DATA_ARCHITECTURE dataArchLocal = default;
+                dataArchLocal.NodeIndex = nodeIndex;
+                if (_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &dataArchLocal, (uint)sizeof(D3D12_FEATURE_DATA_ARCHITECTURE)).FAILED)
+                {
+                    dataArchLocal.TileBasedRenderer = false;
+                    dataArchLocal.UMA = false;
+                    dataArchLocal.CacheCoherentUMA = false;
+                }
+
+                _architecture1[nodeIndex].TileBasedRenderer = dataArchLocal.TileBasedRenderer;
+                _architecture1[nodeIndex].UMA = dataArchLocal.UMA;
+                _architecture1[nodeIndex].CacheCoherentUMA = dataArchLocal.CacheCoherentUMA;
+                _architecture1[nodeIndex].IsolatedMMU = false;
+            }
         }
 
-        _maxSupportedFeatureLevel = QueryHighestFeatureLevel();
+        MaxSupportedFeatureLevel = QueryHighestFeatureLevel();
         RootSignatureHighestVersion = QueryHighestRootSignatureVersion();
-        _highestShaderModel = QueryHighestShaderModel();
+        HighestShaderModel = QueryHighestShaderModel();
     }
 
     public uint NodeCount { get; }
     public bool UMA(uint nodeIndex = 0) => _architecture1[nodeIndex].UMA;
-    public D3D_FEATURE_LEVEL MaxSupportedFeatureLevel => _maxSupportedFeatureLevel;
+    public D3D_FEATURE_LEVEL MaxSupportedFeatureLevel { get; }
     public D3D_ROOT_SIGNATURE_VERSION RootSignatureHighestVersion { get; }
-    public D3D_SHADER_MODEL HighestShaderModel => _highestShaderModel;
+    public D3D_SHADER_MODEL HighestShaderModel { get; }
     public D3D12_TILED_RESOURCES_TIER TiledResourcesTier => _options.TiledResourcesTier;
     public bool DepthBoundsTestSupported => _options2.DepthBoundsTestSupported;
     public bool Native16BitShaderOpsSupported => _options4.Native16BitShaderOpsSupported;

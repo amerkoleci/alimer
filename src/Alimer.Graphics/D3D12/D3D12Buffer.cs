@@ -144,6 +144,11 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         _handle = existingHandle;
     }
 
+    /// <summary>
+    /// Finalizes an instance of the <see cref="D3D12Buffer" /> class.
+    /// </summary>
+    ~D3D12Buffer() => Dispose(disposing: false);
+
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
@@ -153,11 +158,6 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
 
     public ulong GpuAddress { get; }
     public ulong AllocatedSize { get; }
-
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12Buffer" /> class.
-    /// </summary>
-    ~D3D12Buffer() => Dispose(disposing: false);
 
     /// <inheitdoc />
     protected internal override void Destroy()
@@ -173,5 +173,17 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         {
             _ = _handle.Get()->SetName((ushort*)pName);
         }
+    }
+
+    /// <inheitdoc />
+    protected override void SetDataUnsafe(void* dataPtr, int offsetInBytes)
+    {
+        Unsafe.CopyBlockUnaligned((byte*)pMappedData + offsetInBytes, dataPtr, (uint)Size);
+    }
+
+    /// <inheitdoc />
+    protected override void GetDataUnsafe(void* destPtr, int offsetInBytes)
+    {
+        Unsafe.CopyBlockUnaligned(destPtr, (byte*)pMappedData + offsetInBytes, (uint)Size);
     }
 }

@@ -6,27 +6,32 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
 using Alimer.Numerics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;
 
 [Description("Graphics - Draw Cube")]
 public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 {
-    private GraphicsBuffer _vertexBuffer;
-    private GraphicsBuffer _indexBuffer;
-    private BindGroupLayout _bindGroupLayout;
-    private PipelineLayout _pipelineLayout;
-    private Pipeline _renderPipeline;
+    private readonly GraphicsBuffer _vertexBuffer;
+    private readonly GraphicsBuffer _indexBuffer;
+    private readonly GraphicsBuffer _constantBuffer;
+
+    private readonly BindGroupLayout _bindGroupLayout;
+    private readonly BindGroup _bindGroup;
+    private readonly PipelineLayout _pipelineLayout;
+    private readonly Pipeline _renderPipeline;
 
     private Stopwatch _clock;
 
-    public DrawCubeSample(GraphicsDevice graphicsDevice, AppView mainView)
-        : base("Graphics - Draw Cube", graphicsDevice, mainView)
+    public DrawCubeSample(GraphicsDevice graphicsDevice, Window mainWindow)
+        : base("Graphics - Draw Cube", graphicsDevice, mainWindow)
     {
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
 
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 
         BindGroupLayoutEntry[] entries = new BindGroupLayoutEntry[1]
         {
@@ -36,9 +41,13 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         BindGroupLayoutDescription bindGroupLayoutDescription = new(entries, "BindGroupLayout");
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
 
-        PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
+        BindGroupDescription bindGroupDescription = new(new BindGroupEntry(0, _constantBuffer));
+        _bindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout, bindGroupDescription));
 
-        PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
+        //PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
+        //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
+
+        PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
         ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStages.Vertex);
@@ -73,9 +82,10 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView((float)Math.PI / 4, AspectRatio, 0.1f, 100);
         Matrix4x4 viewProjection = Matrix4x4.Multiply(view, projection);
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
+        _constantBuffer.SetData(worldViewProjection);
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
-        RenderPassDepthStencilAttachment depthStencilAttachment = new(MainView.DepthStencilTexture!);
+        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
             Label = "BackBuffer"
@@ -84,7 +94,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         using (context.PushScopedPassPass(backBufferRenderPass))
         {
             context.SetPipeline(_renderPipeline!);
-            context.SetPushConstants(0, worldViewProjection);
+            context.SetBindGroup(0, _bindGroup);
+            //context.SetPushConstants(0, worldViewProjection);
 
             context.SetVertexBuffer(0, _vertexBuffer);
             context.SetIndexBuffer(_indexBuffer, IndexType.Uint16);

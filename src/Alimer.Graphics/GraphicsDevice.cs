@@ -198,6 +198,14 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(description, null);
     }
 
+    public GraphicsBuffer CreateBuffer(ulong size,
+        BufferUsage usage = BufferUsage.ShaderReadWrite,
+        CpuAccessMode cpuAccess = CpuAccessMode.None,
+        string? label = default)
+    {
+        return CreateBuffer(new BufferDescription(size, usage, cpuAccess, label), (void*)null);
+    }
+
     public GraphicsBuffer CreateBuffer(in BufferDescription description, IntPtr initialData)
     {
         return CreateBuffer(description, initialData.ToPointer());
@@ -272,6 +280,15 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBindGroupLayoutCore(in description);
     }
 
+    public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescription description)
+    {
+        Guard.IsNotNull(layout, nameof(layout));
+        Guard.IsNotNull(description.Entries, nameof(BindGroupDescription.Entries));
+        Guard.IsGreaterThan(description.Entries.Length, 0, nameof(BindGroupDescription.Entries));
+
+        return CreateBindGroupCore(layout, in description);
+    }
+
     public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescription description)
     {
         return CreatePipelineLayoutCore(in description);
@@ -316,6 +333,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract Texture CreateTextureCore(in TextureDescription description, void* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
+    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
     protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
     protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);

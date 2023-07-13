@@ -3,13 +3,14 @@
 
 using System.Drawing;
 using Alimer.Graphics;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.UI.ViewManagement;
 using WinRT;
+using PlatformWindow = Microsoft.UI.Xaml.Window;
 
 namespace Alimer;
 
-internal unsafe class SwapChainPanelView : AppView
+internal unsafe class SwapChainPanelView : Window
 {
     private readonly WindowsPlatform _platform;
     private readonly SwapChainPanel _swapChainPanel;
@@ -21,6 +22,34 @@ internal unsafe class SwapChainPanelView : AppView
 
     /// <inheritdoc />
     public override bool IsMinimized => _minimized;
+
+    /// <inheritdoc />
+    public override bool IsFullscreen
+    {
+        get => _isFullscreen;
+        set
+        {
+            if (_isFullscreen != value)
+            {
+                _isFullscreen = value;
+                var view = ApplicationView.GetForCurrentView();
+                if (view.IsFullScreenMode)
+                {
+                    if (!_isFullscreen)
+                    {
+                        view.ExitFullScreenMode();
+                    }
+                }
+                else
+                {
+                    if (_isFullscreen)
+                    {
+                        view.TryEnterFullScreenMode();
+                    }
+                }
+            }
+        }
+    }
 
     /// <inheritdoc />
     public override SizeF ClientSize => _clientSize;
@@ -38,7 +67,7 @@ internal unsafe class SwapChainPanelView : AppView
     {
         _platform = platform;
         _swapChainPanel = swapChainPanel;
-        _title = Window.Current.Title;
+        _title = PlatformWindow.Current.Title;
         //CoreWindow coreWindow = Window.Current.CoreWindow;
         Kind = SwapChainSurfaceType.SwapChainPanel;
         Handle = ((IWinRTObject)_swapChainPanel).NativeObject.GetRef();
@@ -46,11 +75,11 @@ internal unsafe class SwapChainPanelView : AppView
 
     public void Show()
     {
-        Window.Current.AppWindow.Show(activateWindow: true);
+        PlatformWindow.Current.AppWindow.Show(activateWindow: true);
     }
 
     protected override void SetTitle(string title)
     {
-        Window.Current.Title = title;
+        PlatformWindow.Current.AppWindow.Title = title;
     }
 }

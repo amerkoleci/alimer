@@ -788,6 +788,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description)
+    {
+        return new D3D12BindGroup(this, layout, description);
+    }
+
+    /// <inheritdoc />
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
         return new D3D12PipelineLayout(this, description);

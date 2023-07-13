@@ -5,6 +5,7 @@ namespace Alimer.Graphics;
 
 public enum GpuPowerPreference
 {
-    HighPerformance,
+    Undefined,
     LowPower,
+    HighPerformance,
 }

@@ -25,7 +25,7 @@ public record struct GraphicsDeviceDescription
     /// <summary>
     /// Gets the GPU adapter selection power preference.
     /// </summary>
-    public GpuPowerPreference PowerPreference { get; set; } = GpuPowerPreference.HighPerformance;
+    public GpuPowerPreference PowerPreference { get; set; } = GpuPowerPreference.Undefined;
 
     // <summary>
     /// Gets or sets the label of <see cref="GraphicsDevice"/>.

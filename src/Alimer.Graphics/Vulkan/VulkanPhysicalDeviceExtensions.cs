@@ -1,11 +1,9 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-
 namespace Alimer.Graphics.Vulkan;
 
-public struct VulkanPhysicalDeviceVideoExtensions
+internal struct VulkanPhysicalDeviceVideoExtensions
 {
     public bool Queue;
     public bool DecodeQueue;
@@ -16,7 +14,7 @@ public struct VulkanPhysicalDeviceVideoExtensions
     public bool EncodeH265;
 }
 
-public struct VulkanPhysicalDeviceExtensions
+internal struct VulkanPhysicalDeviceExtensions
 {
     public bool Swapchain;
     // Core in 1.2

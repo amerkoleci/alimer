@@ -21,6 +21,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Remove="System.Linq" />
+    
     <Compile Remove="D3D/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
     <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
     <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />

@@ -15,8 +15,8 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
     private PipelineLayout _pipelineLayout;
     private Pipeline _renderPipeline;
 
-    public DrawTriangleSample(GraphicsDevice graphicsDevice, AppView mainView)
-        : base("Graphics - Draw Triangle", graphicsDevice, mainView)
+    public DrawTriangleSample(GraphicsDevice graphicsDevice, Window mainWindow)
+        : base("Graphics - Draw Triangle", graphicsDevice, mainWindow)
     {
         ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
             new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
@@ -51,7 +51,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
     public override void Draw(RenderContext context, Texture swapChainTexture)
     {
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
-        RenderPassDepthStencilAttachment depthStencilAttachment = new(MainView.DepthStencilTexture!);
+        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
             Label = "BackBuffer"

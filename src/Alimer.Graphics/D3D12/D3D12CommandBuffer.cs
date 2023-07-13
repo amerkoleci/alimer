@@ -261,7 +261,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _currentPipelineLayout = (D3D12PipelineLayout)newPipeline.Layout;
     }
 
-    public override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
+    protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
+    {
+
+    }
+
+    protected override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
     {
         Debug.Assert(_currentPipeline != null);
         Debug.Assert(_currentPipelineLayout != null);

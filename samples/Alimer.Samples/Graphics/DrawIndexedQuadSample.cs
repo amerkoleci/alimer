@@ -16,8 +16,8 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
     private PipelineLayout _pipelineLayout;
     private Pipeline _renderPipeline;
 
-    public DrawIndexedQuadSample(GraphicsDevice graphicsDevice, AppView mainView)
-        : base("Graphics - DrawIndexed Quad", graphicsDevice, mainView)
+    public DrawIndexedQuadSample(GraphicsDevice graphicsDevice, Window mainWindow)
+        : base("Graphics - DrawIndexed Quad", graphicsDevice, mainWindow)
     {
         ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
             new(new Vector3(-0.5f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
@@ -60,7 +60,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
     public override void Draw(RenderContext context, Texture swapChainTexture)
     {
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
-        RenderPassDepthStencilAttachment depthStencilAttachment = new(MainView.DepthStencilTexture!);
+        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
             Label = "BackBuffer"

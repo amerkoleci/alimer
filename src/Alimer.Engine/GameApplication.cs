@@ -1,6 +1,8 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Graphics;
+
 namespace Alimer.Engine;
 
 /// <summary>
@@ -8,7 +10,8 @@ namespace Alimer.Engine;
 /// </summary>
 public class GameApplication : Application
 {
-    public GameApplication()
+    public GameApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
+        : base(default, preferredGraphicsBackend)
     {
         SceneSystem = new SceneSystem();
         GameSystems.Add(SceneSystem);

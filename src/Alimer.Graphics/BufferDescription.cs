@@ -34,7 +34,7 @@ public record struct BufferDescription
     public BufferUsage Usage { get; init; } = BufferUsage.ShaderReadWrite;
 
     /// <summary>
-    /// CPU access of the <see cref="Buffer"/>.
+    /// Gets or Sets the CPU access of the <see cref="Buffer"/>.
     /// </summary>
     public CpuAccessMode CpuAccess { get; init; } = CpuAccessMode.None;
 

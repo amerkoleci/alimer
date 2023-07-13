@@ -12,6 +12,8 @@ using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
+
 namespace Alimer.Graphics.D3D12;
 
 internal static unsafe class D3D12Utils
@@ -139,6 +141,18 @@ internal static unsafe class D3D12Utils
                 return D3D12_SHADING_RATE_4X4;
             default:
                 return D3D12_SHADING_RATE_1X1;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12(this DescriptorType value)
+    {
+        switch (value)
+        {
+            case DescriptorType.ConstantBuffer:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+            default:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         }
     }
 

@@ -16,7 +16,7 @@ internal unsafe class WindowsPlatform : AppPlatform
     public WindowsPlatform(SwapChainPanel? swapChainPanel = default)
     {
         _input = new WindowsInput(this);
-        MainView = (_window = new SwapChainPanelView(this, swapChainPanel));
+        MainWindow = (_window = new SwapChainPanelView(this, swapChainPanel));
     }
 
     // <inheritdoc />
@@ -26,7 +26,7 @@ internal unsafe class WindowsPlatform : AppPlatform
     public override bool SupportsMultipleViews => false;
 
     // <inheritdoc />
-    public override AppView MainView { get; }
+    public override Window MainWindow { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="WindowsPlatform" /> class.

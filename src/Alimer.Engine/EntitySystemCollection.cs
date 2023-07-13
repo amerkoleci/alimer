@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Alimer.Engine;
 

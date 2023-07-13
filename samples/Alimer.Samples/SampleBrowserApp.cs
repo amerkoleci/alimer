@@ -1,13 +1,9 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Numerics;
-using System.Runtime.InteropServices;
 using Alimer.Engine;
 using Alimer.Graphics;
-using Alimer.Numerics;
 using Alimer.Samples.Graphics;
-using Alimer.Shaders;
 
 namespace Alimer.Samples;
 
@@ -15,6 +11,11 @@ namespace Alimer.Samples;
 public sealed class SampleBrowserApp : GameApplication
 {
     private SampleBase _samplerBase = null!;
+
+    public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
+        : base(preferredGraphicsBackend)
+    {
+    }
 
     protected override void Initialize()
     {
@@ -25,9 +26,9 @@ public sealed class SampleBrowserApp : GameApplication
 
         //_samplerBase = new DrawTriangleSample(GraphicsDevice, MainView);
         //_samplerBase = new DrawIndexedQuadSample(GraphicsDevice, MainView);
-        _samplerBase = new DrawCubeSample(GraphicsDevice, MainView);
+        _samplerBase = new DrawCubeSample(GraphicsDevice, MainWindow);
 
-        MainView.Title = $"{_samplerBase.Name} - {GraphicsDevice.Backend}";
+        MainWindow.Title = $"{_samplerBase.Name} - {GraphicsDevice.Backend}";
     }
 
     protected override void Dispose(bool disposing)
@@ -43,7 +44,7 @@ public sealed class SampleBrowserApp : GameApplication
     protected override void Draw(AppTime time)
     {
         RenderContext context = GraphicsDevice.BeginRenderContext("Frame");
-        Texture? swapChainTexture = context.AcquireSwapChainTexture(MainView.SwapChain!);
+        Texture? swapChainTexture = context.AcquireSwapChainTexture(MainWindow.SwapChain!);
         if (swapChainTexture is not null)
         {
             if (_samplerBase is GraphicsSampleBase graphicsSampleBase)
@@ -60,7 +61,13 @@ public sealed class SampleBrowserApp : GameApplication
 
     public static void Main()
     {
-        using SampleBrowserApp game = new();
+        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count;
+
+#if !WINDOWS
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+#endif
+
+        using SampleBrowserApp game = new(preferredGraphicsBackend);
         game.Run();
     }
 }

@@ -18,6 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Remove="System.Linq" />
     <Compile Remove="OpenAL/**/*" Condition="'$(ExcludeOpenAL)' == 'true'" />
     <Compile Remove="XAudio2/**/*" Condition="'$(ExcludeXAudio2)' == 'true'" />
   </ItemGroup>

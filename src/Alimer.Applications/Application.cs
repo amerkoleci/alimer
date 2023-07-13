@@ -23,7 +23,7 @@ public abstract class Application : DisposableObject, IApplication
     /// Initializes a new instance of the <see cref="Application" /> class.
     /// </summary>
     /// <param name="name">The optional name of the application.</param>
-    protected Application(AppPlatform? platform = default, string? name = default)
+    protected Application(AppPlatform? platform = default, GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count, string? name = default)
     {
         Platform = platform ?? AppPlatform.CreateDefault();
         Name = name ?? GetType().Name;
@@ -38,14 +38,12 @@ public abstract class Application : DisposableObject, IApplication
 
         GraphicsDeviceDescription deviceDescription = new()
         {
+            PreferredBackend = preferredGraphicsBackend,
+            //PowerPreference = GpuPowerPreference.LowPower,
 #if DEBUG
             ValidationMode = ValidationMode.Enabled
 #endif
         };
-
-#if !WINDOWS
-        //deviceDescription.PreferredBackend = GraphicsBackendType.Vulkan;
-#endif
 
         GraphicsDevice = GraphicsDevice.CreateDefault(in deviceDescription);
 
@@ -76,7 +74,7 @@ public abstract class Application : DisposableObject, IApplication
     /// <summary>
     /// Gets the main window, automatically created or managed by the <see cref="AppPlatform"/> module.
     /// </summary>
-    public AppView MainView => Platform.MainView;
+    public Window MainWindow => Platform.MainWindow;
 
     /// <summary>
     /// Gets the system input, created by the <see cref="AppPlatform"/> module.
@@ -99,7 +97,7 @@ public abstract class Application : DisposableObject, IApplication
         if (disposing)
         {
             GraphicsDevice.WaitIdle();
-            MainView.Destroy();
+            MainWindow.Destroy();
             GraphicsDevice.Dispose();
             AudioDevice.Dispose();
         }
@@ -211,7 +209,7 @@ public abstract class Application : DisposableObject, IApplication
 
     private void InitializeBeforeRun()
     {
-        MainView.CreateSwapChain(GraphicsDevice);
+        MainWindow.CreateSwapChain(GraphicsDevice);
         IsRunning = true;
 
         Initialize();

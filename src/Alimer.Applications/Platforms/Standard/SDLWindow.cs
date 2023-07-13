@@ -10,40 +10,45 @@ using System.Runtime.InteropServices;
 
 namespace Alimer;
 
-internal unsafe class SDLWindow : AppView
+internal unsafe class SDLWindow : Window
 {
     private readonly SDLPlatform _platform;
     private Size _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
 
-    public readonly nint _sdlWindowHandle;
+    public readonly nint SDLWindowHandle;
     public readonly uint Id;
 
     public SDLWindow(SDLPlatform platform)
     {
         _platform = platform;
 
-        SDL_WindowFlags flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
+        SDL_WindowFlags sdlWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+        //if (flags.HasFlag(WindowFlags.Fullscreen))
+        //{
+        //    sdlWindowFlags |= SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP;
+        //    isFullscreen = true;
+        //}
 
         _title = "Alimer";
 #if SDL3
-        _sdlWindowHandle = SDL_CreateWindow(_title, 1200, 800, flags);
-        SDL_SetWindowPosition(Handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDLWindowHandle = SDL_CreateWindow(_title, 1200, 800, sdlWindowFlags);
+        SDL_SetWindowPosition(SDLWindowHandle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 #else
-        _sdlWindowHandle = SDL_CreateWindow(_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, flags);
+        SDLWindowHandle = SDL_CreateWindow(_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, sdlWindowFlags);
 #endif
-        Id = SDL_GetWindowID(_sdlWindowHandle);
-        SDL_GetWindowSizeInPixels(_sdlWindowHandle, out int width, out int height);
+        Id = SDL_GetWindowID(SDLWindowHandle);
+        SDL_GetWindowSizeInPixels(SDLWindowHandle, out int width, out int height);
         _clientSize = new Size(width, height);
 
         // Native handle
         SDL_SysWMinfo wmInfo = default;
 #if SDL3
-        SDL_GetWindowWMInfo(_sdlWindowHandle, &wmInfo);
+        SDL_GetWindowWMInfo(SDLWindowHandle, &wmInfo);
 #else
         SDL_GetVersion(out wmInfo.version);
-        SDL_GetWindowWMInfo(_sdlWindowHandle, ref wmInfo);
+        SDL_GetWindowWMInfo(SDLWindowHandle, ref wmInfo);
 #endif
 
         // Window handle is selected per subsystem as defined at:
@@ -92,6 +97,23 @@ internal unsafe class SDLWindow : AppView
     public override bool IsMinimized => _minimized;
 
     /// <inheritdoc />
+    public override bool IsFullscreen
+    {
+        get => _isFullscreen;
+        set
+        {
+            if (_isFullscreen != value)
+            {
+                _isFullscreen = value;
+                if (_isFullscreen)
+                    SDL_SetWindowFullscreen(SDLWindowHandle, (uint)SDL_WINDOW_FULLSCREEN_DESKTOP);
+                else
+                    SDL_SetWindowFullscreen(SDLWindowHandle, 0);
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public override SizeF ClientSize => _clientSize;
 
     /// <inheritdoc />
@@ -108,12 +130,12 @@ internal unsafe class SDLWindow : AppView
 
     public void Show()
     {
-        SDL_ShowWindow(_sdlWindowHandle);
+        SDL_ShowWindow(SDLWindowHandle);
     }
 
     protected override void SetTitle(string title)
     {
-        SDL_SetWindowTitle(_sdlWindowHandle, title);
+        SDL_SetWindowTitle(SDLWindowHandle, title);
     }
 
     public void HandleEvent(in SDL_Event evt)

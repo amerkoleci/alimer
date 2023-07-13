@@ -9,6 +9,8 @@
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
   <ItemGroup>
+    <Using Remove="System.Linq" />
+    
     <None Include="$(AlimerRootDirectory)/README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 

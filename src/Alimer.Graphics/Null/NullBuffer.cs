@@ -23,4 +23,16 @@ internal class NullBuffer : GraphicsBuffer
     protected internal override void Destroy()
     {
     }
+
+    /// <inheitdoc />
+    protected override unsafe void SetDataUnsafe(void* dataPtr, int offsetInBytes)
+    {
+
+    }
+
+    /// <inheitdoc />
+    protected override unsafe void GetDataUnsafe(void* destPtr, int offsetInBytes)
+    {
+
+    }
 }
