@@ -15,10 +15,45 @@ internal unsafe class VulkanSampler : Sampler
         : base(description)
     {
         _device = device;
+        bool samplerMirrorClampToEdge = device.PhysicalDeviceFeatures1_2.samplerMirrorClampToEdge;
 
+        // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSamplerCreateInfo.html
         VkSamplerCreateInfo createInfo = new()
         {
+            flags = 0,
+            pNext = null,
+            magFilter = description.MagFilter.ToVk(),
+            minFilter = description.MinFilter.ToVk(),
+            mipmapMode = description.MipFilter.ToVk(),
+            addressModeU = description.AddressModeU.ToVk(samplerMirrorClampToEdge),
+            addressModeV = description.AddressModeV.ToVk(samplerMirrorClampToEdge),
+            addressModeW = description.AddressModeW.ToVk(samplerMirrorClampToEdge),
+            mipLodBias = 0.0f,
         };
+
+        ushort maxAnisotropy = description.MaxAnisotropy;
+        if (maxAnisotropy > 1 && device.PhysicalDeviceFeatures2.features.samplerAnisotropy)
+        {
+            createInfo.anisotropyEnable = true;
+            createInfo.maxAnisotropy = Math.Min((float)maxAnisotropy, device.PhysicalDeviceProperties.properties.limits.maxSamplerAnisotropy);
+        }
+        else
+        {
+            createInfo.anisotropyEnable = false;
+            createInfo.maxAnisotropy = 1;
+        }
+
+        VkSamplerReductionModeCreateInfo samplerReductionModeInfo = default;
+        if (description.ReductionType == SamplerReductionType.Minimum ||
+            description.ReductionType == SamplerReductionType.Maximum)
+        {
+            samplerReductionModeInfo = new()
+            {
+                reductionMode = description.ReductionType == SamplerReductionType.Maximum ? VkSamplerReductionMode.Max: VkSamplerReductionMode.Min
+            };
+
+            createInfo.pNext = &samplerReductionModeInfo;
+        }
 
         VkResult result = vkCreateSampler(device.Handle, &createInfo, null, out _handle);
 

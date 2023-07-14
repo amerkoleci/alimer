@@ -22,7 +22,7 @@ internal unsafe class D3D12BindGroup : BindGroup
 
         if (_layout._cbvUavSrvDescriptorRanges.Count > 0)
         {
-            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.GetResourceHeapCpuHandle(0);
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = default; // _device.GetResourceHeapCpuHandle(0);
 
             foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout._cbvUavSrvDescriptorRanges)
             {

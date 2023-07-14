@@ -16,28 +16,30 @@ public readonly record struct SamplerDescription
     /// <summary>
     /// Gets or sets the min filter of <see cref="Sampler"/>
     /// </summary>
-    public SamplerMinMagFilter MinFilter { get; init; }
+    public SamplerMinMagFilter MinFilter { get; init; } = SamplerMinMagFilter.Nearest;
 
     /// <summary>
     /// Gets or sets the mag filter of <see cref="Sampler"/>
     /// </summary>
-    public SamplerMinMagFilter MagFilter { get; init; }
+    public SamplerMinMagFilter MagFilter { get; init; } = SamplerMinMagFilter.Nearest;
 
     /// <summary>
     /// Gets or sets the mip filter of <see cref="Sampler"/>
     /// </summary>
-    public SamplerMipFilter MipFilter { get; init; }
+    public SamplerMipFilter MipFilter { get; init; } = SamplerMipFilter.Nearest;
 
-    public SamplerAddressMode AddressModeU { get; init; }
-    public SamplerAddressMode AddressModeV { get; init; }
-    public SamplerAddressMode AddressModeW { get; init; }
+    public SamplerAddressMode AddressModeU { get; init; } = SamplerAddressMode.Wrap;
+    public SamplerAddressMode AddressModeV { get; init; } = SamplerAddressMode.Wrap;
+    public SamplerAddressMode AddressModeW { get; init; } = SamplerAddressMode.Wrap;
 
     public float LodMinClamp { get; init; } = 0.0f;
     public float LodMaxClamp { get; init; } = float.MaxValue;
+    public ushort MaxAnisotropy { get; init; } = 1;
+
+    public SamplerReductionType ReductionType { get; init; } = SamplerReductionType.Standard;
 
     public CompareFunction Compare { get; init; } = CompareFunction.Never;
 
-    public ushort MaxAnisotropy { get; init; } = 1;
 
     /// <summary>
     /// Gets or sets the label of <see cref="Sampler"/>.

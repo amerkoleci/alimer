@@ -301,6 +301,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkPhysicalDeviceDriverProperties driverProperties = default;
         VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = default;
         VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = default;
+
         VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = default;
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = default;
         VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = default;
@@ -388,15 +389,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 }
 
                 driverProperties = new();
-                samplerFilterMinmaxProperties = new();
                 depthStencilResolveProperties = new();
                 accelerationStructureProperties = new();
 
-                if (physicalDeviceExtensions.samplerFilterMinMax)
-                {
-                    *propertiesChain = &samplerFilterMinmaxProperties;
-                    propertiesChain = &samplerFilterMinmaxProperties.pNext;
-                }
 
                 if (physicalDeviceExtensions.depthStencilResolve)
                 {
@@ -430,6 +425,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     if (physicalDeviceExtensions.samplerFilterMinMax)
                     {
                         enabledDeviceExtensions.Add(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME);
+
+                        samplerFilterMinmaxProperties = new();
+                        *propertiesChain = &samplerFilterMinmaxProperties;
+                        propertiesChain = &samplerFilterMinmaxProperties.pNext;
                     }
 
                     if (physicalDeviceExtensions.depthStencilResolve)

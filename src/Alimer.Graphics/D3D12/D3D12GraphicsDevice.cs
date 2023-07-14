@@ -60,17 +60,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly GraphicsDeviceLimits _limits;
 
     private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
+    private readonly D3D12CopyAllocator _copyAllocator;
+
     private readonly D3D12DescriptorAllocator[] _descriptorAllocators = new D3D12DescriptorAllocator[(int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-    private readonly ComPtr<ID3D12DescriptorHeap> _shaderVisibleResourceHeap;
-    private readonly D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisibleResource = default;
-    private readonly D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisibleResource = default;
+    private readonly D3D12DescriptorAllocatorNew _shaderVisibleResourceHeap;
+
     private readonly ComPtr<ID3D12DescriptorHeap> _shaderVisibleSamplerHeap;
     private readonly D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisibleSampler = default;
     private readonly D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisibleSampler = default;
-
-    private readonly D3D12CopyAllocator _copyAllocator;
-
 
     private readonly ComPtr<ID3D12CommandSignature> _dispatchIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _drawIndirectCommandSignature = default;
@@ -293,28 +291,25 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _queues[i] = new D3D12CommandQueue(this, queue);
         }
 
+        // Init CopyAllocator
+        _copyAllocator = new D3D12CopyAllocator(this);
+
         // Init CPU descriptor allocators
+        uint renderTargetViewHeapSize = 1024;
+        uint depthStencilViewHeapSize = 1024;
+        uint shaderResourceViewHeapSize = 16384;
+        uint samplerHeapSize = 1024;
+
         _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 4096);
         _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 256);
         _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_RTV] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 512);
         _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 128);
 
         // Shader visible descriptor heaps
+        _shaderVisibleResourceHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true);
         {
-            // Resource
-            D3D12_DESCRIPTOR_HEAP_DESC heapDesc = new()
-            {
-                Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                NumDescriptors = 1000000, // Tier1 limit
-                Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-                NodeMask = 0,
-            };
-            ThrowIfFailed(_handle.Get()->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _shaderVisibleResourceHeap.GetVoidAddressOf()));
-            _startCpuHandleShaderVisibleResource = _shaderVisibleResourceHeap.Get()->GetCPUDescriptorHandleForHeapStart();
-            _startGpuHandleShaderVisibleResource = _shaderVisibleResourceHeap.Get()->GetGPUDescriptorHandleForHeapStart();
-
             // Sampler
-            heapDesc = new()
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc = new()
             {
                 Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
                 NumDescriptors = 2048, // Tier1 limit
@@ -325,9 +320,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _startCpuHandleShaderVisibleSampler = _shaderVisibleSamplerHeap.Get()->GetCPUDescriptorHandleForHeapStart();
             _startGpuHandleShaderVisibleSampler = _shaderVisibleSamplerHeap.Get()->GetGPUDescriptorHandleForHeapStart();
         }
-
-        // Init CopyAllocator
-        _copyAllocator = new D3D12CopyAllocator(this);
 
         // Create command signatures
         {
@@ -524,7 +516,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
     public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.Copy];
 
-    public ID3D12DescriptorHeap* ShaderVisibleResourceHeap => _shaderVisibleResourceHeap;
+    public ID3D12DescriptorHeap* ShaderVisibleResourceHeap => _shaderVisibleResourceHeap.ShaderVisibleHeap;
     public ID3D12DescriptorHeap* ShaderVisibleSamplerHeap => _shaderVisibleSamplerHeap;
 
     public ID3D12CommandSignature* DispatchIndirectCommandSignature => _dispatchIndirectCommandSignature;
@@ -662,20 +654,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public uint GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)
     {
         return _descriptorAllocators[(int)type].DescriptorSize;
-    }
-
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetResourceHeapCpuHandle(uint index)
-    {
-        D3D12_CPU_DESCRIPTOR_HANDLE handle = _startCpuHandleShaderVisibleResource;
-        handle.ptr += index * GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        return handle;
-    }
-
-    public D3D12_GPU_DESCRIPTOR_HANDLE GetResourceHeapGpuHandle(uint index)
-    {
-        D3D12_GPU_DESCRIPTOR_HANDLE handle = _startGpuHandleShaderVisibleResource;
-        handle.ptr += index * GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        return handle;
     }
 
     public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);

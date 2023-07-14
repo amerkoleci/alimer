@@ -272,6 +272,15 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public Sampler CreateSampler(in SamplerDescription description)
     {
+        if (description.ReductionType == SamplerReductionType.Minimum ||
+            description.ReductionType == SamplerReductionType.Maximum)
+        {
+            if (QueryFeatureSupport(Feature.SamplerMinMax))
+            {
+                throw new GraphicsException($"{nameof(Feature.SamplerMinMax)} feature is not supported");
+            }
+        }
+
         return CreateSamplerCore(description);
     }
 

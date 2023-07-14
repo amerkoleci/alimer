@@ -22,7 +22,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
         D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
         D3D12_FILTER_TYPE mipmapFilter = description.MipFilter.ToD3D12();
 
-        D3D12_FILTER_REDUCTION_TYPE reduction = description.Compare != CompareFunction.Never ? D3D12_FILTER_REDUCTION_TYPE_COMPARISON : D3D12_FILTER_REDUCTION_TYPE_STANDARD;
+        D3D12_FILTER_REDUCTION_TYPE reductionType = description.ReductionType.ToD3D12();
 
         D3D12_SAMPLER_DESC d3dDesc = new();
 
@@ -30,11 +30,11 @@ internal sealed unsafe class D3D12Sampler : Sampler
         d3dDesc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), 16u);
         if (d3dDesc.MaxAnisotropy > 1)
         {
-            d3dDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reduction);
+            d3dDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
         }
         else
         {
-            d3dDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reduction);
+            d3dDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reductionType);
         }
 
         d3dDesc.AddressU = description.AddressModeU.ToD3D12();

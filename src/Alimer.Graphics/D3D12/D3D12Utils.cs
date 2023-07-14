@@ -7,6 +7,7 @@ using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_COMPARISON_FUNC;
+using static TerraFX.Interop.DirectX.D3D12_FILTER_REDUCTION_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_FILTER_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
@@ -58,6 +59,19 @@ internal static unsafe class D3D12Utils
             CompareFunction.GreaterEqual => D3D12_COMPARISON_FUNC_GREATER_EQUAL,
             CompareFunction.Always => D3D12_COMPARISON_FUNC_ALWAYS,
             _ => D3D12_COMPARISON_FUNC_NEVER,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_FILTER_REDUCTION_TYPE ToD3D12(this SamplerReductionType value)
+    {
+        return value switch
+        {
+            SamplerReductionType.Standard => D3D12_FILTER_REDUCTION_TYPE_STANDARD,
+            SamplerReductionType.Comparison => D3D12_FILTER_REDUCTION_TYPE_COMPARISON,
+            SamplerReductionType.Minimum => D3D12_FILTER_REDUCTION_TYPE_MINIMUM,
+            SamplerReductionType.Maximum => D3D12_FILTER_REDUCTION_TYPE_MAXIMUM,
+            _ => D3D12_FILTER_REDUCTION_TYPE_STANDARD,
         };
     }
 

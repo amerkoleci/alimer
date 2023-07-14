@@ -269,10 +269,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
         var backendBindGroup = (D3D12BindGroup)group;
         uint rootParameterOffset = 0;
-        _commandList.Get()->SetGraphicsRootDescriptorTable(
-            rootParameterOffset + _currentPipelineLayout.CbvUavSrvRootParameterIndex,
-            _queue.Device.GetResourceHeapGpuHandle(0)
-            );
+        //_commandList.Get()->SetGraphicsRootDescriptorTable(
+        //    rootParameterOffset + _currentPipelineLayout.CbvUavSrvRootParameterIndex,
+        //    _queue.Device.GetResourceHeapGpuHandle(0)
+        //    );
     }
 
     protected override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)

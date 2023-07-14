@@ -760,6 +760,57 @@ internal static unsafe class VulkanUtils
         return result;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkFilter ToVk(this SamplerMinMagFilter value)
+    {
+        return value switch
+        {
+            SamplerMinMagFilter.Nearest => VkFilter.Nearest,
+            SamplerMinMagFilter.Linear => VkFilter.Linear,
+            _ => VkFilter.Nearest,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkSamplerMipmapMode ToVk(this SamplerMipFilter value)
+    {
+        return value switch
+        {
+            SamplerMipFilter.Nearest => VkSamplerMipmapMode.Nearest,
+            SamplerMipFilter.Linear => VkSamplerMipmapMode.Linear,
+            _ => VkSamplerMipmapMode.Nearest,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkSamplerAddressMode ToVk(this SamplerAddressMode value, bool samplerMirrorClampToEdge)
+    {
+        return value switch
+        {
+            SamplerAddressMode.Wrap => VkSamplerAddressMode.Repeat,
+            SamplerAddressMode.Mirror => VkSamplerAddressMode.MirroredRepeat,
+            SamplerAddressMode.Clamp => VkSamplerAddressMode.ClampToEdge,
+            SamplerAddressMode.Border => VkSamplerAddressMode.ClampToBorder,
+            SamplerAddressMode.MirrorOnce => samplerMirrorClampToEdge ? VkSamplerAddressMode.MirrorClampToEdge : VkSamplerAddressMode.MirroredRepeat,
+            _ => VkSamplerAddressMode.Repeat,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkBorderColor ToVk(this SamplerBorderColor value)
+    {
+        return value switch
+        {
+            SamplerBorderColor.FloatTransparentBlack => VkBorderColor.FloatTransparentBlack,
+            SamplerBorderColor.FloatOpaqueBlack => VkBorderColor.FloatOpaqueBlack,
+            SamplerBorderColor.FloatOpaqueWhite => VkBorderColor.FloatOpaqueWhite,
+            SamplerBorderColor.UintTransparentBlack => VkBorderColor.IntTransparentBlack,
+            SamplerBorderColor.UintOpaqueBlack => VkBorderColor.IntOpaqueBlack,
+            SamplerBorderColor.UintOpaqueWhite => VkBorderColor.IntOpaqueWhite,
+            _ => VkBorderColor.FloatTransparentBlack,
+        };
+    }
+
     private static readonly ResourceStateMapping[] s_resourceStateMap = new ResourceStateMapping[] {
         new(ResourceStates.Common,
             VkPipelineStageFlags2.TopOfPipe,

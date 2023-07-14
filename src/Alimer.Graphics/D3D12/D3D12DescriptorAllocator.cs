@@ -14,17 +14,16 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     private readonly List<ComPtr<ID3D12DescriptorHeap>> _heaps = new();
     private readonly List<D3D12_CPU_DESCRIPTOR_HANDLE> _freeList = new();
 
-    public D3D12DescriptorAllocator(D3D12GraphicsDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint descriptorsPerBlock)
+    public D3D12DescriptorAllocator(D3D12GraphicsDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint numDescriptors)
     {
         _device = device;
         Type = type;
-        DescriptorsPerBlock = descriptorsPerBlock;
+        NumDescriptors = numDescriptors;
         DescriptorSize = device.Handle->GetDescriptorHandleIncrementSize(type);
     }
 
     public D3D12_DESCRIPTOR_HEAP_TYPE Type { get; }
-    public uint DescriptorsPerBlock { get; }
-
+    public uint NumDescriptors { get; }
     public uint DescriptorSize { get; }
 
     /// <inheritdoc />
@@ -68,7 +67,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc = new()
         {
             Type = Type,
-            NumDescriptors = DescriptorsPerBlock,
+            NumDescriptors = NumDescriptors,
             NodeMask = 0,
         };
         ThrowIfFailed(_device.Handle->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), heap.GetVoidAddressOf()));

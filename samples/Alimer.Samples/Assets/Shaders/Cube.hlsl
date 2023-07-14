@@ -21,8 +21,14 @@ struct DrawData
     float4x4 worldMatrix;
 };
 
+struct DrawData2
+{
+    float4 color;
+};
+
 //PUSH_CONSTANT(DrawData, draw, 0);
 ConstantBuffer<DrawData> draw : register(b0);
+ConstantBuffer<DrawData2> draw2 : register(b0, space1);
 
 VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 {
@@ -40,5 +46,5 @@ VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint 
 
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
-    return float4(input.Normal, 1.0f);
+    return float4(input.Normal, 1.0f) * draw2.color;
 }

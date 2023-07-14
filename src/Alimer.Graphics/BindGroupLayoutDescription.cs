@@ -15,12 +15,11 @@ public readonly record struct BindGroupLayoutDescription
         Entries = Array.Empty<BindGroupLayoutEntry>();
     }
 
-    public BindGroupLayoutDescription(BindGroupLayoutEntry[] entries, string? label = default)
+    public BindGroupLayoutDescription(params BindGroupLayoutEntry[] entries)
     {
-        Guard.IsNotNull(entries, nameof(entries));
+        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 
         Entries = entries;
-        Label = label;
     }
 
     public BindGroupLayoutEntry[] Entries { get; init; }
