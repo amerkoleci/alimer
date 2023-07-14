@@ -30,7 +30,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 
             _layoutBindings[i] = new VkDescriptorSetLayoutBinding
             {
-                binding = entry.ShaderRegister,
+                binding = entry.Binding,
                 descriptorType = entry.Type.ToVk(),
                 descriptorCount = 1u,
                 stageFlags = entry.Visibility.ToVk()

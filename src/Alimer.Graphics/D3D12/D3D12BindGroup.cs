@@ -22,36 +22,40 @@ internal unsafe class D3D12BindGroup : BindGroup
 
         if (_layout._cbvUavSrvDescriptorRanges.Count > 0)
         {
-            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = default; // _device.GetResourceHeapCpuHandle(0);
+            uint descriptorTableBaseIndex = _device.ShaderVisibleResourceHeap.AllocateDescriptors((uint)_layout._cbvUavSrvDescriptorRanges.Count);
+            DescriptorTableCbvUavSrv = descriptorTableBaseIndex;
 
             foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout._cbvUavSrvDescriptorRanges)
             {
-                switch (range.RangeType)
+                //device.Handle->CopyDescriptorsSimple(range.NumDescriptors, cpu_handle, device->nullCBV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+                for (uint index = 0; index < range.NumDescriptors; ++index)
                 {
-                    case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-                        //device.Handle->CopyDescriptorsSimple(range.NumDescriptors, cpu_handle, device->nullCBV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-                        for (uint index = 0; index < range.NumDescriptors; ++index)
-                        {
-                            uint shaderRegister = range.BaseShaderRegister + index;
-                            ref readonly BindGroupEntry entry = ref description.Entries[shaderRegister];
+                    uint shaderRegister = range.BaseShaderRegister + index;
+                    ref readonly BindGroupEntry entry = ref description.Entries[shaderRegister];
+                    D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.ShaderVisibleResourceHeap.GetCpuHandle(
+                        descriptorTableBaseIndex/* + range.OffsetInDescriptorsFromTableStart*/ + index);
 
+                    switch (range.RangeType)
+                    {
+                        case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
                             if (entry.Buffer != null)
                             {
                                 D3D12Buffer buffer = (D3D12Buffer)entry.Buffer;
                                 ulong offset = entry.Offset;
 
-                                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new();
-                                cbvDesc.BufferLocation = buffer.GpuAddress + offset;
-                                cbvDesc.SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-                                //cbvDesc.SizeInBytes = std::min(cbv.SizeInBytes, 65536u);
-
-                                device.Handle->CreateConstantBufferView(&cbvDesc, cpuHandle);
+                                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
+                                {
+                                    BufferLocation = buffer.GpuAddress + offset,
+                                    SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
+                                };
+                                device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
                             }
-                            cpuHandle.ptr += _device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-                        }
-                        break;
+                            break;
+                    }
                 }
             }
+
+            device.ShaderVisibleResourceHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, (uint)_layout._cbvUavSrvDescriptorRanges.Count);
         }
     }
 
@@ -65,6 +69,8 @@ internal unsafe class D3D12BindGroup : BindGroup
 
     /// <inheritdoc />
     public override BindGroupLayout Layout => _layout;
+
+    public uint DescriptorTableCbvUavSrv { get; }
 
     /// <inheitdoc />
     protected internal override void Destroy()

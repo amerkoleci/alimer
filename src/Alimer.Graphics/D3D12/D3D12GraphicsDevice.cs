@@ -516,7 +516,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
     public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.Copy];
 
-    public ID3D12DescriptorHeap* ShaderVisibleResourceHeap => _shaderVisibleResourceHeap.ShaderVisibleHeap;
+    public D3D12DescriptorAllocatorNew ShaderVisibleResourceHeap => _shaderVisibleResourceHeap;
     public ID3D12DescriptorHeap* ShaderVisibleSamplerHeap => _shaderVisibleSamplerHeap;
 
     public ID3D12CommandSignature* DispatchIndirectCommandSignature => _dispatchIndirectCommandSignature;

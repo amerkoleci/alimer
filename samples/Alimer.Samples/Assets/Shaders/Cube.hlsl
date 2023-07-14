@@ -27,8 +27,9 @@ struct DrawData2
 };
 
 //PUSH_CONSTANT(DrawData, draw, 0);
-ConstantBuffer<DrawData> draw : register(b0);
-ConstantBuffer<DrawData2> draw2 : register(b0, space1);
+ConstantBuffer<DrawData> draw : register(b0, space0);
+//ConstantBuffer<DrawData2> draw2 : register(b0, space1);
+ConstantBuffer<DrawData2> draw2 : register(b1, space0);
 
 VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 {

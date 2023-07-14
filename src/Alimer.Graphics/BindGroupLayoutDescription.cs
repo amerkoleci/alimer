@@ -35,10 +35,10 @@ public readonly record struct BindGroupLayoutDescription
 /// </summary>
 public readonly record struct BindGroupLayoutEntry
 {
-    public BindGroupLayoutEntry(DescriptorType type, uint shaderRegister, ShaderStages visibility)
+    public BindGroupLayoutEntry(DescriptorType type, uint binding, ShaderStages visibility)
     {
         Type = type;
-        ShaderRegister = shaderRegister;
+        Binding = binding;
         Visibility = visibility;
     }
 
@@ -50,7 +50,7 @@ public readonly record struct BindGroupLayoutEntry
     /// <summary>
     /// Register index to bind to (supplied in shader).
     /// </summary>
-    public uint ShaderRegister { get; init; }
+    public uint Binding { get; init; }
 
     /// <summary>
     /// The shader stage the resources will be accessible to.

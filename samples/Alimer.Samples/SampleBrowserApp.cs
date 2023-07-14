@@ -64,7 +64,7 @@ public sealed class SampleBrowserApp : GameApplication
         GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count;
 
 #if !WINDOWS
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
 #endif
 
         using SampleBrowserApp game = new(preferredGraphicsBackend);

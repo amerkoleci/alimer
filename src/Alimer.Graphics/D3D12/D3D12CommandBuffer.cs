@@ -117,7 +117,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             ID3D12DescriptorHeap** descriptorHeaps = stackalloc ID3D12DescriptorHeap*[2]
             {
-                _queue.Device.ShaderVisibleResourceHeap,
+                _queue.Device.ShaderVisibleResourceHeap.ShaderVisibleHeap,
                 _queue.Device.ShaderVisibleSamplerHeap,
             };
             _commandList.Get()->SetDescriptorHeaps(2, descriptorHeaps);
@@ -262,17 +262,22 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _currentPipelineLayout = (D3D12PipelineLayout)newPipeline.Layout;
     }
 
+    bool _first = true;
+
     protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
     {
         Debug.Assert(_currentPipelineLayout != null);
         Debug.Assert(_currentPipeline != null);
+        if (!_first)
+            return;
 
         var backendBindGroup = (D3D12BindGroup)group;
         uint rootParameterOffset = 0;
-        //_commandList.Get()->SetGraphicsRootDescriptorTable(
-        //    rootParameterOffset + _currentPipelineLayout.CbvUavSrvRootParameterIndex,
-        //    _queue.Device.GetResourceHeapGpuHandle(0)
-        //    );
+        _commandList.Get()->SetGraphicsRootDescriptorTable(
+            rootParameterOffset + _currentPipelineLayout.CbvUavSrvRootParameterIndex,
+            _queue.Device.ShaderVisibleResourceHeap.GetGpuHandle(backendBindGroup.DescriptorTableCbvUavSrv)
+            );
+        _first = false;
     }
 
     protected override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)

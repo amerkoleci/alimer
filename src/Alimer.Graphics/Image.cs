@@ -10,6 +10,28 @@ namespace Alimer.Graphics;
 
 public sealed class Image
 {
+    public Image(uint width, uint height, PixelFormat format = PixelFormat.Rgba8Unorm)
+    {
+        Width = width;
+        Height = height;
+        Format = format;
+        BytesPerPixel = format.GetFormatBytesPerBlock();
+        RowPitch = format.GetFormatRowPitch(width);
+
+        if (format.IsCompressedFormat())
+        {
+            uint blockSizeY = format.GetFormatHeightCompressionRatio();
+            Debug.Assert(height % blockSizeY == 0); // Should divide evenly
+            SizeInBytes = RowPitch * (height / blockSizeY);
+        }
+        else
+        {
+            SizeInBytes = height * RowPitch;
+        }
+
+        Data = new byte[SizeInBytes];
+    }
+
     private Image(uint width, uint height, PixelFormat format, Memory<byte> data)
     {
         Width = width;
