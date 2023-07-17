@@ -619,6 +619,9 @@ internal static unsafe class VulkanUtils
             case DescriptorType.ConstantBuffer:
                 return VkDescriptorType.UniformBuffer;
 
+            case DescriptorType.Sampler:
+                return VkDescriptorType.Sampler;
+
             default:
                 return VkDescriptorType.Sampler;
         }

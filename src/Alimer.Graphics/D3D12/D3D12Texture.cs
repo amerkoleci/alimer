@@ -13,6 +13,7 @@ using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.Windows;
+using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -22,8 +23,8 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private HANDLE _sharedHandle = HANDLE.NULL;
-    private readonly Dictionary<int, D3D12_CPU_DESCRIPTOR_HANDLE> _RTVs = new();
-    private readonly Dictionary<int, D3D12_CPU_DESCRIPTOR_HANDLE> _DSVs = new();
+    private readonly Dictionary<int, DescriptorIndex> _RTVs = new();
+    private readonly Dictionary<int, DescriptorIndex> _DSVs = new();
 
     public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, void* initialData)
         : base(description)
@@ -168,11 +169,17 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        foreach (D3D12_CPU_DESCRIPTOR_HANDLE view in _RTVs.Values)
+        foreach (DescriptorIndex index in _RTVs.Values)
         {
-            _device.FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, in view);
+            _device.RenderTargetViewHeap.ReleaseDescriptors(index);
         }
         _RTVs.Clear();
+
+        foreach (DescriptorIndex index in _DSVs.Values)
+        {
+            _device.DepthStencilViewHeap.ReleaseDescriptors(index);
+        }
+        _DSVs.Clear();
 
         if (_sharedHandle.Value != null)
         {
@@ -196,7 +203,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     {
         int hash = HashCode.Combine(mipSlice, arraySlice, format);
 
-        if (!_RTVs.TryGetValue(hash, out D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle))
+        if (!_RTVs.TryGetValue(hash, out DescriptorIndex descriptorIndex))
         {
             D3D12_RESOURCE_DESC desc = _handle.Get()->GetDesc();
 
@@ -204,20 +211,21 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             viewDesc.Format = format;
             viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-            rtvHandle = _device.AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            _device.Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, rtvHandle);
+            descriptorIndex = _device.RenderTargetViewHeap.AllocateDescriptors(1u);
+            _RTVs.Add(hash, descriptorIndex);
 
-            _RTVs.Add(hash, rtvHandle);
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
+            _device.Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, cpuHandle);
         }
 
-        return rtvHandle;
+        return _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
     }
 
     public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(int mipSlice, int arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
     {
         int hash = HashCode.Combine(mipSlice, arraySlice, format);
 
-        if (!_DSVs.TryGetValue(hash, out D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle))
+        if (!_DSVs.TryGetValue(hash, out DescriptorIndex descriptorIndex))
         {
             D3D12_RESOURCE_DESC desc = _handle.Get()->GetDesc();
 
@@ -225,12 +233,13 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             viewDesc.Format = format;
             viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 
-            rtvHandle = _device.AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-            _device.Handle->CreateDepthStencilView(_handle.Get(), &viewDesc, rtvHandle);
+            descriptorIndex = _device.DepthStencilViewHeap.AllocateDescriptors(1u);
+            _DSVs.Add(hash, descriptorIndex);
 
-            _DSVs.Add(hash, rtvHandle);
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
+            _device.Handle->CreateDepthStencilView(_handle.Get(), &viewDesc, cpuHandle);
         }
 
-        return rtvHandle;
+        return _device.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
     }
 }

@@ -22,7 +22,7 @@ internal unsafe class D3D12BindGroup : BindGroup
 
         if (_layout._cbvUavSrvDescriptorRanges.Count > 0)
         {
-            uint descriptorTableBaseIndex = _device.ShaderVisibleResourceHeap.AllocateDescriptors((uint)_layout._cbvUavSrvDescriptorRanges.Count);
+            uint descriptorTableBaseIndex = _device.ShaderResourceViewHeap.AllocateDescriptors(_layout.DescriptorTableSizeCbvUavSrv);
             DescriptorTableCbvUavSrv = descriptorTableBaseIndex;
 
             foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout._cbvUavSrvDescriptorRanges)
@@ -32,7 +32,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                 {
                     uint shaderRegister = range.BaseShaderRegister + index;
                     ref readonly BindGroupEntry entry = ref description.Entries[shaderRegister];
-                    D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.ShaderVisibleResourceHeap.GetCpuHandle(
+                    D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.ShaderResourceViewHeap.GetCpuHandle(
                         descriptorTableBaseIndex/* + range.OffsetInDescriptorsFromTableStart*/ + index);
 
                     switch (range.RangeType)
@@ -55,7 +55,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                 }
             }
 
-            device.ShaderVisibleResourceHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, (uint)_layout._cbvUavSrvDescriptorRanges.Count);
+            device.ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, _layout.DescriptorTableSizeCbvUavSrv);
         }
     }
 
@@ -71,9 +71,12 @@ internal unsafe class D3D12BindGroup : BindGroup
     public override BindGroupLayout Layout => _layout;
 
     public uint DescriptorTableCbvUavSrv { get; }
+    public uint DescriptorTableSamplers { get; }
 
     /// <inheitdoc />
     protected internal override void Destroy()
     {
+        _device.ShaderResourceViewHeap.ReleaseDescriptors(DescriptorTableCbvUavSrv, _layout.DescriptorTableSizeCbvUavSrv);
+        _device.SamplerHeap.ReleaseDescriptors(DescriptorTableSamplers, _layout.DescriptorTableSizeSamplers);
     }
 }

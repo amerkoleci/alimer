@@ -12,7 +12,7 @@ namespace Alimer.Graphics.D3D12;
 internal sealed unsafe class D3D12Sampler : Sampler
 {
     private readonly D3D12GraphicsDevice _device;
-    private readonly D3D12_CPU_DESCRIPTOR_HANDLE _handle;
+    private readonly D3D12_SAMPLER_DESC _desc;
 
     public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
         : base(description)
@@ -24,46 +24,46 @@ internal sealed unsafe class D3D12Sampler : Sampler
 
         D3D12_FILTER_REDUCTION_TYPE reductionType = description.ReductionType.ToD3D12();
 
-        D3D12_SAMPLER_DESC d3dDesc = new();
+        _desc = new();
 
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
-        d3dDesc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), 16u);
-        if (d3dDesc.MaxAnisotropy > 1)
+        _desc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), 16u);
+        if (_desc.MaxAnisotropy > 1)
         {
-            d3dDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
+            _desc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
         }
         else
         {
-            d3dDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reductionType);
+            _desc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reductionType);
         }
 
-        d3dDesc.AddressU = description.AddressModeU.ToD3D12();
-        d3dDesc.AddressV = description.AddressModeV.ToD3D12();
-        d3dDesc.AddressW = description.AddressModeW.ToD3D12();
-        d3dDesc.MipLODBias = 0.0f;
+        _desc.AddressU = description.AddressModeU.ToD3D12();
+        _desc.AddressV = description.AddressModeV.ToD3D12();
+        _desc.AddressW = description.AddressModeW.ToD3D12();
+        _desc.MipLODBias = 0.0f;
         if (description.Compare != CompareFunction.Never)
         {
-            d3dDesc.ComparisonFunc = description.Compare.ToD3D12();
+            _desc.ComparisonFunc = description.Compare.ToD3D12();
         }
         else
         {
             // Still set the function so it's not garbage.
-            d3dDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+            _desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         }
-        d3dDesc.MinLOD = description.LodMinClamp;
-        d3dDesc.MaxLOD = description.LodMaxClamp;
-
-        _handle = device.AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-        device.Handle->CreateSampler(&d3dDesc, _handle);
+        _desc.MinLOD = description.LodMinClamp;
+        _desc.MaxLOD = description.LodMaxClamp;
     }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE Handle => _handle;
+    public void CreateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+    {
+        D3D12_SAMPLER_DESC desc = _desc;
+        _device.Handle->CreateSampler(&desc, handle);
+    }
 
     protected internal override void Destroy()
     {
-        _device.FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, _handle);
     }
 }

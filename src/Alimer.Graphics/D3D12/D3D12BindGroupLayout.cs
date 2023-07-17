@@ -32,6 +32,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
             D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.Type.ToD3D12();
             if (!AreResourceTypesCompatible(entry.Type, currentType) || currentBinding == ~0u || entry.Binding != currentBinding + 1)
             {
+                // Start a new range
                 D3D12_DESCRIPTOR_RANGE1 range = new()
                 {
                     RangeType = descriptorRangeType,
@@ -51,7 +52,6 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                         range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE;
                         break;
 
-
                     case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
                         range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
                         break;
@@ -59,34 +59,41 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 
                 List<D3D12_DESCRIPTOR_RANGE1> descriptorRanges =
                     descriptorRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ? _samplerDescriptorRanges : _cbvUavSrvDescriptorRanges;
-                // Try to join this range with the previous one, if the current range is a continuation
-                // of the previous. This is possible because the binding infos in the base type are
-                // sorted.
-                if (descriptorRanges.Count >= 2)
-                {
-                    D3D12_DESCRIPTOR_RANGE1 previous = descriptorRanges[descriptorRanges.Count - 1];
-                    if (previous.RangeType == range.RangeType &&
-                        previous.BaseShaderRegister + previous.NumDescriptors == range.BaseShaderRegister)
-                    {
-                        previous.NumDescriptors += range.NumDescriptors;
-                        descriptorRanges[descriptorRanges.Count - 1] = previous;
-                        continue;
-                    }
-                }
-
                 descriptorRanges.Add(range);
                 currentType = entry.Type;
                 currentBinding = entry.Binding;
+
+                if (entry.Type == DescriptorType.Sampler)
+                {
+                    DescriptorTableSizeSamplers++;
+                }
+                else
+                {
+                    DescriptorTableSizeCbvUavSrv++;
+                }
             }
             else
             {
                 // Extend the current range
-                Debug.Assert(_cbvUavSrvDescriptorRanges.Count > 0);
-                D3D12_DESCRIPTOR_RANGE1 range = _cbvUavSrvDescriptorRanges[_cbvUavSrvDescriptorRanges.Count - 1];
+                if (entry.Type == DescriptorType.Sampler)
+                {
+                    Debug.Assert(_samplerDescriptorRanges.Count > 0);
+                    D3D12_DESCRIPTOR_RANGE1 range = _samplerDescriptorRanges[_samplerDescriptorRanges.Count - 1];
+                    range.NumDescriptors += 1;
+                    _samplerDescriptorRanges[_samplerDescriptorRanges.Count - 1] = range;
 
-                range.NumDescriptors += 1;
-                //descriptorTableSizeSRVetc += 1;
-                //bindingLayoutsSRVetc.push_back(binding);
+                    DescriptorTableSizeSamplers++;
+                }
+                else
+                {
+                    Debug.Assert(_cbvUavSrvDescriptorRanges.Count > 0);
+                    D3D12_DESCRIPTOR_RANGE1 range = _cbvUavSrvDescriptorRanges[_cbvUavSrvDescriptorRanges.Count - 1];
+                    range.NumDescriptors += 1;
+                    _cbvUavSrvDescriptorRanges[_cbvUavSrvDescriptorRanges.Count - 1] = range;
+
+                    DescriptorTableSizeCbvUavSrv++;
+                }
+
                 currentBinding = entry.Binding;
             }
         }
@@ -99,6 +106,9 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
+
+    public uint DescriptorTableSizeCbvUavSrv = 0;
+    public uint DescriptorTableSizeSamplers = 0;
 
     /// <inheitdoc />
     protected internal override void Destroy()

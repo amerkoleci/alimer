@@ -2,41 +2,40 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.D3D12;
+using static Alimer.Utilities.MarshalUtilities;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_GPU_BASED_VALIDATION_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_DRED_ENABLEMENT;
-using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
-using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
 using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
-using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
-using static TerraFX.Interop.DirectX.DXGI_FEATURE;
-using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
-using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_DRED_ENABLEMENT;
 using static TerraFX.Interop.DirectX.D3D12_FEATURE;
 using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
+using static TerraFX.Interop.DirectX.D3D12_GPU_BASED_VALIDATION_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
+using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
+using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
+using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
+using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
 using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
-using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
-using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
-using static Alimer.Utilities.MarshalUtilities;
+using static TerraFX.Interop.DirectX.D3D12MemAlloc;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI;
+using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
+using static TerraFX.Interop.DirectX.DXGI_FEATURE;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
+using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -62,13 +61,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
     private readonly D3D12CopyAllocator _copyAllocator;
 
-    private readonly D3D12DescriptorAllocator[] _descriptorAllocators = new D3D12DescriptorAllocator[(int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-
-    private readonly D3D12DescriptorAllocatorNew _shaderVisibleResourceHeap;
-
-    private readonly ComPtr<ID3D12DescriptorHeap> _shaderVisibleSamplerHeap;
-    private readonly D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisibleSampler = default;
-    private readonly D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisibleSampler = default;
+    private readonly D3D12DescriptorAllocator _renderTargetViewHeap;
+    private readonly D3D12DescriptorAllocator _depthStencilViewHeap;
+    private readonly D3D12DescriptorAllocator _shaderResourceViewHeap;
+    private readonly D3D12DescriptorAllocator _samplerHeap;
 
     private readonly ComPtr<ID3D12CommandSignature> _dispatchIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _drawIndirectCommandSignature = default;
@@ -295,31 +291,18 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _copyAllocator = new D3D12CopyAllocator(this);
 
         // Init CPU descriptor allocators
-        uint renderTargetViewHeapSize = 1024;
-        uint depthStencilViewHeapSize = 1024;
-        uint shaderResourceViewHeapSize = 16384;
-        uint samplerHeapSize = 1024;
+        const uint renderTargetViewHeapSize = 1024;
+        const uint depthStencilViewHeapSize = 256;
+        const uint shaderResourceViewHeapSize = 16384;
+        const uint samplerHeapSize = 1024; // 2048 ->  Tier1 limit
 
-        _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 4096);
-        _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 256);
-        _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_RTV] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 512);
-        _descriptorAllocators[(int)D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 128);
+        // CPU visible heaps
+        _renderTargetViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, renderTargetViewHeapSize, false);
+        _depthStencilViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, depthStencilViewHeapSize, false);
 
         // Shader visible descriptor heaps
-        _shaderVisibleResourceHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true);
-        {
-            // Sampler
-            D3D12_DESCRIPTOR_HEAP_DESC heapDesc = new()
-            {
-                Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-                NumDescriptors = 2048, // Tier1 limit
-                Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-                NodeMask = 0,
-            };
-            ThrowIfFailed(_handle.Get()->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _shaderVisibleSamplerHeap.GetVoidAddressOf()));
-            _startCpuHandleShaderVisibleSampler = _shaderVisibleSamplerHeap.Get()->GetCPUDescriptorHandleForHeapStart();
-            _startGpuHandleShaderVisibleSampler = _shaderVisibleSamplerHeap.Get()->GetGPUDescriptorHandleForHeapStart();
-        }
+        _shaderResourceViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true);
+        _samplerHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize, true);
 
         // Create command signatures
         {
@@ -516,8 +499,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
     public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.Copy];
 
-    public D3D12DescriptorAllocatorNew ShaderVisibleResourceHeap => _shaderVisibleResourceHeap;
-    public ID3D12DescriptorHeap* ShaderVisibleSamplerHeap => _shaderVisibleSamplerHeap;
+    public D3D12DescriptorAllocator RenderTargetViewHeap => _renderTargetViewHeap;
+    public D3D12DescriptorAllocator DepthStencilViewHeap => _depthStencilViewHeap;
+    public D3D12DescriptorAllocator ShaderResourceViewHeap => _shaderResourceViewHeap;
+    public D3D12DescriptorAllocator SamplerHeap => _samplerHeap;
 
     public ID3D12CommandSignature* DispatchIndirectCommandSignature => _dispatchIndirectCommandSignature;
     public ID3D12CommandSignature* DrawIndirectCommandSignature => _drawIndirectCommandSignature;
@@ -553,12 +538,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 _queues[i].Dispose();
             }
 
-            for (int i = 0; i < (int)D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i++)
-            {
-                _descriptorAllocators[i].Dispose();
-            }
-            _shaderVisibleResourceHeap.Dispose();
-            _shaderVisibleSamplerHeap.Dispose();
+            _renderTargetViewHeap.Dispose();
+            _depthStencilViewHeap.Dispose();
+            _shaderResourceViewHeap.Dispose();
+            _samplerHeap.Dispose();
 
             _dispatchIndirectCommandSignature.Dispose();
             _drawIndirectCommandSignature.Dispose();
@@ -636,24 +619,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public void OnDeviceRemoved()
     {
 
-    }
-
-    public D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type)
-    {
-        return _descriptorAllocators[(int)type].Allocate();
-    }
-
-    public void FreeDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, in D3D12_CPU_DESCRIPTOR_HANDLE handle)
-    {
-        if (handle.ptr == 0)
-            return;
-
-        _descriptorAllocators[(int)type].Free(in handle);
-    }
-
-    public uint GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)
-    {
-        return _descriptorAllocators[(int)type].DescriptorSize;
     }
 
     public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
