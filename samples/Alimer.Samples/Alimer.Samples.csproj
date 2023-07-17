@@ -25,6 +25,9 @@
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="Assets\Shaders\TexturedCube.hlsl" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Alimer.Engine\Alimer.Engine.csproj" />

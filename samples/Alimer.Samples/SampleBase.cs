@@ -30,6 +30,11 @@ public abstract class SampleBase : IDisposable
         DisposeCollector = null;
     }
 
+    public virtual void Draw(RenderContext context, Texture swapChainTexture)
+    {
+
+    }
+
     /// <summary>
     /// Adds a disposable object to the list of the objects to dispose.
     /// </summary>

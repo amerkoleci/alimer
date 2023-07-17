@@ -165,8 +165,16 @@ internal static unsafe class D3D12Utils
         {
             case DescriptorType.ConstantBuffer:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+
             case DescriptorType.Sampler:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+
+            case DescriptorType.SampledTexture:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+            case DescriptorType.StorageTexture:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+
             default:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         }

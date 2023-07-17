@@ -261,6 +261,27 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
+    public Texture CreateTexture2D<T>(ReadOnlySpan<T> initialData,
+        PixelFormat format,
+        uint width,
+        uint height,
+        uint mipLevels = 1,
+        uint arrayLayers = 1,
+        TextureUsage usage = TextureUsage.ShaderRead
+        )
+        where T : unmanaged
+    {
+        Guard.IsTrue(format != PixelFormat.Undefined, nameof(TextureDescription.Format));
+        Guard.IsGreaterThanOrEqualTo(width, 1, nameof(TextureDescription.Width));
+        Guard.IsGreaterThanOrEqualTo(height, 1, nameof(TextureDescription.Height));
+        Guard.IsGreaterThanOrEqualTo(arrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
+
+        fixed (T* initialDataPtr = initialData)
+        {
+            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage), initialDataPtr);
+        }
+    }
+
     public Texture CreateTexture(in TextureDescription description)
     {
         Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));

@@ -61,5 +61,7 @@ public readonly record struct BindGroupLayoutEntry
 public enum DescriptorType : byte
 {
     ConstantBuffer,
-    Sampler
+    Sampler,
+    SampledTexture,
+    StorageTexture
 }

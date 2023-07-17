@@ -10,7 +10,7 @@ namespace Alimer.Samples;
 // https://github.com/dotnet/runtime/tree/main/src/tests/nativeaot
 public sealed class SampleBrowserApp : GameApplication
 {
-    private SampleBase _samplerBase = null!;
+    private SampleBase _runningSample = null!;
 
     public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(preferredGraphicsBackend)
@@ -24,18 +24,19 @@ public sealed class SampleBrowserApp : GameApplication
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
-        //_samplerBase = new DrawTriangleSample(GraphicsDevice, MainView);
-        //_samplerBase = new DrawIndexedQuadSample(GraphicsDevice, MainView);
-        _samplerBase = new DrawCubeSample(GraphicsDevice, MainWindow);
+        //_runningSample = new DrawTriangleSample(GraphicsDevice, MainView);
+        //_runningSample = new DrawIndexedQuadSample(GraphicsDevice, MainView);
+        _runningSample = new DrawCubeSample(GraphicsDevice, MainWindow);
+        //_runningSample = new DrawTexturedCubeSample(GraphicsDevice, MainWindow);
 
-        MainWindow.Title = $"{_samplerBase.Name} - {GraphicsDevice.Backend}";
+        MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _samplerBase.Dispose();
+            _runningSample.Dispose();
         }
 
         base.Dispose(disposing);
@@ -47,10 +48,7 @@ public sealed class SampleBrowserApp : GameApplication
         Texture? swapChainTexture = context.AcquireSwapChainTexture(MainWindow.SwapChain!);
         if (swapChainTexture is not null)
         {
-            if (_samplerBase is GraphicsSampleBase graphicsSampleBase)
-            {
-                graphicsSampleBase.Draw(context, swapChainTexture);
-            }
+            _runningSample.Draw(context, swapChainTexture);
         }
 
         //GraphicsDevice.Submit(commandBuffer);
@@ -64,7 +62,7 @@ public sealed class SampleBrowserApp : GameApplication
         GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count;
 
 #if !WINDOWS
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
 #endif
 
         using SampleBrowserApp game = new(preferredGraphicsBackend);

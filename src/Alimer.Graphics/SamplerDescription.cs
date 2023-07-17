@@ -40,7 +40,6 @@ public readonly record struct SamplerDescription
 
     public CompareFunction Compare { get; init; } = CompareFunction.Never;
 
-
     /// <summary>
     /// Gets or sets the label of <see cref="Sampler"/>.
     /// </summary>

@@ -22,8 +22,6 @@ public abstract class GraphicsSampleBase : SampleBase
     public Texture? DepthStencilTexture => MainWindow.DepthStencilTexture;
     public float AspectRatio => MainWindow.AspectRatio;
 
-    public abstract void Draw(RenderContext context, Texture swapChainTexture);
-
     protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStages stage)
     {
         ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
