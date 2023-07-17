@@ -6,12 +6,6 @@
     <RootNamespace>Alimer</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="NUnit" />
-    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
-  </ItemGroup>
-
   <!-- Native Dependencies-->
   <!--<ItemGroup>
     <None Include="$(AlimerSrcDirectory)Alimer\runtimes\win-x64\native\vgpu.dll" Link="vgpu.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />

@@ -1,11 +1,10 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using NUnit.Framework;
+using Xunit;
 
 namespace Alimer.Graphics.Tests;
 
-[TestFixture(TestOf = typeof(Pipeline))]
 public abstract class ComputeTests : GraphicsDeviceTestBase
 {
     protected ComputeTests(GraphicsBackendType backendType)
@@ -13,26 +12,26 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
     {
     }
 
-    [Test]
+    [Fact]
     public void ComputeTest1()
     {
         BindGroupLayoutDescription bindGroupLayoutDescription = new();
         using BindGroupLayout bindGroupLayout = GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription);
-        Assert.IsNotNull(bindGroupLayout);
+        Assert.NotNull(bindGroupLayout);
 
         PipelineLayoutDescription pipelineLayoutDescription = new(new[] { bindGroupLayout });
         using PipelineLayout pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription);
-        Assert.IsNotNull(pipelineLayout);
+        Assert.NotNull(pipelineLayout);
 
         ShaderStageDescription computeShader = TestUtilities.CompileShader("ComputeTexture.hlsl", "computeMain", GraphicsDevice.Backend, ShaderStages.Compute);
 
         ComputePipelineDescription pipelineDescription = new ComputePipelineDescription(pipelineLayout, computeShader);
         using Pipeline pipeline = GraphicsDevice.CreateComputePipeline(pipelineDescription);
-        Assert.IsNotNull(pipeline);
+        Assert.NotNull(pipeline);
     }
 }
 
-[Category("D3D12")]
+[Trait("Backend", "D3D12")]
 public class D3D12ComputeTests : ComputeTests
 {
     public D3D12ComputeTests()
@@ -42,7 +41,7 @@ public class D3D12ComputeTests : ComputeTests
     }
 }
 
-[Category("Vulkan")]
+[Trait("Backend", "Vulkan")]
 public class VulkanComputeTests : ComputeTests
 {
     public VulkanComputeTests()
