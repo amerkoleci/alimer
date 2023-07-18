@@ -388,16 +388,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     propertiesChain = &properties1_1.pNext;
                 }
 
-                driverProperties = new();
+                samplerFilterMinmaxProperties = new();
+                *propertiesChain = &samplerFilterMinmaxProperties;
+                propertiesChain = &samplerFilterMinmaxProperties.pNext;
+
                 depthStencilResolveProperties = new();
-                accelerationStructureProperties = new();
-
-
-                if (physicalDeviceExtensions.depthStencilResolve)
-                {
-                    *propertiesChain = &depthStencilResolveProperties;
-                    propertiesChain = &depthStencilResolveProperties.pNext;
-                }
+                *propertiesChain = &depthStencilResolveProperties;
+                propertiesChain = &depthStencilResolveProperties.pNext;
 
                 // Device extensions
                 enabledDeviceExtensions = new()
@@ -406,40 +403,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     VK_KHR_MAINTENANCE_1_EXTENSION_NAME
                 };
 
-                // Core in 1.2
-                if (physicalDeviceProperties.apiVersion < VkVersion.Version_1_2)
-                {
-                    if (physicalDeviceExtensions.driverProperties)
-                    {
-                        enabledDeviceExtensions.Add(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
-
-                        *propertiesChain = &driverProperties;
-                        propertiesChain = &driverProperties.pNext;
-                    }
-
-                    if (physicalDeviceExtensions.renderPass2)
-                    {
-                        enabledDeviceExtensions.Add(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-                    }
-
-                    if (physicalDeviceExtensions.samplerFilterMinMax)
-                    {
-                        enabledDeviceExtensions.Add(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME);
-
-                        samplerFilterMinmaxProperties = new();
-                        *propertiesChain = &samplerFilterMinmaxProperties;
-                        propertiesChain = &samplerFilterMinmaxProperties.pNext;
-                    }
-
-                    if (physicalDeviceExtensions.depthStencilResolve)
-                    {
-                        enabledDeviceExtensions.Add(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
-                    }
-                }
-
                 // Core in 1.3
                 if (physicalDeviceProperties.apiVersion < VkVersion.Version_1_3)
                 {
+                    driverProperties = new();
+                    *propertiesChain = &driverProperties;
+                    propertiesChain = &driverProperties.pNext;
+
                     if (physicalDeviceExtensions.maintenance4)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
@@ -511,6 +481,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     accelerationStructureFeatures = new();
                     *featuresChain = &accelerationStructureFeatures;
                     featuresChain = &accelerationStructureFeatures.pNext;
+
+                    accelerationStructureProperties = new();
                     *propertiesChain = &accelerationStructureProperties;
                     propertiesChain = &accelerationStructureProperties.pNext;
 
@@ -904,17 +876,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     driverDescription += ": " + new string(properties1_2.driverInfo);
                 }
             }
-            else if (PhysicalDeviceExtensions.driverProperties)
+            else
             {
                 driverDescription = new string(driverProperties.driverName);
                 if (driverProperties.driverInfo[0] != '\0')
                 {
                     driverDescription += ": " + new string(driverProperties.driverInfo);
                 }
-            }
-            else
-            {
-                driverDescription = "Vulkan driver version: " + new VkVersion(properties2.properties.driverVersion);
             }
 
             GpuAdapterType adapterType = GpuAdapterType.Other;

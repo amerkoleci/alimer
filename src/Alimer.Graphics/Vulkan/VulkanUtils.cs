@@ -149,23 +149,6 @@ internal static unsafe class VulkanUtils
             {
                 extensions.portability_subset = true;
             }
-            // Core in 1.2
-            else if (extensionName == VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)
-            {
-                extensions.driverProperties = true;
-            }
-            else if (extensionName == VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME)
-            {
-                extensions.renderPass2 = true;
-            }
-            else if (extensionName == VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME)
-            {
-                extensions.samplerFilterMinMax = true;
-            }
-            else if (extensionName == VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME)
-            {
-                extensions.depthStencilResolve = true;
-            }
             else if (extensionName == VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
             {
                 extensions.accelerationStructure = true;
@@ -277,15 +260,6 @@ internal static unsafe class VulkanUtils
 
         VkPhysicalDeviceProperties gpuProps;
         vkGetPhysicalDeviceProperties(physicalDevice, &gpuProps);
-
-        // Core 1.2
-        if (gpuProps.apiVersion >= VkVersion.Version_1_2)
-        {
-            extensions.driverProperties = true;
-            extensions.renderPass2 = true;
-            extensions.samplerFilterMinMax = true;
-            extensions.depthStencilResolve = true;
-        }
 
         // Core 1.3
         if (gpuProps.apiVersion >= VkVersion.Version_1_3)

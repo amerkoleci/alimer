@@ -293,8 +293,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         // Init CPU descriptor allocators
         const uint renderTargetViewHeapSize = 1024;
         const uint depthStencilViewHeapSize = 256;
-        const uint shaderResourceViewHeapSize = 16384;
-        const uint samplerHeapSize = 1024; // 2048 ->  Tier1 limit
+
+        // Maximum number of CBV/SRV/UAV descriptors in heap for Tier 1
+        const uint shaderResourceViewHeapSize = 1_000_000;
+        // Maximum number of samplers descriptors in heap for Tier 1
+        const uint samplerHeapSize = 2048; // 2048 ->  Tier1 limit
 
         // CPU visible heaps
         _renderTargetViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, renderTargetViewHeapSize, false);

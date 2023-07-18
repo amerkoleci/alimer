@@ -17,11 +17,6 @@ internal struct VulkanPhysicalDeviceVideoExtensions
 internal struct VulkanPhysicalDeviceExtensions
 {
     public bool Swapchain;
-    // Core in 1.2
-    public bool driverProperties;
-    public bool renderPass2;
-    public bool samplerFilterMinMax;
-    public bool depthStencilResolve;
     // Core in 1.3
     public bool maintenance4;
     public bool dynamicRendering;

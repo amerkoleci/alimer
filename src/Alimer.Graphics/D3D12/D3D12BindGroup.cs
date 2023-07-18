@@ -3,9 +3,12 @@
 
 using Alimer.Numerics;
 using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -31,9 +34,37 @@ internal unsafe class D3D12BindGroup : BindGroup
                 for (uint index = 0; index < range.NumDescriptors; ++index)
                 {
                     uint shaderRegister = range.BaseShaderRegister + index;
-                    ref readonly BindGroupEntry entry = ref description.Entries[shaderRegister];
+
                     D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.ShaderResourceViewHeap.GetCpuHandle(
                         descriptorTableBaseIndex/* + range.OffsetInDescriptorsFromTableStart*/ + index);
+
+                    if (shaderRegister > description.Entries.Length - 1)
+                    {
+                        // Create a null SRV, UAV, or CBV
+                        switch (range.RangeType)
+                        {
+                            case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
+                                CreateNullSRV(descriptorHandle);
+                                break;
+
+                            case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
+                                CreateNullUAV(descriptorHandle);
+                                break;
+
+                            case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
+                                device.Handle->CreateConstantBufferView(null, descriptorHandle);
+                                break;
+
+                            case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
+                            default:
+                                ThrowHelper.ThrowArgumentException(nameof(range.RangeType), "Invalid range type");
+                                break;
+                        }
+
+                        continue;
+                    }
+
+                    ref readonly BindGroupEntry entry = ref description.Entries[shaderRegister];
 
                     switch (range.RangeType)
                     {
@@ -78,5 +109,26 @@ internal unsafe class D3D12BindGroup : BindGroup
     {
         _device.ShaderResourceViewHeap.ReleaseDescriptors(DescriptorTableCbvUavSrv, _layout.DescriptorTableSizeCbvUavSrv);
         _device.SamplerHeap.ReleaseDescriptors(DescriptorTableSamplers, _layout.DescriptorTableSizeSamplers);
+    }
+
+    public void CreateNullSRV(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, DXGI_FORMAT srvFormat = DXGI_FORMAT_R32_UINT)
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = new()
+        {
+            Format = srvFormat,
+            ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+        };
+        _device.Handle->CreateShaderResourceView(null, &viewDesc, descriptor);
+    }
+
+    public void CreateNullUAV(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, DXGI_FORMAT srvFormat = DXGI_FORMAT_R32_UINT)
+    {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = new()
+        {
+            Format = srvFormat,
+            ViewDimension = D3D12_UAV_DIMENSION_BUFFER
+        };
+        _device.Handle->CreateUnorderedAccessView(null, null, &viewDesc, descriptor);
     }
 }
