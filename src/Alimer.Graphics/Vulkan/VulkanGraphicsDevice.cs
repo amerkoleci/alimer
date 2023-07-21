@@ -276,13 +276,16 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkPhysicalDeviceVulkan12Features features1_2 = default;
         VkPhysicalDeviceVulkan13Features features1_3 = default;
 
-        VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
         VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures = default;
+        VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
         VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = default;
 
         // Core in 1.3
         VkPhysicalDeviceMaintenance4Features maintenance4Features = default;
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = default;
         VkPhysicalDeviceSynchronization2Features synchronization2Features = default;
+        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures = default;
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = default;
 
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = default;
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = default;
@@ -340,11 +343,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 features1_1 = new();
                 features1_2 = new();
                 features1_3 = new();
-                depthClipEnableFeatures = new();
-                maintenance4Features = new();
-                synchronization2Features = new();
-                portabilityFeatures = new();
-                performanceQueryFeatures = new();
+
+                portabilityFeatures = default;
+
+                // Core in 1.3
+                maintenance4Features = default;
+                dynamicRenderingFeatures = default;
+                synchronization2Features = default;
+                extendedDynamicStateFeatures = default;
+                extendedDynamicState2Features = default;
 
                 features2.pNext = &features1_1;
                 features1_1.pNext = &features1_2;
@@ -410,25 +417,49 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     *propertiesChain = &driverProperties;
                     propertiesChain = &driverProperties.pNext;
 
-                    if (physicalDeviceExtensions.maintenance4)
+                    if (physicalDeviceExtensions.Maintenance4)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
 
+                        maintenance4Features = new();
                         *propertiesChain = &maintenance4Features;
                         propertiesChain = &maintenance4Features.pNext;
                     }
 
-                    if (physicalDeviceExtensions.dynamicRendering)
+                    if (physicalDeviceExtensions.DynamicRendering)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+                        dynamicRenderingFeatures = new();
+                        *propertiesChain = &dynamicRenderingFeatures;
+                        propertiesChain = &dynamicRenderingFeatures.pNext;
                     }
 
-                    if (physicalDeviceExtensions.synchronization2)
+                    if (physicalDeviceExtensions.Synchronization2)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
 
+                        synchronization2Features = new();
                         *propertiesChain = &synchronization2Features;
                         propertiesChain = &synchronization2Features.pNext;
+                    }
+
+                    if (physicalDeviceExtensions.ExtendedDynamicState)
+                    {
+                        enabledDeviceExtensions.Add(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+
+                        extendedDynamicStateFeatures = new();
+                        *propertiesChain = &extendedDynamicStateFeatures;
+                        propertiesChain = &extendedDynamicStateFeatures.pNext;
+                    }
+
+                    if (physicalDeviceExtensions.ExtendedDynamicState2)
+                    {
+                        enabledDeviceExtensions.Add(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+
+                        extendedDynamicState2Features = new();
+                        *propertiesChain = &extendedDynamicState2Features;
+                        propertiesChain = &extendedDynamicState2Features.pNext;
                     }
                 }
 
@@ -449,15 +480,18 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 if (physicalDeviceExtensions.DepthClipEnable)
                 {
                     enabledDeviceExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+
+                    depthClipEnableFeatures = new();
                     *featuresChain = &depthClipEnableFeatures;
                     featuresChain = &depthClipEnableFeatures.pNext;
                 }
 
-                if (physicalDeviceExtensions.portability_subset)
+                if (physicalDeviceExtensions.PortabilitySubset)
                 {
                     enabledDeviceExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 
-                    *featuresChain = &portabilityFeatures;
+                    portabilityFeatures = new();
+                    * featuresChain = &portabilityFeatures;
                     featuresChain = &portabilityFeatures.pNext;
                 }
 
@@ -465,6 +499,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 {
                     enabledDeviceExtensions.Add(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
 
+                    performanceQueryFeatures = new();
                     *featuresChain = &performanceQueryFeatures;
                     featuresChain = &performanceQueryFeatures.pNext;
                 }

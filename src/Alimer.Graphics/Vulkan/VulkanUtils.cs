@@ -113,7 +113,35 @@ internal static unsafe class VulkanUtils
         {
             string extensionName = vk_extensions[i].GetExtensionName();
 
-            if (extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
+            if (extensionName == VK_KHR_MAINTENANCE_4_EXTENSION_NAME)
+            {
+                extensions.Maintenance4 = true;
+            }
+            else if (extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+            {
+                extensions.DynamicRendering = true;
+            }
+            else if (extensionName == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
+            {
+                extensions.Synchronization2 = true;
+            }
+            else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)
+            {
+                extensions.ExtendedDynamicState = true;
+            }
+            else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME)
+            {
+                extensions.ExtendedDynamicState2 = true;
+            }
+            else if (extensionName == VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME)
+            {
+                extensions.PipelineCreationCacheControl = true;
+            }
+            else if (extensionName == VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME)
+            {
+                extensions.FormatFeatureFlags2 = true;
+            }
+            else if(extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             {
                 extensions.Swapchain = true;
             }
@@ -147,7 +175,7 @@ internal static unsafe class VulkanUtils
             }
             else if (extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
             {
-                extensions.portability_subset = true;
+                extensions.PortabilitySubset = true;
             }
             else if (extensionName == VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
             {
@@ -172,34 +200,6 @@ internal static unsafe class VulkanUtils
             else if (extensionName == VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME)
             {
                 extensions.ConditionalRendering = true;
-            }
-            else if (extensionName == VK_KHR_MAINTENANCE_4_EXTENSION_NAME)
-            {
-                extensions.maintenance4 = true;
-            }
-            else if (extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
-            {
-                extensions.dynamicRendering = true;
-            }
-            else if (extensionName == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
-            {
-                extensions.synchronization2 = true;
-            }
-            else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)
-            {
-                extensions.extended_dynamic_state = true;
-            }
-            else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME)
-            {
-                extensions.extended_dynamic_state2 = true;
-            }
-            else if (extensionName == VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME)
-            {
-                extensions.pipeline_creation_cache_control = true;
-            }
-            else if (extensionName == VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME)
-            {
-                extensions.format_feature_flags2 = true;
             }
             else if (extensionName == VK_KHR_VIDEO_QUEUE_EXTENSION_NAME)
             {
@@ -264,13 +264,13 @@ internal static unsafe class VulkanUtils
         // Core 1.3
         if (gpuProps.apiVersion >= VkVersion.Version_1_3)
         {
-            extensions.maintenance4 = true;
-            extensions.dynamicRendering = true;
-            extensions.synchronization2 = true;
-            extensions.extended_dynamic_state = true;
-            extensions.extended_dynamic_state2 = true;
-            extensions.pipeline_creation_cache_control = true;
-            extensions.format_feature_flags2 = true;
+            extensions.Maintenance4 = true;
+            extensions.DynamicRendering = true;
+            extensions.Synchronization2 = true;
+            extensions.ExtendedDynamicState = true;
+            extensions.ExtendedDynamicState2 = true;
+            extensions.PipelineCreationCacheControl = true;
+            extensions.FormatFeatureFlags2 = true;
         }
 
         return extensions;

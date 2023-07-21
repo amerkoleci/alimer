@@ -28,7 +28,7 @@
     <PackageVersion Include="Vortice.Vulkan" Version="1.7.7" />
     <PackageVersion Include="Vortice.VulkanMemoryAllocator" Version="1.3.6" />
     <PackageVersion Include="Vortice.SpirvCross" Version="1.4.2" />
-    <PackageVersion Include="JoltPhysicsSharp" Version="1.8.2" />
+    <PackageVersion Include="JoltPhysicsSharp" Version="1.8.3" />
 
     <!-- Asset Pipeline -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />

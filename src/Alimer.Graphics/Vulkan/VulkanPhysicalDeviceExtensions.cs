@@ -16,17 +16,17 @@ internal struct VulkanPhysicalDeviceVideoExtensions
 
 internal struct VulkanPhysicalDeviceExtensions
 {
-    public bool Swapchain;
     // Core in 1.3
-    public bool maintenance4;
-    public bool dynamicRendering;
-    public bool synchronization2;
-    public bool extended_dynamic_state;
-    public bool extended_dynamic_state2;
-    public bool pipeline_creation_cache_control;
-    public bool format_feature_flags2;
+    public bool Maintenance4;
+    public bool DynamicRendering;
+    public bool Synchronization2;
+    public bool ExtendedDynamicState;
+    public bool ExtendedDynamicState2;
+    public bool PipelineCreationCacheControl;
+    public bool FormatFeatureFlags2;
 
     // Extensions
+    public bool Swapchain;
     public bool DepthClipEnable;
     public bool MemoryBudget;
     public bool AMD_DeviceCoherentMemory;
@@ -38,7 +38,7 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool performance_query;
     public bool host_query_reset;
     public bool deferred_host_operations;
-    public bool portability_subset;
+    public bool PortabilitySubset;
     public bool accelerationStructure;
     public bool raytracingPipeline;
     public bool rayQuery;
