@@ -18,5 +18,4 @@ public enum WindowFlags
     Resizable = (1 << 1),
     Maximized = (1 << 2),
     Fullscreen = (1 << 3),
-    FullscreenDesktop = (1 << 4),
 }

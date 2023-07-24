@@ -194,7 +194,7 @@ internal unsafe class VulkanTexture : Texture
     }
 
     public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescription descriptor)
-        : base( descriptor)
+        : base(descriptor)
     {
         _device = device;
         _handle = existingTexture;
@@ -245,7 +245,7 @@ internal unsafe class VulkanTexture : Texture
         if (!_views.TryGetValue(hash, out VkImageView view))
         {
             VkImageAspectFlags aspectFlags = VkFormat.GetVkImageAspectFlags();
-            var createInfo = new VkImageViewCreateInfo()
+            VkImageViewCreateInfo createInfo = new()
             {
                 pNext = null,
                 flags = 0,
@@ -256,7 +256,7 @@ internal unsafe class VulkanTexture : Texture
                 subresourceRange = new VkImageSubresourceRange(aspectFlags, (uint)baseMipLevel, mipLevelCount, (uint)baseArrayLayer, arrayLayerCount)
             };
 
-            var result = vkCreateImageView(_device.Handle, &createInfo, null, &view);
+            VkResult result = vkCreateImageView(_device.Handle, &createInfo, null, &view);
             if (result != VkResult.Success)
             {
                 Log.Error($"Vulkan: Failed to create ImageView, error: {result}");

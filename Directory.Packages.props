@@ -21,7 +21,7 @@
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.4.230628000-preview1" />
     
     <!-- Engine -->
-    <PackageVersion Include="ppy.SDL2-CS" Version="1.0.671-alpha" />
+    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.2.3" />
     <PackageVersion Include="Silk.NET.OpenAL.Soft.Native" Version="1.21.1.2" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.4" />

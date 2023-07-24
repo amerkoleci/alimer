@@ -3,10 +3,10 @@
 
 using System.Drawing;
 using Alimer.Graphics;
-using static SDL2.SDL.SDL_WindowEventID;
-using static SDL2.SDL.SDL_WindowFlags;
-using static SDL2.SDL;
+using static SDL.SDL_EventType;
 using System.Runtime.InteropServices;
+using static SDL.SDL;
+using SDL;
 
 namespace Alimer;
 
@@ -24,50 +24,34 @@ internal unsafe class SDLWindow : Window
     {
         _platform = platform;
 
-        SDL_WindowFlags sdlWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+        SDL_WindowFlags sdlWindowFlags = SDL_WindowFlags.HighPixelDensity | SDL_WindowFlags.Hidden | SDL_WindowFlags.Vulkan;
 
         if ((flags & WindowFlags.Borderless) != 0)
-            sdlWindowFlags |= SDL_WINDOW_BORDERLESS;
+            sdlWindowFlags |= SDL_WindowFlags.Borderless;
 
         if ((flags & WindowFlags.Resizable) != 0)
-            sdlWindowFlags |= SDL_WINDOW_RESIZABLE;
+            sdlWindowFlags |= SDL_WindowFlags.Resizable;
 
         if ((flags & WindowFlags.Fullscreen) != 0)
         {
-            sdlWindowFlags |= SDL_WINDOW_FULLSCREEN;
-            _isFullscreen = true;
-        }
-
-        if ((flags & WindowFlags.FullscreenDesktop) != 0)
-        {
-            sdlWindowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+            sdlWindowFlags |= SDL_WindowFlags.Fullscreen;
             _isFullscreen = true;
         }
 
         if ((flags & WindowFlags.Maximized) != 0)
         {
-            sdlWindowFlags |= SDL_WINDOW_MAXIMIZED;
+            sdlWindowFlags |= SDL_WindowFlags.Maximized;
         }
 
         _title = "Alimer";
-#if SDL3
-        SDLWindowHandle = SDL_CreateWindow(_title, 1200, 800, sdlWindowFlags);
-        SDL_SetWindowPosition(SDLWindowHandle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-#else
-        SDLWindowHandle = SDL_CreateWindow(_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, sdlWindowFlags);
-#endif
+        SDLWindowHandle = SDL_CreateWindowWithPosition(_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, sdlWindowFlags);
         Id = SDL_GetWindowID(SDLWindowHandle);
         SDL_GetWindowSizeInPixels(SDLWindowHandle, out int width, out int height);
         _clientSize = new Size(width, height);
 
         // Native handle
         SDL_SysWMinfo wmInfo = default;
-#if SDL3
         SDL_GetWindowWMInfo(SDLWindowHandle, &wmInfo);
-#else
-        SDL_GetVersion(out wmInfo.version);
-        SDL_GetWindowWMInfo(SDLWindowHandle, ref wmInfo);
-#endif
 
         // Window handle is selected per subsystem as defined at:
         // https://wiki.libsdl.org/SDL_SysWMinfo
@@ -123,10 +107,7 @@ internal unsafe class SDLWindow : Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                if (_isFullscreen)
-                    SDL_SetWindowFullscreen(SDLWindowHandle, (uint)SDL_WINDOW_FULLSCREEN_DESKTOP);
-                else
-                    SDL_SetWindowFullscreen(SDLWindowHandle, 0);
+                SDL_SetWindowFullscreen(SDLWindowHandle, value);
             }
         }
     }
@@ -143,9 +124,6 @@ internal unsafe class SDLWindow : Window
     /// <inheritdoc />
     public override nint Handle { get; }
 
-    [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl)]
-    public static extern void SDL_GetWindowSizeInPixels(IntPtr window, out int width, out int height);
-
     public void Show()
     {
         SDL_ShowWindow(SDLWindowHandle);
@@ -158,37 +136,45 @@ internal unsafe class SDLWindow : Window
 
     public void HandleEvent(in SDL_Event evt)
     {
-        switch (evt.window.windowEvent)
+        switch (evt.window.type)
         {
-            case SDL_WINDOWEVENT_MINIMIZED: // SDL_EVENT_WINDOW_MINIMIZED
+            case SDL_EVENT_WINDOW_MINIMIZED:
                 _minimized = true;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_WINDOWEVENT_MAXIMIZED: // SDL_EVENT_WINDOW_MAXIMIZED:
-            case SDL_WINDOWEVENT_RESTORED: // SDL_EVENT_WINDOW_RESTORED:
+            case SDL_EVENT_WINDOW_MAXIMIZED:
+            case SDL_EVENT_WINDOW_RESTORED:
                 _minimized = false;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_WINDOWEVENT_RESIZED: // SDL_EVENT_WINDOW_RESIZED:
+            case SDL_EVENT_WINDOW_RESIZED:
                 _minimized = false;
-                _clientSize = new(evt.window.data1, evt.window.data2);
-                OnSizeChanged();
+                HandleResize(evt);
                 break;
 
-            case SDL_WINDOWEVENT_SIZE_CHANGED: // SDL_EVENT_WINDOW_CHANGED:
+            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                 _minimized = false;
-                _clientSize = new(evt.window.data1, evt.window.data2);
-                OnSizeChanged();
+                HandleResize(evt);
                 break;
 
-            case SDL_WINDOWEVENT_CLOSE: // SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 Destroy();
                 _platform.WindowClosed(evt.window.windowID);
                 break;
+        }
+    }
+
+    private void HandleResize(in SDL_Event evt)
+    {
+        if (_clientSize.Width != evt.window.data1 ||
+            _clientSize.Height != evt.window.data2)
+        {
+            _clientSize = new(evt.window.data1, evt.window.data2);
+            OnSizeChanged();
         }
     }
 

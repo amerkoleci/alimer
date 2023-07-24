@@ -1,8 +1,9 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static SDL2.SDL;
-using static SDL2.SDL.SDL_bool;
+using SDL;
+using static SDL.SDL;
+using static SDL.SDL_bool;
 
 namespace Alimer.Input;
 
@@ -17,7 +18,7 @@ partial class ClipboardImplementation : IClipboard
 
     public Task SetTextAsync(string? text)
     {
-        SDL_SetClipboardText(text);
+        SDL_SetClipboardText(text ?? string.Empty);
         return Task.CompletedTask;
     }
 }

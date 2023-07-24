@@ -73,7 +73,7 @@ public abstract class Window : ISwapChainSurface
     {
         get
         {
-            var size = ClientSize;
+            SizeF size = ClientSize;
             if (size.Width != 0 && size.Height != 0)
             {
                 return size.Width / size.Height;
@@ -99,7 +99,6 @@ public abstract class Window : ISwapChainSurface
     protected virtual void OnSizeChanged()
     {
         DepthStencilTexture?.Dispose();
-
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
 
