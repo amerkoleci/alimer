@@ -14,7 +14,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     private readonly VulkanGraphicsDevice _device;
     private readonly VkBuffer _handle = VkBuffer.Null;
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
-    private readonly void* pMappedData;
+    public readonly void* pMappedData;
     private readonly ulong _mappedSize;
     private ulong _gpuAddress;
 

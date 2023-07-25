@@ -4,17 +4,20 @@
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Vortice.Vulkan.Vma;
+using System.Runtime.CompilerServices;
+using static Alimer.Graphics.Vulkan.VulkanUtils;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanTexture : Texture
 {
     private readonly VulkanGraphicsDevice _device;
-    private readonly VkImage _handle = VkImage.Null;
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
     private readonly Dictionary<int, VkImageView> _views = new();
 
-    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescription description, void* initialData)
+    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescription description, TextureData* initialData)
         : base(description)
     {
         _device = device;
@@ -23,16 +26,18 @@ internal unsafe class VulkanTexture : Texture
         VkImageCreateFlags flags = VkImageCreateFlags.None;
         VkImageType imageType = description.Dimension.ToVk();
         VkImageUsageFlags usage = VkImageUsageFlags.None;
-        uint depth = 1u;
+        VkExtent3D extent = default;
         uint arrayLayers = 1u;
 
         switch (description.Dimension)
         {
             case TextureDimension.Texture1D:
+                extent = new VkExtent3D(description.Width, 1u, 1u);
                 arrayLayers = description.DepthOrArrayLayers;
                 break;
 
             case TextureDimension.Texture2D:
+                extent = new VkExtent3D(description.Width, description.Height, 1u);
                 arrayLayers = description.DepthOrArrayLayers;
 
                 if (description.Width == description.Height &&
@@ -42,8 +47,9 @@ internal unsafe class VulkanTexture : Texture
                 }
                 break;
             case TextureDimension.Texture3D:
+                extent = new VkExtent3D(description.Width, description.Height, description.DepthOrArrayLayers);
+                arrayLayers = 1u;
                 flags |= VkImageCreateFlags.Array2DCompatible;
-                depth = description.DepthOrArrayLayers;
                 break;
         }
 
@@ -163,7 +169,7 @@ internal unsafe class VulkanTexture : Texture
             flags = flags,
             imageType = imageType,
             format = VkFormat,
-            extent = new(description.Width, description.Height, depth),
+            extent = extent,
             mipLevels = MipLevelCount,
             arrayLayers = arrayLayers,
             samples = SampleCount.ToVk(),
@@ -171,13 +177,13 @@ internal unsafe class VulkanTexture : Texture
             usage = usage
         };
 
-        var sharingIndices = stackalloc uint[(int)QueueType.Count];
+        uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
         device.FillImageSharingIndices(ref createInfo, sharingIndices);
 
-        var result = vmaCreateImage(device.MemoryAllocator,
+        VkResult result = vmaCreateImage(device.MemoryAllocator,
             &createInfo,
             &memoryInfo,
-            out _handle,
+            out VkImage handle,
             out _allocation,
             &allocationInfo);
 
@@ -187,9 +193,263 @@ internal unsafe class VulkanTexture : Texture
             return;
         }
 
+        Handle = handle;
+
         if (!string.IsNullOrEmpty(description.Label))
         {
             OnLabelChanged(description.Label!);
+        }
+
+        // Issue data copy on request
+        VkImageSubresourceRange subresourceRange = new(VkFormat.GetVkImageAspectFlags(), 0, createInfo.mipLevels, 0, createInfo.arrayLayers);
+
+        if (initialData != null)
+        {
+            if (subresourceRange.aspectMask != VkImageAspectFlags.Color)
+            {
+                throw new GraphicsException("Cannot initialize non color texture with initial data");
+            }
+
+            VulkanUploadContext context = default;
+            void* mappedData = null;
+            if (description.CpuAccess == CpuAccessMode.Write)
+            {
+                //mappedData = texture->mapped_data;
+            }
+            else
+            {
+                context = _device.Allocate(allocationInfo.size);
+                mappedData = context.UploadBuffer.pMappedData;
+            }
+
+            PixelFormatInfo formatInfo = description.Format.GetFormatInfo();
+            uint blockSize = formatInfo.BlockWidth;
+
+            List<VkBufferImageCopy> copyRegions = new();
+
+            ulong copyOffset = 0;
+            uint initDataIndex = 0;
+            for (uint layer = 0; layer < createInfo.arrayLayers; ++layer)
+            {
+                uint width = createInfo.extent.width;
+                uint height = createInfo.extent.height;
+                uint depth = createInfo.extent.depth;
+                for (uint mip = 0; mip < createInfo.mipLevels; ++mip)
+                {
+                    ref TextureData subresourceData = ref initialData[initDataIndex++];
+                    uint srcRowPitch = subresourceData.RowPitch;
+                    uint srcSlicePitch = subresourceData.SlicePitch;
+
+                    uint numBlocksX = Math.Max(1u, width / blockSize);
+                    uint numBlocksY = Math.Max(1u, height / blockSize);
+                    uint dstRowPitch = numBlocksX * formatInfo.BytesPerBlock;
+                    uint dstSlicePitch = dstRowPitch * numBlocksY;
+
+                    for (uint z = 0; z < depth; ++z)
+                    {
+                        byte* dstSlice = (byte*)mappedData + copyOffset + dstSlicePitch * z;
+                        byte* srcSlice = (byte*)subresourceData.DataPointer + srcSlicePitch * z;
+                        for (uint y = 0; y < numBlocksY; ++y)
+                        {
+                            Unsafe.CopyBlockUnaligned(
+                                dstSlice + dstRowPitch * y,
+                                srcSlice + srcRowPitch * y,
+                                dstRowPitch
+                            );
+                        }
+                    }
+
+                    if (context.IsValid)
+                    {
+                        VkBufferImageCopy copyRegion = new()
+                        {
+                            bufferOffset = copyOffset,
+                            bufferRowLength = 0,
+                            bufferImageHeight = 0
+                        };
+
+                        copyRegion.imageSubresource.aspectMask = VkImageAspectFlags.Color;
+                        copyRegion.imageSubresource.mipLevel = mip;
+                        copyRegion.imageSubresource.baseArrayLayer = layer;
+                        copyRegion.imageSubresource.layerCount = 1;
+
+                        copyRegion.imageOffset = VkOffset3D.Zero;
+                        copyRegion.imageExtent = new VkExtent3D(width, height, depth);
+
+                        copyRegions.Add(copyRegion);
+                    }
+
+                    copyOffset += dstSlicePitch * depth;
+
+                    width = Math.Max(1u, width / 2);
+                    height = Math.Max(1u, height / 2);
+                    depth = Math.Max(1u, depth / 2);
+                }
+            }
+
+            if (context.IsValid)
+            {
+                if (_device.Synchronization2)
+                {
+                    VkImageMemoryBarrier2 barrier = new()
+                    {
+                        srcStageMask = VkPipelineStageFlags2.AllCommands,
+                        srcAccessMask = 0,
+                        dstStageMask = VkPipelineStageFlags2.Transfer,
+                        dstAccessMask = VkAccessFlags2.TransferWrite,
+                        oldLayout = createInfo.initialLayout,
+                        newLayout = VkImageLayout.TransferDstOptimal,
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        image = Handle,
+                        subresourceRange = subresourceRange,
+                    };
+
+                    VkDependencyInfo dependencyInfo = new()
+                    {
+                        imageMemoryBarrierCount = 1,
+                        pImageMemoryBarriers = &barrier
+                    };
+
+                    vkCmdPipelineBarrier2(context.TransferCommandBuffer, &dependencyInfo);
+
+                    Span<VkBufferImageCopy> regionsSpan = CollectionsMarshal.AsSpan(copyRegions);
+                    fixed (VkBufferImageCopy* pRegions = regionsSpan)
+                    {
+                        vkCmdCopyBufferToImage(
+                            context.TransferCommandBuffer,
+                            context.UploadBuffer!.Handle,
+                            Handle,
+                            VkImageLayout.TransferDstOptimal,
+                            (uint)regionsSpan.Length,
+                            pRegions
+                        );
+                    }
+
+                    ResourceStateMapping mappingAfter = ConvertResourceState(description.InitialLayout);
+                    Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+                    GraphicsUtilities.Swap(ref barrier.srcStageMask, ref barrier.dstStageMask);
+                    barrier.srcAccessMask = VkAccessFlags2.TransferWrite;
+                    barrier.dstAccessMask = mappingAfter.AccessMask;
+                    barrier.oldLayout = VkImageLayout.TransferDstOptimal;
+                    barrier.newLayout = mappingAfter.ImageLayout;
+                    vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+                }
+                else
+                {
+                    VkImageMemoryBarrier barrier = new()
+                    {
+                        srcAccessMask = 0,
+                        dstAccessMask = VkAccessFlags.TransferWrite,
+                        oldLayout = createInfo.initialLayout,
+                        newLayout = VkImageLayout.TransferDstOptimal,
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        image = Handle,
+                        subresourceRange = subresourceRange
+                    };
+
+                    vkCmdPipelineBarrier(context.TransferCommandBuffer,
+                        VkPipelineStageFlags.AllCommands,
+                        VkPipelineStageFlags.Transfer,
+                        0,
+                        0, null,
+                        0, null,
+                        1, &barrier
+                    );
+
+                    Span<VkBufferImageCopy> regionsSpan = CollectionsMarshal.AsSpan(copyRegions);
+                    fixed (VkBufferImageCopy* pRegions = regionsSpan)
+                    {
+                        vkCmdCopyBufferToImage(
+                            context.TransferCommandBuffer,
+                            context.UploadBuffer!.Handle,
+                            Handle,
+                            VkImageLayout.TransferDstOptimal,
+                            (uint)regionsSpan.Length,
+                            pRegions
+                        );
+                    }
+
+                    ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(description.InitialLayout);
+                    Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+                    barrier.srcAccessMask = VkAccessFlags.TransferWrite;
+                    barrier.dstAccessMask = mappingAfter.AccessMask;
+                    barrier.oldLayout = VkImageLayout.TransferDstOptimal;
+                    barrier.newLayout = mappingAfter.ImageLayout;
+
+                    vkCmdPipelineBarrier(context.TransitionCommandBuffer,
+                        VkPipelineStageFlags.Transfer,
+                        VkPipelineStageFlags.AllCommands,
+                        0,
+                        0, null,
+                        0, null,
+                        1, &barrier
+                    );
+                }
+
+                device.Submit(in context);
+            }
+        }
+        else if (description.InitialLayout != ResourceStates.Unknown && Handle.IsNotNull)
+        {
+            VulkanUploadContext context = _device.Allocate(0);
+            if (_device.Synchronization2)
+            {
+                ResourceStateMapping mappingAfter = ConvertResourceState(description.InitialLayout);
+                Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+                VkImageMemoryBarrier2 barrier = new()
+                {
+                    srcStageMask = VkPipelineStageFlags2.Transfer,
+                    srcAccessMask = 0,
+                    dstStageMask = VkPipelineStageFlags2.AllCommands,
+                    dstAccessMask = mappingAfter.AccessMask,
+                    oldLayout = createInfo.initialLayout,
+                    newLayout = mappingAfter.ImageLayout,
+                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    image = Handle,
+                    subresourceRange = subresourceRange
+                };
+
+                VkDependencyInfo dependencyInfo = new()
+                {
+                    imageMemoryBarrierCount = 1,
+                    pImageMemoryBarriers = &barrier
+                };
+
+                vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+            }
+            else
+            {
+                ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(description.InitialLayout);
+                Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+                VkImageMemoryBarrier barrier = new()
+                {
+                    srcAccessMask = 0u,
+                    dstAccessMask = mappingAfter.AccessMask,
+                    oldLayout = createInfo.initialLayout,
+                    newLayout = mappingAfter.ImageLayout,
+                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    image = Handle,
+                    subresourceRange = subresourceRange
+                };
+
+                vkCmdPipelineBarrier(context.TransitionCommandBuffer,
+                    VkPipelineStageFlags.Transfer,
+                    mappingAfter.StageFlags,
+                    0,
+                    0, null,
+                    0, null,
+                    1, &barrier);
+            }
+
+            _device.Submit(in context);
         }
     }
 
@@ -197,7 +457,7 @@ internal unsafe class VulkanTexture : Texture
         : base(descriptor)
     {
         _device = device;
-        _handle = existingTexture;
+        Handle = existingTexture;
         VkFormat = device.ToVkFormat(descriptor.Format);
 
         if (!string.IsNullOrEmpty(descriptor.Label))
@@ -208,7 +468,7 @@ internal unsafe class VulkanTexture : Texture
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
-    public VkImage Handle => _handle;
+    public VkImage Handle { get; }
     public VkFormat VkFormat { get; }
     public ResourceStates CurrentState { get; set; }
 
@@ -228,14 +488,14 @@ internal unsafe class VulkanTexture : Texture
 
         if (!_allocation.IsNull)
         {
-            vmaDestroyImage(_device.MemoryAllocator, _handle, _allocation);
+            vmaDestroyImage(_device.MemoryAllocator, Handle, _allocation);
         }
     }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        _device.SetObjectName(VkObjectType.Image, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Image, Handle.Handle, newLabel);
     }
 
     public VkImageView GetView(int baseMipLevel, int baseArrayLayer = 0, uint mipLevelCount = VK_REMAINING_MIP_LEVELS, uint arrayLayerCount = VK_REMAINING_ARRAY_LAYERS)
@@ -249,7 +509,7 @@ internal unsafe class VulkanTexture : Texture
             {
                 pNext = null,
                 flags = 0,
-                image = _handle,
+                image = Handle,
                 viewType = VkImageViewType.Image2D,
                 format = VkFormat,
                 components = VkComponentMapping.Identity,

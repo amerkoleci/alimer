@@ -771,7 +771,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription description, void* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
     {
         return new D3D12Texture(this, description, initialData);
     }

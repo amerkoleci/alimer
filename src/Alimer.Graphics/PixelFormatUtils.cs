@@ -234,17 +234,11 @@ public static class PixelFormatUtils
     /// <returns>True if format has depth component, false otherwise.</returns>
     public static bool IsDepthFormat(this PixelFormat format)
     {
-        switch (format)
+        return format switch
         {
-            case PixelFormat.Depth16Unorm:
-            case PixelFormat.Depth24UnormStencil8:
-            case PixelFormat.Depth32Float:
-            case PixelFormat.Depth32FloatStencil8:
-                return true;
-
-            default:
-                return false;
-        }
+            PixelFormat.Depth16Unorm or PixelFormat.Depth24UnormStencil8 or PixelFormat.Depth32Float or PixelFormat.Depth32FloatStencil8 => true,
+            _ => false,
+        };
     }
 
     /// <summary>
@@ -431,6 +425,215 @@ public static class PixelFormatUtils
             default:
                 return format;
         }
+    }
+
+    /// <summary>
+    /// Return the BPP for a given <see cref="PixelFormat"/>.
+    /// </summary>
+    /// <param name="format">The <see cref="PixelFormat"/>.</param>
+    /// <returns>Bits per pixel of the format</returns>
+    public static uint GetBitsPerPixel(this PixelFormat format)
+    {
+        switch (format)
+        {
+            case PixelFormat.Rgba32Uint:
+            case PixelFormat.Rgba32Sint:
+            case PixelFormat.Rgba32Float:
+                return 128;
+
+            //case PixelFormat.Rgb32Uint:
+            //case PixelFormat.Rgb32Sint:
+            //case PixelFormat.Rgb32Float:
+            //    return 96;
+
+            case PixelFormat.Rgba16Unorm:
+            case PixelFormat.Rgba16Snorm:
+            case PixelFormat.Rgba16Uint:
+            case PixelFormat.Rgba16Sint:
+            case PixelFormat.Rgba16Float:
+            case PixelFormat.Rg32Uint:
+            case PixelFormat.Rg32Sint:
+            case PixelFormat.Rg32Float:
+            case PixelFormat.Depth32FloatStencil8:
+                return 64;
+
+            case PixelFormat.Rgb9e5Ufloat:
+            case PixelFormat.Rgb10a2Unorm:
+            case PixelFormat.Rgb10a2Uint:
+            case PixelFormat.Rg11b10Float:
+            case PixelFormat.Rgba8Unorm:
+            case PixelFormat.Rgba8UnormSrgb:
+            case PixelFormat.Rgba8Snorm:
+            case PixelFormat.Rgba8Uint:
+            case PixelFormat.Rgba8Sint:
+            case PixelFormat.Rg16Unorm:
+            case PixelFormat.Rg16Snorm:
+            case PixelFormat.Rg16Uint:
+            case PixelFormat.Rg16Sint:
+            case PixelFormat.Rg16Float:
+            case PixelFormat.Depth32Float:
+            case PixelFormat.R32Uint:
+            case PixelFormat.R32Sint:
+            case PixelFormat.R32Float:
+            case PixelFormat.Depth24UnormStencil8:
+            case PixelFormat.Bgra8Unorm:
+            case PixelFormat.Bgra8UnormSrgb:
+                return 32;
+
+            case PixelFormat.Rg8Unorm:
+            case PixelFormat.Rg8Snorm:
+            case PixelFormat.Rg8Uint:
+            case PixelFormat.Rg8Sint:
+            case PixelFormat.R16Unorm:
+            case PixelFormat.R16Snorm:
+            case PixelFormat.R16Uint:
+            case PixelFormat.R16Sint:
+            case PixelFormat.R16Float:
+            case PixelFormat.Depth16Unorm:
+            case PixelFormat.B5G6R5Unorm:
+            case PixelFormat.Bgr5A1Unorm:
+            case PixelFormat.Bgra4Unorm:
+                return 16;
+
+            case PixelFormat.R8Unorm:
+            case PixelFormat.R8Snorm:
+            case PixelFormat.R8Uint:
+            case PixelFormat.R8Sint:
+            case PixelFormat.Bc2RgbaUnorm:
+            case PixelFormat.Bc2RgbaUnormSrgb:
+            case PixelFormat.Bc3RgbaUnorm:
+            case PixelFormat.Bc3RgbaUnormSrgb:
+            case PixelFormat.Bc5RgUnorm:
+            case PixelFormat.Bc5RgSnorm:
+            case PixelFormat.Bc6hRgbUfloat:
+            case PixelFormat.Bc6hRgbSfloat:
+            case PixelFormat.Bc7RgbaUnorm:
+            case PixelFormat.Bc7RgbaUnormSrgb:
+                return 8;
+
+            case PixelFormat.Bc1RgbaUnorm:
+            case PixelFormat.Bc1RgbaUnormSrgb:
+            case PixelFormat.Bc4RUnorm:
+            case PixelFormat.Bc4RSnorm:
+                return 4;
+
+            default:
+                return 0;
+        }
+    }
+
+    public static void GetSurfaceInfo(
+        PixelFormat format,
+        uint width,
+        uint height,
+        out uint rowPitch,
+        out uint slicePitch,
+        out uint rowCount)
+    {
+        bool bc = false;
+        bool packed = false;
+        bool planar = false;
+        uint bpe = 0;
+
+        switch (format)
+        {
+            case PixelFormat.Bc1RgbaUnorm:
+            case PixelFormat.Bc1RgbaUnormSrgb:
+            case PixelFormat.Bc4RUnorm:
+            case PixelFormat.Bc4RSnorm:
+                bc = true;
+                bpe = 8;
+                break;
+
+            case PixelFormat.Bc2RgbaUnorm:
+            case PixelFormat.Bc2RgbaUnormSrgb:
+            case PixelFormat.Bc3RgbaUnorm:
+            case PixelFormat.Bc3RgbaUnormSrgb:
+            case PixelFormat.Bc5RgUnorm:
+            case PixelFormat.Bc5RgSnorm:
+            case PixelFormat.Bc6hRgbUfloat:
+            case PixelFormat.Bc7RgbaUnorm:
+            case PixelFormat.Bc7RgbaUnormSrgb:
+                bc = true;
+                bpe = 16;
+                break;
+
+            //case Format.R8G8_B8G8_UNorm:
+            //case Format.G8R8_G8B8_UNorm:
+            //case Format.YUY2:
+            //    packed = true;
+            //    bpe = 4;
+            //    break;
+            //
+            //case Format.Y210:
+            //case Format.Y216:
+            //    packed = true;
+            //    bpe = 8;
+            //    break;
+            //
+            //case Format.NV12:
+            //case Format.Opaque420:
+            //case Format.P208:
+            //    planar = true;
+            //    bpe = 2;
+            //    break;
+            //
+            //case Format.P010:
+            //case Format.P016:
+            //    planar = true;
+            //    bpe = 4;
+            //    break;
+
+            default:
+                break;
+        }
+
+        if (bc)
+        {
+            uint numBlocksWide = 0;
+            if (width > 0)
+            {
+                numBlocksWide = Math.Max(1, (width + 3) / 4);
+            }
+            uint numBlocksHigh = 0;
+            if (height > 0)
+            {
+                numBlocksHigh = Math.Max(1, (height + 3) / 4);
+            }
+            rowPitch = numBlocksWide * bpe;
+            rowCount = numBlocksHigh;
+            slicePitch = rowPitch * numBlocksHigh;
+        }
+        else if (packed)
+        {
+            rowPitch = ((width + 1) >> 1) * bpe;
+            rowCount = height;
+            slicePitch = rowPitch * height;
+        }
+        //else if (format == Format.NV11)
+        //{
+        //    rowPitch = ((width + 3) >> 2) * 4;
+        //    rowCount = height * 2; // Direct3D makes this simplifying assumption, although it is larger than the 4:1:1 data
+        //    slicePitch = rowPitch * rowCount;
+        //}
+        else if (planar)
+        {
+            rowPitch = ((width + 1) >> 1) * bpe;
+            slicePitch = (rowPitch * height) + ((rowPitch * height + 1) >> 1);
+            rowCount = height + ((height + 1u) >> 1);
+        }
+        else
+        {
+            uint bpp = GetBitsPerPixel(format);
+            rowPitch = (width * bpp + 7) / 8; // round up to nearest byte
+            rowCount = height;
+            slicePitch = rowPitch * height;
+        }
+    }
+
+    public static void GetSurfaceInfo(PixelFormat format, uint width, uint height, out uint rowPitch, out uint slicePitch)
+    {
+        GetSurfaceInfo(format, width, height, out rowPitch, out slicePitch, out _);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

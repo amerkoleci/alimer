@@ -491,7 +491,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     enabledDeviceExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 
                     portabilityFeatures = new();
-                    * featuresChain = &portabilityFeatures;
+                    *featuresChain = &portabilityFeatures;
                     featuresChain = &portabilityFeatures.pNext;
                 }
 
@@ -671,6 +671,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             vkGetPhysicalDeviceFeatures2(_physicalDevice, &features2);
             vkGetPhysicalDeviceProperties2(_physicalDevice, &properties2);
 
+            if (!features2.features.textureCompressionBC &&
+                !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
+            {
+                Log.Error("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
+                return;
+            }
+
             PhysicalDeviceFeatures2 = features2;
             PhysicalDeviceFeatures1_2 = features1_2;
             PhysicalDeviceFeatures1_3 = features1_3;
@@ -682,9 +689,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _raytracingQueryFeatures = raytracingQueryFeatures;
             _conditionalRenderingFeatures = conditionalRenderingFeatures;
             _meshShaderFeatures = meshShaderFeatures;
-
-            VkPhysicalDeviceMemoryProperties2 memoryProperties2 = new();
-            vkGetPhysicalDeviceMemoryProperties2(_physicalDevice, &memoryProperties2);
 
             Guard.IsTrue(features2.features.robustBufferAccess);
             Guard.IsTrue(features2.features.depthBiasClamp);
@@ -705,12 +709,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             //Guard.IsTrue(features_1_3.synchronization2 == VK_TRUE);
             //Guard.IsTrue(features_1_3.dynamicRendering == VK_TRUE);
 
-            if (!features2.features.textureCompressionBC &&
-                !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
-            {
-                Log.Error("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
-                return;
-            }
+            DynamicRendering = features1_3.dynamicRendering || dynamicRenderingFeatures.dynamicRendering;
+            Synchronization2 = features1_3.synchronization2 || synchronization2Features.synchronization2;
 
             DepthClipEnable = depthClipEnableFeatures.depthClipEnable;
             DepthResolveMinMax = (depthStencilResolveProperties.supportedDepthResolveModes & VkResolveModeFlags.Min) != 0 && (depthStencilResolveProperties.supportedDepthResolveModes & VkResolveModeFlags.Max) != 0;
@@ -985,6 +985,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         _copyAllocator = new(this);
 
+        // Create default null descriptors
+        {
+            VkSamplerCreateInfo createInfo = new();
+            ThrowIfFailed(vkCreateSampler(_handle, &createInfo, null, out VkSampler nullSampler));
+            NullSampler = nullSampler;
+        }
+
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
         SupportsD32S8 = IsDepthStencilFormatSupported(VkFormat.D32SfloatS8Uint);
 
@@ -1081,6 +1088,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public bool DepthResolveMinMax { get; }
     public bool StencilResolveMinMax { get; }
+    public bool DynamicRendering { get; }
+    public bool Synchronization2 { get; }
 
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
     public uint GraphicsFamily => _queueFamilyIndices[(int)QueueType.Graphics];
@@ -1098,6 +1107,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VmaAllocator MemoryAllocator => _allocator;
     public VkPipelineCache PipelineCache => _pipelineCache;
+    public VkSampler NullSampler { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanGraphicsDevice" /> class.
@@ -1121,6 +1131,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
 
             _copyAllocator.Dispose();
+
+            // Destroy null descriptor
+            vkDestroySampler(Handle, NullSampler);
 
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
@@ -1410,7 +1423,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription descriptor, void* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription descriptor, TextureData* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
     }

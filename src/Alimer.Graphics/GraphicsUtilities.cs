@@ -72,4 +72,11 @@ public static class GraphicsUtilities
             state.StencilFront.DepthFailOperation != StencilOperation.Keep ||
             state.StencilFront.PassOperation != StencilOperation.Keep;
     }
+
+    public static void Swap<T>(ref T source, ref T destination)
+    {
+        T tmp = source;
+        source = destination;
+        destination = tmp;
+    }
 }

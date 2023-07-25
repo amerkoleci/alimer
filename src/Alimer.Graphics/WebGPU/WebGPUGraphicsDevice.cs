@@ -367,7 +367,7 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription descriptor, void* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription descriptor, TextureData* initialData)
     {
         return new WebGPUTexture(this, descriptor, initialData);
     }

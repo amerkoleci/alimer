@@ -66,7 +66,9 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
 
         var  bindGroupDescription = new BindGroupDescription(
-            new BindGroupEntry(0, _constantBuffer)
+            new BindGroupEntry(0, _constantBuffer),
+            new BindGroupEntry(0, _texture),
+            new BindGroupEntry(0, _sampler)
             );
         _bindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout, bindGroupDescription));
 

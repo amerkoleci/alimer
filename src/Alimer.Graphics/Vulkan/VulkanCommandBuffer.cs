@@ -8,7 +8,6 @@ using static Alimer.Graphics.Vulkan.VulkanUtils;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using System.Drawing;
-using Alimer.Utilities;
 
 namespace Alimer.Graphics.Vulkan;
 

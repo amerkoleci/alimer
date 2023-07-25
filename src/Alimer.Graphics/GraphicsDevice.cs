@@ -254,7 +254,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         string? label = default)
         where T : unmanaged
     {
-        var typeSize = sizeof(T);
+        int typeSize = sizeof(T);
         Guard.IsTrue(initialData.Length > 0, nameof(initialData));
 
         BufferDescription description = new((uint)(initialData.Length * typeSize), usage, cpuAccess, label);
@@ -278,7 +278,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
         fixed (T* initialDataPtr = initialData)
         {
-            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage), initialDataPtr);
+            PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
+            TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
+
+            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage), &initData);
         }
     }
 
@@ -360,7 +363,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public abstract RenderContext BeginRenderContext(string? label = default);
 
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
-    protected abstract Texture CreateTextureCore(in TextureDescription description, void* initialData);
+    protected abstract Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);

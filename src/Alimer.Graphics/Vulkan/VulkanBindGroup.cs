@@ -53,7 +53,7 @@ internal unsafe class VulkanBindGroup : BindGroup
         }
 
         // TODO: Handle null descriptors to avoid vulkan warnings
-        int descriptorWriteCount = description.Entries.Length;
+        int descriptorWriteCount = _layout.LayoutBindingCount;
         VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[descriptorWriteCount];
         VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[descriptorWriteCount];
         VkDescriptorImageInfo* imageInfos = stackalloc VkDescriptorImageInfo[descriptorWriteCount];
@@ -61,21 +61,50 @@ internal unsafe class VulkanBindGroup : BindGroup
 
         for (uint i = 0; i < descriptorWriteCount; i++)
         {
-            ref readonly BindGroupEntry entry = ref description.Entries[i];
             ref VkDescriptorSetLayoutBinding layoutBinding = ref _layout.GetLayoutBinding(i);
-
             VkDescriptorType descriptorType = layoutBinding.descriptorType;
+
+            if (i > description.Entries.Length - 1)
+            {
+                // Create a null SRV, UAV, or CBV
+                descriptorWrites[i] = new()
+                {
+                    dstSet = _handle,
+                    dstBinding = layoutBinding.binding,
+                    descriptorCount = 1,
+                    descriptorType = descriptorType
+                };
+
+                switch (descriptorType)
+                {
+                    case VkDescriptorType.Sampler:
+                        imageInfos[i].sampler = device.NullSampler;
+                        descriptorWrites[i].pImageInfo = &imageInfos[i];
+                        break;
+                }
+
+                continue;
+            }
+
+            ref readonly BindGroupEntry entry = ref description.Entries[i];
+
 
             descriptorWrites[i] = new()
             {
                 dstSet = _handle,
-                dstBinding = i,
+                dstBinding = layoutBinding.binding,
                 descriptorCount = 1,
                 descriptorType = descriptorType
             };
 
             switch (descriptorType)
             {
+                case VkDescriptorType.Sampler:
+                    VulkanSampler backendSampler = ((VulkanSampler)entry.Sampler);
+                    imageInfos[i].sampler = backendSampler.Handle;
+                    descriptorWrites[i].pImageInfo = &imageInfos[i];
+                    break;
+
                 case VkDescriptorType.UniformBuffer:
                 case VkDescriptorType.UniformBufferDynamic:
                 case VkDescriptorType.StorageBuffer:
@@ -86,6 +115,17 @@ internal unsafe class VulkanBindGroup : BindGroup
                     bufferInfos[i].range = entry.Size;
                     descriptorWrites[i].pBufferInfo = &bufferInfos[i];
                     break;
+
+                case VkDescriptorType.SampledImage:
+                    VulkanTexture backendBuffer = ((VulkanTexture)entry.Texture);
+                    imageInfos[i].sampler = VkSampler.Null;
+                    imageInfos[i].imageView = backendBuffer.GetView(0, 0);
+                    imageInfos[i].imageLayout = VkImageLayout.ShaderReadOnlyOptimal;
+                    descriptorWrites[i].pImageInfo = &imageInfos[i];
+                    break;
+
+                default:
+                    throw new GraphicsException($"Vulkan: DescriptorType '{descriptorType}' not handled");
             }
         }
 

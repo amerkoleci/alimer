@@ -38,6 +38,18 @@ public readonly record struct BindGroupEntry
         Size = (size == 0) ? buffer.Size : size;
     }
 
+    public BindGroupEntry(uint binding, Texture texture)
+    {
+        Binding = binding;
+        Texture = texture;
+    }
+
+    public BindGroupEntry(uint binding, Sampler sampler)
+    {
+        Binding = binding;
+        Sampler = sampler;
+    }
+
     /// <summary>
     /// Register index to bind to (supplied in shader).
     /// </summary>
@@ -46,8 +58,18 @@ public readonly record struct BindGroupEntry
     /// <summary>
     /// The <see cref="GraphicsBuffer"/> bound.
     /// </summary>
-    public GraphicsBuffer Buffer { get; init; }
+    public GraphicsBuffer? Buffer { get; init; }
 
     public ulong Offset { get; init; }
     public ulong Size { get; init; }
+
+    /// <summary>
+    /// The <see cref="Texture"/> bound.
+    /// </summary>
+    public Texture? Texture { get; init; }
+
+    /// <summary>
+    /// The <see cref="Sampler"/> bound.
+    /// </summary>
+    public Sampler? Sampler { get; init; }
 }

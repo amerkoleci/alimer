@@ -22,10 +22,10 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         _device = device;
 
         VkDescriptorSetLayoutCreateFlags flags = VkDescriptorSetLayoutCreateFlags.None;
-        int bindingCount = description.Entries.Length;
-        _layoutBindings = AllocateArray<VkDescriptorSetLayoutBinding>((nuint)bindingCount);
+        LayoutBindingCount = description.Entries.Length;
+        _layoutBindings = AllocateArray<VkDescriptorSetLayoutBinding>((nuint)LayoutBindingCount);
 
-        for (int i = 0; i < bindingCount; i++)
+        for (int i = 0; i < LayoutBindingCount; i++)
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
 
@@ -77,7 +77,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         VkDescriptorSetLayoutCreateInfo createInfo = new()
         {
             flags = flags,
-            bindingCount = (uint)bindingCount,
+            bindingCount = (uint)LayoutBindingCount,
             pBindings = _layoutBindings
         };
 
@@ -95,7 +95,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 
         // count the number of descriptors required per type
         Dictionary<VkDescriptorType, uint> poolSizeMap = new();
-        for (int i = 0; i < bindingCount; i++)
+        for (int i = 0; i < LayoutBindingCount; i++)
         {
             if (poolSizeMap.ContainsKey(_layoutBindings[i].descriptorType) == false)
             {
@@ -106,7 +106,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         }
 
         // compute descriptor pool size info
-        foreach (var poolSizeIter in poolSizeMap)
+        foreach (KeyValuePair<VkDescriptorType, uint> poolSizeIter in poolSizeMap)
         {
             if (poolSizeIter.Value > 0)
             {
@@ -130,6 +130,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 
     public VkDescriptorSetLayout Handle => _handle;
 
+    public int LayoutBindingCount { get; }
     public ref VkDescriptorSetLayoutBinding GetLayoutBinding(uint index) => ref _layoutBindings[index];
 
     public ReadOnlySpan<VkDescriptorPoolSize> PoolSizes => CollectionsMarshal.AsSpan(_descriptorPoolSizeInfo);

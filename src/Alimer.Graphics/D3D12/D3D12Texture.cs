@@ -26,7 +26,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly Dictionary<int, DescriptorIndex> _RTVs = new();
     private readonly Dictionary<int, DescriptorIndex> _DSVs = new();
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, void* initialData)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, TextureData* initialData)
         : base(description)
     {
         _device = device;

@@ -177,6 +177,11 @@ public record struct TextureDescription
     /// </summary>
     public CpuAccessMode CpuAccess { get; init; } = CpuAccessMode.None;
 
+    /// <summary>
+    /// Initial layout of <see cref="Texture"/>.
+    /// </summary>
+    public ResourceStates InitialLayout { get; set; } = ResourceStates.ShaderResource;
+
     // <summary>
     /// Gets or sets the label of <see cref="Texture"/>.
     /// </summary>

@@ -11,7 +11,7 @@ internal unsafe class WebGPUTexture : Texture
     private readonly WebGPUGraphicsDevice _device;
     private readonly Dictionary<int, WGPUTextureView> _views = new();
 
-    public WebGPUTexture(WebGPUGraphicsDevice device, in TextureDescription description, void* initialData)
+    public WebGPUTexture(WebGPUGraphicsDevice device, in TextureDescription description, TextureData* initialData)
         : base(description)
     {
         _device = device;

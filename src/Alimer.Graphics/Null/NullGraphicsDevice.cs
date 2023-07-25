@@ -56,7 +56,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override unsafe Texture CreateTextureCore(in TextureDescription description, void* initialData)
+    protected override unsafe Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
     {
         return new NullTexture(this, description);
     }
