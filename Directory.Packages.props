@@ -22,6 +22,7 @@
     
     <!-- Engine -->
     <PackageVersion Include="Alimer.Bindings.SDL" Version="3.2.3" />
+    <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.3.0" />
     <PackageVersion Include="Silk.NET.OpenAL.Soft.Native" Version="1.21.1.2" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.4" />

@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>net7.0</TargetFrameworks>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
-    <ExcludeD3D12>false</ExcludeD3D12>
     <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 
@@ -11,12 +10,14 @@
 
   <PropertyGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
     <ExcludeVulkan>true</ExcludeVulkan>
+    <ExcludeWebGPU>true</ExcludeWebGPU>
     <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 
   <PropertyGroup>
     <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
     <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeWebGPU)' == 'true'">$(DefineConstants);EXCLUDE_WEBGPU_BACKEND</DefineConstants>
     <DefineConstants Condition="'$(ExcludeMetal)' == 'true'">$(DefineConstants);EXCLUDE_METAL_BACKEND</DefineConstants>
   </PropertyGroup>
 
@@ -26,6 +27,7 @@
     <Compile Remove="D3D/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
     <Compile Remove="D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
     <Compile Remove="Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
+    <Compile Remove="WebGPU/**/*" Condition="'$(ExcludeWebGPU)' == 'true'" />
     <Compile Remove="Metal/**/*" Condition="'$(ExcludeMetal)' == 'true'" />
   </ItemGroup>
 
@@ -36,7 +38,8 @@
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" />
     <PackageReference Include="Vortice.VulkanMemoryAllocator" Condition="'$(ExcludeVulkan)' != 'true'" />
-
+    <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" />
+    
     <ProjectReference Include="..\Alimer\Alimer.csproj" />
   </ItemGroup>
 

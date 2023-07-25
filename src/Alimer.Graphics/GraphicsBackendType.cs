@@ -9,6 +9,7 @@ public enum GraphicsBackendType
     Vulkan,
     D3D12,
     Metal,
+    WebGPU,
 
     Count,
 }
