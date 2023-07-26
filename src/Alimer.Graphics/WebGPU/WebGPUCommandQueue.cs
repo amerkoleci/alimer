@@ -5,6 +5,7 @@ using WebGPU;
 using static WebGPU.WebGPU;
 using static Alimer.Graphics.Constants;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.WebGPU;
 
@@ -15,6 +16,7 @@ internal unsafe class WebGPUCommandQueue : IDisposable
     private uint _commandBufferCount = 0;
     private readonly List<WebGPUCommandBuffer> _commandBuffers = new();
     private readonly List<WGPUCommandBuffer> _submitCommandBuffers = new();
+    private readonly List<WebGPUSwapChain> _presentSwapChains = new();
 
     public WebGPUCommandQueue(WebGPUGraphicsDevice device, QueueType queueType)
     {
@@ -39,7 +41,7 @@ internal unsafe class WebGPUCommandQueue : IDisposable
     {
         _commandBufferCount = 0;
         _submitCommandBuffers.Clear();
-        //_presentSwapChains.Clear();
+        _presentSwapChains.Clear();
     }
 
     public RenderContext BeginCommandContext(string? label = null)
@@ -60,13 +62,12 @@ internal unsafe class WebGPUCommandQueue : IDisposable
         return commandBuffer;
     }
 
-    public void Commit(WebGPUCommandBuffer commandBuffer, WGPUCommandEncoder commandEncoder)
+    public void Commit(WGPUCommandEncoder commandEncoder)
     {
-        //foreach (VulkanSwapChain swapChain in _presentSwapChains)
-        //{
-        //    VulkanTexture swapChainTexture = swapChain.CurrentTexture;
-        //    vulkanCommandBuffer.TextureBarrier(swapChainTexture, ResourceStates.Present);
-        //}
+        foreach (WebGPUSwapChain swapChain in _presentSwapChains)
+        {
+            swapChain.ReleaseCurrentTexture();
+        }
 
         WGPUCommandBufferDescriptor cmdBufferDescriptor = new()
         {
@@ -75,5 +76,26 @@ internal unsafe class WebGPUCommandQueue : IDisposable
 
         WGPUCommandBuffer commandBufferHandle = wgpuCommandEncoderFinish(commandEncoder, &cmdBufferDescriptor);
         _submitCommandBuffers.Add(commandBufferHandle);
+    }
+
+    public void QueuePresent(WebGPUSwapChain swapChain)
+    {
+        _presentSwapChains.Add(swapChain);
+    }
+
+    public void Submit()
+    {
+        Span<WGPUCommandBuffer> submitCommandBuffers = CollectionsMarshal.AsSpan(_submitCommandBuffers);
+        fixed (WGPUCommandBuffer* commandBuffers = submitCommandBuffers)
+        {
+            wgpuQueueSubmit(Handle, (nuint)_submitCommandBuffers.Count, commandBuffers);
+        }
+
+        // Present SwapChains
+        foreach (WebGPUSwapChain swapChain in _presentSwapChains)
+        {
+            wgpuSwapChainPresent(swapChain.Handle);
+        }
+        _presentSwapChains.Clear();
     }
 }

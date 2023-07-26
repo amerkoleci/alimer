@@ -1010,10 +1010,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             UploadBufferTextureRowAlignment = 1,
             UploadBufferTextureSliceAlignment = 1,
-            ConstantBufferMinOffsetAlignment = (uint)_properties2.properties.limits.minUniformBufferOffsetAlignment,
-            ConstantBufferMaxRange = _properties2.properties.limits.maxUniformBufferRange,
-            StorageBufferMinOffsetAlignment = (uint)_properties2.properties.limits.minStorageBufferOffsetAlignment,
-            StorageBufferMaxRange = _properties2.properties.limits.maxStorageBufferRange,
+            MinConstantBufferOffsetAlignment = (uint)_properties2.properties.limits.minUniformBufferOffsetAlignment,
+            MaxConstantBufferBindingSize = _properties2.properties.limits.maxUniformBufferRange,
+            MinStorageBufferOffsetAlignment = (uint)_properties2.properties.limits.minStorageBufferOffsetAlignment,
+            MaxStorageBufferBindingSize = _properties2.properties.limits.maxStorageBufferRange,
 
             MaxBufferSize = ulong.MaxValue,
             MaxPushConstantsSize = _properties2.properties.limits.maxPushConstantsSize,

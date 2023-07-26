@@ -18,7 +18,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly void* pMappedData;
+    public readonly void* pMappedData;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
         : base(description)

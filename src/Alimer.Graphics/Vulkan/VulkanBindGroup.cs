@@ -100,7 +100,7 @@ internal unsafe class VulkanBindGroup : BindGroup
             switch (descriptorType)
             {
                 case VkDescriptorType.Sampler:
-                    VulkanSampler backendSampler = ((VulkanSampler)entry.Sampler);
+                    VulkanSampler backendSampler = ((VulkanSampler)entry.Sampler!);
                     imageInfos[i].sampler = backendSampler.Handle;
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
@@ -109,7 +109,7 @@ internal unsafe class VulkanBindGroup : BindGroup
                 case VkDescriptorType.UniformBufferDynamic:
                 case VkDescriptorType.StorageBuffer:
                 case VkDescriptorType.StorageBufferDynamic:
-                    VulkanBuffer vulkanBuffer = ((VulkanBuffer)entry.Buffer);
+                    VulkanBuffer vulkanBuffer = ((VulkanBuffer)entry.Buffer!);
                     bufferInfos[i].buffer = vulkanBuffer.Handle;
                     bufferInfos[i].offset = entry.Offset;
                     bufferInfos[i].range = entry.Size;
@@ -117,7 +117,7 @@ internal unsafe class VulkanBindGroup : BindGroup
                     break;
 
                 case VkDescriptorType.SampledImage:
-                    VulkanTexture backendBuffer = ((VulkanTexture)entry.Texture);
+                    VulkanTexture backendBuffer = ((VulkanTexture)entry.Texture!);
                     imageInfos[i].sampler = VkSampler.Null;
                     imageInfos[i].imageView = backendBuffer.GetView(0, 0);
                     imageInfos[i].imageLayout = VkImageLayout.ShaderReadOnlyOptimal;

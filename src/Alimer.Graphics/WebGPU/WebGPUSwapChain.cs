@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using WebGPU;
 using static WebGPU.WebGPU;
 
@@ -12,7 +11,8 @@ internal unsafe class WebGPUSwapChain : SwapChain
 {
     private readonly WebGPUGraphicsDevice _device;
     private readonly WGPUSurface _surface;
-    public readonly object LockObject = new();
+    private WGPUTextureView _acquiredTexture = default;
+    private readonly Dictionary<WGPUTextureView, WebGPUTexture> _backendTextures = new();
 
     public WebGPUSwapChain(WebGPUGraphicsDevice device, ISwapChainSurface surfaceSource, in SwapChainDescription descriptor)
         : base(surfaceSource, descriptor)
@@ -149,7 +149,6 @@ internal unsafe class WebGPUSwapChain : SwapChain
     public override GraphicsDevice Device => _device;
     public WGPUTextureFormat SwapChainFormat { get; private set; }
     public WGPUSwapChain Handle { get; private set; }
-    public WGPUTextureView CurrentTexture => wgpuSwapChainGetCurrentTextureView(Handle);
 
     /// <summary>
     /// Finalizes an instance of the <see cref="WebGPUSwapChain" /> class.
@@ -172,26 +171,13 @@ internal unsafe class WebGPUSwapChain : SwapChain
             presentMode = PresentMode.ToWebGPU()
         };
         Handle = wgpuDeviceCreateSwapChain(_device.Handle, _surface, &swapChainDesc);
-
-        //for (int i = 0; i < swapChainImages.Length; i++)
-        //{
-        //    TextureDescription descriptor = TextureDescription.Texture2D(
-        //        PixelFormat.Bgra8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
-        //        createInfo.imageExtent.width,
-        //        createInfo.imageExtent.height,
-        //        usage: TextureUsage.RenderTarget,
-        //        label: $"BackBuffer texture {i}"
-        //    );
-        //
-        //    _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], descriptor);
-        //}
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            
+
         }
 
         base.Dispose(disposing);
@@ -201,7 +187,7 @@ internal unsafe class WebGPUSwapChain : SwapChain
     protected internal override void Destroy()
     {
         wgpuSwapChainRelease(Handle);
-        wgpuSurfaceRelease( _surface);
+        wgpuSurfaceRelease(_surface);
     }
 
     /// <inheritdoc />
@@ -213,5 +199,30 @@ internal unsafe class WebGPUSwapChain : SwapChain
     protected override void ResizeBackBuffer()
     {
 
+    }
+
+    public Texture? AcquireNextTexture()
+    {
+        WGPUTextureView nextTextureView = wgpuSwapChainGetCurrentTextureView(Handle);
+        if (nextTextureView.IsNull)
+            return null;
+
+        _acquiredTexture = nextTextureView;
+        if (!_backendTextures.TryGetValue(nextTextureView, out WebGPUTexture? texture))
+        {
+            texture = new WebGPUTexture(_device, nextTextureView, TextureDescription.Texture2D(PixelFormat.Bgra8UnormSrgb, (uint)DrawableSize.Width, (uint)DrawableSize.Height));
+            _backendTextures.Add(nextTextureView, texture);
+        }
+
+        return texture;
+    }
+
+    public void ReleaseCurrentTexture()
+    {
+        if (_acquiredTexture.IsNull)
+            return;
+
+        wgpuTextureViewRelease(_acquiredTexture);
+        _acquiredTexture = WGPUTextureView.Null;
     }
 }

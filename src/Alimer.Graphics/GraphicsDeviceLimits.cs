@@ -14,11 +14,11 @@ public struct GraphicsDeviceLimits
 
     public uint UploadBufferTextureRowAlignment;
     public uint UploadBufferTextureSliceAlignment;
-    public uint ConstantBufferMinOffsetAlignment;
-    public uint ConstantBufferMaxRange;
+    public uint MinConstantBufferOffsetAlignment;
+    public ulong MaxConstantBufferBindingSize;
 
-    public uint StorageBufferMinOffsetAlignment;
-    public uint StorageBufferMaxRange;
+    public uint MinStorageBufferOffsetAlignment;
+    public ulong MaxStorageBufferBindingSize;
 
     public ulong MaxBufferSize;
     public uint MaxPushConstantsSize;

@@ -81,11 +81,12 @@ internal unsafe class WebGPUTexture : Texture
         }
     }
 
-    public WebGPUTexture(WebGPUGraphicsDevice device, WGPUTexture existingTexture, in TextureDescription descriptor)
+    public WebGPUTexture(WebGPUGraphicsDevice device, WGPUTextureView existingTexture, in TextureDescription descriptor)
         : base(descriptor)
     {
         _device = device;
-        Handle = existingTexture;
+        //Handle = existingTexture;
+        _views.Add(0, existingTexture);
         WebGPUFormat = descriptor.Format.ToWebGPU();
 
         if (!string.IsNullOrEmpty(descriptor.Label))

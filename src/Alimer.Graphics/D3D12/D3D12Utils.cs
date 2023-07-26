@@ -23,12 +23,6 @@ internal static unsafe class D3D12Utils
     public static D3D12_HEAP_PROPERTIES UploadHeapProps => new(D3D12_HEAP_TYPE_UPLOAD);
     public static D3D12_HEAP_PROPERTIES ReadbackHeapProps => new(D3D12_HEAP_TYPE_READBACK);
 
-    private static readonly D3D12_RESOURCE_DIMENSION[] s_d3dImageTypeMap = new D3D12_RESOURCE_DIMENSION[(int)TextureDimension.Count] {
-        D3D12_RESOURCE_DIMENSION_TEXTURE1D,
-        D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-        D3D12_RESOURCE_DIMENSION_TEXTURE3D,
-    };
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_COMMAND_LIST_TYPE ToD3D12(this QueueType queue)
     {
@@ -43,7 +37,16 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_RESOURCE_DIMENSION ToD3D12(this TextureDimension value) => s_d3dImageTypeMap[(uint)value];
+    public static D3D12_RESOURCE_DIMENSION ToD3D12(this TextureDimension value)
+    {
+        return value switch
+        {
+            TextureDimension.Texture1D => D3D12_RESOURCE_DIMENSION_TEXTURE1D,
+            TextureDimension.Texture2D => D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+            TextureDimension.Texture3D => D3D12_RESOURCE_DIMENSION_TEXTURE3D,
+            _ => D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        };
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_COMPARISON_FUNC ToD3D12(this CompareFunction function)

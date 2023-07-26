@@ -29,13 +29,15 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         SamplerRootParameterIndex = ~0u;
         PushConstantsBaseIndex = ~0u;
 
+        // TODO: Handle dynamic constant buffers
         int setLayoutCount = description.BindGroupLayouts.Length;
         List<D3D12_DESCRIPTOR_RANGE1> cbvUavSrvDescriptorRanges = new();
+        List<D3D12_DESCRIPTOR_RANGE1> samplerDescriptorRanges = new();
 
         for (int i = 0; i < setLayoutCount; i++)
         {
             D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
-            if (bindGroupLayout._cbvUavSrvDescriptorRanges.Count > 0)
+            if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
             {
                 Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout._cbvUavSrvDescriptorRanges);
                 foreach (ref D3D12_DESCRIPTOR_RANGE1 range in descriptorRanges)
@@ -46,12 +48,26 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                     cbvUavSrvDescriptorRanges.Add(range);
                 }
             }
+
+            if (bindGroupLayout.DescriptorTableSizeSamplers > 0)
+            {
+                Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout._samplerDescriptorRanges);
+                foreach (ref D3D12_DESCRIPTOR_RANGE1 range in descriptorRanges)
+                {
+                    Debug.Assert(range.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
+                    range.RegisterSpace = (uint)i;
+
+                    samplerDescriptorRanges.Add(range);
+                }
+            }
         }
 
         int pushConstantRangeCount = description.PushConstantRanges.Length;
 
         int rootParameterCount = 0;
         if (cbvUavSrvDescriptorRanges.Count > 0)
+            rootParameterCount++;
+        if (samplerDescriptorRanges.Count > 0)
             rootParameterCount++;
         rootParameterCount += pushConstantRangeCount;
         int staticSamplerDescCount = 0;
@@ -66,6 +82,22 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
             uint numDescriptorRanges = (uint)cbvUavSrvDescriptorRanges.Count;
             Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(cbvUavSrvDescriptorRanges);
+
+            rootParameters[rootParameterIndex].InitAsDescriptorTable(
+                numDescriptorRanges,
+                (D3D12_DESCRIPTOR_RANGE1*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(descriptorRanges)),
+                D3D12_SHADER_VISIBILITY_ALL
+            );
+
+            rootParameterIndex++;
+        }
+
+        if (samplerDescriptorRanges.Count > 0)
+        {
+            SamplerRootParameterIndex = (uint)rootParameterIndex;
+
+            uint numDescriptorRanges = (uint)samplerDescriptorRanges.Count;
+            Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(samplerDescriptorRanges);
 
             rootParameters[rootParameterIndex].InitAsDescriptorTable(
                 numDescriptorRanges,

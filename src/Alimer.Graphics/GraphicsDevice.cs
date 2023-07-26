@@ -79,6 +79,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
                 return false;
 #endif
 
+#if !EXCLUDE_WEBGPU_BACKEND
+            case GraphicsBackendType.WebGPU:
+                return WebGPU.WebGPUGraphicsDevice.IsSupported();
+#endif
+
             default:
                 return false;
         }
@@ -126,6 +131,15 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
 #if !EXCLUDE_METAL_BACKEND
             case GraphicsBackendType.Metal:
+                break;
+#endif
+
+#if !EXCLUDE_WEBGPU_BACKEND
+            case GraphicsBackendType.WebGPU:
+                if (WebGPU.WebGPUGraphicsDevice.IsSupported())
+                {
+                    device = new WebGPU.WebGPUGraphicsDevice(in description);
+                }
                 break;
 #endif
 

@@ -24,7 +24,6 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
     public WebGPUCommandBuffer(WebGPUCommandQueue queue)
     {
         _queue = queue;
-
     }
 
     /// <inheritdoc />
@@ -41,7 +40,7 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
             PopDebugGroup();
         }
 
-        _queue.Commit(this, _encoder);
+        _queue.Commit(_encoder);
         _encoder = default;
     }
 
@@ -227,8 +226,16 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
     {
-        var backendSwapChain = (WebGPUSwapChain)swapChain;
-        return null;
+        WebGPUSwapChain backendSwapChain = (WebGPUSwapChain)swapChain;
+
+        Texture nextTexture = backendSwapChain.AcquireNextTexture();
+        if (nextTexture is null)
+        {
+            return null;
+        }
+
+        _queue.QueuePresent(backendSwapChain);
+        return nextTexture;
     }
     #endregion RenderContext Methods
 }

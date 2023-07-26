@@ -96,58 +96,43 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
 
         //TimestampFrequency = (ulong)(1.0 / _properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
 
-        //_limits = new GraphicsDeviceLimits
-        //{
-        //    MaxTextureDimension1D = _properties2.properties.limits.maxImageDimension1D,
-        //    MaxTextureDimension2D = _properties2.properties.limits.maxImageDimension2D,
-        //    MaxTextureDimension3D = _properties2.properties.limits.maxImageDimension3D,
-        //    MaxTextureDimensionCube = _properties2.properties.limits.maxImageDimensionCube,
-        //    MaxTextureArrayLayers = _properties2.properties.limits.maxImageArrayLayers,
-        //    MaxTexelBufferDimension2D = _properties2.properties.limits.maxTexelBufferElements,
+        _limits = new GraphicsDeviceLimits
+        {
+            MaxTextureDimension1D = AdapterLimits.limits.maxTextureDimension1D,
+            MaxTextureDimension2D = AdapterLimits.limits.maxTextureDimension2D,
+            MaxTextureDimension3D = AdapterLimits.limits.maxTextureDimension3D,
+            MaxTextureDimensionCube = 2048,
+            MaxTextureArrayLayers = AdapterLimits.limits.maxTextureArrayLayers,
+            MaxTexelBufferDimension2D = 1, //AdapterLimits.limits.maxTexelBufferElements,
 
-        //    UploadBufferTextureRowAlignment = 1,
-        //    UploadBufferTextureSliceAlignment = 1,
-        //    ConstantBufferMinOffsetAlignment = (uint)_properties2.properties.limits.minUniformBufferOffsetAlignment,
-        //    ConstantBufferMaxRange = _properties2.properties.limits.maxUniformBufferRange,
-        //    StorageBufferMinOffsetAlignment = (uint)_properties2.properties.limits.minStorageBufferOffsetAlignment,
-        //    StorageBufferMaxRange = _properties2.properties.limits.maxStorageBufferRange,
+            UploadBufferTextureRowAlignment = 1,
+            UploadBufferTextureSliceAlignment = 1,
+            MinConstantBufferOffsetAlignment = AdapterLimits.limits.minUniformBufferOffsetAlignment,
+            MaxConstantBufferBindingSize = AdapterLimits.limits.maxUniformBufferBindingSize,
+            MinStorageBufferOffsetAlignment = AdapterLimits.limits.minStorageBufferOffsetAlignment,
+            MaxStorageBufferBindingSize = AdapterLimits.limits.maxStorageBufferBindingSize,
 
-        //    MaxBufferSize = ulong.MaxValue,
-        //    MaxPushConstantsSize = _properties2.properties.limits.maxPushConstantsSize,
+            MaxBufferSize = AdapterLimits.limits.maxBufferSize,
+            MaxPushConstantsSize = 256,
 
-        //    MaxVertexBuffers = _properties2.properties.limits.maxVertexInputBindings,
-        //    MaxVertexAttributes = _properties2.properties.limits.maxVertexInputAttributes,
-        //    MaxVertexBufferArrayStride = Math.Min(_properties2.properties.limits.maxVertexInputBindingStride, _properties2.properties.limits.maxVertexInputAttributeOffset + 1),
+            MaxVertexBuffers = AdapterLimits.limits.maxVertexBuffers,
+            MaxVertexAttributes = AdapterLimits.limits.maxVertexAttributes,
+            MaxVertexBufferArrayStride = AdapterLimits.limits.maxVertexBufferArrayStride,
 
-        //    MaxViewports = _properties2.properties.limits.maxViewports,
-        //    MaxColorAttachments = _properties2.properties.limits.maxColorAttachments,
+            MaxViewports = 1u, //AdapterLimits.limits.maxViewports,
+            MaxColorAttachments = Math.Max(8, AdapterLimits.limits.maxColorAttachments),
 
-        //    MaxComputeWorkgroupStorageSize = _properties2.properties.limits.maxComputeSharedMemorySize,
-        //    MaxComputeInvocationsPerWorkGroup = _properties2.properties.limits.maxComputeWorkGroupInvocations,
-        //    MaxComputeWorkGroupSizeX = _properties2.properties.limits.maxComputeWorkGroupSize[0],
-        //    MaxComputeWorkGroupSizeY = _properties2.properties.limits.maxComputeWorkGroupSize[1],
-        //    MaxComputeWorkGroupSizeZ = _properties2.properties.limits.maxComputeWorkGroupSize[2],
+            MaxComputeWorkgroupStorageSize = AdapterLimits.limits.maxComputeWorkgroupStorageSize,
+            MaxComputeInvocationsPerWorkGroup = AdapterLimits.limits.maxComputeInvocationsPerWorkgroup,
+            MaxComputeWorkGroupSizeX = AdapterLimits.limits.maxComputeWorkgroupSizeX,
+            MaxComputeWorkGroupSizeY = AdapterLimits.limits.maxComputeWorkgroupSizeY,
+            MaxComputeWorkGroupSizeZ = AdapterLimits.limits.maxComputeWorkgroupSizeZ,
+            MaxComputeWorkGroupsPerDimension = AdapterLimits.limits.maxComputeWorkgroupsPerDimension,
 
-        //    MaxComputeWorkGroupsPerDimension = Math.Min(_properties2.properties.limits.maxComputeWorkGroupCount[0], Math.Min(_properties2.properties.limits.maxComputeWorkGroupCount[1], _properties2.properties.limits.maxComputeWorkGroupCount[2])),
-
-        //    SamplerMaxAnisotropy = (ushort)PhysicalDeviceProperties.properties.limits.maxSamplerAnisotropy,
-        //    SamplerMinLodBias = -PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
-        //    SamplerMaxLodBias = PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
-        //};
-
-        //if (fragmentShadingRateFeatures.attachmentFragmentShadingRate)
-        //{
-        //    _limits.VariableRateShadingTileSize = Math.Min(fragmentShadingRateProperties.maxFragmentShadingRateAttachmentTexelSize.width, fragmentShadingRateProperties.maxFragmentShadingRateAttachmentTexelSize.height);
-        //}
-
-        //if (QueryFeatureSupport(Feature.RayTracing))
-        //{
-        //    _limits.RayTracingShaderGroupIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
-        //    _limits.RayTracingShaderTableAligment = rayTracingPipelineProperties.shaderGroupBaseAlignment;
-        //    _limits.RayTracingShaderTableMaxStride = rayTracingPipelineProperties.maxShaderGroupStride;
-        //    _limits.RayTracingShaderRecursionMaxDepth = rayTracingPipelineProperties.maxRayRecursionDepth;
-        //    _limits.RayTracingMaxGeometryCount = (uint)accelerationStructureProperties.maxGeometryCount;
-        //}
+            SamplerMaxAnisotropy = 16,
+            //SamplerMinLodBias = -PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
+            //SamplerMaxLodBias = PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
+        };
 
         void OnAdapterRequestEnded(WGPURequestAdapterStatus status, WGPUAdapter candidateAdapter, sbyte* message, nint pUserData)
         {
@@ -306,13 +291,12 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override void FinishFrame()
     {
-        // Final submits with fences
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
 
-            //_queues[i].Submit(_queues[i].FrameFence);
+            _queues[i].Submit();
         }
 
         AdvanceFrame();
@@ -326,38 +310,6 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
         }
 
         ProcessDeletionQueue();
-    }
-
-    public override void WriteShadingRateValue(ShadingRate rate, void* dest)
-    {
-        // How to compute shading rate value texel data:
-        // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#primsrast-fragment-shading-rate-attachment
-
-        switch (rate)
-        {
-            default:
-            case ShadingRate.Rate1x1:
-                *(byte*)dest = 0;
-                break;
-            case ShadingRate.Rate1x2:
-                *(byte*)dest = 0x1;
-                break;
-            case ShadingRate.Rate2x1:
-                *(byte*)dest = 0x4;
-                break;
-            case ShadingRate.Rate2x2:
-                *(byte*)dest = 0x5;
-                break;
-            case ShadingRate.Rate2x4:
-                *(byte*)dest = 0x6;
-                break;
-            case ShadingRate.Rate4x2:
-                *(byte*)dest = 0x9;
-                break;
-            case ShadingRate.Rate4x4:
-                *(byte*)dest = 0xa;
-                break;
-        }
     }
 
     /// <inheritdoc />

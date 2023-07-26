@@ -4,7 +4,8 @@
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static Alimer.Graphics.D3D.D3DUtils;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.D3D12_TEXTURE_LAYOUT;
 using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
@@ -13,6 +14,7 @@ using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.Windows;
+using static Alimer.Utilities.MemoryUtilities;
 using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
@@ -23,6 +25,11 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private HANDLE _sharedHandle = HANDLE.NULL;
+    private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
+    private readonly ulong* _rowSizesInBytes;
+    private readonly uint* _numRows;
+    private readonly void* pMappedData;
+
     private readonly Dictionary<int, DescriptorIndex> _RTVs = new();
     private readonly Dictionary<int, DescriptorIndex> _DSVs = new();
 
@@ -72,36 +79,58 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             // TODO: What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
         }
 
-        D3D12_RESOURCE_DESC resourceDesc = D3D12_RESOURCE_DESC.Tex2D(
-            DxgiFormat,
-            description.Width,
-            description.Height,
-            (ushort)description.DepthOrArrayLayers,
-            (ushort)description.MipLevelCount,
-            description.SampleCount.ToSampleCount(), 0,
-            resourceFlags);
-        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-        if (initialData == null)
+        D3D12_RESOURCE_STATES initialState = description.InitialLayout.ToD3D12();
+        if (initialData != null)
         {
-            if ((description.Usage & TextureUsage.RenderTarget) != 0)
+            initialState = D3D12_RESOURCE_STATE_COMMON;
+        }
+
+        D3D12_RESOURCE_DESC resourceDesc = new();
+        resourceDesc.Dimension = description.Dimension.ToD3D12();
+        resourceDesc.Alignment = 0;
+        resourceDesc.Width = description.Width;
+        resourceDesc.Height = description.Height;
+        resourceDesc.DepthOrArraySize = (ushort)description.DepthOrArrayLayers;
+        resourceDesc.MipLevels = (ushort)description.MipLevelCount;
+        resourceDesc.Format = DxgiFormat;
+        resourceDesc.SampleDesc = new(description.SampleCount.ToSampleCount(), 0);
+        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        resourceDesc.Flags = resourceFlags;
+
+        ulong allocatedSize = 0;
+        uint numSubResources = Math.Max(1u, resourceDesc.MipLevels) * resourceDesc.DepthOrArraySize;
+        _footprints = AllocateArray<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>(numSubResources);
+        _rowSizesInBytes = AllocateArray<ulong>(numSubResources);
+        _numRows = AllocateArray<uint>(numSubResources);
+        device.Handle->GetCopyableFootprints(
+            &resourceDesc,
+            0,
+            numSubResources,
+            0,
+            _footprints,
+            _numRows,
+            _rowSizesInBytes,
+            &allocatedSize
+        );
+        AllocatedSize = allocatedSize;
+
+        D3D12_CLEAR_VALUE clearValue = default;
+        D3D12_CLEAR_VALUE* pClearValue = null;
+
+        if ((description.Usage & TextureUsage.RenderTarget) != 0)
+        {
+            clearValue.Format = resourceDesc.Format;
+            if (isDepthStencil)
             {
-                if (isDepthStencil)
-                {
-                    initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-                }
-                else
-                {
-                    initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                }
+                clearValue.DepthStencil.Depth = 1.0f;
             }
-            else if ((description.Usage & TextureUsage.ShaderWrite) != 0)
-            {
-                initialState |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-            }
-            else if ((description.Usage & TextureUsage.ShaderRead) != 0)
-            {
-                initialState |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-            }
+            pClearValue = &clearValue;
+        }
+
+        // If shader read/write and depth format, set to typeless
+        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
+        {
+            pClearValue = null;
         }
 
         D3D12MA_ALLOCATION_DESC allocationDesc = new();
@@ -111,7 +140,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             &allocationDesc,
             &resourceDesc,
             initialState,
-            null,
+            pClearValue,
             _allocation.GetAddressOf(),
             __uuidof<ID3D12Resource>(),
             _handle.GetVoidAddressOf()
@@ -138,6 +167,63 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         {
             OnLabelChanged(description.Label!);
         }
+
+        // Issue data copy on request
+        if (initialData != null)
+        {
+            D3D12_SUBRESOURCE_DATA* data = stackalloc D3D12_SUBRESOURCE_DATA[(int)numSubResources];
+            for (uint i = 0; i < numSubResources; ++i)
+            {
+                ref TextureData subresourceData = ref initialData[i];
+
+                data[i].pData = subresourceData.DataPointer;
+                data[i].RowPitch = (nint)subresourceData.RowPitch;
+                data[i].SlicePitch = (nint)subresourceData.SlicePitch;
+            }
+
+            D3D12UploadContext uploadContext = default;
+            void* mappedData = null;
+            if (description.CpuAccess == CpuAccessMode.Write)
+            {
+                mappedData = pMappedData;
+            }
+            else
+            {
+                uploadContext = _device.Allocate(allocatedSize);
+                mappedData = uploadContext.UploadBuffer.pMappedData;
+            }
+
+            for (uint i = 0; i < numSubResources; ++i)
+            {
+                if (_rowSizesInBytes[i] > unchecked((ulong)-1))
+                    continue;
+
+                D3D12_MEMCPY_DEST DestData = new();
+                DestData.pData = (void*)((ulong)mappedData + _footprints[i].Offset);
+                DestData.RowPitch = _footprints[i].Footprint.RowPitch;
+                DestData.SlicePitch = _footprints[i].Footprint.RowPitch * _numRows[i];
+                MemcpySubresource(&DestData, &data[i], (nuint)_rowSizesInBytes[i], _numRows[i], _footprints[i].Footprint.Depth);
+
+                if (uploadContext.IsValid)
+                {
+                    D3D12_TEXTURE_COPY_LOCATION Dst = new(_handle, i);
+                    D3D12_TEXTURE_COPY_LOCATION Src = new(uploadContext.UploadBuffer!.Handle, _footprints[i]);
+                    uploadContext.CommandList.Get()->CopyTextureRegion(
+                        &Dst,
+                        0,
+                        0,
+                        0,
+                        &Src,
+                        null
+                    );
+                }
+            }
+
+            if (uploadContext.IsValid)
+            {
+                _device.Submit(in uploadContext);
+            }
+        }
     }
 
     public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription descriptor)
@@ -160,6 +246,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     public ID3D12Resource* Handle => _handle;
     public ResourceStates State { get; set; }
     public ResourceStates TransitioningState { get; set; } = (ResourceStates)uint.MaxValue;
+    public ulong AllocatedSize { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12Texture" /> class.
@@ -188,6 +275,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
         _allocation.Dispose();
         _handle.Dispose();
+        Free(_footprints);
+        Free(_rowSizesInBytes);
+        Free(_numRows);
     }
 
     /// <inheritdoc />

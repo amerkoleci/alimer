@@ -1,6 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Alimer.Graphics;
@@ -8,22 +9,8 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes data for <see cref="Texture"/>.
 /// </summary>
-public unsafe record struct TextureData
+public unsafe struct TextureData
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TextureData"/> struct.
-    /// </summary>
-    /// <param name="dataPointer">The data pointer.</param>
-    /// <param name="rowPitch">The row pitch.</param>
-    /// <param name="slicePitch">The slice pitch.</param>
-    [SetsRequiredMembers]
-    public TextureData(nint dataPointer, uint rowPitch, uint slicePitch)
-    {
-        DataPointer = dataPointer;
-        RowPitch = rowPitch;
-        SlicePitch = slicePitch;
-    }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="TextureData"/> struct.
     /// </summary>
@@ -33,7 +20,7 @@ public unsafe record struct TextureData
     [SetsRequiredMembers]
     public TextureData(void* dataPointer, uint rowPitch, uint slicePitch)
     {
-        DataPointer = (nint)dataPointer;
+        DataPointer = dataPointer;
         RowPitch = rowPitch;
         SlicePitch = slicePitch;
     }
@@ -41,7 +28,7 @@ public unsafe record struct TextureData
     /// <summary>
     /// Pointer to the data.
     /// </summary>
-    public required nint DataPointer { get; init; }
+    public required void* DataPointer { get; init; }
 
     /// <summary>
     /// Gets the number of bytes per row.
