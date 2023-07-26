@@ -10,14 +10,6 @@ namespace Alimer.Graphics;
 /// </summary>
 public readonly record struct PushConstantRange
 {
-    /// <summary>
-    /// Register index to bind to (supplied in shader).
-    /// </summary>
-    public required uint ShaderRegister { get; init; }
-
-    /// Size in bytes.
-    public required uint Size { get; init; }
-
     [SetsRequiredMembers]
     public PushConstantRange(uint shaderRegister, uint size)
     {
@@ -31,4 +23,13 @@ public readonly record struct PushConstantRange
         ShaderRegister = shaderRegister;
         Size = (uint)size;
     }
+
+    /// <summary>
+    /// Register index to bind to (supplied in shader).
+    /// </summary>
+    public required uint ShaderRegister { get; init; }
+
+    /// Size in bytes.
+    public required uint Size { get; init; }
+
 };

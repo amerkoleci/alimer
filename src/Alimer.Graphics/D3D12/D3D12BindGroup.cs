@@ -29,17 +29,69 @@ internal unsafe class D3D12BindGroup : BindGroup
             uint descriptorTableBaseIndex = _device.ShaderResourceViewHeap.AllocateDescriptors(_layout.DescriptorTableSizeCbvUavSrv);
             DescriptorTableCbvUavSrv = descriptorTableBaseIndex;
 
-            uint baseBinding = 0;
             foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout._cbvUavSrvDescriptorRanges)
             {
                 for (uint index = 0; index < range.NumDescriptors; ++index)
                 {
-                    uint binding = range.BaseShaderRegister + index + baseBinding;
+                    uint binding = range.BaseShaderRegister + index;
 
                     D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.ShaderResourceViewHeap.GetCpuHandle(
-                        descriptorTableBaseIndex + /*range.OffsetInDescriptorsFromTableStart*/ + baseBinding + index);
+                        descriptorTableBaseIndex + range.OffsetInDescriptorsFromTableStart + index);
 
-                    if (binding > description.Entries.Length - 1)
+                    bool found = false;
+                    foreach (BindGroupEntry entry in description.Entries)
+                    {
+                        if (entry.Binding != binding)
+                            continue;
+
+                        if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && entry.Texture != null)
+                        {
+                            //if (entry.Buffer != null)
+                            //{
+                            //    D3D12Buffer buffer = (D3D12Buffer)entry.Buffer;
+                            //    ulong offset = entry.Offset;
+                            //
+                            //    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
+                            //    {
+                            //        BufferLocation = buffer.GpuAddress + offset,
+                            //        SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
+                            //    };
+                            //    device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
+                            //}
+                            //else
+                            {
+                                D3D12Texture backendTexture = (D3D12Texture)entry.Texture!;
+                                D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = new()
+                                {
+                                    Format = backendTexture.DxgiFormat,
+                                    ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+                                    Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+                                };
+                                viewDesc.Texture2D.MostDetailedMip = 0;
+                                viewDesc.Texture1D.MipLevels = backendTexture.MipLevelCount;
+                                _device.Handle->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
+                            }
+
+                            found = true;
+                            break;
+                        }
+                        else if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && entry.Buffer != null)
+                        {
+                            D3D12Buffer buffer = (D3D12Buffer)entry.Buffer;
+                            ulong offset = entry.Offset;
+
+                            D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
+                            {
+                                BufferLocation = buffer.GpuAddress + offset,
+                                SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
+                            };
+                            device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
                     {
                         // Create a null SRV, UAV, or CBV
                         switch (range.RangeType)
@@ -61,59 +113,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 ThrowHelper.ThrowArgumentException(nameof(range.RangeType), "Invalid range type");
                                 break;
                         }
-
-                        continue;
                     }
-
-                    ref readonly BindGroupEntry entry = ref description.Entries[binding];
-
-                    switch (range.RangeType)
-                    {
-                        case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-                            if (entry.Buffer != null)
-                            {
-                                D3D12Buffer buffer = (D3D12Buffer)entry.Buffer;
-                                ulong offset = entry.Offset;
-
-                                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
-                                {
-                                    BufferLocation = buffer.GpuAddress + offset,
-                                    SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
-                                };
-                                device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
-                            }
-                            break;
-
-                        case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
-                            if (entry.Buffer != null)
-                            {
-                                D3D12Buffer buffer = (D3D12Buffer)entry.Buffer;
-                                ulong offset = entry.Offset;
-
-                                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
-                                {
-                                    BufferLocation = buffer.GpuAddress + offset,
-                                    SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
-                                };
-                                device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
-                            }
-                            else
-                            {
-                                D3D12Texture backendTexture = (D3D12Texture)entry.Texture!;
-                                D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = new()
-                                {
-                                    Format = backendTexture.DxgiFormat,
-                                    ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
-                                    Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
-                                };
-                                viewDesc.Texture2D.MostDetailedMip = 0;
-                                viewDesc.Texture1D.MipLevels = backendTexture.MipLevelCount;
-                                _device.Handle->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
-                            }
-                            break;
-                    }
-
-                    baseBinding++;
                 }
             }
 
@@ -131,7 +131,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                 {
                     uint binding = range.BaseShaderRegister + index;
 
-                    D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.SamplerHeap.GetCpuHandle(descriptorTableBaseIndex + index);
+                    D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.SamplerHeap.GetCpuHandle(descriptorTableBaseIndex + range.OffsetInDescriptorsFromTableStart + index);
 
                     bool found = false;
                     foreach (BindGroupEntry entry in description.Entries)

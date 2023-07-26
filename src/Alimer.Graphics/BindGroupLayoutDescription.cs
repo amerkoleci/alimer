@@ -43,11 +43,6 @@ public readonly record struct BindGroupLayoutEntry
     }
 
     /// <summary>
-    /// Type of resources in this descriptor binding.
-    /// </summary>
-    public DescriptorType Type { get; init; }
-
-    /// <summary>
     /// Register index to bind to (supplied in shader).
     /// </summary>
     public uint Binding { get; init; }
@@ -56,6 +51,11 @@ public readonly record struct BindGroupLayoutEntry
     /// The shader stage the resources will be accessible to.
     /// </summary>
     public ShaderStages Visibility { get; init; }
+
+    /// <summary>
+    /// Type of resources in this descriptor binding.
+    /// </summary>
+    public DescriptorType Type { get; init; }
 }
 
 public enum DescriptorType : byte

@@ -29,41 +29,32 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
 
-            // This needs to map with ShaderCompiler
-            const uint constantBuffer = 0;
-            const uint shaderResource = 100;
-            const uint unorderedAccess = 200;
-            const uint sampler = 300;
-
             VkDescriptorType vkDescriptorType = VkDescriptorType.Sampler;
-            uint registerOffset = 0;
 
             switch (entry.Type)
             {
                 case DescriptorType.ConstantBuffer:
                     vkDescriptorType =  VkDescriptorType.UniformBuffer;
-                    registerOffset = constantBuffer;
                     break;
 
                 case DescriptorType.Sampler:
                     vkDescriptorType = VkDescriptorType.Sampler;
-                    registerOffset = sampler;
                     break;
 
                 case DescriptorType.SampledTexture:
                     vkDescriptorType = VkDescriptorType.SampledImage;
-                    registerOffset = shaderResource;
                     break;
 
                 case DescriptorType.StorageTexture:
                     vkDescriptorType = VkDescriptorType.StorageImage;
-                    registerOffset = unorderedAccess;
                     break;
 
                 default:
                     ThrowHelper.ThrowInvalidOperationException();
                     break;
             }
+
+            uint registerOffset = device.GetRegisterOffset(vkDescriptorType);
 
             _layoutBindings[i] = new VkDescriptorSetLayoutBinding
             {

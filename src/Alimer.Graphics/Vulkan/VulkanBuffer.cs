@@ -102,7 +102,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         }
         else
         {
-            createInfo.usage |= VkBufferUsageFlags.TransferDst;
+            createInfo.usage |= VkBufferUsageFlags.TransferSrc | VkBufferUsageFlags.TransferDst;
         }
 
         VmaAllocationInfo allocationInfo = default;

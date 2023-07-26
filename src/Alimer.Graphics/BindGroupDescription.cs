@@ -17,6 +17,7 @@ public readonly record struct BindGroupDescription
         Entries = entries;
     }
 
+    // TODO: Separate per type (buffers/textures/samplers etc)
     public BindGroupEntry[] Entries { get; init; }
 
     /// <summary>

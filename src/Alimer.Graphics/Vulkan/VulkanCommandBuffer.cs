@@ -256,7 +256,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     protected override void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
     {
-        //Debug.Assert(size <= device->limits.pushConstantsMaxSize);
+        Debug.Assert(size <= _queue.Device.Limits.MaxPushConstantsSize);
         Debug.Assert(_currentPipelineLayout != null);
 
         ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);

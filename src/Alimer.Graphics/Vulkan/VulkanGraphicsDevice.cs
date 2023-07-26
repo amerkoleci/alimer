@@ -42,6 +42,24 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
 
+    private readonly VkBuffer _nullBuffer = default;
+    private readonly VmaAllocation _nullBufferAllocation = default;
+    private readonly VkBufferView _nullBufferView = default;
+    private readonly VmaAllocation _nullImageAllocation1D = default;
+    private readonly VmaAllocation _nullImageAllocation2D = default;
+    private readonly VmaAllocation _nullImageAllocation3D = default;
+    private readonly VkImage _nullImage1D = default;
+    private readonly VkImage _nullImage2D = default;
+    private readonly VkImage _nullImage3D = default;
+    private readonly VkImageView _nullImageView1D = default;
+    private readonly VkImageView _nullImageView1DArray = default;
+    private readonly VkImageView _nullImageView2D = default;
+    private readonly VkImageView _nullImageView2DArray = default;
+    private readonly VkImageView _nullImageViewCube = default;
+    private readonly VkImageView _nullImageViewCubeArray = default;
+    private readonly VkImageView _nullImageView3D = default;
+    private readonly VkSampler _nullSampler = default;
+
     public static bool IsSupported() => s_isSupported.Value;
 
     public VulkanGraphicsDevice(in GraphicsDeviceDescription description)
@@ -987,9 +1005,134 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         // Create default null descriptors
         {
-            VkSamplerCreateInfo createInfo = new();
-            ThrowIfFailed(vkCreateSampler(_handle, &createInfo, null, out VkSampler nullSampler));
-            NullSampler = nullSampler;
+            VkBufferCreateInfo bufferInfo = new()
+            {
+                flags = 0,
+                size = 4,
+                usage = VkBufferUsageFlags.UniformBuffer | VkBufferUsageFlags.UniformTexelBuffer | VkBufferUsageFlags.StorageTexelBuffer | VkBufferUsageFlags.StorageBuffer | VkBufferUsageFlags.VertexBuffer,
+            };
+
+            VmaAllocationCreateInfo allocInfo = new()
+            {
+                preferredFlags = VkMemoryPropertyFlags.DeviceLocal
+            };
+            vmaCreateBuffer(_allocator, &bufferInfo, &allocInfo, out _nullBuffer, out _nullBufferAllocation).DebugCheckResult();
+
+            VkBufferViewCreateInfo viewInfo = new()
+            {
+                format = VkFormat.R32G32B32A32Sfloat,
+                range = VK_WHOLE_SIZE,
+                buffer = _nullBuffer
+            };
+            vkCreateBufferView(_handle, &viewInfo, null, out _nullBufferView).DebugCheckResult();
+
+            VkImageCreateInfo imageInfo = new();
+            imageInfo.extent.width = 1;
+            imageInfo.extent.height = 1;
+            imageInfo.extent.depth = 1;
+            imageInfo.format = VkFormat.R8G8B8A8Unorm;
+            imageInfo.arrayLayers = 1;
+            imageInfo.mipLevels = 1;
+            imageInfo.samples = VkSampleCountFlags.Count1;
+            imageInfo.initialLayout = VkImageLayout.Undefined;
+            imageInfo.tiling = VkImageTiling.Optimal;
+            imageInfo.usage = VkImageUsageFlags.Sampled | VkImageUsageFlags.Storage;
+            imageInfo.flags = 0;
+
+            allocInfo.usage = VmaMemoryUsage.GpuOnly;
+
+            imageInfo.imageType = VkImageType.Image1D;
+            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage1D, out _nullImageAllocation1D).DebugCheckResult();
+
+            imageInfo.imageType = VkImageType.Image2D;
+            imageInfo.flags = VkImageCreateFlags.CubeCompatible;
+            imageInfo.arrayLayers = 6;
+            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage2D, out _nullImageAllocation2D).DebugCheckResult();
+
+            imageInfo.imageType = VkImageType.Image3D;
+            imageInfo.flags = 0;
+            imageInfo.arrayLayers = 1;
+            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage3D, out _nullImageAllocation3D).DebugCheckResult();
+
+            // Transitions:
+            {
+                VulkanUploadContext uploadContext = Allocate(0);
+
+                VkImageMemoryBarrier2 barrier = new();
+                barrier.oldLayout = imageInfo.initialLayout;
+                barrier.newLayout = VkImageLayout.General;
+                barrier.srcStageMask = VkPipelineStageFlags2.Transfer;
+                barrier.srcAccessMask = 0;
+                barrier.dstStageMask = VkPipelineStageFlags2.AllCommands;
+                barrier.dstAccessMask = VkAccessFlags2.ShaderRead | VkAccessFlags2.ShaderWrite;
+                barrier.subresourceRange.aspectMask = VkImageAspectFlags.Color;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = _nullImage1D;
+                barrier.subresourceRange.layerCount = 1;
+
+                VkDependencyInfo dependencyInfo = new()
+                {
+                    imageMemoryBarrierCount = 1,
+                    pImageMemoryBarriers = &barrier
+                };
+
+                vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+
+                barrier.image = _nullImage2D;
+                barrier.subresourceRange.layerCount = 6;
+                vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+
+                barrier.image = _nullImage3D;
+                barrier.subresourceRange.layerCount = 1;
+                vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+
+                Submit(in uploadContext);
+            }
+
+            VkImageViewCreateInfo imageViewInfo = new();
+            imageViewInfo.subresourceRange.aspectMask = VkImageAspectFlags.Color;
+            imageViewInfo.subresourceRange.baseArrayLayer = 0;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            imageViewInfo.subresourceRange.baseMipLevel = 0;
+            imageViewInfo.subresourceRange.levelCount = 1;
+            imageViewInfo.format = VkFormat.R8G8B8A8Unorm;
+            imageViewInfo.image = _nullImage1D;
+            imageViewInfo.viewType = VkImageViewType.Image1D;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1D).DebugCheckResult();
+
+            imageViewInfo.image = _nullImage1D;
+            imageViewInfo.viewType = VkImageViewType.Image1DArray;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1DArray).DebugCheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.Image2D;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2D).DebugCheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.Image2DArray;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2DArray).DebugCheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.ImageCube;
+            imageViewInfo.subresourceRange.layerCount = 6;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCube).DebugCheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.ImageCubeArray;
+            imageViewInfo.subresourceRange.layerCount = 6;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCubeArray).DebugCheckResult();
+
+            imageViewInfo.image = _nullImage3D;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            imageViewInfo.viewType = VkImageViewType.Image3D;
+            vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).DebugCheckResult();
+
+            VkSamplerCreateInfo samplerInfo = new();
+            ThrowIfFailed(vkCreateSampler(_handle, &samplerInfo, null, out _nullSampler));
         }
 
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
@@ -1034,8 +1177,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             MaxComputeWorkGroupsPerDimension = Math.Min(_properties2.properties.limits.maxComputeWorkGroupCount[0], Math.Min(_properties2.properties.limits.maxComputeWorkGroupCount[1], _properties2.properties.limits.maxComputeWorkGroupCount[2])),
 
             SamplerMaxAnisotropy = (ushort)PhysicalDeviceProperties.properties.limits.maxSamplerAnisotropy,
-            SamplerMinLodBias = -PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
-            SamplerMaxLodBias = PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
         };
 
         if (fragmentShadingRateFeatures.attachmentFragmentShadingRate)
@@ -1107,7 +1248,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VmaAllocator MemoryAllocator => _allocator;
     public VkPipelineCache PipelineCache => _pipelineCache;
-    public VkSampler NullSampler { get; }
+
+    public VkBuffer NullBuffer => _nullBuffer;
+    public VkImageView NullImage1DView => _nullImageView1D;
+    public VkImageView NullImage2DView => _nullImageView2D;
+    public VkImageView NullImage3DView => _nullImageView3D;
+    public VkSampler NullSampler => _nullSampler;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanGraphicsDevice" /> class.
@@ -1133,7 +1279,19 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _copyAllocator.Dispose();
 
             // Destroy null descriptor
-            vkDestroySampler(Handle, NullSampler);
+            vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
+            vkDestroyBufferView(_handle, _nullBufferView);
+            vmaDestroyImage(_allocator, _nullImage1D, _nullImageAllocation1D);
+            vmaDestroyImage(_allocator, _nullImage2D, _nullImageAllocation2D);
+            vmaDestroyImage(_allocator, _nullImage3D, _nullImageAllocation3D);
+            vkDestroyImageView(_handle, _nullImageView1D);
+            vkDestroyImageView(_handle, _nullImageView1DArray);
+            vkDestroyImageView(_handle, _nullImageView2D);
+            vkDestroyImageView(_handle, _nullImageView2DArray);
+            vkDestroyImageView(_handle, _nullImageViewCube);
+            vkDestroyImageView(_handle, _nullImageViewCubeArray);
+            vkDestroyImageView(_handle, _nullImageView3D);
+            vkDestroySampler(_handle, _nullSampler);
 
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
@@ -1515,6 +1673,42 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         vkSetDebugUtilsObjectNameEXT(_handle, objectType, objectHandle, name).DebugCheckResult();
+    }
+
+    public uint GetRegisterOffset(VkDescriptorType type)
+    {
+        // This needs to map with ShaderCompiler
+        const uint constantBuffer = 0;
+        const uint shaderResource = 100;
+        const uint unorderedAccess = 200;
+        const uint sampler = 300;
+
+        switch (type)
+        {
+            case VkDescriptorType.Sampler:
+                return sampler;
+
+            case VkDescriptorType.SampledImage:
+            case VkDescriptorType.UniformTexelBuffer:
+                return shaderResource;
+
+            case VkDescriptorType.StorageImage:
+            case VkDescriptorType.StorageTexelBuffer:
+            case VkDescriptorType.StorageBuffer:
+            case VkDescriptorType.StorageBufferDynamic:
+                return unorderedAccess;
+
+            case VkDescriptorType.UniformBuffer:
+            case VkDescriptorType.UniformBufferDynamic:
+                return constantBuffer;
+
+            case VkDescriptorType.AccelerationStructureKHR:
+                return shaderResource;
+
+            default:
+                ThrowHelper.ThrowInvalidOperationException();
+                return 0;
+        }
     }
 
     [UnmanagedCallersOnly]

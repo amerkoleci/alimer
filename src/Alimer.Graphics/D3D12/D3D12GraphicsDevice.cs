@@ -441,8 +441,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
 
                 SamplerMaxAnisotropy = D3D12_DEFAULT_MAX_ANISOTROPY,
-                SamplerMinLodBias = D3D12_MIP_LOD_BIAS_MIN,
-                SamplerMaxLodBias = D3D12_MIP_LOD_BIAS_MAX,
             };
 
             if (_features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)

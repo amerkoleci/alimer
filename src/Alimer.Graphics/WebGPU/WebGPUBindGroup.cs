@@ -20,7 +20,7 @@ internal unsafe class WebGPUBindGroup : BindGroup
         WGPUBindGroupDescriptor descriptor = new()
         {
             layout = _layout.Handle,
-            entryCount = (nuint) description.Entries.Length,
+            entryCount = (nuint)description.Entries.Length,
         };
 
         Handle = wgpuDeviceCreateBindGroup(device.Handle, &descriptor);

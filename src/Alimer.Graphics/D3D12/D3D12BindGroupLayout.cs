@@ -57,20 +57,23 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                         break;
                 }
 
-                List<D3D12_DESCRIPTOR_RANGE1> descriptorRanges =
-                    descriptorRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ? _samplerDescriptorRanges : _cbvUavSrvDescriptorRanges;
-                descriptorRanges.Add(range);
                 currentType = entry.Type;
                 currentBinding = entry.Binding;
 
                 if (entry.Type == DescriptorType.Sampler)
                 {
+                    range.OffsetInDescriptorsFromTableStart = DescriptorTableSizeSamplers;
+                    _samplerDescriptorRanges.Add(range);
+
                     DescriptorTableSizeSamplers++;
                 }
                 else
                 {
+                    range.OffsetInDescriptorsFromTableStart = DescriptorTableSizeCbvUavSrv;
+                    _cbvUavSrvDescriptorRanges.Add(range);
                     DescriptorTableSizeCbvUavSrv++;
                 }
+
             }
             else
             {

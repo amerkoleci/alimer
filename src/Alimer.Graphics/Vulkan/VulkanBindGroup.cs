@@ -57,71 +57,123 @@ internal unsafe class VulkanBindGroup : BindGroup
         VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[descriptorWriteCount];
         VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[descriptorWriteCount];
         VkDescriptorImageInfo* imageInfos = stackalloc VkDescriptorImageInfo[descriptorWriteCount];
-        VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[descriptorWriteCount];
+        //VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[descriptorWriteCount];
 
-        for (uint i = 0; i < descriptorWriteCount; i++)
+        for (uint i = 0; i < _layout.LayoutBindingCount; i++)
         {
             ref VkDescriptorSetLayoutBinding layoutBinding = ref _layout.GetLayoutBinding(i);
             VkDescriptorType descriptorType = layoutBinding.descriptorType;
 
-            if (i > description.Entries.Length - 1)
-            {
-                // Create a null SRV, UAV, or CBV
-                descriptorWrites[i] = new()
-                {
-                    dstSet = _handle,
-                    dstBinding = layoutBinding.binding,
-                    descriptorCount = 1,
-                    descriptorType = descriptorType
-                };
+            VulkanBuffer? backendBuffer = default;
+            VulkanTexture? backendTexture = default;
+            VulkanSampler? backendSampler = default;
 
-                switch (descriptorType)
+            BindGroupEntry? foundEntry = default;
+            foreach (BindGroupEntry entry in description.Entries)
+            {
+                uint registerOffset = device.GetRegisterOffset(layoutBinding.descriptorType);
+                uint originalBinding = layoutBinding.binding - registerOffset;
+
+                if (entry.Binding != originalBinding)
+                    continue;
+
+                switch (layoutBinding.descriptorType)
                 {
                     case VkDescriptorType.Sampler:
-                        imageInfos[i].sampler = device.NullSampler;
-                        descriptorWrites[i].pImageInfo = &imageInfos[i];
+                        backendSampler = entry.Sampler != null ? (VulkanSampler)entry.Sampler : default;
+                        if (backendSampler == null)
+                            continue;
+                        break;
+
+                    case VkDescriptorType.SampledImage:
+                    case VkDescriptorType.StorageImage:
+                        backendTexture = entry.Texture != null ? (VulkanTexture)entry.Texture : default;
+                        if (backendTexture == null)
+                            continue;
+                        break;
+
+                    case VkDescriptorType.UniformTexelBuffer:
+                    case VkDescriptorType.StorageTexelBuffer:
+                    case VkDescriptorType.StorageBuffer:
+                    case VkDescriptorType.StorageBufferDynamic:
+                        backendBuffer = entry.Buffer != null ? (VulkanBuffer)entry.Buffer : default;
+                        if (backendBuffer == null)
+                            continue;
+                        break;
+
+                    case VkDescriptorType.UniformBuffer:
+                    case VkDescriptorType.UniformBufferDynamic:
+                        backendBuffer = entry.Buffer != null ? (VulkanBuffer)entry.Buffer : default;
+                        if (backendBuffer == null)
+                            continue;
+                        break;
+
+                    //case VkDescriptorType.AccelerationStructureKHR:
+                    //    return shaderResource;
+
+                    default:
                         break;
                 }
 
-                continue;
+                foundEntry = entry;
+                break;
             }
-
-            ref readonly BindGroupEntry entry = ref description.Entries[i];
-
 
             descriptorWrites[i] = new()
             {
                 dstSet = _handle,
                 dstBinding = layoutBinding.binding,
-                descriptorCount = 1,
+                dstArrayElement = 0,
+                descriptorCount = layoutBinding.descriptorCount,
                 descriptorType = descriptorType
             };
 
             switch (descriptorType)
             {
                 case VkDescriptorType.Sampler:
-                    VulkanSampler backendSampler = ((VulkanSampler)entry.Sampler!);
-                    imageInfos[i].sampler = backendSampler.Handle;
+                    imageInfos[i].sampler = foundEntry.HasValue ? backendSampler!.Handle : device.NullSampler;
+                    descriptorWrites[i].pImageInfo = &imageInfos[i];
+                    break;
+
+                case VkDescriptorType.SampledImage:
+                    imageInfos[i].sampler = VkSampler.Null;
+                    if (foundEntry.HasValue)
+                    {
+                        imageInfos[i].imageView = backendTexture!.GetView(0, 0);
+                        imageInfos[i].imageLayout = VkImageLayout.ShaderReadOnlyOptimal;
+                    }
+                    else
+                    {
+                        imageInfos[i].imageView = device.NullImage2DView;
+                        imageInfos[i].imageLayout = VkImageLayout.General;
+                    }
+                    descriptorWrites[i].pImageInfo = &imageInfos[i];
+                    break;
+
+                case VkDescriptorType.StorageImage:
+                    imageInfos[i].sampler = VkSampler.Null;
+                    imageInfos[i].imageView = backendTexture!.GetView(0, 0);
+                    imageInfos[i].imageLayout = VkImageLayout.General;
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
                 case VkDescriptorType.UniformBuffer:
-                case VkDescriptorType.UniformBufferDynamic:
                 case VkDescriptorType.StorageBuffer:
+                case VkDescriptorType.UniformBufferDynamic:
                 case VkDescriptorType.StorageBufferDynamic:
-                    VulkanBuffer vulkanBuffer = ((VulkanBuffer)entry.Buffer!);
-                    bufferInfos[i].buffer = vulkanBuffer.Handle;
-                    bufferInfos[i].offset = entry.Offset;
-                    bufferInfos[i].range = entry.Size;
-                    descriptorWrites[i].pBufferInfo = &bufferInfos[i];
-                    break;
+                    if (backendBuffer != null)
+                    {
+                        bufferInfos[i].buffer = backendBuffer!.Handle;
+                        bufferInfos[i].offset = foundEntry.Value.Offset;
+                        bufferInfos[i].range = foundEntry.Value.Size;
+                    }
+                    else
+                    {
+                        bufferInfos[i].buffer = device.NullBuffer;
+                        bufferInfos[i].range = VK_WHOLE_SIZE;
+                    }
 
-                case VkDescriptorType.SampledImage:
-                    VulkanTexture backendBuffer = ((VulkanTexture)entry.Texture!);
-                    imageInfos[i].sampler = VkSampler.Null;
-                    imageInfos[i].imageView = backendBuffer.GetView(0, 0);
-                    imageInfos[i].imageLayout = VkImageLayout.ShaderReadOnlyOptimal;
-                    descriptorWrites[i].pImageInfo = &imageInfos[i];
+                    descriptorWrites[i].pBufferInfo = &bufferInfos[i];
                     break;
 
                 default:

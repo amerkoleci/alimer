@@ -38,8 +38,6 @@ public struct GraphicsDeviceLimits
     public uint MaxComputeWorkGroupsPerDimension;
 
     public ushort SamplerMaxAnisotropy;
-    public float SamplerMinLodBias;
-    public float SamplerMaxLodBias;
 
     // VariableRateShading
     public uint VariableRateShadingTileSize;
