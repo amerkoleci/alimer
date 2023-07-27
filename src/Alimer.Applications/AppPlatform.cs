@@ -43,6 +43,7 @@ public abstract class AppPlatform : DisposableObject
     }
 
     public abstract void RunMainLoop();
+    public abstract void RequestExit();
 
     protected internal void OnReady()
     {

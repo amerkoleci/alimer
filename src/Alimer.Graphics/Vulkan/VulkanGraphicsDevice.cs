@@ -41,6 +41,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
+    private readonly Dictionary<SamplerDescription, VkSampler> _samplerCache = new();
 
     private readonly VkBuffer _nullBuffer = default;
     private readonly VmaAllocation _nullBufferAllocation = default;
@@ -692,7 +693,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             if (!features2.features.textureCompressionBC &&
                 !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
             {
-                Log.Error("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
                 throw new GraphicsException("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
             }
 
@@ -1131,8 +1131,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageViewInfo.viewType = VkImageViewType.Image3D;
             vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).DebugCheckResult();
 
-            VkSamplerCreateInfo samplerInfo = new();
-            ThrowIfFailed(vkCreateSampler(_handle, &samplerInfo, null, out _nullSampler));
+            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescription()); 
         }
 
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
@@ -1278,6 +1277,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             _copyAllocator.Dispose();
 
+            foreach (VkSampler sampler in _samplerCache.Values)
+            {
+                vkDestroySampler(_handle, sampler);
+            }
+            _samplerCache.Clear();
+
             // Destroy null descriptor
             vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
             vkDestroyBufferView(_handle, _nullBufferView);
@@ -1291,7 +1296,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             vkDestroyImageView(_handle, _nullImageViewCube);
             vkDestroyImageView(_handle, _nullImageViewCubeArray);
             vkDestroyImageView(_handle, _nullImageView3D);
-            vkDestroySampler(_handle, _nullSampler);
 
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
@@ -1584,6 +1588,80 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     protected override Texture CreateTextureCore(in TextureDescription descriptor, TextureData* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
+    }
+
+    public VkSampler GetOrCreateVulkanSampler(in SamplerDescription description)
+    {
+        if (!_samplerCache.TryGetValue(description, out VkSampler sampler))
+        {
+            bool samplerMirrorClampToEdge = PhysicalDeviceFeatures1_2.samplerMirrorClampToEdge;
+
+            // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSamplerCreateInfo.html
+            VkSamplerCreateInfo createInfo = new()
+            {
+                flags = 0,
+                pNext = null,
+                magFilter = description.MagFilter.ToVk(),
+                minFilter = description.MinFilter.ToVk(),
+                mipmapMode = description.MipFilter.ToVk(),
+                addressModeU = description.AddressModeU.ToVk(samplerMirrorClampToEdge),
+                addressModeV = description.AddressModeV.ToVk(samplerMirrorClampToEdge),
+                addressModeW = description.AddressModeW.ToVk(samplerMirrorClampToEdge),
+                mipLodBias = 0.0f,
+            };
+
+            ushort maxAnisotropy = description.MaxAnisotropy;
+            if (maxAnisotropy > 1 && PhysicalDeviceFeatures2.features.samplerAnisotropy)
+            {
+                createInfo.anisotropyEnable = true;
+                createInfo.maxAnisotropy = Math.Min(maxAnisotropy, _properties2.properties.limits.maxSamplerAnisotropy);
+            }
+            else
+            {
+                createInfo.anisotropyEnable = false;
+                createInfo.maxAnisotropy = 1;
+            }
+
+            if (description.ReductionType == SamplerReductionType.Comparison)
+            {
+                createInfo.compareOp = description.CompareFunction.ToVk();
+                createInfo.compareEnable = true;
+            }
+            else
+            {
+                createInfo.compareOp = VkCompareOp.Never;
+                createInfo.compareEnable = false;
+            }
+
+            createInfo.minLod = description.MinLod;
+            createInfo.maxLod = description.MaxLod;
+            createInfo.borderColor = description.BorderColor.ToVk();
+            createInfo.unnormalizedCoordinates = false;
+
+            VkSamplerReductionModeCreateInfo samplerReductionModeInfo = default;
+            if (description.ReductionType == SamplerReductionType.Minimum ||
+                description.ReductionType == SamplerReductionType.Maximum)
+            {
+                samplerReductionModeInfo = new()
+                {
+                    reductionMode = description.ReductionType == SamplerReductionType.Maximum ? VkSamplerReductionMode.Max : VkSamplerReductionMode.Min
+                };
+
+                createInfo.pNext = &samplerReductionModeInfo;
+            }
+
+            VkResult result = vkCreateSampler(_handle, &createInfo, null, &sampler);
+
+            if (result != VkResult.Success)
+            {
+                Log.Error("Vulkan: Failed to create sampler.");
+                return VkSampler.Null;
+            }
+
+            _samplerCache.Add(description, sampler);
+        }
+
+        return sampler;
     }
 
     /// <inheritdoc />

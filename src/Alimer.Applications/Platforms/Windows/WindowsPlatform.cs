@@ -4,6 +4,7 @@
 using Alimer.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.Core;
 
 namespace Alimer;
 
@@ -11,7 +12,6 @@ internal unsafe class WindowsPlatform : AppPlatform
 {
     private readonly WindowsInput _input;
     private readonly SwapChainPanelView _window;
-    private bool _exitRequested;
 
     public WindowsPlatform(SwapChainPanel? swapChainPanel = default)
     {
@@ -49,6 +49,13 @@ internal unsafe class WindowsPlatform : AppPlatform
         _window.Show();
 
         CompositionTarget.Rendering += OnCompositionTargetRendering;
+    }
+
+    /// <inheritdoc />
+    public override void RequestExit()
+    {
+        CompositionTarget.Rendering -= OnCompositionTargetRendering;
+        CoreApplication.Exit();
     }
 
     private void OnCompositionTargetRendering(object? sender, object e)

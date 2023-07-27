@@ -12,4 +12,8 @@
     <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
+  </ItemGroup>
+
 </Project>

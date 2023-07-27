@@ -23,7 +23,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 
         int bindingCount = description.Entries.Length;
 
-        DescriptorType currentType = (DescriptorType)byte.MaxValue;
+        D3D12_DESCRIPTOR_RANGE_TYPE currentType = (D3D12_DESCRIPTOR_RANGE_TYPE)int.MaxValue;
         uint currentBinding = ~0u;
 
         for (int i = 0; i < bindingCount; i++)
@@ -40,8 +40,8 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                 continue;
             }
 
-            D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.Type.ToD3D12();
-            if (!AreResourceTypesCompatible(entry.Type, currentType) || currentBinding == ~0u || entry.Binding != currentBinding + 1)
+            D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.BindingType.ToD3D12();
+            if (!AreResourceTypesCompatible(descriptorRangeType, currentType) || currentBinding == ~0u || entry.Binding != currentBinding + 1)
             {
                 // Start a new range
                 D3D12_DESCRIPTOR_RANGE1 range = new()
@@ -68,10 +68,10 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                         break;
                 }
 
-                currentType = entry.Type;
+                currentType = descriptorRangeType;
                 currentBinding = entry.Binding;
 
-                if (entry.Type == DescriptorType.Sampler)
+                if (descriptorRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
                 {
                     range.OffsetInDescriptorsFromTableStart = DescriptorTableSizeSamplers;
                     _samplerDescriptorRanges.Add(range);
@@ -89,7 +89,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
             else
             {
                 // Extend the current range
-                if (entry.Type == DescriptorType.Sampler)
+                if (descriptorRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
                 {
                     Debug.Assert(_samplerDescriptorRanges.Count > 0);
                     D3D12_DESCRIPTOR_RANGE1 range = _samplerDescriptorRanges[_samplerDescriptorRanges.Count - 1];
@@ -129,25 +129,10 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     {
     }
 
-    private static bool AreResourceTypesCompatible(DescriptorType a, DescriptorType b)
+    private static bool AreResourceTypesCompatible(D3D12_DESCRIPTOR_RANGE_TYPE a, D3D12_DESCRIPTOR_RANGE_TYPE b)
     {
         if (a == b)
             return true;
-
-        //a = GetNormalizedResourceType(a);
-        //b = GetNormalizedResourceType(b);
-        //
-        //if (a == ResourceType::TypedBuffer_SRV && b == ResourceType::Texture_SRV ||
-        //    b == ResourceType::TypedBuffer_SRV && a == ResourceType::Texture_SRV ||
-        //    a == ResourceType::TypedBuffer_SRV && b == ResourceType::RayTracingAccelStruct ||
-        //    a == ResourceType::Texture_SRV && b == ResourceType::RayTracingAccelStruct ||
-        //    b == ResourceType::TypedBuffer_SRV && a == ResourceType::RayTracingAccelStruct ||
-        //    b == ResourceType::Texture_SRV && a == ResourceType::RayTracingAccelStruct)
-        //    return true;
-        //
-        //if (a == ResourceType::TypedBuffer_UAV && b == ResourceType::Texture_UAV ||
-        //    b == ResourceType::TypedBuffer_UAV && a == ResourceType::Texture_UAV)
-        //    return true;
 
         return false;
     }

@@ -14,32 +14,8 @@ internal unsafe class WebGPUSampler : Sampler
         : base(description)
     {
         _device = device;
-
-        fixed (sbyte* pLabel = description.Label.GetUtf8Span())
-        {
-            WGPUSamplerDescriptor descriptor = new()
-            {
-                label = pLabel,
-                addressModeU = description.AddressModeU.ToWebGPU(),
-                addressModeV = description.AddressModeV.ToWebGPU(),
-                addressModeW = description.AddressModeW.ToWebGPU(),
-                magFilter = description.MagFilter.ToWebGPU(),
-                minFilter = description.MinFilter.ToWebGPU(),
-                mipmapFilter = description.MipFilter.ToWebGPU(),
-                lodMinClamp = description.MinLod,
-                lodMaxClamp = description.MaxLod,
-                compare = description.CompareFunction.ToWebGPU(),
-                maxAnisotropy = description.MaxAnisotropy
-            };
-
-            Handle = wgpuDeviceCreateSampler(device.Handle, &descriptor);
-
-            if (Handle.IsNull)
-            {
-                Log.Error("WebGPU: Failed to create sampler.");
-                return;
-            }
-        }
+        Handle = device.GetOrCreateWGPUSampler(in description);
+        wgpuSamplerReference(Handle);
     }
 
     /// <inheritdoc />

@@ -38,19 +38,20 @@ internal unsafe class WebGPUBindGroupLayout : BindGroupLayout
                 visibility = entry.Visibility.ToWebGPU()
             };
 
-            switch (entry.Type)
+            switch (entry.BindingType)
             {
-                case DescriptorType.ConstantBuffer:
+                case BindingInfoType.Buffer:
                     entries[i].buffer = new WGPUBufferBindingLayout()
                     {
                         type = WGPUBufferBindingType.Uniform,
-                        hasDynamicOffset = false
+                        hasDynamicOffset = entry.Buffer.HasDynamicOffset,
+                        minBindingSize = entry.Buffer.MinBindingSize
                     };
 
                     registerOffset = constantBuffer;
                     break;
 
-                case DescriptorType.Sampler:
+                case BindingInfoType.Sampler:
                     entries[i].sampler = new WGPUSamplerBindingLayout()
                     {
                         type = WGPUSamplerBindingType.Filtering
@@ -59,7 +60,7 @@ internal unsafe class WebGPUBindGroupLayout : BindGroupLayout
                     registerOffset = sampler;
                     break;
 
-                case DescriptorType.SampledTexture:
+                case BindingInfoType.Texture:
                     entries[i].texture = new WGPUTextureBindingLayout()
                     {
                         sampleType = WGPUTextureSampleType.Float,
@@ -68,7 +69,7 @@ internal unsafe class WebGPUBindGroupLayout : BindGroupLayout
                     registerOffset = shaderResource;
                     break;
 
-                case DescriptorType.StorageTexture:
+                case BindingInfoType.StorageTexture:
                     entries[i].storageTexture = new WGPUStorageTextureBindingLayout
                     {
                         access = WGPUStorageTextureAccess.Undefined,

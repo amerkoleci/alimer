@@ -18,6 +18,7 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
 
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
+    private readonly Dictionary<SamplerDescription, WGPUSampler> _samplerCache = new();
 
     public static bool IsSupported() => s_isSupported.Value;
 
@@ -206,6 +207,13 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
                 _queues[i].Dispose();
             }
 
+            foreach (WGPUSampler sampler in _samplerCache.Values)
+            {
+                wgpuSamplerRelease(sampler);
+            }
+            _samplerCache.Clear();
+
+
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
             _frameCount = 0;
@@ -322,6 +330,42 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     protected override Texture CreateTextureCore(in TextureDescription descriptor, TextureData* initialData)
     {
         return new WebGPUTexture(this, descriptor, initialData);
+    }
+
+    public WGPUSampler GetOrCreateWGPUSampler(in SamplerDescription description)
+    {
+        if (!_samplerCache.TryGetValue(description, out WGPUSampler sampler))
+        {
+            fixed (sbyte* pLabel = description.Label.GetUtf8Span())
+            {
+                WGPUSamplerDescriptor descriptor = new()
+                {
+                    label = pLabel,
+                    addressModeU = description.AddressModeU.ToWebGPU(),
+                    addressModeV = description.AddressModeV.ToWebGPU(),
+                    addressModeW = description.AddressModeW.ToWebGPU(),
+                    magFilter = description.MagFilter.ToWebGPU(),
+                    minFilter = description.MinFilter.ToWebGPU(),
+                    mipmapFilter = description.MipFilter.ToWebGPU(),
+                    lodMinClamp = description.MinLod,
+                    lodMaxClamp = description.MaxLod,
+                    compare = description.CompareFunction.ToWebGPU(),
+                    maxAnisotropy = description.MaxAnisotropy
+                };
+
+                sampler = wgpuDeviceCreateSampler(Handle, &descriptor);
+
+                if (sampler.IsNull)
+                {
+                    Log.Error("WebGPU: Failed to create sampler.");
+                    return WGPUSampler.Null;
+                }
+            }
+
+            _samplerCache.Add(description, sampler);
+        }
+
+        return sampler;
     }
 
     /// <inheritdoc />

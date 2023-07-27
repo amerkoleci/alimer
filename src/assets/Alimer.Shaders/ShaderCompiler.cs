@@ -12,6 +12,7 @@ using static TerraFX.Interop.DirectX.D3D_CBUFFER_TYPE;
 using static TerraFX.Interop.DirectX.DXC;
 using System.Runtime.InteropServices;
 using System.Text;
+using Alimer.Graphics;
 
 namespace Alimer.Shaders;
 

@@ -6,6 +6,8 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Utilities.MemoryUtilities;
 using CommunityToolkit.Diagnostics;
+using static Alimer.Utilities.UnsafeUtilities;
+using Alimer.Utilities;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -28,24 +30,66 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         for (int i = 0; i < LayoutBindingCount; i++)
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
+            uint registerOffset;
+
+            if (entry.StaticSampler.HasValue)
+            {
+                registerOffset = device.GetRegisterOffset(VkDescriptorType.Sampler);
+                VkSampler sampler = device.GetOrCreateVulkanSampler(entry.StaticSampler.Value);
+
+                _layoutBindings[i] = new VkDescriptorSetLayoutBinding
+                {
+                    binding = entry.Binding + registerOffset,
+                    descriptorType = VkDescriptorType.Sampler,
+                    descriptorCount = 1u,
+                    stageFlags = entry.Visibility.ToVk(),
+                    pImmutableSamplers = &sampler,
+                };
+                continue;
+            }
 
             VkDescriptorType vkDescriptorType = VkDescriptorType.Sampler;
 
-            switch (entry.Type)
+            switch (entry.BindingType)
             {
-                case DescriptorType.ConstantBuffer:
-                    vkDescriptorType =  VkDescriptorType.UniformBuffer;
+                case BindingInfoType.Buffer:
+                    switch (entry.Buffer.Type)
+                    {
+                        case BufferBindingType.Constant:
+                            if (entry.Buffer.HasDynamicOffset)
+                            {
+                                vkDescriptorType = VkDescriptorType.UniformBufferDynamic;
+                            }
+                            else
+                            {
+                                vkDescriptorType = VkDescriptorType.UniformBuffer;
+                            }
+                            break;
+
+                        case BufferBindingType.Storage:
+                        case BufferBindingType.ReadOnlyStorage:
+                            // UniformTexelBuffer, StorageTexelBuffer ?
+                            if (entry.Buffer.HasDynamicOffset)
+                            {
+                                vkDescriptorType = VkDescriptorType.StorageBufferDynamic;
+                            }
+                            else
+                            {
+                                vkDescriptorType = VkDescriptorType.StorageBuffer;
+                            }
+                            break;
+                    }
                     break;
 
-                case DescriptorType.Sampler:
+                case BindingInfoType.Sampler:
                     vkDescriptorType = VkDescriptorType.Sampler;
                     break;
 
-                case DescriptorType.SampledTexture:
+                case BindingInfoType.Texture:
                     vkDescriptorType = VkDescriptorType.SampledImage;
                     break;
 
-                case DescriptorType.StorageTexture:
+                case BindingInfoType.StorageTexture:
                     vkDescriptorType = VkDescriptorType.StorageImage;
                     break;
 
@@ -54,7 +98,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                     break;
             }
 
-            uint registerOffset = device.GetRegisterOffset(vkDescriptorType);
+            registerOffset = device.GetRegisterOffset(vkDescriptorType);
 
             _layoutBindings[i] = new VkDescriptorSetLayoutBinding
             {

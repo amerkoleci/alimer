@@ -7,34 +7,15 @@ namespace Alimer.Graphics.Tests;
 
 public static class TestUtilities
 {
-    public static ShaderStageDescription CompileShader(string fileName, string entryPoint, GraphicsBackendType backendType, ShaderStages stage)
+    public static ShaderStageDescription CompileShader(string fileName, string entryPoint, GraphicsBackendType backendType, ShaderStage stage)
     {
         ShaderFormat shaderFormat = backendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));
 
-        ShaderStage shaderCompilerStage = ShaderStage.Vertex;
-        switch (stage)
-        {
-            case ShaderStages.Vertex:
-                shaderCompilerStage = ShaderStage.Vertex;
-                break;
-
-            case ShaderStages.Fragment:
-                shaderCompilerStage = ShaderStage.Fragment;
-                break;
-
-            case ShaderStages.Compute:
-                shaderCompilerStage = ShaderStage.Compute;
-                break;
-
-            default:
-                throw new NotImplementedException();
-        }
-
         ShaderCompilationOptions options = new()
         {
-            ShaderStage = shaderCompilerStage,
+            ShaderStage = stage,
             EntryPoint = entryPoint,
         };
 

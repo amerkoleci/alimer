@@ -53,15 +53,18 @@ internal unsafe class VulkanBindGroup : BindGroup
         }
 
         // TODO: Handle null descriptors to avoid vulkan warnings
-        int descriptorWriteCount = _layout.LayoutBindingCount;
-        VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[descriptorWriteCount];
-        VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[descriptorWriteCount];
-        VkDescriptorImageInfo* imageInfos = stackalloc VkDescriptorImageInfo[descriptorWriteCount];
+        int descriptorWriteCount = 0;
+        VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[_layout.LayoutBindingCount];
+        VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[_layout.LayoutBindingCount];
+        VkDescriptorImageInfo* imageInfos = stackalloc VkDescriptorImageInfo[_layout.LayoutBindingCount];
         //VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[descriptorWriteCount];
 
         for (uint i = 0; i < _layout.LayoutBindingCount; i++)
         {
             ref VkDescriptorSetLayoutBinding layoutBinding = ref _layout.GetLayoutBinding(i);
+            if (layoutBinding.pImmutableSamplers != null)
+                continue;
+
             VkDescriptorType descriptorType = layoutBinding.descriptorType;
 
             VulkanBuffer? backendBuffer = default;
@@ -119,7 +122,7 @@ internal unsafe class VulkanBindGroup : BindGroup
                 break;
             }
 
-            descriptorWrites[i] = new()
+            descriptorWrites[descriptorWriteCount++] = new()
             {
                 dstSet = _handle,
                 dstBinding = layoutBinding.binding,

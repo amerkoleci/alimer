@@ -190,20 +190,20 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12(this DescriptorType value)
+    public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12(this BindingInfoType value)
     {
         switch (value)
         {
-            case DescriptorType.ConstantBuffer:
+            case BindingInfoType.Buffer:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 
-            case DescriptorType.Sampler:
+            case BindingInfoType.Sampler:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 
-            case DescriptorType.SampledTexture:
+            case BindingInfoType.Texture:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
-            case DescriptorType.StorageTexture:
+            case BindingInfoType.StorageTexture:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 
             default:

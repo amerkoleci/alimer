@@ -22,4 +22,8 @@
     <PackageReference Include="CommunityToolkit.Diagnostics" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Graphics\" />
+  </ItemGroup>
+
 </Project>

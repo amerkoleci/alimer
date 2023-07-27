@@ -6,7 +6,7 @@ using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_ROOT_PARAMETER_TYPE;
+using static Alimer.Utilities.UnsafeUtilities;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -97,7 +97,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
             rootParameters[rootParameterIndex].InitAsDescriptorTable(
                 numDescriptorRanges,
-                (D3D12_DESCRIPTOR_RANGE1*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(descriptorRanges)),
+                descriptorRanges.GetPointerUnsafe(),
                 D3D12_SHADER_VISIBILITY_ALL
             );
 
@@ -113,7 +113,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
             rootParameters[rootParameterIndex].InitAsDescriptorTable(
                 numDescriptorRanges,
-                (D3D12_DESCRIPTOR_RANGE1*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(descriptorRanges)),
+                descriptorRanges.GetPointerUnsafe(),
                 D3D12_SHADER_VISIBILITY_ALL
             );
 

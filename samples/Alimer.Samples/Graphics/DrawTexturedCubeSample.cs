@@ -59,8 +59,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
 
         var bindGroupLayoutDescription = new BindGroupLayoutDescription(
-            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStage.Vertex),
-            new BindGroupLayoutEntry(DescriptorType.SampledTexture, 0, ShaderStage.Fragment),
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStage.Vertex),
+            new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStage.Fragment),
             new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
             );
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));

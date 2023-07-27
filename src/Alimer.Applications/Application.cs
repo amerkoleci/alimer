@@ -142,6 +142,15 @@ public abstract class Application : DisposableObject, IApplication
         IsRunning = true;
     }
 
+    public void RequestExit()
+    {
+        if (IsRunning && !IsExiting)
+        {
+            Platform.RequestExit();
+            IsExiting = true;
+        }
+    }
+
     protected virtual void Initialize()
     {
     }

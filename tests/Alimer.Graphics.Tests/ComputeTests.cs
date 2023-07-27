@@ -23,7 +23,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
         using PipelineLayout pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription);
         Assert.NotNull(pipelineLayout);
 
-        ShaderStageDescription computeShader = TestUtilities.CompileShader("ComputeTexture.hlsl", "computeMain", GraphicsDevice.Backend, ShaderStages.Compute);
+        ShaderStageDescription computeShader = TestUtilities.CompileShader("ComputeTexture.hlsl", "computeMain", GraphicsDevice.Backend, ShaderStage.Compute);
 
         ComputePipelineDescription pipelineDescription = new ComputePipelineDescription(pipelineLayout, computeShader);
         using Pipeline pipeline = GraphicsDevice.CreateComputePipeline(pipelineDescription);

@@ -82,6 +82,12 @@ internal unsafe class SDLPlatform : AppPlatform
         SDL_Quit();
     }
 
+    /// <inheritdoc />
+    public override void RequestExit()
+    {
+        _exitRequested = true;
+    }
+
     private void PollEvents()
     {
         SDL_PumpEvents();

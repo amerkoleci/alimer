@@ -18,10 +18,8 @@ internal unsafe class SwapChainPanelView : Window
     private bool _minimized;
     private bool _isFullscreen;
 
-    public readonly uint Id;
-
     /// <inheritdoc />
-    public override bool IsMinimized => _minimized;
+    public override bool IsMinimized => ApplicationView.GetForCurrentView().IsFullScreen;
 
     /// <inheritdoc />
     public override bool IsFullscreen
@@ -63,10 +61,10 @@ internal unsafe class SwapChainPanelView : Window
     /// <inheritdoc />
     public override nint Handle { get; }
 
-    public SwapChainPanelView(WindowsPlatform platform, SwapChainPanel swapChainPanel)
+    public SwapChainPanelView(WindowsPlatform platform, SwapChainPanel? swapChainPanel)
     {
         _platform = platform;
-        _swapChainPanel = swapChainPanel;
+        _swapChainPanel = swapChainPanel ?? new SwapChainPanel();
         _title = PlatformWindow.Current.Title;
         //CoreWindow coreWindow = Window.Current.CoreWindow;
         Kind = SwapChainSurfaceType.SwapChainPanel;

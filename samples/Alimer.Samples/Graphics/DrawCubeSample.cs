@@ -39,8 +39,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, CpuAccessMode.Write));
 
         var bindGroupLayoutDescription = new BindGroupLayoutDescription(
-            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStage.Vertex),
-            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 1, ShaderStage.Fragment)
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStage.Vertex),
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 1, ShaderStage.Fragment)
             );
         _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
 

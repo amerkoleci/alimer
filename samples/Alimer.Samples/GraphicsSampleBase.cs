@@ -3,8 +3,6 @@
 
 using Alimer.Graphics;
 using Alimer.Shaders;
-using ShaderStage = Alimer.Graphics.ShaderStage;
-using CompilerShaderStage = Alimer.Shaders.ShaderStage;
 
 namespace Alimer.Samples;
 
@@ -32,29 +30,11 @@ public abstract class GraphicsSampleBase : SampleBase
         string shaderSourceFileName = Path.Combine(shadersPath, fileName);
         string shaderSource = File.ReadAllText(shaderSourceFileName);
 
-        CompilerShaderStage shaderCompilerStage = CompilerShaderStage.Vertex;
-        switch (stage)
-        {
-            case ShaderStage.Vertex:
-                shaderCompilerStage = CompilerShaderStage.Vertex;
-                break;
-
-            case ShaderStage.Fragment:
-                shaderCompilerStage = CompilerShaderStage.Fragment;
-                break;
-
-            case ShaderStage.Compute:
-                shaderCompilerStage = CompilerShaderStage.Compute;
-                break;
-
-            default:
-                throw new NotImplementedException();
-        }
 
         ShaderCompilationOptions options = new()
         {
             SourceFileName = shaderSourceFileName,
-            ShaderStage = shaderCompilerStage,
+            ShaderStage = stage,
             EntryPoint = entryPoint,
             IncludeDirs =
             {
