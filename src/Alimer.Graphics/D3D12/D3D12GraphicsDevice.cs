@@ -235,6 +235,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 
+        bool supportVideoDevice = false;
+        if (_handle.CopyTo(_videoDevice.GetAddressOf()).SUCCEEDED)
+        {
+            supportVideoDevice = true;
+        }
+
         // Create fence to detect device removal
         {
             _deviceRemovedFence = _handle.Get()->CreateFence();
@@ -270,7 +276,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, _memoryAllocator.GetAddressOf())))
             {
-                return;
+                throw new GraphicsException("D3D12: Failed to create memory allocator");
             }
         }
 
@@ -278,12 +284,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _features = new D3D12Features((ID3D12Device*)_handle.Get());
 
         // Create command queue's
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        QueueType supportedQueueCount = supportVideoDevice ? QueueType.Count : QueueType.VideoDecode;
+        for (int i = 0; i < (int)supportedQueueCount; i++)
         {
             QueueType queue = (QueueType)i;
-            if (queue >= QueueType.VideoDecode)
-                continue;
-
             _queues[i] = new D3D12CommandQueue(this, queue);
         }
 
@@ -498,7 +502,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
     public D3D12CommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
     public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
-    public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.Copy];
+    public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.VideoDecode];
+    public D3D12CommandQueue? VideoEncode => _queues[(int)QueueType.VideoEncode];
 
     public D3D12DescriptorAllocator RenderTargetViewHeap => _renderTargetViewHeap;
     public D3D12DescriptorAllocator DepthStencilViewHeap => _depthStencilViewHeap;
@@ -563,7 +568,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 _memoryAllocator.Dispose();
             }
 
-
             // Device removed event
             {
                 if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
@@ -575,6 +579,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 CloseHandle(_deviceRemovedEvent);
                 _deviceRemovedFence.Dispose();
             }
+
+            _videoDevice.Dispose();
 
 #if DEBUG
             uint refCount = _handle.Get()->Release();

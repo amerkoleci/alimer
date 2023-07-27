@@ -39,8 +39,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, CpuAccessMode.Write));
 
         var bindGroupLayoutDescription = new BindGroupLayoutDescription(
-            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStages.Vertex),
-            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 1, ShaderStages.Fragment)
+            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStage.Vertex),
+            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 1, ShaderStage.Fragment)
             );
         _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
 
@@ -64,8 +64,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout0 }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("Cube.hlsl", "fragmentMain", ShaderStages.Fragment);
+        ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStage.Vertex);
+        ShaderStageDescription fragmentShader = CompileShader("Cube.hlsl", "fragmentMain", ShaderStage.Fragment);
 
         var shaderStages = new ShaderStageDescription[2]
         {

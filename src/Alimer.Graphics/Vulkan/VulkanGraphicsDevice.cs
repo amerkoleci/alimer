@@ -693,7 +693,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
             {
                 Log.Error("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
-                return;
+                throw new GraphicsException("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
             }
 
             PhysicalDeviceFeatures2 = features2;

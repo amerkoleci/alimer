@@ -28,7 +28,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
     private readonly uint* _numRows;
-    private readonly void* pMappedData;
+    private readonly void* pMappedData = default;
 
     private readonly Dictionary<int, DescriptorIndex> _RTVs = new();
     private readonly Dictionary<int, DescriptorIndex> _DSVs = new();

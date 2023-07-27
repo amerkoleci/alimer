@@ -20,12 +20,15 @@ internal unsafe class WebGPUSampler : Sampler
             WGPUSamplerDescriptor descriptor = new()
             {
                 label = pLabel,
-                magFilter = description.MagFilter.ToWebGPU(),
-                minFilter = description.MinFilter.ToWebGPU(),
-                mipmapFilter = description.MipFilter.ToWebGPU(),
                 addressModeU = description.AddressModeU.ToWebGPU(),
                 addressModeV = description.AddressModeV.ToWebGPU(),
                 addressModeW = description.AddressModeW.ToWebGPU(),
+                magFilter = description.MagFilter.ToWebGPU(),
+                minFilter = description.MinFilter.ToWebGPU(),
+                mipmapFilter = description.MipFilter.ToWebGPU(),
+                lodMinClamp = description.MinLod,
+                lodMaxClamp = description.MaxLod,
+                compare = description.CompareFunction.ToWebGPU(),
                 maxAnisotropy = description.MaxAnisotropy
             };
 

@@ -551,38 +551,29 @@ internal static unsafe class VulkanUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static VkShaderStageFlags ToVk(this ShaderStages stage)
+    public static VkShaderStageFlags ToVk(this ShaderStage stage)
     {
-        //if (CheckBitsAny(stage, ShaderStages::Library))
-        //    return VkShaderStageFlags.All;
-
-        VkShaderStageFlags flags = 0;
-
-        if ((stage & ShaderStages.Vertex) != 0)
-            flags |= VkShaderStageFlags.Vertex;
-
-        if ((stage & ShaderStages.Hull) != 0)
-            flags |= VkShaderStageFlags.TessellationControl;
-
-        if ((stage & ShaderStages.Domain) != 0)
-            flags |= VkShaderStageFlags.TessellationEvaluation;
-
-        //if ((stage & ShaderStages.Geometry) != 0)
-        //    flags |= VkShaderStageFlags.Geometry;
-
-        if ((stage & ShaderStages.Fragment) != 0)
-            flags |= VkShaderStageFlags.Fragment;
-
-        if ((stage & ShaderStages.Compute) != 0)
-            flags |= VkShaderStageFlags.Compute;
-
-        if ((stage & ShaderStages.Amplification) != 0)
-            flags |= VkShaderStageFlags.TaskEXT;
-
-        if ((stage & ShaderStages.Mesh) != 0)
-            flags |= VkShaderStageFlags.MeshEXT;
-
-        return flags;
+        switch (stage)
+        {
+            case ShaderStage.Vertex:
+                return VkShaderStageFlags.Vertex;
+            case ShaderStage.Hull:
+                return VkShaderStageFlags.TessellationControl;
+            case ShaderStage.Domain:
+                return VkShaderStageFlags.TessellationEvaluation;
+            case ShaderStage.Geometry:
+                return VkShaderStageFlags.Geometry;
+            case ShaderStage.Fragment:
+                return VkShaderStageFlags.Fragment;
+            case ShaderStage.Compute:
+                return VkShaderStageFlags.Compute;
+            case ShaderStage.Amplification:
+                return VkShaderStageFlags.TaskEXT;
+            case ShaderStage.Mesh:
+                return VkShaderStageFlags.MeshEXT;
+            default:
+                return VkShaderStageFlags.All;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

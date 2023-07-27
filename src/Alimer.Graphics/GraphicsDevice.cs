@@ -350,7 +350,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public Pipeline CreateComputePipeline(in ComputePipelineDescription description)
     {
-        Guard.IsTrue(description.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescription.ComputeShader));
+        Guard.IsTrue(description.ComputeShader.Stage == ShaderStage.Compute, nameof(ComputePipelineDescription.ComputeShader));
         Guard.IsNotNull(description.ComputeShader.ByteCode != null, nameof(ComputePipelineDescription.ComputeShader.ByteCode));
         Guard.IsGreaterThan(description.ComputeShader.ByteCode!.Length, 0);
 

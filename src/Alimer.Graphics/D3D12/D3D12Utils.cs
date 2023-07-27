@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
@@ -14,6 +15,8 @@ using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
+using static TerraFX.Interop.DirectX.D3D12_STATIC_BORDER_COLOR;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -162,6 +165,31 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_SHADER_VISIBILITY ToD3D12(this ShaderStage stage)
+    {
+        switch (stage)
+        {
+            case ShaderStage.Vertex:
+                return D3D12_SHADER_VISIBILITY_VERTEX;
+            case ShaderStage.Hull:
+                return D3D12_SHADER_VISIBILITY_HULL;
+            case ShaderStage.Domain:
+                return D3D12_SHADER_VISIBILITY_DOMAIN;
+            case ShaderStage.Geometry:
+                return D3D12_SHADER_VISIBILITY_GEOMETRY;
+            case ShaderStage.Fragment:
+                return D3D12_SHADER_VISIBILITY_PIXEL;
+            case ShaderStage.Amplification:
+                return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+            case ShaderStage.Mesh:
+                return D3D12_SHADER_VISIBILITY_MESH;
+
+            default:
+                return D3D12_SHADER_VISIBILITY_ALL;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12(this DescriptorType value)
     {
         switch (value)
@@ -181,6 +209,105 @@ internal static unsafe class D3D12Utils
             default:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         }
+    }
+
+    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescription description)
+    {
+        D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
+        D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
+        D3D12_FILTER_TYPE mipmapFilter = description.MipFilter.ToD3D12();
+
+        D3D12_FILTER_REDUCTION_TYPE reductionType = description.ReductionType.ToD3D12();
+
+        D3D12_SAMPLER_DESC desc = new();
+
+        // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
+        desc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), 16u);
+        if (desc.MaxAnisotropy > 1)
+        {
+            desc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
+        }
+        else
+        {
+            desc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reductionType);
+        }
+
+        desc.AddressU = description.AddressModeU.ToD3D12();
+        desc.AddressV = description.AddressModeV.ToD3D12();
+        desc.AddressW = description.AddressModeW.ToD3D12();
+        desc.MipLODBias = 0.0f;
+        if (description.CompareFunction != CompareFunction.Never)
+        {
+            desc.ComparisonFunc = description.CompareFunction.ToD3D12();
+        }
+        else
+        {
+            desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+        }
+        desc.MinLOD = description.MinLod;
+        desc.MaxLOD = description.MaxLod;
+        switch (description.BorderColor)
+        {
+            case SamplerBorderColor.FloatOpaqueBlack:
+            case SamplerBorderColor.UintOpaqueBlack:
+                desc.BorderColor[0] = 0.0f;
+                desc.BorderColor[1] = 0.0f;
+                desc.BorderColor[2] = 0.0f;
+                desc.BorderColor[3] = 1.0f;
+                break;
+
+            case SamplerBorderColor.FloatOpaqueWhite:
+            case SamplerBorderColor.UintOpaqueWhite:
+                desc.BorderColor[0] = 1.0f;
+                desc.BorderColor[1] = 1.0f;
+                desc.BorderColor[2] = 1.0f;
+                desc.BorderColor[3] = 1.0f;
+                break;
+
+            default:
+                desc.BorderColor[0] = 0.0f;
+                desc.BorderColor[1] = 0.0f;
+                desc.BorderColor[2] = 0.0f;
+                desc.BorderColor[3] = 0.0f;
+                break;
+        }
+
+        return desc;
+    }
+
+    public static D3D12_STATIC_SAMPLER_DESC ToD3D12StaticSamplerDesc(
+        uint shaderRegister,
+        in SamplerDescription description,
+        D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, uint registerSpace = 0u)
+    {
+        D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc( in description);
+
+        D3D12_STATIC_SAMPLER_DESC staticDesc = new()
+        {
+            Filter = samplerDesc.Filter,
+            AddressU = samplerDesc.AddressU,
+            AddressV = samplerDesc.AddressV,
+            AddressW = samplerDesc.AddressW,
+            MipLODBias = samplerDesc.MipLODBias,
+            MaxAnisotropy = samplerDesc.MaxAnisotropy,
+            ComparisonFunc = samplerDesc.ComparisonFunc,
+            MinLOD = samplerDesc.MinLOD,
+            MaxLOD = samplerDesc.MaxLOD,
+            ShaderRegister = shaderRegister,
+            RegisterSpace = registerSpace,
+            ShaderVisibility = shaderVisibility
+        };
+
+        staticDesc.BorderColor = description.BorderColor switch
+        {
+            SamplerBorderColor.FloatOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
+            SamplerBorderColor.UintOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT,
+            SamplerBorderColor.FloatOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE,
+            SamplerBorderColor.UintOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT,
+            _ => D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,
+        };
+
+        return staticDesc;
     }
 
     public static D3D12_RESOURCE_STATES ToD3D12(this ResourceStates states)

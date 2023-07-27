@@ -269,23 +269,25 @@ internal static unsafe class WebGPUUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static WGPUShaderStage ToWebGPU(this ShaderStages stage)
+    public static WGPUShaderStage ToWebGPU(this ShaderStage stage)
     {
-        //if (CheckBitsAny(stage, ShaderStages::Library))
-        //    return VkShaderStageFlags.All;
-
-        WGPUShaderStage flags = WGPUShaderStage.None;
-
-        if ((stage & ShaderStages.Vertex) != 0)
-            flags |= WGPUShaderStage.Vertex;
-
-        if ((stage & ShaderStages.Fragment) != 0)
-            flags |= WGPUShaderStage.Fragment;
-
-        if ((stage & ShaderStages.Compute) != 0)
-            flags |= WGPUShaderStage.Compute;
-
-        return flags;
+        switch (stage)
+        {
+            case ShaderStage.Vertex:
+                return WGPUShaderStage.Vertex;
+            case ShaderStage.Hull:
+            case ShaderStage.Domain:
+            case ShaderStage.Geometry:
+            case ShaderStage.Amplification:
+            case ShaderStage.Mesh:
+                throw new GraphicsException($"WebGPU doesn't support {stage} shader stage");
+            case ShaderStage.Fragment:
+                return WGPUShaderStage.Fragment;
+            case ShaderStage.Compute:
+                return WGPUShaderStage.Compute;
+            default:
+                return WGPUShaderStage.Vertex | WGPUShaderStage.Fragment | WGPUShaderStage.Compute;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

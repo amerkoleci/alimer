@@ -35,11 +35,25 @@ public readonly record struct BindGroupLayoutDescription
 /// </summary>
 public readonly record struct BindGroupLayoutEntry
 {
-    public BindGroupLayoutEntry(DescriptorType type, uint binding, ShaderStages visibility)
+    public BindGroupLayoutEntry(DescriptorType type, uint binding, ShaderStage visibility = ShaderStage.All)
     {
         Type = type;
         Binding = binding;
         Visibility = visibility;
+    }
+
+    public BindGroupLayoutEntry(SamplerBindingLayout sampler, uint binding, ShaderStage visibility = ShaderStage.All)
+    {
+        Binding = binding;
+        Visibility = visibility;
+        Sampler = sampler;
+    }
+
+    public BindGroupLayoutEntry(SamplerDescription staticSampler, uint binding, ShaderStage visibility = ShaderStage.All)
+    {
+        Binding = binding;
+        Visibility = visibility;
+        StaticSampler = staticSampler;
     }
 
     /// <summary>
@@ -50,12 +64,29 @@ public readonly record struct BindGroupLayoutEntry
     /// <summary>
     /// The shader stage the resources will be accessible to.
     /// </summary>
-    public ShaderStages Visibility { get; init; }
+    public ShaderStage Visibility { get; init; }
 
     /// <summary>
     /// Type of resources in this descriptor binding.
     /// </summary>
     public DescriptorType Type { get; init; }
+
+    public SamplerBindingLayout Sampler { get; init; }
+
+    public SamplerDescription? StaticSampler { get; init; }
+}
+
+public enum SamplerBindingType
+{
+    Undefined,
+    Filtering,
+    NonFiltering,
+    Comparison,
+}
+
+public struct SamplerBindingLayout
+{
+    public SamplerBindingType Type;
 }
 
 public enum DescriptorType : byte

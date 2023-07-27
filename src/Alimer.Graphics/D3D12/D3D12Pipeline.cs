@@ -44,22 +44,25 @@ internal unsafe class D3D12Pipeline : Pipeline
 
             switch (shaderDesc.Stage)
             {
-                case ShaderStages.Vertex:
+                case ShaderStage.Vertex:
                     stream.stream1.VS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStages.Hull:
+                case ShaderStage.Hull:
                     stream.stream1.HS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStages.Domain:
+                case ShaderStage.Domain:
                     stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStages.Fragment:
+                case ShaderStage.Geometry:
+                    stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
+                    break;
+                case ShaderStage.Fragment:
                     stream.stream1.PS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStages.Amplification:
+                case ShaderStage.Amplification:
                     stream.stream2.AS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStages.Mesh:
+                case ShaderStage.Mesh:
                     stream.stream2.MS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
             }
@@ -244,7 +247,7 @@ internal unsafe class D3D12Pipeline : Pipeline
         public CD3DX12_PIPELINE_STATE_STREAM_VS VS;
         public CD3DX12_PIPELINE_STATE_STREAM_HS HS;
         public CD3DX12_PIPELINE_STATE_STREAM_DS DS;
-        //public CD3DX12_PIPELINE_STATE_STREAM_GS GS;
+        public CD3DX12_PIPELINE_STATE_STREAM_GS GS;
         public CD3DX12_PIPELINE_STATE_STREAM_PS PS;
         public CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
         public CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
@@ -264,6 +267,7 @@ internal unsafe class D3D12Pipeline : Pipeline
             VS = new();
             HS = new();
             DS = new();
+            GS = new();
             PS = new();
         }
     }

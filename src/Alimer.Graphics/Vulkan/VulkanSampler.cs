@@ -43,6 +43,22 @@ internal unsafe class VulkanSampler : Sampler
             createInfo.maxAnisotropy = 1;
         }
 
+        if (description.ReductionType == SamplerReductionType.Comparison)
+        {
+            createInfo.compareOp = description.CompareFunction.ToVk();
+            createInfo.compareEnable = true;
+        }
+        else
+        {
+            createInfo.compareOp = VkCompareOp.Never;
+            createInfo.compareEnable = false;
+        }
+
+        createInfo.minLod = description.MinLod;
+        createInfo.maxLod = description.MaxLod;
+        createInfo.borderColor = description.BorderColor.ToVk();
+        createInfo.unnormalizedCoordinates = false;
+
         VkSamplerReductionModeCreateInfo samplerReductionModeInfo = default;
         if (description.ReductionType == SamplerReductionType.Minimum ||
             description.ReductionType == SamplerReductionType.Maximum)

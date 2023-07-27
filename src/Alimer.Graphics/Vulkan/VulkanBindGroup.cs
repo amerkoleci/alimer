@@ -164,8 +164,8 @@ internal unsafe class VulkanBindGroup : BindGroup
                     if (backendBuffer != null)
                     {
                         bufferInfos[i].buffer = backendBuffer!.Handle;
-                        bufferInfos[i].offset = foundEntry.Value.Offset;
-                        bufferInfos[i].range = foundEntry.Value.Size;
+                        bufferInfos[i].offset = foundEntry!.Value.Offset;
+                        bufferInfos[i].range = foundEntry!.Value.Size;
                     }
                     else
                     {

@@ -59,16 +59,16 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
 
         var bindGroupLayoutDescription = new BindGroupLayoutDescription(
-            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStages.Vertex),
-            new BindGroupLayoutEntry(DescriptorType.SampledTexture, 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(DescriptorType.Sampler, 0, ShaderStages.Fragment)
+            new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStage.Vertex),
+            new BindGroupLayoutEntry(DescriptorType.SampledTexture, 0, ShaderStage.Fragment),
+            new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
             );
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
 
         var  bindGroupDescription = new BindGroupDescription(
             new BindGroupEntry(0, _constantBuffer),
-            new BindGroupEntry(0, _texture),
-            new BindGroupEntry(0, _sampler)
+            new BindGroupEntry(0, _texture)/*,
+            new BindGroupEntry(0, _sampler)*/
             );
         _bindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout, bindGroupDescription));
 
@@ -78,8 +78,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("TexturedCube.hlsl", "fragmentMain", ShaderStages.Fragment);
+        ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStage.Vertex);
+        ShaderStageDescription fragmentShader = CompileShader("TexturedCube.hlsl", "fragmentMain", ShaderStage.Fragment);
 
         var shaderStages = new ShaderStageDescription[2]
         {

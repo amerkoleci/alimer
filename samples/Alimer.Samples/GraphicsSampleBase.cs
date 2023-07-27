@@ -3,6 +3,8 @@
 
 using Alimer.Graphics;
 using Alimer.Shaders;
+using ShaderStage = Alimer.Graphics.ShaderStage;
+using CompilerShaderStage = Alimer.Shaders.ShaderStage;
 
 namespace Alimer.Samples;
 
@@ -22,7 +24,7 @@ public abstract class GraphicsSampleBase : SampleBase
     public Texture? DepthStencilTexture => MainWindow.DepthStencilTexture;
     public float AspectRatio => MainWindow.AspectRatio;
 
-    protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStages stage)
+    protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStage stage)
     {
         ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
@@ -30,19 +32,19 @@ public abstract class GraphicsSampleBase : SampleBase
         string shaderSourceFileName = Path.Combine(shadersPath, fileName);
         string shaderSource = File.ReadAllText(shaderSourceFileName);
 
-        ShaderStage shaderCompilerStage = ShaderStage.Vertex;
+        CompilerShaderStage shaderCompilerStage = CompilerShaderStage.Vertex;
         switch (stage)
         {
-            case ShaderStages.Vertex:
-                shaderCompilerStage = ShaderStage.Vertex;
+            case ShaderStage.Vertex:
+                shaderCompilerStage = CompilerShaderStage.Vertex;
                 break;
 
-            case ShaderStages.Fragment:
-                shaderCompilerStage = ShaderStage.Fragment;
+            case ShaderStage.Fragment:
+                shaderCompilerStage = CompilerShaderStage.Fragment;
                 break;
 
-            case ShaderStages.Compute:
-                shaderCompilerStage = ShaderStage.Compute;
+            case ShaderStage.Compute:
+                shaderCompilerStage = CompilerShaderStage.Compute;
                 break;
 
             default:

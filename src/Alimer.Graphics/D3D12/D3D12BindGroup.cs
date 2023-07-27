@@ -2,14 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Numerics;
+using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12;
-using CommunityToolkit.Diagnostics;
-using System.Diagnostics;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 
 namespace Alimer.Graphics.D3D12;
 

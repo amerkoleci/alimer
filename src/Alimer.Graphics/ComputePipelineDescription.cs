@@ -14,7 +14,7 @@ public readonly record struct ComputePipelineDescription
     {
         Guard.IsNotNull(layout, nameof(layout));
         Guard.IsNotNull(computeShader.ByteCode, nameof(computeShader.ByteCode));
-        Guard.IsTrue(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
+        Guard.IsTrue(computeShader.Stage == ShaderStage.Compute, nameof(computeShader.Stage));
 
         Layout = layout;
         ComputeShader = computeShader;

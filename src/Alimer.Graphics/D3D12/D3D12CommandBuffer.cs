@@ -153,6 +153,11 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             Guard.IsTrue((oldStateD3D12 & s_ValidComputeResourceStates) == oldStateD3D12);
             Guard.IsTrue((newStateD3D12 & s_ValidComputeResourceStates) == newStateD3D12);
         }
+        else if (_queue.QueueType == QueueType.Copy)
+        {
+            Guard.IsTrue((oldStateD3D12 & s_ValidCopyResourceStates) == oldStateD3D12);
+            Guard.IsTrue((newStateD3D12 & s_ValidCopyResourceStates) == newStateD3D12);
+        }
 
         if (oldState != newState)
         {

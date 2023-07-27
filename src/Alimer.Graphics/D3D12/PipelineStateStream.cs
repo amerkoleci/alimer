@@ -178,6 +178,42 @@ internal readonly struct CD3DX12_PIPELINE_STATE_STREAM_DS : IPipelineStreamObjec
 }
 
 [StructLayout(LayoutKind.Explicit)]
+internal readonly struct CD3DX12_PIPELINE_STATE_STREAM_GS : IPipelineStreamObject
+{
+    static D3D12_PIPELINE_STATE_SUBOBJECT_TYPE IPipelineStreamObject.Type => D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS;
+
+    [FieldOffset(0)]
+    private readonly nint _pad;
+
+    [FieldOffset(0)]
+    internal readonly AlignedSubObjectType<D3D12_SHADER_BYTECODE> _type;
+
+    public CD3DX12_PIPELINE_STATE_STREAM_GS()
+    {
+        _type.Type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS;
+    }
+
+    public unsafe CD3DX12_PIPELINE_STATE_STREAM_GS(void* pShaderBytecode, nuint bytecodeLength)
+    {
+        _pad = default;
+        _type.Type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS;
+        _type.Value = new D3D12_SHADER_BYTECODE(pShaderBytecode, bytecodeLength);
+    }
+
+    public CD3DX12_PIPELINE_STATE_STREAM_GS(D3D12_SHADER_BYTECODE byteCode)
+    {
+        _pad = default;
+        _type.Type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS;
+        _type.Value = byteCode;
+    }
+
+    public static implicit operator CD3DX12_PIPELINE_STATE_STREAM_GS(D3D12_SHADER_BYTECODE byteCode)
+    {
+        return new(byteCode);
+    }
+}
+
+[StructLayout(LayoutKind.Explicit)]
 internal readonly unsafe struct CD3DX12_PIPELINE_STATE_STREAM_CS
 {
     [FieldOffset(0)]

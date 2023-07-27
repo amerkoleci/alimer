@@ -33,6 +33,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         int setLayoutCount = description.BindGroupLayouts.Length;
         List<D3D12_DESCRIPTOR_RANGE1> cbvUavSrvDescriptorRanges = new();
         List<D3D12_DESCRIPTOR_RANGE1> samplerDescriptorRanges = new();
+        List<D3D12_STATIC_SAMPLER_DESC> staticSamplers = new();
 
         for (int i = 0; i < setLayoutCount; i++)
         {
@@ -60,6 +61,18 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                     samplerDescriptorRanges.Add(range);
                 }
             }
+
+            if (bindGroupLayout.StaticSamplers.Count > 0)
+            {
+                Span<D3D12_STATIC_SAMPLER_DESC> bindGroupLayoutStaticSamplers = CollectionsMarshal.AsSpan(bindGroupLayout.StaticSamplers);
+                foreach (ref D3D12_STATIC_SAMPLER_DESC staticSampler in bindGroupLayoutStaticSamplers)
+                {
+                    Debug.Assert(staticSampler.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
+                    staticSampler.RegisterSpace = (uint)i;
+
+                    staticSamplers.Add(staticSampler);
+                }
+            }
         }
 
         int pushConstantRangeCount = description.PushConstantRanges.Length;
@@ -70,10 +83,9 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         if (samplerDescriptorRanges.Count > 0)
             rootParameterCount++;
         rootParameterCount += pushConstantRangeCount;
-        int staticSamplerDescCount = 0;
+
 
         D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParameterCount];
-        D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = stackalloc D3D12_STATIC_SAMPLER_DESC[staticSamplerDescCount];
 
         int rootParameterIndex = 0;
         if (cbvUavSrvDescriptorRanges.Count > 0)
@@ -121,40 +133,45 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             }
         }
 
-        D3D12_VERSIONED_ROOT_SIGNATURE_DESC.Init_1_1(
-            out D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc,
-            (uint)rootParameterCount,
-            rootParameters,
-            (uint)staticSamplerDescCount,
-            staticSamplerDescs,
-            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-        );
+        Span<D3D12_STATIC_SAMPLER_DESC> staticSamplersSpan = CollectionsMarshal.AsSpan(staticSamplers);
 
-        using ComPtr<ID3DBlob> rootSignatureBlob = default;
-        using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
-
-        HRESULT hr = D3D12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
-            device.D3D12Features.RootSignatureHighestVersion,
-            rootSignatureBlob.GetAddressOf(),
-            rootSignatureErrorBlob.GetAddressOf());
-        if (hr.FAILED)
+        fixed (D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = staticSamplersSpan)
         {
-            return;
-        }
+            D3D12_VERSIONED_ROOT_SIGNATURE_DESC.Init_1_1(
+                out D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc,
+                (uint)rootParameterCount,
+                rootParameters,
+                (uint)staticSamplers.Count,
+                staticSamplerDescs,
+                D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+            );
 
-        hr = device.Handle->CreateRootSignature(0,
-            rootSignatureBlob.Get()->GetBufferPointer(),
-            rootSignatureBlob.Get()->GetBufferSize(),
-            __uuidof<ID3D12RootSignature>(),
-            _handle.GetVoidAddressOf());
-        if (hr.FAILED)
-        {
-            return;
-        }
+            using ComPtr<ID3DBlob> rootSignatureBlob = default;
+            using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
 
-        if (!string.IsNullOrEmpty(description.Label))
-        {
-            OnLabelChanged(description.Label!);
+            HRESULT hr = D3D12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
+                device.D3D12Features.RootSignatureHighestVersion,
+                rootSignatureBlob.GetAddressOf(),
+                rootSignatureErrorBlob.GetAddressOf());
+            if (hr.FAILED)
+            {
+                return;
+            }
+
+            hr = device.Handle->CreateRootSignature(0,
+                rootSignatureBlob.Get()->GetBufferPointer(),
+                rootSignatureBlob.Get()->GetBufferSize(),
+                __uuidof<ID3D12RootSignature>(),
+                _handle.GetVoidAddressOf());
+            if (hr.FAILED)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(description.Label))
+            {
+                OnLabelChanged(description.Label!);
+            }
         }
     }
 

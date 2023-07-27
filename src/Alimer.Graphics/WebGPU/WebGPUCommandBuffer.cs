@@ -228,7 +228,7 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
     {
         WebGPUSwapChain backendSwapChain = (WebGPUSwapChain)swapChain;
 
-        Texture nextTexture = backendSwapChain.AcquireNextTexture();
+        Texture? nextTexture = backendSwapChain.AcquireNextTexture();
         if (nextTexture is null)
         {
             return null;
