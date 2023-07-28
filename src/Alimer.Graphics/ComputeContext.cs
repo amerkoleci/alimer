@@ -33,12 +33,12 @@ public abstract class ComputeContext : CopyContext
         SetPipelineCore(pipeline);
     }
 
-    public void SetBindGroup(uint groupIndex,  BindGroup group)
+    public void SetBindGroup(uint groupIndex, BindGroup bindGroup)
     {
-        Guard.IsNotNull(group, nameof(group));
+        Guard.IsNotNull(bindGroup, nameof(bindGroup));
         Guard.IsTrue(groupIndex < MaxBindGroups, nameof(groupIndex));
 
-        SetBindGroupCore(groupIndex, group);
+        SetBindGroupCore(groupIndex, bindGroup);
     }
 
     public unsafe void SetPushConstants<T>(uint pushConstantIndex, T data)
@@ -95,7 +95,7 @@ public abstract class ComputeContext : CopyContext
     }
 
     protected abstract void SetPipelineCore(Pipeline pipeline);
-    protected abstract void SetBindGroupCore(uint groupIndex, BindGroup group);
+    protected abstract void SetBindGroupCore(uint groupIndex, BindGroup bindGroup);
     protected unsafe abstract void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
     protected abstract void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);

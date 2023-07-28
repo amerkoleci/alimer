@@ -70,16 +70,15 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         // Material
         _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStage.Fragment),
-            new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
+            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStage.Fragment) //new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
             ));
         _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
-            new BindGroupEntry(0, _texture)/*,
-            new BindGroupEntry(0, _sampler)*/)
+            new BindGroupEntry(0, _texture),
+            new BindGroupEntry(0, _sampler))
             );
 
         //PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
         //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
-
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
         ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStage.Vertex);

@@ -25,8 +25,8 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private VulkanPipelineLayout? _currentPipelineLayout;
     private RenderPassDescription _currentRenderPass;
 
-    private bool _descriptorSetsDirty;
-    private uint _numBoundDescriptorSets;
+    private bool _bindGroupsDirty;
+    private uint _numBoundBindGroups;
     private readonly VkDescriptorSet[] _descriptorSets = new VkDescriptorSet[MaxBindGroups];
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
@@ -85,8 +85,8 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _currentPipeline = default;
         _currentPipelineLayout = default;
         _currentRenderPass = default;
-        _descriptorSetsDirty = false;
-        _numBoundDescriptorSets = 0;
+        _bindGroupsDirty = false;
+        _numBoundBindGroups = 0;
         Array.Clear(_descriptorSets, 0, _descriptorSets.Length);
 
         vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
@@ -247,14 +247,14 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _currentPipelineLayout = (VulkanPipelineLayout)newPipeline.Layout;
     }
 
-    protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
+    protected override void SetBindGroupCore(uint groupIndex, BindGroup bindGroup)
     {
-        var backendBindGroup = (VulkanBindGroup)group;
+        var backendBindGroup = (VulkanBindGroup)bindGroup;
         if (_descriptorSets[groupIndex] != backendBindGroup.Handle)
         {
-            _descriptorSetsDirty = true;
+            _bindGroupsDirty = true;
             _descriptorSets[groupIndex] = backendBindGroup.Handle;
-            _numBoundDescriptorSets = Math.Max(groupIndex + 1, _numBoundDescriptorSets);
+            _numBoundBindGroups = Math.Max(groupIndex + 1, _numBoundBindGroups);
         }
     }
 
@@ -269,7 +269,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     private void PrepareDispatch()
     {
-        FlushDescriptorSets();
+        FlushBindGroups();
     }
 
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -647,15 +647,15 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     private void PrepareDraw()
     {
-        FlushDescriptorSets();
+        FlushBindGroups();
     }
 
-    private void FlushDescriptorSets()
+    private void FlushBindGroups()
     {
         Debug.Assert(_currentPipelineLayout != null);
         Debug.Assert(_currentPipeline != null);
 
-        if (!_descriptorSetsDirty)
+        if (!_bindGroupsDirty)
             return;
 
         vkCmdBindDescriptorSets(
@@ -663,10 +663,10 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             _currentPipeline.BindPoint,
             _currentPipelineLayout.Handle,
             0u,
-            _numBoundDescriptorSets,
+            _numBoundBindGroups,
             (VkDescriptorSet*)Unsafe.AsPointer(ref _descriptorSets.GetReferenceUnsafe())
         );
-        _descriptorSetsDirty = false;
+        _bindGroupsDirty = false;
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

@@ -12,14 +12,16 @@ namespace Alimer.Graphics.D3D12;
 internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 {
     private readonly D3D12GraphicsDevice _device;
-    public readonly List<D3D12_DESCRIPTOR_RANGE1> _cbvUavSrvDescriptorRanges = new();
-    public readonly List<D3D12_DESCRIPTOR_RANGE1> _samplerDescriptorRanges = new();
+    public readonly List<D3D12_DESCRIPTOR_RANGE1> CbvUavSrvDescriptorRanges = new();
+    public readonly List<D3D12_DESCRIPTOR_RANGE1> SamplerDescriptorRanges = new();
     public readonly List<D3D12_STATIC_SAMPLER_DESC> StaticSamplers = new();
 
     public D3D12BindGroupLayout(D3D12GraphicsDevice device, in BindGroupLayoutDescription description)
         : base(description)
     {
         _device = device;
+        CbvUavSrvRootParameterIndex = ~0u;
+        SamplerRootParameterIndex = ~0u;
 
         int bindingCount = description.Entries.Length;
 
@@ -74,36 +76,38 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                 if (descriptorRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
                 {
                     range.OffsetInDescriptorsFromTableStart = DescriptorTableSizeSamplers;
-                    _samplerDescriptorRanges.Add(range);
+                    SamplerDescriptorRanges.Add(range);
 
                     DescriptorTableSizeSamplers++;
                 }
                 else
                 {
                     range.OffsetInDescriptorsFromTableStart = DescriptorTableSizeCbvUavSrv;
-                    _cbvUavSrvDescriptorRanges.Add(range);
+                    CbvUavSrvDescriptorRanges.Add(range);
+
                     DescriptorTableSizeCbvUavSrv++;
                 }
-
             }
             else
             {
                 // Extend the current range
                 if (descriptorRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
                 {
-                    Debug.Assert(_samplerDescriptorRanges.Count > 0);
-                    D3D12_DESCRIPTOR_RANGE1 range = _samplerDescriptorRanges[_samplerDescriptorRanges.Count - 1];
+                    Debug.Assert(SamplerDescriptorRanges.Count > 0);
+
+                    D3D12_DESCRIPTOR_RANGE1 range = SamplerDescriptorRanges[SamplerDescriptorRanges.Count - 1];
                     range.NumDescriptors += 1;
-                    _samplerDescriptorRanges[_samplerDescriptorRanges.Count - 1] = range;
+                    SamplerDescriptorRanges[SamplerDescriptorRanges.Count - 1] = range;
 
                     DescriptorTableSizeSamplers++;
                 }
                 else
                 {
-                    Debug.Assert(_cbvUavSrvDescriptorRanges.Count > 0);
-                    D3D12_DESCRIPTOR_RANGE1 range = _cbvUavSrvDescriptorRanges[_cbvUavSrvDescriptorRanges.Count - 1];
+                    Debug.Assert(CbvUavSrvDescriptorRanges.Count > 0);
+
+                    D3D12_DESCRIPTOR_RANGE1 range = CbvUavSrvDescriptorRanges[CbvUavSrvDescriptorRanges.Count - 1];
                     range.NumDescriptors += 1;
-                    _cbvUavSrvDescriptorRanges[_cbvUavSrvDescriptorRanges.Count - 1] = range;
+                    CbvUavSrvDescriptorRanges[CbvUavSrvDescriptorRanges.Count - 1] = range;
 
                     DescriptorTableSizeCbvUavSrv++;
                 }
@@ -123,6 +127,9 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 
     public uint DescriptorTableSizeCbvUavSrv = 0;
     public uint DescriptorTableSizeSamplers = 0;
+    // Assigned by D3D12PipelineLayout
+    public uint CbvUavSrvRootParameterIndex { get; set; }
+    public uint SamplerRootParameterIndex { get; set; }
 
     /// <inheitdoc />
     protected internal override void Destroy()

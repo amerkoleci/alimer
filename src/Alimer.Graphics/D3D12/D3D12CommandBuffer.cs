@@ -53,6 +53,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     private D3D12PipelineLayout? _currentPipelineLayout;
     private RenderPassDescription _currentRenderPass;
 
+    private bool _bindGroupsDirty;
+    private uint _numBoundBindGroups;
+    private readonly D3D12BindGroup[] _boundBindGroups = new D3D12BindGroup[MaxBindGroups];
+
     public D3D12CommandBuffer(D3D12CommandQueue queue)
     {
         _queue = queue;
@@ -102,6 +106,9 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _currentPipeline = default;
         _currentPipelineLayout = default;
         _currentRenderPass = default;
+        _bindGroupsDirty = false;
+        _numBoundBindGroups = 0;
+        Array.Clear(_boundBindGroups, 0, _boundBindGroups.Length);
 
         // Start the command list in a default state:
         ThrowIfFailed(_commandAllocators[frameIndex].Get()->Reset());
@@ -267,27 +274,13 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _currentPipelineLayout = (D3D12PipelineLayout)newPipeline.Layout;
     }
 
-    protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
+    protected override void SetBindGroupCore(uint groupIndex, BindGroup bindGroup)
     {
-        Debug.Assert(_currentPipelineLayout != null);
-        Debug.Assert(_currentPipeline != null);
-
-        D3D12BindGroup backendBindGroup = (D3D12BindGroup)group;
-        uint rootParameterOffset = groupIndex;
-        if (_currentPipelineLayout.CbvUavSrvRootParameterIndex != ~0u)
+        if (_boundBindGroups[groupIndex] != bindGroup)
         {
-            _commandList.Get()->SetGraphicsRootDescriptorTable(
-                rootParameterOffset + _currentPipelineLayout.CbvUavSrvRootParameterIndex,
-                _queue.Device.ShaderResourceViewHeap.GetGpuHandle(backendBindGroup.DescriptorTableCbvUavSrv)
-            );
-        }
-
-        if (_currentPipelineLayout.SamplerRootParameterIndex != ~0u)
-        {
-            _commandList.Get()->SetGraphicsRootDescriptorTable(
-                rootParameterOffset + _currentPipelineLayout.SamplerRootParameterIndex,
-                _queue.Device.SamplerHeap.GetGpuHandle(backendBindGroup.DescriptorTableSamplers)
-            );
+            _bindGroupsDirty = true;
+            _boundBindGroups[groupIndex] = (D3D12BindGroup)bindGroup;
+            _numBoundBindGroups = Math.Max(groupIndex + 1, _numBoundBindGroups);
         }
     }
 
@@ -319,13 +312,22 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         }
     }
 
+    private void PrepareDispatch()
+    {
+        FlushBindGroups(graphics: false);
+    }
+
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
+        PrepareDispatch();
+
         _commandList.Get()->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
+        PrepareDispatch();
+
         D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
         _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
@@ -677,6 +679,56 @@ internal unsafe class D3D12CommandBuffer : RenderContext
                 _commandList.Get()->IASetVertexBuffers(0, _currentPipeline.NumVertexBindings, pViews);
             }
         }
+
+        FlushBindGroups(graphics: true);
+    }
+
+    private void FlushBindGroups(bool graphics)
+    {
+        Debug.Assert(_currentPipelineLayout != null);
+        Debug.Assert(_currentPipeline != null);
+
+        if (!_bindGroupsDirty)
+            return;
+
+        for (uint groupIndex = 0; groupIndex < _numBoundBindGroups; groupIndex++)
+        {
+            Debug.Assert(_boundBindGroups[groupIndex] != null);
+
+            D3D12BindGroup bindGroup = _boundBindGroups[groupIndex];
+
+            if (bindGroup.DescriptorTableValidCbvUavSrv)
+            {
+                uint rootParameterIndex = bindGroup.CbvUavSrvRootParameterIndex;
+                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.Device.ShaderResourceViewHeap.GetGpuHandle(bindGroup.DescriptorTableCbvUavSrv);
+
+                if (graphics)
+                {
+                    _commandList.Get()->SetGraphicsRootDescriptorTable(rootParameterIndex, gpuHadle);
+                }
+                else
+                {
+                    _commandList.Get()->SetComputeRootDescriptorTable(rootParameterIndex, gpuHadle);
+                }
+            }
+
+            if (bindGroup.DescriptorTableValidSamplers)
+            {
+                uint rootParameterIndex = bindGroup.SamplerRootParameterIndex;
+                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.Device.SamplerHeap.GetGpuHandle(bindGroup.DescriptorTableSamplers);
+
+                if (graphics)
+                {
+                    _commandList.Get()->SetGraphicsRootDescriptorTable(rootParameterIndex, gpuHadle);
+                }
+                else
+                {
+                    _commandList.Get()->SetComputeRootDescriptorTable(rootParameterIndex, gpuHadle);
+                }
+            }
+        }
+
+        _bindGroupsDirty = false;
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

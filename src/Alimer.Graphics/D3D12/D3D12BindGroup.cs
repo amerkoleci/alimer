@@ -28,7 +28,7 @@ internal unsafe class D3D12BindGroup : BindGroup
             uint descriptorTableBaseIndex = _device.ShaderResourceViewHeap.AllocateDescriptors(_layout.DescriptorTableSizeCbvUavSrv);
             DescriptorTableCbvUavSrv = descriptorTableBaseIndex;
 
-            foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout._cbvUavSrvDescriptorRanges)
+            foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout.CbvUavSrvDescriptorRanges)
             {
                 for (uint index = 0; index < range.NumDescriptors; ++index)
                 {
@@ -124,7 +124,7 @@ internal unsafe class D3D12BindGroup : BindGroup
             uint descriptorTableBaseIndex = _device.SamplerHeap.AllocateDescriptors(_layout.DescriptorTableSizeSamplers);
             DescriptorTableSamplers = descriptorTableBaseIndex;
 
-            foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout._samplerDescriptorRanges)
+            foreach (D3D12_DESCRIPTOR_RANGE1 range in _layout.SamplerDescriptorRanges)
             {
                 for (uint index = 0; index < range.NumDescriptors; ++index)
                 {
@@ -170,7 +170,12 @@ internal unsafe class D3D12BindGroup : BindGroup
     public override BindGroupLayout Layout => _layout;
 
     public uint DescriptorTableCbvUavSrv { get; }
+    public uint CbvUavSrvRootParameterIndex => _layout.CbvUavSrvRootParameterIndex;
+    public bool DescriptorTableValidCbvUavSrv => CbvUavSrvRootParameterIndex != ~0u;
+
     public uint DescriptorTableSamplers { get; }
+    public uint SamplerRootParameterIndex => _layout.SamplerRootParameterIndex;
+    public bool DescriptorTableValidSamplers => SamplerRootParameterIndex != ~0u;
 
     /// <inheitdoc />
     protected internal override void Destroy()

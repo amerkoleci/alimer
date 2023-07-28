@@ -1,17 +1,16 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static Alimer.Utilities.UnsafeUtilities;
+using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
-using static Alimer.Utilities.UnsafeUtilities;
-using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
-using static TerraFX.Interop.DirectX.D3D12;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -25,41 +24,73 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     {
         _device = device;
 
-        CbvUavSrvRootParameterIndex = ~0u;
-        SamplerRootParameterIndex = ~0u;
         PushConstantsBaseIndex = ~0u;
 
         // TODO: Handle dynamic constant buffers
         int setLayoutCount = description.BindGroupLayouts.Length;
-        List<D3D12_DESCRIPTOR_RANGE1> cbvUavSrvDescriptorRanges = new();
-        List<D3D12_DESCRIPTOR_RANGE1> samplerDescriptorRanges = new();
         List<D3D12_STATIC_SAMPLER_DESC> staticSamplers = new();
+
+        // Count root parameter count first
+        int rootParameterCount = 0;
+        for (int i = 0; i < setLayoutCount; i++)
+        {
+            D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
+            if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
+            {
+                rootParameterCount++;
+            }
+
+            if (bindGroupLayout.DescriptorTableSizeSamplers > 0)
+            {
+                rootParameterCount++;
+            }
+        }
+
+        int pushConstantRangeCount = description.PushConstantRanges.Length;
+        uint rootParameterIndex = 0;
+        D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParameterCount];
 
         for (int i = 0; i < setLayoutCount; i++)
         {
             D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
             if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
             {
-                Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout._cbvUavSrvDescriptorRanges);
-                foreach (ref D3D12_DESCRIPTOR_RANGE1 range in descriptorRanges)
+                bindGroupLayout.CbvUavSrvRootParameterIndex = rootParameterIndex;
+
+                Span<D3D12_DESCRIPTOR_RANGE1> cbvUavSrvDescriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout.CbvUavSrvDescriptorRanges);
+                foreach (ref D3D12_DESCRIPTOR_RANGE1 range in cbvUavSrvDescriptorRanges)
                 {
                     Debug.Assert(range.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
                     range.RegisterSpace = (uint)i;
-
-                    cbvUavSrvDescriptorRanges.Add(range);
                 }
+
+                rootParameters[rootParameterIndex].InitAsDescriptorTable(
+                    (uint)cbvUavSrvDescriptorRanges.Length,
+                    cbvUavSrvDescriptorRanges.GetPointerUnsafe(),
+                    D3D12_SHADER_VISIBILITY_ALL
+                );
+
+                rootParameterIndex++;
             }
 
             if (bindGroupLayout.DescriptorTableSizeSamplers > 0)
             {
-                Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout._samplerDescriptorRanges);
-                foreach (ref D3D12_DESCRIPTOR_RANGE1 range in descriptorRanges)
+                bindGroupLayout.SamplerRootParameterIndex = rootParameterIndex;
+
+                Span<D3D12_DESCRIPTOR_RANGE1> samplerDescriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout.SamplerDescriptorRanges);
+                foreach (ref D3D12_DESCRIPTOR_RANGE1 range in samplerDescriptorRanges)
                 {
                     Debug.Assert(range.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
                     range.RegisterSpace = (uint)i;
-
-                    samplerDescriptorRanges.Add(range);
                 }
+
+                rootParameters[rootParameterIndex].InitAsDescriptorTable(
+                    (uint)samplerDescriptorRanges.Length,
+                    samplerDescriptorRanges.GetPointerUnsafe(),
+                    D3D12_SHADER_VISIBILITY_ALL
+                );
+
+                rootParameterIndex++;
             }
 
             if (bindGroupLayout.StaticSamplers.Count > 0)
@@ -75,54 +106,9 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             }
         }
 
-        int pushConstantRangeCount = description.PushConstantRanges.Length;
-
-        int rootParameterCount = 0;
-        if (cbvUavSrvDescriptorRanges.Count > 0)
-            rootParameterCount++;
-        if (samplerDescriptorRanges.Count > 0)
-            rootParameterCount++;
-        rootParameterCount += pushConstantRangeCount;
-
-
-        D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParameterCount];
-
-        int rootParameterIndex = 0;
-        if (cbvUavSrvDescriptorRanges.Count > 0)
-        {
-            CbvUavSrvRootParameterIndex = (uint)rootParameterIndex;
-
-            uint numDescriptorRanges = (uint)cbvUavSrvDescriptorRanges.Count;
-            Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(cbvUavSrvDescriptorRanges);
-
-            rootParameters[rootParameterIndex].InitAsDescriptorTable(
-                numDescriptorRanges,
-                descriptorRanges.GetPointerUnsafe(),
-                D3D12_SHADER_VISIBILITY_ALL
-            );
-
-            rootParameterIndex++;
-        }
-
-        if (samplerDescriptorRanges.Count > 0)
-        {
-            SamplerRootParameterIndex = (uint)rootParameterIndex;
-
-            uint numDescriptorRanges = (uint)samplerDescriptorRanges.Count;
-            Span<D3D12_DESCRIPTOR_RANGE1> descriptorRanges = CollectionsMarshal.AsSpan(samplerDescriptorRanges);
-
-            rootParameters[rootParameterIndex].InitAsDescriptorTable(
-                numDescriptorRanges,
-                descriptorRanges.GetPointerUnsafe(),
-                D3D12_SHADER_VISIBILITY_ALL
-            );
-
-            rootParameterIndex++;
-        }
-
         if (pushConstantRangeCount > 0)
         {
-            PushConstantsBaseIndex = (uint)rootParameterIndex;
+            PushConstantsBaseIndex = rootParameterIndex;
 
             for (int i = 0; i < pushConstantRangeCount; i++)
             {
@@ -155,6 +141,8 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 rootSignatureErrorBlob.GetAddressOf());
             if (hr.FAILED)
             {
+                string errors = Marshal.PtrToStringAnsi((nint)rootSignatureErrorBlob.Get()->GetBufferPointer())!;
+                Log.Error($"D3D12SerializeVersionedRootSignature failed: {errors}");
                 return;
             }
 
@@ -165,6 +153,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 _handle.GetVoidAddressOf());
             if (hr.FAILED)
             {
+
                 return;
             }
 
@@ -184,9 +173,6 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     public override GraphicsDevice Device => _device;
 
     public ID3D12RootSignature* Handle => _handle;
-
-    public uint CbvUavSrvRootParameterIndex { get; }
-    public uint SamplerRootParameterIndex { get; }
 
     public uint PushConstantsBaseIndex { get; }
 
