@@ -19,7 +19,7 @@ internal unsafe class SwapChainPanelView : Window
     private bool _isFullscreen;
 
     /// <inheritdoc />
-    public override bool IsMinimized => ApplicationView.GetForCurrentView().IsFullScreen;
+    public override bool IsMinimized => _minimized;
 
     /// <inheritdoc />
     public override bool IsFullscreen

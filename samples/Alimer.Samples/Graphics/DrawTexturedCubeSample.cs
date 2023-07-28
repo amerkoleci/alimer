@@ -20,8 +20,11 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
     private readonly Sampler _sampler;
 
     private readonly BindGroupLayout _bindGroupLayout;
-
     private readonly BindGroup _bindGroup;
+
+    private readonly BindGroupLayout _materialBindGroupLayout;
+    private readonly BindGroup _materialBindGroup;
+
     private readonly PipelineLayout _pipelineLayout;
     private readonly Pipeline _renderPipeline;
 
@@ -58,25 +61,26 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
 
-        var bindGroupLayoutDescription = new BindGroupLayoutDescription(
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStage.Vertex),
+        _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStage.Vertex)
+            ));
+
+        _bindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout, new BindGroupEntry(0, _constantBuffer)));
+
+        // Material
+        _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStage.Fragment),
             new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
-            );
-        _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
-
-        var  bindGroupDescription = new BindGroupDescription(
-            new BindGroupEntry(0, _constantBuffer),
+            ));
+        _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
             new BindGroupEntry(0, _texture)/*,
-            new BindGroupEntry(0, _sampler)*/
+            new BindGroupEntry(0, _sampler)*/)
             );
-        _bindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout, bindGroupDescription));
 
         //PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
         //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
 
-        PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, "PipelineLayout");
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
+        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
         ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStage.Vertex);
         ShaderStageDescription fragmentShader = CompileShader("TexturedCube.hlsl", "fragmentMain", ShaderStage.Fragment);
@@ -123,7 +127,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         {
             context.SetPipeline(_renderPipeline!);
             context.SetBindGroup(0, _bindGroup);
-            //context.SetBindGroup(1, _bindGroup1);
+            context.SetBindGroup(1, _materialBindGroup);
             //context.SetPushConstants(0, worldViewProjection);
 
             context.SetVertexBuffer(0, _vertexBuffer);

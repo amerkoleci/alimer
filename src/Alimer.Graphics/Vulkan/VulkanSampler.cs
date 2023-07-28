@@ -39,6 +39,6 @@ internal unsafe class VulkanSampler : Sampler
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        _device.SetObjectName(VkObjectType.Sampler, Handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Sampler, Handle, newLabel);
     }
 }

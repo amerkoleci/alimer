@@ -209,7 +209,7 @@ internal unsafe class VulkanBindGroup : BindGroup
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        _device.SetObjectName(VkObjectType.DescriptorSet, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.DescriptorSet, _handle, newLabel);
     }
 
     /// <inheitdoc />

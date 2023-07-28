@@ -5,9 +5,11 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
+using static Alimer.Utilities.UnsafeUtilities;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -22,6 +24,10 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private VulkanPipeline? _currentPipeline;
     private VulkanPipelineLayout? _currentPipelineLayout;
     private RenderPassDescription _currentRenderPass;
+
+    private bool _descriptorSetsDirty;
+    private uint _numBoundDescriptorSets;
+    private readonly VkDescriptorSet[] _descriptorSets = new VkDescriptorSet[MaxBindGroups];
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
     {
@@ -79,6 +85,9 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _currentPipeline = default;
         _currentPipelineLayout = default;
         _currentRenderPass = default;
+        _descriptorSetsDirty = false;
+        _numBoundDescriptorSets = 0;
+        Array.Clear(_descriptorSets, 0, _descriptorSets.Length);
 
         vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
         _commandBuffer = _commandBuffers[frameIndex];
@@ -235,23 +244,18 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
         vkCmdBindPipeline(_commandBuffer, newPipeline.BindPoint, newPipeline.Handle);
         _currentPipeline = newPipeline;
-        _currentPipelineLayout = (VulkanPipelineLayout) newPipeline.Layout;
+        _currentPipelineLayout = (VulkanPipelineLayout)newPipeline.Layout;
     }
 
     protected override void SetBindGroupCore(uint groupIndex, BindGroup group)
     {
-        Debug.Assert(_currentPipelineLayout != null);
-        Debug.Assert(_currentPipeline != null);
-
-        var vulkanBindGroup = (VulkanBindGroup)group;
-
-        vkCmdBindDescriptorSets(
-            _commandBuffer,
-            _currentPipeline.BindPoint,
-            _currentPipelineLayout.Handle,
-            groupIndex,
-            vulkanBindGroup.Handle
-        );
+        var backendBindGroup = (VulkanBindGroup)group;
+        if (_descriptorSets[groupIndex] != backendBindGroup.Handle)
+        {
+            _descriptorSetsDirty = true;
+            _descriptorSets[groupIndex] = backendBindGroup.Handle;
+            _numBoundDescriptorSets = Math.Max(groupIndex + 1, _numBoundDescriptorSets);
+        }
     }
 
     protected override void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
@@ -263,13 +267,22 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdPushConstants(_commandBuffer, _currentPipelineLayout.Handle, range.stageFlags, range.offset, size, data);
     }
 
+    private void PrepareDispatch()
+    {
+        FlushDescriptorSets();
+    }
+
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
+        PrepareDispatch();
+
         vkCmdDispatch(_commandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
+        PrepareDispatch();
+
         VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
         vkCmdDispatchIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset);
     }
@@ -634,6 +647,26 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     private void PrepareDraw()
     {
+        FlushDescriptorSets();
+    }
+
+    private void FlushDescriptorSets()
+    {
+        Debug.Assert(_currentPipelineLayout != null);
+        Debug.Assert(_currentPipeline != null);
+
+        if (!_descriptorSetsDirty)
+            return;
+
+        vkCmdBindDescriptorSets(
+            _commandBuffer,
+            _currentPipeline.BindPoint,
+            _currentPipelineLayout.Handle,
+            0u,
+            _numBoundDescriptorSets,
+            (VkDescriptorSet*)Unsafe.AsPointer(ref _descriptorSets.GetReferenceUnsafe())
+        );
+        _descriptorSetsDirty = false;
     }
 
     public override Texture? AcquireSwapChainTexture(SwapChain swapChain)

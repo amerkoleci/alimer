@@ -390,7 +390,7 @@ internal unsafe class VulkanPipeline : Pipeline
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        _device.SetObjectName(VkObjectType.Pipeline, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.Pipeline, _handle, newLabel);
     }
 
     /// <inheitdoc />

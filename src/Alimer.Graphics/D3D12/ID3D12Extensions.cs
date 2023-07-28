@@ -4,28 +4,30 @@
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12_FENCE_FLAGS;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Graphics.D3D12;
 
 internal static unsafe partial class ID3D12Extensions
 {
-    public static void SetName<TID3D12Object>(ref this TID3D12Object self, ReadOnlySpan<char> name)
-        where TID3D12Object : unmanaged, ID3D12Object.Interface
+    public static void SetName<TD3D12Object>(ref this TD3D12Object self, string name)
+        where TD3D12Object : unmanaged, ID3D12Object.Interface
     {
-        fixed (char* namePtr = name)
+        fixed (char* pName = name)
         {
-            _ = self.SetName((ushort*)namePtr);
+            _ = self.SetName((ushort*)pName);
         }
     }
 
-    public static void SetName<TID3D12Object>(ref this TID3D12Object self, string name)
-        where TID3D12Object : unmanaged, ID3D12Object.Interface
+    public static void SetDxgiName<TDXGIObject>(ref this TDXGIObject self, string name)
+        where TDXGIObject : unmanaged, IDXGIObject.Interface
     {
-        fixed (char* namePtr = name)
+        fixed (char* pName = name)
         {
-            _ = self.SetName((ushort*)namePtr);
+            _ = self.SetPrivateData(AsPointer(in WKPDID_D3DDebugObjectName), (uint)name.Length, (ushort*)pName);
         }
     }
 

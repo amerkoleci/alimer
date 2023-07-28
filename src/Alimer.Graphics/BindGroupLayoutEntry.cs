@@ -99,7 +99,14 @@ public readonly struct BufferBindingLayout
     public readonly bool HasDynamicOffset;
     public readonly ulong MinBindingSize;
 
-    public BufferBindingLayout(BufferBindingType type = BufferBindingType.Undefined, bool hasDynamicOffset = false, ulong minBindingSize = 0)
+    public BufferBindingLayout()
+    {
+        Type = BufferBindingType.Constant;
+        HasDynamicOffset = false;
+        MinBindingSize = 0;
+    }
+
+    public BufferBindingLayout(BufferBindingType type, bool hasDynamicOffset = false, ulong minBindingSize = 0)
     {
         Type = type;
         HasDynamicOffset = hasDynamicOffset;
@@ -111,7 +118,12 @@ public readonly struct SamplerBindingLayout
 {
     public readonly SamplerBindingType Type;
 
-    public SamplerBindingLayout(SamplerBindingType type = SamplerBindingType.Filtering)
+    public SamplerBindingLayout()
+    {
+        Type = SamplerBindingType.Filtering;
+    }
+
+    public SamplerBindingLayout(SamplerBindingType type)
     {
         Type = type;
     }
@@ -142,7 +154,13 @@ public readonly struct StorageTextureBindingLayout
     public readonly PixelFormat Format;
     //public TextureViewDimension viewDimension;
 
-    public StorageTextureBindingLayout(StorageTextureAccess access = StorageTextureAccess.WriteOnly, PixelFormat format = PixelFormat.Undefined)
+    public StorageTextureBindingLayout()
+    {
+        Access = StorageTextureAccess.WriteOnly;
+        Format = PixelFormat.Undefined;
+    }
+
+    public StorageTextureBindingLayout(StorageTextureAccess access, PixelFormat format = PixelFormat.Undefined)
     {
         Access = access;
         Format = format;

@@ -79,7 +79,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        _device.SetObjectName(VkObjectType.PipelineLayout, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.PipelineLayout, _handle, newLabel);
     }
 
     /// <inheitdoc />

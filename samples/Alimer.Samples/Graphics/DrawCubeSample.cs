@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
 using Alimer.Numerics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;
 
@@ -19,10 +18,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     private readonly GraphicsBuffer _constantBuffer1;
 
     private readonly BindGroupLayout _bindGroupLayout0;
-    //private readonly BindGroupLayout _bindGroupLayout1;
-
     private readonly BindGroup _bindGroup0;
-    //private readonly BindGroup _bindGroup1;
     private readonly PipelineLayout _pipelineLayout;
     private readonly Pipeline _renderPipeline;
 
@@ -38,31 +34,18 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, CpuAccessMode.Write));
 
-        var bindGroupLayoutDescription = new BindGroupLayoutDescription(
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStage.Vertex),
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 1, ShaderStage.Fragment)
-            );
-        _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
+        _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
+            new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStage.Vertex),
+            new BindGroupLayoutEntry(new BufferBindingLayout(), 1, ShaderStage.Fragment)
+            ));
 
-        //bindGroupLayoutDescription = new BindGroupLayoutDescription(
-        //    new BindGroupLayoutEntry(DescriptorType.ConstantBuffer, 0, ShaderStages.Fragment)
-        //);
-        //_bindGroupLayout1 = ToDispose(GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription));
-
-        var  bindGroupDescription = new BindGroupDescription(
+        _bindGroup0 = ToDispose(GraphicsDevice.CreateBindGroup(
+            _bindGroupLayout0,
             new BindGroupEntry(0, _constantBuffer0),
             new BindGroupEntry(1, _constantBuffer1)
-            );
-        _bindGroup0 = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout0, bindGroupDescription));
+            ));
 
-        //bindGroupDescription = new(new BindGroupEntry(0, _constantBuffer1));
-        //_bindGroup1 = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout1, bindGroupDescription));
-
-        //PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
-        //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
-
-        PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout0 }, "PipelineLayout");
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
+        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0));
 
         ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStage.Vertex);
         ShaderStageDescription fragmentShader = CompileShader("Cube.hlsl", "fragmentMain", ShaderStage.Fragment);
@@ -112,8 +95,6 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         {
             context.SetPipeline(_renderPipeline!);
             context.SetBindGroup(0, _bindGroup0);
-            //context.SetBindGroup(1, _bindGroup1);
-            //context.SetPushConstants(0, worldViewProjection);
 
             context.SetVertexBuffer(0, _vertexBuffer);
             context.SetIndexBuffer(_indexBuffer, IndexType.Uint16);

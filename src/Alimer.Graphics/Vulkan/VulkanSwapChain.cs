@@ -324,7 +324,8 @@ internal unsafe class VulkanSwapChain : SwapChain
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        //_handle.Get()->SetDebugName(newLabel);
+        _device.SetObjectName(VkObjectType.SurfaceKHR, _handle, newLabel);
+        _device.SetObjectName(VkObjectType.SwapchainKHR, _handle, newLabel);
     }
 
     protected override void ResizeBackBuffer()

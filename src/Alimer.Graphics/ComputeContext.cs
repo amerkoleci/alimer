@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Alimer.Numerics;
+using static Alimer.Graphics.Constants;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
@@ -35,6 +36,7 @@ public abstract class ComputeContext : CopyContext
     public void SetBindGroup(uint groupIndex,  BindGroup group)
     {
         Guard.IsNotNull(group, nameof(group));
+        Guard.IsTrue(groupIndex < MaxBindGroups, nameof(groupIndex));
 
         SetBindGroupCore(groupIndex, group);
     }

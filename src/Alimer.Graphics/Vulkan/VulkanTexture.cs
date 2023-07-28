@@ -313,18 +313,13 @@ internal unsafe class VulkanTexture : Texture
 
                     vkCmdPipelineBarrier2(context.TransferCommandBuffer, &dependencyInfo);
 
-                    Span<VkBufferImageCopy> regionsSpan = CollectionsMarshal.AsSpan(copyRegions);
-                    fixed (VkBufferImageCopy* pRegions = regionsSpan)
-                    {
-                        vkCmdCopyBufferToImage(
-                            context.TransferCommandBuffer,
-                            context.UploadBuffer!.Handle,
-                            Handle,
-                            VkImageLayout.TransferDstOptimal,
-                            (uint)regionsSpan.Length,
-                            pRegions
-                        );
-                    }
+                    vkCmdCopyBufferToImage(
+                        context.TransferCommandBuffer,
+                        context.UploadBuffer!.Handle,
+                        Handle,
+                        VkImageLayout.TransferDstOptimal,
+                        copyRegions
+                    );
 
                     ResourceStateMapping mappingAfter = ConvertResourceState(description.InitialLayout);
                     Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
@@ -359,18 +354,13 @@ internal unsafe class VulkanTexture : Texture
                         1, &barrier
                     );
 
-                    Span<VkBufferImageCopy> regionsSpan = CollectionsMarshal.AsSpan(copyRegions);
-                    fixed (VkBufferImageCopy* pRegions = regionsSpan)
-                    {
-                        vkCmdCopyBufferToImage(
-                            context.TransferCommandBuffer,
-                            context.UploadBuffer!.Handle,
-                            Handle,
-                            VkImageLayout.TransferDstOptimal,
-                            (uint)regionsSpan.Length,
-                            pRegions
-                        );
-                    }
+                    vkCmdCopyBufferToImage(
+                        context.TransferCommandBuffer,
+                        context.UploadBuffer!.Handle,
+                        Handle,
+                        VkImageLayout.TransferDstOptimal,
+                        copyRegions
+                    );
 
                     ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(description.InitialLayout);
                     Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);

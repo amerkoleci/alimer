@@ -327,6 +327,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBindGroupLayoutCore(in description);
     }
 
+    public BindGroupLayout CreateBindGroupLayout(params BindGroupLayoutEntry[] entries)
+    {
+        return CreateBindGroupLayoutCore(new BindGroupLayoutDescription(entries));
+    }
+
     public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescription description)
     {
         Guard.IsNotNull(layout, nameof(layout));
@@ -336,9 +341,22 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBindGroupCore(layout, in description);
     }
 
+    public BindGroup CreateBindGroup(BindGroupLayout layout, params BindGroupEntry[] entries)
+    {
+        Guard.IsNotNull(layout, nameof(layout));
+        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
+
+        return CreateBindGroupCore(layout, new BindGroupDescription(entries));
+    }
+
     public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescription description)
     {
         return CreatePipelineLayoutCore(in description);
+    }
+
+    public PipelineLayout CreatePipelineLayout(params BindGroupLayout[] bindGroupLayouts)
+    {
+        return CreatePipelineLayout(new PipelineLayoutDescription(bindGroupLayouts));
     }
 
     public Pipeline CreateRenderPipeline(in RenderPipelineDescription description)

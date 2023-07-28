@@ -2,12 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
-using Vortice.Vulkan;
-using static Vortice.Vulkan.Vulkan;
-using static Alimer.Utilities.MemoryUtilities;
 using CommunityToolkit.Diagnostics;
-using static Alimer.Utilities.UnsafeUtilities;
-using Alimer.Utilities;
+using Vortice.Vulkan;
+using static Alimer.Utilities.MemoryUtilities;
+using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -132,6 +130,9 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         Dictionary<VkDescriptorType, uint> poolSizeMap = new();
         for (int i = 0; i < LayoutBindingCount; i++)
         {
+            if (_layoutBindings[i].pImmutableSamplers != null)
+                continue;
+
             if (poolSizeMap.ContainsKey(_layoutBindings[i].descriptorType) == false)
             {
                 poolSizeMap[_layoutBindings[i].descriptorType] = 0;
@@ -173,7 +174,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     /// <inheritdoc />
     protected override void OnLabelChanged(string newLabel)
     {
-        _device.SetObjectName(VkObjectType.DescriptorSetLayout, _handle.Handle, newLabel);
+        _device.SetObjectName(VkObjectType.DescriptorSetLayout, _handle, newLabel);
     }
 
     /// <inheitdoc />
