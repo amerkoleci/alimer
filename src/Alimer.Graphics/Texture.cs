@@ -120,7 +120,7 @@ public abstract class Texture : GraphicsResource
 
     public static Texture FromMemory(GraphicsDevice device, byte[] data, bool srgb = true)
     {
-        Image image = Image.FromMemory(data, srgb);
-        return device.CreateTexture2D(image.Data.Span, image.Format, image.Width, image.Height);
+        using Image image = Image.FromMemory(data, srgb);
+        return device.CreateTexture2D(image.Data, image.Format, image.Width, image.Height);
     }
 }

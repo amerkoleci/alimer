@@ -15,12 +15,12 @@ public static class GraphicsUtilities
             width = Math.Max(minDimension, width >> 1);
             height = Math.Max(minDimension, height >> 1);
             depth = Math.Max(minDimension, depth >> 1);
-            if (
-                MathHelper.AlignUp(width, requiredAlignment) != width ||
+            if (MathHelper.AlignUp(width, requiredAlignment) != width ||
                 MathHelper.AlignUp(height, requiredAlignment) != height ||
-                MathHelper.AlignUp(depth, requiredAlignment) != depth
-                )
+                MathHelper.AlignUp(depth, requiredAlignment) != depth)
+            {
                 break;
+            }
             mipLevelCount++;
         }
 
@@ -75,8 +75,6 @@ public static class GraphicsUtilities
 
     public static void Swap<T>(ref T source, ref T destination)
     {
-        T tmp = source;
-        source = destination;
-        destination = tmp;
+        (destination, source) = (source, destination);
     }
 }

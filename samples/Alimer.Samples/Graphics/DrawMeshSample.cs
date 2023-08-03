@@ -33,6 +33,8 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
     public DrawMeshSample(GraphicsDevice graphicsDevice, Window mainWindow)
         : base("Graphics - Draw Mesh", graphicsDevice, mainWindow)
     {
+        using Image image = new Image(ImageDescription.ImageCube(PixelFormat.RGBA8Unorm, 1024));
+
         string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
         MeshImporter importer = new();
         MeshAsset meshAsset = importer.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), null).Result;

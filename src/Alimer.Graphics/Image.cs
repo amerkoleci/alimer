@@ -4,79 +4,171 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.ImageNativeApi;
 
 namespace Alimer.Graphics;
 
-public sealed class Image
+public sealed unsafe class Image : DisposableObject
 {
+    private readonly MipMapDescription[] _mipmaps;
+    private readonly ImageData[] _levelData;
+    private readonly byte* _data;
+
     public Image(uint width, uint height, PixelFormat format = PixelFormat.RGBA8Unorm)
+        : this(ImageDescription.Image2D(format, width, height))
     {
-        Width = width;
-        Height = height;
-        Format = format;
-        BytesPerPixel = format.GetFormatBytesPerBlock();
-        RowPitch = format.GetFormatRowPitch(width);
 
-        if (format.IsCompressedFormat())
-        {
-            uint blockSizeY = format.GetFormatHeightCompressionRatio();
-            Debug.Assert(height % blockSizeY == 0); // Should divide evenly
-            SizeInBytes = RowPitch * (height / blockSizeY);
-        }
-        else
-        {
-            SizeInBytes = height * RowPitch;
-        }
-
-        Data = new byte[SizeInBytes];
     }
 
-    private Image(uint width, uint height, PixelFormat format, Memory<byte> data)
+    public Image(in ImageDescription description)
     {
-        Width = width;
-        Height = height;
-        Format = format;
-        Data = data;
-        BytesPerPixel = format.GetFormatBytesPerBlock();
-        RowPitch = format.GetFormatRowPitch(width);
+        Guard.IsTrue(description.Format != PixelFormat.Undefined);
+        Guard.IsGreaterThanOrEqualTo(description.Width, 1);
+        Guard.IsGreaterThanOrEqualTo(description.Height, 1);
+        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1);
 
-        if (format.IsCompressedFormat())
+        Description = description;
+        _mipmaps = new MipMapDescription[MipLevelCount];
+
+        uint nimages = 0;
+        switch (Description.Dimension)
         {
-            uint blockSizeY = format.GetFormatHeightCompressionRatio();
-            Debug.Assert(height % blockSizeY == 0); // Should divide evenly
-            SizeInBytes = RowPitch * (height / blockSizeY);
+            case TextureDimension.Texture1D:
+            case TextureDimension.Texture2D:
+                for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
+                {
+                    uint mipWidth = Width;
+                    uint mipHeight = Height;
+
+                    for (uint level = 0; level < MipLevelCount; ++level)
+                    {
+                        PixelFormatUtils.GetSurfaceInfo(Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+
+                        _mipmaps[level] = new MipMapDescription(
+                           mipWidth,
+                           mipHeight,
+                           1,
+                           rowPitch,
+                           slicePitch,
+                           widthCount,
+                           heightCount
+                           );
+
+                        SizeInBytes += slicePitch;
+                        nimages++;
+
+                        if (mipHeight > 1)
+                            mipHeight >>= 1;
+
+                        if (mipWidth > 1)
+                            mipWidth >>= 1;
+                    }
+                }
+                break;
+
+            case TextureDimension.Texture3D:
+                {
+                    uint mipWidth = Width;
+                    uint mipHeight = Height;
+                    uint mipDepth = Depth;
+
+                    for (uint level = 0; level < MipLevelCount; ++level)
+                    {
+                        PixelFormatUtils.GetSurfaceInfo(Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+
+                        _mipmaps[level] = new MipMapDescription(
+                           mipWidth,
+                           mipHeight,
+                           mipDepth,
+                           rowPitch,
+                           slicePitch,
+                           widthCount,
+                           heightCount
+                           );
+
+                        for (uint slice = 0; slice < mipDepth; ++slice)
+                        {
+                            SizeInBytes += slicePitch;
+                            nimages++;
+                        }
+
+                        if (mipWidth > 1)
+                            mipWidth >>= 1;
+
+                        if (mipHeight > 1)
+                            mipHeight >>= 1;
+
+                        if (mipDepth > 1)
+                            mipDepth >>= 1;
+                    }
+                }
+                break;
+
+            default:
+                throw new InvalidOperationException("Invalid Image dimension");
         }
-        else
+
+        _levelData = new ImageData[nimages];
+        _data = (byte*)NativeMemory.AllocZeroed((nuint)SizeInBytes);
+    }
+
+    private Image(in ImageDescription description, ReadOnlySpan<byte> source)
+        : this(in description)
+    {
+        source.CopyTo(new Span<byte>(_data, source.Length));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            SizeInBytes = height * RowPitch;
+            if (_data != null)
+            {
+                NativeMemory.Free(_data);
+            }
         }
     }
 
     /// <summary>
-    /// Get the width of the image.
+    /// Gets the image description.
     /// </summary>
-    public uint Width { get; }
+    public ImageDescription Description { get; }
 
     /// <summary>
-    /// Get the height of the image.
+    /// Gets the image dimension.
     /// </summary>
-    public uint Height { get; }
+    public TextureDimension Dimension => Description.Dimension;
 
     /// <summary>
     /// Gets the data format.
     /// </summary>
-    public PixelFormat Format { get; }
+    public PixelFormat Format => Description.Format;
 
     /// <summary>
-    /// Get the number of bytes per single pixel.
+    /// Get the width of the image.
     /// </summary>
-    public uint BytesPerPixel { get; }
+    public uint Width => Description.Width;
 
     /// <summary>
-    /// Get the row pitch in bytes. For compressed formats this corresponds to one row of blocks, not pixels.
+    /// Get the height of the image.
     /// </summary>
-    public uint RowPitch { get; }
+    public uint Height => Description.Height;
+
+    /// <summary>
+    /// Get the depth of the image.
+    /// </summary>
+    public uint Depth => Description.Dimension == TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
+
+    /// <summary>
+    /// Get the array layers of the image.
+    /// </summary>
+    public uint ArrayLayers => Description.Dimension != TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
+
+    /// <summary>
+    /// Get the number of mipmap levels in the.
+    /// </summary>
+    public uint MipLevelCount => Description.MipLevelCount;
 
     /// <summary>
     /// Get the data size in bytes.
@@ -86,7 +178,63 @@ public sealed class Image
     /// <summary>
     /// Get the image data.
     /// </summary>
-    public Memory<byte> Data { get; }
+    public Span<byte> Data => new Span<byte>(_data, (int)SizeInBytes);
+
+    /// <summary>
+    /// Gets a pointer to the image buffer in memory.
+    /// </summary>
+    public nint DataPointer => (nint)_data;
+
+    /// <summary>
+    /// Get the image data.
+    /// </summary>
+    public Span<T> GetData<T>()
+        where T : unmanaged
+    {
+        return MemoryMarshal.Cast<byte, T>(Data);
+    }
+
+    /// <summary>
+    /// Get a mip-level width.
+    /// </summary>
+    /// <param name="mipLevel"></param>
+    /// <returns></returns>
+    public uint GetWidth(int mipLevel = 0)
+    {
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> mipLevel) : 0;
+    }
+
+    // <summary>
+    /// Get a mip-level height.
+    /// </summary>
+    /// <param name="mipLevel"></param>
+    /// <returns></returns>
+    public uint GetHeight(int mipLevel = 0)
+    {
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> mipLevel) : 0;
+    }
+
+    // <summary>
+    /// Get a mip-level depth.
+    /// </summary>
+    /// <param name="mipLevel"></param>
+    /// <returns></returns>
+    public uint GetDepth(int mipLevel = 0)
+    {
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> mipLevel) : 0;
+    }
+
+    /// <summary>
+    /// Gets the mipmap description of this instance for the specified mipmap level.
+    /// </summary>
+    /// <param name="level">The mipmap level to get information.</param>
+    /// <returns>A description of a particular mipmap for this texture.</returns>
+    public MipMapDescription GetMipMapDescription(int level)
+    {
+        Guard.IsGreaterThan(level, 0);
+        Guard.IsLessThan(level, MipLevelCount);
+        return _mipmaps[level];
+    }
 
     public static Image FromFile(string filePath, bool srgb = true)
     {
@@ -125,7 +273,8 @@ public sealed class Image
 
             alimerImageDestroy(handle);
 
-            return new Image(width, height, srgb ? format.LinearToSrgbFormat() : format, imageData);
+            ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, width, height);
+            return new Image(imageDescription, imageData);
         }
     }
 

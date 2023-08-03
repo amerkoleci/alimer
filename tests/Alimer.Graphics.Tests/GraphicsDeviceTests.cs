@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Alimer.Graphics.Tests;
 
-[Trait("Device", "General")]
+[Trait("Graphics", "GraphicsDevice")]
 public class GraphicsDeviceTests
 {
     [Fact]

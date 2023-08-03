@@ -4,10 +4,8 @@
 using System.Numerics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_FENCE_FLAGS;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -45,7 +43,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
             {
                 if (_freelist[i].UploadBufferSize >= size)
                 {
-                    if (_freelist[i].Fence.Get()->GetCompletedValue() == 1)
+                    if (_freelist[i].IsCompleted)
                     {
                         ThrowIfFailed(_freelist[i].Fence.Get()->Signal(0));
 
@@ -91,6 +89,12 @@ internal unsafe class D3D12CopyAllocator : IDisposable
 
     public void Submit(in D3D12UploadContext context)
     {
+        lock (_freelist)
+        {
+            context.IncreaseFenceValueSignaled();
+            _freelist.Add(context);
+        }
+
         ThrowIfFailed(context.CommandList.Get()->Close());
         ID3D12CommandList** commandLists = stackalloc ID3D12CommandList*[1]
         {
@@ -98,17 +102,12 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         };
 
         _device.CopyQueue.Handle->ExecuteCommandLists(1, commandLists);
-        ThrowIfFailed(_device.CopyQueue.Handle->Signal(context.Fence.Get(), 1));
-        ThrowIfFailed(_device.GraphicsQueue.Handle->Wait(context.Fence.Get(), 1));
-        ThrowIfFailed(_device.ComputeQueue.Handle->Wait(context.Fence.Get(), 1));
+        ThrowIfFailed(_device.CopyQueue.Handle->Signal(context.Fence.Get(), context.FenceValueSignaled));
+        ThrowIfFailed(_device.GraphicsQueue.Handle->Wait(context.Fence.Get(), context.FenceValueSignaled));
+        ThrowIfFailed(_device.ComputeQueue.Handle->Wait(context.Fence.Get(), context.FenceValueSignaled));
         if (_device.VideDecodeQueue is not null)
         {
-            ThrowIfFailed(_device.VideDecodeQueue.Handle->Wait(context.Fence.Get(), 1));
-        }
-
-        lock (_freelist)
-        {
-            _freelist.Add(context);
+            ThrowIfFailed(_device.VideDecodeQueue.Handle->Wait(context.Fence.Get(), context.FenceValueSignaled));
         }
     }
 }
@@ -118,13 +117,20 @@ internal unsafe struct D3D12UploadContext
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
     public ComPtr<ID3D12GraphicsCommandList> CommandList;
     public ComPtr<ID3D12Fence> Fence;
+    public ulong FenceValueSignaled = 0;
     public ulong UploadBufferSize;
     public D3D12Buffer UploadBuffer = null!;
 
     public readonly bool IsValid => CommandList.Get() != null;
+    public readonly bool IsCompleted => Fence.Get()->GetCompletedValue() >= FenceValueSignaled;
 
     public D3D12UploadContext()
     {
 
+    }
+
+    public void IncreaseFenceValueSignaled()
+    {
+        FenceValueSignaled++;
     }
 }
