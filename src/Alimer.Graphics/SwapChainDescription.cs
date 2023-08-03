@@ -13,14 +13,14 @@ public readonly record struct SwapChainDescription
     }
 
     public SwapChainDescription(
-        PixelFormat colorFormat = PixelFormat.Bgra8UnormSrgb,
+        PixelFormat colorFormat = PixelFormat.BGRA8UnormSrgb,
         PresentMode presentMode = PresentMode.Fifo)
     {
         Format = colorFormat;
         PresentMode = presentMode;
     }
 
-    public PixelFormat Format { get; init; } = PixelFormat.Bgra8UnormSrgb;
+    public PixelFormat Format { get; init; } = PixelFormat.BGRA8UnormSrgb;
     public PresentMode PresentMode { get; init; } = PresentMode.Fifo;
     public bool IsFullscreen { get; init; } = false;
 

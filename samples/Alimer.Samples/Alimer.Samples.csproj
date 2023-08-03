@@ -20,6 +20,7 @@
   </PropertyGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+  <Import Project="$(AlimerRootDirectory)Alimer.Native.targets" />
   
   <!-- Assets-->
   <ItemGroup>

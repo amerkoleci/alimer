@@ -6,12 +6,11 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
 using Alimer.Numerics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;
 
-[Description("Graphics - Draw Textured Cube")]
-public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
+[Description("Graphics - Draw Textured Cube from File")]
+public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 {
     private readonly GraphicsBuffer _vertexBuffer;
     private readonly GraphicsBuffer _indexBuffer;
@@ -30,8 +29,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 
     private Stopwatch _clock;
 
-    public DrawTexturedCubeSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - Draw Textured Cube", graphicsDevice, mainWindow)
+    public DrawTexturedFromFileCubeSample(GraphicsDevice graphicsDevice, Window mainWindow)
+        : base("Graphics - Draw Textured Cube from file", graphicsDevice, mainWindow)
     {
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
@@ -39,25 +38,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 
-        Span<uint> pixels = stackalloc uint[16] {
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-        };
-        _texture = ToDispose(GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4));
+        string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
+        _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
 
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
 
@@ -70,15 +52,13 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         // Material
         _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStage.Fragment),
-            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStage.Fragment) //new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
+            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStage.Fragment) 
             ));
         _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
             new BindGroupEntry(0, _texture),
             new BindGroupEntry(0, _sampler))
             );
 
-        //PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
-        //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
         ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStage.Vertex);

@@ -141,7 +141,7 @@ internal static unsafe class VulkanUtils
             {
                 extensions.FormatFeatureFlags2 = true;
             }
-            else if(extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
+            else if (extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             {
                 extensions.Swapchain = true;
             }
@@ -292,50 +292,50 @@ internal static unsafe class VulkanUtils
             case PixelFormat.R16Uint: return VkFormat.R16Uint;
             case PixelFormat.R16Sint: return VkFormat.R16Sint;
             case PixelFormat.R16Float: return VkFormat.R16Sfloat;
-            case PixelFormat.Rg8Unorm: return VkFormat.R8G8Unorm;
-            case PixelFormat.Rg8Snorm: return VkFormat.R8G8Snorm;
-            case PixelFormat.Rg8Uint: return VkFormat.R8G8Uint;
-            case PixelFormat.Rg8Sint: return VkFormat.R8G8Sint;
+            case PixelFormat.RG8Unorm: return VkFormat.R8G8Unorm;
+            case PixelFormat.RG8Snorm: return VkFormat.R8G8Snorm;
+            case PixelFormat.RG8Uint: return VkFormat.R8G8Uint;
+            case PixelFormat.RG8Sint: return VkFormat.R8G8Sint;
             // Packed 16-Bit Pixel Formats
-            case PixelFormat.Bgra4Unorm: return VkFormat.B4G4R4A4UnormPack16;
+            case PixelFormat.BGRA4Unorm: return VkFormat.B4G4R4A4UnormPack16;
             case PixelFormat.B5G6R5Unorm: return VkFormat.B5G6R5UnormPack16;
-            case PixelFormat.Bgr5A1Unorm: return VkFormat.B5G5R5A1UnormPack16;
+            case PixelFormat.BGR5A1Unorm: return VkFormat.B5G5R5A1UnormPack16;
             // 32-bit formats
             case PixelFormat.R32Uint: return VkFormat.R32Uint;
             case PixelFormat.R32Sint: return VkFormat.R32Sint;
             case PixelFormat.R32Float: return VkFormat.R32Sfloat;
-            case PixelFormat.Rg16Unorm: return VkFormat.R16G16Unorm;
-            case PixelFormat.Rg16Snorm: return VkFormat.R16G16Snorm;
-            case PixelFormat.Rg16Uint: return VkFormat.R16G16Uint;
-            case PixelFormat.Rg16Sint: return VkFormat.R16G16Sint;
-            case PixelFormat.Rg16Float: return VkFormat.R16G16Sfloat;
-            case PixelFormat.Rgba8Unorm: return VkFormat.R8G8B8A8Unorm;
-            case PixelFormat.Rgba8UnormSrgb: return VkFormat.R8G8B8A8Srgb;
-            case PixelFormat.Rgba8Snorm: return VkFormat.R8G8B8A8Snorm;
-            case PixelFormat.Rgba8Uint: return VkFormat.R8G8B8A8Uint;
-            case PixelFormat.Rgba8Sint: return VkFormat.R8G8B8A8Sint;
-            case PixelFormat.Bgra8Unorm: return VkFormat.B8G8R8A8Unorm;
-            case PixelFormat.Bgra8UnormSrgb: return VkFormat.B8G8R8A8Srgb;
+            case PixelFormat.RG16Unorm: return VkFormat.R16G16Unorm;
+            case PixelFormat.RG16Snorm: return VkFormat.R16G16Snorm;
+            case PixelFormat.RG16Uint: return VkFormat.R16G16Uint;
+            case PixelFormat.RG16Sint: return VkFormat.R16G16Sint;
+            case PixelFormat.RG16Float: return VkFormat.R16G16Sfloat;
+            case PixelFormat.RGBA8Unorm: return VkFormat.R8G8B8A8Unorm;
+            case PixelFormat.RGBA8UnormSrgb: return VkFormat.R8G8B8A8Srgb;
+            case PixelFormat.RGBA8Snorm: return VkFormat.R8G8B8A8Snorm;
+            case PixelFormat.RGBA8Uint: return VkFormat.R8G8B8A8Uint;
+            case PixelFormat.RGBA8Sint: return VkFormat.R8G8B8A8Sint;
+            case PixelFormat.BGRA8Unorm: return VkFormat.B8G8R8A8Unorm;
+            case PixelFormat.BGRA8UnormSrgb: return VkFormat.B8G8R8A8Srgb;
             // Packed 32-Bit formats
-            case PixelFormat.Rgb9e5Ufloat: return VkFormat.E5B9G9R9UfloatPack32;
-            case PixelFormat.Rgb10a2Unorm: return VkFormat.A2B10G10R10UnormPack32;
-            case PixelFormat.Rgb10a2Uint: return VkFormat.A2B10G10R10UintPack32;
-            case PixelFormat.Rg11b10Float: return VkFormat.B10G11R11UfloatPack32;
+            case PixelFormat.RGB10A2Unorm: return VkFormat.A2B10G10R10UnormPack32;
+            case PixelFormat.RGB10A2Uint: return VkFormat.A2B10G10R10UintPack32;
+            case PixelFormat.RG11B10UFloat: return VkFormat.B10G11R11UfloatPack32;
+            case PixelFormat.RGB9E5UFloat: return VkFormat.E5B9G9R9UfloatPack32;
             // 64-Bit formats
-            case PixelFormat.Rg32Uint: return VkFormat.R32G32Uint;
-            case PixelFormat.Rg32Sint: return VkFormat.R32G32Sint;
-            case PixelFormat.Rg32Float: return VkFormat.R32G32Sfloat;
-            case PixelFormat.Rgba16Unorm: return VkFormat.R16G16B16A16Unorm;
-            case PixelFormat.Rgba16Snorm: return VkFormat.R16G16B16A16Snorm;
-            case PixelFormat.Rgba16Uint: return VkFormat.R16G16B16A16Uint;
-            case PixelFormat.Rgba16Sint: return VkFormat.R16G16B16A16Sint;
-            case PixelFormat.Rgba16Float: return VkFormat.R16G16B16A16Sfloat;
+            case PixelFormat.RG32Uint: return VkFormat.R32G32Uint;
+            case PixelFormat.RG32Sint: return VkFormat.R32G32Sint;
+            case PixelFormat.RG32Float: return VkFormat.R32G32Sfloat;
+            case PixelFormat.RGBA16Unorm: return VkFormat.R16G16B16A16Unorm;
+            case PixelFormat.RGBA16Snorm: return VkFormat.R16G16B16A16Snorm;
+            case PixelFormat.RGBA16Uint: return VkFormat.R16G16B16A16Uint;
+            case PixelFormat.RGBA16Sint: return VkFormat.R16G16B16A16Sint;
+            case PixelFormat.RGBA16Float: return VkFormat.R16G16B16A16Sfloat;
             // 128-Bit formats
-            case PixelFormat.Rgba32Uint:
+            case PixelFormat.RGBA32Uint:
                 return VkFormat.R32G32B32A32Uint;
-            case PixelFormat.Rgba32Sint:
+            case PixelFormat.RGBA32Sint:
                 return VkFormat.R32G32B32A32Sint;
-            case PixelFormat.Rgba32Float:
+            case PixelFormat.RGBA32Float:
                 return VkFormat.R32G32B32A32Sfloat;
 
             // Depth-stencil formats
@@ -355,20 +355,20 @@ internal static unsafe class VulkanUtils
                 return VkFormat.D32SfloatS8Uint;
 
             // Compressed BC formats
-            case PixelFormat.Bc1RgbaUnorm: return VkFormat.Bc1RgbaUnormBlock;
-            case PixelFormat.Bc1RgbaUnormSrgb: return VkFormat.Bc1RgbaSrgbBlock;
-            case PixelFormat.Bc2RgbaUnorm: return VkFormat.Bc2UnormBlock;
-            case PixelFormat.Bc2RgbaUnormSrgb: return VkFormat.Bc2SrgbBlock;
-            case PixelFormat.Bc3RgbaUnorm: return VkFormat.Bc3UnormBlock;
-            case PixelFormat.Bc3RgbaUnormSrgb: return VkFormat.Bc3SrgbBlock;
-            case PixelFormat.Bc4RSnorm: return VkFormat.Bc4UnormBlock;
-            case PixelFormat.Bc4RUnorm: return VkFormat.Bc4SnormBlock;
-            case PixelFormat.Bc5RgUnorm: return VkFormat.Bc5UnormBlock;
-            case PixelFormat.Bc5RgSnorm: return VkFormat.Bc5SnormBlock;
-            case PixelFormat.Bc6hRgbSfloat: return VkFormat.Bc6hSfloatBlock;
-            case PixelFormat.Bc6hRgbUfloat: return VkFormat.Bc6hUfloatBlock;
-            case PixelFormat.Bc7RgbaUnorm: return VkFormat.Bc7UnormBlock;
-            case PixelFormat.Bc7RgbaUnormSrgb: return VkFormat.Bc7SrgbBlock;
+            case PixelFormat.BC1RGBAUnorm: return VkFormat.Bc1RgbaUnormBlock;
+            case PixelFormat.BC1RGBAUnormSrgb: return VkFormat.Bc1RgbaSrgbBlock;
+            case PixelFormat.BC2RGBAUnorm: return VkFormat.Bc2UnormBlock;
+            case PixelFormat.BC2RGBAUnormSrgb: return VkFormat.Bc2SrgbBlock;
+            case PixelFormat.BC3RGBAUnorm: return VkFormat.Bc3UnormBlock;
+            case PixelFormat.BC3RGBAUnormSrgb: return VkFormat.Bc3SrgbBlock;
+            case PixelFormat.BC4RSnorm: return VkFormat.Bc4UnormBlock;
+            case PixelFormat.BC4RUnorm: return VkFormat.Bc4SnormBlock;
+            case PixelFormat.BC5RGUnorm: return VkFormat.Bc5UnormBlock;
+            case PixelFormat.BC5RGSnorm: return VkFormat.Bc5SnormBlock;
+            case PixelFormat.BC6HRGBUfloat: return VkFormat.Bc6hUfloatBlock;
+            case PixelFormat.BC6HRGBFloat: return VkFormat.Bc6hSfloatBlock;
+            case PixelFormat.BC7RGBAUnorm: return VkFormat.Bc7UnormBlock;
+            case PixelFormat.BC7RGBAUnormSrgb: return VkFormat.Bc7SrgbBlock;
 
             default:
                 return VkFormat.Undefined;

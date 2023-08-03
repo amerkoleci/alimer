@@ -28,7 +28,8 @@ public sealed class SampleBrowserApp : GameApplication
         //_runningSample = new DrawTriangleSample(GraphicsDevice, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(GraphicsDevice, MainWindow);
         //_runningSample = new DrawCubeSample(GraphicsDevice, MainWindow);
-        _runningSample = new DrawTexturedCubeSample(GraphicsDevice, MainWindow);
+        //_runningSample = new DrawTexturedCubeSample(GraphicsDevice, MainWindow);
+        _runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }

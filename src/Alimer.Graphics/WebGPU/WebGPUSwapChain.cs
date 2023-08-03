@@ -210,7 +210,7 @@ internal unsafe class WebGPUSwapChain : SwapChain
         _acquiredTexture = nextTextureView;
         if (!_backendTextures.TryGetValue(nextTextureView, out WebGPUTexture? texture))
         {
-            texture = new WebGPUTexture(_device, nextTextureView, TextureDescription.Texture2D(PixelFormat.Bgra8UnormSrgb, (uint)DrawableSize.Width, (uint)DrawableSize.Height));
+            texture = new WebGPUTexture(_device, nextTextureView, TextureDescription.Texture2D(PixelFormat.BGRA8UnormSrgb, (uint)DrawableSize.Width, (uint)DrawableSize.Height));
             _backendTextures.Add(nextTextureView, texture);
         }
 

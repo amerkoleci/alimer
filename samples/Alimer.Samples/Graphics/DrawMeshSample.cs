@@ -4,14 +4,14 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Numerics;
+using Alimer.Assets.Graphics;
 using Alimer.Graphics;
 using Alimer.Numerics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;
 
-[Description("Graphics - Draw Textured Cube")]
-public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
+[Description("Graphics - Draw Mesh")]
+public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 {
     private readonly GraphicsBuffer _vertexBuffer;
     private readonly GraphicsBuffer _indexBuffer;
@@ -30,9 +30,13 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 
     private Stopwatch _clock;
 
-    public DrawTexturedCubeSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - Draw Textured Cube", graphicsDevice, mainWindow)
+    public DrawMeshSample(GraphicsDevice graphicsDevice, Window mainWindow)
+        : base("Graphics - Draw Mesh", graphicsDevice, mainWindow)
     {
+        string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
+        MeshImporter importer = new();
+        MeshAsset meshAsset = importer.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), null).Result;
+
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
 

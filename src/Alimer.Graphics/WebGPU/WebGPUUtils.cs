@@ -32,10 +32,10 @@ internal static unsafe class WebGPUUtils
             case PixelFormat.R16Uint: return WGPUTextureFormat.R16Uint;
             case PixelFormat.R16Sint: return WGPUTextureFormat.R16Sint;
             case PixelFormat.R16Float: return WGPUTextureFormat.R16Float;
-            case PixelFormat.Rg8Unorm: return WGPUTextureFormat.RG8Unorm;
-            case PixelFormat.Rg8Snorm: return WGPUTextureFormat.RG8Snorm;
-            case PixelFormat.Rg8Uint: return WGPUTextureFormat.RG8Uint;
-            case PixelFormat.Rg8Sint: return WGPUTextureFormat.RG8Sint;
+            case PixelFormat.RG8Unorm: return WGPUTextureFormat.RG8Unorm;
+            case PixelFormat.RG8Snorm: return WGPUTextureFormat.RG8Snorm;
+            case PixelFormat.RG8Uint: return WGPUTextureFormat.RG8Uint;
+            case PixelFormat.RG8Sint: return WGPUTextureFormat.RG8Sint;
             // Packed 16-Bit Pixel Formats
             //case PixelFormat.Bgra4Unorm: return WGPUTextureFormat.Bgra4Unorm;
             //case PixelFormat.B5G6R5Unorm: return WGPUTextureFormat.B5G6R5UnormPack16;
@@ -46,36 +46,36 @@ internal static unsafe class WebGPUUtils
             case PixelFormat.R32Float: return WGPUTextureFormat.R32Float;
             //case PixelFormat.Rg16Unorm: return WGPUTextureFormat.Rg16Unorm;
             //case PixelFormat.Rg16Snorm: return WGPUTextureFormat.Rg16Snorm;
-            case PixelFormat.Rg16Uint: return WGPUTextureFormat.RG16Uint;
-            case PixelFormat.Rg16Sint: return WGPUTextureFormat.RG16Sint;
-            case PixelFormat.Rg16Float: return WGPUTextureFormat.RG16Float;
-            case PixelFormat.Rgba8Unorm: return WGPUTextureFormat.RGBA8Unorm;
-            case PixelFormat.Rgba8UnormSrgb: return WGPUTextureFormat.RGBA8UnormSrgb;
-            case PixelFormat.Rgba8Snorm: return WGPUTextureFormat.RGBA8Snorm;
-            case PixelFormat.Rgba8Uint: return WGPUTextureFormat.RGBA8Uint;
-            case PixelFormat.Rgba8Sint: return WGPUTextureFormat.RGBA8Sint;
-            case PixelFormat.Bgra8Unorm: return WGPUTextureFormat.BGRA8Unorm;
-            case PixelFormat.Bgra8UnormSrgb: return WGPUTextureFormat.BGRA8UnormSrgb;
+            case PixelFormat.RG16Uint: return WGPUTextureFormat.RG16Uint;
+            case PixelFormat.RG16Sint: return WGPUTextureFormat.RG16Sint;
+            case PixelFormat.RG16Float: return WGPUTextureFormat.RG16Float;
+            case PixelFormat.RGBA8Unorm: return WGPUTextureFormat.RGBA8Unorm;
+            case PixelFormat.RGBA8UnormSrgb: return WGPUTextureFormat.RGBA8UnormSrgb;
+            case PixelFormat.RGBA8Snorm: return WGPUTextureFormat.RGBA8Snorm;
+            case PixelFormat.RGBA8Uint: return WGPUTextureFormat.RGBA8Uint;
+            case PixelFormat.RGBA8Sint: return WGPUTextureFormat.RGBA8Sint;
+            case PixelFormat.BGRA8Unorm: return WGPUTextureFormat.BGRA8Unorm;
+            case PixelFormat.BGRA8UnormSrgb: return WGPUTextureFormat.BGRA8UnormSrgb;
             // Packed 32-Bit formats
-            case PixelFormat.Rgb9e5Ufloat: return WGPUTextureFormat.RGB9E5Ufloat;
-            case PixelFormat.Rgb10a2Unorm: return WGPUTextureFormat.RGB10A2Unorm;
+            case PixelFormat.RGB10A2Unorm: return WGPUTextureFormat.RGB10A2Unorm;
             //case PixelFormat.Rgb10a2Uint: return WGPUTextureFormat.RGB10A2Unorm;
-            case PixelFormat.Rg11b10Float: return WGPUTextureFormat.RG11B10Ufloat;
+            case PixelFormat.RG11B10UFloat: return WGPUTextureFormat.RG11B10Ufloat;
+            case PixelFormat.RGB9E5UFloat: return WGPUTextureFormat.RGB9E5Ufloat;
             // 64-Bit formats
-            case PixelFormat.Rg32Uint: return WGPUTextureFormat.RG32Uint;
-            case PixelFormat.Rg32Sint: return WGPUTextureFormat.RG32Sint;
-            case PixelFormat.Rg32Float: return WGPUTextureFormat.RG32Float;
+            case PixelFormat.RG32Uint: return WGPUTextureFormat.RG32Uint;
+            case PixelFormat.RG32Sint: return WGPUTextureFormat.RG32Sint;
+            case PixelFormat.RG32Float: return WGPUTextureFormat.RG32Float;
             //case PixelFormat.Rgba16Unorm: return WGPUTextureFormat.Rgba16Unorm;
             //case PixelFormat.Rgba16Snorm: return WGPUTextureFormat.Rgba16Snorm;
-            case PixelFormat.Rgba16Uint: return WGPUTextureFormat.RGBA16Uint;
-            case PixelFormat.Rgba16Sint: return WGPUTextureFormat.RGBA16Sint;
-            case PixelFormat.Rgba16Float: return WGPUTextureFormat.RGBA16Float;
+            case PixelFormat.RGBA16Uint: return WGPUTextureFormat.RGBA16Uint;
+            case PixelFormat.RGBA16Sint: return WGPUTextureFormat.RGBA16Sint;
+            case PixelFormat.RGBA16Float: return WGPUTextureFormat.RGBA16Float;
             // 128-Bit formats
-            case PixelFormat.Rgba32Uint:
+            case PixelFormat.RGBA32Uint:
                 return WGPUTextureFormat.RGBA32Uint;
-            case PixelFormat.Rgba32Sint:
+            case PixelFormat.RGBA32Sint:
                 return WGPUTextureFormat.RGBA32Sint;
-            case PixelFormat.Rgba32Float:
+            case PixelFormat.RGBA32Float:
                 return WGPUTextureFormat.RGBA32Float;
 
             // Depth-stencil formats
@@ -95,20 +95,56 @@ internal static unsafe class WebGPUUtils
                 return WGPUTextureFormat.Depth32FloatStencil8;
 
             // Compressed BC formats
-            case PixelFormat.Bc1RgbaUnorm: return WGPUTextureFormat.BC1RGBAUnorm;
-            case PixelFormat.Bc1RgbaUnormSrgb: return WGPUTextureFormat.BC1RGBAUnormSrgb;
-            case PixelFormat.Bc2RgbaUnorm: return WGPUTextureFormat.BC2RGBAUnorm;
-            case PixelFormat.Bc2RgbaUnormSrgb: return WGPUTextureFormat.BC2RGBAUnormSrgb;
-            case PixelFormat.Bc3RgbaUnorm: return WGPUTextureFormat.BC3RGBAUnorm;
-            case PixelFormat.Bc3RgbaUnormSrgb: return WGPUTextureFormat.BC3RGBAUnormSrgb;
-            case PixelFormat.Bc4RSnorm: return WGPUTextureFormat.BC4RSnorm;
-            case PixelFormat.Bc4RUnorm: return WGPUTextureFormat.BC4RUnorm;
-            case PixelFormat.Bc5RgUnorm: return WGPUTextureFormat.BC5RGUnorm;
-            case PixelFormat.Bc5RgSnorm: return WGPUTextureFormat.BC5RGSnorm;
-            case PixelFormat.Bc6hRgbSfloat: return WGPUTextureFormat.BC6HRGBFloat;
-            case PixelFormat.Bc6hRgbUfloat: return WGPUTextureFormat.BC6HRGBUfloat;
-            case PixelFormat.Bc7RgbaUnorm: return WGPUTextureFormat.BC7RGBAUnorm;
-            case PixelFormat.Bc7RgbaUnormSrgb: return WGPUTextureFormat.BC7RGBAUnormSrgb;
+            case PixelFormat.BC1RGBAUnorm:
+                return WGPUTextureFormat.BC1RGBAUnorm;
+            case PixelFormat.BC1RGBAUnormSrgb:
+                return WGPUTextureFormat.BC1RGBAUnormSrgb;
+            case PixelFormat.BC2RGBAUnorm:
+                return WGPUTextureFormat.BC2RGBAUnorm;
+            case PixelFormat.BC2RGBAUnormSrgb:
+                return WGPUTextureFormat.BC2RGBAUnormSrgb;
+            case PixelFormat.BC3RGBAUnorm:
+                return WGPUTextureFormat.BC3RGBAUnorm;
+            case PixelFormat.BC3RGBAUnormSrgb:
+                return WGPUTextureFormat.BC3RGBAUnormSrgb;
+            case PixelFormat.BC4RSnorm:
+                return WGPUTextureFormat.BC4RSnorm;
+            case PixelFormat.BC4RUnorm:
+                return WGPUTextureFormat.BC4RUnorm;
+            case PixelFormat.BC5RGUnorm:
+                return WGPUTextureFormat.BC5RGUnorm;
+            case PixelFormat.BC5RGSnorm:
+                return WGPUTextureFormat.BC5RGSnorm;
+            case PixelFormat.BC6HRGBUfloat:
+                return WGPUTextureFormat.BC6HRGBUfloat;
+            case PixelFormat.BC6HRGBFloat:
+                return WGPUTextureFormat.BC6HRGBFloat;
+            case PixelFormat.BC7RGBAUnorm:
+                return WGPUTextureFormat.BC7RGBAUnorm;
+            case PixelFormat.BC7RGBAUnormSrgb:
+                return WGPUTextureFormat.BC7RGBAUnormSrgb;
+
+            // Etc2/Eac compressed formats
+            case PixelFormat.ETC2RGB8Unorm:
+                return WGPUTextureFormat.ETC2RGB8Unorm;
+            case PixelFormat.ETC2RGB8UnormSrgb:
+                return WGPUTextureFormat.ETC2RGB8UnormSrgb;
+            case PixelFormat.ETC2RGB8A1Unorm:
+                return WGPUTextureFormat.ETC2RGB8A1Unorm;
+            case PixelFormat.ETC2RGB8A1UnormSrgb:
+                return WGPUTextureFormat.ETC2RGB8A1UnormSrgb;
+            case PixelFormat.ETC2RGBA8Unorm:
+                return WGPUTextureFormat.ETC2RGBA8Unorm;
+            case PixelFormat.ETC2RGBA8UnormSrgb:
+                return WGPUTextureFormat.ETC2RGBA8UnormSrgb;
+            case PixelFormat.EACR11Unorm:
+                return WGPUTextureFormat.EACR11Unorm;
+            case PixelFormat.EACR11Snorm:
+                return WGPUTextureFormat.EACR11Snorm;
+            case PixelFormat.EACRG11Unorm:
+                return WGPUTextureFormat.EACRG11Unorm;
+            case PixelFormat.EACRG11Snorm:
+                return WGPUTextureFormat.EACRG11Snorm;
 
             default:
                 return WGPUTextureFormat.Undefined;

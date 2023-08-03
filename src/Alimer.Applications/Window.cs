@@ -62,7 +62,7 @@ public abstract class Window : ISwapChainSurface
     public abstract SizeF ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
-    public PixelFormat ColorFormat { get; set; } = PixelFormat.Bgra8UnormSrgb;
+    public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
     public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
     public Texture? DepthStencilTexture { get; private set; }
 

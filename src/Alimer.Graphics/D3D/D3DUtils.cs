@@ -90,18 +90,18 @@ internal static unsafe class D3DUtils
         // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
         switch (format)
         {
-            case PixelFormat.Rgba16Float:
+            case PixelFormat.RGBA16Float:
                 return DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-            case PixelFormat.Bgra8Unorm:
-            case PixelFormat.Bgra8UnormSrgb:
+            case PixelFormat.BGRA8Unorm:
+            case PixelFormat.BGRA8UnormSrgb:
                 return DXGI_FORMAT_B8G8R8A8_UNORM;
 
-            case PixelFormat.Rgba8Unorm:
-            case PixelFormat.Rgba8UnormSrgb:
+            case PixelFormat.RGBA8Unorm:
+            case PixelFormat.RGBA8UnormSrgb:
                 return DXGI_FORMAT_R8G8B8A8_UNORM;
 
-            case PixelFormat.Rgb10a2Unorm:
+            case PixelFormat.RGB10A2Unorm:
                 return DXGI_FORMAT_R10G10B10A2_UNORM;
 
             default:

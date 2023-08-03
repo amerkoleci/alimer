@@ -10,7 +10,7 @@ namespace Alimer.Graphics;
 
 public sealed class Image
 {
-    public Image(uint width, uint height, PixelFormat format = PixelFormat.Rgba8Unorm)
+    public Image(uint width, uint height, PixelFormat format = PixelFormat.RGBA8Unorm)
     {
         Width = width;
         Height = height;
@@ -105,7 +105,7 @@ public sealed class Image
     {
         fixed (byte* dataPtr = data)
         {
-            nint handle = alimerImageFromMemory(dataPtr, (uint)data.Length);
+            nint handle = alimerImageCreateFromMemory(dataPtr, (uint)data.Length);
 
             TextureDimension dimension = alimerImageGetDimension(handle);
             ImageFormat imageFormat = alimerImageGetFormat(handle);
@@ -131,35 +131,7 @@ public sealed class Image
 
     private static PixelFormat FromImageFormat(ImageFormat format)
     {
-        switch (format)
-        {
-            case ImageFormat.R8:
-                return PixelFormat.R8Unorm;
-            case ImageFormat.RG8:
-                return PixelFormat.Rg8Unorm;
-            case ImageFormat.RGBA8:
-                return PixelFormat.Rgba8Unorm;
-            case ImageFormat.R16:
-                return PixelFormat.R16Unorm;
-            case ImageFormat.RG16:
-                return PixelFormat.Rg16Unorm;
-            case ImageFormat.RGBA16:
-                return PixelFormat.Rgba16Unorm;
-            case ImageFormat.R16F:
-                return PixelFormat.R16Float;
-            case ImageFormat.RG16F:
-                return PixelFormat.Rg16Float;
-            case ImageFormat.RGBA16F:
-                return PixelFormat.Rgba16Float;
-            case ImageFormat.R32F:
-                return PixelFormat.R32Float;
-            case ImageFormat.RG32F:
-                return PixelFormat.Rg32Float;
-            case ImageFormat.RGBA32F:
-                return PixelFormat.Rgba32Float;
-            default:
-                return PixelFormat.Undefined;
-        }
+        return (PixelFormat)format;
     }
 
 #if !WINDOWS_UWP

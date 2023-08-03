@@ -87,22 +87,124 @@ internal static unsafe partial class ImageNativeApi
 
     public enum ImageFormat
     {
-        R8,
-        RG8,
-        RGBA8,
-        R16,
-        RG16,
-        RGBA16,
-        R16F,
-        RG16F,
-        RGBA16F,
-        R32F,
-        RG32F,
-        RGBA32F,
+        ImageFormat_Undefined = 0,
+        // 8-bit formats
+        R8Unorm,
+        R8Snorm,
+        R8Uint,
+        R8Sint,
+        // 16-bit formats
+        R16Unorm,
+        R16Snorm,
+        R16Uint,
+        R16Sint,
+        R16Float,
+        RG8Unorm,
+        RG8Snorm,
+        RG8Uint,
+        RG8Sint,
+        // Packed 16-Bit formats
+        BGRA4Unorm,
+        B5G6R5Unorm,
+        BGR5A1Unorm,
+        // 32-bit formats
+        R32Uint,
+        R32Sint,
+        R32Float,
+        RG16Unorm,
+        RG16Snorm,
+        RG16Uint,
+        RG16Sint,
+        RG16Float,
+        RGBA8Unorm,
+        RGBA8UnormSrgb,
+        RGBA8Snorm,
+        RGBA8Uint,
+        RGBA8Sint,
+        BGRA8Unorm,
+        BGRA8UnormSrgb,
+        // Packed 32-Bit Pixel Formats
+        RGB10A2Unorm,
+        RGB10A2Uint,
+        RG11B10Ufloat,
+        RGB9E5Ufloat,
+        // 64-bit formats
+        RG32Uint,
+        RG32Sint,
+        RG32Float,
+        RGBA16Unorm,
+        RGBA16Snorm,
+        RGBA16Uint,
+        RGBA16Sint,
+        RGBA16Float,
+        // 128-bit formats
+        RGBA32Uint,
+        RGBA32Sint,
+        RGBA32Float,
+        // Depth-stencil formats
+        Depth16Unorm,
+        Depth24UnormStencil8,
+        Depth32Float,
+        Depth32FloatStencil8,
+        // Bc compressed formats
+        BC1RGBAUnorm,
+        BC1RGBAUnormSrgb,
+        BC2RGBAUnorm,
+        BC2RGBAUnormSrgb,
+        BC3RGBAUnorm,
+        BC3RGBAUnormSrgb,
+        BC4RUnorm,
+        BC4RSnorm,
+        BC5RGUnorm,
+        BC5RGSnorm,
+        BC6HRGBUfloat,
+        BC6HRGBFloat,
+        BC7RGBAUnorm,
+        BC7RGBAUnormSrgb,
+        // Etc2/Eac compressed formats
+        ETC2RGB8Unorm,
+        ETC2RGB8UnormSrgb,
+        ETC2RGB8A1Unorm,
+        ETC2RGB8A1UnormSrgb,
+        ETC2RGBA8Unorm,
+        ETC2RGBA8UnormSrgb,
+        EACR11Unorm,
+        EACR11Snorm,
+        EACRG11Unorm,
+        EACRG11Snorm,
+        // Astc compressed formats
+        ASTC4x4Unorm,
+        ASTC4x4UnormSrgb,
+        ASTC5x4Unorm,
+        ASTC5x4UnormSrgb,
+        ASTC5x5Unorm,
+        ASTC5x5UnormSrgb,
+        ASTC6x5Unorm,
+        ASTC6x5UnormSrgb,
+        ASTC6x6Unorm,
+        ASTC6x6UnormSrgb,
+        ASTC8x5Unorm,
+        ASTC8x5UnormSrgb,
+        ASTC8x6Unorm,
+        ASTC8x6UnormSrgb,
+        ASTC8x8Unorm,
+        ASTC8x8UnormSrgb,
+        ASTC10x5Unorm,
+        ASTC10x5UnormSrgb,
+        ASTC10x6Unorm,
+        ASTC10x6UnormSrgb,
+        ASTC10x8Unorm,
+        ASTC10x8UnormSrgb,
+        ASTC10x10Unorm,
+        ASTC10x10UnormSrgb,
+        ASTC12x10Unorm,
+        ASTC12x10UnormSrgb,
+        ASTC12x12Unorm,
+        ASTC12x12UnormSrgb,
     }
 
     [LibraryImport(LibName)]
-    public static partial nint alimerImageFromMemory(void* data, nuint size);
+    public static partial nint alimerImageCreateFromMemory(void* data, nuint size);
 
     [LibraryImport(LibName)]
     public static partial void alimerImageDestroy(nint image);
@@ -142,68 +244,6 @@ internal static unsafe partial class ImageNativeApi
 
 #if !WINDOWS_UWP
     [LibraryImport(LibName)]
-    public static partial int image_save_png_memory(nint image, delegate* unmanaged<void*, uint, void> callback);
+    public static partial int alimerImageSavePngMemory(nint image, delegate* unmanaged<void*, uint, void> callback);
 #endif
 }
-
-#if TODO
-/// <summary>
-/// A dispatchable handle.
-/// </summary>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
-public readonly unsafe partial struct KtxTexture : IEquatable<KtxTexture>
-{
-    public KtxTexture(nint handle) { Handle = handle; }
-    public nint Handle { get; }
-    public bool IsNull => Handle == 0;
-    public static KtxTexture Null => new KtxTexture(0);
-
-    public uint BaseWidth => NativeApi.ktx_get_baseWidth(Handle);
-    public uint BaseHeight => NativeApi.ktx_get_baseHeight(Handle);
-    public uint NumDimensions => NativeApi.ktx_get_numDimensions(Handle);
-    public uint NumLevels => NativeApi.ktx_get_numLevels(Handle);
-    public uint NumLayers => NativeApi.ktx_get_numLayers(Handle);
-    public uint NumFaces => NativeApi.ktx_get_numFaces(Handle);
-    public bool IsArray => NativeApi.ktx_get_isArray(Handle) == 1;
-
-    public static implicit operator KtxTexture(nint handle) => new KtxTexture(handle);
-    public static bool operator ==(KtxTexture left, KtxTexture right) => left.Handle == right.Handle;
-    public static bool operator !=(KtxTexture left, KtxTexture right) => left.Handle != right.Handle;
-    public static bool operator ==(KtxTexture left, nint right) => left.Handle == right;
-    public static bool operator !=(KtxTexture left, nint right) => left.Handle != right;
-    public bool Equals(KtxTexture other) => Handle == other.Handle;
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is KtxTexture handle && Equals(handle);
-    /// <inheritdoc/>
-    public override int GetHashCode() => Handle.GetHashCode();
-    private string DebuggerDisplay => string.Format("KtxTexture [0x{0}]", Handle.ToString("X"));
-}
-
-internal enum KtxErrorCode
-{
-    /// <summary>
-    /// Operation was successful.
-    /// </summary>
-    Success = 0,
-    KTX_FILE_DATA_ERROR,     /*!< The data in the file is inconsistent with the spec. */
-    KTX_FILE_ISPIPE,         /*!< The file is a pipe or named pipe. */
-    KTX_FILE_OPEN_FAILED,    /*!< The target file could not be opened. */
-    KTX_FILE_OVERFLOW,       /*!< The operation would exceed the max file size. */
-    KTX_FILE_READ_ERROR,     /*!< An error occurred while reading from the file. */
-    KTX_FILE_SEEK_ERROR,     /*!< An error occurred while seeking in the file. */
-    KTX_FILE_UNEXPECTED_EOF, /*!< File does not have enough data to satisfy request. */
-    KTX_FILE_WRITE_ERROR,    /*!< An error occurred while writing to the file. */
-    KTX_GL_ERROR,            /*!< GL operations resulted in an error. */
-    KTX_INVALID_OPERATION,   /*!< The operation is not allowed in the current state. */
-    KTX_INVALID_VALUE,       /*!< A parameter value was not valid */
-    KTX_NOT_FOUND,           /*!< Requested key was not found */
-    KTX_OUT_OF_MEMORY,       /*!< Not enough memory to complete the operation. */
-    KTX_TRANSCODE_FAILED,    /*!< Transcoding of block compressed texture failed. */
-    KTX_UNKNOWN_FILE_FORMAT, /*!< The file not a KTX file */
-    KTX_UNSUPPORTED_TEXTURE_TYPE, /*!< The KTX file specifies an unsupported texture type. */
-    KTX_UNSUPPORTED_FEATURE,  /*!< Feature not included in in-use library or not yet implemented. */
-    KTX_LIBRARY_NOT_LINKED,  /*!< Library dependency (OpenGL or Vulkan) not linked into application. */
-    KTX_ERROR_MAX_ENUM = KTX_LIBRARY_NOT_LINKED /*!< For safety checks. */
-}
-
-#endif

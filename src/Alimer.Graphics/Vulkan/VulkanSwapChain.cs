@@ -270,7 +270,7 @@ internal unsafe class VulkanSwapChain : SwapChain
         for (int i = 0; i < swapChainImages.Length; i++)
         {
             TextureDescription descriptor = TextureDescription.Texture2D(
-                PixelFormat.Bgra8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
+                PixelFormat.BGRA8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,
                 usage: TextureUsage.RenderTarget,

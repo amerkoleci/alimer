@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".root", ".root", "{AC691932
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		Alimer.MultiTargeting.targets = Alimer.MultiTargeting.targets
+		Alimer.Native.targets = Alimer.Native.targets
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
 		Directory.Packages.props = Directory.Packages.props

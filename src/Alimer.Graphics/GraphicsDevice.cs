@@ -275,7 +275,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
-    public Texture CreateTexture2D<T>(ReadOnlySpan<T> initialData,
+    public Texture CreateTexture2D<T>(Span<T> initialData,
         PixelFormat format,
         uint width,
         uint height,
