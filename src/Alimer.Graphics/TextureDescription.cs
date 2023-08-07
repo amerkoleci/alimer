@@ -91,7 +91,7 @@ public record struct TextureDescription
         PixelFormat format,
         uint width,
         uint height,
-        uint depth = 1u,
+        uint depth,
         uint mipLevels = 1u,
         TextureUsage usage = TextureUsage.ShaderRead,
         CpuAccessMode access = CpuAccessMode.None,

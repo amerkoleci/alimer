@@ -12,14 +12,8 @@ namespace Alimer.Graphics;
 public sealed unsafe class Image : DisposableObject
 {
     private readonly MipMapDescription[] _mipmaps;
-    private readonly ImageData[] _levelData;
+    private readonly ImageData[] _levels;
     private readonly byte* _data;
-
-    public Image(uint width, uint height, PixelFormat format = PixelFormat.RGBA8Unorm)
-        : this(ImageDescription.Image2D(format, width, height))
-    {
-
-    }
 
     public Image(in ImageDescription description)
     {
@@ -31,7 +25,7 @@ public sealed unsafe class Image : DisposableObject
         Description = description;
         _mipmaps = new MipMapDescription[MipLevelCount];
 
-        uint nimages = 0;
+        uint levelsCount = 0;
         switch (Description.Dimension)
         {
             case TextureDimension.Texture1D:
@@ -56,7 +50,7 @@ public sealed unsafe class Image : DisposableObject
                            );
 
                         SizeInBytes += slicePitch;
-                        nimages++;
+                        levelsCount++;
 
                         if (mipHeight > 1)
                             mipHeight >>= 1;
@@ -90,7 +84,7 @@ public sealed unsafe class Image : DisposableObject
                         for (uint slice = 0; slice < mipDepth; ++slice)
                         {
                             SizeInBytes += slicePitch;
-                            nimages++;
+                            levelsCount++;
                         }
 
                         if (mipWidth > 1)
@@ -109,8 +103,9 @@ public sealed unsafe class Image : DisposableObject
                 throw new InvalidOperationException("Invalid Image dimension");
         }
 
-        _levelData = new ImageData[nimages];
         _data = (byte*)NativeMemory.AllocZeroed((nuint)SizeInBytes);
+        _levels = new ImageData[levelsCount];
+        SetupImageArray(_data, SizeInBytes, description, _levels);
     }
 
     private Image(in ImageDescription description, ReadOnlySpan<byte> source)
@@ -178,7 +173,7 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the image data.
     /// </summary>
-    public Span<byte> Data => new Span<byte>(_data, (int)SizeInBytes);
+    public Span<byte> Data => new(_data, (int)SizeInBytes);
 
     /// <summary>
     /// Gets a pointer to the image buffer in memory.
@@ -281,6 +276,82 @@ public sealed unsafe class Image : DisposableObject
     private static PixelFormat FromImageFormat(ImageFormat format)
     {
         return (PixelFormat)format;
+    }
+
+    private static void SetupImageArray(byte* pixels, nuint memorySize, in ImageDescription description, ImageData[] levels)
+    {
+        Debug.Assert(pixels != null);
+        Debug.Assert(memorySize > 0);
+        Debug.Assert(levels.Length > 0);
+
+        int index = 0;
+        byte* pEndBits = pixels + memorySize;
+
+        switch (description.Dimension)
+        {
+            case TextureDimension.Texture1D:
+            case TextureDimension.Texture2D:
+                {
+                    for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
+                    {
+                        uint mipWidth = description.Width;
+                        uint mipHeight = description.Height;
+
+                        for (uint level = 0; level < description.MipLevelCount; ++level)
+                        {
+                            PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+
+                            levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
+                            ++index;
+
+                            pixels += slicePitch;
+                            Debug.Assert(pixels <= pEndBits);
+
+                            if (mipWidth > 1)
+                                mipWidth >>= 1;
+
+                            if (mipHeight > 1)
+                                mipHeight >>= 1;
+                        }
+                    }
+                }
+                break;
+
+            case TextureDimension.Texture3D:
+                {
+                    uint mipWidth = description.Width;
+                    uint mipHeight = description.Height;
+                    uint mipDepth = description.DepthOrArrayLayers;
+
+                    for (uint level = 0; level < description.MipLevelCount; ++level)
+                    {
+                        PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+
+                        for (uint slice = 0; slice < mipDepth; ++slice)
+                        {
+                            Debug.Assert(index < levels.Length);
+
+                            // We use the same memory organization that Direct3D 11 needs for D3D11_SUBRESOURCE_DATA
+                            // with all slices of a given miplevel being continuous in memory
+                            levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
+                            ++index;
+
+                            pixels += slicePitch;
+                            Debug.Assert(pixels <= pEndBits);
+                        }
+
+                        if (mipWidth > 1)
+                            mipWidth >>= 1;
+
+                        if (mipHeight > 1)
+                            mipHeight >>= 1;
+
+                        if (mipDepth > 1)
+                            mipDepth >>= 1;
+                    }
+                }
+                break;
+        }
     }
 
 #if !WINDOWS_UWP

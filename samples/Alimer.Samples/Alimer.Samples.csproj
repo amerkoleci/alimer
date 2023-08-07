@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Alimer.Engine\Alimer.Engine.csproj" />
+    <ProjectReference Include="..\..\src\Alimer.Physics\Alimer.Physics.csproj" />
     <ProjectReference Include="..\..\src\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>
 

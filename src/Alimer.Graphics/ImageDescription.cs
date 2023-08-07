@@ -68,7 +68,7 @@ public record struct ImageDescription
         PixelFormat format,
         uint width,
         uint height,
-        uint depth = 1u,
+        uint depth,
         uint mipLevelCount = 1u)
     {
         return new ImageDescription(
