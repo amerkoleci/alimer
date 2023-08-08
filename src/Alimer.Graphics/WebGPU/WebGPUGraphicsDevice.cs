@@ -274,6 +274,10 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
             case Feature.SamplerAnisotropy:
                 return true;
 
+            case Feature.SamplerClampToBorder:
+            case Feature.SamplerMirrorClampToEdge:
+                return false;
+
             case Feature.SamplerMinMax:
             case Feature.DepthResolveMinMax:
             case Feature.StencilResolveMinMax:

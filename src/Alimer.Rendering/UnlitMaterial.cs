@@ -6,26 +6,29 @@ using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
-public sealed class Mesh : DisposableObject
+public sealed class UnlitMaterial : DisposableObject
 {
-    public Mesh(GraphicsDevice device)
+    private static int s_nextMaterialId = 1;
+
+    public UnlitMaterial(GraphicsDevice device)
     {
         Guard.IsNotNull(device, nameof(device));
 
         Device = device;
+        Id = s_nextMaterialId++;
     }
 
     public GraphicsDevice Device { get; }
 
     /// <summary>
-    /// The number of vertices in the vertex buffers.
+    /// Gets the unique material id.
     /// </summary>
-    public int VertexCount { get; set; }
+    public int Id { get; }
 
     /// <summary>
-    /// Finalizes an instance of the <see cref="Mesh" /> class.
+    /// Finalizes an instance of the <see cref="UnlitMaterial" /> class.
     /// </summary>
-    ~Mesh() => Dispose(disposing: false);
+    ~UnlitMaterial() => Dispose(disposing: false);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

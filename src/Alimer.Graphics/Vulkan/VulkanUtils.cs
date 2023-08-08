@@ -739,11 +739,11 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            SamplerAddressMode.Wrap => VkSamplerAddressMode.Repeat,
-            SamplerAddressMode.Mirror => VkSamplerAddressMode.MirroredRepeat,
-            SamplerAddressMode.Clamp => VkSamplerAddressMode.ClampToEdge,
-            SamplerAddressMode.Border => VkSamplerAddressMode.ClampToBorder,
-            SamplerAddressMode.MirrorOnce => samplerMirrorClampToEdge ? VkSamplerAddressMode.MirrorClampToEdge : VkSamplerAddressMode.MirroredRepeat,
+            SamplerAddressMode.Repeat => VkSamplerAddressMode.Repeat,
+            SamplerAddressMode.MirrorRepeat => VkSamplerAddressMode.MirroredRepeat,
+            SamplerAddressMode.ClampToEdge => VkSamplerAddressMode.ClampToEdge,
+            SamplerAddressMode.ClampToBorder => VkSamplerAddressMode.ClampToBorder,
+            SamplerAddressMode.MirrorClampToEdge => samplerMirrorClampToEdge ? VkSamplerAddressMode.MirrorClampToEdge : VkSamplerAddressMode.MirroredRepeat,
             _ => VkSamplerAddressMode.Repeat,
         };
     }

@@ -80,9 +80,9 @@ internal unsafe class VulkanCopyAllocator : IDisposable
             context.UploadBuffer = (VulkanBuffer)_device.CreateBuffer(in uploadBufferDesc);
         }
 
-        // begin command list in valid state:
-        vkResetCommandPool(_device.Handle, context.TransferCommandPool, 0).CheckResult();
-        vkResetCommandPool(_device.Handle, context.TransitionCommandPool, 0).CheckResult();
+        // Begin command list in valid state
+        vkResetCommandPool(_device.Handle, context.TransferCommandPool, 0).DebugCheckResult();
+        vkResetCommandPool(_device.Handle, context.TransitionCommandPool, 0).DebugCheckResult();
 
         VkCommandBufferBeginInfo beginInfo = new()
         {
@@ -92,8 +92,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         vkBeginCommandBuffer(context.TransferCommandBuffer, &beginInfo).DebugCheckResult();
         vkBeginCommandBuffer(context.TransitionCommandBuffer, &beginInfo).DebugCheckResult();
 
-        vkResetFences(_device.Handle, context.Fence).CheckResult();
-
+        vkResetFences(_device.Handle, context.Fence).DebugCheckResult();
         return context;
     }
 

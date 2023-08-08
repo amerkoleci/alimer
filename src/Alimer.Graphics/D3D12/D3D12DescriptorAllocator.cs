@@ -20,7 +20,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible = default;
     private D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisible = default;
     private readonly object _mutex = new();
-    private bool[]? _allocatedDescriptors;
+    private bool[] _allocatedDescriptors = Array.Empty<bool>();
     private DescriptorIndex _searchStart;
 
     private const DescriptorIndex InvalidDescriptorIndex = ~0u;
@@ -60,10 +60,10 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             uint freeCount = 0;
             bool found = false;
 
-            // Find a contiguous range of 'count' indices for which m_AllocatedDescriptors[index] is false
+            // Find a contiguous range of 'count' indices for which _allocatedDescriptors[index] is false
             for (DescriptorIndex index = _searchStart; index < NumDescriptors; index++)
             {
-                if (_allocatedDescriptors![index])
+                if (_allocatedDescriptors[index])
                     freeCount = 0;
                 else
                     freeCount += 1;
@@ -91,7 +91,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
             for (DescriptorIndex index = foundIndex; index < foundIndex + count; index++)
             {
-                _allocatedDescriptors![index] = true;
+                _allocatedDescriptors[index] = true;
             }
 
             NumAllocatedDescriptors += count;
@@ -110,7 +110,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             for (DescriptorIndex index = baseIndex; index < baseIndex + count; index++)
             {
 #if DEBUG
-                if (!_allocatedDescriptors![index])
+                if (!_allocatedDescriptors[index])
                 {
                     Log.Error("Attempted to release an un-allocated descriptor");
                 }

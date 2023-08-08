@@ -490,9 +490,9 @@ internal static unsafe class WebGPUUtils
     {
         return value switch
         {
-            SamplerAddressMode.Wrap => WGPUAddressMode.Repeat,
-            SamplerAddressMode.Mirror => WGPUAddressMode.MirrorRepeat,
-            SamplerAddressMode.Clamp => WGPUAddressMode.ClampToEdge,
+            SamplerAddressMode.Repeat => WGPUAddressMode.Repeat,
+            SamplerAddressMode.MirrorRepeat => WGPUAddressMode.MirrorRepeat,
+            SamplerAddressMode.ClampToEdge => WGPUAddressMode.ClampToEdge,
             //SamplerAddressMode.Border => WGPUAddressMode.Border,
             //SamplerAddressMode.MirrorOnce => samplerMirrorClampToEdge ? VkSamplerAddressMode.MirrorClampToEdge : VkSamplerAddressMode.MirroredRepeat,
             _ => WGPUAddressMode.Repeat,

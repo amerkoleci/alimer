@@ -8,17 +8,17 @@ namespace Alimer.Graphics;
 /// </summary>
 public record struct SamplerDescription
 {
-    public static SamplerDescription PointWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Wrap);
-    public static SamplerDescription PointClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Clamp);
-    public static SamplerDescription PointMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Mirror);
+    public static SamplerDescription PointWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat);
+    public static SamplerDescription PointClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge);
+    public static SamplerDescription PointMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat);
 
-    public static SamplerDescription LinearWrap => new(SamplerMinMagFilter.Linear, SamplerAddressMode.Wrap);
-    public static SamplerDescription LinearClamp => new(SamplerMinMagFilter.Linear, SamplerAddressMode.Clamp);
-    public static SamplerDescription LinearMirror => new(SamplerMinMagFilter.Linear, SamplerAddressMode.Mirror);
+    public static SamplerDescription LinearWrap => new(SamplerMinMagFilter.Linear, SamplerAddressMode.Repeat);
+    public static SamplerDescription LinearClamp => new(SamplerMinMagFilter.Linear, SamplerAddressMode.ClampToEdge);
+    public static SamplerDescription LinearMirror => new(SamplerMinMagFilter.Linear, SamplerAddressMode.MirrorRepeat);
 
-    public static SamplerDescription AnisotropicWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Wrap, 16);
-    public static SamplerDescription AnisotropicClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Clamp, 16);
-    public static SamplerDescription AnisotropicMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Mirror, 16);
+    public static SamplerDescription AnisotropicWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat, 16);
+    public static SamplerDescription AnisotropicClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge, 16);
+    public static SamplerDescription AnisotropicMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat, 16);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SamplerDescription"/> struct with default values.
@@ -109,17 +109,17 @@ public record struct SamplerDescription
     /// <summary>
     /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a u texture coordinate that is outside the 0 to 1 range.
     /// </summary>
-    public SamplerAddressMode AddressModeU = SamplerAddressMode.Wrap;
+    public SamplerAddressMode AddressModeU = SamplerAddressMode.Repeat;
 
     /// <summary>
     /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a v texture coordinate that is outside the 0 to 1 range.
     /// </summary>
-    public SamplerAddressMode AddressModeV  = SamplerAddressMode.Wrap;
+    public SamplerAddressMode AddressModeV  = SamplerAddressMode.Repeat;
 
     /// <summary>
     /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a w texture coordinate that is outside the 0 to 1 range.
     /// </summary>
-    public SamplerAddressMode AddressModeW  = SamplerAddressMode.Wrap;
+    public SamplerAddressMode AddressModeW  = SamplerAddressMode.Repeat;
 
     /// <summary>
     /// Gets or sets the number of samples that can be taken to improve the quality of sample footprints that are anisotropic.

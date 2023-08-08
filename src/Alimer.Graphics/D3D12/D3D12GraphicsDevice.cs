@@ -645,6 +645,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.IndirectFirstInstance:
             case Feature.TessellationShader:
             case Feature.SamplerAnisotropy:
+            case Feature.SamplerClampToBorder:
+            case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:
             case Feature.StencilResolveMinMax:
             case Feature.Predication:

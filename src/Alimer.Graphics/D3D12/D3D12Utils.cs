@@ -108,15 +108,15 @@ internal static unsafe class D3D12Utils
     {
         switch (filter)
         {
-            case SamplerAddressMode.Wrap:
+            case SamplerAddressMode.Repeat:
                 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-            case SamplerAddressMode.Mirror:
+            case SamplerAddressMode.MirrorRepeat:
                 return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-            case SamplerAddressMode.Clamp:
+            case SamplerAddressMode.ClampToEdge:
                 return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-            case SamplerAddressMode.Border:
+            case SamplerAddressMode.ClampToBorder:
                 return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            case SamplerAddressMode.MirrorOnce:
+            case SamplerAddressMode.MirrorClampToEdge:
                 return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
 
             default:

@@ -258,7 +258,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 throw new InvalidOperationException($"Failed to create vulkan instance: {result}");
             }
-
             vkLoadInstanceOnly(_instance);
 
             if (ValidationMode != ValidationMode.Disabled && DebugUtils)
@@ -1058,37 +1057,76 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 VulkanUploadContext uploadContext = Allocate(0);
 
-                VkImageMemoryBarrier2 barrier = new();
-                barrier.oldLayout = imageInfo.initialLayout;
-                barrier.newLayout = VkImageLayout.General;
-                barrier.srcStageMask = VkPipelineStageFlags2.Transfer;
-                barrier.srcAccessMask = 0;
-                barrier.dstStageMask = VkPipelineStageFlags2.AllCommands;
-                barrier.dstAccessMask = VkAccessFlags2.ShaderRead | VkAccessFlags2.ShaderWrite;
-                barrier.subresourceRange.aspectMask = VkImageAspectFlags.Color;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = 1;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = _nullImage1D;
-                barrier.subresourceRange.layerCount = 1;
-
-                VkDependencyInfo dependencyInfo = new()
+                if (Synchronization2)
                 {
-                    imageMemoryBarrierCount = 1,
-                    pImageMemoryBarriers = &barrier
-                };
+                    VkImageMemoryBarrier2 barrier = new()
+                    {
+                        oldLayout = imageInfo.initialLayout,
+                        newLayout = VkImageLayout.General,
+                        srcStageMask = VkPipelineStageFlags2.Transfer,
+                        srcAccessMask = 0,
+                        dstStageMask = VkPipelineStageFlags2.AllCommands,
+                        dstAccessMask = VkAccessFlags2.ShaderRead | VkAccessFlags2.ShaderWrite,
+                        subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1),
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        image = _nullImage1D,
+                    };
 
-                vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+                    VkDependencyInfo dependencyInfo = new()
+                    {
+                        imageMemoryBarrierCount = 1,
+                        pImageMemoryBarriers = &barrier
+                    };
+                    vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
 
-                barrier.image = _nullImage2D;
-                barrier.subresourceRange.layerCount = 6;
-                vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+                    barrier.image = _nullImage2D;
+                    barrier.subresourceRange.layerCount = 6;
+                    vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
 
-                barrier.image = _nullImage3D;
-                barrier.subresourceRange.layerCount = 1;
-                vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+                    barrier.image = _nullImage3D;
+                    barrier.subresourceRange.layerCount = 1;
+                    vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+                }
+                else
+                {
+                    VkImageMemoryBarrier barrier = new()
+                    {
+                        oldLayout = imageInfo.initialLayout,
+                        newLayout = VkImageLayout.General,
+                        srcAccessMask = 0,
+                        dstAccessMask = VkAccessFlags.ShaderRead | VkAccessFlags.ShaderWrite,
+                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        image = _nullImage1D,
+                        subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1),
+                    };
+
+                    vkCmdPipelineBarrier(uploadContext.TransitionCommandBuffer,
+                        VkPipelineStageFlags.Transfer, VkPipelineStageFlags.AllCommands,
+                        0,
+                        0, null,
+                        0, null,
+                        1, &barrier);
+
+                    barrier.image = _nullImage2D;
+                    barrier.subresourceRange.layerCount = 6;
+                    vkCmdPipelineBarrier(uploadContext.TransitionCommandBuffer,
+                        VkPipelineStageFlags.Transfer, VkPipelineStageFlags.AllCommands,
+                        0,
+                        0, null,
+                        0, null,
+                        1, &barrier);
+
+                    barrier.image = _nullImage3D;
+                    barrier.subresourceRange.layerCount = 1;
+                    vkCmdPipelineBarrier(uploadContext.TransitionCommandBuffer,
+                        VkPipelineStageFlags.Transfer, VkPipelineStageFlags.AllCommands,
+                        0,
+                        0, null,
+                        0, null,
+                        1, &barrier);
+                }
 
                 Submit(in uploadContext);
             }
@@ -1131,7 +1169,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageViewInfo.viewType = VkImageViewType.Image3D;
             vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).DebugCheckResult();
 
-            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescription()); 
+            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescription());
         }
 
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
@@ -1395,6 +1433,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             case Feature.SamplerAnisotropy:
                 return PhysicalDeviceFeatures2.features.samplerAnisotropy == true;
+
+            case Feature.SamplerClampToBorder:
+                return true;
+
+            case Feature.SamplerMirrorClampToEdge:
+                return PhysicalDeviceFeatures1_2.samplerMirrorClampToEdge == true;
 
             case Feature.SamplerMinMax:
                 return PhysicalDeviceFeatures1_2.samplerFilterMinmax == true;

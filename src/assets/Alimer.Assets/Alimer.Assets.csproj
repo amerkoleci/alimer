@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="HarfBuzzSharp" />

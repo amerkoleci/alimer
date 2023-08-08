@@ -5,9 +5,9 @@ namespace Alimer.Graphics;
 
 public enum SamplerAddressMode
 {
-    Wrap,
-    Mirror,
-    Clamp,
-    Border,
-    MirrorOnce,
+    Repeat,
+    MirrorRepeat,
+    ClampToEdge,
+    ClampToBorder,
+    MirrorClampToEdge,
 }

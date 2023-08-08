@@ -19,6 +19,8 @@ public enum Feature
     TessellationShader,
     DepthBoundsTest,
     SamplerAnisotropy,
+    SamplerClampToBorder,
+    SamplerMirrorClampToEdge,
     SamplerMinMax,
     DepthResolveMinMax,
     StencilResolveMinMax,

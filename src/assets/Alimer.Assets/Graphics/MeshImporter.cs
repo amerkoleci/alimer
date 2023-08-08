@@ -2,9 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
+using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
-using SkiaSharp;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Alimer.Assets.Graphics;
 
@@ -15,6 +16,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
 {
     public override Task<MeshAsset> Import(string source, IServiceProvider services)
     {
+        GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
         ModelRoot modelRoot = ModelRoot.Load(source);
 
         MeshAsset asset = new();

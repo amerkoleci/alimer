@@ -256,9 +256,7 @@ public abstract class Application : DisposableObject, IApplication
     private static void PrintSystemInformation()
     {
         Log.Info($"Platform: {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})");
-        // Doesn't work on Aot with IlcDisableReflection
         Log.Info($"Framework: {RuntimeInformation.FrameworkDescription}");
-
         Log.Info($"Runtime Identifier - {RuntimeInformation.RuntimeIdentifier}");
         Log.Info($"Process Architecture - {RuntimeInformation.ProcessArchitecture}");
     }
