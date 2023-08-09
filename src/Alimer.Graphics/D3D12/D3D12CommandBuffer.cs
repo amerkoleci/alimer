@@ -697,9 +697,9 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
             D3D12BindGroup bindGroup = _boundBindGroups[groupIndex];
 
-            if (bindGroup.DescriptorTableValidCbvUavSrv)
+            if (_currentPipelineLayout.DescriptorTableValidCbvUavSrv(groupIndex))
             {
-                uint rootParameterIndex = bindGroup.CbvUavSrvRootParameterIndex;
+                uint rootParameterIndex = _currentPipelineLayout.GetCbvUavSrvRootParameterIndex(groupIndex);
                 D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.Device.ShaderResourceViewHeap.GetGpuHandle(bindGroup.DescriptorTableCbvUavSrv);
 
                 if (graphics)
@@ -712,9 +712,9 @@ internal unsafe class D3D12CommandBuffer : RenderContext
                 }
             }
 
-            if (bindGroup.DescriptorTableValidSamplers)
+            if (_currentPipelineLayout.DescriptorTableValidSamplers(groupIndex))
             {
-                uint rootParameterIndex = bindGroup.SamplerRootParameterIndex;
+                uint rootParameterIndex = _currentPipelineLayout.GetSamplerRootParameterIndex(groupIndex);
                 D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.Device.SamplerHeap.GetGpuHandle(bindGroup.DescriptorTableSamplers);
 
                 if (graphics)

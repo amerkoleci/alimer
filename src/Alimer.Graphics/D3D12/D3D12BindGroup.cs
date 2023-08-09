@@ -170,12 +170,9 @@ internal unsafe class D3D12BindGroup : BindGroup
     public override BindGroupLayout Layout => _layout;
 
     public uint DescriptorTableCbvUavSrv { get; }
-    public uint CbvUavSrvRootParameterIndex => _layout.CbvUavSrvRootParameterIndex;
-    public bool DescriptorTableValidCbvUavSrv => CbvUavSrvRootParameterIndex != ~0u;
-
+   
     public uint DescriptorTableSamplers { get; }
-    public uint SamplerRootParameterIndex => _layout.SamplerRootParameterIndex;
-    public bool DescriptorTableValidSamplers => SamplerRootParameterIndex != ~0u;
+    
 
     /// <inheitdoc />
     protected internal override void Destroy()

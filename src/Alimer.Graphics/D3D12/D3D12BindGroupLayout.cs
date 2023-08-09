@@ -20,8 +20,6 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
         : base(description)
     {
         _device = device;
-        CbvUavSrvRootParameterIndex = ~0u;
-        SamplerRootParameterIndex = ~0u;
 
         int bindingCount = description.Entries.Length;
 
@@ -43,7 +41,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
             }
 
             D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.BindingType.ToD3D12();
-            if (!AreResourceTypesCompatible(descriptorRangeType, currentType) || currentBinding == ~0u || entry.Binding != currentBinding + 1)
+            if ((descriptorRangeType != currentType) || currentBinding == ~0u || entry.Binding != currentBinding + 1)
             {
                 // Start a new range
                 D3D12_DESCRIPTOR_RANGE1 range = new()
@@ -127,21 +125,9 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 
     public uint DescriptorTableSizeCbvUavSrv = 0;
     public uint DescriptorTableSizeSamplers = 0;
-    // Assigned by D3D12PipelineLayout
-    public uint CbvUavSrvRootParameterIndex { get; set; }
-    public uint SamplerRootParameterIndex { get; set; }
 
     /// <inheitdoc />
     protected internal override void Destroy()
     {
     }
-
-    private static bool AreResourceTypesCompatible(D3D12_DESCRIPTOR_RANGE_TYPE a, D3D12_DESCRIPTOR_RANGE_TYPE b)
-    {
-        if (a == b)
-            return true;
-
-        return false;
-    }
-
 }

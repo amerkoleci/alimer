@@ -18,6 +18,8 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12RootSignature> _handle;
+    private readonly uint[] _cbvUavSrvRootParameterIndex;
+    private readonly uint[] _samplerRootParameterIndex;
 
     public D3D12PipelineLayout(D3D12GraphicsDevice device, in PipelineLayoutDescription description)
         : base(description)
@@ -28,12 +30,18 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
         // TODO: Handle dynamic constant buffers
         int setLayoutCount = description.BindGroupLayouts.Length;
+        _cbvUavSrvRootParameterIndex = new uint[setLayoutCount];
+        _samplerRootParameterIndex = new uint[setLayoutCount];
+
         List<D3D12_STATIC_SAMPLER_DESC> staticSamplers = new();
 
         // Count root parameter count first
         int rootParameterCount = 0;
         for (int i = 0; i < setLayoutCount; i++)
         {
+            _cbvUavSrvRootParameterIndex[i] = ~0u;
+            _samplerRootParameterIndex[i] = ~0u;
+
             D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
             if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
             {
@@ -55,7 +63,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
             if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
             {
-                bindGroupLayout.CbvUavSrvRootParameterIndex = rootParameterIndex;
+                _cbvUavSrvRootParameterIndex[i] = rootParameterIndex;
 
                 Span<D3D12_DESCRIPTOR_RANGE1> cbvUavSrvDescriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout.CbvUavSrvDescriptorRanges);
                 foreach (ref D3D12_DESCRIPTOR_RANGE1 range in cbvUavSrvDescriptorRanges)
@@ -75,7 +83,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
             if (bindGroupLayout.DescriptorTableSizeSamplers > 0)
             {
-                bindGroupLayout.SamplerRootParameterIndex = rootParameterIndex;
+                _samplerRootParameterIndex[i] = rootParameterIndex;
 
                 Span<D3D12_DESCRIPTOR_RANGE1> samplerDescriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout.SamplerDescriptorRanges);
                 foreach (ref D3D12_DESCRIPTOR_RANGE1 range in samplerDescriptorRanges)
@@ -190,4 +198,9 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     {
         _handle.Dispose();
     }
+
+    public bool DescriptorTableValidCbvUavSrv(uint groupIndex) => _cbvUavSrvRootParameterIndex[groupIndex] != ~0u;
+    public bool DescriptorTableValidSamplers(uint groupIndex) => _samplerRootParameterIndex[groupIndex] != ~0u;
+    public uint GetCbvUavSrvRootParameterIndex(uint groupIndex) => _cbvUavSrvRootParameterIndex[groupIndex];
+    public uint GetSamplerRootParameterIndex(uint groupIndex) => _samplerRootParameterIndex[groupIndex];
 }
