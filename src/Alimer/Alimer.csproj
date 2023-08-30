@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net7.0;$(AlimerPlatforms)</TargetFrameworks>
+    <TargetFrameworks>net7.0;net8.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
@@ -20,10 +20,6 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Graphics\" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-#if WINDOWS_UWP
+#if WINDOWS
 using Windows.ApplicationModel;
 using Windows.System;
 #endif
@@ -38,7 +38,7 @@ public static partial class Platform
 
     static Platform()
     {
-#if WINDOWS_UWP
+#if WINDOWS
         IsMacOS = false;
 		IsLinux = false;
 		IsUnix = false;
@@ -49,23 +49,13 @@ public static partial class Platform
         // ProcessorArchitecture.X86OnArm64
 		var arch = Package.Current.Id.Architecture;
 		IsArm = arch == ProcessorArchitecture.Arm || arch == ProcessorArchitecture.Arm64;
-#elif NET7_0_OR_GREATER
+#else
         IsMacOS = OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS();
         IsLinux = OperatingSystem.IsLinux();
         IsUnix = IsMacOS || IsLinux;
         IsWindows = OperatingSystem.IsWindows();
         IsAndroid = OperatingSystem.IsAndroid();
         IsFreeBSD = OperatingSystem.IsFreeBSD();
-
-        var arch = RuntimeInformation.ProcessArchitecture;
-        IsArm = arch == Architecture.Arm || arch == Architecture.Arm64;
-#else
-        IsMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-        IsLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-        IsUnix = IsMacOS || IsLinux;
-        IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-        IsAndroid = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"));
-        IsFreeBSD = RuntimeInformation.OSDescription.ToUpper().Contains("BSD");
 
         var arch = RuntimeInformation.ProcessArchitecture;
         IsArm = arch == Architecture.Arm || arch == Architecture.Arm64;

@@ -17,17 +17,11 @@
   </ItemGroup>
   
   <!-- Windows -->
-  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' ">
-    <DefineConstants>WINDOWS;$(DefineConstants)</DefineConstants>
-  </PropertyGroup>
-
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard2')) ">
-    <PackageReference Include="System.Numerics.Vectors" />
-  </ItemGroup>
-
-  <!-- WinUI -->
   <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
+    <DefineConstants>WINDOWS;$(DefineConstants)</DefineConstants>
+    <RuntimeIdentifiers>win10-x64;win10-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
   </PropertyGroup>
   <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
     <PackageReference Include="Microsoft.WindowsAppSDK" />

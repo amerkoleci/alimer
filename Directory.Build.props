@@ -69,7 +69,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AlimerWindowsPlatforms Condition="'$(AlimerWindowsPlatforms)' == ''">net7.0-windows10.0.22621</AlimerWindowsPlatforms>
+    <AlimerWindowsPlatforms Condition="'$(AlimerWindowsPlatforms)' == ''">net8.0-windows10.0.22621</AlimerWindowsPlatforms>
 
     <AlimerPlatforms Condition="'$(IncludeWindowsTargetFrameworks)' == 'true'">$(AlimerWindowsPlatforms);$(AlimerPlatforms)</AlimerPlatforms>
   </PropertyGroup>

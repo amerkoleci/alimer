@@ -31,9 +31,4 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <ExtrasUwpMetaPackageVersion>6.2.14</ExtrasUwpMetaPackageVersion>
-  </PropertyGroup>
-
 </Project>
