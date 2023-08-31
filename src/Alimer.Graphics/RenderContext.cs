@@ -22,8 +22,6 @@ public abstract class RenderContext : ComputeContext
     /// <inheritdoc />
     public override QueueType QueueType => QueueType.Graphics;
 
-    public abstract Texture? AcquireSwapChainTexture(SwapChain swapChain);
-
     public void BeginRenderPass(in RenderPassDescription renderPass)
     {
         Guard.IsFalse(_insideRenderPass);
@@ -220,6 +218,8 @@ public abstract class RenderContext : ComputeContext
 
         DispatchMeshIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
     }
+
+    public abstract void Present(SwapChain swapChain);
 
     protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
     protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);

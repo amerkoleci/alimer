@@ -124,6 +124,7 @@ internal unsafe class VulkanSwapChain : SwapChain
     public VkSemaphore AcquireSemaphore => _acquireSemaphore;
     public VkSemaphore ReleaseSemaphore => _releaseSemaphore;
     public uint AcquiredImageIndex { get; set; }
+    public bool NeedAcquire { get; set; }   
     public VulkanTexture CurrentTexture => _backbufferTextures![AcquiredImageIndex];
 
     /// <summary>
@@ -263,8 +264,8 @@ internal unsafe class VulkanSwapChain : SwapChain
             vkDestroySwapchainKHR(_device.Handle, createInfo.oldSwapchain);
         }
 
+        NeedAcquire = true;
         ReadOnlySpan<VkImage> swapChainImages = vkGetSwapchainImagesKHR(_device.Handle, _handle);
-
         _backbufferTextures = new VulkanTexture[swapChainImages.Length];
 
         for (int i = 0; i < swapChainImages.Length; i++)
@@ -328,8 +329,44 @@ internal unsafe class VulkanSwapChain : SwapChain
         _device.SetObjectName(VkObjectType.SwapchainKHR, _handle, newLabel);
     }
 
+    /// <inheritdoc />
     protected override void ResizeBackBuffer()
     {
 
+    }
+
+    /// <inheritdoc />
+    public override Texture? GetCurrentTexture()
+    {
+        if (!NeedAcquire)
+            return _backbufferTextures![AcquiredImageIndex];
+
+        VkResult result = VkResult.Success;
+        uint imageIndex = 0;
+        lock (LockObject)
+        {
+            result = vkAcquireNextImageKHR(
+                _device.Handle,
+                Handle,
+                ulong.MaxValue,
+                _acquireSemaphore,
+                VkFence.Null,
+                out imageIndex);
+        }
+
+        if (result != VkResult.Success)
+        {
+            // Handle outdated error in acquire
+            if (result == VkResult.SuboptimalKHR || result == VkResult.ErrorOutOfDateKHR)
+            {
+                Device.WaitIdle();
+                //_queue.Device.UpdateSwapChain(vulkanSwapChain);
+                return GetCurrentTexture();
+            }
+        }
+
+        AcquiredImageIndex = imageIndex;
+        NeedAcquire = false;
+        return CurrentTexture;
     }
 }

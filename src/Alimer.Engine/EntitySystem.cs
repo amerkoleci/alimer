@@ -65,7 +65,8 @@ public abstract class EntitySystem<TComponent> : EntitySystem where TComponent :
 
     public override void ProcessEntityComponent(EntityComponent component, Entity entity, bool forceRemove)
     {
-        if (!(component is TComponent entityComponent)) throw new ArgumentException("The entity component must be assignable to TComponent", nameof(component));
+        if (component is not TComponent entityComponent)
+            throw new ArgumentException("The entity component must be assignable to TComponent", nameof(component));
 
         bool entityMatch = !forceRemove && EntityMatch(entity);
         bool entityAdded = Components.Contains(entityComponent);
@@ -94,7 +95,7 @@ public abstract class EntitySystem<TComponent> : EntitySystem where TComponent :
     {
         if (RequiredComponentTypes.Count == 0) return true;
 
-        List<Type> remainingRequiredTypes = new List<Type>(RequiredComponentTypes);
+        List<Type> remainingRequiredTypes = new(RequiredComponentTypes);
 
         foreach (EntityComponent component in entity.Components)
         {

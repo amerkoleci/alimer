@@ -201,7 +201,7 @@ internal unsafe class WebGPUSwapChain : SwapChain
 
     }
 
-    public Texture? AcquireNextTexture()
+    public override Texture? GetCurrentTexture()
     {
         WGPUTextureView nextTextureView = wgpuSwapChainGetCurrentTextureView(Handle);
         if (nextTextureView.IsNull)

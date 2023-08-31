@@ -5,28 +5,42 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
+using Alimer.Graphics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Engine;
 
 public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 {
     private static readonly Dictionary<Type, Func<EntitySystem>> _registeredFactories = new();
+    private static readonly Dictionary<Type, Func<GraphicsDevice, EntitySystem>> _registeredGraphicsFactories = new();
     private readonly HashSet<Entity> _entities = new();
     private readonly Dictionary<Type, List<EntitySystem>> _systemsPerComponentType = new();
 
-    public EntityManager()
-    {
-    }
 
     public static void RegisterSystemFactory<T>() where T : EntitySystem, new()
     {
         _registeredFactories.Add(typeof(T), () => new T());
     }
 
-    public static void RegisterSystemFactory<T>(Func<T> factory) where T : EntitySystem, new()
+    public static void RegisterSystemFactory<T>(Func<T> factory) where T : EntitySystem
     {
         _registeredFactories.Add(typeof(T), factory);
     }
+
+    public static void RegisterGraphicsSystemFactory<T>(Func<GraphicsDevice, T> factory) where T : EntitySystem
+    {
+        _registeredGraphicsFactories.Add(typeof(T), factory);
+    }
+
+    protected EntityManager(GraphicsDevice graphicsDevice)
+    {
+        Guard.IsNotNull(graphicsDevice, nameof(graphicsDevice));
+
+        GraphicsDevice = graphicsDevice;
+    }
+
+    public GraphicsDevice GraphicsDevice { get; }
 
     public EntitySystemCollection Systems { get; } = new EntitySystemCollection();
 
@@ -91,7 +105,7 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 
         foreach (EntityComponent component in entity)
         {
-            Add(component, entity);
+            AddComponent(component, entity);
         }
 
         foreach (Entity child in entity.Children)
@@ -117,7 +131,7 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 
         foreach (EntityComponent component in entity)
         {
-            Remove(component, entity);
+            RemoveComponent(component, entity);
         }
 
         foreach (Entity child in entity.Children)
@@ -128,12 +142,12 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
         entity.EntityManager = null;
     }
 
-    private void Add(EntityComponent component, Entity entity)
+    protected virtual void AddComponent(EntityComponent component, Entity entity)
     {
         CheckEntityComponentWithSystems(component, entity, false);
     }
 
-    private void Remove(EntityComponent component, Entity entity)
+    protected virtual void RemoveComponent(EntityComponent component, Entity entity)
     {
         CheckEntityComponentWithSystems(component, entity, true);
     }
@@ -142,7 +156,7 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
     {
         Type componentType = component.GetType();
 
-        if (_systemsPerComponentType.TryGetValue(componentType, out var systemsForComponent))
+        if (_systemsPerComponentType.TryGetValue(componentType, out List<EntitySystem>? systemsForComponent))
         {
             foreach (EntitySystem system in systemsForComponent)
             {
@@ -177,7 +191,7 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 
     private void CollectNewEntitySystems(Type componentType)
     {
-        var entitySystemAttributes = componentType.GetCustomAttributes<DefaultEntitySystemAttribute>();
+        IEnumerable<DefaultEntitySystemAttribute> entitySystemAttributes = componentType.GetCustomAttributes<DefaultEntitySystemAttribute>();
 
         foreach (DefaultEntitySystemAttribute entitySystemAttribute in entitySystemAttributes)
         {
@@ -185,15 +199,25 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 
             if (addNewSystem)
             {
-                if (!_registeredFactories.TryGetValue(entitySystemAttribute.Type, out Func<EntitySystem>? factory))
+                if (_registeredFactories.TryGetValue(entitySystemAttribute.Type, out Func<EntitySystem>? factory))
                 {
-                    throw new InvalidOperationException("No EntitySystem registered");
+                    EntitySystem system = factory();
+                    system.EntityManager = this;
+
+                    Systems.Add(system);
+                    return;
                 }
 
-                EntitySystem system = factory();
-                system.EntityManager = this;
+                if (_registeredGraphicsFactories.TryGetValue(entitySystemAttribute.Type, out Func<GraphicsDevice, EntitySystem>? graphicsFactory))
+                {
+                    EntitySystem system = graphicsFactory(GraphicsDevice);
+                    system.EntityManager = this;
 
-                Systems.Add(system);
+                    Systems.Add(system);
+                    return;
+                }
+
+                throw new InvalidOperationException("No EntitySystem registered");
             }
         }
     }
@@ -245,14 +269,14 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
             case NotifyCollectionChangedAction.Add:
                 foreach (EntityComponent component in e.NewItems!.Cast<EntityComponent>())
                 {
-                    Add(component, entity);
+                    AddComponent(component, entity);
                     UpdateDependentSystems(entity, component);
                 }
                 break;
             case NotifyCollectionChangedAction.Remove:
                 foreach (EntityComponent component in e.OldItems!.Cast<EntityComponent>())
                 {
-                    Remove(component, entity);
+                    RemoveComponent(component, entity);
                     UpdateDependentSystems(entity, component);
                 }
                 break;

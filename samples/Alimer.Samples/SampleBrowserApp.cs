@@ -3,6 +3,7 @@
 
 using Alimer.Engine;
 using Alimer.Graphics;
+using Alimer.Samples.Engime;
 using Alimer.Samples.Graphics;
 
 namespace Alimer.Samples;
@@ -32,6 +33,9 @@ public sealed class SampleBrowserApp : GameApplication
         _runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
         //_runningSample = new DrawMeshSample(GraphicsDevice, MainWindow);
 
+        // Engine samples (scene)
+        //_runningSample = new SceneCubeSample(GraphicsDevice, SceneSystem);
+
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
@@ -48,11 +52,13 @@ public sealed class SampleBrowserApp : GameApplication
     protected override void Draw(AppTime time)
     {
         RenderContext context = GraphicsDevice.BeginRenderContext("Frame");
-        Texture? swapChainTexture = context.AcquireSwapChainTexture(MainWindow.SwapChain!);
+        Texture? swapChainTexture = MainWindow.SwapChain!.GetCurrentTexture();
         if (swapChainTexture is not null)
         {
             _runningSample.Draw(context, swapChainTexture);
         }
+
+        context.Present(MainWindow.SwapChain!);
 
         //GraphicsDevice.Submit(commandBuffer);
         context.Flush(waitForCompletion: false);
@@ -66,7 +72,7 @@ public sealed class SampleBrowserApp : GameApplication
 
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
 #endif
 
         using SampleBrowserApp game = new(preferredGraphicsBackend);

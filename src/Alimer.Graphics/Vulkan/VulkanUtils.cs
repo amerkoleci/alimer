@@ -282,93 +282,126 @@ internal static unsafe class VulkanUtils
         switch (format)
         {
             // 8-bit formats
-            case PixelFormat.R8Unorm: return VkFormat.R8Unorm;
-            case PixelFormat.R8Snorm: return VkFormat.R8Snorm;
-            case PixelFormat.R8Uint: return VkFormat.R8Uint;
-            case PixelFormat.R8Sint: return VkFormat.R8Sint;
+            case PixelFormat.R8Unorm: return VK_FORMAT_R8_UNORM;
+            case PixelFormat.R8Snorm: return VK_FORMAT_R8_SNORM;
+            case PixelFormat.R8Uint: return VK_FORMAT_R8_UINT;
+            case PixelFormat.R8Sint: return VK_FORMAT_R8_SINT;
+
             // 16-bit formats
-            case PixelFormat.R16Unorm: return VkFormat.R16Unorm;
-            case PixelFormat.R16Snorm: return VkFormat.R16Snorm;
-            case PixelFormat.R16Uint: return VkFormat.R16Uint;
-            case PixelFormat.R16Sint: return VkFormat.R16Sint;
-            case PixelFormat.R16Float: return VkFormat.R16Sfloat;
-            case PixelFormat.RG8Unorm: return VkFormat.R8G8Unorm;
-            case PixelFormat.RG8Snorm: return VkFormat.R8G8Snorm;
-            case PixelFormat.RG8Uint: return VkFormat.R8G8Uint;
-            case PixelFormat.RG8Sint: return VkFormat.R8G8Sint;
+            case PixelFormat.R16Uint: return VK_FORMAT_R16_UINT;
+            case PixelFormat.R16Sint: return VK_FORMAT_R16_SINT;
+            case PixelFormat.R16Unorm: return VK_FORMAT_R16_UNORM;
+            case PixelFormat.R16Snorm: return VK_FORMAT_R16_SNORM;
+            case PixelFormat.R16Float: return VK_FORMAT_R16_SFLOAT;
+            case PixelFormat.RG8Unorm: return VK_FORMAT_R8G8_UNORM;
+            case PixelFormat.RG8Snorm: return VK_FORMAT_R8G8_SNORM;
+            case PixelFormat.RG8Uint: return VK_FORMAT_R8G8_UINT;
+            case PixelFormat.RG8Sint: return VK_FORMAT_R8G8_SINT;
             // Packed 16-Bit Pixel Formats
-            case PixelFormat.BGRA4Unorm: return VkFormat.B4G4R4A4UnormPack16;
-            case PixelFormat.B5G6R5Unorm: return VkFormat.B5G6R5UnormPack16;
-            case PixelFormat.BGR5A1Unorm: return VkFormat.B5G5R5A1UnormPack16;
+            case PixelFormat.BGRA4Unorm: return VK_FORMAT_B4G4R4A4_UNORM_PACK16;
+            case PixelFormat.B5G6R5Unorm: return VK_FORMAT_B5G6R5_UNORM_PACK16;
+            case PixelFormat.BGR5A1Unorm: return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
             // 32-bit formats
-            case PixelFormat.R32Uint: return VkFormat.R32Uint;
-            case PixelFormat.R32Sint: return VkFormat.R32Sint;
-            case PixelFormat.R32Float: return VkFormat.R32Sfloat;
-            case PixelFormat.RG16Unorm: return VkFormat.R16G16Unorm;
-            case PixelFormat.RG16Snorm: return VkFormat.R16G16Snorm;
-            case PixelFormat.RG16Uint: return VkFormat.R16G16Uint;
-            case PixelFormat.RG16Sint: return VkFormat.R16G16Sint;
-            case PixelFormat.RG16Float: return VkFormat.R16G16Sfloat;
-            case PixelFormat.RGBA8Unorm: return VkFormat.R8G8B8A8Unorm;
-            case PixelFormat.RGBA8UnormSrgb: return VkFormat.R8G8B8A8Srgb;
-            case PixelFormat.RGBA8Snorm: return VkFormat.R8G8B8A8Snorm;
-            case PixelFormat.RGBA8Uint: return VkFormat.R8G8B8A8Uint;
-            case PixelFormat.RGBA8Sint: return VkFormat.R8G8B8A8Sint;
-            case PixelFormat.BGRA8Unorm: return VkFormat.B8G8R8A8Unorm;
-            case PixelFormat.BGRA8UnormSrgb: return VkFormat.B8G8R8A8Srgb;
+            case PixelFormat.R32Uint: return VK_FORMAT_R32_UINT;
+            case PixelFormat.R32Sint: return VK_FORMAT_R32_SINT;
+            case PixelFormat.R32Float: return VK_FORMAT_R32_SFLOAT;
+            case PixelFormat.RG16Uint: return VK_FORMAT_R16G16_UINT;
+            case PixelFormat.RG16Sint: return VK_FORMAT_R16G16_SINT;
+            case PixelFormat.RG16Unorm: return VK_FORMAT_R16G16_UNORM;
+            case PixelFormat.RG16Snorm: return VK_FORMAT_R16G16_SNORM;
+            case PixelFormat.RG16Float: return VK_FORMAT_R16G16_SFLOAT;
+            case PixelFormat.RGBA8Unorm: return VK_FORMAT_R8G8B8A8_UNORM;
+            case PixelFormat.RGBA8UnormSrgb: return VK_FORMAT_R8G8B8A8_SRGB;
+            case PixelFormat.RGBA8Snorm: return VK_FORMAT_R8G8B8A8_SNORM;
+            case PixelFormat.RGBA8Uint: return VK_FORMAT_R8G8B8A8_UINT;
+            case PixelFormat.RGBA8Sint: return VK_FORMAT_R8G8B8A8_SINT;
+            case PixelFormat.BGRA8Unorm: return VK_FORMAT_B8G8R8A8_UNORM;
+            case PixelFormat.BGRA8UnormSrgb: return VK_FORMAT_B8G8R8A8_SRGB;
             // Packed 32-Bit formats
-            case PixelFormat.RGB10A2Unorm: return VkFormat.A2B10G10R10UnormPack32;
-            case PixelFormat.RGB10A2Uint: return VkFormat.A2B10G10R10UintPack32;
-            case PixelFormat.RG11B10UFloat: return VkFormat.B10G11R11UfloatPack32;
-            case PixelFormat.RGB9E5UFloat: return VkFormat.E5B9G9R9UfloatPack32;
+            case PixelFormat.RGB10A2Unorm: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case PixelFormat.RGB10A2Uint: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
+            case PixelFormat.RG11B10UFloat: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+            case PixelFormat.RGB9E5UFloat: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
             // 64-Bit formats
-            case PixelFormat.RG32Uint: return VkFormat.R32G32Uint;
-            case PixelFormat.RG32Sint: return VkFormat.R32G32Sint;
-            case PixelFormat.RG32Float: return VkFormat.R32G32Sfloat;
-            case PixelFormat.RGBA16Unorm: return VkFormat.R16G16B16A16Unorm;
-            case PixelFormat.RGBA16Snorm: return VkFormat.R16G16B16A16Snorm;
-            case PixelFormat.RGBA16Uint: return VkFormat.R16G16B16A16Uint;
-            case PixelFormat.RGBA16Sint: return VkFormat.R16G16B16A16Sint;
-            case PixelFormat.RGBA16Float: return VkFormat.R16G16B16A16Sfloat;
+            case PixelFormat.RG32Uint: return VK_FORMAT_R32G32_UINT;
+            case PixelFormat.RG32Sint: return VK_FORMAT_R32G32_SINT;
+            case PixelFormat.RG32Float: return VK_FORMAT_R32G32_SFLOAT;
+            case PixelFormat.RGBA16Uint: return VK_FORMAT_R16G16B16A16_UINT;
+            case PixelFormat.RGBA16Sint: return VK_FORMAT_R16G16B16A16_SINT;
+            case PixelFormat.RGBA16Unorm: return VK_FORMAT_R16G16B16A16_UNORM;
+            case PixelFormat.RGBA16Snorm: return VK_FORMAT_R16G16B16A16_SNORM;
+            case PixelFormat.RGBA16Float: return VK_FORMAT_R16G16B16A16_SFLOAT;
             // 128-Bit formats
-            case PixelFormat.RGBA32Uint:
-                return VkFormat.R32G32B32A32Uint;
-            case PixelFormat.RGBA32Sint:
-                return VkFormat.R32G32B32A32Sint;
-            case PixelFormat.RGBA32Float:
-                return VkFormat.R32G32B32A32Sfloat;
+            case PixelFormat.RGBA32Uint: return VK_FORMAT_R32G32B32A32_UINT;
+            case PixelFormat.RGBA32Sint: return VK_FORMAT_R32G32B32A32_SINT;
+            case PixelFormat.RGBA32Float: return VK_FORMAT_R32G32B32A32_SFLOAT;
 
             // Depth-stencil formats
-            //case PixelFormat.Stencil8:
-            //    return VkFormat.S8Uint;
-
-            case PixelFormat.Depth16Unorm:
-                return VkFormat.D16Unorm;
-
-            case PixelFormat.Depth24UnormStencil8:
-                return VkFormat.D24UnormS8Uint;
-
-            case PixelFormat.Depth32Float:
-                return VkFormat.D32Sfloat;
-
-            case PixelFormat.Depth32FloatStencil8:
-                return VkFormat.D32SfloatS8Uint;
+            //case PixelFormat::Stencil8:
+            //    return supportsS8 ? VK_FORMAT_S8_UINT : VK_FORMAT_D24_UNORM_S8_UINT;
+            case PixelFormat.Depth16Unorm: return VK_FORMAT_D16_UNORM;
+            case PixelFormat.Depth24UnormStencil8: return VK_FORMAT_D24_UNORM_S8_UINT;
+            case PixelFormat.Depth32Float: return VK_FORMAT_D32_SFLOAT;
+            case PixelFormat.Depth32FloatStencil8: return VK_FORMAT_D32_SFLOAT_S8_UINT;
 
             // Compressed BC formats
-            case PixelFormat.BC1RGBAUnorm: return VkFormat.Bc1RgbaUnormBlock;
-            case PixelFormat.BC1RGBAUnormSrgb: return VkFormat.Bc1RgbaSrgbBlock;
-            case PixelFormat.BC2RGBAUnorm: return VkFormat.Bc2UnormBlock;
-            case PixelFormat.BC2RGBAUnormSrgb: return VkFormat.Bc2SrgbBlock;
-            case PixelFormat.BC3RGBAUnorm: return VkFormat.Bc3UnormBlock;
-            case PixelFormat.BC3RGBAUnormSrgb: return VkFormat.Bc3SrgbBlock;
-            case PixelFormat.BC4RSnorm: return VkFormat.Bc4UnormBlock;
-            case PixelFormat.BC4RUnorm: return VkFormat.Bc4SnormBlock;
-            case PixelFormat.BC5RGUnorm: return VkFormat.Bc5UnormBlock;
-            case PixelFormat.BC5RGSnorm: return VkFormat.Bc5SnormBlock;
-            case PixelFormat.BC6HRGBUfloat: return VkFormat.Bc6hUfloatBlock;
-            case PixelFormat.BC6HRGBFloat: return VkFormat.Bc6hSfloatBlock;
-            case PixelFormat.BC7RGBAUnorm: return VkFormat.Bc7UnormBlock;
-            case PixelFormat.BC7RGBAUnormSrgb: return VkFormat.Bc7SrgbBlock;
+            case PixelFormat.BC1RGBAUnorm: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+            case PixelFormat.BC1RGBAUnormSrgb: return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+            case PixelFormat.BC2RGBAUnorm: return VK_FORMAT_BC2_UNORM_BLOCK;
+            case PixelFormat.BC2RGBAUnormSrgb: return VK_FORMAT_BC2_SRGB_BLOCK;
+            case PixelFormat.BC3RGBAUnorm: return VK_FORMAT_BC3_UNORM_BLOCK;
+            case PixelFormat.BC3RGBAUnormSrgb: return VK_FORMAT_BC3_SRGB_BLOCK;
+            case PixelFormat.BC4RUnorm: return VK_FORMAT_BC4_UNORM_BLOCK;
+            case PixelFormat.BC4RSnorm: return VK_FORMAT_BC4_SNORM_BLOCK;
+            case PixelFormat.BC5RGUnorm: return VK_FORMAT_BC5_UNORM_BLOCK;
+            case PixelFormat.BC5RGSnorm: return VK_FORMAT_BC5_SNORM_BLOCK;
+            case PixelFormat.BC6HRGBUfloat: return VK_FORMAT_BC6H_UFLOAT_BLOCK;
+            case PixelFormat.BC6HRGBFloat: return VK_FORMAT_BC6H_SFLOAT_BLOCK;
+            case PixelFormat.BC7RGBAUnorm: return VK_FORMAT_BC7_UNORM_BLOCK;
+            case PixelFormat.BC7RGBAUnormSrgb: return VK_FORMAT_BC7_SRGB_BLOCK;
+            // EAC/ETC compressed formats
+            case PixelFormat.ETC2RGB8Unorm: return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+            case PixelFormat.ETC2RGB8UnormSrgb: return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
+            case PixelFormat.ETC2RGB8A1Unorm: return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+            case PixelFormat.ETC2RGB8A1UnormSrgb: return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
+            case PixelFormat.ETC2RGBA8Unorm: return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+            case PixelFormat.ETC2RGBA8UnormSrgb: return VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
+            case PixelFormat.EACR11Unorm: return VK_FORMAT_EAC_R11_UNORM_BLOCK;
+            case PixelFormat.EACR11Snorm: return VK_FORMAT_EAC_R11_SNORM_BLOCK;
+            case PixelFormat.EACRG11Unorm: return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+            case PixelFormat.EACRG11Snorm: return VK_FORMAT_EAC_R11G11_SNORM_BLOCK;
+            // ASTC compressed formats
+            case PixelFormat.ASTC4x4Unorm: return VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+            case PixelFormat.ASTC4x4UnormSrgb: return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+            case PixelFormat.ASTC5x4Unorm: return VK_FORMAT_ASTC_5x4_UNORM_BLOCK;
+            case PixelFormat.ASTC5x4UnormSrgb: return VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
+            case PixelFormat.ASTC5x5Unorm: return VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
+            case PixelFormat.ASTC5x5UnormSrgb: return VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
+            case PixelFormat.ASTC6x5Unorm: return VK_FORMAT_ASTC_6x5_UNORM_BLOCK;
+            case PixelFormat.ASTC6x5UnormSrgb: return VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
+            case PixelFormat.ASTC6x6Unorm: return VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
+            case PixelFormat.ASTC6x6UnormSrgb: return VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
+            case PixelFormat.ASTC8x5Unorm: return VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
+            case PixelFormat.ASTC8x5UnormSrgb: return VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
+            case PixelFormat.ASTC8x6Unorm: return VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
+            case PixelFormat.ASTC8x6UnormSrgb: return VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
+            case PixelFormat.ASTC8x8Unorm: return VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+            case PixelFormat.ASTC8x8UnormSrgb: return VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
+            case PixelFormat.ASTC10x5Unorm: return VK_FORMAT_ASTC_10x5_UNORM_BLOCK;
+            case PixelFormat.ASTC10x5UnormSrgb: return VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
+            case PixelFormat.ASTC10x6Unorm: return VK_FORMAT_ASTC_10x6_UNORM_BLOCK;
+            case PixelFormat.ASTC10x6UnormSrgb: return VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
+            case PixelFormat.ASTC10x8Unorm: return VK_FORMAT_ASTC_10x8_UNORM_BLOCK;
+            case PixelFormat.ASTC10x8UnormSrgb: return VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
+            case PixelFormat.ASTC10x10Unorm: return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
+            case PixelFormat.ASTC10x10UnormSrgb: return VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
+            case PixelFormat.ASTC12x10Unorm: return VK_FORMAT_ASTC_12x10_UNORM_BLOCK;
+            case PixelFormat.ASTC12x10UnormSrgb: return VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
+            case PixelFormat.ASTC12x12Unorm: return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
+            case PixelFormat.ASTC12x12UnormSrgb: return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
+
+            //case PixelFormat.R8BG8Biplanar420Unorm: return VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+            //case PixelFormat.R10X6BG10X6Biplanar420Unorm: return VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16;
 
             default:
                 return VkFormat.Undefined;

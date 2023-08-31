@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using Alimer.Shaders;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples;

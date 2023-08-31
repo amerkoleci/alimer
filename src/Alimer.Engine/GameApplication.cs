@@ -13,7 +13,7 @@ public class GameApplication : Application
     public GameApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(default, preferredGraphicsBackend)
     {
-        SceneSystem = new SceneSystem();
+        SceneSystem = new SceneSystem(GraphicsDevice);
         GameSystems.Add(SceneSystem);
     }
 

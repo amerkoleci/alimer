@@ -298,7 +298,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
         VkRect2D renderArea = new(_queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferWidth, _queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferHeight);
 
-        if (_queue.Device.PhysicalDeviceFeatures1_3.dynamicRendering)
+        if (_queue.Device.DynamicRendering)
         {
             VkRenderingInfo renderingInfo = new();
             renderingInfo.layerCount = 1;
@@ -333,15 +333,17 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                     storeOp = attachment.StoreAction.ToVk(),
                     clearValue = new VkClearValue(attachment.ClearColor.R, attachment.ClearColor.G, attachment.ClearColor.B, attachment.ClearColor.A)
                 };
+
+                TextureBarrier(texture, ResourceStates.RenderTarget);
             }
 
             if (hasDepthOrStencil)
             {
-                var attachment = renderPass.DepthStencilAttachment;
+                RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
-                var texture = (VulkanTexture)attachment.Texture!;
-                var mipLevel = attachment.MipLevel;
-                var slice = attachment.Slice;
+                VulkanTexture texture = (VulkanTexture)attachment.Texture!;
+                int mipLevel = attachment.MipLevel;
+                int slice = attachment.Slice;
 
                 renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
                 renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
@@ -364,6 +366,8 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                     stencilAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
                     renderingInfo.pStencilAttachment = &stencilAttachment;
                 }
+
+                TextureBarrier(texture, ResourceStates.DepthWrite);
             }
 
             renderingInfo.renderArea = renderArea;
@@ -669,39 +673,13 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _bindGroupsDirty = false;
     }
 
-    public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
+    public override void Present(SwapChain swapChain)
     {
-        var vulkanSwapChain = (VulkanSwapChain)swapChain;
+        VulkanSwapChain backendSwapChain = (VulkanSwapChain)swapChain;
 
-        VkResult result = VkResult.Success;
-        uint imageIndex = 0;
-        lock (vulkanSwapChain.LockObject)
-        {
-            result = vkAcquireNextImageKHR(
-                _queue.Device.Handle,
-                vulkanSwapChain.Handle,
-                ulong.MaxValue,
-                vulkanSwapChain.AcquireSemaphore,
-                VkFence.Null,
-                out imageIndex);
-        }
-
-        if (result != VkResult.Success)
-        {
-            // Handle outdated error in acquire
-            if (result == VkResult.SuboptimalKHR || result == VkResult.ErrorOutOfDateKHR)
-            {
-                _queue.Device.WaitIdle();
-                //_queue.Device.UpdateSwapChain(vulkanSwapChain);
-                return AcquireSwapChainTexture(swapChain);
-            }
-        }
-
-        vulkanSwapChain.AcquiredImageIndex = imageIndex;
-        _queue.QueuePresent(vulkanSwapChain);
-
-        TextureBarrier(vulkanSwapChain.CurrentTexture, ResourceStates.RenderTarget);
-        return vulkanSwapChain.CurrentTexture;
+        TextureBarrier(backendSwapChain.CurrentTexture, ResourceStates.Present);
+        _queue.QueuePresent(backendSwapChain);
+        backendSwapChain.NeedAcquire = true;
     }
     #endregion RenderContext Methods
 }

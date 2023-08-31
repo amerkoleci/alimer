@@ -123,5 +123,9 @@ public enum PixelFormat
     ASTC12x12Unorm,
     ASTC12x12UnormSrgb,
 
+    // MultiAspect format
+    //R8BG8Biplanar420Unorm,
+    //R10X6BG10X6Biplanar420Unorm,
+
     Count
 }

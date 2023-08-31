@@ -88,12 +88,6 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
     public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
     {
-        foreach (VulkanSwapChain swapChain in _presentSwapChains)
-        {
-            VulkanTexture swapChainTexture = swapChain.CurrentTexture;
-            vulkanCommandBuffer.TextureBarrier(swapChainTexture, ResourceStates.Present);
-        }
-
         vkEndCommandBuffer(commandBuffer).DebugCheckResult();
 
         _submitCommandBuffers.Add(commandBuffer);

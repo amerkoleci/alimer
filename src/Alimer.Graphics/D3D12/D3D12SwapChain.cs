@@ -135,7 +135,6 @@ internal unsafe class D3D12SwapChain : SwapChain
     public DXGI_FORMAT DxgiFormat { get; }
     public IDXGISwapChain3* Handle => _handle;
     public uint CurrentBackBufferIndex => _handle.Get()->GetCurrentBackBufferIndex();
-    public D3D12Texture CurrentBackBufferTexture => _backbufferTextures![_handle.Get()->GetCurrentBackBufferIndex()];
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12SwapChain" /> class.
@@ -194,9 +193,17 @@ internal unsafe class D3D12SwapChain : SwapChain
         _handle.Get()->SetDxgiName(newLabel);
     }
 
+    /// <inheritdoc />
     protected override void ResizeBackBuffer()
     {
         _device.WaitIdle();
+    }
+
+    /// <inheritdoc />
+    public override Texture? GetCurrentTexture()
+    {
+        uint backBufferIndex = _handle.Get()->GetCurrentBackBufferIndex();
+        return _backbufferTextures![backBufferIndex];
     }
 
     public bool Present()

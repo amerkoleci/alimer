@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Drawing;
+using TerraFX.Interop.DirectX;
 
 namespace Alimer.Graphics;
 
@@ -32,4 +33,6 @@ public abstract class SwapChain : GraphicsObject
     {
         ResizeBackBuffer();
     }
+
+    public abstract Texture? GetCurrentTexture();
 }

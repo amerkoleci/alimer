@@ -128,7 +128,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
         {
             foreach (D3D12SwapChain swapChain in _presentSwapChains)
             {
-                D3D12Texture swapChainTexture = swapChain.CurrentBackBufferTexture;
+                D3D12Texture swapChainTexture = (D3D12Texture)swapChain.GetCurrentTexture()!;
                 commandBuffer.TransitionResource(swapChainTexture, ResourceStates.Present);
             }
             commandBuffer.FlushResourceBarriers();

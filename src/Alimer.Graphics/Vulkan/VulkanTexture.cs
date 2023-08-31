@@ -441,6 +441,8 @@ internal unsafe class VulkanTexture : Texture
 
             _device.Submit(in context);
         }
+
+        CurrentState = description.InitialLayout;
     }
 
     public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescription descriptor)

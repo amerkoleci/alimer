@@ -731,14 +731,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _bindGroupsDirty = false;
     }
 
-    public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
+    public override void Present(SwapChain swapChain)
     {
         var d3dSwapChain = (D3D12SwapChain)swapChain;
-
-        D3D12Texture swapChainTexture = d3dSwapChain.CurrentBackBufferTexture;
-
         _queue.QueuePresent(d3dSwapChain);
-        return swapChainTexture;
     }
     #endregion RenderContext Methods
 }

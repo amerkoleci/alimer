@@ -224,18 +224,11 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
     {
     }
 
-    public override Texture? AcquireSwapChainTexture(SwapChain swapChain)
+    public override void Present(SwapChain swapChain)
     {
         WebGPUSwapChain backendSwapChain = (WebGPUSwapChain)swapChain;
 
-        Texture? nextTexture = backendSwapChain.AcquireNextTexture();
-        if (nextTexture is null)
-        {
-            return null;
-        }
-
         _queue.QueuePresent(backendSwapChain);
-        return nextTexture;
     }
     #endregion RenderContext Methods
 }

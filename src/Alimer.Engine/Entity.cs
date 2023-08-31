@@ -72,6 +72,13 @@ public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChange
         Components.Add(component);
     }
 
+    public T Add<T>() where T : EntityComponent, new()
+    {
+        T component = new();
+        Components.Add(component);
+        return component;
+    }
+
     public T? Get<T>() where T : EntityComponent?
     {
         return this.OfType<T>().FirstOrDefault();
