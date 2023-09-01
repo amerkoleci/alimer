@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net7.0;net8.0;$(AlimerPlatforms)</TargetFrameworks>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
+    <ExcludeWebGPU>true</ExcludeWebGPU>
     <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 

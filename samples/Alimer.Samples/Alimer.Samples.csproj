@@ -9,14 +9,13 @@
 
   <PropertyGroup>
     <PublishAot>true</PublishAot>
-    <StripSymbols>true</StripSymbols>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!--<DebuggerSupport>false</DebuggerSupport>
-    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>-->
+    <OptimizationPreference>Speed</OptimizationPreference>
     <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
     <IlcDisableReflection>false</IlcDisableReflection>
-    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+    <!--<DebuggerSupport>false</DebuggerSupport>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>-->
   </PropertyGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />

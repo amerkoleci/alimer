@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.2.1" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-preview.7.23375.6" />
     
     <!-- Platform specific -->
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.4.230822000" />

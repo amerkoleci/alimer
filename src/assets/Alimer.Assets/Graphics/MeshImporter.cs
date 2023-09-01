@@ -5,7 +5,6 @@ using System.Numerics;
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Alimer.Assets.Graphics;
 
@@ -16,10 +15,14 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
 {
     public override Task<MeshAsset> Import(string source, IServiceProvider services)
     {
-        GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
+        //GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
         ModelRoot modelRoot = ModelRoot.Load(source);
 
-        MeshAsset asset = new();
+        MeshAsset asset = new()
+        {
+            Source = source
+        };
+
 
         foreach (Mesh mesh in modelRoot.LogicalMeshes)
         {

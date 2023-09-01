@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Alimer.Audio;
+using Alimer.Content;
 using Alimer.Graphics;
 using Alimer.Input;
 
@@ -23,7 +24,9 @@ public abstract class Application : DisposableObject, IApplication
     /// Initializes a new instance of the <see cref="Application" /> class.
     /// </summary>
     /// <param name="name">The optional name of the application.</param>
-    protected Application(AppPlatform? platform = default, GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count, string? name = default)
+    protected Application(AppPlatform? platform = default,
+        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count,
+        string? name = default)
     {
         Platform = platform ?? AppPlatform.CreateDefault();
         Name = name ?? GetType().Name;
@@ -35,6 +38,15 @@ public abstract class Application : DisposableObject, IApplication
 
         Log.Info($"Version: {Version}");
         PrintSystemInformation();
+
+        //ServiceCollection services = new ServiceCollection();
+        //Platform.ConfigureServices(services);
+        //ConfigureServices(services);
+
+        //_serviceProvider = services.BuildServiceProvider();
+        //Content = Services.GetRequiredService<IContentManager>();
+
+        Content = new ContentManager();
 
         GraphicsDeviceDescription deviceDescription = new()
         {
@@ -65,6 +77,10 @@ public abstract class Application : DisposableObject, IApplication
     public bool IsExiting { get; private set; }
 
     public AppTime Time => _appTime;
+
+    //public IServiceProvider Services => _serviceProvider;
+
+    public IContentManager Content { get; }
 
     /// <summary>
     /// Gets the platform module.
@@ -102,6 +118,12 @@ public abstract class Application : DisposableObject, IApplication
             AudioDevice.Dispose();
         }
     }
+
+    //public virtual void ConfigureServices(IServiceCollection services)
+    //{
+    //    services.AddSingleton<IApplication>(this);
+    //    services.AddSingleton<IContentManager, ContentManager>();
+    //}
 
     public void Run()
     {

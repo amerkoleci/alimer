@@ -33,11 +33,15 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
     public DrawMeshSample(GraphicsDevice graphicsDevice, Window mainWindow)
         : base("Graphics - Draw Mesh", graphicsDevice, mainWindow)
     {
-        using Image image = new Image(ImageDescription.ImageCube(PixelFormat.RGBA8Unorm, 1024));
-
+        string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
-        MeshImporter importer = new();
-        MeshAsset meshAsset = importer.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), null).Result;
+
+        _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
+
+        //TextureImporter textureImporter = new();
+        MeshImporter meshImporter = new();
+        //TextureAsset textureAsset = textureImporter.Import(Path.Combine(texturesPath, "10points.png"), services).Result;
+        MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), null).Result;
 
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));

@@ -17,7 +17,10 @@ public sealed class TextureImporter : AssetImporter<TextureAsset>
         using Stream stream = File.Open(source, FileMode.Open, FileAccess.Read);
         using SKBitmap bitmap = SKBitmap.Decode(stream);
 
-        var asset = new TextureAsset();
+        TextureAsset asset = new()
+        {
+            Source = source
+        };
 
         return Task.FromResult(asset);
     }
