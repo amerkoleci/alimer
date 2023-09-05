@@ -5,11 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.Windows" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D12" />
   </ItemGroup>
 
   <ItemGroup>

@@ -16,6 +16,7 @@ public sealed class SampleBrowserApp : GameApplication
     public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(preferredGraphicsBackend)
     {
+        GameSystems.Add(new ImGuiSystem(GraphicsDevice));
     }
 
     protected override void Initialize()

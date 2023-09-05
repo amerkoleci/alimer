@@ -1,14 +1,13 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Reflection;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.Windows;
 
 namespace Alimer.Shaders;
 
 partial class ShaderCompiler
 {
+#if OLD
     static ShaderCompiler()
     {
         // Register a custom library resolver for the two DXC libraries. We need to either manually load the two
@@ -65,5 +64,6 @@ partial class ShaderCompiler
 
             return IntPtr.Zero;
         };
-    }
+    } 
+#endif
 }

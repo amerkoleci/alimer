@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
+    <RootNamespace>Alimer.Rendering</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Engine\Alimer.Engine.csproj" />
+    <PackageReference Include="ImGui.NET" />
+  </ItemGroup>
+
+</Project>
