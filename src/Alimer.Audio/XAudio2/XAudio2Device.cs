@@ -3,14 +3,11 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.AUDIO_STREAM_CATEGORY;
-using static TerraFX.Interop.DirectX.XAUDIO2;
-using static TerraFX.Interop.DirectX.X3DAUDIO;
-using TerraFX.Interop.Windows;
+using Win32;
+using Win32.Media.Audio;
+using Win32.Media.Audio.XAudio2;
+using static Win32.Apis;
+using static Win32.Media.Audio.XAudio2.Apis;
 
 namespace Alimer.Audio.XAudio2;
 
@@ -18,7 +15,7 @@ internal unsafe class XAudio2Device : AudioDevice
 {
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
 
-    private readonly AUDIO_STREAM_CATEGORY _category = AudioCategory_GameEffects;
+    private readonly AudioStreamCategory _category = AudioStreamCategory.GameEffects;
 
     private readonly ComPtr<IXAudio2> _xaudio2 = default;
     private XAudio2EngineCallback* _engineCallback;
@@ -28,7 +25,7 @@ internal unsafe class XAudio2Device : AudioDevice
     private readonly uint _masterChannelMask;
     private readonly uint _masterChannels;
     private readonly uint _masterRate;
-    private readonly byte* _X3DAudio;
+    private readonly X3DAudioHandle _X3DAudio;
 
     public static bool IsSupported() => s_isSupported.Value;
 
@@ -38,15 +35,15 @@ internal unsafe class XAudio2Device : AudioDevice
         ApiName = "XAudio2";
         ApiVersion = new Version(2, 9, 0);
 
-        HRESULT hr = XAudio2Create(_xaudio2.GetAddressOf());
+        HResult hr = XAudio2Create(_xaudio2.GetAddressOf());
         ThrowIfFailed(hr);
 
         if ((descriptor.Flags & AudioDeviceFlags.Debug) != 0)
         {
-            XAUDIO2_DEBUG_CONFIGURATION debug = new()
+            DebugConfiguration debug = new()
             {
-                TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS,
-                BreakMask = XAUDIO2_LOG_ERRORS
+                TraceMask = LogType.Errors | LogType.Warnings,
+                BreakMask = LogType.Errors
             };
             _xaudio2.Get()->SetDebugConfiguration(&debug);
             Debug.WriteLine("INFO: XAudio 2.9 debugging enabled");
@@ -54,7 +51,7 @@ internal unsafe class XAudio2Device : AudioDevice
 
         XAudio2EngineCallback.Create(out _engineCallback);
         hr = _xaudio2.Get()->RegisterForCallbacks((IXAudio2EngineCallback*)_engineCallback);
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             _xaudio2.Dispose();
             return;
@@ -70,7 +67,7 @@ internal unsafe class XAudio2Device : AudioDevice
             null,
             _category
             );
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             _xaudio2.Dispose();
             return;
@@ -80,7 +77,7 @@ internal unsafe class XAudio2Device : AudioDevice
 
         uint dwChannelMask;
         hr = _masterVoice->GetChannelMask(&dwChannelMask);
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             _masterVoice->DestroyVoice();
             _masterVoice = default;
@@ -88,18 +85,17 @@ internal unsafe class XAudio2Device : AudioDevice
             return;
         }
 
-        XAUDIO2_VOICE_DETAILS details;
+        VoiceDetails details;
         _masterVoice->GetVoiceDetails(&details);
 
         _masterChannelMask = dwChannelMask;
         _masterChannels = details.InputChannels;
         _masterRate = details.InputSampleRate;
-        Debug.WriteLine($"Mastering voice has {_masterChannels} channels, {_masterRate} sample rate, {_masterChannelMask} channels");
+        Log.Debug($"Mastering voice has {_masterChannels} channels, {_masterRate} sample rate, {_masterChannelMask} channels");
 
         // Setup 3D audio
-        _X3DAudio = (byte*)NativeMemory.Alloc(X3DAUDIO_HANDLE_BYTESIZE);
-        hr = X3DAudioInitialize(_masterChannelMask, X3DAUDIO_SPEED_OF_SOUND, _X3DAudio);
-        if (hr.FAILED)
+        hr = X3DAudioInitialize(_masterChannelMask, X3DAUDIO_SPEED_OF_SOUND, out _X3DAudio);
+        if (hr.Failure)
         {
             if (_reverbVoice != null)
             {
@@ -140,7 +136,6 @@ internal unsafe class XAudio2Device : AudioDevice
             _masterVoice->DestroyVoice();
             _masterVoice = default;
             _xaudio2.Dispose();
-            NativeMemory.Free(_X3DAudio);
             XAudio2EngineCallback.Free(_engineCallback);
         }
     }

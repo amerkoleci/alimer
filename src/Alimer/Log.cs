@@ -269,13 +269,14 @@ public static class Log
 
     public enum LogLevel
     {
+        Trace,
+        Debug,
+        Info,
+        Warn,
+        Error,
+        Critical,
         System,
         Assert,
-        Error,
-        Warn,
-        Info,
-        Debug,
-        Trace
     }
 
     private static class LogColor

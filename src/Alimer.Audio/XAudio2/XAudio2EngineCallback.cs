@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.Windows;
+using Win32;
 
 namespace Alimer.Audio.XAudio2;
 
@@ -20,7 +20,7 @@ internal unsafe struct XAudio2EngineCallback
         /* OnProcessingPassEnd */
         lpVtbl[1] = (delegate* unmanaged<XAudio2EngineCallback*, void>)&OnProcessingPassEnd;
         /* OnCriticalError */
-        lpVtbl[2] = (delegate* unmanaged<XAudio2EngineCallback*, HRESULT, void>)&OnCriticalError;
+        lpVtbl[2] = (delegate* unmanaged<XAudio2EngineCallback*, HResult, void>)&OnCriticalError;
 
         return lpVtbl;
     }
@@ -54,7 +54,7 @@ internal unsafe struct XAudio2EngineCallback
     }
 
     [UnmanagedCallersOnly]
-    private static void OnCriticalError(XAudio2EngineCallback* @this, HRESULT Error)
+    private static void OnCriticalError(XAudio2EngineCallback* @this, HResult Error)
     {
     }
 }
