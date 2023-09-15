@@ -19,6 +19,7 @@
   <!-- Windows -->
   <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <EnableMsixTooling>true</EnableMsixTooling>
   </PropertyGroup>
   <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
     <PackageReference Include="Microsoft.WindowsAppSDK" />
