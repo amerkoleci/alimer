@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer;
 
@@ -59,7 +58,7 @@ public class DisposeCollector : DisposableObject
     /// <exception cref="ArgumentException">If toDispose argument is not IDisposable or a valid memory pointer allocated by <see cref="Utilities.AllocateMemory"/></exception>
     public T Collect<T>([NotNull] T toDispose) where T : IDisposable
     {
-        Guard.IsNotNull(toDispose, nameof(toDispose));
+        ArgumentNullException.ThrowIfNull(toDispose, nameof(toDispose));
 
         _disposables ??= new List<IDisposable>();
 

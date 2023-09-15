@@ -16,8 +16,8 @@ public readonly record struct PixelFormatInfo(
 
 public static class PixelFormatUtils
 {
-    private static readonly PixelFormatInfo[] s_formatInfos = new PixelFormatInfo[]
-    {
+    private static readonly PixelFormatInfo[] s_formatInfos =
+    [
         new(PixelFormat.Undefined,              0, 0, 0, FormatKind.Unorm),
         // 8-bit pixel formats
         new(PixelFormat.R8Unorm,                1, 1, 1, FormatKind.Unorm),
@@ -133,7 +133,7 @@ public static class PixelFormatUtils
         new(PixelFormat.ASTC12x10UnormSrgb,  16,   12, 10, FormatKind.UnormSrgb),
         new(PixelFormat.ASTC12x12Unorm,      16,   12, 12, FormatKind.Unorm),
         new(PixelFormat.ASTC12x12UnormSrgb,  16,   12, 12, FormatKind.UnormSrgb),
-    };
+    ];
 
     public static ref readonly PixelFormatInfo GetFormatInfo(this PixelFormat format)
     {

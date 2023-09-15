@@ -69,6 +69,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <DefineConstants Condition="'$(_AlimerTargetPlatformIsWindows)' == 'True'">$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <AlimerWindowsPlatforms Condition="'$(AlimerWindowsPlatforms)' == ''">net8.0-windows10.0.22621</AlimerWindowsPlatforms>
 
     <AlimerPlatforms Condition="'$(IncludeWindowsTargetFrameworks)' == 'true'">$(AlimerWindowsPlatforms);$(AlimerPlatforms)</AlimerPlatforms>

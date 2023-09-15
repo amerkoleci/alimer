@@ -13,13 +13,4 @@
     <Using Remove="System.Linq" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="build\**" PackagePath="build" Pack="true" />
-    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Diagnostics" />
-  </ItemGroup>
-
 </Project>
