@@ -8,5 +8,8 @@ public abstract class PipelineLayout : GraphicsObject
     protected PipelineLayout(in PipelineLayoutDescription description)
         : base(description.Label)
     {
+        BindGroupLayoutCount = description.BindGroupLayouts.Length;
     }
+
+    public int BindGroupLayoutCount { get; }
 }

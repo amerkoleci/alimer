@@ -199,8 +199,8 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         _handle.Dispose();
     }
 
-    public bool DescriptorTableValidCbvUavSrv(uint groupIndex) => _cbvUavSrvRootParameterIndex[groupIndex] != ~0u;
-    public bool DescriptorTableValidSamplers(uint groupIndex) => _samplerRootParameterIndex[groupIndex] != ~0u;
-    public uint GetCbvUavSrvRootParameterIndex(uint groupIndex) => _cbvUavSrvRootParameterIndex[groupIndex];
-    public uint GetSamplerRootParameterIndex(uint groupIndex) => _samplerRootParameterIndex[groupIndex];
+    public bool DescriptorTableValidCbvUavSrv(int groupIndex) => _cbvUavSrvRootParameterIndex[groupIndex] != ~0u;
+    public bool DescriptorTableValidSamplers(int groupIndex) => _samplerRootParameterIndex[groupIndex] != ~0u;
+    public uint GetCbvUavSrvRootParameterIndex(int groupIndex) => _cbvUavSrvRootParameterIndex[groupIndex];
+    public uint GetSamplerRootParameterIndex(int groupIndex) => _samplerRootParameterIndex[groupIndex];
 }

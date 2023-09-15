@@ -62,8 +62,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
         switch (backend)
         {
-            case GraphicsBackendType.Null:
-                return true;
 #if !EXCLUDE_VULKAN_BACKEND
             case GraphicsBackendType.Vulkan:
                 return Vulkan.VulkanGraphicsDevice.IsSupported();
@@ -144,8 +142,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 #endif
 
             default:
-            case GraphicsBackendType.Null:
-                return new Null.NullGraphicsDevice(in description);
+                break;
         }
 
         if (device == null)

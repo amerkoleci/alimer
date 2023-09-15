@@ -691,7 +691,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         if (!_bindGroupsDirty)
             return;
 
-        for (uint groupIndex = 0; groupIndex < _numBoundBindGroups; groupIndex++)
+        for (int groupIndex = 0; groupIndex < _currentPipelineLayout.BindGroupLayoutCount; groupIndex++)
         {
             Debug.Assert(_boundBindGroups[groupIndex] != null);
 

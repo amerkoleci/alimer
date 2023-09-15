@@ -667,7 +667,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             _currentPipeline.BindPoint,
             _currentPipelineLayout.Handle,
             0u,
-            _numBoundBindGroups,
+            (uint)_currentPipelineLayout.BindGroupLayoutCount,
             (VkDescriptorSet*)Unsafe.AsPointer(ref _descriptorSets.GetReferenceUnsafe())
         );
         _bindGroupsDirty = false;

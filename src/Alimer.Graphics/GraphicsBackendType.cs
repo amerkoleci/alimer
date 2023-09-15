@@ -5,7 +5,6 @@ namespace Alimer.Graphics;
 
 public enum GraphicsBackendType
 {
-    Null,
     Vulkan,
     D3D12,
     Metal,

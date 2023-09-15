@@ -224,18 +224,21 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
                 _device.Submit(in uploadContext);
             }
         }
+
+        State = description.InitialLayout;
     }
 
-    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription descriptor)
-        : base(descriptor)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription description)
+        : base(description)
     {
         _device = device;
-        DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
+        DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
         _handle = existingTexture;
+        State = description.InitialLayout;
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!string.IsNullOrEmpty(description.Label))
         {
-            OnLabelChanged(descriptor.Label!);
+            OnLabelChanged(description.Label!);
         }
     }
 

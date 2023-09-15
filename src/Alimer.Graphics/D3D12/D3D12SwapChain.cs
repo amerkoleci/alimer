@@ -151,17 +151,18 @@ internal unsafe class D3D12SwapChain : SwapChain
         _backbufferTextures = new D3D12Texture[swapChainDesc.BufferCount];
         for (uint i = 0; i < swapChainDesc.BufferCount; ++i)
         {
-            TextureDescription descriptor = TextureDescription.Texture2D(
+            TextureDescription description = TextureDescription.Texture2D(
                 ColorFormat,
                 swapChainDesc.Width,
                 swapChainDesc.Height,
                 usage: TextureUsage.RenderTarget,
                 label: $"BackBuffer texture {i}"
             );
+            description.InitialLayout = ResourceStates.Present;
 
             using ComPtr<ID3D12Resource> backbufferTexture = default;
             ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), backbufferTexture.GetVoidAddressOf()));
-            _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), descriptor);
+            _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), description);
         }
     }
 
