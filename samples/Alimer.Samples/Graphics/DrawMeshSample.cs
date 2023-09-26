@@ -13,6 +13,7 @@ namespace Alimer.Samples.Graphics;
 [Description("Graphics - Draw Mesh")]
 public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 {
+    private readonly uint _indexCount;
     private readonly GraphicsBuffer _vertexBuffer;
     private readonly GraphicsBuffer _indexBuffer;
     private readonly GraphicsBuffer _constantBuffer;
@@ -36,38 +37,28 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
 
-        _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
+        TextureImporter textureImporter = new();
+        TextureAsset textureAsset = textureImporter.Import(Path.Combine(texturesPath, "10points.png"), null!).Result;
+        _texture = ToDispose(textureAsset.CreateRuntime(GraphicsDevice));
+        //_texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
 
-        //TextureImporter textureImporter = new();
         MeshImporter meshImporter = new();
-        //TextureAsset textureAsset = textureImporter.Import(Path.Combine(texturesPath, "10points.png"), services).Result;
-        MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), null).Result;
+        MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), null!).Result;
 
-        var data = MeshUtilities.CreateCube(5.0f);
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
+        Span<VertexPositionNormalTexture> vertices = new VertexPositionNormalTexture[meshAsset.VertexCount];
+        for (int i = 0; i < meshAsset.VertexCount; i++)
+        {
+            vertices[i] = new VertexPositionNormalTexture(meshAsset.Positions[i], meshAsset.Normals[i], meshAsset.Texcoords[i]);
+        }
 
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
+        //var data = MeshUtilities.CreateCube(5.0f);
+        //_vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
+        //_indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertices, BufferUsage.Vertex));
+        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Indices!.AsSpan(), BufferUsage.Index));
+        _indexCount = (uint)meshAsset.Indices.Length;
+
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
-
-        Span<uint> pixels = stackalloc uint[16] {
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0x00000000,
-            0xFFFFFFFF,
-            0x00000000,
-            0xFFFFFFFF,
-        };
-        _texture = ToDispose(GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4));
 
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
 
@@ -141,7 +132,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
             context.SetVertexBuffer(0, _vertexBuffer);
             context.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
-            context.DrawIndexed(36);
+            context.DrawIndexed(_indexCount);
         }
     }
 }

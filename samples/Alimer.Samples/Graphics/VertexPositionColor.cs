@@ -12,11 +12,11 @@ public readonly struct VertexPositionColor
 {
     public static readonly unsafe uint SizeInBytes = (uint)sizeof(VertexPositionColor);
 
-    public static readonly VertexAttribute[] VertexAttributes = new[]
-    {
+    public static readonly VertexAttribute[] VertexAttributes =
+    [
         new VertexAttribute(VertexFormat.Float3, 0, 0),
         new VertexAttribute(VertexFormat.Float4, 12, 1)
-    };
+    ];
 
     public VertexPositionColor(in Vector3 position, in Vector4 color)
     {

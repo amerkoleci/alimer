@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Alimer.Numerics;
+using static Alimer.Numerics.MathUtilities;
 
 namespace Alimer.Graphics;
 
@@ -184,7 +184,7 @@ public struct Viewport : IEquatable<Viewport>
         var vector = Vector3.Transform(source, worldViewProjection);
         var a = (source.X * worldViewProjection.M14) + (source.Y * worldViewProjection.M24) + (source.Z * worldViewProjection.M34) + worldViewProjection.M44;
 
-        if (!MathHelper.IsOne(a))
+        if (!IsOne(a))
         {
             vector.X /= a;
             vector.Y /= a;
@@ -228,7 +228,7 @@ public struct Viewport : IEquatable<Viewport>
         float a = (source.X * matrix.M14) + (source.Y * matrix.M24) + (source.Z * matrix.M34) + matrix.M44;
         source = Vector3.Transform(source, matrix);
 
-        if (!MathHelper.IsOne(a))
+        if (!IsOne(a))
         {
             source /= a;
         }

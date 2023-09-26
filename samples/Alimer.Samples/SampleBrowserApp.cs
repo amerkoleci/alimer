@@ -31,8 +31,8 @@ public sealed class SampleBrowserApp : GameApplication
         //_runningSample = new DrawIndexedQuadSample(GraphicsDevice, MainWindow);
         //_runningSample = new DrawCubeSample(GraphicsDevice, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(GraphicsDevice, MainWindow);
-        _runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawMeshSample(GraphicsDevice, MainWindow);
+        //_runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
+        _runningSample = new DrawMeshSample(GraphicsDevice, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(GraphicsDevice, SceneSystem);

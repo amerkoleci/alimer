@@ -239,24 +239,17 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
     }
 
-    public GraphicsBuffer CreateBuffer<T>(T[] initialData,
+    public GraphicsBuffer CreateBuffer<T>(Span<T> initialData,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
-        CpuAccessMode cpuAccess = CpuAccessMode.None)
+        CpuAccessMode cpuAccess = CpuAccessMode.None,
+        string? label = default)
         where T : unmanaged
     {
-        ReadOnlySpan<T> dataSpan = initialData.AsSpan();
+        int typeSize = sizeof(T);
+        Guard.IsTrue(initialData.Length > 0, nameof(initialData));
 
-        return CreateBuffer(dataSpan, usage, cpuAccess);
-    }
-
-    public GraphicsBuffer CreateBuffer<T>(List<T> initialData,
-       BufferUsage usage = BufferUsage.ShaderReadWrite,
-       CpuAccessMode cpuAccess = CpuAccessMode.None)
-       where T : unmanaged
-    {
-        ReadOnlySpan<T> dataSpan = CollectionsMarshal.AsSpan(initialData);
-
-        return CreateBuffer(dataSpan, usage, cpuAccess);
+        BufferDescription description = new((uint)(initialData.Length * typeSize), usage, cpuAccess, label);
+        return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
     public GraphicsBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,

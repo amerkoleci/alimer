@@ -331,7 +331,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                     imageLayout = VkImageLayout.ColorAttachmentOptimal,
                     loadOp = attachment.LoadAction.ToVk(),
                     storeOp = attachment.StoreAction.ToVk(),
-                    clearValue = new VkClearValue(attachment.ClearColor.R, attachment.ClearColor.G, attachment.ClearColor.B, attachment.ClearColor.A)
+                    clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
                 };
 
                 TextureBarrier(texture, ResourceStates.RenderTarget);

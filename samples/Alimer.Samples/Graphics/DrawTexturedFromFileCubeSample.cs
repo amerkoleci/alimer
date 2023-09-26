@@ -33,9 +33,9 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         : base("Graphics - Draw Textured Cube from file", graphicsDevice, mainWindow)
     {
         var data = MeshUtilities.CreateCube(5.0f);
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
+        _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
+        _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
 
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");

@@ -3,6 +3,7 @@
 
 using SkiaSharp;
 using Alimer.Graphics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Assets.Graphics;
 
@@ -17,9 +18,16 @@ public sealed class TextureImporter : AssetImporter<TextureAsset>
         using Stream stream = File.Open(source, FileMode.Open, FileAccess.Read);
         using SKBitmap bitmap = SKBitmap.Decode(stream);
 
+        // Convert from BGRA8 to RGBA8
+        using SKBitmap newBitmap = new(bitmap.Width, bitmap.Height, SKColorType.Rgba8888, bitmap.AlphaType);
+        Guard.IsTrue(bitmap.CopyTo(newBitmap, SKColorType.Rgba8888));
+
         TextureAsset asset = new()
         {
-            Source = source
+            Source = source,
+            Width = newBitmap.Width,
+            Height = newBitmap.Height,
+            PixelData = newBitmap.Bytes
         };
 
         return Task.FromResult(asset);

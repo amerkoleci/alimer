@@ -1,7 +1,7 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Numerics;
+using static Alimer.Numerics.MathUtilities;
 
 namespace Alimer.Graphics;
 
@@ -15,9 +15,9 @@ public static class GraphicsUtilities
             width = Math.Max(minDimension, width >> 1);
             height = Math.Max(minDimension, height >> 1);
             depth = Math.Max(minDimension, depth >> 1);
-            if (MathHelper.AlignUp(width, requiredAlignment) != width ||
-                MathHelper.AlignUp(height, requiredAlignment) != height ||
-                MathHelper.AlignUp(depth, requiredAlignment) != depth)
+            if (AlignUp(width, requiredAlignment) != width ||
+                AlignUp(height, requiredAlignment) != height ||
+                AlignUp(depth, requiredAlignment) != depth)
             {
                 break;
             }

@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Assets.Graphics;
 
@@ -10,5 +11,25 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public class TextureAsset : AssetWithSource
 {
-    
+    /// <summary>
+    /// Gets or sets the dimension of <see cref="Texture"/>
+    /// </summary>
+    public TextureDimension Dimension { get; set; } = TextureDimension.Texture2D;
+
+    /// <summary>
+    /// Gets or sets the pixel format of <see cref="TextureAsset"/>
+    /// </summary>
+    public PixelFormat Format { get; set; } = PixelFormat.RGBA8Unorm;
+
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public byte[]? PixelData { get; set; }
+
+    public Texture CreateRuntime(GraphicsDevice device)
+    {
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
+        Guard.IsNotNull(PixelData, nameof(PixelData));
+
+        return device.CreateTexture2D(PixelData!.AsSpan(), Format, (uint)Width, (uint)Height);
+    }
 }

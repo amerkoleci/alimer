@@ -17,6 +17,9 @@ public static class TestUtilities
         {
             ShaderStage = stage,
             EntryPoint = entryPoint,
+#if DEBUG
+            Debug = true,
+#endif
         };
 
         using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource, in options);

@@ -2,29 +2,19 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
+using Alimer.Numerics;
 
 namespace Alimer.Rendering;
 
-public sealed class UnlitMaterial : DisposableObject
+/// <summary>
+/// Unlit material.
+/// </summary>
+public class UnlitMaterial : Material
 {
-    private static int s_nextMaterialId = 1;
-
     public UnlitMaterial(GraphicsDevice device)
+        : base(device)
     {
-        Guard.IsNotNull(device, nameof(device));
-
-        Device = device;
-        Id = s_nextMaterialId++;
     }
-
-    public GraphicsDevice Device { get; }
-
-    /// <summary>
-    /// Gets the unique material id.
-    /// </summary>
-    public int Id { get; }
-
     /// <summary>
     /// Finalizes an instance of the <see cref="UnlitMaterial" /> class.
     /// </summary>
@@ -37,4 +27,21 @@ public sealed class UnlitMaterial : DisposableObject
         {
         }
     }
+
+    public Color BaseColorFactor { get; set; } = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+    public Texture? BaseColorTexture { get; set; }
+
+    public bool Unlit { get; set; }
+
+    public bool Transparent { get; set; }
+    public bool DoubleSided { get; set; }
+
+    public float AlphaCutoff { get; set; }
+
+    public bool DepthWrite { get; set; } = true;
+
+    public CompareFunction DepthCompare { get; set; } = CompareFunction.Less;
+
+    public bool AdditiveBlend { get; set; } 
+    //public bool CastsShadow { get; set; } = true;
 }

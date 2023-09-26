@@ -151,6 +151,11 @@ public sealed unsafe partial class ShaderCompiler
             }
         }
 
+        if (options.SkipValidation)
+        {
+            arguments.Add(DXC_ARG_SKIP_VALIDATION);
+        }
+
         if (options.ShaderModel.Major >= 6 && options.ShaderModel.Minor >= 2)
         {
             arguments.Add("-enable-16bit-types");
@@ -159,6 +164,12 @@ public sealed unsafe partial class ShaderCompiler
         if (options.WarningsAreErrors)
             arguments.Add(DXC_ARG_WARNINGS_ARE_ERRORS);
 
+        if (options.EnableStrictness)
+            arguments.Add(DXC_ARG_ENABLE_STRICTNESS);
+
+        if (options.Debug)
+            arguments.Add(DXC_ARG_DEBUG);
+
         if (options.AllResourcesBound)
             arguments.Add(DXC_ARG_ALL_RESOURCES_BOUND);
 
@@ -166,9 +177,7 @@ public sealed unsafe partial class ShaderCompiler
             arguments.Add(DXC_ARG_PACK_MATRIX_ROW_MAJOR);
 
         if (options.PackMatrixColumnMajor)
-        {
             arguments.Add(DXC_ARG_PACK_MATRIX_COLUMN_MAJOR);
-        }
 
         if (format == ShaderFormat.SPIRV)
         {
@@ -200,7 +209,11 @@ public sealed unsafe partial class ShaderCompiler
         else
         {
             // -Qstrip_reflect
-            arguments.Add("-Qstrip_reflect");
+            if (options.StripReflection)
+                arguments.Add("-Qstrip_reflect");
+
+            if (options.StripDebug && !options.Debug)
+                arguments.Add("-Qstrip_debug");
         }
 
         HResult hr = Compile(source, arguments.ToArray(), __uuidof<IDxcResult>(), results.GetVoidAddressOf());

@@ -28,9 +28,10 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         : base("Graphics - Draw Cube", graphicsDevice, mainWindow)
     {
         var data = MeshUtilities.CreateCube(5.0f);
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
 
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
+        _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
+        _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
+
         _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, CpuAccessMode.Write));
 

@@ -12,12 +12,12 @@ public readonly struct VertexPositionNormalTexture
 {
     public static readonly unsafe uint SizeInBytes = (uint)sizeof(VertexPositionNormalTexture);
 
-    public static readonly VertexAttribute[] VertexAttributes = new[]
-    {
+    public static readonly VertexAttribute[] VertexAttributes =
+    [
         new VertexAttribute(VertexFormat.Float3, 0, 0),
         new VertexAttribute(VertexFormat.Float3, 12, 1),
         new VertexAttribute(VertexFormat.Float2, 24, 2)
-    };
+    ];
 
     public VertexPositionNormalTexture(in Vector3 position, in Vector3 normal, in Vector2 textureCoordinate)
     {

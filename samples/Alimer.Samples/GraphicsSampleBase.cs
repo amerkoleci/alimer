@@ -1,6 +1,7 @@
 ﻿// Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using Alimer.Shaders;
 
@@ -21,6 +22,16 @@ public abstract class GraphicsSampleBase : SampleBase
     public PixelFormat DepthStencilFormat => MainWindow.DepthStencilFormat;
     public Texture? DepthStencilTexture => MainWindow.DepthStencilTexture;
     public float AspectRatio => MainWindow.AspectRatio;
+
+    protected GraphicsBuffer CreateBuffer<T>(List<T> initialData,
+       BufferUsage usage = BufferUsage.ShaderReadWrite,
+       CpuAccessMode cpuAccess = CpuAccessMode.None)
+       where T : unmanaged
+    {
+        Span<T> dataSpan = CollectionsMarshal.AsSpan(initialData);
+
+        return GraphicsDevice.CreateBuffer(dataSpan, usage, cpuAccess);
+    }
 
     protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStage stage)
     {

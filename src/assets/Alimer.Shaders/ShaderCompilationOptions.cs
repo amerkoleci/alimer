@@ -5,29 +5,51 @@ using Alimer.Graphics;
 
 namespace Alimer.Shaders;
 
-public readonly struct ShaderCompilationOptions
+public struct ShaderCompilationOptions
 {
-    public string SourceFileName { get; init; } = string.Empty;
-    public ShaderStage ShaderStage { get; init; } = ShaderStage.Vertex;
-    public string EntryPoint { get; init; } = "main";
+    public string SourceFileName { get; set; } = string.Empty;
+    public ShaderStage ShaderStage { get; set; } = ShaderStage.Vertex;
+    public string EntryPoint { get; set; } = "main";
     public Dictionary<string, string> Defines { get; } = new();
     public List<string> IncludeDirs { get; } = new();
 
-    public DxcShaderModel ShaderModel { get; init; } = DxcShaderModel.Model6_5;
+    public DxcShaderModel ShaderModel { get; set; } = DxcShaderModel.Model6_5;
 
-    public bool SkipOptimizations { get; init; }
-    public int OptimizationLevel { get; init; } = 3;
+    /// <summary>
+    /// -Od
+    /// </summary>
+    public bool SkipOptimizations { get; set; }
 
-    public bool WarningsAreErrors { get; init; }
-    public bool AllResourcesBound { get; init; }
+    /// <summary>
+    /// -Vd
+    /// </summary>
+    public bool SkipValidation { get; set; }
 
-    public bool PackMatrixRowMajor { get; init; }
-    public bool PackMatrixColumnMajor { get; init; }
+    public int OptimizationLevel { get; set; } = 3;
+
+    public bool WarningsAreErrors { get; set; }
+
+    /// <summary>
+    /// -Ges
+    /// </summary>
+    public bool EnableStrictness { get; set; }
+
+    /// <summary>
+    /// -Zi
+    /// </summary>
+    public bool Debug { get; set; }
+    public bool AllResourcesBound { get; set; }
+
+    public bool PackMatrixRowMajor { get; set; }
+    public bool PackMatrixColumnMajor { get; set; }
+
+    public bool StripReflection { get; set; } = true;
+    public bool StripDebug { get; set; } = true;
 
     //public StringView vulkanVersion = "1.3";
 
-    public int SpvTargetEnvMajor { get; init; } = 1;
-    public int SpvTargetEnvMinor { get; init; } = 2;
+    public int SpvTargetEnvMajor { get; set; } = 1;
+    public int SpvTargetEnvMinor { get; set; } = 2;
 
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources
@@ -42,17 +64,17 @@ public readonly struct ShaderCompilationOptions
     /// <summary>
     /// SPIRV: register shift for texture (t#) resources
     /// </summary>
-    public uint SpirvTShift { get; init; } = 100;
+    public uint SpirvTShift { get; set; } = 100;
 
     /// <summary>
     /// SPIRV: register shift for UAV (u#) resources
     /// </summary>
-    public uint SpirvUShift { get; init; } = 200;
+    public uint SpirvUShift { get; set; } = 200;
 
     /// <summary>
     /// SPIRV: register shift for sampler (s#) resources
     /// </summary>
-    public uint SpirvSShift { get; init; } = 300;
+    public uint SpirvSShift { get; set; } = 300;
 
     public ShaderCompilationOptions()
     {

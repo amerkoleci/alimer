@@ -1,8 +1,8 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Numerics;
 using CommunityToolkit.Diagnostics;
+using static Alimer.Numerics.MathUtilities;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
@@ -82,7 +82,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                             D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
                             {
                                 BufferLocation = buffer.GpuAddress + offset,
-                                SizeInBytes = (uint)MathHelper.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
+                                SizeInBytes = (uint)AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
                             };
                             device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
                             found = true;
