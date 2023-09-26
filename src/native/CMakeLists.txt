@@ -77,8 +77,16 @@ elseif(CMAKE_GENERATOR_PLATFORM MATCHES "^[Aa][Rr][Mm]64$")
     set(ALIMER_ARCH arm64)
 endif()
 
+# Options
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
+
+# image library
+add_subdirectory(alimer_image)
+
+# SDL3
 set(SDL_TEST_ENABLED_BY_DEFAULT OFF)
 set(SDL_SHARED_ENABLED_BY_DEFAULT ON)
 set(SDL_STATIC_ENABLED_BY_DEFAULT OFF)

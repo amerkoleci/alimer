@@ -6,10 +6,12 @@ on:
       - 'main'
     paths-ignore:
       - 'docs/**'
+      - 'src/native/**'
       - '*.md'
   pull_request:
     paths-ignore:
       - 'docs/**'
+      - 'src/native/**'
       - '*.md'
 
 jobs:

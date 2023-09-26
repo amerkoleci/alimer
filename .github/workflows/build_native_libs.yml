@@ -21,7 +21,7 @@ jobs:
     - name: Configure win-x64
       run: cmake -B build_win_64 -S src/native -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE:String=Release
     - name: Build win-x64
-      run: cmake --build build_win_64 --config Distribution
+      run: cmake --build build_win_64 --config Release
 
     - name: Configure win-arm64
       run: cmake -B build_win_arm64 -S src/native . -G "Visual Studio 17 2022" -A ARM64 -DCMAKE_BUILD_TYPE:String=Release
