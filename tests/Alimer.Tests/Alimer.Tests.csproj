@@ -6,11 +6,6 @@
     <RootNamespace>Alimer</RootNamespace>
   </PropertyGroup>
 
-  <!-- Native Dependencies-->
-  <!--<ItemGroup>
-    <None Include="$(AlimerSrcDirectory)Alimer\runtimes\win-x64\native\vgpu.dll" Link="vgpu.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>-->
-
   <ItemGroup>
     <Content Include="assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

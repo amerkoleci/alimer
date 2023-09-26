@@ -207,7 +207,7 @@ internal static unsafe partial class ImageNativeApi
     public static partial nint alimerImageCreateFromMemory(void* data, nuint size);
 
     [LibraryImport(LibName)]
-    public static partial void alimerImageDestroy(nint image);
+    public static partial void AlimerImageDestroy(nint image);
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
     public static extern TextureDimension alimerImageGetDimension(nint image);

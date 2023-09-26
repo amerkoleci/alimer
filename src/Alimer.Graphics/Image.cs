@@ -266,7 +266,7 @@ public sealed unsafe class Image : DisposableObject
 
             //var result = image_save_png_memory(handle, &SaveCallback) == 1;
 
-            alimerImageDestroy(handle);
+            AlimerImageDestroy(handle);
 
             ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, width, height);
             return new Image(imageDescription, imageData);

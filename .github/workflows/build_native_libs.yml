@@ -7,9 +7,11 @@ on:
       - 'main'
     paths:
       - 'src/native/**'
+      - '!src/native/**'
   pull_request:
     paths:
       - 'src/native/**'
+      - '!src/native/**'
 
 jobs:
   windows:
