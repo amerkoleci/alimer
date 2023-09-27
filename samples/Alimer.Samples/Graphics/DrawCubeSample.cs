@@ -24,8 +24,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
     private Stopwatch _clock;
 
-    public DrawCubeSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - Draw Cube", graphicsDevice, mainWindow)
+    public DrawCubeSample(IServiceRegistry services, Window mainWindow)
+        : base("Graphics - Draw Cube", services, mainWindow)
     {
         var data = MeshUtilities.CreateCube(5.0f);
 

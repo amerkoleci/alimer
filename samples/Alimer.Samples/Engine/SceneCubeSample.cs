@@ -2,11 +2,8 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Numerics;
 using Alimer.Engine;
 using Alimer.Graphics;
-using Alimer.Numerics;
 using Alimer.Rendering;
 
 namespace Alimer.Samples.Engime;
@@ -17,9 +14,12 @@ public sealed class SceneCubeSample : SampleBase
     private readonly Entity _cameraEntity;
     private readonly Entity _meshEntity;
 
-    public SceneCubeSample(GraphicsDevice graphicsDevice, SceneSystem sceneSystem)
+    public SceneCubeSample(IServiceRegistry services)
         : base("Engine - Scene Cube")
     {
+        Services = services;
+        GraphicsDevice = services.GetService<GraphicsDevice>();
+        Scene = services.GetService<SceneSystem>();
         Entity root = new();
 
         // Camera
@@ -29,13 +29,17 @@ public sealed class SceneCubeSample : SampleBase
         // Mesh
         _meshEntity = new();
         MeshComponent meshComponent = _meshEntity.Add<MeshComponent>();
-        meshComponent.Mesh = new Mesh(graphicsDevice);
+        meshComponent.Mesh = new Mesh(GraphicsDevice);
 
         root.Children.Add(_cameraEntity);
         root.Children.Add(_meshEntity);
 
-        sceneSystem.RootEntity = root;
+        Scene.RootEntity = root;
     }
+
+    public IServiceRegistry Services { get; }
+    public GraphicsDevice GraphicsDevice { get; }
+    public SceneSystem Scene { get; }
 
     public override void Draw(RenderContext context, Texture swapChainTexture)
     {

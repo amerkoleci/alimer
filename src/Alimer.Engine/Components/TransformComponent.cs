@@ -38,7 +38,15 @@ public sealed class TransformComponent : EntityComponent, IEnumerable<TransformC
     }
 
     [IgnoreDataMember]
-    public TransformComponent? Parent { get => Entity?.Parent?.Transform; set { if (Entity != null) Entity.Parent = value?.Entity; } }
+    public TransformComponent? Parent
+    {
+        get => Entity?.Parent?.Transform;
+        set
+        {
+            if (Entity != null)
+                Entity.Parent = value?.Entity;
+        }
+    }
 
     [IgnoreDataMember]
     public ref Matrix4x4 LocalMatrix => ref localMatrix;

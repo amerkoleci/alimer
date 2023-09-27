@@ -248,20 +248,19 @@ public sealed unsafe class Image : DisposableObject
     {
         fixed (byte* dataPtr = data)
         {
-            nint handle = alimerImageCreateFromMemory(dataPtr, (uint)data.Length);
+            nint handle = AlimerImageCreateFromMemory(dataPtr, (uint)data.Length);
 
-            TextureDimension dimension = alimerImageGetDimension(handle);
-            ImageFormat imageFormat = alimerImageGetFormat(handle);
+            TextureDimension dimension = AlimerImageGetDimension(handle);
+            ImageFormat imageFormat = AlimerImageGetFormat(handle);
             PixelFormat format = FromImageFormat(imageFormat);
-            uint width = alimerImageGetWidth(handle, 0);
-            uint height = alimerImageGetHeight(handle, 0);
-            uint dataSize = alimerImageGetDataSize(handle);
-            void* pData = alimerImageGetData(handle);
+            uint width = AlimerImageGetWidth(handle, 0);
+            uint height = AlimerImageGetHeight(handle, 0);
+            void* pData = AlimerImageGetData(handle, out nuint dataSize);
 
             byte[] imageData = new byte[dataSize];
             fixed (byte* destDataPtr = imageData)
             {
-                Unsafe.CopyBlockUnaligned(destDataPtr, pData, dataSize);
+                Unsafe.CopyBlockUnaligned(destDataPtr, pData, (uint)dataSize);
             }
 
             //var result = image_save_png_memory(handle, &SaveCallback) == 1;
@@ -377,7 +376,7 @@ public sealed unsafe class Image : DisposableObject
             return false;
         }
 
-        Span<byte> id = stackalloc byte[] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+        Span<byte> id = [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
         for (int i = 0; i < 12; i++)
         {
             if (data[i] != id[i])
@@ -394,7 +393,7 @@ public sealed unsafe class Image : DisposableObject
             return false;
         }
 
-        Span<byte> id = stackalloc byte[] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+        Span<byte> id = [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
         for (int i = 0; i < 12; i++)
         {
             if (data[i] != id[i])

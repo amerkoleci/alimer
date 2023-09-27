@@ -9,13 +9,15 @@ namespace Alimer.Samples;
 
 public abstract class GraphicsSampleBase : SampleBase
 {
-    protected GraphicsSampleBase(string name, GraphicsDevice graphicsDevice, Window mainWindow)
+    protected GraphicsSampleBase(string name, IServiceRegistry services, Window mainWindow)
         : base(name)
     {
-        GraphicsDevice = graphicsDevice;
+        Services = services;
+        GraphicsDevice = services.GetService<GraphicsDevice>();
         MainWindow = mainWindow;
     }
 
+    public IServiceRegistry Services { get; }
     public GraphicsDevice GraphicsDevice { get; }
     public Window MainWindow { get; }
     public PixelFormat[] ColorFormats => new[] { MainWindow.ColorFormat };

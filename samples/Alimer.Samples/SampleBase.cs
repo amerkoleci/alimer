@@ -29,7 +29,7 @@ public abstract class SampleBase : IDisposable
         DisposeCollector = null;
     }
 
-    public virtual void Draw(RenderContext context, Texture swapChainTexture)
+    public virtual void Draw(RenderContext context, Texture outputTexture)
     {
 
     }

@@ -1,8 +1,6 @@
 // Copyright © Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Numerics;
-using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
 
 namespace Alimer.Assets.Graphics;
@@ -22,7 +20,7 @@ public sealed class MaterialImporter : AssetImporter<MaterialAsset>
         return Task.FromResult(asset);
     }
 
-    public override Task<MaterialAsset> Import(string source, IServiceProvider services)
+    public override Task<MaterialAsset> Import(string source, IServiceRegistry services)
     {
         //GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
         ModelRoot modelRoot = ModelRoot.Load(source);

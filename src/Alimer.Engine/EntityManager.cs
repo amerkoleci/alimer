@@ -6,41 +6,33 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Engine;
 
 public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 {
-    private static readonly Dictionary<Type, Func<EntitySystem>> _registeredFactories = new();
-    private static readonly Dictionary<Type, Func<GraphicsDevice, EntitySystem>> _registeredGraphicsFactories = new();
+    private static readonly Dictionary<Type, Func<IServiceRegistry, EntitySystem>> _registeredFactories = new();
     private readonly HashSet<Entity> _entities = new();
     private readonly Dictionary<Type, List<EntitySystem>> _systemsPerComponentType = new();
 
-
     public static void RegisterSystemFactory<T>() where T : EntitySystem, new()
     {
-        _registeredFactories.Add(typeof(T), () => new T());
+        _registeredFactories.Add(typeof(T), (services) => new T());
     }
 
-    public static void RegisterSystemFactory<T>(Func<T> factory) where T : EntitySystem
+    public static void RegisterSystemFactory<T>(Func<IServiceRegistry, T> factory) where T : EntitySystem
     {
         _registeredFactories.Add(typeof(T), factory);
     }
 
-    public static void RegisterGraphicsSystemFactory<T>(Func<GraphicsDevice, T> factory) where T : EntitySystem
+    protected EntityManager(IServiceRegistry services)
     {
-        _registeredGraphicsFactories.Add(typeof(T), factory);
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
+
+        Services = services;
     }
 
-    protected EntityManager(GraphicsDevice graphicsDevice)
-    {
-        Guard.IsNotNull(graphicsDevice, nameof(graphicsDevice));
-
-        GraphicsDevice = graphicsDevice;
-    }
-
-    public GraphicsDevice GraphicsDevice { get; }
+    public IServiceRegistry Services { get; }
 
     public EntitySystemCollection Systems { get; } = new EntitySystemCollection();
 
@@ -64,11 +56,11 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
         }
     }
 
-    public virtual void Draw(AppTime time)
+    public virtual void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
     {
         foreach (EntitySystem system in Systems)
         {
-            system.Draw(time);
+            system.Draw(renderContext, outputTexture, time);
         }
     }
 
@@ -199,18 +191,9 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 
             if (addNewSystem)
             {
-                if (_registeredFactories.TryGetValue(entitySystemAttribute.Type, out Func<EntitySystem>? factory))
+                if (_registeredFactories.TryGetValue(entitySystemAttribute.Type, out Func<IServiceRegistry, EntitySystem>? factory))
                 {
-                    EntitySystem system = factory();
-                    system.EntityManager = this;
-
-                    Systems.Add(system);
-                    return;
-                }
-
-                if (_registeredGraphicsFactories.TryGetValue(entitySystemAttribute.Type, out Func<GraphicsDevice, EntitySystem>? graphicsFactory))
-                {
-                    EntitySystem system = graphicsFactory(GraphicsDevice);
+                    EntitySystem system = factory(Services);
                     system.EntityManager = this;
 
                     Systems.Add(system);

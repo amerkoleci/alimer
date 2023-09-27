@@ -13,7 +13,8 @@ public class GameApplication : Application
     public GameApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(default, preferredGraphicsBackend)
     {
-        SceneSystem = new SceneSystem(GraphicsDevice);
+        SceneSystem = new SceneSystem(Services);
+        Services.AddService(SceneSystem);
         GameSystems.Add(SceneSystem);
     }
 
@@ -41,14 +42,14 @@ public class GameApplication : Application
         }
     }
 
-    protected override void Draw(AppTime time)
+    protected override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
     {
         foreach (IGameSystem system in GameSystems)
         {
-            system.Draw(time);
+            system.Draw(renderContext, outputTexture, time);
         }
 
-        base.Draw(time);
+        base.Draw(renderContext, outputTexture, time);
     }
 
     protected override void EndDraw()

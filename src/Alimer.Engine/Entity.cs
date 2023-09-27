@@ -2,55 +2,73 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
 namespace Alimer.Engine;
 
+[DataContract]
+[DebuggerTypeProxy(typeof(EntityDebugView))]
 public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChanged
 {
-    private Entity? parent;
-
-    private string name;
+    private Entity? _parent;
+    private string _name;
 
     public Entity()
         : this("Entity")
     {
     }
 
-    public Entity(string name)
+    public Entity(string name, in Vector3 position = default)
     {
-        this.name = name;
+        _name = name;
+        Id = Guid.NewGuid();
 
-        Children = new EntityCollection();
+        Children = [];
         Components = new EntityComponentCollection(this);
 
         Children.CollectionChanged += OnChildrenCollectionChanged;
         Components.CollectionChanged += OnComponentsCollectionChanged;
 
-        Transform = new TransformComponent();
+        Transform = new TransformComponent()
+        {
+            Position = position,
+        };
+
         Components.Add(Transform);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Name { get => name; set => Set(ref name, value); }
+    [DataMember]
+    public string Name
+    {
+        get => _name;
+        set => Set(ref _name, value);
+    }
 
+    [DataMember]
+    [Browsable(false)]
+    public Guid Id { get; set; }
+
+    [DataMember]
     public EntityCollection Children { get; }
 
+    [DataMember]
     public EntityComponentCollection Components { get; }
 
     [IgnoreDataMember]
     public Entity? Parent
     {
-        get => parent;
+        get => _parent;
         set
         {
-            Entity? oldParent = parent;
+            Entity? oldParent = _parent;
 
             if (oldParent == value) return;
 
@@ -123,7 +141,7 @@ public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChange
             throw new InvalidOperationException("This entity already has parent.");
         }
 
-        entity.parent = this;
+        entity._parent = this;
     }
 
     private void RemoveInternal(Entity entity)
@@ -133,7 +151,7 @@ public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChange
             throw new InvalidOperationException("This entity is not a child of the expected parent.");
         }
 
-        entity.parent = null;
+        entity._parent = null;
     }
 
     private void AddInternal(EntityComponent component)
@@ -222,5 +240,23 @@ public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChange
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Dedicated Debugger for an entity that displays children from Entity.Transform.Children
+    /// </summary>
+    internal class EntityDebugView(Entity entity)
+    {
+        private readonly Entity _entity = entity;
+
+        public string Name => _entity.Name;
+
+        public Guid Id => _entity.Id;
+
+        public Entity? Parent => _entity.Transform.Parent?.Entity;
+
+        public Entity[] Children => _entity.Transform.Children.Select(x => x.Entity!).ToArray();
+
+        public EntityComponent[] Components => _entity.Components.ToArray();
     }
 }

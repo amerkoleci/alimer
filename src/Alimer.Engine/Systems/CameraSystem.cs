@@ -14,7 +14,7 @@ public sealed class CameraSystem : EntitySystem<CameraComponent>
 
     public GraphicsDevice? GraphicsDevice { get; set; }
 
-    public override void Draw(AppTime time)
+    public override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
     {
         foreach (CameraComponent cameraComponent in Components)
         {

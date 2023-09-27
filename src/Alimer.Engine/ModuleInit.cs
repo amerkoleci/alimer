@@ -13,7 +13,7 @@ internal static class ModuleInit
     {
         EntityManager.RegisterSystemFactory<TransformSystem>();
         EntityManager.RegisterSystemFactory<CameraSystem>();
-        EntityManager.RegisterGraphicsSystemFactory((device) => new RenderSystem(device));
+        EntityManager.RegisterSystemFactory((services) => new RenderSystem(services));
     }
 }
 #pragma warning restore CA2255

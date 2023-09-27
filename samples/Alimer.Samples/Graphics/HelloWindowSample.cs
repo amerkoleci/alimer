@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.ComponentModel;
-using System.Numerics;
 using Alimer.Graphics;
 using Alimer.Numerics;
 
@@ -11,8 +10,8 @@ namespace Alimer.Samples.Graphics;
 [Description("Graphics - Hello Window")]
 public sealed class HelloWindowSample : GraphicsSampleBase
 {
-    public HelloWindowSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - Hello Window", graphicsDevice, mainWindow)
+    public HelloWindowSample(IServiceRegistry services, Window mainWindow)
+        : base("Graphics - Hello Window", services, mainWindow)
     {
     }
 

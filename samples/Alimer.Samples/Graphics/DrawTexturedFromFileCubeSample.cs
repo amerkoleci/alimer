@@ -29,8 +29,8 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 
     private Stopwatch _clock;
 
-    public DrawTexturedFromFileCubeSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - Draw Textured Cube from file", graphicsDevice, mainWindow)
+    public DrawTexturedFromFileCubeSample(IServiceRegistry services, Window mainWindow)
+        : base("Graphics - Draw Textured Cube from file", services, mainWindow)
     {
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));

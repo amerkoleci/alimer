@@ -49,11 +49,13 @@
       <PackagePath>runtimes\win-x64\native</PackagePath>
       <Pack>True</Pack>
       <Link>alimer_image.dll</Link>
+      <Visible>false</Visible>
     </Content>
     <Content Include="$(AlimerNativeDirectory)win-arm64\alimer_image.dll">
       <PackagePath>runtimes\win-arm64\native</PackagePath>
       <Pack>True</Pack>
       <Link>alimer_image.dll</Link>
+      <Visible>false</Visible>
     </Content>
   </ItemGroup>
 

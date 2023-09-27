@@ -15,14 +15,14 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
     private PipelineLayout _pipelineLayout;
     private Pipeline _renderPipeline;
 
-    public DrawTriangleSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - Draw Triangle", graphicsDevice, mainWindow)
+    public DrawTriangleSample(IServiceRegistry services, Window mainWindow)
+        : base("Graphics - Draw Triangle", services, mainWindow)
     {
-        ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
+        ReadOnlySpan<VertexPositionColor> vertexData = [
             new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
             new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
             new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
-        };
+        ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 
         PipelineLayoutDescription pipelineLayoutDescription = new();

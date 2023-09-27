@@ -5,5 +5,5 @@ namespace Alimer.Assets;
 
 public interface IAssetImporter
 {
-    Task<Asset> Import(string source, IServiceProvider services);
+    Task<Asset> Import(string source, IServiceRegistry services);
 }

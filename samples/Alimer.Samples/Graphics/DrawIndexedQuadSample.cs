@@ -16,15 +16,15 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
     private PipelineLayout _pipelineLayout;
     private Pipeline _renderPipeline;
 
-    public DrawIndexedQuadSample(GraphicsDevice graphicsDevice, Window mainWindow)
-        : base("Graphics - DrawIndexed Quad", graphicsDevice, mainWindow)
+    public DrawIndexedQuadSample(IServiceRegistry services, Window mainWindow)
+        : base("Graphics - DrawIndexed Quad", services, mainWindow)
     {
-        ReadOnlySpan<VertexPositionColor> vertexData = stackalloc VertexPositionColor[] {
+        ReadOnlySpan<VertexPositionColor> vertexData = [
             new(new Vector3(-0.5f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
             new(new Vector3(0.5f, 0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
             new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
             new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)),
-        };
+        ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 
         ReadOnlySpan<ushort> indexData = stackalloc ushort[6] { 0, 1, 2, 0, 2, 3 };

@@ -5,21 +5,17 @@ using System.Collections.ObjectModel;
 
 namespace Alimer.Engine;
 
-public sealed class EntityComponentCollection : ObservableCollection<EntityComponent>
+public sealed class EntityComponentCollection(Entity entity) : ObservableCollection<EntityComponent>
 {
-    public EntityComponentCollection(Entity entity)
-    {
-        Entity = entity;
-    }
-
     /// <summary>
     /// Gets the owner entity.
     /// </summary>
-    public Entity Entity { get; }
+    public Entity Entity { get; } = entity;
 
     protected override void InsertItem(int index, EntityComponent item)
     {
-        if (Contains(item)) return;
+        if (Contains(item))
+            return;
 
         TransformComponent oldTransformComponent = Entity.Transform;
 

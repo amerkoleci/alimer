@@ -5,5 +5,17 @@ namespace Alimer.Content;
 
 public class ContentManager : DisposableObject, IContentManager
 {
-    protected override void Dispose(bool disposing) => throw new NotImplementedException();
+    private readonly IServiceRegistry _services;
+
+    public ContentManager(IServiceRegistry services)
+    {
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
+
+        _services = services;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+
+    }
 }

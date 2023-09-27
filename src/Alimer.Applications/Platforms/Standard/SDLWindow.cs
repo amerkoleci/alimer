@@ -113,7 +113,21 @@ internal unsafe class SDLWindow : Window
     }
 
     /// <inheritdoc />
-    public override SizeF ClientSize => _clientSize;
+    public override Point Position
+    {
+        get
+        {
+            SDL_GetWindowPosition(SDLWindowHandle, out int x, out int y);
+            return new Point(x, y);
+        }
+        set
+        {
+            SDL_SetWindowPosition(SDLWindowHandle, value.X, value.Y);
+        }
+    }
+
+    /// <inheritdoc />
+    public override Size ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

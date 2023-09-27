@@ -59,7 +59,8 @@ public abstract class Window : ISwapChainSurface
     /// Gets or Sets whether the Window is in Fullscreen Mode
     /// </summary>
     public abstract bool IsFullscreen { get; set; }
-    public abstract SizeF ClientSize { get; }
+    public abstract Point Position { get; set; }
+    public abstract Size ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;

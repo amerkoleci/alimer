@@ -12,7 +12,7 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public sealed class TextureImporter : AssetImporter<TextureAsset>
 {
-    public override Task<TextureAsset> Import(string source, IServiceProvider services)
+    public override Task<TextureAsset> Import(string source, IServiceRegistry services)
     {
         //using Stream stream = await contentManager.FileProvider.OpenStreamAsync(Source, FileMode.Open, FileAccess.Read);
         using Stream stream = File.Open(source, FileMode.Open, FileAccess.Read);

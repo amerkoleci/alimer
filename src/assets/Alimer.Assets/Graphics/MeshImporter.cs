@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
+using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
 
@@ -12,11 +13,10 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public sealed class MeshImporter : AssetImporter<MeshAsset>
 {
-    public override Task<MeshAsset> Import(string source, IServiceProvider services)
+    public override Task<MeshAsset> Import(string source, IServiceRegistry services)
     {
-        //GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
+        GraphicsDevice device = services.GetService<GraphicsDevice>();
         ModelRoot modelRoot = ModelRoot.Load(source);
-
 
         foreach (Material material in modelRoot.LogicalMaterials)
         {

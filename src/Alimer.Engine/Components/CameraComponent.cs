@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 
 namespace Alimer.Engine;
 
+[DataContract(Name = nameof(CameraComponent))]
 [DefaultEntitySystem(typeof(CameraSystem))]
 public sealed class CameraComponent : EntityComponent
 {

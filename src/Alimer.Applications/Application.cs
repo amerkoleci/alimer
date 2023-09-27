@@ -16,6 +16,8 @@ namespace Alimer;
 /// </summary>
 public abstract class Application : DisposableObject, IApplication
 {
+    private readonly ServiceRegistry _services;
+    private readonly ContentManager _content;
     private readonly object _tickLock = new();
     private readonly Stopwatch _stopwatch = new();
     private readonly AppTime _appTime = new();
@@ -39,14 +41,10 @@ public abstract class Application : DisposableObject, IApplication
         Log.Info($"Version: {Version}");
         PrintSystemInformation();
 
-        //ServiceCollection services = new ServiceCollection();
+        _services = new();
         //Platform.ConfigureServices(services);
-        //ConfigureServices(services);
-
-        //_serviceProvider = services.BuildServiceProvider();
-        //Content = Services.GetRequiredService<IContentManager>();
-
-        Content = new ContentManager();
+        _content = new ContentManager(_services);
+        ConfigureServices(_services);
 
         GraphicsDeviceDescription deviceDescription = new()
         {
@@ -61,6 +59,9 @@ public abstract class Application : DisposableObject, IApplication
 
         AudioDeviceOptions audioOptions = new();
         AudioDevice = AudioDevice.CreateDefault(in audioOptions);
+
+        _services.AddService(GraphicsDevice);
+        _services.AddService(AudioDevice);
     }
 
     /// <summary>
@@ -73,14 +74,17 @@ public abstract class Application : DisposableObject, IApplication
     /// </summary>
     public virtual Version Version { get; } = new Version(0, 1, 0);
 
+    /// <inheritdoc />
     public bool IsRunning { get; private set; }
+
+    /// <inheritdoc />
     public bool IsExiting { get; private set; }
 
     public AppTime Time => _appTime;
 
-    //public IServiceProvider Services => _serviceProvider;
+    public IServiceRegistry Services => _services;
 
-    public IContentManager Content { get; }
+    public IContentManager Content => _content;
 
     /// <summary>
     /// Gets the platform module.
@@ -119,11 +123,11 @@ public abstract class Application : DisposableObject, IApplication
         }
     }
 
-    //public virtual void ConfigureServices(IServiceCollection services)
-    //{
-    //    services.AddSingleton<IApplication>(this);
-    //    services.AddSingleton<IContentManager, ContentManager>();
-    //}
+    public virtual void ConfigureServices(IServiceRegistry services)
+    {
+        services.AddService<IApplication>(this);
+        services.AddService<IContentManager>(_content);
+    }
 
     public void Run()
     {
@@ -196,12 +200,12 @@ public abstract class Application : DisposableObject, IApplication
 
     protected virtual void BeginDraw()
     {
-        
+
     }
 
-    protected virtual void Draw(AppTime time)
+    protected virtual void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
     {
-        
+
     }
 
     protected virtual void EndDraw()
@@ -227,7 +231,19 @@ public abstract class Application : DisposableObject, IApplication
                 Update(_appTime);
 
                 BeginDraw();
-                Draw(_appTime);
+
+                // Begin rendering commands
+                RenderContext renderContext = GraphicsDevice.BeginRenderContext("Frame");
+                Texture? swapChainTexture = MainWindow.SwapChain!.GetCurrentTexture();
+                if (swapChainTexture is not null)
+                {
+                    Draw(renderContext, swapChainTexture, _appTime);
+                }
+
+                renderContext.Present(MainWindow.SwapChain!);
+
+                //GraphicsDevice.Submit(commandBuffer);
+                renderContext.Flush(waitForCompletion: false);
             }
             finally
             {
@@ -240,6 +256,7 @@ public abstract class Application : DisposableObject, IApplication
 
     private void InitializeBeforeRun()
     {
+        _services.AddService(MainWindow);
         MainWindow.CreateSwapChain(GraphicsDevice);
         IsRunning = true;
 

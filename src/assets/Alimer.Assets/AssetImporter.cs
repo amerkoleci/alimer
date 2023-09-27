@@ -5,7 +5,7 @@ namespace Alimer.Assets;
 
 public abstract class AssetImporter<T> : IAssetImporter where T : Asset
 {
-    public abstract Task<T> Import(string source, IServiceProvider services);
+    public abstract Task<T> Import(string source, IServiceRegistry services);
 
-    Task<Asset> IAssetImporter.Import(string source, IServiceProvider services) => Import(source, services).ContinueWith(t => (Asset)t.Result);
+    Task<Asset> IAssetImporter.Import(string source, IServiceRegistry services) => Import(source, services).ContinueWith(t => (Asset)t.Result);
 }

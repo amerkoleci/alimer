@@ -50,7 +50,19 @@ internal unsafe class SwapChainPanelView : Window
     }
 
     /// <inheritdoc />
-    public override SizeF ClientSize => _clientSize;
+    public override Point Position
+    {
+        get
+        {
+            return Point.Empty;
+        }
+        set
+        {
+        }
+    }
+
+    /// <inheritdoc />
+    public override Size ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

@@ -26,16 +26,16 @@ public sealed class SampleBrowserApp : GameApplication
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
-        //_runningSample = new HelloWindowSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawTriangleSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawIndexedQuadSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawCubeSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawTexturedCubeSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
-        _runningSample = new DrawMeshSample(GraphicsDevice, MainWindow);
+        //_runningSample = new HelloWindowSample(Services, MainWindow);
+        //_runningSample = new DrawTriangleSample(Services, MainWindow);
+        //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
+        //_runningSample = new DrawCubeSample(Services, MainWindow);
+        //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
+        //_runningSample = new Services(GraphicsDevice, MainWindow);
+        _runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
-        //_runningSample = new SceneCubeSample(GraphicsDevice, SceneSystem);
+        //_runningSample = new SceneCubeSample(Services);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
@@ -50,21 +50,11 @@ public sealed class SampleBrowserApp : GameApplication
         base.Dispose(disposing);
     }
 
-    protected override void Draw(AppTime time)
+    protected override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
     {
-        RenderContext context = GraphicsDevice.BeginRenderContext("Frame");
-        Texture? swapChainTexture = MainWindow.SwapChain!.GetCurrentTexture();
-        if (swapChainTexture is not null)
-        {
-            _runningSample.Draw(context, swapChainTexture);
-        }
+        _runningSample.Draw(renderContext, outputTexture);
 
-        context.Present(MainWindow.SwapChain!);
-
-        //GraphicsDevice.Submit(commandBuffer);
-        context.Flush(waitForCompletion: false);
-
-        base.Draw(time);
+        base.Draw(renderContext, outputTexture, time);
     }
 
     public static void Main()

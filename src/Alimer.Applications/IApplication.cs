@@ -7,7 +7,17 @@ namespace Alimer;
 
 public interface IApplication
 {
-    //IServiceProvider Services { get; }
+    IServiceRegistry Services { get; }
 
     IContentManager Content { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether application is running.
+    /// </summary>
+    bool IsRunning { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether application is exiting.
+    /// </summary>
+    bool IsExiting { get; }
 }

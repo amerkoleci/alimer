@@ -50,6 +50,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Physics", "src\Alime
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ImGui", "src\Alimer.ImGui\Alimer.ImGui.csproj", "{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.UI", "src\Alimer.UI\Alimer.UI.csproj", "{18D54D83-0AA5-4916-87CF-48B69E9F66EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,6 +110,10 @@ Global
 		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

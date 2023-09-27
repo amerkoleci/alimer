@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>
@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Alimer.ImGui\Alimer.ImGui.csproj" />
     <ProjectReference Include="..\..\src\Alimer.Physics\Alimer.Physics.csproj" />
+    <ProjectReference Include="..\..\src\Alimer.UI\Alimer.UI.csproj" />
     <ProjectReference Include="..\..\src\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>
 
