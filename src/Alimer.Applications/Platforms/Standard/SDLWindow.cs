@@ -3,7 +3,7 @@
 
 using System.Drawing;
 using Alimer.Graphics;
-using static SDL.SDL_EventType;
+using static SDL.SDL_bool;
 using System.Runtime.InteropServices;
 using static SDL.SDL;
 using SDL;
@@ -57,35 +57,35 @@ internal unsafe class SDLWindow : Window
         // https://wiki.libsdl.org/SDL_SysWMinfo
         switch (wmInfo.subsystem)
         {
-            case SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS:
+            case SDL_SYSWM_TYPE.Windows:
                 Kind = SwapChainSurfaceType.Win32;
                 ContextHandle = GetModuleHandleW(null);
                 Handle = wmInfo.info.win.window;
                 break;
 
-            case SDL_SYSWM_TYPE.SDL_SYSWM_WINRT:
+            case SDL_SYSWM_TYPE.Winrt:
                 Kind = SwapChainSurfaceType.CoreWindow;
                 Handle = wmInfo.info.winrt.window;
                 break;
 
-            case SDL_SYSWM_TYPE.SDL_SYSWM_X11:
+            case SDL_SYSWM_TYPE.X11:
                 Kind = SwapChainSurfaceType.Xlib;
                 ContextHandle = wmInfo.info.x11.display;
                 Handle = wmInfo.info.x11.window;
                 break;
 
-            case SDL_SYSWM_TYPE.SDL_SYSWM_COCOA:
+            case SDL_SYSWM_TYPE.Cocoa:
                 Kind = SwapChainSurfaceType.MetalLayer;
                 Handle = wmInfo.info.cocoa.window;
                 break;
 
-            case SDL_SYSWM_TYPE.SDL_SYSWM_WAYLAND:
+            case SDL_SYSWM_TYPE.Wayland:
                 Kind = SwapChainSurfaceType.Wayland;
                 ContextHandle = wmInfo.info.wl.display;
                 Handle = wmInfo.info.wl.surface;
                 break;
 
-            case SDL_SYSWM_TYPE.SDL_SYSWM_ANDROID:
+            case SDL_SYSWM_TYPE.Android:
                 Kind = SwapChainSurfaceType.Android;
                 Handle = wmInfo.info.android.window;
                 break;
@@ -107,7 +107,7 @@ internal unsafe class SDLWindow : Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                SDL_SetWindowFullscreen(SDLWindowHandle, value);
+                SDL_SetWindowFullscreen(SDLWindowHandle, value ? SDL_TRUE : SDL_FALSE);
             }
         }
     }
@@ -152,30 +152,30 @@ internal unsafe class SDLWindow : Window
     {
         switch (evt.window.type)
         {
-            case SDL_EVENT_WINDOW_MINIMIZED:
+            case SDL_EventType.WindowMinimized:
                 _minimized = true;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_MAXIMIZED:
-            case SDL_EVENT_WINDOW_RESTORED:
+            case SDL_EventType.WindowMaximized:
+            case SDL_EventType.WindowRestored:
                 _minimized = false;
                 _clientSize = new(evt.window.data1, evt.window.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_RESIZED:
+            case SDL_EventType.WindowResized:
                 _minimized = false;
                 HandleResize(evt);
                 break;
 
-            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            case SDL_EventType.WindowPixelSizeChanged:
                 _minimized = false;
                 HandleResize(evt);
                 break;
 
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            case SDL_EventType.WindowCloseRequested:
                 Destroy();
                 _platform.WindowClosed(evt.window.windowID);
                 break;

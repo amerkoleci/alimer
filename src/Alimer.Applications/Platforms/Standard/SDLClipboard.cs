@@ -13,7 +13,7 @@ partial class ClipboardImplementation : IClipboard
 
     public Task<string?> GetTextAsync()
     {
-        return Task.FromResult<string?>(SDL_GetClipboardText());
+        return Task.FromResult(SDL_GetClipboardTextString());
     }
 
     public Task SetTextAsync(string? text)

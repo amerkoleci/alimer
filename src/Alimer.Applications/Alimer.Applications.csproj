@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net8.0;$(AlimerPlatforms)</TargetFrameworks>
+    <TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>
     <RootNamespace>Alimer</RootNamespace>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

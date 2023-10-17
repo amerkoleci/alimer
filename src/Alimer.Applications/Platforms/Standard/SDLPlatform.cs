@@ -2,9 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Input;
-using static SDL.SDL_InitFlags;
-using static SDL.SDL_EventType;
-using static SDL.SDL_LogPriority;
 using static SDL.SDL;
 using SDL;
 using System.Runtime.InteropServices;
@@ -23,16 +20,16 @@ internal unsafe class SDLPlatform : AppPlatform
 
     public SDLPlatform()
     {
-        SDL_LogSetPriority((int)SDL_LogCategory.SDL_LOG_CATEGORY_ERROR, SDL_LOG_PRIORITY_DEBUG);
+        SDL_LogSetPriority((int)SDL_LogCategory.Error, SDL_LogPriority.Debug);
         SDL_LogSetOutputFunction(OnLog);
 
         SDL_GetVersion(out SDL_version version);
         ApiVersion = new Version(version.major, version.minor, version.patch);
 
         // Init SDL2
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMEPAD) != 0)
+        if (SDL_Init(SDL_InitFlags.Video | SDL_InitFlags.Timer | SDL_InitFlags.Gamepad) != 0)
         {
-            Log.Error($"Unable to initialize SDL: {SDL_GetError()}");
+            Log.Error($"Unable to initialize SDL: {SDL_GetErrorString()}");
             throw new Exception("");
         }
 
@@ -95,7 +92,7 @@ internal unsafe class SDLPlatform : AppPlatform
 
         do
         {
-            eventsRead = SDL_PeepEvents(_events, _eventsPerPeep, SDL_eventaction.SDL_GETEVENT, SDL_FIRSTEVENT, SDL_EVENT_LAST);
+            eventsRead = SDL_PeepEvents(_events, _eventsPerPeep, SDL_eventaction.GetEvent, SDL_EventType.First, SDL_EventType.Last);
             for (int i = 0; i < eventsRead; i++)
             {
                 HandleSDLEvent(_events[i]);
@@ -107,13 +104,13 @@ internal unsafe class SDLPlatform : AppPlatform
     {
         switch (evt.type)
         {
-            case SDL_QUIT:
-            case SDL_EVENT_TERMINATING:
+            case SDL_EventType.Quit:
+            case SDL_EventType.Terminating:
                 _exitRequested = true;
                 break;
 
             default:
-                if (evt.type >= SDL_EVENT_WINDOW_FIRST && evt.type <= SDL_EVENT_WINDOW_LAST)
+                if (evt.type >= SDL_EventType.WindowFirst && evt.type <= SDL_EventType.WindowLast)
                 {
                     HandleWindowEvent(evt);
                 }
