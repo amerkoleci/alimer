@@ -8,6 +8,10 @@
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Diagnostics" />
+  </ItemGroup>
+
   <!-- Native Libs -->
   <ItemGroup>
     <Content Include="build\**" PackagePath="build" Pack="true" />
