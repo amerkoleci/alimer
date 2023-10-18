@@ -4,10 +4,11 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using Alimer.Graphics;
 
 namespace Alimer;
 
-public unsafe static partial class AlimerApi
+internal unsafe static partial class AlimerApi
 {
 #if (IOS || TVOS || WEBGL)
     private const string Library = "__Internal";
@@ -130,6 +131,47 @@ public unsafe static partial class AlimerApi
 
     [LibraryImport(Library)]
     public static partial void Alimer_GetVersion(int* major, int* minor, int* patch);
+
+    #region Image
+    [LibraryImport(Library)]
+    public static partial nint Alimer_ImageCreateFromMemory(void* data, nuint size);
+
+    [LibraryImport(Library)]
+    public static partial void Alimer_ImageDestroy(nint image);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    public static extern TextureDimension Alimer_ImageGetDimension(nint image);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    public static extern PixelFormat Alimer_ImageGetFormat(nint handle);
+
+    [LibraryImport(Library)]
+    public static partial uint Alimer_ImageGetWidth(nint handle, uint level);
+
+    [LibraryImport(Library)]
+    public static partial uint Alimer_ImageGetHeight(nint handle, uint level);
+
+    [LibraryImport(Library)]
+    public static partial uint Alimer_ImageGetDepth(nint handle, uint level);
+
+    [LibraryImport(Library)]
+    public static partial uint Alimer_ImageGetArraySize(nint handle);
+
+    [LibraryImport(Library)]
+    public static partial uint Alimer_ImageGetMipLevels(nint handle);
+
+    [LibraryImport(Library)]
+    public static partial Bool32 Alimer_ImageIsCubemap(nint handle);
+
+    [LibraryImport(Library)]
+    public static partial void* Alimer_ImageGetData(nint handle, out nuint size);
+
+    [LibraryImport(Library)]
+    public static partial int Alimer_ImageSaveBmp(nint handle, delegate* unmanaged<nint, void*, uint, void> callback);
+
+    [LibraryImport(Library)]
+    public static partial int Alimer_ImageSavePng(nint handle, delegate* unmanaged<nint, void*, uint, void> callback);
+    #endregion
 
     #region Font
     [LibraryImport(Library)]

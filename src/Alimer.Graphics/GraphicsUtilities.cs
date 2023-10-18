@@ -1,32 +1,10 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
-
-using static Alimer.Numerics.MathUtilities;
 
 namespace Alimer.Graphics;
 
 public static class GraphicsUtilities
 {
-    public static uint GetMipLevelCount(uint width, uint height, uint depth = 1u, uint minDimension = 1u, uint requiredAlignment = 1u)
-    {
-        uint mipLevelCount = 1;
-        while (width > minDimension || height > minDimension || depth > minDimension)
-        {
-            width = Math.Max(minDimension, width >> 1);
-            height = Math.Max(minDimension, height >> 1);
-            depth = Math.Max(minDimension, depth >> 1);
-            if (AlignUp(width, requiredAlignment) != width ||
-                AlignUp(height, requiredAlignment) != height ||
-                AlignUp(depth, requiredAlignment) != depth)
-            {
-                break;
-            }
-            mipLevelCount++;
-        }
-
-        return mipLevelCount;
-    }
-
     public static ulong ComputeTextureMemorySizeInBytes(in TextureDescription descriptor)
     {
         ulong size = 0;
@@ -34,7 +12,7 @@ public static class GraphicsUtilities
         uint pixelsPerBlock = descriptor.Format.GetFormatHeightCompressionRatio();
         uint numBlocksX = descriptor.Width / pixelsPerBlock;
         uint numBlocksY = descriptor.Height / pixelsPerBlock;
-        uint mipLevelCount = descriptor.MipLevelCount == 0 ? GetMipLevelCount(descriptor.Width, descriptor.Height, descriptor.DepthOrArrayLayers) : descriptor.MipLevelCount;
+        uint mipLevelCount = descriptor.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(descriptor.Width, descriptor.Height, descriptor.DepthOrArrayLayers) : descriptor.MipLevelCount;
         for (uint arrayLayer = 0; arrayLayer < descriptor.DepthOrArrayLayers; ++arrayLayer)
         {
             for (int mipLevel = 0; mipLevel < mipLevelCount; ++mipLevel)

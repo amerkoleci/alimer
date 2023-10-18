@@ -42,20 +42,4 @@
     <ProjectReference Include="..\Alimer\Alimer.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="$(AlimerNativeDirectory)win-x64\alimer_image.dll">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Windows'))">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\win-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Link>alimer_image.dll</Link>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)win-arm64\alimer_image.dll">
-      <PackagePath>runtimes\win-arm64\native</PackagePath>
-      <Pack>True</Pack>
-      <Link>alimer_image.dll</Link>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
-
 </Project>

@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
@@ -34,7 +34,7 @@ public record struct TextureDescription
         Width = width;
         Height = height;
         DepthOrArrayLayers = depthOrArrayLayers;
-        MipLevelCount = mipLevelCount == 0 ? GraphicsUtilities.GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
+        MipLevelCount = mipLevelCount == 0 ? ImageDescription.GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
         SampleCount = sampleCount;
         Usage = usage;
         CpuAccess = access;

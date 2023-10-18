@@ -1,8 +1,9 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
+using static Alimer.Numerics.MathUtilities;
 
 namespace Alimer.Graphics;
 
@@ -30,7 +31,7 @@ public record struct ImageDescription
         Width = width;
         Height = height;
         DepthOrArrayLayers = depthOrArrayLayers;
-        MipLevelCount = mipLevelCount == 0 ? GraphicsUtilities.GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
+        MipLevelCount = mipLevelCount == 0 ? GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
     }
 
     public static ImageDescription Image1D(
@@ -124,4 +125,24 @@ public record struct ImageDescription
     /// The number of mipmap levels in the <see cref="Image"/>.
     /// </summary>
     public required uint MipLevelCount { get; init; } = 1;
+
+    public static uint GetMipLevelCount(uint width, uint height, uint depth = 1u, uint minDimension = 1u, uint requiredAlignment = 1u)
+    {
+        uint mipLevelCount = 1;
+        while (width > minDimension || height > minDimension || depth > minDimension)
+        {
+            width = Math.Max(minDimension, width >> 1);
+            height = Math.Max(minDimension, height >> 1);
+            depth = Math.Max(minDimension, depth >> 1);
+            if (AlignUp(width, requiredAlignment) != width ||
+                AlignUp(height, requiredAlignment) != height ||
+                AlignUp(depth, requiredAlignment) != depth)
+            {
+                break;
+            }
+            mipLevelCount++;
+        }
+
+        return mipLevelCount;
+    }
 }

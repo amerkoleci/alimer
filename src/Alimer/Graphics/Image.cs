@@ -1,11 +1,11 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
-using static Alimer.Graphics.ImageNativeApi;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
@@ -248,14 +248,13 @@ public sealed unsafe class Image : DisposableObject
     {
         fixed (byte* dataPtr = data)
         {
-            nint handle = AlimerImageCreateFromMemory(dataPtr, (uint)data.Length);
+            nint handle = Alimer_ImageCreateFromMemory(dataPtr, (uint)data.Length);
 
-            TextureDimension dimension = AlimerImageGetDimension(handle);
-            ImageFormat imageFormat = AlimerImageGetFormat(handle);
-            PixelFormat format = FromImageFormat(imageFormat);
-            uint width = AlimerImageGetWidth(handle, 0);
-            uint height = AlimerImageGetHeight(handle, 0);
-            void* pData = AlimerImageGetData(handle, out nuint dataSize);
+            TextureDimension dimension = Alimer_ImageGetDimension(handle);
+            PixelFormat format = Alimer_ImageGetFormat(handle);
+            uint width = Alimer_ImageGetWidth(handle, 0);
+            uint height = Alimer_ImageGetHeight(handle, 0);
+            void* pData = Alimer_ImageGetData(handle, out nuint dataSize);
 
             byte[] imageData = new byte[dataSize];
             fixed (byte* destDataPtr = imageData)
@@ -263,18 +262,16 @@ public sealed unsafe class Image : DisposableObject
                 Unsafe.CopyBlockUnaligned(destDataPtr, pData, (uint)dataSize);
             }
 
-            //var result = image_save_png_memory(handle, &SaveCallback) == 1;
+            //_bmpStream = File.OpenWrite(Path.Combine(AppContext.BaseDirectory, "Test.bmp"));
+            //var result = Alimer_ImageSaveBmp(handle, &SaveBmpCallback);
+            //_bmpStream.Dispose();
+            //result = Alimer_ImageSavePng(handle, &SaveCallback);
 
-            AlimerImageDestroy(handle);
+            Alimer_ImageDestroy(handle);
 
             ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, width, height);
             return new Image(imageDescription, imageData);
         }
-    }
-
-    private static PixelFormat FromImageFormat(ImageFormat format)
-    {
-        return (PixelFormat)format;
     }
 
     private static void SetupImageArray(byte* pixels, nuint memorySize, in ImageDescription description, ImageData[] levels)
@@ -353,9 +350,23 @@ public sealed unsafe class Image : DisposableObject
         }
     }
 
-#if !WINDOWS_UWP
+#if TODO_SAVE
+    private static Stream _bmpStream;
+
     [UnmanagedCallersOnly]
-    private static unsafe void SaveCallback(void* pData, uint dataSize)
+    private static unsafe void SaveBmpCallback(nint image, void* pData, uint dataSize)
+    {
+        ReadOnlySpan<byte> imageData = new byte[dataSize];
+        fixed (byte* destDataPtr = imageData)
+        {
+            Unsafe.CopyBlockUnaligned(destDataPtr, pData, dataSize);
+        }
+
+        _bmpStream.Write(imageData);
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe void SaveCallback(nint image, void* pData, uint dataSize)
     {
         string assetsPath = Path.Combine(AppContext.BaseDirectory, "Test.png");
 
@@ -366,7 +377,7 @@ public sealed unsafe class Image : DisposableObject
         }
 
         File.WriteAllBytes(assetsPath, imageData);
-    }
+    } 
 #endif
 
     private static bool IsKTX1(byte[] data)
