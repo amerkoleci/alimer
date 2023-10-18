@@ -193,6 +193,9 @@ internal unsafe static partial class AlimerApi
 
     #region Audio
     [LibraryImport(Library)]
+    public static partial void Alimer_AudioGetVersion(int* major, int* minor, int* patch);
+
+    [LibraryImport(Library)]
     public static partial Bool32 Alimer_AudioInit();
 
     [LibraryImport(Library)]
@@ -211,9 +214,9 @@ internal unsafe static partial class AlimerApi
     public static partial float Alimer_AudioGetMasterVolume();
 
     [LibraryImport(Library)]
-    public static partial uint Alimer_AudioGetOutputChannels();
+    public static partial int Alimer_AudioGetOutputChannels();
 
     [LibraryImport(Library)]
-    public static partial uint Alimer_AudioGetOutputSampleRate();
+    public static partial int Alimer_AudioGetOutputSampleRate();
     #endregion
 }

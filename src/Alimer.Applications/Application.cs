@@ -58,7 +58,7 @@ public abstract class Application : DisposableObject, IApplication
         GraphicsDevice = GraphicsDevice.CreateDefault(in deviceDescription);
 
         AudioDeviceOptions audioOptions = new();
-        AudioDevice = AudioDevice.CreateDefault(in audioOptions);
+        AudioDevice = new(in audioOptions);
 
         _services.AddService(GraphicsDevice);
         _services.AddService(AudioDevice);

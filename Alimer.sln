@@ -38,8 +38,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Rendering", "src\Ali
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Engine", "src\Alimer.Engine\Alimer.Engine.csproj", "{17287A65-E7C9-4615-82F1-0B67B5D69AE8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Audio", "src\Alimer.Audio\Alimer.Audio.csproj", "{E5D55EED-0860-471F-BDDA-BE381A281EC0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics.Tests", "tests\Alimer.Graphics.Tests\Alimer.Graphics.Tests.csproj", "{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Shaders", "src\assets\Alimer.Shaders\Alimer.Shaders.csproj", "{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}"
@@ -86,10 +84,6 @@ Global
 		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E5D55EED-0860-471F-BDDA-BE381A281EC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E5D55EED-0860-471F-BDDA-BE381A281EC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E5D55EED-0860-471F-BDDA-BE381A281EC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E5D55EED-0860-471F-BDDA-BE381A281EC0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Release|Any CPU.ActiveCfg = Release|Any CPU
