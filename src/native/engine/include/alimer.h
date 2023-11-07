@@ -212,20 +212,29 @@ ALIMER_API void AlimerSetLogLevel(AlimerLogLevel level);
 ALIMER_API void AlimerSetLogCallback(AlimerLogCallback callback, void* userData);
 
 /* Image methods */
+typedef struct AlimerImageDesc {
+    TextureDimension dimension;
+    PixelFormat format;
+    uint32_t width;
+    uint32_t height;
+    uint32_t depthOrArrayLayers;
+    uint32_t mipLevelCount;
+} AlimerImageDesc;
+
 typedef struct AlimerImage AlimerImage;
 
-ALIMER_API AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevels);
+ALIMER_API AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
 ALIMER_API AlimerImage* AlimerImage_CreateFromMemory(const void* data, size_t size);
 ALIMER_API void AlimerImage_Destroy(AlimerImage* image);
 
+ALIMER_API void AlimerImage_GetDesc(AlimerImage* image, AlimerImageDesc* pDesc);
 ALIMER_API TextureDimension AlimerImage_GetDimension(AlimerImage* image);
 ALIMER_API PixelFormat AlimerImage_GetFormat(AlimerImage* image);
 ALIMER_API uint32_t AlimerImage_GetWidth(AlimerImage* image, uint32_t level);
 ALIMER_API uint32_t AlimerImage_GetHeight(AlimerImage* image, uint32_t level);
 ALIMER_API uint32_t AlimerImage_GetDepth(AlimerImage* image, uint32_t level);
 ALIMER_API uint32_t AlimerImage_GetArrayLayers(AlimerImage* image);
-ALIMER_API uint32_t AlimerImage_GetMipLevels(AlimerImage* image);
-ALIMER_API Bool32 AlimerImage_ImageIsCubemap(AlimerImage* image);
+ALIMER_API uint32_t AlimerImage_GetMipLevelCount(AlimerImage* image);
 
 ALIMER_API void* AlimerImage_GetData(AlimerImage* image, size_t* size);
 

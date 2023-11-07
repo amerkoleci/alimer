@@ -37,15 +37,9 @@ ALIMER_DISABLE_WARNINGS()
 ALIMER_ENABLE_WARNINGS()
 
 struct AlimerImage {
-    TextureDimension    dimension;
-    PixelFormat         format;
-    uint32_t            width;
-    uint32_t            height;
-    uint32_t            depthOrArrayLayers;
-    uint32_t            mipLevels;
-    Bool32              isCubemap;
-    size_t              dataSize;
-    void*               pData;
+    AlimerImageDesc desc;
+    size_t dataSize;
+    void* pData;
 };
 
 static AlimerImage* dds_load_from_memory(const uint8_t* data, size_t size)
@@ -478,19 +472,19 @@ bool DetermineImageArray(AlimerImage* image)
     size_t totalPixelSize = 0;
     size_t nimages = 0;
 
-    switch (image->dimension)
+    switch (image->desc.dimension)
     {
         case TextureDimension_1D:
         case TextureDimension_2D:
-            for (uint32_t arrayIndex = 0; arrayIndex < image->depthOrArrayLayers; ++arrayIndex)
+            for (uint32_t arrayIndex = 0; arrayIndex < image->desc.depthOrArrayLayers; ++arrayIndex)
             {
-                uint32_t w = image->width;
-                uint32_t h = image->height;
+                uint32_t w = image->desc.width;
+                uint32_t h = image->desc.height;
 
-                for (uint32_t mipLevel = 0; mipLevel < image->mipLevels; ++mipLevel)
+                for (uint32_t mipLevel = 0; mipLevel < image->desc.mipLevelCount; ++mipLevel)
                 {
                     uint32_t rowPitch, slicePitch;
-                    if (!GetSurfaceInfo(image->format, w, h, &rowPitch, &slicePitch, NULL))
+                    if (!GetSurfaceInfo(image->desc.format, w, h, &rowPitch, &slicePitch, NULL))
                     {
                         return false;
                     }
@@ -509,14 +503,14 @@ bool DetermineImageArray(AlimerImage* image)
 
         case TextureDimension_3D:
         {
-            uint32_t w = image->width;
-            uint32_t h = image->height;
-            uint32_t d = image->depthOrArrayLayers;
+            uint32_t w = image->desc.width;
+            uint32_t h = image->desc.height;
+            uint32_t d = image->desc.depthOrArrayLayers;
 
-            for (uint32_t mipLevel = 0; mipLevel < image->mipLevels; ++mipLevel)
+            for (uint32_t mipLevel = 0; mipLevel < image->desc.mipLevelCount; ++mipLevel)
             {
                 uint32_t rowPitch, slicePitch;
-                if (!GetSurfaceInfo(image->format, w, h, &rowPitch, &slicePitch, NULL))
+                if (!GetSurfaceInfo(image->desc.format, w, h, &rowPitch, &slicePitch, NULL))
                 {
                     return false;
                 }
@@ -549,24 +543,23 @@ bool DetermineImageArray(AlimerImage* image)
     return true;
 }
 
-AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevels)
+AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount)
 {
     if (format == PixelFormat_Undefined || !width || !height || !arrayLayers)
         return NULL;
 
-    if (!CalculateMipLevels(width, height, &mipLevels))
+    if (!CalculateMipLevels(width, height, &mipLevelCount))
         return NULL;
 
     AlimerImage* image = ALIMER_ALLOC(AlimerImage);
     assert(image);
 
-    image->dimension = TextureDimension_2D;
-    image->format = format;
-    image->width = width;
-    image->height = height;
-    image->depthOrArrayLayers = arrayLayers;
-    image->mipLevels = mipLevels;
-    image->isCubemap = false;
+    image->desc.dimension = TextureDimension_2D;
+    image->desc.format = format;
+    image->desc.width = width;
+    image->desc.height = height;
+    image->desc.depthOrArrayLayers = arrayLayers;
+    image->desc.mipLevelCount = mipLevelCount;
     if (!DetermineImageArray(image))
     {
         ALIMER_FREE(image);
@@ -623,52 +616,55 @@ void AlimerImage_Destroy(AlimerImage* image)
     ALIMER_FREE(image);
 }
 
+void AlimerImage_GetDesc(AlimerImage* image, AlimerImageDesc* pDesc)
+{
+    ALIMER_ASSERT(image);
+    ALIMER_ASSERT(pDesc);
+
+    *pDesc = image->desc;
+}
+
 TextureDimension AlimerImage_GetDimension(AlimerImage* image)
 {
-    return image->dimension;
+    return image->desc.dimension;
 }
 
 PixelFormat AlimerImage_GetFormat(AlimerImage* image)
 {
-    return image->format;
+    return image->desc.format;
 }
 
 uint32_t AlimerImage_GetWidth(AlimerImage* image, uint32_t level)
 {
-    return ALIMER_MAX(image->width >> level, 1);
+    return ALIMER_MAX(image->desc.width >> level, 1);
 }
 
 uint32_t AlimerImage_GetHeight(AlimerImage* image, uint32_t level)
 {
-    return ALIMER_MAX(image->height >> level, 1);
+    return ALIMER_MAX(image->desc.height >> level, 1);
 }
 
 uint32_t AlimerImage_GetDepth(AlimerImage* image, uint32_t level)
 {
-    if (image->dimension != TextureDimension_3D) {
+    if (image->desc.dimension != TextureDimension_3D) {
         return 1u;
     }
 
-    return ALIMER_MAX(image->depthOrArrayLayers >> level, 1);
+    return ALIMER_MAX(image->desc.depthOrArrayLayers >> level, 1);
 }
 
 uint32_t AlimerImage_GetArrayLayers(AlimerImage* image)
 {
-    if (image->dimension == TextureDimension_3D) {
+    if (image->desc.dimension == TextureDimension_3D) {
         return 1u;
     }
 
-    return ALIMER_MAX(image->depthOrArrayLayers, 1u);
+    return ALIMER_MAX(image->desc.depthOrArrayLayers, 1u);
 }
 
-uint32_t AlimerImage_GetMipLevels(AlimerImage* image)
+uint32_t AlimerImage_GetMipLevelCount(AlimerImage* image)
 {
-    return image->mipLevels;
-}
-
-Bool32 AlimerImage_IsCubemap(AlimerImage* image)
-{
-    return image->isCubemap;
+    return image->desc.mipLevelCount;
 }
 
 void* AlimerImage_GetData(AlimerImage* image, size_t* size)
@@ -681,7 +677,7 @@ void* AlimerImage_GetData(AlimerImage* image, size_t* size)
 
 Bool32 AlimerImage_SaveBmp(AlimerImage* image, AlimerImageSaveCallback callback)
 {
-    int res = stbi_write_bmp_to_func((stbi_write_func*)callback, image, image->width, image->height, 4, image->pData);
+    int res = stbi_write_bmp_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData);
     if (res != 0)
         return true;
 
@@ -690,7 +686,7 @@ Bool32 AlimerImage_SaveBmp(AlimerImage* image, AlimerImageSaveCallback callback)
 
 Bool32 AlimerImage_SavePng(AlimerImage* image, AlimerImageSaveCallback callback)
 {
-    int res = stbi_write_png_to_func((stbi_write_func*)callback, image, image->width, image->height, 4, image->pData, image->width * 4);
+    int res = stbi_write_png_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData, image->desc.width * 4);
     if (res != 0)
         return true;
 
@@ -699,7 +695,7 @@ Bool32 AlimerImage_SavePng(AlimerImage* image, AlimerImageSaveCallback callback)
 
 Bool32 AlimerImage_SaveJpg(AlimerImage* image, int quality, AlimerImageSaveCallback callback)
 {
-    int res = stbi_write_jpg_to_func((stbi_write_func*)callback, image, image->width, image->height, 4, image->pData, quality);
+    int res = stbi_write_jpg_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData, quality);
     if (res != 0)
         return true;
 
@@ -708,7 +704,7 @@ Bool32 AlimerImage_SaveJpg(AlimerImage* image, int quality, AlimerImageSaveCallb
 
 Bool32 AlimerImage_SaveTga(AlimerImage* image, AlimerImageSaveCallback callback)
 {
-    int res = stbi_write_tga_to_func((stbi_write_func*)callback, image, image->width, image->height, 4, image->pData);
+    int res = stbi_write_tga_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData);
     if (res != 0)
         return true;
 
@@ -717,7 +713,7 @@ Bool32 AlimerImage_SaveTga(AlimerImage* image, AlimerImageSaveCallback callback)
 
 Bool32 AlimerImage_SaveHdr(AlimerImage* image, AlimerImageSaveCallback callback)
 {
-    int res = stbi_write_hdr_to_func((stbi_write_func*)callback, image, image->width, image->height, 4, (const float*)image->pData);
+    int res = stbi_write_hdr_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, (const float*)image->pData);
     if (res != 0)
         return true;
 
