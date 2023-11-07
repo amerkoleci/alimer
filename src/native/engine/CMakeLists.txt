@@ -76,3 +76,13 @@ if(WIN32)
     target_compile_definitions(${TARGET_NAME} PRIVATE _UNICODE UNICODE _CRT_SECURE_NO_WARNINGS)
     target_compile_definitions(${TARGET_NAME} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif ()
+
+if (ALIMER_INSTALL)
+    install (FILES "include/alimer.h" DESTINATION "include")
+
+    install(TARGETS ${TARGET_NAME}
+        RUNTIME DESTINATION "bin"
+        ARCHIVE DESTINATION "lib"
+        LIBRARY DESTINATION "lib"
+    )
+endif ()
