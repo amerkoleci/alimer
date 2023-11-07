@@ -7,19 +7,19 @@
 
 /* Log */
 #if defined(_DEBUG)
-AlimerLogLevel s_logLevel = AlimerLogLevel_Debug;
+LogLevel s_logLevel = LogLevel_Debug;
 #else
-AlimerLogLevel s_logLevel = AlimerLogLevel_Info;
+LogLevel s_logLevel = LogLevel_Info;
 #endif
 AlimerLogCallback s_logCallback = NULL;
 void* s_logUserData = NULL;
 
-AlimerLogLevel AlimerGetLogLevel(void)
+LogLevel AlimerGetLogLevel(void)
 {
     return s_logLevel;
 }
 
-void AlimerSetLogLevel(AlimerLogLevel level)
+void AlimerSetLogLevel(LogLevel level)
 {
     s_logLevel = level;
 }

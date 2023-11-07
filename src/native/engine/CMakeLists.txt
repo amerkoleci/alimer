@@ -79,6 +79,15 @@ if(WIN32)
     target_compile_definitions(${TARGET_NAME} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif ()
 
+if(ALIMER_USE_GLFW AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
+    target_sources(${TARGET_NAME} PRIVATE
+        src/alimer_platform_glfw.c
+    )
+
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_USE_GLFW)
+    target_link_libraries(${TARGET_NAME} PRIVATE glfw)
+endif ()
+
 if (ALIMER_INSTALL)
     install (FILES "include/alimer.h" DESTINATION "include")
 

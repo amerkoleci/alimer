@@ -43,17 +43,17 @@ typedef uint32_t Flags;
 typedef uint32_t Bool32;
 
 /* Enums */
-typedef enum AlimerLogLevel {
-    AlimerLogLevel_Trace = 0,
-    AlimerLogLevel_Debug = 1,
-    AlimerLogLevel_Info = 2,
-    AlimerLogLevel_Warn = 3,
-    AlimerLogLevel_Error = 4,
-    AlimerLogLevel_Critical = 5,
-    AlimerLogLevel_Off = 6,
+typedef enum LogLevel {
+    LogLevel_Trace = 0,
+    LogLevel_Debug = 1,
+    LogLevel_Info = 2,
+    LogLevel_Warn = 3,
+    LogLevel_Error = 4,
+    LogLevel_Critical = 5,
+    LogLevel_Off = 6,
 
-    _AlimerLogLevel_Force32 = 0x7FFFFFFF
-} AlimerLogLevel;
+    _LogLevel_Force32 = 0x7FFFFFFF
+} LogLevel;
 
 typedef enum PixelFormat {
     PixelFormat_Undefined = 0,
@@ -194,32 +194,93 @@ typedef enum TextureDimension
     _TextureDimension_Force32 = 0x7FFFFFFF
 } TextureDimension;
 
+typedef enum ButtonState {
+    ButtonState_None,
+    ButtonState_Pressed,
+    ButtonState_Released,
+
+    _ButtonState_Released_Count,
+    _ButtonState_Released_Force32 = 0x7FFFFFFF
+} ButtonState;
+
+typedef enum MouseButton {
+    /// The left mouse button.
+    MouseButton_Left,
+    /// The middle mouse button.
+    MouseButton_Middle,
+    /// The right mouse button.
+    MouseButton_Right,
+    /// The first extended mouse button.
+    MouseButton_XButton1,
+    /// The second extended mouse button.
+    MouseButton_XButton2,
+
+    _MouseButton_Count,
+    _MouseButton_Force32 = 0x7FFFFFFF
+} MouseButton;
+
+typedef enum EventType {
+    EventType_Quit,
+
+    EventType_MouseButton,
+    EventType_MouseMotion,
+    EventType_MouseWheel,
+
+    _EventType_Quit_Count,
+    _EventType_Quit_Force32 = 0x7FFFFFFF
+} EventType;
+
 /* Structs */
-typedef struct AlimerVector3
+typedef struct Vector2
+{
+    float x;
+    float y;
+} Vector2;
+
+typedef struct Vector3
 {
     float x;
     float y;
     float z;
-} AlimerVector3;
+} Vector3;
+
+
+typedef struct MouseButtonEvent
+{
+    ButtonState state;
+    MouseButton button;
+    Vector2 position;
+} MouseButtonEvent;
+
+typedef struct Event
+{
+    EventType type;
+    union {
+        MouseButtonEvent mouseButton;
+    };
+} Event;
 
 /* Methods*/
 ALIMER_API void Alimer_GetVersion(int* major, int* minor, int* patch);
 
-typedef void (*AlimerLogCallback)(AlimerLogLevel level, const char* message, void* userData);
+typedef void (*AlimerLogCallback)(LogLevel level, const char* message, void* userData);
 
-ALIMER_API AlimerLogLevel AlimerGetLogLevel(void);
-ALIMER_API void AlimerSetLogLevel(AlimerLogLevel level);
+ALIMER_API LogLevel AlimerGetLogLevel(void);
+ALIMER_API void AlimerSetLogLevel(LogLevel level);
 ALIMER_API void AlimerSetLogCallback(AlimerLogCallback callback, void* userData);
 
+ALIMER_API Bool32 AlimerInit(void);
+ALIMER_API void AlimerShutdown(void);
+
 /* Image methods */
-typedef struct AlimerImageDesc {
+typedef struct ImageDesc {
     TextureDimension dimension;
     PixelFormat format;
     uint32_t width;
     uint32_t height;
     uint32_t depthOrArrayLayers;
     uint32_t mipLevelCount;
-} AlimerImageDesc;
+} ImageDesc;
 
 typedef struct AlimerImage AlimerImage;
 
@@ -227,7 +288,7 @@ ALIMER_API AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width,
 ALIMER_API AlimerImage* AlimerImage_CreateFromMemory(const void* data, size_t size);
 ALIMER_API void AlimerImage_Destroy(AlimerImage* image);
 
-ALIMER_API void AlimerImage_GetDesc(AlimerImage* image, AlimerImageDesc* pDesc);
+ALIMER_API void AlimerImage_GetDesc(AlimerImage* image, ImageDesc* pDesc);
 ALIMER_API TextureDimension AlimerImage_GetDimension(AlimerImage* image);
 ALIMER_API PixelFormat AlimerImage_GetFormat(AlimerImage* image);
 ALIMER_API uint32_t AlimerImage_GetWidth(AlimerImage* image, uint32_t level);
@@ -319,11 +380,11 @@ ALIMER_API Bool32 AlimerSound_SetLoopPcmFrames(AlimerSound* sound, uint64_t loop
 ALIMER_API Bool32 AlimerSound_IsSpatialized(AlimerSound* sound);
 ALIMER_API void AlimerSound_SetSpatialized(AlimerSound* sound, Bool32 value);
 
-ALIMER_API void AlimerSound_GetPosition(AlimerSound* sound, AlimerVector3* result);
-ALIMER_API void AlimerSound_SetPosition(AlimerSound* sound, AlimerVector3* value);
-ALIMER_API void AlimerSound_GetVelocity(AlimerSound* sound, AlimerVector3* result);
-ALIMER_API void AlimerSound_SetVelocity(AlimerSound* sound, AlimerVector3* value);
-ALIMER_API void AlimerSound_GetDirection(AlimerSound* sound, AlimerVector3* result);
-ALIMER_API void AlimerSound_SetDirection(AlimerSound* sound, AlimerVector3* value);
+ALIMER_API void AlimerSound_GetPosition(AlimerSound* sound, Vector3* result);
+ALIMER_API void AlimerSound_SetPosition(AlimerSound* sound, Vector3* value);
+ALIMER_API void AlimerSound_GetVelocity(AlimerSound* sound, Vector3* result);
+ALIMER_API void AlimerSound_SetVelocity(AlimerSound* sound, Vector3* value);
+ALIMER_API void AlimerSound_GetDirection(AlimerSound* sound, Vector3* result);
+ALIMER_API void AlimerSound_SetDirection(AlimerSound* sound, Vector3* value);
 
 #endif /* ALIMER_H */

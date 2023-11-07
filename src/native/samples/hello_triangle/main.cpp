@@ -72,5 +72,10 @@ int main()
 {
     //TestPng();
     //TestHdr();
+
+    if (!AlimerInit())
+        return 1;
+
+    AlimerShutdown();
     return 0;
 }

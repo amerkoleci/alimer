@@ -97,9 +97,6 @@ else()
     option(ALIMER_SHARED_LIBRARY "Build as shared library" ON)
 endif ()
 
-option(ALIMER_INSTALL "Generate the install target" ${ALIMER_MASTER_PROJECT})
-option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
-
 option(ALIMER_AUDIO "Enable Audio library" ON)
 option(ALIMER_PHYSICS "Enable Physics library (using Jolt)" ON)
 
@@ -107,6 +104,11 @@ option(ALIMER_VULKAN "Make Vulkan backend available" ON)
 if (WIN32 OR WINDOWS_STORE)
 	option(ALIMER_D3D12 "Make D3D12 backend available" ON)
 endif()
+
+option(ALIMER_USE_GLFW "Use GLFW for desktop windows" ON)
+
+option(ALIMER_INSTALL "Generate the install target" ${ALIMER_MASTER_PROJECT})
+option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
 
 # add dependencies
 include(cmake/CPM.cmake)
@@ -180,6 +182,20 @@ message(STATUS "  Samples         ${ALIMER_SAMPLES}")
 
 # ThirdParty libs
 #add_subdirectory (third_party)
+
+if(ALIMER_USE_GLFW AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
+    CPMAddPackage(
+        NAME glfw
+        GITHUB_REPOSITORY glfw/glfw
+        GIT_TAG 3eaf1255b29fdf5c2895856c7be7d7185ef2b241
+        OPTIONS
+            "GLFW_BUILD_TESTS OFF"
+            "GLFW_BUILD_EXAMPLES OFF"
+            "GLFW_BUILD_DOCS OFF"
+            "GLFW_INSTALL OFF"
+        EXCLUDE_FROM_ALL YES
+    )
+endif ()
 
 # Engine
 add_subdirectory (engine)

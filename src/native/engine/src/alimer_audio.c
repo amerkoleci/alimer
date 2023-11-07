@@ -39,7 +39,7 @@ static_assert((int)SoundFlags_NoPitch == MA_SOUND_FLAG_NO_PITCH, "SoundFlags Lay
 static_assert((int)SoundFlags_NoSpatialization == MA_SOUND_FLAG_NO_SPATIALIZATION, "SoundFlags Layout mismatch");
 #endif
 
-static void FromVec3(const ma_vec3f vec, AlimerVector3* result)
+static void FromVec3(const ma_vec3f vec, Vector3* result)
 {
     result->x = vec.x;
     result->y = vec.y;
@@ -237,32 +237,32 @@ void AlimerSound_SetSpatialized(AlimerSound* sound, Bool32 value)
     ma_sound_group_set_spatialization_enabled((ma_sound*)sound, value);
 }
 
-void AlimerSound_GetPosition(AlimerSound* sound, AlimerVector3* result)
+void AlimerSound_GetPosition(AlimerSound* sound, Vector3* result)
 {
     FromVec3(ma_sound_get_position((ma_sound*)sound), result);
 }
 
-void AlimerSound_SetPosition(AlimerSound* sound, AlimerVector3* value)
+void AlimerSound_SetPosition(AlimerSound* sound, Vector3* value)
 {
     ma_sound_set_position((ma_sound*)sound, value->x, value->y, value->z);
 }
 
-void AlimerSound_GetVelocity(AlimerSound* sound, AlimerVector3* result)
+void AlimerSound_GetVelocity(AlimerSound* sound, Vector3* result)
 {
     FromVec3(ma_sound_get_velocity((ma_sound*)sound), result);
 }
 
-void AlimerSound_SetVelocity(AlimerSound* sound, AlimerVector3* value)
+void AlimerSound_SetVelocity(AlimerSound* sound, Vector3* value)
 {
     ma_sound_set_velocity((ma_sound*)sound, value->x, value->y, value->z);
 }
 
-void AlimerSound_GetDirection(AlimerSound* sound, AlimerVector3* result)
+void AlimerSound_GetDirection(AlimerSound* sound, Vector3* result)
 {
     FromVec3(ma_sound_get_direction((ma_sound*)sound), result);
 }
 
-void AlimerSound_SetDirection(AlimerSound* sound, AlimerVector3* value)
+void AlimerSound_SetDirection(AlimerSound* sound, Vector3* value)
 {
     ma_sound_set_direction((ma_sound*)sound, value->x, value->y, value->z);
 }

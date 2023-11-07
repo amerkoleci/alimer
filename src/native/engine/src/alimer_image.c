@@ -37,7 +37,7 @@ ALIMER_DISABLE_WARNINGS()
 ALIMER_ENABLE_WARNINGS()
 
 struct AlimerImage {
-    AlimerImageDesc desc;
+    ImageDesc desc;
     size_t dataSize;
     void* pData;
 };
@@ -466,8 +466,8 @@ bool GetSurfaceInfo(PixelFormat format, uint32_t width, uint32_t height, uint32_
 
 bool DetermineImageArray(AlimerImage* image)
 {
-    assert(image->width > 0 && image->height > 0 && image->depthOrArrayLayers > 0);
-    assert(image->mipLevels > 0);
+    assert(image->desc.width > 0 && image->desc.height > 0 && image->desc.depthOrArrayLayers > 0);
+    assert(image->desc.mipLevelCount > 0);
 
     size_t totalPixelSize = 0;
     size_t nimages = 0;
@@ -616,7 +616,7 @@ void AlimerImage_Destroy(AlimerImage* image)
     ALIMER_FREE(image);
 }
 
-void AlimerImage_GetDesc(AlimerImage* image, AlimerImageDesc* pDesc)
+void AlimerImage_GetDesc(AlimerImage* image, ImageDesc* pDesc)
 {
     ALIMER_ASSERT(image);
     ALIMER_ASSERT(pDesc);
