@@ -21,7 +21,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: >
+      uses: actions/checkout@v4
 
     - name: Get CMake
       uses: lukka/get-cmake@v3.27.4            
