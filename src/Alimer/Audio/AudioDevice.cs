@@ -12,14 +12,20 @@ public sealed class AudioDevice : DisposableObject
 
     public unsafe AudioDevice(in AudioDeviceOptions options)
     {
-        if (!Alimer_AudioInit())
+        AudioConfig config = new AudioConfig()
+        {
+            ListenerCount = 0,
+            Channels = (uint)options.SampleChannels,
+            SampleRate = (uint)options.SampleRate
+        };
+        if (!Alimer_AudioInit(&config))
         {
             throw new AudioException("Failed to init Audio");
         }
 
-        int major, minor, patch;
-        Alimer_AudioGetVersion(&major, &minor, &patch);
-        ApiVersion = new Version(major, minor, patch);
+        //int major, minor, patch;
+        //Alimer_AudioGetVersion(&major, &minor, &patch);
+        //ApiVersion = new Version(major, minor, patch);
 
         _masterVolume = Alimer_AudioGetMasterVolume();
         OutputSampleRate = Alimer_AudioGetOutputSampleRate();
@@ -38,11 +44,6 @@ public sealed class AudioDevice : DisposableObject
             Alimer_AudioShutdown();
         }
     }
-
-    /// <summary>
-    /// Gets the underlying API version.
-    /// </summary>
-    public Version ApiVersion { get; }
 
     public float MasterVolume
     {

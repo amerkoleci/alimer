@@ -10,11 +10,12 @@ namespace Alimer.Graphics.Vulkan;
 
 internal static unsafe class VulkanUtils
 {
-    private static readonly VkImageType[] s_vkImageTypeMap = new VkImageType[(int)TextureDimension.Count] {
+    private static readonly VkImageType[] s_vkImageTypeMap = [
         VkImageType.Image1D,
         VkImageType.Image2D,
         VkImageType.Image3D,
-    };
+        VkImageType.Image2D,
+    ];
 
     #region Layers Methods
     public static bool ValidateLayers(List<string> required, VkLayerProperties* availableLayers, uint availableLayersCount)

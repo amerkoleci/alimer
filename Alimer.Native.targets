@@ -2,22 +2,22 @@
   <Choose>
     <When Condition="($([MSBuild]::IsOsPlatform('windows')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='win-x64'">
       <ItemGroup>
-        <None Include="$(AlimerSrcDirectory)Alimer/runtimes/win-x64/native/alimer_native.dll" Link="alimer_native.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)win-x64/alimer_native.dll" Link="alimer_native.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
     <When Condition="($([MSBuild]::IsOsPlatform('windows')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='win-arm64'">
       <ItemGroup>
-        <None Include="$(AlimerSrcDirectory)Alimer/runtimes/win-arm64/native/alimer_native.dll" Link="alimer_native.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)win-arm64/alimer_native.dll" Link="alimer_native.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
     <When Condition="($([MSBuild]::IsOsPlatform('linux')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='linux-x64'">
       <ItemGroup>
-        <None Include="$(AlimerSrcDirectory)Alimer/runtimes/linux-x64/native/libalimer_native.so" Link="libalimer_native.so" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)linux-x64/libalimer_native.so" Link="libalimer_native.so" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
     <When Condition="($([MSBuild]::IsOsPlatform('osx')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='osx-universal'">
       <ItemGroup>
-        <None Include="$(AlimerSrcDirectory)Alimer/runtimes/osx-universal/native/libalimer_native.dylib" Link="libalimer_native.dylib" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)osx-universal/libalimer_native.dylib" Link="libalimer_native.dylib" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
   </Choose>

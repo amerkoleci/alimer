@@ -133,38 +133,28 @@ internal unsafe static partial class AlimerApi
     public static partial void Alimer_GetVersion(int* major, int* minor, int* patch);
 
     #region Image
-    [LibraryImport(Library)]
-    public static partial nint Alimer_ImageCreateFromMemory(void* data, nuint size);
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ImageDesc
+    {
+        public TextureDimension dimension;
+        public PixelFormat format;
+        public uint width;
+        public uint height;
+        public uint depthOrArrayLayers;
+        public uint mipLevelCount;
+    }
 
     [LibraryImport(Library)]
-    public static partial void Alimer_ImageDestroy(nint image);
-
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
-    public static extern TextureDimension Alimer_ImageGetDimension(nint image);
-
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
-    public static extern PixelFormat Alimer_ImageGetFormat(nint handle);
+    public static partial nint AlimerImage_CreateFromMemory(void* data, nuint size);
 
     [LibraryImport(Library)]
-    public static partial uint Alimer_ImageGetWidth(nint handle, uint level);
+    public static partial void AlimerImage_Destroy(nint image);
 
     [LibraryImport(Library)]
-    public static partial uint Alimer_ImageGetHeight(nint handle, uint level);
+    public static partial void AlimerImage_GetDesc(nint image, out ImageDesc desc);
 
     [LibraryImport(Library)]
-    public static partial uint Alimer_ImageGetDepth(nint handle, uint level);
-
-    [LibraryImport(Library)]
-    public static partial uint Alimer_ImageGetArraySize(nint handle);
-
-    [LibraryImport(Library)]
-    public static partial uint Alimer_ImageGetMipLevels(nint handle);
-
-    [LibraryImport(Library)]
-    public static partial Bool32 Alimer_ImageIsCubemap(nint handle);
-
-    [LibraryImport(Library)]
-    public static partial void* Alimer_ImageGetData(nint handle, out nuint size);
+    public static partial void* AlimerImage_GetData(nint handle, out nuint size);
 
     [LibraryImport(Library)]
     public static partial int Alimer_ImageSaveBmp(nint handle, delegate* unmanaged<nint, void*, uint, void> callback);
@@ -192,11 +182,16 @@ internal unsafe static partial class AlimerApi
     #endregion
 
     #region Audio
-    [LibraryImport(Library)]
-    public static partial void Alimer_AudioGetVersion(int* major, int* minor, int* patch);
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AudioConfig
+    {
+        public uint ListenerCount;
+        public uint Channels;
+        public uint SampleRate;
+    }
 
     [LibraryImport(Library)]
-    public static partial Bool32 Alimer_AudioInit();
+    public static partial Bool32 Alimer_AudioInit(AudioConfig* config);
 
     [LibraryImport(Library)]
     public static partial void Alimer_AudioShutdown();

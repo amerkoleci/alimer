@@ -248,13 +248,9 @@ public sealed unsafe class Image : DisposableObject
     {
         fixed (byte* dataPtr = data)
         {
-            nint handle = Alimer_ImageCreateFromMemory(dataPtr, (uint)data.Length);
-
-            TextureDimension dimension = Alimer_ImageGetDimension(handle);
-            PixelFormat format = Alimer_ImageGetFormat(handle);
-            uint width = Alimer_ImageGetWidth(handle, 0);
-            uint height = Alimer_ImageGetHeight(handle, 0);
-            void* pData = Alimer_ImageGetData(handle, out nuint dataSize);
+            nint handle = AlimerImage_CreateFromMemory(dataPtr, (uint)data.Length);
+            AlimerImage_GetDesc(handle, out ImageDesc desc);
+            void* pData = AlimerImage_GetData(handle, out nuint dataSize);
 
             byte[] imageData = new byte[dataSize];
             fixed (byte* destDataPtr = imageData)
@@ -267,9 +263,9 @@ public sealed unsafe class Image : DisposableObject
             //_bmpStream.Dispose();
             //result = Alimer_ImageSavePng(handle, &SaveCallback);
 
-            Alimer_ImageDestroy(handle);
+            AlimerImage_Destroy(handle);
 
-            ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, width, height);
+            ImageDescription imageDescription = ImageDescription.Image2D(srgb ? desc.format.LinearToSrgbFormat() : desc.format, desc.width, desc.height);
             return new Image(imageDescription, imageData);
         }
     }

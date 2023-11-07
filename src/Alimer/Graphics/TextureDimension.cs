@@ -8,9 +8,22 @@ namespace Alimer.Graphics;
 /// </summary>
 public enum TextureDimension
 {
+    /// <summary>
+    /// One-dimensional Texture.
+    /// </summary>
     Texture1D,
+    /// <summary>
+    /// Two-dimensional Texture.
+    /// </summary>
     Texture2D,
+    /// <summary>
+    /// Three-dimensional Texture.
+    /// </summary>
     Texture3D,
+    /// <summary>
+    /// Cubemap Texture.
+    /// </summary>
+    TextureCube,
 
     Count
 }
