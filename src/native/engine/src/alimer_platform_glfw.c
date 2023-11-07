@@ -7,21 +7,16 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#ifdef _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
-#endif
-
-#ifdef __APPLE__
-#define GLFW_EXPOSE_NATIVE_COCOA
-#include <QuartzCore/CAMetalLayer.h>
-#endif
-
-#ifdef __linux__
-#define GLFW_EXPOSE_NATIVE_X11
-#include <X11/Xlib-xcb.h>
-#endif
-
-#include <GLFW/glfw3native.h>
+//#if defined(_WIN32)
+//#define GLFW_EXPOSE_NATIVE_WIN32
+//#elif defined(__APPLE__)
+//#define GLFW_EXPOSE_NATIVE_COCOA
+//#include <Foundation/Foundation.h>
+//#include <QuartzCore/CAMetalLayer.h>
+//#define GLFW_EXPOSE_NATIVE_X11
+//#include <X11/Xlib-xcb.h>
+//#endif
+//#include <GLFW/glfw3native.h>
 
 static void onError(int code, const char* description)
 {
