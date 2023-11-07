@@ -6,14 +6,15 @@ on:
       - 'main'
     paths-ignore:
       - 'docs/**'
-      - 'src/native/**'
       - '*.md'
+      - 'src/native/**'
+      - .github/workflows/build_native_libs.yml
   pull_request:
     paths-ignore:
       - 'docs/**'
-      - 'src/native/**'
       - '*.md'
-
+      - 'src/native/**'
+      - .github/workflows/build_native_libs.yml
 jobs:
   build:
     runs-on: windows-latest

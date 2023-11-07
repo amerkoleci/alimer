@@ -1,0 +1,133 @@
+name: Build Native Libs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'src/native/**'
+      - .github/workflows/build_native_libs.yml
+  pull_request:
+    paths:
+      - 'src/native/**'
+      - .github/workflows/build_native_libs.yml
+
+env:
+  ALIMER_SAMPLES: OFF
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Get CMake
+      uses: lukka/get-cmake@v3.27.4            
+      
+    - name: Configure win-x64
+      run: cmake -S src/native -B build_win_64 -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
+    - name: Build win-x64
+      run: cmake --build build_win_64 --target install --config Release
+
+    - name: Configure win-arm64
+      run: cmake -S src/native -B build_win_arm64 -G "Visual Studio 17 2022" -A ARM64 -DCMAKE_BUILD_TYPE:String=Release  -DCMAKE_INSTALL_PREFIX="win-arm64-sdk"
+    - name: Build win-arm64
+      run: cmake --build build_win_arm64 --target install --config Release
+
+    - name: Package Windows
+      run: |
+        mkdir bin/win-x64
+        mkdir bin/win-arm64
+        mv win-x64-sdk\bin\*.dll bin/win-x64
+        mv win-arm64-sdk\bin\*.dll bin/win-arm64
+    - uses: actions/upload-artifact@v3
+      with:
+        name: libs_windows
+        path: bin
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get CMake
+      uses: lukka/get-cmake@v3.27.4     
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsdl2-dev
+    - name: Configure linux-x64
+      run: cmake -S src/native  -B build_linux_64 -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="linux-x64-sdk"
+    - name: Build linux-x64
+      run: cmake --build build_linux_64 --target install --config Release --verbose --parallel
+
+    - name: Package Linux
+      run: |
+        mkdir -p bin/linux-x64
+        mv linux-x64-sdk/lib/*.so bin/linux-x64
+    - uses: actions/upload-artifact@v3
+      with:
+        name: libs_linux
+        path: bin
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get CMake
+      uses: lukka/get-cmake@v3.27.4
+
+    - name: CMake Configure osx-universal
+      run: cmake -S src/native -B build_osx -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="osx-universal-sdk"
+    - name: CMake Build osx-universal
+      run: cmake --build build_osx --target install --config Release --verbose --parallel
+
+    - name: Package macos
+      run: |
+        mkdir -p bin/osx-universal
+        mv osx-universal-sdk/lib/*.dylib bin/osx-universal
+    - uses: actions/upload-artifact@v3
+      with:
+        name: libs_osx
+        path: bin
+
+  combine:
+    name: Combine artifacts
+    runs-on: ubuntu-latest
+    needs: [windows, linux, macos]
+    steps:
+      - name: download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: artifacts
+      - name: combine
+        run: |
+          mkdir native_libs
+          cp -r artifacts/libs_windows/* native_libs
+          cp -r artifacts/libs_linux/* native_libs
+          cp -r artifacts/libs_osx/* native_libs
+      - uses: edgarrc/action-7z@v1
+        with:
+          args: 7z a -t7z native_libs.7z ./native_libs/
+      - uses: AButler/upload-release-assets@v2.0
+        if: github.event_name == 'release' && github.event.action == 'created'
+        with:
+          files: native_libs.zip
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: 'Build Artifacts'
+          path: native_libs.7z
+      - uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            libs_windows
+            libs_linux
+            libs_osx
