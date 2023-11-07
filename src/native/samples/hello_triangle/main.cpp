@@ -73,9 +73,11 @@ int main()
     //TestPng();
     //TestHdr();
 
-    if (!AlimerInit())
+    Config config{};
+
+    if (!Alimer_Init(&config))
         return 1;
 
-    AlimerShutdown();
+    Alimer_Shutdown();
     return 0;
 }

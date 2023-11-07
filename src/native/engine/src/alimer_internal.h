@@ -51,6 +51,13 @@ typedef struct AlimerMemoryAllocationCallbacks {
     AlimerFreeMemoryFunc FreeMemory;
 } AlimerMemoryAllocationCallbacks;
 
+typedef struct AlimerState
+{
+    bool initialized;
+    Config config;
+} AlimerState;
+
+_ALIMER_EXTERN AlimerState* GetState();
 _ALIMER_EXTERN const AlimerMemoryAllocationCallbacks* MEMORY_ALLOC_CB;
 
 _ALIMER_EXTERN void Alimer_SetAllocationCallbacks(const AlimerMemoryAllocationCallbacks* callback, void* userData);

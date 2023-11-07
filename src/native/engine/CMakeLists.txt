@@ -9,6 +9,7 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     src/alimer_internal.h
     # Source files
     src/alimer_platform.c
+    src/alimer_log.cpp
     src/alimer_image.c
     src/alimer_font.c
     src/alimer_audio.c
@@ -22,7 +23,7 @@ endif ()
 target_include_directories(${TARGET_NAME}
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 	PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/third_party>
 )
 
 set_target_properties(
@@ -86,6 +87,30 @@ if(ALIMER_USE_GLFW AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
 
     target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_USE_GLFW)
     target_link_libraries(${TARGET_NAME} PRIVATE glfw)
+endif ()
+
+if (ALIMER_VULKAN)
+    target_sources(${TARGET_NAME} PRIVATE
+        src/alimer_gpu_vulkan.cpp
+    )
+
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_VULKAN)
+endif ()
+
+# Platform specific settings and libraries
+if (WINDOWS_STORE)
+elseif (WIN32)
+else()
+    target_link_libraries (${TARGET_NAME} PUBLIC dl)
+    if (ANDROID)
+        target_link_libraries (${TARGET_NAME} PUBLIC log android)
+    elseif (EMSCRIPTEN)
+    else()
+        target_link_libraries (${TARGET_NAME} PUBLIC m pthread)
+        if(NOT APPLE)
+            target_link_libraries (${TARGET_NAME} PUBLIC rt uuid)
+        endif ()
+    endif ()
 endif ()
 
 if (ALIMER_INSTALL)

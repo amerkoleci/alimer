@@ -35,6 +35,8 @@
 #define ALIMER_VERSION_MINOR	0
 #define ALIMER_VERSION_PATCH	0
 
+#define ALIMER_MAX_MESSAGE_SIZE 1024
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -49,7 +51,7 @@ typedef enum LogLevel {
     LogLevel_Info = 2,
     LogLevel_Warn = 3,
     LogLevel_Error = 4,
-    LogLevel_Critical = 5,
+    LogLevel_Fatal = 5,
     LogLevel_Off = 6,
 
     _LogLevel_Force32 = 0x7FFFFFFF
@@ -194,6 +196,34 @@ typedef enum TextureDimension
     _TextureDimension_Force32 = 0x7FFFFFFF
 } TextureDimension;
 
+/* Structs */
+typedef struct Vector2
+{
+    float x;
+    float y;
+} Vector2;
+
+typedef struct Vector3
+{
+    float x;
+    float y;
+    float z;
+} Vector3;
+
+/* Methods*/
+ALIMER_API void Alimer_GetVersion(int* major, int* minor, int* patch);
+
+/* Log */
+typedef void (*AlimerLogCallback)(LogLevel level, const char* message, void* userData);
+
+ALIMER_API LogLevel Alimer_GetLogLevel(void);
+ALIMER_API void Alimer_SetLogLevel(LogLevel level);
+ALIMER_API void Alimer_SetLogCallback(AlimerLogCallback callback, void* userData);
+
+ALIMER_API void Alimer_Log(LogLevel level, const char* message);
+ALIMER_API void Alimer_LogInfo(const char* format, ...);
+
+/* Platform */
 typedef enum ButtonState {
     ButtonState_None,
     ButtonState_Pressed,
@@ -230,21 +260,6 @@ typedef enum EventType {
     _EventType_Quit_Force32 = 0x7FFFFFFF
 } EventType;
 
-/* Structs */
-typedef struct Vector2
-{
-    float x;
-    float y;
-} Vector2;
-
-typedef struct Vector3
-{
-    float x;
-    float y;
-    float z;
-} Vector3;
-
-
 typedef struct MouseButtonEvent
 {
     ButtonState state;
@@ -260,17 +275,16 @@ typedef struct Event
     };
 } Event;
 
-/* Methods*/
-ALIMER_API void Alimer_GetVersion(int* major, int* minor, int* patch);
+typedef void (*AlimerEventCallback)(const Event* event);
 
-typedef void (*AlimerLogCallback)(LogLevel level, const char* message, void* userData);
+typedef struct Config {
+    const char* applicationName;
+    AlimerEventCallback onEvent;
+    void* userData;
+} Config;
 
-ALIMER_API LogLevel AlimerGetLogLevel(void);
-ALIMER_API void AlimerSetLogLevel(LogLevel level);
-ALIMER_API void AlimerSetLogCallback(AlimerLogCallback callback, void* userData);
-
-ALIMER_API Bool32 AlimerInit(void);
-ALIMER_API void AlimerShutdown(void);
+ALIMER_API Bool32 Alimer_Init(const Config* config);
+ALIMER_API void Alimer_Shutdown(void);
 
 /* Image methods */
 typedef struct ImageDesc {

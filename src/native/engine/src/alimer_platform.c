@@ -5,31 +5,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-/* Log */
-#if defined(_DEBUG)
-LogLevel s_logLevel = LogLevel_Debug;
-#else
-LogLevel s_logLevel = LogLevel_Info;
-#endif
-AlimerLogCallback s_logCallback = NULL;
-void* s_logUserData = NULL;
-
-LogLevel AlimerGetLogLevel(void)
-{
-    return s_logLevel;
-}
-
-void AlimerSetLogLevel(LogLevel level)
-{
-    s_logLevel = level;
-}
-
-void AlimerSetLogCallback(AlimerLogCallback callback, void* userData)
-{
-    s_logCallback = callback;
-    s_logUserData = userData;
-}
-
 /* Memory */
 static void* _default_alloc(size_t size, void* user_data)
 {

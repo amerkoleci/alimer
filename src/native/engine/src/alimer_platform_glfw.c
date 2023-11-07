@@ -23,12 +23,17 @@ static void onError(int code, const char* description)
     //printf("GLFW error %d: %s\n", code, description);
 }
 
-static struct {
-    bool initialized;
-} state;
+static AlimerState state;
 
-Bool32 AlimerInit(void)
+AlimerState* GetState()
 {
+    return &state;
+}
+
+Bool32 Alimer_Init(const Config* config)
+{
+    ALIMER_ASSERT(config);
+
     if (state.initialized)
         return false;
 
@@ -40,12 +45,18 @@ Bool32 AlimerInit(void)
         return false;
     }
 
+    // Get SDL version
+    int major, minor, patch;
+    glfwGetVersion(&major, &minor, &patch);
+    Alimer_LogInfo("GLFW v%d.%d.%d", major, minor, patch);
+
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    state.initialized = true;
 
     return true;
 }
 
-void AlimerShutdown(void)
+void Alimer_Shutdown(void)
 {
     if (!state.initialized)
         return;
