@@ -41,7 +41,6 @@
 /* Types */
 typedef uint32_t Flags;
 typedef uint32_t Bool32;
-typedef struct AlimerImage AlimerImage;
 
 /* Enums */
 typedef enum AlimerLogLevel {
@@ -195,6 +194,14 @@ typedef enum TextureDimension
     _TextureDimension_Force32 = 0x7FFFFFFF
 } TextureDimension;
 
+/* Structs */
+typedef struct AlimerVector3
+{
+    float x;
+    float y;
+    float z;
+} AlimerVector3;
+
 /* Methods*/
 ALIMER_API void Alimer_GetVersion(int* major, int* minor, int* patch);
 
@@ -205,6 +212,8 @@ ALIMER_API void AlimerSetLogLevel(AlimerLogLevel level);
 ALIMER_API void AlimerSetLogCallback(AlimerLogCallback callback, void* userData);
 
 /* Image methods */
+typedef struct AlimerImage AlimerImage;
+
 ALIMER_API AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevels);
 ALIMER_API AlimerImage* AlimerImage_CreateFromMemory(const void* data, size_t size);
 ALIMER_API void AlimerImage_Destroy(AlimerImage* image);
@@ -227,5 +236,85 @@ ALIMER_API Bool32 AlimerImage_SavePng(AlimerImage* image, AlimerImageSaveCallbac
 ALIMER_API Bool32 AlimerImage_SaveJpg(AlimerImage* image, int quality, AlimerImageSaveCallback callback);
 ALIMER_API Bool32 AlimerImage_SaveTga(AlimerImage* image, AlimerImageSaveCallback callback);
 ALIMER_API Bool32 AlimerImage_SaveHdr(AlimerImage* image, AlimerImageSaveCallback callback);
+
+/* Font */
+typedef struct AlimerFont AlimerFont;
+
+ALIMER_API AlimerFont* AlimerFont_CreateFromMemory(const uint8_t* data, size_t size);
+ALIMER_API void AlimerFont_Destroy(AlimerFont* font);
+ALIMER_API void AlimerFont_GetMetrics(AlimerFont* font, int* ascent, int* descent, int* linegap);
+ALIMER_API int AlimerFont_GetGlyphIndex(AlimerFont* font, int codepoint);
+ALIMER_API float AlimerFont_GetScale(AlimerFont* font, float size);
+ALIMER_API float AlimerFont_GetKerning(AlimerFont* font, int glyph1, int glyph2, float scale);
+ALIMER_API void AlimerFont_GetCharacter(AlimerFont* font, int glyph, float scale, int* width, int* height, float* advance, float* offsetX, float* offsetY, int* visible);
+ALIMER_API void AlimerFont_GetPixels(AlimerFont* font, uint8_t* dest, int glyph, int width, int height, float scale);
+
+/* Audio */
+typedef enum SoundFlags
+{
+    SoundFlags_None = 0,
+    SoundFlags_Stream = 0x00000001,
+    SoundFlags_Decode = 0x00000002,
+    SoundFlags_Async = 0x00000004,
+    SoundFlags_WaitInit = 0x00000008,
+
+    SoundFlags_NoDefaultAttachment = 0x00001000,
+    SoundFlags_NoPitch = 0x00002000,
+    SoundFlags_NoSpatialization = 0x00004000,
+
+    _SoundFlags_Force32 = 0x7FFFFFFF
+} SoundFlags;
+
+typedef struct AudioConfig {
+    uint32_t listenerCount;
+    uint32_t channels;
+    uint32_t sampleRate;
+} AudioConfig;
+
+typedef struct AlimerSound AlimerSound;
+
+ALIMER_API Bool32 Alimer_AudioInit(const AudioConfig* config);
+ALIMER_API void Alimer_AudioShutdown(void);
+ALIMER_API Bool32 Alimer_AudioStart(void);
+ALIMER_API Bool32 Alimer_AudioStop(void);
+
+ALIMER_API uint32_t Alimer_AudioGetOutputChannels(void);
+ALIMER_API uint32_t Alimer_AudioGetOutputSampleRate(void);
+
+ALIMER_API float Alimer_AudioGetMasterVolume(void);
+ALIMER_API Bool32 Alimer_AudioSetMasterVolume(float volume);
+
+ALIMER_API AlimerSound* AlimerSound_Create(const char* path, uint32_t flags);
+ALIMER_API void AlimerSound_Destroy(AlimerSound* sound);
+ALIMER_API void AlimerSound_Play(AlimerSound* sound);
+ALIMER_API void AlimerSound_Stop(AlimerSound* sound);
+ALIMER_API float AlimerSound_GetVolume(AlimerSound* sound);
+ALIMER_API void AlimerSound_SetVolume(AlimerSound* sound, float value);
+ALIMER_API float AlimerSound_GetPitch(AlimerSound* sound);
+ALIMER_API void AlimerSound_SetPitch(AlimerSound* sound, float value);
+ALIMER_API float AlimerSound_GetPan(AlimerSound* sound);
+ALIMER_API void AlimerSound_SetPan(AlimerSound* sound, float value);
+
+ALIMER_API Bool32 AlimerSound_IsPlaying(AlimerSound* sound);
+ALIMER_API Bool32 AlimerSound_GetFinished(AlimerSound* sound);
+
+ALIMER_API Bool32 AlimerSound_GetLengthPcmFrames(AlimerSound* sound, uint64_t* result);
+ALIMER_API Bool32 AlimerSound_GetCursorPcmFrames(AlimerSound* sound, uint64_t* result);
+ALIMER_API Bool32 AlimerSound_SetCursorPcmFrames(AlimerSound* sound, uint64_t value);
+
+ALIMER_API Bool32 AlimerSound_IsLooping(AlimerSound* sound);
+ALIMER_API void AlimerSound_SetLooping(AlimerSound* sound, Bool32 value);
+ALIMER_API void AlimerSound_GetLoopPcmFrames(AlimerSound* sound, uint64_t* pLoopBegInFrames, uint64_t* pLoopEndInFrames);
+ALIMER_API Bool32 AlimerSound_SetLoopPcmFrames(AlimerSound* sound, uint64_t loopBegInFrames, uint64_t loopEndInFrames);
+
+ALIMER_API Bool32 AlimerSound_IsSpatialized(AlimerSound* sound);
+ALIMER_API void AlimerSound_SetSpatialized(AlimerSound* sound, Bool32 value);
+
+ALIMER_API void AlimerSound_GetPosition(AlimerSound* sound, AlimerVector3* result);
+ALIMER_API void AlimerSound_SetPosition(AlimerSound* sound, AlimerVector3* value);
+ALIMER_API void AlimerSound_GetVelocity(AlimerSound* sound, AlimerVector3* result);
+ALIMER_API void AlimerSound_SetVelocity(AlimerSound* sound, AlimerVector3* value);
+ALIMER_API void AlimerSound_GetDirection(AlimerSound* sound, AlimerVector3* result);
+ALIMER_API void AlimerSound_SetDirection(AlimerSound* sound, AlimerVector3* value);
 
 #endif /* ALIMER_H */

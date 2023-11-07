@@ -10,6 +10,8 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     # Source files
     src/alimer_platform.c
     src/alimer_image.c
+    src/alimer_font.c
+    src/alimer_audio.c
 )
 
 target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMPLEMENTATION)
