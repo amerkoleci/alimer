@@ -18,9 +18,9 @@
 //#endif
 //#include <GLFW/glfw3native.h>
 
-static void onError(int code, const char* description)
+static void OnGLFWError(int code, const char* description)
 {
-    //printf("GLFW error %d: %s\n", code, description);
+    Alimer_LogError("GLFW error %d: %s", code, description);
 }
 
 static AlimerState state;
@@ -37,7 +37,7 @@ Bool32 Alimer_Init(const Config* config)
     if (state.initialized)
         return false;
 
-    glfwSetErrorCallback(onError);
+    glfwSetErrorCallback(OnGLFWError);
 #ifdef __APPLE__
     glfwInitHint(GLFW_COCOA_CHDIR_RESOURCES, GLFW_FALSE);
 #endif

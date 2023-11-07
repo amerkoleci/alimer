@@ -282,7 +282,8 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 	_Pragma("GCC diagnostic ignored \"-Wtautological-compare\"") \
     _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"") \
     _Pragma("GCC diagnostic ignored \"-Wunused-function\"") \
-    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")
+    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"") \
+    _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"")
 
 #define ALIMER_ENABLE_WARNINGS() _Pragma("GCC diagnostic pop")
 #elif defined(_MSC_VER)

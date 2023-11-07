@@ -185,19 +185,31 @@ Bool32 AlimerSound_GetFinished(AlimerSound* sound)
     return ma_sound_at_end((ma_sound*)sound);
 }
 
-Bool32 AlimerSound_GetLengthPcmFrames(AlimerSound* sound, uint64_t* result)
+uint64_t AlimerSound_GetLengthPcmFrames(AlimerSound* sound)
 {
-    return ma_sound_get_length_in_pcm_frames((ma_sound*)sound, result) == MA_SUCCESS;
+    ma_uint64 length;
+    if (ma_sound_get_length_in_pcm_frames((ma_sound*)sound, &length) == MA_SUCCESS)
+    {
+        return (uint64_t)length;
+    }
+
+    return 0;
 }
 
-Bool32 AlimerSound_GetCursorPcmFrames(AlimerSound* sound, uint64_t* result)
+uint64_t AlimerSound_GetCursorPcmFrames(AlimerSound* sound)
 {
-    return ma_sound_get_cursor_in_pcm_frames((ma_sound*)sound, result) == MA_SUCCESS;
+    ma_uint64 cursor;
+    if (ma_sound_get_cursor_in_pcm_frames((ma_sound*)sound, &cursor) == MA_SUCCESS)
+    {
+        return (uint64_t)cursor;
+    }
+
+    return 0;
 }
 
 Bool32 AlimerSound_SetCursorPcmFrames(AlimerSound* sound, uint64_t value)
 {
-    return ma_sound_seek_to_pcm_frame((ma_sound*)sound, value) == MA_SUCCESS;
+    return ma_sound_seek_to_pcm_frame((ma_sound*)sound, (ma_uint64)value) == MA_SUCCESS;
 }
 
 Bool32 AlimerSound_IsLooping(AlimerSound* sound)

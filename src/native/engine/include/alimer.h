@@ -222,6 +222,9 @@ ALIMER_API void Alimer_SetLogCallback(AlimerLogCallback callback, void* userData
 
 ALIMER_API void Alimer_Log(LogLevel level, const char* message);
 ALIMER_API void Alimer_LogInfo(const char* format, ...);
+ALIMER_API void Alimer_LogWarn(const char* format, ...);
+ALIMER_API void Alimer_LogError(const char* format, ...);
+ALIMER_API void Alimer_LogFatal(const char* format, ...);
 
 /* Platform */
 typedef enum ButtonState {
@@ -382,8 +385,8 @@ ALIMER_API void AlimerSound_SetPan(AlimerSound* sound, float value);
 ALIMER_API Bool32 AlimerSound_IsPlaying(AlimerSound* sound);
 ALIMER_API Bool32 AlimerSound_GetFinished(AlimerSound* sound);
 
-ALIMER_API Bool32 AlimerSound_GetLengthPcmFrames(AlimerSound* sound, uint64_t* result);
-ALIMER_API Bool32 AlimerSound_GetCursorPcmFrames(AlimerSound* sound, uint64_t* result);
+ALIMER_API uint64_t AlimerSound_GetLengthPcmFrames(AlimerSound* sound);
+ALIMER_API uint64_t AlimerSound_GetCursorPcmFrames(AlimerSound* sound);
 ALIMER_API Bool32 AlimerSound_SetCursorPcmFrames(AlimerSound* sound, uint64_t value);
 
 ALIMER_API Bool32 AlimerSound_IsLooping(AlimerSound* sound);

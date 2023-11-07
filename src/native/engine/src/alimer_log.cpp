@@ -15,6 +15,7 @@
 #   include <sys/syslog.h>
 #elif TARGET_OS_MAC || defined(__linux__)
 #   include <unistd.h>
+#   include <string>
 #   include <vector>
 #elif defined(_WIN32)
 #   ifndef WIN32_LEAN_AND_MEAN
@@ -94,6 +95,50 @@ void Alimer_LogInfo(const char* format, ...)
     va_end(args);
 
     s_logCallback(LogLevel_Info, message, s_logUserData);
+}
+
+void Alimer_LogWarn(const char* format, ...)
+{
+    if (!Alimer_ShouldLog(LogLevel_Warn))
+        return;
+
+    char message[ALIMER_MAX_MESSAGE_SIZE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+
+    s_logCallback(LogLevel_Warn, message, s_logUserData);
+}
+
+void Alimer_LogError(const char* format, ...)
+{
+    if (!Alimer_ShouldLog(LogLevel_Error))
+        return;
+
+    char message[ALIMER_MAX_MESSAGE_SIZE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+
+    s_logCallback(LogLevel_Error, message, s_logUserData);
+    ALIMER_DEBUG_BREAK();
+}
+
+void Alimer_LogFatal(const char* format, ...)
+{
+    if (!Alimer_ShouldLog(LogLevel_Fatal))
+        return;
+
+    char message[ALIMER_MAX_MESSAGE_SIZE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+
+    s_logCallback(LogLevel_Fatal, message, s_logUserData);
+    ALIMER_DEBUG_BREAK();
 }
 
 #if defined(__ANDROID__)
@@ -198,6 +243,7 @@ void DefaultLogCallback(LogLevel level, const char* message, void* userData)
     syslog(GetPriority(level), "%s", message);
 #elif TARGET_OS_MAC || defined(__linux__)
     const int fd = GetPriority(level);
+    std::string str = message;
     std::vector<char> output(str.begin(), str.end());
     output.push_back('\n');
 
