@@ -135,7 +135,7 @@ void alimerLogFatal(const char* format, ...)
 }
 
 #if defined(__ANDROID__)
-constexpr int GetPriority(LogLevel level) noexcept
+int GetPriority(LogLevel level)
 {
     switch (level)
     {
@@ -149,7 +149,7 @@ constexpr int GetPriority(LogLevel level) noexcept
     }
 }
 #elif TARGET_OS_IOS || TARGET_OS_TV
-constexpr int GetPriority(LogLevel level) noexcept
+int GetPriority(LogLevel level)
 {
     switch (level)
     {
@@ -163,7 +163,7 @@ constexpr int GetPriority(LogLevel level) noexcept
     }
 }
 #elif TARGET_OS_MAC || defined(__linux__)
-constexpr int GetPriority(LogLevel level) noexcept
+int GetPriority(LogLevel level)
 {
     switch (level)
     {
@@ -180,7 +180,7 @@ constexpr int GetPriority(LogLevel level) noexcept
     }
 }
 #elif defined(__EMSCRIPTEN__)
-constexpr int GetLogFlags(LogLevel level) noexcept
+int GetLogFlags(LogLevel level)
 {
     switch (level)
     {
