@@ -20,7 +20,7 @@
 
 static void OnGLFWError(int code, const char* description)
 {
-    Alimer_LogError("GLFW error %d: %s", code, description);
+    alimerLogError("GLFW error %d: %s", code, description);
 }
 
 static AlimerState state;
@@ -41,14 +41,15 @@ Bool32 Alimer_Init(const Config* config)
 #ifdef __APPLE__
     glfwInitHint(GLFW_COCOA_CHDIR_RESOURCES, GLFW_FALSE);
 #endif
-    if (!glfwInit()) {
+    if (!glfwInit())
+    {
         return false;
     }
 
     // Get SDL version
     int major, minor, patch;
     glfwGetVersion(&major, &minor, &patch);
-    Alimer_LogInfo("GLFW v%d.%d.%d", major, minor, patch);
+    alimerLogInfo("GLFW v%d.%d.%d", major, minor, patch);
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     state.initialized = true;
@@ -66,5 +67,14 @@ void Alimer_Shutdown(void)
     memset(&state, 0, sizeof(state));
 }
 
+void Alimer_SetClipboardText(const char* text)
+{
+    glfwSetClipboardString(NULL, text);
+}
+
+const char* Alimer_GetClipboardText(void)
+{
+    return glfwGetClipboardString(NULL);
+}
 
 #endif /* defined(ALIMER_USE_GLFW) */

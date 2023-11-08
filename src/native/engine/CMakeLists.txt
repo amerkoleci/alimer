@@ -9,7 +9,7 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     src/alimer_internal.h
     # Source files
     src/alimer_platform.c
-    src/alimer_log.cpp
+    src/alimer_log.c
     src/alimer_image.c
     src/alimer_font.c
     src/alimer_audio.c

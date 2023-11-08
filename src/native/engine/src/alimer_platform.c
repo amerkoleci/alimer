@@ -66,9 +66,54 @@ void Alimer_SetAllocationCallbacks(const AlimerMemoryAllocationCallbacks* callba
 }
 
 /* Other */
-void Alimer_GetVersion(int* major, int* minor, int* patch)
+void alimerGetVersion(int* major, int* minor, int* patch)
 {
     if (major) *major = ALIMER_VERSION_MAJOR;
     if (minor) *minor = ALIMER_VERSION_MINOR;
     if (patch) *patch = ALIMER_VERSION_PATCH;
+}
+
+PlatformID alimerGetPlatformID(void)
+{
+#if ALIMER_PLATFORM_WINDOWS
+    return PlatformID_Windows;
+#elif ALIMER_PLATFORM_UWP
+    return PlatformID_UWP;
+#elif ALIMER_PLATFORM_XBOX_ONE
+    return PlatformID_XboxOne;
+#elif ALIMER_PLATFORM_XBOX_SCARLETT
+    return PlatformID_XboxScarlett;
+#elif ALIMER_PLATFORM_LINUX
+    return PlatformID_Linux;
+#elif ALIMER_PLATFORM_ANDROID
+    return PlatformID_Android;
+#elif ALIMER_PLATFORM_MACOS
+    return PlatformID_MacOS;
+#elif ALIMER_PLATFORM_IOS
+    return PlatformID_iOS;
+#elif ALIMER_PLATFORM_TVOS
+    return PlatformID_tvOS;
+#elif ALIMER_PLATFORM_WEB
+    return PlatformID_Web;
+#else
+    return PlatformID_Unknown;
+#endif
+}
+
+PlatformFamily alimerGetPlatformFamily(void)
+{
+#if ALIMER_PLATFORM_FAMILY_MOBILE
+    return PlatformFamily_Mobile;
+#elif ALIMER_PLATFORM_FAMILY_DESKTOP
+    return PlatformFamily_Desktop;
+#elif ALIMER_PLATFORM_FAMILY_CONSOLE
+    return PlatformFamily::Console;
+#else
+    return PlatformFamily_Unknown;
+#endif
+}
+
+const char* alimerGetPlatformName(void)
+{
+    return ALIMER_PLATFORM_NAME;
 }

@@ -675,45 +675,31 @@ void* AlimerImage_GetData(AlimerImage* image, size_t* size)
     return image->pData;
 }
 
-Bool32 AlimerImage_SaveBmp(AlimerImage* image, AlimerImageSaveCallback callback)
+Bool32 AlimerImage_Save(AlimerImage* image, ImageFileFormat format, int quality, AlimerImageSaveCallback callback)
 {
-    int res = stbi_write_bmp_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData);
-    if (res != 0)
-        return true;
+    int res = 0;
+    switch (format)
+    {
+        case ImageFileFormat_Bmp:
+            res = stbi_write_bmp_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData);
+            break;
+        case ImageFileFormat_Png:
+            res = stbi_write_png_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData, image->desc.width * 4);
+            break;
+        case ImageFileFormat_Jpg:
+            res = stbi_write_jpg_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData, quality);
+            break;
+        case ImageFileFormat_Tga:
+            res = stbi_write_tga_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData);
+            break;
+        case ImageFileFormat_Hdr:
+            res = stbi_write_hdr_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, (const float*)image->pData);
+            break;
 
-    return false;
-}
+        default:
+            return false;
+    }
 
-Bool32 AlimerImage_SavePng(AlimerImage* image, AlimerImageSaveCallback callback)
-{
-    int res = stbi_write_png_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData, image->desc.width * 4);
-    if (res != 0)
-        return true;
-
-    return false;
-}
-
-Bool32 AlimerImage_SaveJpg(AlimerImage* image, int quality, AlimerImageSaveCallback callback)
-{
-    int res = stbi_write_jpg_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData, quality);
-    if (res != 0)
-        return true;
-
-    return false;
-}
-
-Bool32 AlimerImage_SaveTga(AlimerImage* image, AlimerImageSaveCallback callback)
-{
-    int res = stbi_write_tga_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, image->pData);
-    if (res != 0)
-        return true;
-
-    return false;
-}
-
-Bool32 AlimerImage_SaveHdr(AlimerImage* image, AlimerImageSaveCallback callback)
-{
-    int res = stbi_write_hdr_to_func((stbi_write_func*)callback, image, image->desc.width, image->desc.height, 4, (const float*)image->pData);
     if (res != 0)
         return true;
 

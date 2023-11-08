@@ -45,6 +45,53 @@ typedef uint32_t Flags;
 typedef uint32_t Bool32;
 
 /* Enums */
+
+/// Identifiers the running platform type.
+typedef enum PlatformID
+{
+    /// Unknown platform.
+    PlatformID_Unknown,
+    /// Windows platform.
+    PlatformID_Windows,
+    /// UniversalWindows platform.
+    PlatformID_UWP,
+    /// Xbox One platform.
+    PlatformID_XboxOne,
+    /// Xbox Series X|S platform.
+    PlatformID_XboxScarlett,
+
+    /// Linux platform.
+    PlatformID_Linux,
+    /// Android platform.
+    PlatformID_Android,
+
+    /// macOS platform.
+    PlatformID_MacOS,
+    /// iOS platform.
+    PlatformID_iOS,
+    /// tvOS platform.
+    PlatformID_tvOS,
+    /// Web platform.
+    PlatformID_Web,
+
+    _PlatformID_Force32 = 0x7FFFFFFF
+} PlatformID;
+
+/// Identifiers the running platform family.
+typedef enum PlatformFamily
+{
+    /// Unknown family.
+    PlatformFamily_Unknown,
+    /// Mobile family.
+    PlatformFamily_Mobile,
+    /// Desktop family.
+    PlatformFamily_Desktop,
+    /// Console family.
+    PlatformFamily_Console,
+
+    _PlatformFamily_Force32 = 0x7FFFFFFF
+} PlatformFamily;
+
 typedef enum LogLevel {
     LogLevel_Trace = 0,
     LogLevel_Debug = 1,
@@ -211,20 +258,23 @@ typedef struct Vector3
 } Vector3;
 
 /* Methods*/
-ALIMER_API void Alimer_GetVersion(int* major, int* minor, int* patch);
+ALIMER_API void alimerGetVersion(int* major, int* minor, int* patch);
+ALIMER_API PlatformID alimerGetPlatformID(void);
+ALIMER_API PlatformFamily alimerGetPlatformFamily(void);
+ALIMER_API const char* alimerGetPlatformName(void);
 
 /* Log */
 typedef void (*AlimerLogCallback)(LogLevel level, const char* message, void* userData);
 
-ALIMER_API LogLevel Alimer_GetLogLevel(void);
-ALIMER_API void Alimer_SetLogLevel(LogLevel level);
-ALIMER_API void Alimer_SetLogCallback(AlimerLogCallback callback, void* userData);
+ALIMER_API LogLevel alimerGetLogLevel(void);
+ALIMER_API void alimerSetLogLevel(LogLevel level);
+ALIMER_API void alimerSetLogCallback(AlimerLogCallback callback, void* userData);
 
-ALIMER_API void Alimer_Log(LogLevel level, const char* message);
-ALIMER_API void Alimer_LogInfo(const char* format, ...);
-ALIMER_API void Alimer_LogWarn(const char* format, ...);
-ALIMER_API void Alimer_LogError(const char* format, ...);
-ALIMER_API void Alimer_LogFatal(const char* format, ...);
+ALIMER_API void alimerLog(LogLevel level, const char* message);
+ALIMER_API void alimerLogInfo(const char* format, ...);
+ALIMER_API void alimerLogWarn(const char* format, ...);
+ALIMER_API void alimerLogError(const char* format, ...);
+ALIMER_API void alimerLogFatal(const char* format, ...);
 
 /* Platform */
 typedef enum ButtonState {
@@ -232,8 +282,8 @@ typedef enum ButtonState {
     ButtonState_Pressed,
     ButtonState_Released,
 
-    _ButtonState_Released_Count,
-    _ButtonState_Released_Force32 = 0x7FFFFFFF
+    _ButtonState_Count,
+    _ButtonState_Force32 = 0x7FFFFFFF
 } ButtonState;
 
 typedef enum MouseButton {
@@ -289,7 +339,20 @@ typedef struct Config {
 ALIMER_API Bool32 Alimer_Init(const Config* config);
 ALIMER_API void Alimer_Shutdown(void);
 
+ALIMER_API void Alimer_SetClipboardText(const char* text);
+ALIMER_API const char* Alimer_GetClipboardText(void);
+
 /* Image methods */
+typedef enum ImageFileFormat {
+    ImageFileFormat_Bmp,
+    ImageFileFormat_Png,
+    ImageFileFormat_Jpg,
+    ImageFileFormat_Tga,
+    ImageFileFormat_Hdr,
+
+    _ImageFileFormat_Force32 = 0x7FFFFFFF
+} ImageFileFormat;
+
 typedef struct ImageDesc {
     TextureDimension dimension;
     PixelFormat format;
@@ -300,6 +363,7 @@ typedef struct ImageDesc {
 } ImageDesc;
 
 typedef struct AlimerImage AlimerImage;
+typedef void (*AlimerImageSaveCallback)(AlimerImage* image, void* pData, uint32_t dataSize);
 
 ALIMER_API AlimerImage* AlimerImage_Create2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
 ALIMER_API AlimerImage* AlimerImage_CreateFromMemory(const void* data, size_t size);
@@ -313,16 +377,8 @@ ALIMER_API uint32_t AlimerImage_GetHeight(AlimerImage* image, uint32_t level);
 ALIMER_API uint32_t AlimerImage_GetDepth(AlimerImage* image, uint32_t level);
 ALIMER_API uint32_t AlimerImage_GetArrayLayers(AlimerImage* image);
 ALIMER_API uint32_t AlimerImage_GetMipLevelCount(AlimerImage* image);
-
 ALIMER_API void* AlimerImage_GetData(AlimerImage* image, size_t* size);
-
-typedef void (*AlimerImageSaveCallback)(AlimerImage* image, void* pData, uint32_t dataSize);
-
-ALIMER_API Bool32 AlimerImage_SaveBmp(AlimerImage* image, AlimerImageSaveCallback callback);
-ALIMER_API Bool32 AlimerImage_SavePng(AlimerImage* image, AlimerImageSaveCallback callback);
-ALIMER_API Bool32 AlimerImage_SaveJpg(AlimerImage* image, int quality, AlimerImageSaveCallback callback);
-ALIMER_API Bool32 AlimerImage_SaveTga(AlimerImage* image, AlimerImageSaveCallback callback);
-ALIMER_API Bool32 AlimerImage_SaveHdr(AlimerImage* image, AlimerImageSaveCallback callback);
+ALIMER_API Bool32 AlimerImage_Save(AlimerImage* image, ImageFileFormat format, int quality, AlimerImageSaveCallback callback);
 
 /* Font */
 typedef struct AlimerFont AlimerFont;
@@ -403,5 +459,9 @@ ALIMER_API void AlimerSound_GetVelocity(AlimerSound* sound, Vector3* result);
 ALIMER_API void AlimerSound_SetVelocity(AlimerSound* sound, Vector3* value);
 ALIMER_API void AlimerSound_GetDirection(AlimerSound* sound, Vector3* result);
 ALIMER_API void AlimerSound_SetDirection(AlimerSound* sound, Vector3* value);
+
+/* GPU */
+typedef struct GPUBuffer GPUBuffer;
+typedef struct GPUTexture GPUTexture;
 
 #endif /* ALIMER_H */

@@ -7,8 +7,8 @@
 #include "alimer.h"
 #include "alimer_platform.h"
 #include <stdbool.h>
+#include <stdlib.h> // malloc, free
 #include <string.h> // memset
-#include <stdlib.h> 
 
 #define ALIMER_UNUSED(x) (void)(x)
 
@@ -39,7 +39,7 @@ _ALIMER_EXTERN void Alimer_clear(void* ptr, size_t size);
 
 // Convenience macros for invoking custom memory allocation callbacks.
 #define ALIMER_ALLOC(type)     ((type*)alimer_alloc_clear(sizeof(type)))
-#define ALIMER_ALLOCN(type, n) ((type*)alimer_alloc_clear(sizeof(type) * n))
+#define ALIMER_ALLOCN(type, n) ((type*)alimer_alloc(sizeof(type) * (n)))
 #define ALIMER_FREE(ptr)       (alimer_free((void*)(ptr)))
 
 // Custom allocation callbacks.

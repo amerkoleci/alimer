@@ -5,19 +5,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifdef __APPLE__
-#   include <TargetConditionals.h>
-#endif
-
-#if defined(__ANDROID__)
+#if ALIMER_PLATFORM_ANDROID
 #   include <android/log.h>
-#elif TARGET_OS_IOS || TARGET_OS_TV
+#elif ALIMER_PLATFORM_IOS || ALIMER_PLATFORM_TVOS
 #   include <sys/syslog.h>
-#elif TARGET_OS_MAC || defined(__linux__)
+#elif ALIMER_PLATFORM_MACOS || ALIMER_PLATFORM_LINUX
 #   include <unistd.h>
-#   include <string>
-#   include <vector>
-#elif defined(_WIN32)
+#elif ALIMER_PLATFORM_WINDOWS
 #   ifndef WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
 #   endif
@@ -26,7 +20,6 @@
 #   endif
 #   include <Windows.h>
 #   include <strsafe.h>
-#   include <memory>
 #elif defined(__EMSCRIPTEN__)
 #  include <emscripten.h>
 #endif
@@ -39,9 +32,9 @@ LogLevel s_logLevel = LogLevel_Debug;
 LogLevel s_logLevel = LogLevel_Info;
 #endif
 AlimerLogCallback s_logCallback = DefaultLogCallback;
-void* s_logUserData = nullptr;
+void* s_logUserData = NULL;
 
-static const char* s_logLevelPrefixes[LogLevel_Off+1] = {
+static const char* s_logLevelPrefixes[LogLevel_Off + 1] = {
     "TRACE",
     "DEBUG",
     "INFO",
@@ -51,23 +44,23 @@ static const char* s_logLevelPrefixes[LogLevel_Off+1] = {
     "OFF"
 };
 
-LogLevel Alimer_GetLogLevel(void)
+LogLevel alimerGetLogLevel(void)
 {
     return s_logLevel;
 }
 
-void Alimer_SetLogLevel(LogLevel level)
+void alimerSetLogLevel(LogLevel level)
 {
     s_logLevel = level;
 }
 
-void Alimer_SetLogCallback(AlimerLogCallback callback, void* userData)
+void alimerSetLogCallback(AlimerLogCallback callback, void* userData)
 {
     s_logCallback = callback;
     s_logUserData = userData;
 }
 
-Bool32 Alimer_ShouldLog(LogLevel level)
+Bool32 alimerShouldLog(LogLevel level)
 {
     if (!s_logCallback || s_logLevel == LogLevel_Off)
         return false;
@@ -75,17 +68,17 @@ Bool32 Alimer_ShouldLog(LogLevel level)
     return level >= s_logLevel;
 }
 
-void Alimer_Log(LogLevel level, const char* message)
+void alimerLog(LogLevel level, const char* message)
 {
-    if (!Alimer_ShouldLog(level))
+    if (!alimerShouldLog(level))
         return;
 
     s_logCallback(level, message, s_logUserData);
 }
 
-void Alimer_LogInfo(const char* format, ...)
+void alimerLogInfo(const char* format, ...)
 {
-    if (!Alimer_ShouldLog(LogLevel_Info))
+    if (!alimerShouldLog(LogLevel_Info))
         return;
 
     char message[ALIMER_MAX_MESSAGE_SIZE];
@@ -97,9 +90,9 @@ void Alimer_LogInfo(const char* format, ...)
     s_logCallback(LogLevel_Info, message, s_logUserData);
 }
 
-void Alimer_LogWarn(const char* format, ...)
+void alimerLogWarn(const char* format, ...)
 {
-    if (!Alimer_ShouldLog(LogLevel_Warn))
+    if (!alimerShouldLog(LogLevel_Warn))
         return;
 
     char message[ALIMER_MAX_MESSAGE_SIZE];
@@ -111,9 +104,9 @@ void Alimer_LogWarn(const char* format, ...)
     s_logCallback(LogLevel_Warn, message, s_logUserData);
 }
 
-void Alimer_LogError(const char* format, ...)
+void alimerLogError(const char* format, ...)
 {
-    if (!Alimer_ShouldLog(LogLevel_Error))
+    if (!alimerShouldLog(LogLevel_Error))
         return;
 
     char message[ALIMER_MAX_MESSAGE_SIZE];
@@ -126,9 +119,9 @@ void Alimer_LogError(const char* format, ...)
     ALIMER_DEBUG_BREAK();
 }
 
-void Alimer_LogFatal(const char* format, ...)
+void alimerLogFatal(const char* format, ...)
 {
-    if (!Alimer_ShouldLog(LogLevel_Fatal))
+    if (!alimerShouldLog(LogLevel_Fatal))
         return;
 
     char message[ALIMER_MAX_MESSAGE_SIZE];
@@ -213,7 +206,7 @@ static WORD LogLevelColors[LogLevel_Off + 1] = {
 inline WORD SetForegroundColor(HANDLE handle, WORD attribs)
 {
     CONSOLE_SCREEN_BUFFER_INFO orig_buffer_info;
-    if (!::GetConsoleScreenBufferInfo(handle, &orig_buffer_info))
+    if (!GetConsoleScreenBufferInfo(handle, &orig_buffer_info))
     {
         // just return white if failed getting console info
         return FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
@@ -221,15 +214,15 @@ inline WORD SetForegroundColor(HANDLE handle, WORD attribs)
 
     // change only the foreground bits (lowest 4 bits)
     auto new_attribs = attribs | (orig_buffer_info.wAttributes & 0xfff0);
-    auto ignored = ::SetConsoleTextAttribute(handle, new_attribs);
-    (void)(ignored);
+    BOOL ignored = SetConsoleTextAttribute(handle, new_attribs);
+    ALIMER_UNUSED(ignored);
     return orig_buffer_info.wAttributes; // return orig attribs
 }
 
 inline void WriteText(HANDLE handle, const char* text)
 {
-    auto ignored = ::WriteConsoleA(handle, text, static_cast<DWORD>(strlen(text)), nullptr, nullptr);
-    (void)(ignored);
+    BOOL ignored = WriteConsoleA(handle, text, (DWORD)strlen(text), NULL, NULL);
+    ALIMER_UNUSED(ignored);
 }
 #endif
 
@@ -242,38 +235,43 @@ void DefaultLogCallback(LogLevel level, const char* message, void* userData)
 #elif TARGET_OS_IOS || TARGET_OS_TV
     syslog(GetPriority(level), "%s", message);
 #elif TARGET_OS_MAC || defined(__linux__)
-    const int fd = GetPriority(level);
-    std::string str = message;
-    std::vector<char> output(str.begin(), str.end());
-    output.push_back('\n');
+    size_t messageLength = strlen(message);
+    char* str = (char*)ALIMER_ALLOCN(char, messageLength + 1); // +1 for the newline
+    str[messageLength - 1] = '\n';
 
-    std::size_t offset = 0;
-    while (offset < output.size())
+    size_t offset = 0;
+    while (offset < messageLength)
     {
-        auto written = write(fd, output.data() + offset, output.size() - offset);
+        auto written = write(fd, str + offset, messageLength - offset);
         while (written == -1 && errno == EINTR)
-            written = write(fd, output.data() + offset, output.size() - offset);
+            written = write(fd, str + offset, messageLength - offset);
 
         if (written == -1)
             return;
 
-        offset += static_cast<std::size_t>(written);
+        offset += (size_t)written;
     }
 #elif defined(__EMSCRIPTEN__)
     emscripten_log(GetLogFlags(level), "%s", message);
 #elif defined(_WIN32)
-    const auto charCount = MultiByteToWideChar(CP_UTF8, 0, message, -1, nullptr, 0);
+    const auto charCount = MultiByteToWideChar(CP_UTF8, 0, message, -1, NULL, 0);
     if (charCount == 0)
         return;
 
-    auto buffer = std::make_unique<WCHAR[]>(static_cast<std::size_t>(charCount) + 1); // +1 for the newline
-    if (MultiByteToWideChar(CP_UTF8, 0, message, -1, buffer.get(), charCount) == 0)
+    WCHAR* buffer = (WCHAR*)ALIMER_ALLOCN(WCHAR, charCount + 1); // +1 for the newline
+    if (MultiByteToWideChar(CP_UTF8, 0, message, -1, buffer, charCount) == 0)
+    {
+        ALIMER_FREE(buffer);
         return;
+    }
 
-    if (FAILED(StringCchCatW(buffer.get(), charCount + 1, L"\n")))
+    if (FAILED(StringCchCatW(buffer, charCount + 1, L"\n")))
+    {
+        ALIMER_FREE(buffer);
         return;
+    }
 
-    OutputDebugStringW(buffer.get());
+    OutputDebugStringW(buffer);
 #   if defined(_DEBUG)
     HANDLE handle = INVALID_HANDLE_VALUE;
     switch (level)
@@ -294,11 +292,14 @@ void DefaultLogCallback(LogLevel level, const char* message, void* userData)
             return;
     }
 
-    auto origAttribs = SetForegroundColor(handle, LogLevelColors[(uint32_t)level]);
+    WriteText(handle, "[");
+    const WORD origAttribs = SetForegroundColor(handle, LogLevelColors[(uint32_t)level]);
     WriteText(handle, s_logLevelPrefixes[(uint32_t)level]);
     // reset to original colors
-    ::SetConsoleTextAttribute(handle, origAttribs);
-    WriteConsoleW(handle, buffer.get(), static_cast<DWORD>(wcslen(buffer.get())), nullptr, nullptr);
+    SetConsoleTextAttribute(handle, origAttribs);
+    WriteText(handle, "] ");
+    WriteConsoleW(handle, buffer, (DWORD)(charCount + 1), NULL, NULL);
+    ALIMER_FREE(buffer);
 #   endif
 #endif
 }
