@@ -10,6 +10,7 @@
 #elif ALIMER_PLATFORM_IOS || ALIMER_PLATFORM_TVOS
 #   include <sys/syslog.h>
 #elif ALIMER_PLATFORM_MACOS || ALIMER_PLATFORM_LINUX
+#   include <errno.h>
 #   include <unistd.h>
 #elif ALIMER_PLATFORM_WINDOWS
 #   ifndef WIN32_LEAN_AND_MEAN
@@ -213,7 +214,7 @@ inline WORD SetForegroundColor(HANDLE handle, WORD attribs)
     }
 
     // change only the foreground bits (lowest 4 bits)
-    auto new_attribs = attribs | (orig_buffer_info.wAttributes & 0xfff0);
+    WORD new_attribs = attribs | (orig_buffer_info.wAttributes & 0xfff0);
     BOOL ignored = SetConsoleTextAttribute(handle, new_attribs);
     ALIMER_UNUSED(ignored);
     return orig_buffer_info.wAttributes; // return orig attribs
@@ -235,6 +236,7 @@ void DefaultLogCallback(LogLevel level, const char* message, void* userData)
 #elif TARGET_OS_IOS || TARGET_OS_TV
     syslog(GetPriority(level), "%s", message);
 #elif TARGET_OS_MAC || defined(__linux__)
+    const int fd = GetPriority(level);
     size_t messageLength = strlen(message);
     char* str = (char*)ALIMER_ALLOCN(char, messageLength + 1); // +1 for the newline
     str[messageLength - 1] = '\n';
@@ -242,7 +244,7 @@ void DefaultLogCallback(LogLevel level, const char* message, void* userData)
     size_t offset = 0;
     while (offset < messageLength)
     {
-        auto written = write(fd, str + offset, messageLength - offset);
+        ssize_t written = write(fd, str + offset, messageLength - offset);
         while (written == -1 && errno == EINTR)
             written = write(fd, str + offset, messageLength - offset);
 
@@ -254,7 +256,7 @@ void DefaultLogCallback(LogLevel level, const char* message, void* userData)
 #elif defined(__EMSCRIPTEN__)
     emscripten_log(GetLogFlags(level), "%s", message);
 #elif defined(_WIN32)
-    const auto charCount = MultiByteToWideChar(CP_UTF8, 0, message, -1, NULL, 0);
+    const int charCount = MultiByteToWideChar(CP_UTF8, 0, message, -1, NULL, 0);
     if (charCount == 0)
         return;
 
