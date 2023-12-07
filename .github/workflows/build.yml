@@ -7,14 +7,10 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - 'src/native/**'
-      - .github/workflows/build_native_libs.yml
   pull_request:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - 'src/native/**'
-      - .github/workflows/build_native_libs.yml
 jobs:
   build:
     runs-on: windows-latest

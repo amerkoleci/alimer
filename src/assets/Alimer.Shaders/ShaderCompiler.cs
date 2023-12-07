@@ -8,7 +8,6 @@ using static Win32.Apis;
 using Alimer.Graphics;
 using Win32;
 using Win32.Graphics.Direct3D.Dxc;
-using Win32.Graphics.Direct3D12;
 using Win32.Graphics.Direct3D;
 
 namespace Alimer.Shaders;
@@ -296,6 +295,7 @@ public sealed unsafe partial class ShaderCompiler
                     Size = reflectionData.Get()->GetBufferSize()
                 };
 
+#if SHADER_REFLECTION
                 using ComPtr<ID3D12ShaderReflection> reflection = default;
                 _dxcUtils.Get()->CreateReflection(&reflectionDataBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
 
@@ -347,7 +347,8 @@ public sealed unsafe partial class ShaderCompiler
                     ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &shaderInputBindDesc));
                     string name = new(shaderInputBindDesc.Name);
 
-                }
+                } 
+#endif
             }
         }
 

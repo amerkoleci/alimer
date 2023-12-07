@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Engine;
@@ -29,10 +29,10 @@ public sealed class SampleBrowserApp : GameApplication
         //_runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
-        //_runningSample = new DrawCubeSample(Services, MainWindow);
+        _runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new Services(GraphicsDevice, MainWindow);
-        _runningSample = new DrawMeshSample(Services, MainWindow);
+        //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);

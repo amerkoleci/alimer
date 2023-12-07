@@ -13,7 +13,7 @@
 
   <!-- Version -->
   <PropertyGroup>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta</VersionSuffix>
   </PropertyGroup>
 
@@ -22,7 +22,6 @@
     <LangVersion>12.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <MinClientVersion>4.3</MinClientVersion>
     <!-- Local builds should embed PDBs so we never lose them when a subsequent build occurs. -->
     <DebugType Condition=" '$(CI)' != 'true' and '$(TF_BUILD)' != 'true' ">embedded</DebugType>
     <Features>strict</Features>
@@ -37,7 +36,7 @@
 
   <PropertyGroup>
     <Authors>Amer Koleci and Contributors</Authors>
-    <Copyright>Copyright © Amer Koleci and Contributors</Copyright>
+    <Copyright>Copyright (c) Amer Koleci and Contributors</Copyright>
     <Product>Alimer</Product>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>

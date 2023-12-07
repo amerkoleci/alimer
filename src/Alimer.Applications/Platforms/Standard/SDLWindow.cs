@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Drawing;
@@ -17,7 +17,7 @@ internal unsafe class SDLWindow : Window
     private bool _minimized;
     private bool _isFullscreen;
 
-    public readonly nint SDLWindowHandle;
+    public readonly SDL_Window SDLWindowHandle;
     public readonly uint Id;
 
     public SDLWindow(SDLPlatform platform, WindowFlags flags)
@@ -44,54 +44,53 @@ internal unsafe class SDLWindow : Window
         }
 
         _title = "Alimer";
-        SDLWindowHandle = SDL_CreateWindowWithPosition(_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, sdlWindowFlags);
+        SDLWindowHandle = SDL_CreateWindow(_title, 1200, 800, sdlWindowFlags);
+        if (SDLWindowHandle.IsNull)
+        {
+            Log.Error($"SDL_CreateWindow Failed: {SDL_GetErrorString()}");
+            return;
+        }
+
         Id = SDL_GetWindowID(SDLWindowHandle);
+        SDL_SetWindowPosition(SDLWindowHandle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         SDL_GetWindowSizeInPixels(SDLWindowHandle, out int width, out int height);
         _clientSize = new Size(width, height);
 
         // Native handle
-        SDL_SysWMinfo wmInfo = default;
-        SDL_GetWindowWMInfo(SDLWindowHandle, &wmInfo);
-
-        // Window handle is selected per subsystem as defined at:
-        // https://wiki.libsdl.org/SDL_SysWMinfo
-        switch (wmInfo.subsystem)
+        if (OperatingSystem.IsWindows())
         {
-            case SDL_SYSWM_TYPE.Windows:
-                Kind = SwapChainSurfaceType.Win32;
-                ContextHandle = GetModuleHandleW(null);
-                Handle = wmInfo.info.win.window;
-                break;
-
-            case SDL_SYSWM_TYPE.Winrt:
-                Kind = SwapChainSurfaceType.CoreWindow;
-                Handle = wmInfo.info.winrt.window;
-                break;
-
-            case SDL_SYSWM_TYPE.X11:
-                Kind = SwapChainSurfaceType.Xlib;
-                ContextHandle = wmInfo.info.x11.display;
-                Handle = wmInfo.info.x11.window;
-                break;
-
-            case SDL_SYSWM_TYPE.Cocoa:
-                Kind = SwapChainSurfaceType.MetalLayer;
-                Handle = wmInfo.info.cocoa.window;
-                break;
-
-            case SDL_SYSWM_TYPE.Wayland:
-                Kind = SwapChainSurfaceType.Wayland;
-                ContextHandle = wmInfo.info.wl.display;
-                Handle = wmInfo.info.wl.surface;
-                break;
-
-            case SDL_SYSWM_TYPE.Android:
-                Kind = SwapChainSurfaceType.Android;
-                Handle = wmInfo.info.android.window;
-                break;
-
-            default:
-                break;
+            Kind = SwapChainSurfaceType.Win32;
+            ContextHandle = GetModuleHandleW(null);
+            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.win32.hwnd");
+        }
+        else if (OperatingSystem.IsAndroid())
+        {
+            Kind = SwapChainSurfaceType.Android;
+            ContextHandle = 0;
+            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.android.window");
+        }
+        else if (OperatingSystem.IsIOS())
+        {
+            Kind = SwapChainSurfaceType.MetalLayer;
+            ContextHandle = 0;
+            // the (__unsafe_unretained) UIWindow associated with the window
+            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.uikit.window");
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            Kind = SwapChainSurfaceType.MetalLayer;
+            ContextHandle = 0;
+            // the (__unsafe_unretained) NSWindow associated with the window
+            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.cocoa.window");
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            Kind = SwapChainSurfaceType.Xlib;
+            ContextHandle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.x11.display");
+            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.x11.window");
+            // TODO: Wayland
+            //ContextHandle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.wayland.display");
+            //Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), "SDL.window.wayland.surface");
         }
     }
 

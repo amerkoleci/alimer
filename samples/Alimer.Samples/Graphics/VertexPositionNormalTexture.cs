@@ -1,4 +1,4 @@
-﻿// Copyright © Amer Koleci and Contributors.
+﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
@@ -8,7 +8,7 @@ using Alimer.Graphics;
 namespace Alimer.Samples;
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public readonly struct VertexPositionNormalTexture
+public readonly record struct VertexPositionNormalTexture
 {
     public static readonly unsafe uint SizeInBytes = (uint)sizeof(VertexPositionNormalTexture);
 

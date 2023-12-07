@@ -1,7 +1,6 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using SDL;
 using static SDL.SDL;
 using static SDL.SDL_bool;
 

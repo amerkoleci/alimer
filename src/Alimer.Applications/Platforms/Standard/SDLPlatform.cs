@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Input;
@@ -20,13 +20,13 @@ internal unsafe class SDLPlatform : AppPlatform
 
     public SDLPlatform()
     {
-        SDL_LogSetPriority((int)SDL_LogCategory.Error, SDL_LogPriority.Debug);
+        //SDL_LogSetPriority(SDL_LogCategory.Error, SDL_LogPriority.Debug);
         SDL_LogSetOutputFunction(OnLog);
 
         SDL_GetVersion(out SDL_version version);
         ApiVersion = new Version(version.major, version.minor, version.patch);
 
-        // Init SDL2
+        // Init SDL3
         if (SDL_Init(SDL_InitFlags.Video | SDL_InitFlags.Timer | SDL_InitFlags.Gamepad) != 0)
         {
             Log.Error($"Unable to initialize SDL: {SDL_GetErrorString()}");
