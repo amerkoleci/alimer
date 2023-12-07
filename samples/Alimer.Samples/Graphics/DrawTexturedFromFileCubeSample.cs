@@ -41,7 +41,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
+        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
 
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)

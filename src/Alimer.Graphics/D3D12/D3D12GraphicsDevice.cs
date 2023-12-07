@@ -782,7 +782,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    protected override Sampler CreateSamplerCore(in SamplerDescriptor description)
     {
         return new D3D12Sampler(this, description);
     }

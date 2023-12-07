@@ -1,4 +1,4 @@
-﻿// Copyright © Amer Koleci and Contributors.
+﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using CommunityToolkit.Diagnostics;
@@ -12,8 +12,8 @@ public readonly record struct PipelineLayoutDescription
 {
     public PipelineLayoutDescription()
     {
-        BindGroupLayouts = Array.Empty<BindGroupLayout>();
-        PushConstantRanges = Array.Empty<PushConstantRange>();
+        BindGroupLayouts = [];
+        PushConstantRanges = [];
     }
 
     public PipelineLayoutDescription(params BindGroupLayout[] bindGroupLayouts)
@@ -21,7 +21,7 @@ public readonly record struct PipelineLayoutDescription
         Guard.IsGreaterThan(bindGroupLayouts.Length, 0, nameof(bindGroupLayouts));
 
         BindGroupLayouts = bindGroupLayouts;
-        PushConstantRanges = Array.Empty<PushConstantRange>();
+        PushConstantRanges = [];
     }
 
     public PipelineLayoutDescription(string label, params BindGroupLayout[] bindGroupLayouts)

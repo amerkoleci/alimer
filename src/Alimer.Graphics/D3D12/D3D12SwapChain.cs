@@ -71,25 +71,6 @@ internal unsafe class D3D12SwapChain : SwapChain
                 ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
                 break;
 
-            case SwapChainSurfaceType.CoreWindow:
-                {
-                    swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-
-                    using ComPtr<IUnknown> coreWindow = default;
-                    //coreWindow.Attach((IUnknown*)((IWinRTObject)coreWindowSurface.CoreWindow).NativeObject.GetRef());
-                    coreWindow.Attach((IUnknown*)surface.Handle);
-
-                    ThrowIfFailed(device.Factory->CreateSwapChainForCoreWindow(
-                        (IUnknown*)device.D3D12GraphicsQueue,
-                        coreWindow.Get(),
-                        &swapChainDesc,
-                        null,
-                        tempSwapChain.GetAddressOf())
-                        );
-                    ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
-                }
-                break;
-
             case SwapChainSurfaceType.SwapChainPanel:
                 {
                     ThrowIfFailed(device.Factory->CreateSwapChainForComposition(

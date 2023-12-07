@@ -271,7 +271,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         uint height,
         uint mipLevels = 1,
         uint arrayLayers = 1,
-        TextureUsage usage = TextureUsage.ShaderRead
+        TextureUsage usage = TextureUsage.ShaderRead,
+        ResourceStates initialLayout = ResourceStates.ShaderResource
         )
         where T : unmanaged
     {
@@ -285,7 +286,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
             TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
 
-            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage), &initData);
+            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage, initialLayout: initialLayout), &initData);
         }
     }
 
@@ -298,10 +299,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateTextureCore(description, default);
     }
 
-    public Sampler CreateSampler(in SamplerDescription description)
+    public Sampler CreateSampler(in SamplerDescriptor descriptor)
     {
-        if (description.ReductionType == SamplerReductionType.Minimum ||
-            description.ReductionType == SamplerReductionType.Maximum)
+        if (descriptor.ReductionType == SamplerReductionType.Minimum ||
+            descriptor.ReductionType == SamplerReductionType.Maximum)
         {
             if (QueryFeatureSupport(Feature.SamplerMinMax))
             {
@@ -309,7 +310,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             }
         }
 
-        return CreateSamplerCore(description);
+        return CreateSamplerCore(descriptor);
     }
 
     public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescription description)
@@ -386,7 +387,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
-    protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
+    protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);

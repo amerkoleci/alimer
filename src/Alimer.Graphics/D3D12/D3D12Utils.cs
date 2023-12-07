@@ -263,7 +263,7 @@ internal static unsafe class D3D12Utils
         }
     }
 
-    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescription description)
+    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescriptor description)
     {
         D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
         D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
@@ -329,7 +329,7 @@ internal static unsafe class D3D12Utils
 
     public static D3D12_STATIC_SAMPLER_DESC ToD3D12StaticSamplerDesc(
         uint shaderRegister,
-        in SamplerDescription description,
+        in SamplerDescriptor description,
         D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, uint registerSpace = 0u)
     {
         D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc(in description);

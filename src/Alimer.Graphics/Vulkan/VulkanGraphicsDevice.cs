@@ -41,7 +41,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
-    private readonly Dictionary<SamplerDescription, VkSampler> _samplerCache = new();
+    private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = new();
 
     private readonly VkBuffer _nullBuffer = default;
     private readonly VmaAllocation _nullBufferAllocation = default;
@@ -1170,7 +1170,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageViewInfo.viewType = VkImageViewType.Image3D;
             vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).DebugCheckResult();
 
-            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescription());
+            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
@@ -1630,7 +1630,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         return new VulkanTexture(this, descriptor, initialData);
     }
 
-    public VkSampler GetOrCreateVulkanSampler(in SamplerDescription description)
+    public VkSampler GetOrCreateVulkanSampler(in SamplerDescriptor description)
     {
         if (!_samplerCache.TryGetValue(description, out VkSampler sampler))
         {
@@ -1705,7 +1705,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    protected override Sampler CreateSamplerCore(in SamplerDescriptor description)
     {
         return new VulkanSampler(this, description);
     }

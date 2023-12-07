@@ -808,7 +808,7 @@ internal static unsafe class VulkanUtils
         };
     }
 
-    private static readonly ResourceStateMapping[] s_resourceStateMap = new ResourceStateMapping[] {
+    private static readonly ResourceStateMapping[] s_resourceStateMap = [
         new(ResourceStates.Common,
             VkPipelineStageFlags2.TopOfPipe,
             VkAccessFlags2.None,
@@ -901,7 +901,7 @@ internal static unsafe class VulkanUtils
             VkPipelineStageFlags2.MicromapBuildEXT,
             VkAccessFlags2.ShaderRead,
             VkImageLayout.Undefined),
-    };
+    ];
 
     public static ResourceStateMapping ConvertResourceState(ResourceStates state)
     {

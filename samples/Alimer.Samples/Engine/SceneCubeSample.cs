@@ -26,6 +26,8 @@ public sealed class SceneCubeSample : SampleBase
         _cameraEntity = new();
         _ = _cameraEntity.Add<CameraComponent>();
 
+        //var test = _cameraEntity.Serialize();
+
         // Mesh
         _meshEntity = new();
         MeshComponent meshComponent = _meshEntity.Add<MeshComponent>();

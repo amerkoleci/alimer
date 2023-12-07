@@ -60,7 +60,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
+        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
 
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)

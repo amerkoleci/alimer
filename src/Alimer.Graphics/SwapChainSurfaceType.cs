@@ -29,9 +29,6 @@ public enum SwapChainSurfaceType
     /// <summary>Defines a Win32 based graphics surface.</summary>
     Win32,
 
-    /// <summary>Defines a WinUI CoreWindow based graphics surface.</summary>
-    CoreWindow,
-
     /// <summary>Defines a WinUI SwapChainPanel based graphics surface.</summary>
     SwapChainPanel,
 }

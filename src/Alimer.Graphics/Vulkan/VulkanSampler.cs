@@ -10,7 +10,7 @@ internal unsafe class VulkanSampler : Sampler
 {
     private readonly VulkanGraphicsDevice _device;
 
-    public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescription description)
+    public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescriptor description)
         : base(description)
     {
         _device = device;

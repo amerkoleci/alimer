@@ -9,12 +9,13 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChanged
+public sealed partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChanged
 {
     private Entity? _parent;
     private string _name;
@@ -46,15 +47,24 @@ public sealed class Entity : IEnumerable<EntityComponent>, INotifyPropertyChange
     public event PropertyChangedEventHandler? PropertyChanged;
 
     [DataMember]
+    [JsonPropertyOrder(0)]
+    [Browsable(false)]
+    public Guid Id { get; set; }
+
+    [DataMember]
+    [JsonPropertyOrder(10)]
     public string Name
     {
         get => _name;
         set => Set(ref _name, value);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [DataMember]
-    [Browsable(false)]
-    public Guid Id { get; set; }
+    [JsonPropertyOrder(20)]
+    public EntityFlags Flags { get; set; } = EntityFlags.None;
 
     [DataMember]
     public EntityCollection Children { get; }

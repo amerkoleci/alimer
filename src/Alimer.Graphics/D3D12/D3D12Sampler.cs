@@ -10,11 +10,11 @@ internal sealed unsafe class D3D12Sampler : Sampler
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12_SAMPLER_DESC _desc;
 
-    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
-        : base(description)
+    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
-        _desc = D3D12Utils.ToD3D12SamplerDesc(in description);
+        _desc = D3D12Utils.ToD3D12SamplerDesc(in descriptor);
     }
 
     /// <inheritdoc />

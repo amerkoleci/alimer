@@ -3,6 +3,25 @@
 
 namespace Alimer.Graphics;
 
+public enum FillMode
+{
+    Solid,
+    Wireframe,
+}
+
+public enum CullMode
+{
+    Back,
+    Front,
+    None,
+}
+
+public enum DepthClipMode
+{
+    Clip,
+    Clamp
+}
+
 public readonly record struct RasterizerState
 {
     public FillMode FillMode { get; init; }

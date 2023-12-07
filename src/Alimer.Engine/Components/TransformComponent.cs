@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Alimer.Numerics;
 
 namespace Alimer.Engine;
@@ -39,6 +40,7 @@ public sealed class TransformComponent : EntityComponent, IEnumerable<TransformC
     }
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public TransformComponent? Parent
     {
         get => Entity?.Parent?.Transform;
@@ -50,18 +52,25 @@ public sealed class TransformComponent : EntityComponent, IEnumerable<TransformC
     }
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public ref Matrix4x4 LocalMatrix => ref localMatrix;
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public ref Matrix4x4 WorldMatrix => ref worldMatrix;
 
+    [JsonPropertyOrder(10)]
     public Vector3 Position { get => _position; set => Set(ref _position, value); }
 
+    [JsonPropertyOrder(20)]
     public Quaternion Rotation { get => _rotation; set => Set(ref _rotation, value); }
 
+    [JsonPropertyOrder(30)]
+    [DefaultValue("1,1,1")]
     public Vector3 Scale { get => _scale; set => Set(ref _scale, value); }
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public Vector3 RotationEuler { get => Rotation.ToEuler(); set => Rotation = value.ToQuaternion(); }
 
     public override string ToString() => $"Position: {Position}, Rotation: {RotationEuler}, Scale: {Scale}";

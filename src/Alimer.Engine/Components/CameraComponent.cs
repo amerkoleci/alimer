@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
@@ -11,22 +12,30 @@ namespace Alimer.Engine;
 public sealed class CameraComponent : EntityComponent
 {
     [IgnoreDataMember]
+    [JsonIgnore]
     public Matrix4x4 ViewMatrix { get; set; } = Matrix4x4.Identity;
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public Matrix4x4 ProjectionMatrix { get; set; } = Matrix4x4.Identity;
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public Matrix4x4 ViewProjectionMatrix { get; set; } = Matrix4x4.Identity;
 
+    [JsonPropertyOrder(10)]
     public float AspectRatio { get; set; } = 16.0f / 9.0f;
 
+    [JsonPropertyOrder(20)]
     public float FieldOfView { get; set; } = 60.0f;
 
+    [JsonPropertyOrder(30)]
     public float FarPlaneDistance { get; set; } = 100000.0f;
 
+    [JsonPropertyOrder(40)]
     public float NearPlaneDistance { get; set; } = 0.1f;
 
+    [JsonPropertyOrder(50)]
     public bool UseCustomAspectRatio { get; set; }
 
     public void Update(float? screenAspectRatio = null)

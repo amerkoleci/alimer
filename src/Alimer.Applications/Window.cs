@@ -92,8 +92,10 @@ public abstract class Window : ISwapChainSurface
 
         if (DepthStencilFormat != PixelFormat.Undefined)
         {
-            TextureDescription depthStencilTextureDesc = TextureDescription.Texture2D(DepthStencilFormat, (uint)ClientSize.Width, (uint)ClientSize.Height, usage: TextureUsage.RenderTarget);
-            depthStencilTextureDesc.InitialLayout = ResourceStates.DepthWrite;
+            TextureDescription depthStencilTextureDesc = TextureDescription.Texture2D(DepthStencilFormat,
+                (uint)ClientSize.Width, (uint)ClientSize.Height,
+                usage: TextureUsage.RenderTarget,
+                initialLayout: ResourceStates.DepthWrite);
             DepthStencilTexture = device.CreateTexture(in depthStencilTextureDesc);
         }
     }
