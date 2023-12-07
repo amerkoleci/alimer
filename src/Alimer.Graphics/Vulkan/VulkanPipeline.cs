@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Vortice.Vulkan;
@@ -128,18 +128,15 @@ internal unsafe class VulkanPipeline : Pipeline
 
         // RasterizationState
         VkPipelineRasterizationStateCreateInfo rasterizationState = new();
-        rasterizationState.depthClampEnable = false;
+        rasterizationState.depthClampEnable = description.RasterizerState.DepthClipMode == DepthClipMode.Clamp;
 
         VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = new();
-
-        if (description.RasterizerState.DepthClipMode == DepthClipMode.Clip && device.DepthClipEnable)
-        {
-            rasterizationState.pNext = &depthClipStateInfo;
-            depthClipStateInfo.depthClipEnable = true;
-        }
-        else
+        if (device.DepthClipEnable)
         {
             rasterizationState.depthClampEnable = true;
+            depthClipStateInfo.depthClipEnable = description.RasterizerState.DepthClipMode == DepthClipMode.Clip;
+
+            rasterizationState.pNext = &depthClipStateInfo;
         }
 
         rasterizationState.rasterizerDiscardEnable = false;

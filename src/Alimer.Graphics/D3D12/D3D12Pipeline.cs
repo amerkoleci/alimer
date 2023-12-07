@@ -1,18 +1,18 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Alimer.Graphics.D3D;
+using Alimer.Utilities;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_INDEX_BUFFER_STRIP_CUT_VALUE;
-using static TerraFX.Interop.DirectX.D3D12_PRIMITIVE_TOPOLOGY_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
 using static Alimer.Graphics.Constants;
-using Alimer.Utilities;
-using Alimer.Graphics.D3D;
-using System.Runtime.InteropServices;
+using static TerraFX.Interop.DirectX.D3D12_INDEX_BUFFER_STRIP_CUT_VALUE;
+using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
+using static TerraFX.Interop.DirectX.D3D12_PRIMITIVE_TOPOLOGY_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_MODE;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -44,25 +44,25 @@ internal unsafe class D3D12Pipeline : Pipeline
 
             switch (shaderDesc.Stage)
             {
-                case ShaderStage.Vertex:
+                case ShaderStages.Vertex:
                     stream.stream1.VS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStage.Hull:
+                case ShaderStages.Hull:
                     stream.stream1.HS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStage.Domain:
+                case ShaderStages.Domain:
                     stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStage.Geometry:
+                case ShaderStages.Geometry:
                     stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStage.Fragment:
+                case ShaderStages.Fragment:
                     stream.stream1.PS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStage.Amplification:
+                case ShaderStages.Amplification:
                     stream.stream2.AS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
-                case ShaderStage.Mesh:
+                case ShaderStages.Mesh:
                     stream.stream2.MS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
                     break;
             }
@@ -70,7 +70,21 @@ internal unsafe class D3D12Pipeline : Pipeline
 
         stream.stream1.BlendState = D3D12_BLEND_DESC.DEFAULT;
         stream.stream1.SampleMask = uint.MaxValue;
-        stream.stream1.RasterizerState = D3D12_RASTERIZER_DESC.DEFAULT;
+        // RasterizerState
+        D3D12_RASTERIZER_DESC rasterizerState = D3D12_RASTERIZER_DESC.DEFAULT;
+        rasterizerState.FillMode = description.RasterizerState.FillMode.ToD3D12();
+        rasterizerState.CullMode = description.RasterizerState.CullMode.ToD3D12();
+        rasterizerState.FrontCounterClockwise = description.RasterizerState.FrontFaceCounterClockwise ? TRUE : FALSE;
+        //rasterizerState.DepthBias = static_cast<INT>(desc.rasterizerState.depthBias);
+        //rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
+        //rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
+        rasterizerState.DepthClipEnable = (description.RasterizerState.DepthClipMode == DepthClipMode.Clip) ? TRUE : FALSE;
+        //rasterizerState.MultisampleEnable = desc.sampleCount > TextureSampleCount::Count1 ? TRUE : FALSE;
+        rasterizerState.AntialiasedLineEnable = FALSE;
+        rasterizerState.ForcedSampleCount = 0;
+        rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+        stream.stream1.RasterizerState = rasterizerState;
+
         stream.stream1.DepthStencilState = D3D12_DEPTH_STENCIL_DESC1.DEFAULT;
 
         // Input Layout

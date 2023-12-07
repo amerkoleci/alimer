@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
@@ -11,9 +11,12 @@ using static TerraFX.Interop.DirectX.D3D12_COMPARISON_FUNC;
 using static TerraFX.Interop.DirectX.D3D12_FILTER_REDUCTION_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_FILTER_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
+using static TerraFX.Interop.DirectX.D3D12_FILL_MODE;
+using static TerraFX.Interop.DirectX.D3D12_CULL_MODE;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
 using static TerraFX.Interop.DirectX.D3D12_STATIC_BORDER_COLOR;
@@ -127,19 +130,65 @@ internal static unsafe class D3D12Utils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_QUERY_HEAP_TYPE ToD3D12(this QueryType value)
     {
-        switch (value)
+        return value switch
         {
-            default:
-            case QueryType.Timestamp:
-                return D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+            QueryType.Timestamp => D3D12_QUERY_HEAP_TYPE_TIMESTAMP,
+            QueryType.PipelineStatistics => D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS,
+            _ => D3D12_QUERY_HEAP_TYPE_OCCLUSION,
+        };
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_QUERY_TYPE ToD3D12QueryType(this QueryType value)
+    {
+        return value switch
+        {
+            QueryType.Occlusion => D3D12_QUERY_TYPE_OCCLUSION,
+            QueryType.BinaryOcclusion => D3D12_QUERY_TYPE_BINARY_OCCLUSION,
+            QueryType.Timestamp => D3D12_QUERY_TYPE_TIMESTAMP,
+            QueryType.PipelineStatistics => D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
+            _ => D3D12_QUERY_TYPE_OCCLUSION,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetQueryResultSize(this QueryType type)
+    {
+        switch (type)
+        {
             case QueryType.Occlusion:
             case QueryType.BinaryOcclusion:
-                return D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+            case QueryType.Timestamp:
+                return sizeof(ulong);
 
             case QueryType.PipelineStatistics:
-                return D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+                return sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
+
+            default:
+                return 0;
         }
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_FILL_MODE ToD3D12(this FillMode value)
+    {
+        return value switch
+        {
+            FillMode.Wireframe => D3D12_FILL_MODE_WIREFRAME,
+            _ => D3D12_FILL_MODE_SOLID,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_CULL_MODE ToD3D12(this CullMode value)
+    {
+        return value switch
+        {
+            CullMode.Front => D3D12_CULL_MODE_FRONT,
+            CullMode.None => D3D12_CULL_MODE_NONE,
+            _ => D3D12_CULL_MODE_BACK,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -165,23 +214,26 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_SHADER_VISIBILITY ToD3D12(this ShaderStage stage)
+    public static D3D12_SHADER_VISIBILITY ToD3D12(this ShaderStages stage)
     {
+        if (stage == ShaderStages.All)
+            return D3D12_SHADER_VISIBILITY_ALL;
+
         switch (stage)
         {
-            case ShaderStage.Vertex:
+            case ShaderStages.Vertex:
                 return D3D12_SHADER_VISIBILITY_VERTEX;
-            case ShaderStage.Hull:
+            case ShaderStages.Hull:
                 return D3D12_SHADER_VISIBILITY_HULL;
-            case ShaderStage.Domain:
+            case ShaderStages.Domain:
                 return D3D12_SHADER_VISIBILITY_DOMAIN;
-            case ShaderStage.Geometry:
+            case ShaderStages.Geometry:
                 return D3D12_SHADER_VISIBILITY_GEOMETRY;
-            case ShaderStage.Fragment:
+            case ShaderStages.Fragment:
                 return D3D12_SHADER_VISIBILITY_PIXEL;
-            case ShaderStage.Amplification:
+            case ShaderStages.Amplification:
                 return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
-            case ShaderStage.Mesh:
+            case ShaderStages.Mesh:
                 return D3D12_SHADER_VISIBILITY_MESH;
 
             default:
@@ -244,8 +296,8 @@ internal static unsafe class D3D12Utils
         {
             desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         }
-        desc.MinLOD = description.MinLod;
-        desc.MaxLOD = description.MaxLod;
+        desc.MinLOD = description.LodMinClamp;
+        desc.MaxLOD = description.LodMaxClamp;
         switch (description.BorderColor)
         {
             case SamplerBorderColor.FloatOpaqueBlack:
@@ -280,7 +332,7 @@ internal static unsafe class D3D12Utils
         in SamplerDescription description,
         D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, uint registerSpace = 0u)
     {
-        D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc( in description);
+        D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc(in description);
 
         D3D12_STATIC_SAMPLER_DESC staticDesc = new()
         {

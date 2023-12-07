@@ -8,35 +8,35 @@ namespace Alimer.Graphics;
 /// </summary>
 public readonly record struct BindGroupLayoutEntry
 {
-    public BindGroupLayoutEntry(BufferBindingLayout buffer, uint binding, ShaderStage visibility = ShaderStage.All)
+    public BindGroupLayoutEntry(BufferBindingLayout buffer, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
         Visibility = visibility;
         Buffer = buffer;
     }
 
-    public BindGroupLayoutEntry(SamplerBindingLayout sampler, uint binding, ShaderStage visibility = ShaderStage.All)
+    public BindGroupLayoutEntry(SamplerBindingLayout sampler, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
         Visibility = visibility;
         Sampler = sampler;
     }
 
-    public BindGroupLayoutEntry(SamplerDescription staticSampler, uint binding, ShaderStage visibility = ShaderStage.All)
+    public BindGroupLayoutEntry(SamplerDescription staticSampler, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
         Visibility = visibility;
         StaticSampler = staticSampler;
     }
 
-    public BindGroupLayoutEntry(TextureBindingLayout texture, uint binding, ShaderStage visibility = ShaderStage.All)
+    public BindGroupLayoutEntry(TextureBindingLayout texture, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
         Visibility = visibility;
         Texture = texture;
     }
 
-    public BindGroupLayoutEntry(StorageTextureBindingLayout storageTexture, uint binding, ShaderStage visibility = ShaderStage.All)
+    public BindGroupLayoutEntry(StorageTextureBindingLayout storageTexture, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
         Visibility = visibility;
@@ -51,7 +51,7 @@ public readonly record struct BindGroupLayoutEntry
     /// <summary>
     /// The shader stage the resources will be accessible to.
     /// </summary>
-    public ShaderStage Visibility { get; init; }
+    public ShaderStages Visibility { get; init; }
 
     /// <summary>
     /// Gets the buffer binding.

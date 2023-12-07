@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -585,29 +585,40 @@ internal static unsafe class VulkanUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static VkShaderStageFlags ToVk(this ShaderStage stage)
+    public static VkShaderStageFlags ToVk(this ShaderStages stage)
     {
-        switch (stage)
-        {
-            case ShaderStage.Vertex:
-                return VkShaderStageFlags.Vertex;
-            case ShaderStage.Hull:
-                return VkShaderStageFlags.TessellationControl;
-            case ShaderStage.Domain:
-                return VkShaderStageFlags.TessellationEvaluation;
-            case ShaderStage.Geometry:
-                return VkShaderStageFlags.Geometry;
-            case ShaderStage.Fragment:
-                return VkShaderStageFlags.Fragment;
-            case ShaderStage.Compute:
-                return VkShaderStageFlags.Compute;
-            case ShaderStage.Amplification:
-                return VkShaderStageFlags.TaskEXT;
-            case ShaderStage.Mesh:
-                return VkShaderStageFlags.MeshEXT;
-            default:
-                return VkShaderStageFlags.All;
-        }
+        if (stage == ShaderStages.All)
+            return VkShaderStageFlags.All;
+
+        if ((stage & ShaderStages.Library) != 0)
+            return VkShaderStageFlags.All;
+
+        VkShaderStageFlags result = VkShaderStageFlags.None;
+        if ((stage & ShaderStages.Vertex) != 0)
+            result |= VkShaderStageFlags.Vertex;
+
+        if ((stage & ShaderStages.Hull) != 0)
+            result |= VkShaderStageFlags.TessellationControl;
+
+        if ((stage & ShaderStages.Domain) != 0)
+            result |= VkShaderStageFlags.TessellationEvaluation;
+
+        if ((stage & ShaderStages.Geometry) != 0)
+            result |= VkShaderStageFlags.Geometry;
+
+        if ((stage & ShaderStages.Fragment) != 0)
+            result |= VkShaderStageFlags.Fragment;
+
+        if ((stage & ShaderStages.Compute) != 0)
+            result |= VkShaderStageFlags.Compute;
+
+        if ((stage & ShaderStages.Amplification) != 0)
+            result |= VkShaderStageFlags.TaskEXT;
+
+        if ((stage & ShaderStages.Mesh) != 0)
+            result |= VkShaderStageFlags.MeshEXT;
+
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

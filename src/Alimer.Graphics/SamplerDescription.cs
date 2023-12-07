@@ -40,8 +40,8 @@ public record struct SamplerDescription
     /// <param name="maxAnisotropy">The number of samples that can be taken to improve the quality of sample footprints that are anisotropic. Valid values are between 1 and 16.</param>
     /// <param name="compareFunction">A function that compares sampled data against existing sampled data. </param>
     /// <param name="borderColor">Border color to use if <see cref="TextureAddressMode.Border"/> is specified for AddressU, AddressV, or AddressW.</param>
-    /// <param name="minLod">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
-    /// <param name="maxLod">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This value must be greater than or equal to MinLOD. </param>
+    /// <param name="lodMinClamp">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
+    /// <param name="lodMaxClamp">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This value must be greater than or equal to MinLOD. </param>
     public SamplerDescription(
         SamplerMinMagFilter minFilter,
         SamplerMinMagFilter magFilter,
@@ -51,8 +51,8 @@ public record struct SamplerDescription
         SamplerAddressMode addressModeW,
         ushort maxAnisotropy = 1,
         CompareFunction compareFunction = CompareFunction.Never,
-        float minLod = 0.0f,
-        float maxLod = float.MaxValue,
+        float lodMinClamp = 0.0f,
+        float lodMaxClamp = float.MaxValue,
         SamplerBorderColor borderColor = SamplerBorderColor.FloatTransparentBlack)
     {
         MinFilter = minFilter;
@@ -63,8 +63,8 @@ public record struct SamplerDescription
         AddressModeW = addressModeW;
         MaxAnisotropy = maxAnisotropy;
         CompareFunction = compareFunction;
-        MinLod = minLod;
-        MaxLod = maxLod;
+        LodMinClamp = lodMinClamp;
+        LodMaxClamp = lodMaxClamp;
         ReductionType = SamplerReductionType.Standard;
         BorderColor = borderColor;
     }
@@ -85,8 +85,8 @@ public record struct SamplerDescription
         AddressModeW = addressMode;
         MaxAnisotropy = maxAnisotropy;
         CompareFunction = CompareFunction.Never;
-        MinLod = 0.0f;
-        MaxLod = float.MaxValue;
+        LodMinClamp = 0.0f;
+        LodMaxClamp = float.MaxValue;
         ReductionType = SamplerReductionType.Standard;
         BorderColor = SamplerBorderColor.FloatTransparentBlack;
     }
@@ -122,9 +122,14 @@ public record struct SamplerDescription
     public SamplerAddressMode AddressModeW  = SamplerAddressMode.Repeat;
 
     /// <summary>
-    /// Gets or sets the number of samples that can be taken to improve the quality of sample footprints that are anisotropic.
+    /// Gets or sets the minimum level of detail (LOD) to use when sampling from a texture.
     /// </summary>
-    public ushort MaxAnisotropy = 1;
+    public float LodMinClamp { get; init; } = 0.0f;
+
+    /// <summary>
+    /// Gets or sets the maximum level of detail (LOD) to use when sampling from a texture.
+    /// </summary>
+    public float LodMaxClamp = float.MaxValue;
 
     /// <summary>
     /// Gets or sets the <see cref="Graphics.CompareFunction"/> value that specifies a function that compares sampled data against existing sampled data.
@@ -132,14 +137,9 @@ public record struct SamplerDescription
     public CompareFunction CompareFunction = CompareFunction.Never;
 
     /// <summary>
-    /// Gets or sets the minimum level of detail (LOD) to use when sampling from a texture.
+    /// Gets or sets the number of samples that can be taken to improve the quality of sample footprints that are anisotropic.
     /// </summary>
-    public float MinLod { get; init; } = 0.0f;
-
-    /// <summary>
-    /// Gets or sets the maximum level of detail (LOD) to use when sampling from a texture.
-    /// </summary>
-    public float MaxLod = float.MaxValue;
+    public ushort MaxAnisotropy = 1;
 
     /// <summary>
     /// Gets or sets the <see cref="SamplerReductionType"/> value.

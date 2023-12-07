@@ -1,5 +1,5 @@
 ﻿// Copyright © Tanner Gooding and Contributors. Licensed under the MIT License (MIT). See License.md in the repository root for more information.
-// Copyright © Amer Koleci and Contributors.Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+// Copyright (c) Amer Koleci and Contributors.Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 // This file includes code based on code from https://github.com/microsoft/DirectXMath
 // The original code is Copyright © Microsoft. All rights reserved. Licensed under the MIT License (MIT).

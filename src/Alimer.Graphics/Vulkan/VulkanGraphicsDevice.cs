@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -715,6 +715,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             Guard.IsTrue(features2.features.fullDrawIndexUint32);
             Guard.IsTrue(features2.features.sampleRateShading);
             Guard.IsTrue(features2.features.shaderClipDistance);
+            Guard.IsTrue(features2.features.depthClamp);
 
             //ALIMER_VERIFY(features2.features.occlusionQueryPrecise == VK_TRUE);
             Guard.IsTrue(features1_2.descriptorIndexing);
@@ -1262,8 +1263,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkPhysicalDeviceFragmentShadingRatePropertiesKHR FragmentShadingRateProperties => _fragmentShadingRateProperties;
 
     public bool DepthClipEnable { get; }
-    public bool DepthClipControl => PhysicalDeviceFeatures2.features.depthClamp && DepthClipEnable;
-
     public bool DepthResolveMinMax { get; }
     public bool StencilResolveMinMax { get; }
     public bool DynamicRendering { get; }
@@ -1378,9 +1377,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     {
         switch (feature)
         {
-            case Feature.DepthClipControl:
-                return DepthClipControl;
-
             case Feature.Depth32FloatStencil8:
                 return SupportsD32S8;
 
@@ -1677,8 +1673,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 createInfo.compareEnable = false;
             }
 
-            createInfo.minLod = description.MinLod;
-            createInfo.maxLod = description.MaxLod;
+            createInfo.minLod = description.LodMinClamp;
+            createInfo.maxLod = (description.LodMaxClamp == float.MaxValue) ? VK_LOD_CLAMP_NONE : description.LodMaxClamp;
             createInfo.borderColor = description.BorderColor.ToVk();
             createInfo.unnormalizedCoordinates = false;
 

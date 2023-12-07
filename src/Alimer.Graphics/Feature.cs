@@ -5,7 +5,6 @@ namespace Alimer.Graphics;
 
 public enum Feature
 {
-    DepthClipControl,
     Depth32FloatStencil8,
     TimestampQuery,
     PipelineStatisticsQuery,

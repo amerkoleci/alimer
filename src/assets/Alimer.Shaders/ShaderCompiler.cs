@@ -397,37 +397,37 @@ public sealed unsafe partial class ShaderCompiler
         }
     }
 
-    public static string GetShaderTarget(ShaderStage stage, in DxcShaderModel shaderModel)
+    public static string GetShaderTarget(ShaderStages stage, in DxcShaderModel shaderModel)
     {
         string model = $"{shaderModel.Major}_{shaderModel.Minor}";
         switch (stage)
         {
-            case ShaderStage.Vertex:
+            case ShaderStages.Vertex:
                 return $"vs_{model}";
 
-            case ShaderStage.Hull:
+            case ShaderStages.Hull:
                 return $"hs_{model}";
 
-            case ShaderStage.Domain:
+            case ShaderStages.Domain:
                 return $"ds_{model}";
 
-            case ShaderStage.Geometry:
+            case ShaderStages.Geometry:
                 return $"gs_{model}";
 
-            case ShaderStage.Fragment:
+            case ShaderStages.Fragment:
                 return $"ps_{model}";
 
-            case ShaderStage.Compute:
+            case ShaderStages.Compute:
                 return $"cs_{model}";
 
-            case ShaderStage.Mesh:
+            case ShaderStages.Mesh:
                 return $"ms_{model}";
 
-            case ShaderStage.Amplification:
+            case ShaderStages.Amplification:
                 return $"as_{model}";
 
             default:
-            case ShaderStage.Library:
+            case ShaderStages.Library:
                 return $"lib_{model}";
         }
     }

@@ -35,7 +35,7 @@ public abstract class GraphicsSampleBase : SampleBase
         return GraphicsDevice.CreateBuffer(dataSpan, usage, cpuAccess);
     }
 
-    protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStage stage)
+    protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStages stage)
     {
         ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 

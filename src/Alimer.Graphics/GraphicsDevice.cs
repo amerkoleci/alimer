@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections.Concurrent;
@@ -358,7 +358,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public Pipeline CreateComputePipeline(in ComputePipelineDescription description)
     {
-        Guard.IsTrue(description.ComputeShader.Stage == ShaderStage.Compute, nameof(ComputePipelineDescription.ComputeShader));
+        Guard.IsTrue(description.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescription.ComputeShader));
         Guard.IsNotNull(description.ComputeShader.ByteCode != null, nameof(ComputePipelineDescription.ComputeShader.ByteCode));
         Guard.IsGreaterThan(description.ComputeShader.ByteCode!.Length, 0);
 

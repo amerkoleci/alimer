@@ -3,55 +3,53 @@
 
 namespace Alimer.Graphics;
 
-public enum ShaderStage
+[Flags]
+public enum ShaderStages
 {
-    /// <summary>
-    /// All stages.
-    /// </summary>
-    All = 0,
-
     /// <summary>
     /// Vertex shader stage.
     /// </summary>
-    Vertex,
+    Vertex = 1 << 0,
 
     /// <summary>
     /// Hull shader stage.
     /// </summary>
-    Hull,
+    Hull = 1 << 1,
 
     /// <summary>
     /// Domain shader stage.
     /// </summary>
-    Domain,
+    Domain = 1 << 2,
 
     /// <summary>
     /// Geometry shader stage.
     /// </summary>
-    Geometry,
+    Geometry = 1 << 3,
 
     /// <summary>
     /// Fragment (pixel) shader stage.
     /// </summary>
-    Fragment,
+    Fragment = 1 << 4,
 
     /// <summary>
     /// Compute shader stage.
     /// </summary>
-    Compute,
+    Compute = 1 << 5,
 
     /// <summary>
     /// Amplification shader stage.
     /// </summary>
-    Amplification,
+    Amplification = 1 << 6,
 
     /// <summary>
     /// Mesh shader stage.
     /// </summary>
-    Mesh,
+    Mesh = 1 << 7,
 
     /// <summary>
     /// Library shader.
     /// </summary>
-    Library,
+    Library = 1 << 8,
+
+    All = 0x3FFF,
 }

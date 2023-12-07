@@ -7,7 +7,7 @@ namespace Alimer.Graphics.Tests;
 
 public static class TestUtilities
 {
-    public static ShaderStageDescription CompileShader(string fileName, string entryPoint, GraphicsBackendType backendType, ShaderStage stage)
+    public static ShaderStageDescription CompileShader(string fileName, string entryPoint, GraphicsBackendType backendType, ShaderStages stage)
     {
         ShaderFormat shaderFormat = backendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");

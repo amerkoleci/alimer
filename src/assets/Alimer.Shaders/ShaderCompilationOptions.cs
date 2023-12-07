@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
@@ -8,7 +8,7 @@ namespace Alimer.Shaders;
 public struct ShaderCompilationOptions
 {
     public string SourceFileName { get; set; } = string.Empty;
-    public ShaderStage ShaderStage { get; set; } = ShaderStage.Vertex;
+    public ShaderStages ShaderStage { get; set; } = ShaderStages.Vertex;
     public string EntryPoint { get; set; } = "main";
     public Dictionary<string, string> Defines { get; } = new();
     public List<string> IncludeDirs { get; } = new();

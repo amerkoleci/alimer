@@ -1,4 +1,4 @@
-﻿// Copyright © Amer Koleci and Contributors.
+﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using CommunityToolkit.Diagnostics;
@@ -14,7 +14,7 @@ public readonly record struct ComputePipelineDescription
     {
         Guard.IsNotNull(layout, nameof(layout));
         Guard.IsNotNull(computeShader.ByteCode, nameof(computeShader.ByteCode));
-        Guard.IsTrue(computeShader.Stage == ShaderStage.Compute, nameof(computeShader.Stage));
+        Guard.IsTrue(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
 
         Layout = layout;
         ComputeShader = computeShader;

@@ -637,7 +637,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         switch (feature)  // NOLINT(clang-diagnostic-switch-enum)
         {
             // Always supported features
-            case Feature.DepthClipControl:
             case Feature.Depth32FloatStencil8:
             case Feature.TimestampQuery:
             case Feature.PipelineStatisticsQuery:
