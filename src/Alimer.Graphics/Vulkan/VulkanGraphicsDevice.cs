@@ -23,6 +23,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly uint[] _queueCounts;
 
     private readonly VkPhysicalDeviceProperties2 _properties2;
+    private readonly VkPhysicalDeviceMemoryProperties2 _memoryProperties2;
     private readonly VkPhysicalDeviceFragmentShadingRateFeaturesKHR _fragmentShadingRateFeatures;
     private readonly VkPhysicalDeviceFragmentShadingRatePropertiesKHR _fragmentShadingRateProperties;
     private readonly VkPhysicalDeviceAccelerationStructureFeaturesKHR _accelerationStructureFeatures;
@@ -317,6 +318,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkPhysicalDeviceVulkan11Properties properties1_1 = default;
         VkPhysicalDeviceVulkan12Properties properties1_2 = default;
         VkPhysicalDeviceVulkan13Properties properties1_3 = default;
+        VkPhysicalDeviceMemoryProperties2 memoryProperties2 = default;
 
         // Core 1.2
         VkPhysicalDeviceDriverProperties driverProperties = default;
@@ -689,6 +691,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             vkGetPhysicalDeviceFeatures2(_physicalDevice, &features2);
             vkGetPhysicalDeviceProperties2(_physicalDevice, &properties2);
 
+            memoryProperties2 = new();
+            vkGetPhysicalDeviceMemoryProperties2(_physicalDevice, &memoryProperties2);
+
             if (!features2.features.textureCompressionBC &&
                 !(features2.features.textureCompressionETC2 && features2.features.textureCompressionASTC_LDR))
             {
@@ -699,6 +704,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             PhysicalDeviceFeatures1_2 = features1_2;
             PhysicalDeviceFeatures1_3 = features1_3;
             _properties2 = properties2;
+            _memoryProperties2 = memoryProperties2;
             _fragmentShadingRateFeatures = fragmentShadingRateFeatures;
             _fragmentShadingRateProperties = fragmentShadingRateProperties;
             _accelerationStructureFeatures = accelerationStructureFeatures;
@@ -1427,9 +1433,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             case Feature.DepthBoundsTest:
                 return PhysicalDeviceFeatures2.features.depthBounds == true;
 
-            case Feature.SamplerAnisotropy:
-                return PhysicalDeviceFeatures2.features.samplerAnisotropy == true;
-
             case Feature.SamplerClampToBorder:
                 return true;
 
@@ -1444,6 +1447,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             case Feature.StencilResolveMinMax:
                 return StencilResolveMinMax;
+
+            case Feature.CacheCoherentUMA:
+                if (_memoryProperties2.memoryProperties.memoryHeapCount == 1u &&
+                    _memoryProperties2.memoryProperties.memoryHeaps[0].flags.HasFlag(VkMemoryHeapFlags.DeviceLocal))
+                {
+                    return true;
+                }
+
+                return false;
 
             case Feature.Predication:
                 return _conditionalRenderingFeatures.conditionalRendering;
@@ -1651,7 +1663,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             };
 
             ushort maxAnisotropy = description.MaxAnisotropy;
-            if (maxAnisotropy > 1 && PhysicalDeviceFeatures2.features.samplerAnisotropy)
+            if (maxAnisotropy > 1 && PhysicalDeviceFeatures2.features.samplerAnisotropy == VkBool32.True)
             {
                 createInfo.anisotropyEnable = true;
                 createInfo.maxAnisotropy = Math.Min(maxAnisotropy, _properties2.properties.limits.maxSamplerAnisotropy);
@@ -1741,7 +1753,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor description)
     {
         return new VulkanQueryHeap(this, description);
     }

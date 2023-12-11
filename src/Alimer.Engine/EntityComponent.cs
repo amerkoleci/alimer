@@ -6,6 +6,9 @@ using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "__type")]
+[JsonDerivedType(typeof(TransformComponent), "TransformComponent")]
+[JsonDerivedType(typeof(CameraComponent), "CameraComponent")]
 public abstract class EntityComponent
 {
     [IgnoreDataMember]

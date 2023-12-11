@@ -151,7 +151,10 @@ internal unsafe readonly struct D3D12Features
     }
 
     public uint NodeCount { get; }
+    public bool TileBasedRenderer(uint nodeIndex = 0) => _architecture1[nodeIndex].TileBasedRenderer;
     public bool UMA(uint nodeIndex = 0) => _architecture1[nodeIndex].UMA;
+    public bool CacheCoherentUMA(uint nodeIndex = 0) => _architecture1[nodeIndex].CacheCoherentUMA;
+    public bool IsolatedMMU(uint nodeIndex = 0) => _architecture1[nodeIndex].IsolatedMMU;
     public D3D_FEATURE_LEVEL MaxSupportedFeatureLevel { get; }
     public D3D_ROOT_SIGNATURE_VERSION RootSignatureHighestVersion { get; }
     public D3D_SHADER_MODEL HighestShaderModel { get; }

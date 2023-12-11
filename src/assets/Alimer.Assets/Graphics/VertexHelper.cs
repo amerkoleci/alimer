@@ -1,12 +1,57 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
+using Alimer.Numerics;
 
 namespace Alimer.Assets.Graphics;
 
 public static unsafe class VertexHelper
 {
+    public static BoundingBox CalculateBounds(Span<Vector3> positions)
+    {
+        return BoundingBox.CreateFromPoints(positions);
+    }
+
+    public static Span<Vector3> GenerateNormals(
+        Span<Vector3> positions,
+        Span<uint> indices)
+    {
+        Span<Vector3> normalBuffer = new Vector3[positions.Length];
+
+        int indexCount = indices.IsEmpty
+            ? positions.Length / sizeof(Vector3)
+            : indices.Length;
+
+        for (int i = 0; i < indexCount; i += 3)
+        {
+            int index1 = i + 0;
+            int index2 = i + 1;
+            int index3 = i + 2;
+
+            if (!indices.IsEmpty)
+            {
+                index1 = (int)indices[index1];
+                index2 = (int)indices[index2];
+                index3 = (int)indices[index3];
+            }
+
+            Vector3 p1 = positions[index1];
+            Vector3 p2 = positions[index2];
+            Vector3 p3 = positions[index3];
+
+            Vector3 u = p2 - p1;
+            Vector3 v = p3 - p1;
+
+            Vector3 faceNormal = Vector3.Normalize(Vector3.Cross(u, v));
+            normalBuffer[index1] += faceNormal;
+            normalBuffer[index2] += faceNormal;
+            normalBuffer[index3] += faceNormal;
+        }
+
+        return normalBuffer;
+    }
+
     public static Span<Vector3> GenerateTangents(
         Span<Vector3> positions,
         Span<Vector2> texcoords,

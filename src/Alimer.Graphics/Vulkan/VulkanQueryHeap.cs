@@ -11,7 +11,7 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     private readonly VulkanGraphicsDevice _device;
     private readonly VkQueryPool _handle = VkQueryPool.Null;
 
-    public VulkanQueryHeap(VulkanGraphicsDevice device, in QueryHeapDescription description)
+    public VulkanQueryHeap(VulkanGraphicsDevice device, in QueryHeapDescriptor description)
         : base(description)
     {
         _device = device;

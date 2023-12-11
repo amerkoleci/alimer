@@ -366,9 +366,9 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateComputePipelineCore(in description);
     }
 
-    public QueryHeap CreateQueryHeap(in QueryHeapDescription description)
+    public QueryHeap CreateQueryHeap(in QueryHeapDescriptor descriptor)
     {
-        return CreateQueryHeapCore(description);
+        return CreateQueryHeapCore(descriptor);
     }
 
     public SwapChain CreateSwapChain(ISwapChainSurface surface, in SwapChainDescription description)
@@ -393,6 +393,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
     protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
     protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
-    protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription description);
+    protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor);
     protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description);
 }

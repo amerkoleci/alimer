@@ -17,12 +17,12 @@ public enum Feature
     BGRA8UnormStorage,
     TessellationShader,
     DepthBoundsTest,
-    SamplerAnisotropy,
     SamplerClampToBorder,
     SamplerMirrorClampToEdge,
     SamplerMinMax,
     DepthResolveMinMax,
     StencilResolveMinMax,
+    CacheCoherentUMA,
     Predication,
 
     DescriptorIndexing,

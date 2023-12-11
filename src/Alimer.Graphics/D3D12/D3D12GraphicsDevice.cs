@@ -643,7 +643,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.TextureCompressionBC:
             case Feature.IndirectFirstInstance:
             case Feature.TessellationShader:
-            case Feature.SamplerAnisotropy:
             case Feature.SamplerClampToBorder:
             case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:
@@ -687,6 +686,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 }
 
                 return (_features.MaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
+
+            case Feature.CacheCoherentUMA:
+                return _features.CacheCoherentUMA();
 
             case Feature.DescriptorIndexing:
                 return true;
@@ -818,7 +820,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor description)
     {
         return new D3D12QueryHeap(this, description);
     }

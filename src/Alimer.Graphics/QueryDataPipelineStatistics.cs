@@ -6,7 +6,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// GPU pipeline statistics obtain by using a `<see cref="QueryType.PipelineStatistics"/>` query.
 /// </summary>
-public record struct QueryDataPipelineStatistics
+public readonly record struct QueryDataPipelineStatistics
 {
     public ulong InputAssemblyVertices { get; init; }
     public ulong InputAssemblyPrimitives { get; init; }
