@@ -9,20 +9,20 @@ using Alimer.Graphics;
 
 namespace Alimer.Engine;
 
-public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
+public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable<Entity>
 {
-    private static readonly Dictionary<Type, Func<IServiceRegistry, EntitySystem>> _registeredFactories = new();
-    private readonly HashSet<Entity> _entities = new();
-    private readonly Dictionary<Type, List<EntitySystem>> _systemsPerComponentType = new();
+    private static readonly Dictionary<Type, Func<IServiceRegistry, EntitySystem>> s_registeredFactories = [];
+    private readonly HashSet<Entity> _entities = [];
+    private readonly Dictionary<Type, List<EntitySystem>> _systemsPerComponentType = [];
 
     public static void RegisterSystemFactory<T>() where T : EntitySystem, new()
     {
-        _registeredFactories.Add(typeof(T), (services) => new T());
+        s_registeredFactories.Add(typeof(T), (services) => new T());
     }
 
     public static void RegisterSystemFactory<T>(Func<IServiceRegistry, T> factory) where T : EntitySystem
     {
-        _registeredFactories.Add(typeof(T), factory);
+        s_registeredFactories.Add(typeof(T), factory);
     }
 
     protected EntityManager(IServiceRegistry services)
@@ -32,9 +32,21 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
         Services = services;
     }
 
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (EntitySystem system in Systems)
+            {
+                system.Dispose();
+            }
+        }
+    }
+
     public IServiceRegistry Services { get; }
 
-    public EntitySystemCollection Systems { get; } = new EntitySystemCollection();
+    public EntitySystemCollection Systems { get; } = [];
 
     public IEnumerator<Entity> GetEnumerator() => _entities.GetEnumerator();
 
@@ -191,7 +203,7 @@ public abstract class EntityManager : IGameSystem, IEnumerable<Entity>
 
             if (addNewSystem)
             {
-                if (_registeredFactories.TryGetValue(entitySystemAttribute.Type, out Func<IServiceRegistry, EntitySystem>? factory))
+                if (s_registeredFactories.TryGetValue(entitySystemAttribute.Type, out Func<IServiceRegistry, EntitySystem>? factory))
                 {
                     EntitySystem system = factory(Services);
                     system.EntityManager = this;

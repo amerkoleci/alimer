@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <RepositoryUrl>https://github.com/amerkoleci/alimer</RepositoryUrl>
+    <RepositoryUrl>https://github.com/amerkoleci/alimer_cs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
@@ -35,7 +35,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Authors>Amer Koleci and Contributors</Authors>
+    <Authors>Amer Koleci</Authors>
+    <Owners>Amer Koleci</Owners>
+    <Company>Amer Koleci</Company>
     <Copyright>Copyright (c) Amer Koleci and Contributors</Copyright>
     <Product>Alimer</Product>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -18,7 +18,24 @@ public class GameApplication : Application
         GameSystems.Add(SceneSystem);
     }
 
-    public IList<IGameSystem> GameSystems { get; } = new List<IGameSystem>();
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (IGameSystem system in GameSystems)
+            {
+                if (system is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        base.Dispose(disposing);
+    }
+
+    public List<IGameSystem> GameSystems { get; } = [];
 
     public SceneSystem SceneSystem { get; }
 

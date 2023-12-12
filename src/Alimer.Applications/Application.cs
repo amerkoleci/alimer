@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using Alimer.Audio;
 using Alimer.Content;
@@ -32,13 +31,6 @@ public abstract class Application : DisposableObject, IApplication
     {
         Platform = platform ?? AppPlatform.CreateDefault();
         Name = name ?? GetType().Name;
-        AssemblyVersionAttribute? assemblyVersionAttribute = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyVersionAttribute>();
-        if (assemblyVersionAttribute is not null)
-        {
-            Version = new Version(assemblyVersionAttribute.Version);
-        }
-
-        Log.Info($"Version: {Version}");
         PrintSystemInformation();
 
         _services = new();
@@ -68,11 +60,6 @@ public abstract class Application : DisposableObject, IApplication
     /// Gets the Application name.
     /// </summary>
     public string Name { get; }
-
-    /// <summary>
-    /// Gets the Application Version.
-    /// </summary>
-    public virtual Version Version { get; } = new Version(0, 1, 0);
 
     /// <inheritdoc />
     public bool IsRunning { get; private set; }

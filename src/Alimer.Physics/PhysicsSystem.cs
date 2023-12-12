@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using JoltPhysicsSharp;
 
 namespace Alimer.Physics;
 
-public class PhysicsSystem : EntitySystem<PhysicsComponent>, IDisposable
+public class PhysicsSystem : EntitySystem<PhysicsComponent>
 {
     private const uint MaxBodies = 1024;
     private const uint NumBodyMutexes = 0;
@@ -42,16 +42,22 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>, IDisposable
             _objectVsObjectLayerFilter);
     }
 
-    public void Dispose()
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
-        _joltPhysicsSystem.Dispose();
-        _objectVsObjectLayerFilter.Dispose();
-        _objectVsBroadphaseLayerFilter.Dispose();
-        _broadPhaseLayer.Dispose();
-        _jobSystem.Dispose();
-        _tempAllocator.Dispose();
+        if (disposing)
+        {
+            _joltPhysicsSystem.Dispose();
+            _objectVsObjectLayerFilter.Dispose();
+            _objectVsBroadphaseLayerFilter.Dispose();
+            _broadPhaseLayer.Dispose();
+            _jobSystem.Dispose();
+            _tempAllocator.Dispose();
 
-        Foundation.Shutdown();
+            Foundation.Shutdown();
+        }
+
+        base.Dispose(disposing);
     }
 
     public override void Update(AppTime time)

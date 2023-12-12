@@ -27,6 +27,7 @@ public abstract class SampleBase : IDisposable
     {
         DisposeCollector?.Dispose();
         DisposeCollector = null;
+        GC.SuppressFinalize(this);
     }
 
     public virtual void Draw(RenderContext context, Texture outputTexture)

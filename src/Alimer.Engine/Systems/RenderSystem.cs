@@ -59,9 +59,21 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
     public Texture? MultisampleColorTexture { get; private set; }
     public Texture? DepthStencilTexture { get; private set; }
 
-    public void Dispose()
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
+        if (disposing)
+        {
+            MultisampleColorTexture?.Dispose();
+            DepthStencilTexture?.Dispose();
 
+            _blackTexture.Dispose();
+            _whiteTexture.Dispose();
+            _defaultNormalTexture.Dispose();
+            _defaultSampler.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     public override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
@@ -109,7 +121,11 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         {
             DepthStencilTexture?.Dispose();
 
-            TextureDescription desc = TextureDescription.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1, TextureUsage.RenderTarget, SampleCount);
+            TextureDescription desc = TextureDescription.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1, 
+                usage: TextureUsage.RenderTarget, 
+                initialLayout: ResourceStates.DepthWrite,
+                sampleCount: SampleCount
+                );
             DepthStencilTexture = GraphicsDevice.CreateTexture(in desc);
         }
     }

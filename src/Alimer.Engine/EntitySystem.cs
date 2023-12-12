@@ -5,7 +5,7 @@ using Alimer.Graphics;
 
 namespace Alimer.Engine;
 
-public abstract class EntitySystem : IGameSystem
+public abstract class EntitySystem : DisposableObject, IGameSystem
 {
     protected EntitySystem()
     {
@@ -31,6 +31,11 @@ public abstract class EntitySystem : IGameSystem
     public IList<Type> RequiredComponentTypes { get; } = new List<Type>();
 
     public EntityManager? EntityManager { get; internal set; }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+    }
 
     public virtual void Update(AppTime time)
     {

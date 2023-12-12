@@ -1,13 +1,12 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Vulkan;
-using static Vortice.Vulkan.Vulkan;
-using static Vortice.Vulkan.Vma;
-using System.Runtime.CompilerServices;
-using static Alimer.Graphics.Vulkan.VulkanUtils;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using Vortice.Vulkan;
+using static Alimer.Graphics.Vulkan.VulkanUtils;
+using static Vortice.Vulkan.Vma;
+using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
