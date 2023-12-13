@@ -3,19 +3,21 @@
 // Ported from um/dxcapi.h in the Windows SDK for Windows 10.0.22621.0
 // Original source is Copyright © Microsoft. All rights reserved. Licensed under the University of Illinois Open Source License.
 
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.Windows;
-
-#pragma warning disable CS0649
+using static TerraFX.Interop.Windows.IID;
 
 namespace TerraFX.Interop.DirectX;
 
 [Guid("3DA636C9-BA71-4024-A301-30CBF125305B")]
 [NativeTypeName("struct IDxcBlobUtf8 : IDxcBlobEncoding")]
 [NativeInheritance("IDxcBlobEncoding")]
-internal unsafe partial struct IDxcBlobUtf8
+internal unsafe partial struct IDxcBlobUtf8 : IDxcBlobUtf8.Interface, INativeGuid
 {
+    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_IDxcBlobUtf8));
+
     public void** lpVtbl;
 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
@@ -84,5 +86,16 @@ internal unsafe partial struct IDxcBlobUtf8
     public nuint GetStringLength()
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcBlobUtf8*, nuint>)(lpVtbl[7]))((IDxcBlobUtf8*)Unsafe.AsPointer(ref this));
+    }
+
+    public interface Interface : IDxcBlobEncoding.Interface
+    {
+        [VtblIndex(6)]
+        [return: NativeTypeName("LPCSTR")]
+        sbyte* GetStringPointer();
+
+        [VtblIndex(7)]
+        [return: NativeTypeName("SIZE_T")]
+        nuint GetStringLength();
     }
 }

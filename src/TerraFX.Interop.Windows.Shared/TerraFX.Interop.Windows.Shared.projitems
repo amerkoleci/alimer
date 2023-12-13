@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ComPtr`1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_FEATURE_LEVEL.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_PRIMITIVE.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_PRIMITIVE_TOPOLOGY.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_TESSELLATOR_DOMAIN.cs" />
@@ -20,6 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HANDLE.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HRESULT.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HWND.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\INativeGuid.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\LPARAM.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\LRESULT.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\NativeInheritanceAttribute.cs" />
@@ -35,8 +37,5 @@
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\Windows.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\shared\winerror\S.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\shared\uuids\Windows.Manual.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)Windows\Windows\" />
   </ItemGroup>
 </Project>

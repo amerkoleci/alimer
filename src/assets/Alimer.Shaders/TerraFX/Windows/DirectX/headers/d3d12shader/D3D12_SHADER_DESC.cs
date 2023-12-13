@@ -3,15 +3,12 @@
 // Ported from d3d12shader.h in microsoft/DirectX-Headers tag v1.606.4
 // Original source is Copyright © Microsoft. Licensed under the MIT license
 
-using TerraFX.Interop.Windows;
-
 namespace TerraFX.Interop.DirectX;
 
 internal unsafe partial struct D3D12_SHADER_DESC
 {
     public uint Version;
 
-    [NativeTypeName("LPCSTR")]
     public sbyte* Creator;
 
     public uint Flags;
@@ -54,7 +51,6 @@ internal unsafe partial struct D3D12_SHADER_DESC
 
     public uint DynamicFlowControlCount;
 
-    /// <include file='D3D12_SHADER_DESC.xml' path='doc/member[@name="D3D12_SHADER_DESC.MacroInstructionCount"]/*' />
     public uint MacroInstructionCount;
 
     public uint ArrayInstructionCount;
@@ -83,9 +79,7 @@ internal unsafe partial struct D3D12_SHADER_DESC
 
     public uint cBarrierInstructions;
 
-    /// <include file='D3D12_SHADER_DESC.xml' path='doc/member[@name="D3D12_SHADER_DESC.cInterlockedInstructions"]/*' />
     public uint cInterlockedInstructions;
 
-    /// <include file='D3D12_SHADER_DESC.xml' path='doc/member[@name="D3D12_SHADER_DESC.cTextureStoreInstructions"]/*' />
     public uint cTextureStoreInstructions;
 }

@@ -3,19 +3,21 @@
 // Ported from d3d12shader.h in microsoft/DirectX-Headers tag v1.606.4
 // Original source is Copyright © Microsoft. Licensed under the MIT license
 
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.Windows;
-
-#pragma warning disable CS0649
+using static TerraFX.Interop.Windows.IID;
 
 namespace TerraFX.Interop.DirectX;
 
 [Guid("5A58797D-A72C-478D-8BA2-EFC6B0EFE88E")]
 [NativeTypeName("struct ID3D12ShaderReflection : IUnknown")]
 [NativeInheritance("IUnknown")]
-internal unsafe partial struct ID3D12ShaderReflection 
+internal unsafe partial struct ID3D12ShaderReflection : ID3D12ShaderReflection.Interface, INativeGuid
 {
+    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_ID3D12ShaderReflection));
+
     public void** lpVtbl;
 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
@@ -58,7 +60,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint, ID3D12ShaderReflectionConstantBuffer*>)(lpVtbl[4]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), Index);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetConstantBufferByName"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(5)]
     //public ID3D12ShaderReflectionConstantBuffer* GetConstantBufferByName([NativeTypeName("LPCSTR")] sbyte* Name)
@@ -66,7 +67,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, sbyte*, ID3D12ShaderReflectionConstantBuffer*>)(lpVtbl[5]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), Name);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetResourceBindingDesc"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(6)]
     //public HRESULT GetResourceBindingDesc(uint ResourceIndex, D3D12_SHADER_INPUT_BIND_DESC* pDesc)
@@ -74,7 +74,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint, D3D12_SHADER_INPUT_BIND_DESC*, int>)(lpVtbl[6]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), ResourceIndex, pDesc);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetInputParameterDesc"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(7)]
     //public HRESULT GetInputParameterDesc(uint ParameterIndex, D3D12_SIGNATURE_PARAMETER_DESC* pDesc)
@@ -82,7 +81,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint, D3D12_SIGNATURE_PARAMETER_DESC*, int>)(lpVtbl[7]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), ParameterIndex, pDesc);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetOutputParameterDesc"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(8)]
     //public HRESULT GetOutputParameterDesc(uint ParameterIndex, D3D12_SIGNATURE_PARAMETER_DESC* pDesc)
@@ -90,7 +88,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint, D3D12_SIGNATURE_PARAMETER_DESC*, int>)(lpVtbl[8]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), ParameterIndex, pDesc);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetPatchConstantParameterDesc"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(9)]
     //public HRESULT GetPatchConstantParameterDesc(uint ParameterIndex, D3D12_SIGNATURE_PARAMETER_DESC* pDesc)
@@ -98,7 +95,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint, D3D12_SIGNATURE_PARAMETER_DESC*, int>)(lpVtbl[9]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), ParameterIndex, pDesc);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetVariableByName"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(10)]
     //public ID3D12ShaderReflectionVariable* GetVariableByName([NativeTypeName("LPCSTR")] sbyte* Name)
@@ -106,7 +102,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, sbyte*, ID3D12ShaderReflectionVariable*>)(lpVtbl[10]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), Name);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetResourceBindingDescByName"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(11)]
     //public HRESULT GetResourceBindingDescByName([NativeTypeName("LPCSTR")] sbyte* Name, D3D12_SHADER_INPUT_BIND_DESC* pDesc)
@@ -114,7 +109,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, sbyte*, D3D12_SHADER_INPUT_BIND_DESC*, int>)(lpVtbl[11]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), Name, pDesc);
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetMovInstructionCount"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(12)]
     //public uint GetMovInstructionCount()
@@ -122,7 +116,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint>)(lpVtbl[12]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetMovcInstructionCount"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(13)]
     //public uint GetMovcInstructionCount()
@@ -130,7 +123,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint>)(lpVtbl[13]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetConversionInstructionCount"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(14)]
     //public uint GetConversionInstructionCount()
@@ -138,7 +130,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint>)(lpVtbl[14]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetBitwiseInstructionCount"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(15)]
     //public uint GetBitwiseInstructionCount()
@@ -146,7 +137,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint>)(lpVtbl[15]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetGSInputPrimitive"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(16)]
     //public D3D_PRIMITIVE GetGSInputPrimitive()
@@ -154,7 +144,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, D3D_PRIMITIVE>)(lpVtbl[16]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.IsSampleFrequencyShader"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(17)]
     //public BOOL IsSampleFrequencyShader()
@@ -162,7 +151,6 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, int>)(lpVtbl[17]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetNumInterfaceSlots"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(18)]
     //public uint GetNumInterfaceSlots()
@@ -170,23 +158,20 @@ internal unsafe partial struct ID3D12ShaderReflection
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint>)(lpVtbl[18]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetMinFeatureLevel"]/*' />
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //[VtblIndex(19)]
-    //public HRESULT GetMinFeatureLevel([NativeTypeName("enum D3D_FEATURE_LEVEL *")] D3D_FEATURE_LEVEL* pLevel)
-    //{
-    //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, D3D_FEATURE_LEVEL*, int>)(lpVtbl[19]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), pLevel);
-    //}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(19)]
+    public HRESULT GetMinFeatureLevel([NativeTypeName("enum D3D_FEATURE_LEVEL *")] D3D_FEATURE_LEVEL* pLevel)
+    {
+        return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, D3D_FEATURE_LEVEL*, int>)(lpVtbl[19]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), pLevel);
+    }
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetThreadGroupSize"]/*' />
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //[VtblIndex(20)]
-    //public uint GetThreadGroupSize(uint* pSizeX, uint* pSizeY, uint* pSizeZ)
-    //{
-    //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint*, uint*, uint*, uint>)(lpVtbl[20]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), pSizeX, pSizeY, pSizeZ);
-    //}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(20)]
+    public uint GetThreadGroupSize(uint* pSizeX, uint* pSizeY, uint* pSizeZ)
+    {
+        return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, uint*, uint*, uint*, uint>)(lpVtbl[20]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this), pSizeX, pSizeY, pSizeZ);
+    }
 
-    ///// <include file='ID3D12ShaderReflection.xml' path='doc/member[@name="ID3D12ShaderReflection.GetRequiresFlags"]/*' />
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[VtblIndex(21)]
     //[return: NativeTypeName("UINT64")]
@@ -194,4 +179,65 @@ internal unsafe partial struct ID3D12ShaderReflection
     //{
     //    return ((delegate* unmanaged[MemberFunction]<ID3D12ShaderReflection*, ulong>)(lpVtbl[21]))((ID3D12ShaderReflection*)Unsafe.AsPointer(ref this));
     //}
+
+    public interface Interface : IUnknown.Interface
+    {
+        [VtblIndex(3)]
+        HRESULT GetDesc(D3D12_SHADER_DESC* pDesc);
+
+        //[VtblIndex(4)]
+        //ID3D12ShaderReflectionConstantBuffer* GetConstantBufferByIndex(uint Index);
+
+        //[VtblIndex(5)]
+        //ID3D12ShaderReflectionConstantBuffer* GetConstantBufferByName([NativeTypeName("LPCSTR")] sbyte* Name);
+
+        //[VtblIndex(6)]
+        //HRESULT GetResourceBindingDesc(uint ResourceIndex, D3D12_SHADER_INPUT_BIND_DESC* pDesc);
+
+        //[VtblIndex(7)]
+        //HRESULT GetInputParameterDesc(uint ParameterIndex, D3D12_SIGNATURE_PARAMETER_DESC* pDesc);
+
+        //[VtblIndex(8)]
+        //HRESULT GetOutputParameterDesc(uint ParameterIndex, D3D12_SIGNATURE_PARAMETER_DESC* pDesc);
+
+        //[VtblIndex(9)]
+        //HRESULT GetPatchConstantParameterDesc(uint ParameterIndex, D3D12_SIGNATURE_PARAMETER_DESC* pDesc);
+
+        //[VtblIndex(10)]
+        //ID3D12ShaderReflectionVariable* GetVariableByName([NativeTypeName("LPCSTR")] sbyte* Name);
+
+        //[VtblIndex(11)]
+        //HRESULT GetResourceBindingDescByName([NativeTypeName("LPCSTR")] sbyte* Name, D3D12_SHADER_INPUT_BIND_DESC* pDesc);
+
+        //[VtblIndex(12)]
+        //uint GetMovInstructionCount();
+
+        //[VtblIndex(13)]
+        //uint GetMovcInstructionCount();
+
+        //[VtblIndex(14)]
+        //uint GetConversionInstructionCount();
+
+        //[VtblIndex(15)]
+        //uint GetBitwiseInstructionCount();
+
+        //[VtblIndex(16)]
+        //D3D_PRIMITIVE GetGSInputPrimitive();
+
+        //[VtblIndex(17)]
+        //BOOL IsSampleFrequencyShader();
+
+        //[VtblIndex(18)]
+        //uint GetNumInterfaceSlots();
+
+        [VtblIndex(19)]
+        HRESULT GetMinFeatureLevel([NativeTypeName("enum D3D_FEATURE_LEVEL *")] D3D_FEATURE_LEVEL* pLevel);
+
+        [VtblIndex(20)]
+        uint GetThreadGroupSize(uint* pSizeX, uint* pSizeY, uint* pSizeZ);
+
+        //[VtblIndex(21)]
+        //[return: NativeTypeName("UINT64")]
+        //ulong GetRequiresFlags();
+    }
 }

@@ -7,16 +7,17 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.Windows;
-
-#pragma warning disable CS0649
+using static TerraFX.Interop.Windows.IID;
 
 namespace TerraFX.Interop.DirectX;
 
 [Guid("8BA5FB08-5195-40E2-AC58-0D989C3A0102")]
 [NativeTypeName("struct IDxcBlob : IUnknown")]
 [NativeInheritance("IUnknown")]
-internal unsafe partial struct IDxcBlob
+internal unsafe partial struct IDxcBlob : IDxcBlob.Interface, INativeGuid
 {
+    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_IDxcBlob));
+
     public void** lpVtbl;
 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
@@ -45,7 +46,6 @@ internal unsafe partial struct IDxcBlob
         return ((delegate* unmanaged[MemberFunction]<IDxcBlob*, uint>)(lpVtbl[2]))((IDxcBlob*)Unsafe.AsPointer(ref this));
     }
 
-    /// <include file='IDxcBlob.xml' path='doc/member[@name="IDxcBlob.GetBufferPointer"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
     [return: NativeTypeName("LPVOID")]
@@ -54,12 +54,22 @@ internal unsafe partial struct IDxcBlob
         return ((delegate* unmanaged[MemberFunction]<IDxcBlob*, void*>)(lpVtbl[3]))((IDxcBlob*)Unsafe.AsPointer(ref this));
     }
 
-    /// <include file='IDxcBlob.xml' path='doc/member[@name="IDxcBlob.GetBufferSize"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
     [return: NativeTypeName("SIZE_T")]
     public nuint GetBufferSize()
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcBlob*, nuint>)(lpVtbl[4]))((IDxcBlob*)Unsafe.AsPointer(ref this));
+    }
+
+    public interface Interface : IUnknown.Interface
+    {
+        [VtblIndex(3)]
+        [return: NativeTypeName("LPVOID")]
+        void* GetBufferPointer();
+
+        [VtblIndex(4)]
+        [return: NativeTypeName("SIZE_T")]
+        nuint GetBufferSize();
     }
 }
