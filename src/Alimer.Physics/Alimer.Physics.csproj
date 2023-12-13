@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0</TargetFrameworks>
+    <RootNamespace>Alimer.Physics</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Alimer.Engine\Alimer.Engine.csproj" />
-    
-    <PackageReference Include="JoltPhysicsSharp" />
+
+    <PackageReference Include="BepuPhysics" />
   </ItemGroup>
 
 </Project>

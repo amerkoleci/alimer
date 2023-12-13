@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections;
@@ -95,9 +95,10 @@ public sealed partial class Entity : IEnumerable<EntityComponent>, INotifyProper
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public void Add(EntityComponent component)
+    public Entity Add(EntityComponent component)
     {
         Components.Add(component);
+        return this;
     }
 
     public T Add<T>() where T : EntityComponent, new()

@@ -51,6 +51,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ImGui", "src\Alimer.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.UI", "src\Alimer.UI\Alimer.UI.csproj", "{18D54D83-0AA5-4916-87CF-48B69E9F66EA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Audio", "src\Alimer.Audio\Alimer.Audio.csproj", "{F46E6E40-194E-4E8F-8695-154E53B329AB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Navigation", "src\Alimer.Navigation\Alimer.Navigation.csproj", "{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -109,6 +113,14 @@ Global
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

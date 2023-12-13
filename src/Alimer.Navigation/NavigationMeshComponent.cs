@@ -2,11 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Engine;
-using BepuPhysics;
 
-namespace Alimer.Physics;
+namespace Alimer.Navigation;
 
-public class RigidBodyComponent : PhysicsComponent
+[DefaultEntitySystem(typeof(NavigationSystem))]
+public abstract class NavigationMeshComponent : EntityComponent
 {
-    internal BodyHandle Handle { get; private set; }
 }

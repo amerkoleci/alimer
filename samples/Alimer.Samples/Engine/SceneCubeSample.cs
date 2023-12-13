@@ -1,9 +1,10 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.ComponentModel;
 using Alimer.Engine;
 using Alimer.Graphics;
+using Alimer.Physics;
 using Alimer.Rendering;
 
 namespace Alimer.Samples.Engime;
@@ -30,8 +31,19 @@ public sealed class SceneCubeSample : SampleBase
 
         // Mesh
         _meshEntity = new();
-        MeshComponent meshComponent = _meshEntity.Add<MeshComponent>();
-        meshComponent.Mesh = new Mesh(GraphicsDevice);
+
+        MeshComponent meshComponent = new()
+        {
+            Mesh = new Mesh(GraphicsDevice)
+        };
+
+        RigidBodyComponent rigidBody = new()
+        {
+            //ColliderShape = new SphereColliderShape(50.0f),
+            //Mass = 100.0f
+        };
+
+        _meshEntity.Add(meshComponent).Add(rigidBody);
 
         root.Children.Add(_cameraEntity);
         root.Children.Add(_meshEntity);

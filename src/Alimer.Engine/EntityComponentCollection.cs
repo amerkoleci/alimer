@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections.ObjectModel;
@@ -11,6 +11,14 @@ public sealed class EntityComponentCollection(Entity entity) : ObservableCollect
     /// Gets the owner entity.
     /// </summary>
     public Entity Entity { get; } = entity;
+
+    public void Add(params EntityComponent[] components)
+    {
+        foreach(EntityComponent component in components)
+        {
+            base.Add(component);
+        }
+    }
 
     protected override void InsertItem(int index, EntityComponent item)
     {
