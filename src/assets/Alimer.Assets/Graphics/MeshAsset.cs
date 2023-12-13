@@ -12,13 +12,5 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public class MeshAsset : AssetWithSource
 {
-    public int VertexCount { get; set; }
-
-    public Vector3[]? Positions { get; set; }
-    public Vector3[]? Normals { get; set; }
-    public Vector3[]? Tangents { get; set; }
-    public Vector2[]? Texcoords { get; set; }
-    public Vector2[]? Texcoords2 { get; set; }
-    public Color[]? Colors { get; set; }
-    public uint[]? Indices { get; set; }
+    public MeshData? Data { get; set; }
 }

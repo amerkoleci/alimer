@@ -88,12 +88,15 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
         MeshAsset asset = new()
         {
             Source = source,
-            VertexCount = positions.Count,
-            Positions = positions.ToArray(),
-            Normals = normals.ToArray(),
-            Tangents = tangents.ToArray(),
-            Texcoords = texCoords0.ToArray(),
-            Indices = indices
+            Data = new Rendering.MeshData()
+            {
+                VertexCount = positions.Count,
+                Positions = positions.ToArray(),
+                Normals = normals.ToArray(),
+                Tangents = tangents.ToArray(),
+                Texcoords = texCoords0.ToArray(),
+                Indices = indices
+            }
         };
 
         return Task.FromResult(asset);

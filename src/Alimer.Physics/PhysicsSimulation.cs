@@ -1,15 +1,12 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Alimer.Engine;
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using BepuPhysics.CollisionDetection;
 using BepuPhysics.Constraints;
-using BepuPhysics.Trees;
 using BepuUtilities;
 using BepuUtilities.Memory;
 

@@ -1,26 +1,22 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Alimer.Shaders;
 
 partial class ShaderCompiler
 {
-#if OLD
     static ShaderCompiler()
     {
-        // Register a custom library resolver for the two DXC libraries. We need to either manually load the two
-        // libraries from the NuGet directory, if an RID is not in use, or we need to ensure that dxil.dll is
-        // loaded correctly in case the program was executed with the host being in another directory.
-        // This happens when doing eg. "dotnet bin\Debug\net5.0\MyApp.dll", which would crash at runtime.
-        Windows.ResolveLibrary += static (libraryName, assembly, searchPath) =>
-        {
-            if (libraryName is not "dxcompiler")
-            {
-                return IntPtr.Zero;
-            }
+        NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), OnDllImport);
+    }
 
+    private static nint OnDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+    {
+        if (libraryName.Equals("dxcompiler"))
+        {
             string rid = RuntimeInformation.ProcessArchitecture switch
             {
                 Architecture.X64 => "win-x64",
@@ -61,9 +57,8 @@ partial class ShaderCompiler
                     return handle;
                 }
             }
+        }
 
-            return IntPtr.Zero;
-        };
-    } 
-#endif
+        return 0;
+    }
 }

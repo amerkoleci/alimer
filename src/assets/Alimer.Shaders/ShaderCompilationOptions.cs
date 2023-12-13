@@ -10,8 +10,8 @@ public struct ShaderCompilationOptions
     public string SourceFileName { get; set; } = string.Empty;
     public ShaderStages ShaderStage { get; set; } = ShaderStages.Vertex;
     public string EntryPoint { get; set; } = "main";
-    public Dictionary<string, string> Defines { get; } = new();
-    public List<string> IncludeDirs { get; } = new();
+    public Dictionary<string, string> Defines { get; } = [];
+    public List<string> IncludeDirs { get; } = [];
 
     public DxcShaderModel ShaderModel { get; set; } = DxcShaderModel.Model6_5;
 

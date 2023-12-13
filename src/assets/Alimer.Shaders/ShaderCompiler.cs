@@ -1,14 +1,16 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
-using static Win32.Graphics.Direct3D.Dxc.Apis;
 using System.Runtime.InteropServices;
-using static Win32.Apis;
 using Alimer.Graphics;
-using Win32;
-using Win32.Graphics.Direct3D.Dxc;
-using Win32.Graphics.Direct3D;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.Windows.CLSID;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.DXC;
+using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
 
 namespace Alimer.Shaders;
 
@@ -215,9 +217,9 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add("-Qstrip_debug");
         }
 
-        HResult hr = Compile(source, arguments.ToArray(), __uuidof<IDxcResult>(), results.GetVoidAddressOf());
+        HRESULT hr = Compile(source, arguments.ToArray(), __uuidof<IDxcResult>(), results.GetVoidAddressOf());
 
-        if (hr.Failure)
+        if (hr.FAILED)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hr}");
         }
@@ -226,7 +228,7 @@ public sealed unsafe partial class ShaderCompiler
         // Print errors if present.
         //
         using ComPtr<IDxcBlobUtf8> errors = default;
-        results.Get()->GetOutput(DxcOutKind.Errors,
+        results.Get()->GetOutput(DXC_OUT_ERRORS,
             __uuidof<IDxcBlobUtf8>(),
             errors.GetVoidAddressOf(),
             null
@@ -241,16 +243,16 @@ public sealed unsafe partial class ShaderCompiler
         }
 
         // Quit if the compilation failed.
-        HResult hrStatus;
+        HRESULT hrStatus;
         results.Get()->GetStatus(&hrStatus);
-        if (hrStatus.Failure)
+        if (hrStatus.FAILED)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus}");
         }
 
         using ComPtr<IDxcBlob> byteCode = default;
         using ComPtr<IDxcBlobUtf16> pShaderName = default;
-        results.Get()->GetOutput(DxcOutKind.Object,
+        results.Get()->GetOutput(DXC_OUT_OBJECT,
             __uuidof<IDxcBlob>(),
             byteCode.GetVoidAddressOf(),
             pShaderName.GetAddressOf()
@@ -263,7 +265,7 @@ public sealed unsafe partial class ShaderCompiler
         // Save pdb.
         using ComPtr<IDxcBlob> pPDB = default;
         using ComPtr<IDxcBlobUtf16> pPDBName = default;
-        results.Get()->GetOutput(DxcOutKind.Pdb,
+        results.Get()->GetOutput(DXC_OUT_PDB,
             __uuidof<IDxcBlob>(),
             pPDB.GetVoidAddressOf(),
             pPDBName.GetAddressOf());
@@ -273,7 +275,7 @@ public sealed unsafe partial class ShaderCompiler
 
         // Print hash.
         using ComPtr<IDxcBlob> hash = default;
-        results.Get()->GetOutput(DxcOutKind.ShaderHash,
+        results.Get()->GetOutput(DXC_OUT_SHADER_HASH,
             __uuidof<IDxcBlob>(),
             hash.GetVoidAddressOf(),
             null);
@@ -284,23 +286,23 @@ public sealed unsafe partial class ShaderCompiler
         if (format == ShaderFormat.DXIL)
         {
             using ComPtr<IDxcBlob> reflectionData = default;
-            results.Get()->GetOutput(DxcOutKind.Reflection, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
+            results.Get()->GetOutput(DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
             if (reflectionData.Get() is not null)
             {
                 // Create reflection interface.
-                var reflectionDataBuffer = new DxcBuffer
+                DxcBuffer reflectionDataBuffer = new()
                 {
-                    Encoding = DxcCp.Acp,
+                    Encoding = DXC_CP_ACP,
                     Ptr = reflectionData.Get()->GetBufferPointer(),
                     Size = reflectionData.Get()->GetBufferSize()
                 };
 
-#if SHADER_REFLECTION
                 using ComPtr<ID3D12ShaderReflection> reflection = default;
                 _dxcUtils.Get()->CreateReflection(&reflectionDataBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
 
-                ShaderDescription description;
+                D3D12_SHADER_DESC description;
                 ThrowIfFailed(reflection.Get()->GetDesc(&description));
+#if TODO
 
                 // Iterate on all Constant buffers used by this shader
                 // Build all ParameterBuffers
@@ -347,7 +349,7 @@ public sealed unsafe partial class ShaderCompiler
                     ThrowIfFailed(reflection.Get()->GetResourceBindingDesc(i, &shaderInputBindDesc));
                     string name = new(shaderInputBindDesc.Name);
 
-                } 
+                }
 #endif
             }
         }
@@ -355,7 +357,7 @@ public sealed unsafe partial class ShaderCompiler
         return new DxcShaderCompilationResult(byteCode);
     }
 
-    private HResult Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
+    private HRESULT Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
 
@@ -364,7 +366,7 @@ public sealed unsafe partial class ShaderCompiler
             ThrowIfFailed(_dxcUtils.Get()->CreateBlobFromPinned(
                 pSource,
                 (uint)source.Length * 2,
-                DxcCp.Utf16,
+                DXC_CP_UTF16,
                 dxcBlobEncoding.GetAddressOf())
                 );
         }
@@ -373,16 +375,16 @@ public sealed unsafe partial class ShaderCompiler
         {
             Ptr = dxcBlobEncoding.Get()->GetBufferPointer(),
             Size = dxcBlobEncoding.Get()->GetBufferSize(),
-            Encoding = DxcCp.Utf16,
+            Encoding = DXC_CP_UTF16,
         };
 
         nint* pArguments = StringsToUtf16(arguments);
 
         try
         {
-            HResult hr = _dxcCompiler.Get()->Compile(
+            HRESULT hr = _dxcCompiler.Get()->Compile(
                 &buffer,
-                (ushort**)pArguments,
+                (char**)pArguments,
                 (uint)arguments.Length,
                 _dxcDefaultIncludeHandler.Get(),
                 riid,

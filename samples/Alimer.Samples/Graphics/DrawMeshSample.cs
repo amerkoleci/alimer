@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.ComponentModel;
@@ -45,18 +45,18 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         MeshImporter meshImporter = new();
         MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), Services).Result;
 
-        Span<VertexPositionNormalTexture> vertices = new VertexPositionNormalTexture[meshAsset.VertexCount];
-        for (int i = 0; i < meshAsset.VertexCount; i++)
+        Span<VertexPositionNormalTexture> vertices = new VertexPositionNormalTexture[meshAsset.Data.VertexCount];
+        for (int i = 0; i < meshAsset.Data.VertexCount; i++)
         {
-            vertices[i] = new VertexPositionNormalTexture(meshAsset.Positions[i], meshAsset.Normals[i], meshAsset.Texcoords[i]);
+            vertices[i] = new VertexPositionNormalTexture(meshAsset.Data.Positions[i], meshAsset.Data.Normals[i], meshAsset.Data.Texcoords[i]);
         }
 
         //var data = MeshUtilities.CreateCube(5.0f);
         //_vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
         //_indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertices, BufferUsage.Vertex));
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Indices!.AsSpan(), BufferUsage.Index));
-        _indexCount = (uint)meshAsset.Indices.Length;
+        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Data.Indices!.AsSpan(), BufferUsage.Index));
+        _indexCount = (uint)meshAsset.Data.Indices.Length;
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 

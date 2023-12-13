@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>BC61A7B9-4E0B-4F71-B1DE-C5E053E7DFBE</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>TerraFX.Interop.Windows</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ComPtr`1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_PRIMITIVE.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_PRIMITIVE_TOPOLOGY.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_TESSELLATOR_DOMAIN.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_TESSELLATOR_OUTPUT_PRIMITIVE.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\d3dcommon\D3D_TESSELLATOR_PARTITIONING.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\DirectX\headers\dxgiformat\DXGI_FORMAT.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\BOOL.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HANDLE.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HRESULT.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HWND.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\LPARAM.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\LRESULT.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\NativeInheritanceAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\Windows.Manual.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\NativeTypeNameAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\VtblIndexAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\WPARAM.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\Unknwnbase\IID.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\Unknwnbase\IUnknown.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\LARGE_INTEGER.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\LUID.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\ULARGE_INTEGER.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\Windows.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\shared\winerror\S.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\shared\uuids\Windows.Manual.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Windows\Windows\" />
+  </ItemGroup>
+</Project>

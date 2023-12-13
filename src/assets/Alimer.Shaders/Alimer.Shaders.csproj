@@ -5,11 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
   </ItemGroup>
+
+  <Import Project="..\..\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.projitems" Label="Shared" />
 
 </Project>
