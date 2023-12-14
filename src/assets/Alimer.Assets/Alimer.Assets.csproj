@@ -15,6 +15,7 @@
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="HarfBuzzSharp" />
     <PackageReference Include="SharpGLTF.Core" />
+    <PackageReference Include="Silk.NET.Assimp" />
   </ItemGroup>
   
 

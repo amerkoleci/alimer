@@ -37,6 +37,7 @@
     <PackageVersion Include="SkiaSharp" Version="2.88.6" />
     <PackageVersion Include="HarfBuzzSharp" Version="7.3.0" />
     <PackageVersion Include="SharpGLTF.Core" Version="1.0.0-alpha0030" />
+    <PackageVersion Include="Silk.NET.Assimp" Version="2.20.0" />
     <PackageVersion Include="Vortice.SpirvCross" Version="1.4.4" />
 
     <!-- Tests -->

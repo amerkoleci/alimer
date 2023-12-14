@@ -2,9 +2,12 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
+using Silk.NET.Assimp;
+using AssimpScene = Silk.NET.Assimp.Scene;
+using GLTFMaterial = SharpGLTF.Schema2.Material;
+using GLTFMesh = SharpGLTF.Schema2.Mesh;
 
 namespace Alimer.Assets.Graphics;
 
@@ -13,12 +16,34 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public sealed class MeshImporter : AssetImporter<MeshAsset>
 {
-    public override Task<MeshAsset> Import(string source, IServiceRegistry services)
+    private readonly Assimp _assImp;
+    private static readonly PostProcessSteps s_postProcessSteps =
+        PostProcessSteps.FindDegenerates
+        | PostProcessSteps.FindInvalidData
+        //| PostProcessSteps.FlipUVs               // Required for Direct3D
+        | PostProcessSteps.FlipWindingOrder
+        | PostProcessSteps.JoinIdenticalVertices
+        | PostProcessSteps.ImproveCacheLocality
+        | PostProcessSteps.OptimizeMeshes
+        | PostProcessSteps.Triangulate
+        | PostProcessSteps.PreTransformVertices
+        | PostProcessSteps.GenerateNormals
+        | PostProcessSteps.CalculateTangentSpace
+        // | PostProcessSteps.GenerateUVCoords
+        // | PostProcessSteps.SortByPrimitiveType
+        // | PostProcessSteps.Debone
+        ;
+
+    public MeshImporter()
     {
-        GraphicsDevice device = services.GetService<GraphicsDevice>();
+        _assImp = Assimp.GetApi();
+    }
+
+    public Task<MeshAsset> ImportGLTF(string source, IServiceRegistry services)
+    {
         ModelRoot modelRoot = ModelRoot.Load(source);
 
-        foreach (Material material in modelRoot.LogicalMaterials)
+        foreach (GLTFMaterial material in modelRoot.LogicalMaterials)
         {
         }
 
@@ -28,11 +53,11 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
         List<Vector2> texCoords0 = [];
         uint[] indices = [];
 
-        foreach (Mesh mesh in modelRoot.LogicalMeshes)
+        foreach (GLTFMesh mesh in modelRoot.LogicalMeshes)
         {
             foreach (MeshPrimitive primitive in mesh.Primitives)
             {
-                Material material = primitive.Material;
+                GLTFMaterial material = primitive.Material;
 
                 bool hasPosition = primitive.GetVertexAccessor("POSITION") is not null;
                 bool hasNormal = primitive.GetVertexAccessor("NORMAL") is not null;
@@ -100,5 +125,83 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
         };
 
         return Task.FromResult(asset);
+    }
+
+    public unsafe Task<MeshAsset> ImportAssimp(string source, IServiceRegistry services)
+    {
+        //AssimpScene* scene = _assImp.ImportFileFromMemory(data.AsSpan(), (uint)data.Length, (uint)s_postProcessSteps, (byte*)null);
+        AssimpScene* scene = _assImp.ImportFile(source, (uint)s_postProcessSteps);
+
+        if (scene is null || scene->MFlags == (uint)SceneFlags.Incomplete || scene->MRootNode is null)
+        {
+            throw new InvalidDataException(_assImp.GetErrorStringS());
+        }
+
+        Silk.NET.Assimp.Mesh* mesh = scene->MMeshes[0];
+        Guard.IsTrue(mesh->MVertices is not null);
+        Guard.IsTrue(mesh->MNormals is not null);
+
+        List<Vector3> positions = [];
+        List<Vector3> normals = [];
+        List<Vector3> tangents = [];
+        List<Vector2> texCoords0 = [];
+        uint[] indices = [];
+
+        bool hasTangentsAndBitangents = mesh->MTangents is not null;
+        bool hasHasTexCoords0 = mesh->MTextureCoords[0] is not null;
+
+        for (int i = 0; i < (int)mesh->MNumVertices; ++i)
+        {
+            Vector3 position = mesh->MVertices[i];
+            Vector3 normal = mesh->MNormals[i];
+            Vector3 tangent = Vector3.Zero;
+            Vector2 texcoord = Vector2.Zero;
+
+            if (hasTangentsAndBitangents)
+            {
+                tangent = mesh->MTangents[i];
+            }
+
+            if (hasHasTexCoords0)
+            {
+                texcoord = new Vector2(mesh->MTextureCoords[0][i].X, 1.0f - mesh->MTextureCoords[0][i].Y);
+            }
+
+            positions.Add(position);
+            normals.Add(normal);
+            tangents.Add(tangent);
+            texCoords0.Add(texcoord);
+        }
+
+        indices = new uint[(int)mesh->MNumFaces];
+        for (int i = 0; i < (int)mesh->MNumFaces; ++i)
+        {
+            Guard.IsTrue(mesh->MFaces[i].MNumIndices == 3);
+            indices[i + 0] = mesh->MFaces[i].MIndices[0];
+            indices[i + 1] = mesh->MFaces[i].MIndices[1];
+            indices[i + 2] = mesh->MFaces[i].MIndices[2];
+        }
+
+        MeshAsset asset = new()
+        {
+            Source = source,
+            Data = new Rendering.MeshData()
+            {
+                VertexCount = positions.Count,
+                Positions = [.. positions],
+                Normals = [.. normals],
+                Tangents = [.. tangents],
+                Texcoords = [.. texCoords0],
+                Indices = indices
+            }
+        };
+
+        return Task.FromResult(asset);
+    }
+
+    public override Task<MeshAsset> Import(string source, IServiceRegistry services)
+    {
+        //GraphicsDevice device = services.GetService<GraphicsDevice>();
+        return ImportGLTF(source, services);
     }
 }
