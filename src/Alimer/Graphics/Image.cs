@@ -2,10 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
-using static Alimer.AlimerApi;
+using StbImageSharp;
 
 namespace Alimer.Graphics;
 
@@ -32,8 +32,8 @@ public sealed unsafe class Image : DisposableObject
             case TextureDimension.Texture2D:
                 for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
                 {
-                    uint mipWidth = Width;
-                    uint mipHeight = Height;
+                    uint mipWidth = (uint)Width;
+                    uint mipHeight = (uint)Height;
 
                     for (uint level = 0; level < MipLevelCount; ++level)
                     {
@@ -63,9 +63,9 @@ public sealed unsafe class Image : DisposableObject
 
             case TextureDimension.Texture3D:
                 {
-                    uint mipWidth = Width;
-                    uint mipHeight = Height;
-                    uint mipDepth = Depth;
+                    uint mipWidth = (uint)Width;
+                    uint mipHeight = (uint)Height;
+                    uint mipDepth = (uint)Depth;
 
                     for (uint level = 0; level < MipLevelCount; ++level)
                     {
@@ -108,6 +108,12 @@ public sealed unsafe class Image : DisposableObject
         SetupImageArray(_data, SizeInBytes, description, _levels);
     }
 
+    private Image(in ImageDescription description, Span<byte> source)
+        : this(in description)
+    {
+        source.CopyTo(new Span<byte>(_data, source.Length));
+    }
+
     private Image(in ImageDescription description, ReadOnlySpan<byte> source)
         : this(in description)
     {
@@ -143,27 +149,27 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the width of the image.
     /// </summary>
-    public uint Width => Description.Width;
+    public int Width => Description.Width;
 
     /// <summary>
     /// Get the height of the image.
     /// </summary>
-    public uint Height => Description.Height;
+    public int Height => Description.Height;
 
     /// <summary>
     /// Get the depth of the image.
     /// </summary>
-    public uint Depth => Description.Dimension == TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
+    public int Depth => Description.Dimension == TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
     /// Get the array layers of the image.
     /// </summary>
-    public uint ArrayLayers => Description.Dimension != TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
+    public int ArrayLayers => Description.Dimension != TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
     /// Get the number of mipmap levels in the.
     /// </summary>
-    public uint MipLevelCount => Description.MipLevelCount;
+    public int MipLevelCount => Description.MipLevelCount;
 
     /// <summary>
     /// Get the data size in bytes.
@@ -194,7 +200,7 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetWidth(int mipLevel = 0)
+    public int GetWidth(int mipLevel = 0)
     {
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> mipLevel) : 0;
     }
@@ -204,7 +210,7 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetHeight(int mipLevel = 0)
+    public int GetHeight(int mipLevel = 0)
     {
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> mipLevel) : 0;
     }
@@ -214,7 +220,7 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetDepth(int mipLevel = 0)
+    public int GetDepth(int mipLevel = 0)
     {
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> mipLevel) : 0;
     }
@@ -231,21 +237,62 @@ public sealed unsafe class Image : DisposableObject
         return _mipmaps[level];
     }
 
-    public static Image FromFile(string filePath, bool srgb = true)
+    public static Image FromFile(string filePath, int channels = 4, bool srgb = true)
     {
         using FileStream stream = new(filePath, FileMode.Open);
-        return FromStream(stream, srgb);
+        return FromStream(stream, channels, srgb);
     }
 
-    public static Image FromStream(Stream stream, bool srgb = true)
+    public static Image FromStream(Stream stream, int channels = 4, bool srgb = true)
     {
-        byte[] data = new byte[stream.Length];
-        stream.Read(data, 0, (int)stream.Length);
-        return FromMemory(data, srgb);
+        Span<byte> data = stackalloc byte[(int)stream.Length];
+        stream.ReadExactly(data);
+        return FromMemory(data, channels, srgb);
     }
 
-    public static unsafe Image FromMemory(byte[] data, bool srgb = true)
+    public static unsafe Image FromMemory(Span<byte> data, int channels = 4, bool srgb = true)
     {
+        // TODO: Add DDS, ASTC, KTX1 and KTX2 loading
+        if (IsKTX1(data) || IsKTX2(data))
+        {
+            throw new NotImplementedException("KTX1/KTX2 loading is not supported");
+        }
+        else
+        {
+            bool isHdr = IsHDR(data);
+            using MemoryStream stream = new(data.ToArray());
+
+            if (isHdr)
+            {
+                using ImageResultFloat imageResultFloat = ImageResultFloat.FromStream(stream, (ColorComponents)channels);
+                ImageDescription imageDescription = ImageDescription.Image2D(PixelFormat.RGBA32Float, imageResultFloat.Width, imageResultFloat.Height);
+                return new(imageDescription, imageResultFloat.Data.As<float, byte>());
+            }
+            else
+            {
+                using ImageResult imageResult = ImageResult.FromStream(stream, (ColorComponents)channels);
+                PixelFormat format = PixelFormat.RGBA8Unorm;
+                switch (imageResult.Comp)
+                {
+                    case ColorComponents.Grey:
+                        format = PixelFormat.R8Unorm;
+                        break;
+                    case ColorComponents.GreyAlpha:
+                        format = PixelFormat.RG8Unorm;
+                        break;
+                    case ColorComponents.RedGreenBlue:
+                        throw new NotSupportedException("RGB images are not supported");
+                    case ColorComponents.RedGreenBlueAlpha:
+                        format = PixelFormat.RGBA8Unorm;
+                        break;
+                }
+
+                ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, imageResult.Width, imageResult.Height);
+                return new(imageDescription, imageResult.Data);
+            }
+        }
+
+#if TODO_OLD
         fixed (byte* dataPtr = data)
         {
             nint handle = AlimerImage_CreateFromMemory(dataPtr, (uint)data.Length);
@@ -267,7 +314,8 @@ public sealed unsafe class Image : DisposableObject
 
             ImageDescription imageDescription = ImageDescription.Image2D(srgb ? desc.format.LinearToSrgbFormat() : desc.format, desc.width, desc.height);
             return new Image(imageDescription, imageData);
-        }
+        } 
+#endif
     }
 
     private static void SetupImageArray(byte* pixels, nuint memorySize, in ImageDescription description, ImageData[] levels)
@@ -286,8 +334,8 @@ public sealed unsafe class Image : DisposableObject
                 {
                     for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
                     {
-                        uint mipWidth = description.Width;
-                        uint mipHeight = description.Height;
+                        uint mipWidth = (uint)description.Width;
+                        uint mipHeight = (uint)description.Height;
 
                         for (uint level = 0; level < description.MipLevelCount; ++level)
                         {
@@ -311,9 +359,9 @@ public sealed unsafe class Image : DisposableObject
 
             case TextureDimension.Texture3D:
                 {
-                    uint mipWidth = description.Width;
-                    uint mipHeight = description.Height;
-                    uint mipDepth = description.DepthOrArrayLayers;
+                    uint mipWidth = (uint)description.Width;
+                    uint mipHeight = (uint)description.Height;
+                    uint mipDepth = (uint)description.DepthOrArrayLayers;
 
                     for (uint level = 0; level < description.MipLevelCount; ++level)
                     {
@@ -376,7 +424,7 @@ public sealed unsafe class Image : DisposableObject
     } 
 #endif
 
-    private static bool IsKTX1(byte[] data)
+    private static bool IsKTX1(Span<byte> data)
     {
         if (data.Length <= 12)
         {
@@ -393,7 +441,36 @@ public sealed unsafe class Image : DisposableObject
         return true;
     }
 
-    private static bool IsKTX2(byte[] data)
+    private static bool IsHDR(Span<byte> data)
+    {
+        if (data.Length <= 6)
+        {
+            return false;
+        }
+
+        ReadOnlySpan<byte> signature = "#?RADIANCE"u8;
+        for (int i = 0; i < signature.Length; i++)
+        {
+            if (data[i] != signature[i])
+            {
+                // Try alt signature
+                ReadOnlySpan<byte> altSignature = "#?RGBE"u8;
+                for (int j = 0; j < altSignature.Length; j++)
+                {
+                    if (data[j] != altSignature[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsKTX2(ReadOnlySpan<byte> data)
     {
         if (data.Length <= 12)
         {

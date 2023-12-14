@@ -105,22 +105,22 @@ public abstract class Texture : GraphicsResource
         return mipLevel + arrayLayer * MipLevelCount + planeSlice * MipLevelCount * ArrayLayers;
     }
 
-    public static Texture FromFile(GraphicsDevice device, string filePath, bool srgb = true)
+    public static Texture FromFile(GraphicsDevice device, string filePath, int channels = 4, bool srgb = true)
     {
         using FileStream stream = new(filePath, FileMode.Open);
-        return FromStream(device, stream, srgb);
+        return FromStream(device, stream, channels, srgb);
     }
 
-    public static Texture FromStream(GraphicsDevice device, Stream stream, bool srgb = true)
+    public static Texture FromStream(GraphicsDevice device, Stream stream, int channels = 4, bool srgb = true)
     {
         byte[] data = new byte[stream.Length];
         stream.Read(data, 0, (int)stream.Length);
-        return FromMemory(device, data, srgb);
+        return FromMemory(device, data, channels, srgb);
     }
 
-    public static Texture FromMemory(GraphicsDevice device, byte[] data, bool srgb = true)
+    public static Texture FromMemory(GraphicsDevice device, byte[] data, int channels = 4, bool srgb = true)
     {
-        using Image image = Image.FromMemory(data, srgb);
-        return device.CreateTexture2D(image.Data, image.Format, image.Width, image.Height);
+        using Image image = Image.FromMemory(data, channels, srgb);
+        return device.CreateTexture2D(image.Data, image.Format, (uint)image.Width, (uint)image.Height);
     }
 }

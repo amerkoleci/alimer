@@ -10,16 +10,16 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="Image"/>.
 /// </summary>
-public record struct ImageDescription
+public readonly record struct ImageDescription
 {
     [SetsRequiredMembers]
     public ImageDescription(
         TextureDimension dimension,
         PixelFormat format,
-        uint width,
-        uint height,
-        uint depthOrArrayLayers,
-        uint mipLevelCount = 1u)
+        int width,
+        int height,
+        int depthOrArrayLayers,
+        int mipLevelCount = 1)
     {
         Guard.IsTrue(format != PixelFormat.Undefined);
         Guard.IsGreaterThanOrEqualTo(width, 1);
@@ -36,9 +36,9 @@ public record struct ImageDescription
 
     public static ImageDescription Image1D(
         PixelFormat format,
-        uint width,
-        uint mipLevelCount = 1,
-        uint arrayLayers = 1u)
+        int width,
+        int mipLevelCount = 1,
+        int arrayLayers = 1)
     {
         return new ImageDescription(
             TextureDimension.Texture1D,
@@ -51,10 +51,10 @@ public record struct ImageDescription
 
     public static ImageDescription Image2D(
         PixelFormat format,
-        uint width,
-        uint height,
-        uint mipLevelCount = 1u,
-        uint arrayLayers = 1u)
+        int width,
+        int height,
+        int mipLevelCount = 1,
+        int arrayLayers = 1)
     {
         return new ImageDescription(
             TextureDimension.Texture2D,
@@ -67,10 +67,10 @@ public record struct ImageDescription
 
     public static ImageDescription Image3D(
         PixelFormat format,
-        uint width,
-        uint height,
-        uint depth,
-        uint mipLevelCount = 1u)
+        int width,
+        int height,
+        int depth,
+        int mipLevelCount = 1)
     {
         return new ImageDescription(
             TextureDimension.Texture3D,
@@ -83,9 +83,9 @@ public record struct ImageDescription
 
     public static ImageDescription ImageCube(
         PixelFormat format,
-        uint size,
-        uint mipLevelCount = 1u,
-        uint arrayLayers = 1u)
+        int size,
+        int mipLevelCount = 1,
+        int arrayLayers = 1)
     {
         return new ImageDescription(
             TextureDimension.Texture2D,
@@ -109,37 +109,38 @@ public record struct ImageDescription
     /// <summary>
     /// Gets the width of <see cref="Texture"/>
     /// </summary>
-    public required uint Width { get; init; } = 1;
+    public required int Width { get; init; } = 1;
 
     /// <summary>
     /// Gets the height of <see cref="Image"/>
     /// </summary>
-    public required uint Height { get; init; } = 1;
+    public required int Height { get; init; } = 1;
 
     /// <summary>
     /// Gets the depth of <see cref="Image"/>, if it is 3D, or the array layers if it is an array of 1D or 2D resources.
     /// </summary>
-    public required uint DepthOrArrayLayers { get; init; } = 1;
+    public required int DepthOrArrayLayers { get; init; } = 1;
 
     /// <summary>
     /// The number of mipmap levels in the <see cref="Image"/>.
     /// </summary>
-    public required uint MipLevelCount { get; init; } = 1;
+    public required int MipLevelCount { get; init; } = 1;
 
-    public static uint GetMipLevelCount(uint width, uint height, uint depth = 1u, uint minDimension = 1u, uint requiredAlignment = 1u)
+    public static int GetMipLevelCount(int width, int height, int depth = 1, int minDimension = 1, uint requiredAlignment = 1u)
     {
-        uint mipLevelCount = 1;
+        int mipLevelCount = 1;
         while (width > minDimension || height > minDimension || depth > minDimension)
         {
             width = Math.Max(minDimension, width >> 1);
             height = Math.Max(minDimension, height >> 1);
             depth = Math.Max(minDimension, depth >> 1);
-            if (AlignUp(width, requiredAlignment) != width ||
-                AlignUp(height, requiredAlignment) != height ||
-                AlignUp(depth, requiredAlignment) != depth)
+            if (AlignUp((uint)width, requiredAlignment) != width ||
+                AlignUp((uint)height, requiredAlignment) != height ||
+                AlignUp((uint)depth, requiredAlignment) != depth)
             {
                 break;
             }
+
             mipLevelCount++;
         }
 

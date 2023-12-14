@@ -37,10 +37,11 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
 
-        TextureImporter textureImporter = new();
-        TextureAsset textureAsset = textureImporter.Import(Path.Combine(texturesPath, "10points.png"), Services).Result;
-        _texture = ToDispose(textureAsset.CreateRuntime(GraphicsDevice));
+        //TextureImporter textureImporter = new();
+        //TextureAsset textureAsset = textureImporter.Import(Path.Combine(texturesPath, "10points.png"), Services).Result;
+        //_texture = ToDispose(textureAsset.CreateRuntime(GraphicsDevice));
         _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
+        //_texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "environment.hdr")));
 
         MeshImporter meshImporter = new();
         MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), Services).Result;

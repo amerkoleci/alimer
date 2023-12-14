@@ -9,6 +9,8 @@ using System.Runtime.InteropServices;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.IID;
 
+#pragma warning disable CS0649
+
 namespace TerraFX.Interop.DirectX;
 
 [Guid("228B4687-5A6A-4730-900C-9702B2203F54")]

@@ -12,7 +12,7 @@ public static class GraphicsUtilities
         uint pixelsPerBlock = descriptor.Format.GetFormatHeightCompressionRatio();
         uint numBlocksX = descriptor.Width / pixelsPerBlock;
         uint numBlocksY = descriptor.Height / pixelsPerBlock;
-        uint mipLevelCount = descriptor.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(descriptor.Width, descriptor.Height, descriptor.DepthOrArrayLayers) : descriptor.MipLevelCount;
+        uint mipLevelCount = descriptor.MipLevelCount == 0 ? (uint)ImageDescription.GetMipLevelCount((int)descriptor.Width, (int)descriptor.Height, (int)descriptor.DepthOrArrayLayers) : descriptor.MipLevelCount;
         for (uint arrayLayer = 0; arrayLayer < descriptor.DepthOrArrayLayers; ++arrayLayer)
         {
             for (int mipLevel = 0; mipLevel < mipLevelCount; ++mipLevel)
