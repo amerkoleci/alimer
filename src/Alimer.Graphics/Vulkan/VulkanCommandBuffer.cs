@@ -10,6 +10,7 @@ using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+using Vortice.Mathematics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -331,7 +332,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                     imageLayout = VkImageLayout.ColorAttachmentOptimal,
                     loadOp = attachment.LoadAction.ToVk(),
                     storeOp = attachment.StoreAction.ToVk(),
-                    clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
+                    clearValue = new VkClearValue(attachment.ClearColor.R, attachment.ClearColor.G, attachment.ClearColor.B, attachment.ClearColor.A)
                 };
 
                 TextureBarrier(texture, ResourceStates.RenderTarget);
@@ -476,7 +477,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, reference);
     }
 
-    public override void SetBlendColor(Numerics.Color color)
+    public override void SetBlendColor(Color4 color)
     {
         vkCmdSetBlendConstants(_commandBuffer, (float*)&color);
     }

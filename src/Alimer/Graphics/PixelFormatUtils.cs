@@ -57,8 +57,8 @@ public static class PixelFormatUtils
         // Packed 32-Bit Pixel formats
         new(PixelFormat.RGB10A2Unorm,           4, 1, 1, FormatKind.Unorm),
         new(PixelFormat.RGB10A2Uint,            4, 1, 1, FormatKind.Uint),
-        new(PixelFormat.RG11B10UFloat,          4, 1, 1, FormatKind.Float),
-        new(PixelFormat.RGB9E5UFloat,           4, 1, 1, FormatKind.Float),
+        new(PixelFormat.RG11B10Float,           4, 1, 1, FormatKind.Float),
+        new(PixelFormat.RGB9E5Float,            4, 1, 1, FormatKind.Float),
         // 64-Bit Pixel Formats
         new(PixelFormat.RG32Uint,               8, 1, 1, FormatKind.Uint),
         new(PixelFormat.RG32Sint,               8, 1, 1, FormatKind.Sint),
@@ -532,8 +532,8 @@ public static class PixelFormatUtils
 
             case PixelFormat.RGB10A2Unorm:
             case PixelFormat.RGB10A2Uint:
-            case PixelFormat.RG11B10UFloat:
-            case PixelFormat.RGB9E5UFloat:
+            case PixelFormat.RG11B10Float:
+            case PixelFormat.RGB9E5Float:
             case PixelFormat.RGBA8Unorm:
             case PixelFormat.RGBA8UnormSrgb:
             case PixelFormat.RGBA8Snorm:
@@ -769,8 +769,8 @@ public static class PixelFormatUtils
             // Packed 32-Bit formats
             case PixelFormat.RGB10A2Unorm: return DxgiFormat.R10G10B10A2Unorm;
             case PixelFormat.RGB10A2Uint: return DxgiFormat.R10G10B10A2Uint;
-            case PixelFormat.RG11B10UFloat: return DxgiFormat.R11G11B10Float;
-            case PixelFormat.RGB9E5UFloat: return DxgiFormat.R9G9B9E5SharedExp;
+            case PixelFormat.RG11B10Float: return DxgiFormat.R11G11B10Float;
+            case PixelFormat.RGB9E5Float: return DxgiFormat.R9G9B9E5SharedExp;
             // 64-Bit formats
             case PixelFormat.RG32Uint: return DxgiFormat.R32G32Uint;
             case PixelFormat.RG32Sint: return DxgiFormat.R32G32Sint;
@@ -854,8 +854,8 @@ public static class PixelFormatUtils
             // Packed 32-Bit formats
             case DxgiFormat.R10G10B10A2Unorm: return PixelFormat.RGB10A2Unorm;
             case DxgiFormat.R10G10B10A2Uint: return PixelFormat.RGB10A2Uint;
-            case DxgiFormat.R11G11B10Float: return PixelFormat.RG11B10UFloat;
-            case DxgiFormat.R9G9B9E5SharedExp: return PixelFormat.RGB9E5UFloat;
+            case DxgiFormat.R11G11B10Float: return PixelFormat.RG11B10Float;
+            case DxgiFormat.R9G9B9E5SharedExp: return PixelFormat.RGB9E5Float;
             // 64-Bit formats
             case DxgiFormat.R32G32Uint: return PixelFormat.RG32Uint;
             case DxgiFormat.R32G32Sint: return PixelFormat.RG32Sint;

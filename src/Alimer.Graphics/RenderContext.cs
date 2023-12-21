@@ -1,9 +1,10 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
 using System.Drawing;
 using CommunityToolkit.Diagnostics;
+using Vortice.Mathematics;
 
 namespace Alimer.Graphics;
 
@@ -102,14 +103,14 @@ public abstract class RenderContext : ComputeContext
 
     public void SetBlendColor(float red, float green, float blue, float alpha)
     {
-        SetBlendColor(new Numerics.Color(red, green, blue, alpha));
+        SetBlendColor(new Color4(red, green, blue, alpha));
     }
 
     public abstract void SetViewport(in Viewport viewport);
     public abstract void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0);
     public abstract void SetScissorRect(in Rectangle rect);
     public abstract void SetStencilReference(uint reference);
-    public abstract void SetBlendColor(Numerics.Color color);
+    public abstract void SetBlendColor(Color4 color);
     public abstract void SetShadingRate(ShadingRate rate);
     public abstract void SetDepthBounds(float minBounds, float maxBounds);
 

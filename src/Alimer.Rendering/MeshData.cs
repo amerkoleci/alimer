@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using Alimer.Numerics;
+using Vortice.Mathematics;
 
 namespace Alimer.Rendering;
 
@@ -22,6 +22,6 @@ public sealed class MeshData
     public Vector3[]? Tangents { get; set; }
     public Vector2[]? Texcoords { get; set; }
     public Vector2[]? Texcoords2 { get; set; }
-    public Color[]? Colors { get; set; }
+    public Color4[]? Colors { get; set; }
     public uint[]? Indices { get; set; }
 }

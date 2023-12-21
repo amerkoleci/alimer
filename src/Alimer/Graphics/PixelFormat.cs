@@ -47,8 +47,8 @@ public enum PixelFormat
     // Packed 32-Bit Pixel Formats
     RGB10A2Unorm,
     RGB10A2Uint,
-    RG11B10UFloat,
-    RGB9E5UFloat,
+    RG11B10Float,
+    RGB9E5Float,
     // 64-bit formats
     RG32Uint,
     RG32Sint,

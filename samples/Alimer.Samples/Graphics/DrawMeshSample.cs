@@ -7,6 +7,7 @@ using System.Numerics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
 using Alimer.Numerics;
+using Vortice.Mathematics;
 
 namespace Alimer.Samples.Graphics;
 
@@ -117,7 +118,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
         _constantBuffer.SetData(worldViewProjection);
 
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color4(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {

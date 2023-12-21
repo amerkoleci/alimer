@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections;
@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Alimer.Numerics;
+using Vortice.Mathematics;
 
 namespace Alimer.Engine;
 
@@ -71,7 +72,7 @@ public sealed class TransformComponent : EntityComponent, IEnumerable<TransformC
 
     [IgnoreDataMember]
     [JsonIgnore]
-    public Vector3 RotationEuler { get => Rotation.ToEuler(); set => Rotation = value.ToQuaternion(); }
+    public Vector3 RotationEuler { get => Rotation.ToEuler(); set => Rotation = value.FromEuler(); }
 
     public override string ToString() => $"Position: {Position}, Rotation: {RotationEuler}, Scale: {Scale}";
 

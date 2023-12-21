@@ -321,8 +321,8 @@ internal static unsafe class VulkanUtils
             // Packed 32-Bit formats
             case PixelFormat.RGB10A2Unorm: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
             case PixelFormat.RGB10A2Uint: return VK_FORMAT_A2R10G10B10_UINT_PACK32;
-            case PixelFormat.RG11B10UFloat: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-            case PixelFormat.RGB9E5UFloat: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+            case PixelFormat.RG11B10Float: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+            case PixelFormat.RGB9E5Float: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
             // 64-Bit formats
             case PixelFormat.RG32Uint: return VK_FORMAT_R32G32_UINT;
             case PixelFormat.RG32Sint: return VK_FORMAT_R32G32_SINT;
@@ -449,8 +449,13 @@ internal static unsafe class VulkanUtils
             case VertexFormat.Int3: return VkFormat.R32G32B32Sint;
             case VertexFormat.Int4: return VkFormat.R32G32B32A32Sint;
 
-            case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
-            case VertexFormat.UInt1010102Normalized: return VkFormat.A2B10G10R10UnormPack32;
+            //case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
+            case VertexFormat.UInt1010102Normalized:
+                return VkFormat.A2B10G10R10UnormPack32;
+            case VertexFormat.RG11B10Float:
+                return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+            case VertexFormat.RGB9E5Float:
+                return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
             default:
                 return VkFormat.Undefined;
@@ -817,11 +822,11 @@ internal static unsafe class VulkanUtils
             VkPipelineStageFlags2.AllCommands,
             VkAccessFlags2.UniformRead,
             VkImageLayout.Undefined),
-        new (ResourceStates.VertexBuffer,
+        new(ResourceStates.VertexBuffer,
             VkPipelineStageFlags2.VertexInput,
             VkAccessFlags2.VertexAttributeRead,
             VkImageLayout.Undefined),
-        new (ResourceStates.IndexBuffer,
+        new(ResourceStates.IndexBuffer,
             VkPipelineStageFlags2.VertexInput,
             VkAccessFlags2.IndexRead,
             VkImageLayout.Undefined),

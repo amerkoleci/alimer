@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
-using static Alimer.Numerics.MathUtilities;
+using Vortice.Mathematics;
 
 namespace Alimer.Graphics;
 
@@ -134,9 +134,9 @@ public readonly record struct ImageDescription
             width = Math.Max(minDimension, width >> 1);
             height = Math.Max(minDimension, height >> 1);
             depth = Math.Max(minDimension, depth >> 1);
-            if (AlignUp((uint)width, requiredAlignment) != width ||
-                AlignUp((uint)height, requiredAlignment) != height ||
-                AlignUp((uint)depth, requiredAlignment) != depth)
+            if (MathHelper.AlignUp((uint)width, requiredAlignment) != width ||
+                MathHelper.AlignUp((uint)height, requiredAlignment) != height ||
+                MathHelper.AlignUp((uint)depth, requiredAlignment) != depth)
             {
                 break;
             }

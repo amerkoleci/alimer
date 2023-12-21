@@ -1,11 +1,14 @@
-﻿// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 namespace Alimer.Graphics;
 
 public enum ShadingRate
 {
-    Rate1x1,    // Default/full shading rate
+    /// <summary>
+    /// Default/Full shading rate.
+    /// </summary>
+    Rate1x1,
     Rate1x2,
     Rate2x1,
     Rate2x2,

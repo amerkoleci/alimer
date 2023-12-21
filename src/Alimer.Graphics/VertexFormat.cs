@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 namespace Alimer.Graphics;
@@ -40,8 +40,10 @@ public enum VertexFormat
     Int3,
     Int4,
 
-    Int1010102Normalized,
+    //Int1010102Normalized,
     UInt1010102Normalized,
+    RG11B10Float,
+    RGB9E5Float,
 
     Count
 }

@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
@@ -8,7 +8,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="GraphicsBuffer"/>.
 /// </summary>
-public record struct BufferDescription
+public readonly record struct BufferDescription
 {
     [SetsRequiredMembers]
     public BufferDescription(

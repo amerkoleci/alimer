@@ -20,7 +20,11 @@
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
   <Import Project="$(AlimerRootDirectory)Alimer.Native.targets" />
-  
+
+  <ItemGroup>
+    <Using Include="Vortice.Mathematics" />
+  </ItemGroup>
+
   <!-- Assets-->
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />

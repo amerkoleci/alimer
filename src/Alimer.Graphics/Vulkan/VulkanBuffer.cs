@@ -4,8 +4,8 @@
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Vortice.Vulkan.Vma;
-using static Alimer.Numerics.MathUtilities;
 using System.Runtime.CompilerServices;
+using Vortice.Mathematics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -42,7 +42,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
         if ((description.Usage & BufferUsage.Constant) != 0)
         {
-            createInfo.size = AlignUp(description.Size, device.PhysicalDeviceProperties.properties.limits.minUniformBufferOffsetAlignment);
+            createInfo.size = MathHelper.AlignUp(description.Size, device.PhysicalDeviceProperties.properties.limits.minUniformBufferOffsetAlignment);
             createInfo.usage |= VkBufferUsageFlags.UniformBuffer;
         }
 

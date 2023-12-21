@@ -1,8 +1,9 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
 using Alimer.Numerics;
+using Vortice.Mathematics;
 
 namespace Alimer.Engine;
 
@@ -25,7 +26,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
         _blackTexture = CreateTextureFromColor(Colors.Transparent);
         _whiteTexture = CreateTextureFromColor(Colors.White);
-        _defaultNormalTexture = CreateTextureFromColor(new Color(0.5f, 0.5f, 1.0f, 0f));
+        _defaultNormalTexture = CreateTextureFromColor(new Color4(0.5f, 0.5f, 1.0f, 0f));
         _defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
 
         ColorFormat = MainWindow.SwapChain.ColorFormat;
@@ -139,9 +140,9 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
     {
     }
 
-    private Texture CreateTextureFromColor(in Color color)
+    private Texture CreateTextureFromColor(in Color4 color)
     {
-        Span<uint> pixels = [color.ToRgba()];
+        Span<uint> pixels = [(uint)color.ToRgba()];
         return GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);
     }
 }

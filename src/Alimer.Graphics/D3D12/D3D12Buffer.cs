@@ -2,9 +2,9 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
-using static Alimer.Numerics.MathUtilities;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using Vortice.Mathematics;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
@@ -28,7 +28,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         ulong alignedSize = description.Size;
         if ((description.Usage & BufferUsage.Constant) != 0)
         {
-            alignedSize = AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+            alignedSize = MathHelper.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;

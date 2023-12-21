@@ -714,6 +714,20 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    public override bool QueryPixelFormatSupport(PixelFormat format)
+    {
+        // TODO:
+        return false;
+    }
+
+    /// <inheritdoc />
+    public override bool QueryVertexFormatSupport(VertexFormat format)
+    {
+        // TODO:
+        return false;
+    }
+
+    /// <inheritdoc />
     public override void WaitIdle()
     {
         for (int i = 0; i < (int)QueueType.Count; i++)

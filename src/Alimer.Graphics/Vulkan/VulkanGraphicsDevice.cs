@@ -1489,6 +1489,27 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    public override bool QueryPixelFormatSupport(PixelFormat format)
+    {
+        // TODO:
+        return false;
+    }
+
+    /// <inheritdoc />
+    public override bool QueryVertexFormatSupport(VertexFormat format)
+    {
+        VkFormat vkFormat = format.ToVk();
+        if (vkFormat == VkFormat.Undefined)
+            return false;
+
+        VkFormatProperties2 props = new();
+        vkGetPhysicalDeviceFormatProperties2(PhysicalDevice, vkFormat, &props);
+
+        // TODO:
+        return false;
+    }
+
+    /// <inheritdoc />
     public override void WaitIdle()
     {
         ThrowIfFailed(vkDeviceWaitIdle(Handle));
