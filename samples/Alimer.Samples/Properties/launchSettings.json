@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Alimer.Samples": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

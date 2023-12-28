@@ -6,8 +6,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
-using Alimer.Numerics;
-using Vortice.Mathematics;
 
 namespace Alimer.Samples.Graphics;
 

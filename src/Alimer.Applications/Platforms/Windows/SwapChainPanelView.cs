@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Drawing;
+using Vortice.Mathematics;
 using Alimer.Graphics;
 using Microsoft.UI.Xaml.Controls;
 using Windows.UI.ViewManagement;
@@ -14,7 +14,7 @@ internal unsafe class SwapChainPanelView : Window
 {
     private readonly WindowsPlatform _platform;
     private readonly SwapChainPanel _swapChainPanel;
-    private Size _clientSize;
+    private SizeI _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
 
@@ -50,11 +50,11 @@ internal unsafe class SwapChainPanelView : Window
     }
 
     /// <inheritdoc />
-    public override Point Position
+    public override Int2 Position
     {
         get
         {
-            return Point.Empty;
+            return Int2.Zero;
         }
         set
         {
@@ -62,7 +62,7 @@ internal unsafe class SwapChainPanelView : Window
     }
 
     /// <inheritdoc />
-    public override Size ClientSize => _clientSize;
+    public override SizeI ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

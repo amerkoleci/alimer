@@ -8,7 +8,6 @@ using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Alimer.Utilities.UnsafeUtilities;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.CompilerServices;
 using Vortice.Mathematics;
 
@@ -466,7 +465,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdSetViewport(_commandBuffer, firstViewport: 0, 1, vkViewports);
     }
 
-    public override void SetScissorRect(in Rectangle rect)
+    public override void SetScissorRect(in RectI rect)
     {
         VkRect2D vkRect = new(rect.X, rect.Y, rect.Width, rect.Height);
         vkCmdSetScissor(_commandBuffer, 0, 1, &vkRect);

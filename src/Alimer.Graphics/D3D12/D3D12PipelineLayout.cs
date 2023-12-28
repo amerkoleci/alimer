@@ -131,8 +131,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
         fixed (D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = staticSamplersSpan)
         {
-            D3D12_VERSIONED_ROOT_SIGNATURE_DESC.Init_1_1(
-                out D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc,
+            D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc = new(
                 (uint)rootParameterCount,
                 rootParameters,
                 (uint)staticSamplers.Count,
@@ -143,7 +142,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             using ComPtr<ID3DBlob> rootSignatureBlob = default;
             using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
 
-            HRESULT hr = D3D12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
+            HRESULT hr = D3DX12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
                 device.D3D12Features.RootSignatureHighestVersion,
                 rootSignatureBlob.GetAddressOf(),
                 rootSignatureErrorBlob.GetAddressOf());
@@ -189,7 +188,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     {
         fixed (char* pName = newLabel)
         {
-            _ = _handle.Get()->SetName((ushort*)pName);
+            _ = _handle.Get()->SetName(pName);
         }
     }
 

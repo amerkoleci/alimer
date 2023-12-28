@@ -1,9 +1,9 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Drawing;
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
+using Vortice.Mathematics;
 
 namespace Alimer;
 
@@ -50,7 +50,7 @@ public abstract class Window : ISwapChainSurface
     public abstract nint Handle { get; }
 
     /// <inheritdoc />
-    SizeF ISwapChainSurface.Size => ClientSize;
+    SizeI ISwapChainSurface.Size => ClientSize;
     #endregion ISwapChainSurface Members
 
     public abstract bool IsMinimized { get; }
@@ -59,8 +59,8 @@ public abstract class Window : ISwapChainSurface
     /// Gets or Sets whether the Window is in Fullscreen Mode
     /// </summary>
     public abstract bool IsFullscreen { get; set; }
-    public abstract Point Position { get; set; }
-    public abstract Size ClientSize { get; }
+    public abstract Int2 Position { get; set; }
+    public abstract SizeI ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
@@ -74,10 +74,10 @@ public abstract class Window : ISwapChainSurface
     {
         get
         {
-            SizeF size = ClientSize;
+            SizeI size = ClientSize;
             if (size.Width != 0 && size.Height != 0)
             {
-                return size.Width / size.Height;
+                return (float)size.Width / size.Height;
             }
 
             return 0.0f;

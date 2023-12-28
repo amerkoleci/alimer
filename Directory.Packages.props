@@ -1,17 +1,11 @@
 <Project>
-  <!-- https://learn.microsoft.com/nuget/consume-packages/central-package-management -->
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-  </PropertyGroup>
-
   <ItemGroup>
-    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
   </ItemGroup>
 
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
-    <TerraFXWindowsVersion>10.0.22621.2</TerraFXWindowsVersion>
+    <TerraFXWindowsVersion>10.0.22621.5</TerraFXWindowsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +16,7 @@
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.1.1" />
     
     <!-- Engine -->
-    <PackageVersion Include="Vortice.Mathematics" Version="1.7.2" />
+    <PackageVersion Include="Vortice.Mathematics" Version="1.7.4" />
     <PackageVersion Include="Alimer.Bindings.SDL" Version="3.4.2" />
     <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.3.4" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />

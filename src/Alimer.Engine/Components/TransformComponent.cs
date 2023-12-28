@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using Alimer.Numerics;
 using Vortice.Mathematics;
 
 namespace Alimer.Engine;

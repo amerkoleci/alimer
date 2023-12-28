@@ -31,7 +31,7 @@ internal unsafe class DxcShaderCompilationResult : ShaderCompilationResult
         IDxcBlob* ptr = _byteCode.Get();
         if (ptr == null || ptr->GetBufferPointer() == null || ptr->GetBufferSize() == 0)
         {
-            return ReadOnlySpan<byte>.Empty;
+            return [];
         }
 
         return new ReadOnlySpan<byte>(ptr->GetBufferPointer(), (int)ptr->GetBufferSize());

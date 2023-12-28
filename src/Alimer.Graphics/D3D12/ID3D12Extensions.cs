@@ -18,7 +18,7 @@ internal static unsafe partial class ID3D12Extensions
     {
         fixed (char* pName = name)
         {
-            _ = self.SetName((ushort*)pName);
+            _ = self.SetName(pName);
         }
     }
 

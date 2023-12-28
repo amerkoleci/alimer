@@ -71,7 +71,7 @@ internal unsafe class D3D12QueryHeap : QueryHeap
     {
         fixed (char* pName = newLabel)
         {
-            _ = _handle.Get()->SetName((ushort*)pName);
+            _ = _handle.Get()->SetName(pName);
         }
     }
 }

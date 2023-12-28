@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
-using Alimer.Numerics;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;

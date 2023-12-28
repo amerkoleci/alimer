@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Drawing;
 using CommunityToolkit.Diagnostics;
 using Vortice.Mathematics;
 
@@ -93,12 +92,12 @@ public abstract class RenderContext : ComputeContext
 
     public void SetScissorRect(int width, int height)
     {
-        SetScissorRect(new Rectangle(0, 0, width, height));
+        SetScissorRect(new RectI(0, 0, width, height));
     }
 
     public void SetScissorRect(int x, int y, int width, int height)
     {
-        SetScissorRect(new Rectangle(x, y, width, height));
+        SetScissorRect(new RectI(x, y, width, height));
     }
 
     public void SetBlendColor(float red, float green, float blue, float alpha)
@@ -108,7 +107,7 @@ public abstract class RenderContext : ComputeContext
 
     public abstract void SetViewport(in Viewport viewport);
     public abstract void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0);
-    public abstract void SetScissorRect(in Rectangle rect);
+    public abstract void SetScissorRect(in RectI rect);
     public abstract void SetStencilReference(uint reference);
     public abstract void SetBlendColor(Color4 color);
     public abstract void SetShadingRate(ShadingRate rate);

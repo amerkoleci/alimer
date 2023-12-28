@@ -12,23 +12,22 @@
 
   <!-- Settings that are only set for libraries -->
   <PropertyGroup Condition="'$(OutputType)' == 'Library'">
-    <EnableAotAnalyzer>true</EnableAotAnalyzer>
-    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <IsAotCompatible>true</IsAotCompatible>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
 
   <!-- Assembly attributes to include for every project -->
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) != 'True' ">
+  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
-      <_Parameter1>windows10.0.17763.0</_Parameter1>
+      <_Parameter1>windows10.0.19043.0</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 
   <!-- platform version number information -->
   <PropertyGroup Condition="'$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19043.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion>10.0.19043.0</TargetPlatformMinVersion>
   </PropertyGroup>
 
 </Project>

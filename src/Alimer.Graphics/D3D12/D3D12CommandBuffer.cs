@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Drawing;
 using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -342,7 +341,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             PushDebugGroup(renderPass.Label);
         }
 
-        Size renderArea = new(int.MaxValue, int.MaxValue);
+        SizeI renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
         D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
@@ -542,7 +541,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->RSSetViewports((uint)count, d3d12Viewports);
     }
 
-    public override void SetScissorRect(in Rectangle rect)
+    public override void SetScissorRect(in RectI rect)
     {
         RECT scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
         _commandList.Get()->RSSetScissorRects(1, &scissorRect);

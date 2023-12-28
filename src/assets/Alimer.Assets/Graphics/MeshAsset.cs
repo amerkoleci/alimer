@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using Alimer.Rendering;
-using Alimer.Numerics;
 
 namespace Alimer.Assets.Graphics;
 
