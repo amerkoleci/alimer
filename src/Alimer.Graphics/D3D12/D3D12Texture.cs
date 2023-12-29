@@ -14,11 +14,7 @@ using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Utilities.MemoryUtilities;
-#if USE_D3D12MA
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
-#else
-using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
-#endif
 using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
@@ -27,9 +23,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-#if USE_D3D12MA
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
-#endif
     private HANDLE _sharedHandle = HANDLE.NULL;
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
@@ -139,7 +133,6 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             pClearValue = null;
         }
 
-#if USE_D3D12MA
         D3D12MA_ALLOCATION_DESC allocationDesc = new();
         allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
@@ -152,18 +145,6 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             __uuidof<ID3D12Resource>(),
             _handle.GetVoidAddressOf()
             );
-#else
-        D3D12_HEAP_PROPERTIES heapProps = D3D12Utils.DefaultHeapProps;
-
-        HRESULT hr = device.Handle->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            initialState,
-            null,
-            __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
-            );
-#endif
 
         if (hr.FAILED)
         {
@@ -295,9 +276,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _ = CloseHandle(_sharedHandle);
         }
 
-#if USE_D3D12MA
         _allocation.Dispose();
-#endif
         _handle.Dispose();
         Free(_footprints);
         Free(_rowSizesInBytes);

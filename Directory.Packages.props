@@ -1,8 +1,4 @@
 <Project>
-  <ItemGroup>
-    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-  </ItemGroup>
-
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
     <TerraFXWindowsVersion>10.0.22621.5</TerraFXWindowsVersion>
@@ -16,11 +12,11 @@
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.1.1" />
     
     <!-- Engine -->
-    <PackageVersion Include="Vortice.Mathematics" Version="1.7.4" />
-    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.4.2" />
+    <PackageVersion Include="Vortice.Mathematics" Version="1.7.6" />
+    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.4.3" />
     <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.3.4" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
-    <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.4" />
+    <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5-rc1.7332827936" />
     <PackageVersion Include="Vortice.Vulkan" Version="1.8.3" />
     <PackageVersion Include="Vortice.VulkanMemoryAllocator" Version="1.4.0" />
     <PackageVersion Include="BepuPhysics" Version="2.5.0-beta.17" />

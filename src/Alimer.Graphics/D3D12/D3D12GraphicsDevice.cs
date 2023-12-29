@@ -34,10 +34,8 @@ using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
 using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
 using static TerraFX.Interop.Windows.Windows;
-#if USE_D3D12MA
 using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
-#endif
 
 namespace Alimer.Graphics.D3D12;
 
@@ -49,9 +47,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<IDXGIAdapter1> _adapter;
     private readonly ComPtr<ID3D12Device5> _handle = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
-#if USE_D3D12MA
     private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
-#endif
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
@@ -266,7 +262,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _deviceRemovedWaitHandle = deviceRemovedWaitHandle;
         }
 
-#if USE_D3D12MA
         // Create memory allocator
         {
             D3D12MA_ALLOCATOR_DESC allocatorDesc = new()
@@ -284,7 +279,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 throw new GraphicsException("D3D12: Failed to create memory allocator");
             }
         }
-#endif
 
         // Init features
         _features = new D3D12Features((ID3D12Device*)_handle.Get());
@@ -501,9 +495,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public bool TearingSupported { get; }
     public IDXGIAdapter1* Adapter => _adapter;
     public ID3D12Device5* Handle => _handle;
-#if USE_D3D12MA
     public D3D12MA_Allocator* MemoryAllocator => _memoryAllocator;
-#endif
     public D3D12Features D3D12Features => _features;
 
     public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)QueueType.Graphics].Handle;
@@ -563,7 +555,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _dispatchMeshIndirectCommandSignature.Dispose();
 
             // Allocator.
-#if USE_D3D12MA
             if (_memoryAllocator.Get() is not null)
             {
                 D3D12MA_TotalStatistics stats;
@@ -576,7 +567,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
                 _memoryAllocator.Dispose();
             }
-#endif
 
             // Device removed event
             {

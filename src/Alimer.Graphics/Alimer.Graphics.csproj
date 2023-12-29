@@ -41,7 +41,7 @@
     <PackageReference Include="Vortice.Mathematics" />
 
     <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true' AND '$(USE_D3D12MA)' == 'true'" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" />
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" />
     <PackageReference Include="Vortice.VulkanMemoryAllocator" Condition="'$(ExcludeVulkan)' != 'true'" />
     <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" />
