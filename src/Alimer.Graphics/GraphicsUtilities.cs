@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public static class GraphicsUtilities
 {
-    public static ulong ComputeTextureMemorySizeInBytes(in TextureDescription descriptor)
+    public static ulong ComputeTextureMemorySizeInBytes(in TextureDescriptor descriptor)
     {
         ulong size = 0;
         uint bytesPerBlock = descriptor.Format.GetFormatBytesPerBlock();

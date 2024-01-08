@@ -29,23 +29,23 @@ internal readonly unsafe partial struct WPARAM : IComparable, IComparable<WPARAM
 
     public static explicit operator byte(WPARAM value) => (byte)(value.Value);
 
-    public static explicit operator WPARAM(short value) => new WPARAM((nuint)(value));
+    public static explicit operator WPARAM(short value) => new WPARAM(unchecked((nuint)(value)));
 
     public static explicit operator short(WPARAM value) => (short)(value.Value);
 
-    public static explicit operator WPARAM(int value) => new WPARAM((nuint)(value));
+    public static explicit operator WPARAM(int value) => new WPARAM(unchecked((nuint)(value)));
 
     public static explicit operator int(WPARAM value) => (int)(value.Value);
 
-    public static explicit operator WPARAM(long value) => new WPARAM((nuint)(value));
+    public static explicit operator WPARAM(long value) => new WPARAM(unchecked((nuint)(value)));
 
     public static explicit operator long(WPARAM value) => (long)(value.Value);
 
-    public static explicit operator WPARAM(nint value) => new WPARAM((nuint)(value));
+    public static explicit operator WPARAM(nint value) => new WPARAM(unchecked((nuint)(value)));
 
     public static explicit operator nint(WPARAM value) => (nint)(value.Value);
 
-    public static explicit operator WPARAM(sbyte value) => new WPARAM((nuint)(value));
+    public static explicit operator WPARAM(sbyte value) => new WPARAM(unchecked((nuint)(value)));
 
     public static explicit operator sbyte(WPARAM value) => (sbyte)(value.Value);
 
@@ -57,7 +57,7 @@ internal readonly unsafe partial struct WPARAM : IComparable, IComparable<WPARAM
 
     public static explicit operator uint(WPARAM value) => (uint)(value.Value);
 
-    public static explicit operator WPARAM(ulong value) => new WPARAM((nuint)(value));
+    public static explicit operator WPARAM(ulong value) => new WPARAM(unchecked((nuint)(value)));
 
     public static implicit operator ulong(WPARAM value) => value.Value;
 
@@ -67,7 +67,7 @@ internal readonly unsafe partial struct WPARAM : IComparable, IComparable<WPARAM
 
     public int CompareTo(object? obj)
     {
-        if (obj is WPARAM other)
+            if (obj is WPARAM other)
         {
             return CompareTo(other);
         }

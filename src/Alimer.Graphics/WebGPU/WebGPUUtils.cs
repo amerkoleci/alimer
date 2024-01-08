@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -59,8 +59,8 @@ internal static unsafe class WebGPUUtils
             // Packed 32-Bit formats
             case PixelFormat.RGB10A2Unorm: return WGPUTextureFormat.RGB10A2Unorm;
             //case PixelFormat.Rgb10a2Uint: return WGPUTextureFormat.RGB10A2Unorm;
-            case PixelFormat.RG11B10UFloat: return WGPUTextureFormat.RG11B10Ufloat;
-            case PixelFormat.RGB9E5UFloat: return WGPUTextureFormat.RGB9E5Ufloat;
+            case PixelFormat.RG11B10Float: return WGPUTextureFormat.RG11B10Ufloat;
+            case PixelFormat.RGB9E5Float: return WGPUTextureFormat.RGB9E5Ufloat;
             // 64-Bit formats
             case PixelFormat.RG32Uint: return WGPUTextureFormat.RG32Uint;
             case PixelFormat.RG32Sint: return WGPUTextureFormat.RG32Sint;
@@ -268,8 +268,8 @@ internal static unsafe class WebGPUUtils
             case QueryType.BinaryOcclusion:
                 return WGPUQueryType.Occlusion;
 
-            case QueryType.PipelineStatistics:
-                return WGPUQueryType.PipelineStatistics;
+            //case QueryType.PipelineStatistics:
+            //    return WGPUQueryType.PipelineStatistics;
         }
     }
 
@@ -305,21 +305,21 @@ internal static unsafe class WebGPUUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static WGPUShaderStage ToWebGPU(this ShaderStage stage)
+    public static WGPUShaderStage ToWebGPU(this ShaderStages stage)
     {
         switch (stage)
         {
-            case ShaderStage.Vertex:
+            case ShaderStages.Vertex:
                 return WGPUShaderStage.Vertex;
-            case ShaderStage.Hull:
-            case ShaderStage.Domain:
-            case ShaderStage.Geometry:
-            case ShaderStage.Amplification:
-            case ShaderStage.Mesh:
+            case ShaderStages.Hull:
+            case ShaderStages.Domain:
+            case ShaderStages.Geometry:
+            case ShaderStages.Amplification:
+            case ShaderStages.Mesh:
                 throw new GraphicsException($"WebGPU doesn't support {stage} shader stage");
-            case ShaderStage.Fragment:
+            case ShaderStages.Fragment:
                 return WGPUShaderStage.Fragment;
-            case ShaderStage.Compute:
+            case ShaderStages.Compute:
                 return WGPUShaderStage.Compute;
             default:
                 return WGPUShaderStage.Vertex | WGPUShaderStage.Fragment | WGPUShaderStage.Compute;

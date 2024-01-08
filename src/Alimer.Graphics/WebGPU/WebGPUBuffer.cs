@@ -1,10 +1,10 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using WebGPU;
 using static WebGPU.WebGPU;
-using Alimer.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.WebGPU;
 
@@ -93,19 +93,20 @@ internal unsafe class WebGPUBuffer : GraphicsBuffer
             OnLabelChanged(description.Label!);
         }
 
-        void OnMapCallback(WGPUBufferMapAsyncStatus status, nint userdata = 0)
+        [UnmanagedCallersOnly]
+        static void OnMapCallback(WGPUBufferMapAsyncStatus status, nint userdata = 0)
         {
             if (status != WGPUBufferMapAsyncStatus.Success)
                 return;
 
-            pMappedData = (void*)wgpuBufferGetMappedRange(Handle, 0, (nuint)Size);
+            //pMappedData = (void*)wgpuBufferGetMappedRange(Handle, 0, (nuint)Size);
             //wgpuBufferUnmap(Handle);
         };
 
         if (description.CpuAccess == CpuAccessMode.Read || description.CpuAccess == CpuAccessMode.Write)
         {
             _mappedSize = description.Size;
-            wgpuBufferMapAsync(Handle, WGPUMapMode.Read, 0, (nuint)description.Size, OnMapCallback, 0);
+            wgpuBufferMapAsync(Handle, WGPUMapMode.Read, 0, (nuint)description.Size, &OnMapCallback, 0);
         }
 
         // Issue data copy on request

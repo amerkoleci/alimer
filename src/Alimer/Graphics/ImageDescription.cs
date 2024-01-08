@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
-using Vortice.Mathematics;
 
 namespace Alimer.Graphics;
 
@@ -14,7 +13,7 @@ public readonly record struct ImageDescription
 {
     [SetsRequiredMembers]
     public ImageDescription(
-        TextureDimension dimension,
+        ImageDimension dimension,
         PixelFormat format,
         int width,
         int height,
@@ -31,7 +30,7 @@ public readonly record struct ImageDescription
         Width = width;
         Height = height;
         DepthOrArrayLayers = depthOrArrayLayers;
-        MipLevelCount = mipLevelCount == 0 ? GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
+        MipLevelCount = mipLevelCount == 0 ? GetMipLevelCount(width, height, dimension == ImageDimension.Image3D ? depthOrArrayLayers : 1) : mipLevelCount;
     }
 
     public static ImageDescription Image1D(
@@ -40,8 +39,8 @@ public readonly record struct ImageDescription
         int mipLevelCount = 1,
         int arrayLayers = 1)
     {
-        return new ImageDescription(
-            TextureDimension.Texture1D,
+        return new(
+            ImageDimension.Image1D,
             format,
             width,
             1,
@@ -56,8 +55,8 @@ public readonly record struct ImageDescription
         int mipLevelCount = 1,
         int arrayLayers = 1)
     {
-        return new ImageDescription(
-            TextureDimension.Texture2D,
+        return new(
+            ImageDimension.Image2D,
             format,
             width,
             height,
@@ -72,8 +71,8 @@ public readonly record struct ImageDescription
         int depth,
         int mipLevelCount = 1)
     {
-        return new ImageDescription(
-            TextureDimension.Texture3D,
+        return new(
+            ImageDimension.Image3D,
             format,
             width,
             height,
@@ -87,8 +86,8 @@ public readonly record struct ImageDescription
         int mipLevelCount = 1,
         int arrayLayers = 1)
     {
-        return new ImageDescription(
-            TextureDimension.Texture2D,
+        return new(
+            ImageDimension.Image2D,
             format,
             size,
             size,
@@ -99,7 +98,7 @@ public readonly record struct ImageDescription
     /// <summary>
     /// Gets or the dimension of <see cref="Texture"/>
     /// </summary>
-    public required TextureDimension Dimension { get; init; }
+    public required ImageDimension Dimension { get; init; }
 
     /// <summary>
     /// Gets the pixel format of <see cref="Image"/>

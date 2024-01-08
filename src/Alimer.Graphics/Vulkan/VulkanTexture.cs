@@ -16,43 +16,43 @@ internal unsafe class VulkanTexture : Texture
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
     private readonly Dictionary<int, VkImageView> _views = new();
 
-    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescription description, TextureData* initialData)
-        : base(description)
+    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
+        : base(descriptor)
     {
         _device = device;
-        VkFormat = device.ToVkFormat(description.Format);
-        bool isDepthStencil = description.Format.IsDepthStencilFormat();
+        VkFormat = device.ToVkFormat(descriptor.Format);
+        bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
         VkImageCreateFlags flags = VkImageCreateFlags.None;
-        VkImageType imageType = description.Dimension.ToVk();
+        VkImageType imageType = descriptor.Dimension.ToVk();
         VkImageUsageFlags usage = VkImageUsageFlags.None;
         VkExtent3D extent = default;
         uint arrayLayers = 1u;
 
-        switch (description.Dimension)
+        switch (descriptor.Dimension)
         {
             case TextureDimension.Texture1D:
-                extent = new VkExtent3D(description.Width, 1u, 1u);
-                arrayLayers = description.DepthOrArrayLayers;
+                extent = new VkExtent3D(descriptor.Width, 1u, 1u);
+                arrayLayers = descriptor.DepthOrArrayLayers;
                 break;
 
             case TextureDimension.Texture2D:
-                extent = new VkExtent3D(description.Width, description.Height, 1u);
-                arrayLayers = description.DepthOrArrayLayers;
+                extent = new VkExtent3D(descriptor.Width, descriptor.Height, 1u);
+                arrayLayers = descriptor.DepthOrArrayLayers;
 
-                if (description.Width == description.Height &&
-                    description.DepthOrArrayLayers >= 6)
+                if (descriptor.Width == descriptor.Height &&
+                    descriptor.DepthOrArrayLayers >= 6)
                 {
                     flags |= VkImageCreateFlags.CubeCompatible;
                 }
                 break;
             case TextureDimension.Texture3D:
-                extent = new VkExtent3D(description.Width, description.Height, description.DepthOrArrayLayers);
+                extent = new VkExtent3D(descriptor.Width, descriptor.Height, descriptor.DepthOrArrayLayers);
                 arrayLayers = 1u;
                 flags |= VkImageCreateFlags.Array2DCompatible;
                 break;
         }
 
-        if ((description.Usage & TextureUsage.Transient) != 0)
+        if ((descriptor.Usage & TextureUsage.Transient) != 0)
         {
             usage |= VkImageUsageFlags.TransientAttachment;
         }
@@ -62,22 +62,22 @@ internal unsafe class VulkanTexture : Texture
             usage |= VkImageUsageFlags.TransferDst;
         }
 
-        if ((description.Usage & TextureUsage.ShaderRead) != 0)
+        if ((descriptor.Usage & TextureUsage.ShaderRead) != 0)
         {
             usage |= VkImageUsageFlags.Sampled;
         }
 
-        if ((description.Usage & TextureUsage.ShaderWrite) != 0)
+        if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
         {
             usage |= VkImageUsageFlags.Storage;
 
-            if (description.Format.IsSrgb())
+            if (descriptor.Format.IsSrgb())
             {
                 flags |= VkImageCreateFlags.ExtendedUsage;
             }
         }
 
-        if ((description.Usage & TextureUsage.RenderTarget) != 0)
+        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
         {
             if (isDepthStencil)
             {
@@ -89,12 +89,12 @@ internal unsafe class VulkanTexture : Texture
             }
         }
 
-        if ((description.Usage & TextureUsage.ShadingRate) != 0)
+        if ((descriptor.Usage & TextureUsage.ShadingRate) != 0)
         {
             usage |= VkImageUsageFlags.FragmentShadingRateAttachmentKHR;
         }
 
-        if (!isDepthStencil && (description.Usage & (TextureUsage.ShaderRead | TextureUsage.RenderTarget)) != 0)
+        if (!isDepthStencil && (descriptor.Usage & (TextureUsage.ShaderRead | TextureUsage.RenderTarget)) != 0)
         {
             usage |= VkImageUsageFlags.InputAttachment;
         }
@@ -194,9 +194,9 @@ internal unsafe class VulkanTexture : Texture
 
         Handle = handle;
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
 
         // Issue data copy on request
@@ -211,7 +211,7 @@ internal unsafe class VulkanTexture : Texture
 
             VulkanUploadContext context = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+            if (descriptor.CpuAccess == CpuAccessMode.Write)
             {
                 //mappedData = texture->mapped_data;
             }
@@ -221,10 +221,10 @@ internal unsafe class VulkanTexture : Texture
                 mappedData = context.UploadBuffer.pMappedData;
             }
 
-            PixelFormatInfo formatInfo = description.Format.GetFormatInfo();
+            PixelFormatInfo formatInfo = descriptor.Format.GetFormatInfo();
             uint blockSize = formatInfo.BlockWidth;
 
-            List<VkBufferImageCopy> copyRegions = new();
+            List<VkBufferImageCopy> copyRegions = [];
 
             ulong copyOffset = 0;
             uint initDataIndex = 0;
@@ -320,7 +320,7 @@ internal unsafe class VulkanTexture : Texture
                         copyRegions
                     );
 
-                    ResourceStateMapping mappingAfter = ConvertResourceState(description.InitialLayout);
+                    ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
                     Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
 
                     GraphicsUtilities.Swap(ref barrier.srcStageMask, ref barrier.dstStageMask);
@@ -361,7 +361,7 @@ internal unsafe class VulkanTexture : Texture
                         copyRegions
                     );
 
-                    ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(description.InitialLayout);
+                    ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(descriptor.InitialLayout);
                     Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
 
                     barrier.srcAccessMask = VkAccessFlags.TransferWrite;
@@ -382,12 +382,12 @@ internal unsafe class VulkanTexture : Texture
                 device.Submit(in context);
             }
         }
-        else if (description.InitialLayout != ResourceStates.Unknown && Handle.IsNotNull)
+        else if (descriptor.InitialLayout != ResourceStates.Unknown && Handle.IsNotNull)
         {
             VulkanUploadContext context = _device.Allocate(0);
             if (_device.Synchronization2)
             {
-                ResourceStateMapping mappingAfter = ConvertResourceState(description.InitialLayout);
+                ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
                 Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
 
                 VkImageMemoryBarrier2 barrier = new()
@@ -414,7 +414,7 @@ internal unsafe class VulkanTexture : Texture
             }
             else
             {
-                ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(description.InitialLayout);
+                ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(descriptor.InitialLayout);
                 Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
 
                 VkImageMemoryBarrier barrier = new()
@@ -441,10 +441,10 @@ internal unsafe class VulkanTexture : Texture
             _device.Submit(in context);
         }
 
-        CurrentState = description.InitialLayout;
+        CurrentState = descriptor.InitialLayout;
     }
 
-    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescription descriptor)
+    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescriptor descriptor)
         : base(descriptor)
     {
         _device = device;

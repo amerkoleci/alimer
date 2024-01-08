@@ -13,10 +13,6 @@ internal readonly unsafe partial struct HRESULT : IComparable, IComparable<HRESU
         Value = value;
     }
 
-    public bool FAILED => Windows.FAILED(Value);
-
-    public bool SUCCEEDED => Windows.SUCCEEDED(Value);
-
     public static bool operator ==(HRESULT left, HRESULT right) => left.Value == right.Value;
 
     public static bool operator !=(HRESULT left, HRESULT right) => left.Value != right.Value;
@@ -41,11 +37,11 @@ internal readonly unsafe partial struct HRESULT : IComparable, IComparable<HRESU
 
     public static implicit operator int(HRESULT value) => value.Value;
 
-    public static explicit operator HRESULT(long value) => new HRESULT((int)(value));
+    public static explicit operator HRESULT(long value) => new HRESULT(unchecked((int)(value)));
 
     public static implicit operator long(HRESULT value) => value.Value;
 
-    public static explicit operator HRESULT(nint value) => new HRESULT((int)(value));
+    public static explicit operator HRESULT(nint value) => new HRESULT(unchecked((int)(value)));
 
     public static implicit operator nint(HRESULT value) => value.Value;
 
@@ -57,21 +53,21 @@ internal readonly unsafe partial struct HRESULT : IComparable, IComparable<HRESU
 
     public static explicit operator ushort(HRESULT value) => (ushort)(value.Value);
 
-    public static explicit operator HRESULT(uint value) => new HRESULT((int)(value));
+    public static explicit operator HRESULT(uint value) => new HRESULT(unchecked((int)(value)));
 
     public static explicit operator uint(HRESULT value) => (uint)(value.Value);
 
-    public static explicit operator HRESULT(ulong value) => new HRESULT((int)(value));
+    public static explicit operator HRESULT(ulong value) => new HRESULT(unchecked((int)(value)));
 
     public static explicit operator ulong(HRESULT value) => (ulong)(value.Value);
 
-    public static explicit operator HRESULT(nuint value) => new HRESULT((int)(value));
+    public static explicit operator HRESULT(nuint value) => new HRESULT(unchecked((int)(value)));
 
     public static explicit operator nuint(HRESULT value) => (nuint)(value.Value);
 
     public int CompareTo(object? obj)
     {
-        if (obj is HRESULT other)
+            if (obj is HRESULT other)
         {
             return CompareTo(other);
         }

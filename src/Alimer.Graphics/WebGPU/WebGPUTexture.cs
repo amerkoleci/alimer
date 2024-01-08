@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using WebGPU;
@@ -9,9 +9,9 @@ namespace Alimer.Graphics.WebGPU;
 internal unsafe class WebGPUTexture : Texture
 {
     private readonly WebGPUGraphicsDevice _device;
-    private readonly Dictionary<int, WGPUTextureView> _views = new();
+    private readonly Dictionary<int, WGPUTextureView> _views = [];
 
-    public WebGPUTexture(WebGPUGraphicsDevice device, in TextureDescription description, TextureData* initialData)
+    public WebGPUTexture(WebGPUGraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
         : base(description)
     {
         _device = device;
@@ -81,12 +81,11 @@ internal unsafe class WebGPUTexture : Texture
         }
     }
 
-    public WebGPUTexture(WebGPUGraphicsDevice device, WGPUTextureView existingTexture, in TextureDescription descriptor)
+    public WebGPUTexture(WebGPUGraphicsDevice device, WGPUTexture existingTexture, in TextureDescriptor descriptor)
         : base(descriptor)
     {
         _device = device;
-        //Handle = existingTexture;
-        _views.Add(0, existingTexture);
+        Handle = existingTexture;
         WebGPUFormat = descriptor.Format.ToWebGPU();
 
         if (!string.IsNullOrEmpty(descriptor.Label))

@@ -28,8 +28,8 @@ public sealed unsafe class Image : DisposableObject
         uint levelsCount = 0;
         switch (Description.Dimension)
         {
-            case TextureDimension.Texture1D:
-            case TextureDimension.Texture2D:
+            case ImageDimension.Image1D:
+            case ImageDimension.Image2D:
                 for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
                 {
                     uint mipWidth = (uint)Width;
@@ -61,7 +61,7 @@ public sealed unsafe class Image : DisposableObject
                 }
                 break;
 
-            case TextureDimension.Texture3D:
+            case ImageDimension.Image3D:
                 {
                     uint mipWidth = (uint)Width;
                     uint mipHeight = (uint)Height;
@@ -139,7 +139,7 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Gets the image dimension.
     /// </summary>
-    public TextureDimension Dimension => Description.Dimension;
+    public ImageDimension Dimension => Description.Dimension;
 
     /// <summary>
     /// Gets the data format.
@@ -159,12 +159,12 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the depth of the image.
     /// </summary>
-    public int Depth => Description.Dimension == TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
+    public int Depth => Description.Dimension == ImageDimension.Image3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
     /// Get the array layers of the image.
     /// </summary>
-    public int ArrayLayers => Description.Dimension != TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
+    public int ArrayLayers => Description.Dimension != ImageDimension.Image3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
     /// Get the number of mipmap levels in the.
@@ -329,8 +329,8 @@ public sealed unsafe class Image : DisposableObject
 
         switch (description.Dimension)
         {
-            case TextureDimension.Texture1D:
-            case TextureDimension.Texture2D:
+            case ImageDimension.Image1D:
+            case ImageDimension.Image2D:
                 {
                     for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
                     {
@@ -357,7 +357,7 @@ public sealed unsafe class Image : DisposableObject
                 }
                 break;
 
-            case TextureDimension.Texture3D:
+            case ImageDimension.Image3D:
                 {
                     uint mipWidth = (uint)description.Width;
                     uint mipHeight = (uint)description.Height;

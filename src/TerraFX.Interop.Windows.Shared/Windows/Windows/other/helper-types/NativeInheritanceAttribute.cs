@@ -3,7 +3,7 @@
 using System;
 using System.Diagnostics;
 
-namespace TerraFX.Interop.Windows;
+namespace TerraFX.Interop;
 
 /// <summary>Defines the base type of a struct as it was in the native signature.</summary>
 [AttributeUsage(AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]

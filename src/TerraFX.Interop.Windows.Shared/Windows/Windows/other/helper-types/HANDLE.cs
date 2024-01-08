@@ -33,49 +33,49 @@ internal readonly unsafe partial struct HANDLE : IComparable, IComparable<HANDLE
 
     public static implicit operator void*(HANDLE value) => value.Value;
 
-    public static explicit operator HANDLE(byte value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(byte value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator byte(HANDLE value) => (byte)(value.Value);
 
-    public static explicit operator HANDLE(short value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(short value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator short(HANDLE value) => (short)(value.Value);
 
-    public static explicit operator HANDLE(int value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(int value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator int(HANDLE value) => (int)(value.Value);
 
-    public static explicit operator HANDLE(long value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(long value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator long(HANDLE value) => (long)(value.Value);
 
-    public static explicit operator HANDLE(nint value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(nint value) => new HANDLE(unchecked((void*)(value)));
 
     public static implicit operator nint(HANDLE value) => (nint)(value.Value);
 
-    public static explicit operator HANDLE(sbyte value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(sbyte value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator sbyte(HANDLE value) => (sbyte)(value.Value);
 
-    public static explicit operator HANDLE(ushort value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(ushort value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator ushort(HANDLE value) => (ushort)(value.Value);
 
-    public static explicit operator HANDLE(uint value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(uint value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator uint(HANDLE value) => (uint)(value.Value);
 
-    public static explicit operator HANDLE(ulong value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(ulong value) => new HANDLE(unchecked((void*)(value)));
 
     public static explicit operator ulong(HANDLE value) => (ulong)(value.Value);
 
-    public static explicit operator HANDLE(nuint value) => new HANDLE((void*)(value));
+    public static explicit operator HANDLE(nuint value) => new HANDLE(unchecked((void*)(value)));
 
     public static implicit operator nuint(HANDLE value) => (nuint)(value.Value);
 
     public int CompareTo(object? obj)
     {
-        if (obj is HANDLE other)
+            if (obj is HANDLE other)
         {
             return CompareTo(other);
         }

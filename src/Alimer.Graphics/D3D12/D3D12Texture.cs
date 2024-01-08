@@ -30,30 +30,30 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly uint* _numRows;
     private readonly void* pMappedData = default;
 
-    private readonly Dictionary<int, DescriptorIndex> _RTVs = new();
-    private readonly Dictionary<int, DescriptorIndex> _DSVs = new();
+    private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
+    private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, TextureData* initialData)
-        : base(description)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
+        : base(descriptor)
     {
         _device = device;
-        DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
-        bool isDepthStencil = description.Format.IsDepthStencilFormat();
+        DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
+        bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
 
         // If ShaderRead or ShaderWrite and depth format, set to typeless.
-        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil && (descriptor.Usage & TextureUsage.ShaderReadWrite) != 0)
         {
-            DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
+            DxgiFormat = descriptor.Format.GetTypelessFormatFromDepthFormat();
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
-        if ((description.Usage & TextureUsage.RenderTarget) != 0)
+        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
         {
             if (isDepthStencil)
             {
                 resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-                if ((description.Usage & TextureUsage.ShaderRead) == 0)
+                if ((descriptor.Usage & TextureUsage.ShaderRead) == 0)
                 {
                     resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
                 }
@@ -64,14 +64,14 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             }
         }
 
-        if ((description.Usage & TextureUsage.ShaderWrite) != 0)
+        if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
         D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
         bool isShared = false;
-        if ((description.Usage & TextureUsage.Shared) != 0)
+        if ((descriptor.Usage & TextureUsage.Shared) != 0)
         {
             heapFlags |= D3D12_HEAP_FLAG_SHARED;
             isShared = true;
@@ -79,21 +79,21 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             // TODO: What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
         }
 
-        D3D12_RESOURCE_STATES initialState = description.InitialLayout.ToD3D12();
+        D3D12_RESOURCE_STATES initialState = descriptor.InitialLayout.ToD3D12();
         if (initialData != null)
         {
             initialState = D3D12_RESOURCE_STATE_COMMON;
         }
 
         D3D12_RESOURCE_DESC resourceDesc = new();
-        resourceDesc.Dimension = description.Dimension.ToD3D12();
+        resourceDesc.Dimension = descriptor.Dimension.ToD3D12();
         resourceDesc.Alignment = 0;
-        resourceDesc.Width = description.Width;
-        resourceDesc.Height = description.Height;
-        resourceDesc.DepthOrArraySize = (ushort)description.DepthOrArrayLayers;
-        resourceDesc.MipLevels = (ushort)description.MipLevelCount;
+        resourceDesc.Width = descriptor.Width;
+        resourceDesc.Height = descriptor.Height;
+        resourceDesc.DepthOrArraySize = (ushort)descriptor.DepthOrArrayLayers;
+        resourceDesc.MipLevels = (ushort)descriptor.MipLevelCount;
         resourceDesc.Format = DxgiFormat;
-        resourceDesc.SampleDesc = new(description.SampleCount.ToSampleCount(), 0);
+        resourceDesc.SampleDesc = new(descriptor.SampleCount.ToSampleCount(), 0);
         resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         resourceDesc.Flags = resourceFlags;
 
@@ -117,7 +117,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         D3D12_CLEAR_VALUE clearValue = default;
         D3D12_CLEAR_VALUE* pClearValue = null;
 
-        if ((description.Usage & TextureUsage.RenderTarget) != 0)
+        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
         {
             clearValue.Format = resourceDesc.Format;
             if (isDepthStencil)
@@ -128,7 +128,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         }
 
         // If shader read/write and depth format, set to typeless
-        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil && (descriptor.Usage & TextureUsage.ShaderReadWrite) != 0)
         {
             pClearValue = null;
         }
@@ -163,9 +163,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _sharedHandle = sharedHandle;
         }
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
 
         // Issue data copy on request
@@ -183,7 +183,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
             D3D12UploadContext uploadContext = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+            if (descriptor.CpuAccess == CpuAccessMode.Write)
             {
                 mappedData = pMappedData;
             }
@@ -225,10 +225,10 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             }
         }
 
-        State = description.InitialLayout;
+        State = descriptor.InitialLayout;
     }
 
-    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription description)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description)
         : base(description)
     {
         _device = device;

@@ -1,12 +1,14 @@
 // Copyright © Tanner Gooding and Contributors. Licensed under the MIT License (MIT). See License.md in the repository root for more information.
 
-// Ported from d3dcommon.h in microsoft/DirectX-Headers tag v1.606.4
+// Ported from d3dcommon.h in microsoft/DirectX-Headers tag v1.611.2
 // Original source is Copyright © Microsoft. Licensed under the MIT license
 
 namespace TerraFX.Interop.DirectX;
 
 internal enum D3D_FEATURE_LEVEL
 {
+    D3D_FEATURE_LEVEL_1_0_GENERIC = 0x100,
+
     D3D_FEATURE_LEVEL_1_0_CORE = 0x1000,
 
     D3D_FEATURE_LEVEL_9_1 = 0x9100,

@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -18,7 +18,7 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
 
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
-    private readonly Dictionary<SamplerDescription, WGPUSampler> _samplerCache = new();
+    private readonly Dictionary<SamplerDescriptor, WGPUSampler> _samplerCache = new();
 
     public static bool IsSupported() => s_isSupported.Value;
 
@@ -27,9 +27,19 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     {
         Guard.IsTrue(IsSupported(), nameof(WebGPUGraphicsDevice), "Vulkan is not supported");
 
+        wgpuSetLogCallback(LogCallback);
+
+        WGPUInstanceExtras extras = new()
+        {
+#if DEBUG
+            flags = WGPUInstanceFlags.Validation
+#endif
+        };
+
+
         WGPUInstanceDescriptor instanceDescriptor = new()
         {
-            nextInChain = null
+            nextInChain = (WGPUChainedStruct*)&extras
         };
         Instance = wgpuCreateInstance(&instanceDescriptor);
 
@@ -41,31 +51,54 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
         };
 
         // Call to the WebGPU request adapter procedure
+        WGPUAdapter result = WGPUAdapter.Null;
         wgpuInstanceRequestAdapter(
             Instance /* equivalent of navigator.gpu */,
             &options,
-            OnAdapterRequestEnded,
-            IntPtr.Zero
+            &OnAdapterRequestEnded,
+            new nint(&result)
         );
+        Adapter = result;
+
+        WGPUAdapterProperties properties;
+        WGPUSupportedLimits supportedLimits;
+
+        wgpuAdapterGetProperties(Adapter, &properties);
+        wgpuAdapterGetLimits(Adapter, &supportedLimits);
+
+        AdapterProperties = properties;
+        AdapterLimits = supportedLimits;
 
         fixed (sbyte* pLabel = description.Label.GetUtf8Span())
         {
+            WGPUFeatureName* requiredFeatures = stackalloc WGPUFeatureName[1]
+            {
+                WGPUFeatureName.Depth32FloatStencil8,
+            };
+
+            WGPURequiredLimits requiredLimits;
+            requiredLimits.nextInChain = null;
+            requiredLimits.limits = supportedLimits.limits;
+
             WGPUDeviceDescriptor deviceDesc = new()
             {
                 nextInChain = null,
                 label = pLabel,
-                requiredFeaturesCount = 0,
-                requiredLimits = null
+                requiredFeatureCount = 1u,
+                requiredFeatures = requiredFeatures,
+                requiredLimits = &requiredLimits
             };
             deviceDesc.defaultQueue.nextInChain = null;
             //deviceDesc.defaultQueue.label = "The default queue";
 
+            WGPUDevice device = WGPUDevice.Null;
             wgpuAdapterRequestDevice(
                 Adapter,
                 &deviceDesc,
-                OnDeviceRequestEnded,
-                IntPtr.Zero
+                &OnDeviceRequestEnded,
+                new nint(&device)
             );
+            Handle = device;
         }
 
         wgpuDeviceSetUncapturedErrorCallback(Handle, HandleUncapturedErrorCallback);
@@ -134,38 +167,6 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
             //SamplerMinLodBias = -PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
             //SamplerMaxLodBias = PhysicalDeviceProperties.properties.limits.maxSamplerLodBias,
         };
-
-        void OnAdapterRequestEnded(WGPURequestAdapterStatus status, WGPUAdapter candidateAdapter, sbyte* message, nint pUserData)
-        {
-            if (status == WGPURequestAdapterStatus.Success)
-            {
-                Adapter = candidateAdapter;
-                WGPUAdapterProperties properties;
-                wgpuAdapterGetProperties(candidateAdapter, &properties);
-
-                WGPUSupportedLimits limits;
-                wgpuAdapterGetLimits(candidateAdapter, &limits);
-
-                AdapterProperties = properties;
-                AdapterLimits = limits;
-            }
-            else
-            {
-                Log.Error("Could not get WebGPU adapter: " + Interop.GetString(message));
-            }
-        }
-
-        void OnDeviceRequestEnded(WGPURequestDeviceStatus status, WGPUDevice device, sbyte* message, nint pUserData)
-        {
-            if (status == WGPURequestDeviceStatus.Success)
-            {
-                Handle = device;
-            }
-            else
-            {
-                Log.Error("Could not get WebGPU device: " + Interop.GetString(message));
-            }
-        }
     }
 
     /// <inheritdoc />
@@ -229,13 +230,39 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
         }
     }
 
+    [UnmanagedCallersOnly]
+    private static void OnAdapterRequestEnded(WGPURequestAdapterStatus status, WGPUAdapter candidateAdapter, sbyte* message, nint pUserData)
+    {
+        if (status == WGPURequestAdapterStatus.Success)
+        {
+            *(WGPUAdapter*)pUserData = candidateAdapter;
+        }
+        else
+        {
+            Log.Error("Could not get WebGPU adapter: " + Interop.GetString(message));
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    private static void OnDeviceRequestEnded(WGPURequestDeviceStatus status, WGPUDevice device, sbyte* message, nint pUserData)
+    {
+        if (status == WGPURequestDeviceStatus.Success)
+        {
+            *(WGPUDevice*)pUserData = device;
+        }
+        else
+        {
+            Log.Error("Could not get WebGPU device: " + Interop.GetString(message));
+        }
+    }
+
     /// <inheritdoc />
     public override bool QueryFeatureSupport(Feature feature)
     {
         switch (feature)
         {
-            case Feature.DepthClipControl:
-                return wgpuDeviceHasFeature(Handle, WGPUFeatureName.DepthClipControl);
+            //case Feature.DepthClipControl:
+            //    return wgpuDeviceHasFeature(Handle, WGPUFeatureName.DepthClipControl);
 
             case Feature.Depth32FloatStencil8:
                 return wgpuDeviceHasFeature(Handle, WGPUFeatureName.Depth32FloatStencil8);
@@ -243,8 +270,8 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
             case Feature.TimestampQuery:
                 return wgpuDeviceHasFeature(Handle, WGPUFeatureName.TimestampQuery);
 
-            case Feature.PipelineStatisticsQuery:
-                return wgpuDeviceHasFeature(Handle, WGPUFeatureName.PipelineStatisticsQuery);
+            //case Feature.PipelineStatisticsQuery:
+            //    return wgpuDeviceHasFeature(Handle, WGPUFeatureName.PipelineStatisticsQuery);
 
             case Feature.TextureCompressionBC:
                 return wgpuDeviceHasFeature(Handle, WGPUFeatureName.TextureCompressionBC);
@@ -271,9 +298,6 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
             case Feature.DepthBoundsTest:
                 return false;
 
-            case Feature.SamplerAnisotropy:
-                return true;
-
             case Feature.SamplerClampToBorder:
             case Feature.SamplerMirrorClampToEdge:
                 return false;
@@ -291,6 +315,20 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
                 return false;
         }
 
+        return false;
+    }
+
+    /// <inheritdoc />
+    public override bool QueryPixelFormatSupport(PixelFormat format)
+    {
+        // TODO:
+        return false;
+    }
+
+    /// <inheritdoc />
+    public override bool QueryVertexFormatSupport(VertexFormat format)
+    {
+        // TODO:
         return false;
     }
 
@@ -331,12 +369,12 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription descriptor, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData)
     {
         return new WebGPUTexture(this, descriptor, initialData);
     }
 
-    public WGPUSampler GetOrCreateWGPUSampler(in SamplerDescription description)
+    public WGPUSampler GetOrCreateWGPUSampler(in SamplerDescriptor description)
     {
         if (!_samplerCache.TryGetValue(description, out WGPUSampler sampler))
         {
@@ -351,8 +389,8 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
                     magFilter = description.MagFilter.ToWebGPU(),
                     minFilter = description.MinFilter.ToWebGPU(),
                     mipmapFilter = description.MipFilter.ToWebGPU(),
-                    lodMinClamp = description.MinLod,
-                    lodMaxClamp = description.MaxLod,
+                    lodMinClamp = description.LodMinClamp,
+                    lodMaxClamp = description.LodMaxClamp,
                     compare = description.CompareFunction.ToWebGPU(),
                     maxAnisotropy = description.MaxAnisotropy
                 };
@@ -373,9 +411,9 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    protected override Sampler CreateSamplerCore(in SamplerDescriptor descriptor)
     {
-        return new WebGPUSampler(this, description);
+        return new WebGPUSampler(this, in descriptor);
     }
 
     /// <inheritdoc />
@@ -409,9 +447,9 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor)
     {
-        return new WebGPUQueryHeap(this, description);
+        return new WebGPUQueryHeap(this, descriptor);
     }
 
     /// <inheritdoc />
@@ -431,9 +469,25 @@ internal unsafe partial class WebGPUGraphicsDevice : GraphicsDevice
         return true;
     }
 
-    private static void HandleUncapturedErrorCallback(WGPUErrorType type, sbyte* pMessage, nint pUserData)
+    private static void LogCallback(WGPULogLevel level, string message, nint userdata = 0)
     {
-        string? message = Interop.GetString(pMessage);
+        switch (level)
+        {
+            case WGPULogLevel.Error:
+                throw new GraphicsException(message);
+            case WGPULogLevel.Warn:
+                //Log.Warn(message);
+                break;
+            case WGPULogLevel.Info:
+            case WGPULogLevel.Debug:
+            case WGPULogLevel.Trace:
+                //Log.Info(message);
+                break;
+        }
+    }
+
+    private static void HandleUncapturedErrorCallback(WGPUErrorType type, string message)
+    {
         Log.Error($"Uncaptured device error: type: {type} ({message})");
     }
 }

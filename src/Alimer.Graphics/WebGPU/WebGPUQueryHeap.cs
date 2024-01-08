@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using WebGPU;
@@ -10,7 +10,7 @@ internal unsafe class WebGPUQueryHeap : QueryHeap
 {
     private readonly WebGPUGraphicsDevice _device;
 
-    public WebGPUQueryHeap(WebGPUGraphicsDevice device, in QueryHeapDescription description)
+    public WebGPUQueryHeap(WebGPUGraphicsDevice device, in QueryHeapDescriptor description)
         : base(description)
     {
         _device = device;

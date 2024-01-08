@@ -55,17 +55,4 @@ internal unsafe partial struct IUnknown : IUnknown.Interface, INativeGuid
         [return: NativeTypeName("ULONG")]
         uint Release();
     }
-
-    public partial struct Vtbl<TSelf>
-        where TSelf : unmanaged, Interface
-    {
-        [NativeTypeName("HRESULT (const IID &, void **) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, Guid*, void**, int> QueryInterface;
-
-        [NativeTypeName("ULONG () __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint> AddRef;
-
-        [NativeTypeName("ULONG () __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint> Release;
-    }
 }

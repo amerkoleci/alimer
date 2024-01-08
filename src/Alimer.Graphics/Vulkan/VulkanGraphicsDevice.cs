@@ -1658,7 +1658,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription descriptor, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
     }

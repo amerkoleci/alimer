@@ -9,10 +9,10 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="Texture"/>.
 /// </summary>
-public record struct TextureDescription
+public record struct TextureDescriptor
 {
     [SetsRequiredMembers]
-    public TextureDescription(
+    public TextureDescriptor(
         TextureDimension dimension,
         PixelFormat format,
         uint width,
@@ -43,7 +43,7 @@ public record struct TextureDescription
         Label = label;
     }
 
-    public static TextureDescription Texture1D(
+    public static TextureDescriptor Texture1D(
         PixelFormat format,
         uint width,
         uint mipLevels = 1,
@@ -53,7 +53,7 @@ public record struct TextureDescription
         ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
-        return new TextureDescription(
+        return new(
             TextureDimension.Texture1D,
             format,
             width,
@@ -67,7 +67,7 @@ public record struct TextureDescription
             label);
     }
 
-    public static TextureDescription Texture2D(
+    public static TextureDescriptor Texture2D(
         PixelFormat format,
         uint width,
         uint height,
@@ -79,7 +79,7 @@ public record struct TextureDescription
         ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
-        return new TextureDescription(
+        return new(
             TextureDimension.Texture2D,
             format,
             width,
@@ -93,7 +93,7 @@ public record struct TextureDescription
             label);
     }
 
-    public static TextureDescription Texture3D(
+    public static TextureDescriptor Texture3D(
         PixelFormat format,
         uint width,
         uint height,
@@ -104,7 +104,7 @@ public record struct TextureDescription
         ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
-        return new TextureDescription(
+        return new(
             TextureDimension.Texture3D,
             format,
             width,
@@ -118,7 +118,7 @@ public record struct TextureDescription
             label);
     }
 
-    public static TextureDescription TextureCube(
+    public static TextureDescriptor TextureCube(
         PixelFormat format,
         uint size,
         uint mipLevels = 1u,
@@ -128,7 +128,7 @@ public record struct TextureDescription
         ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
-        return new TextureDescription(
+        return new(
             TextureDimension.Texture2D,
             format,
             size,

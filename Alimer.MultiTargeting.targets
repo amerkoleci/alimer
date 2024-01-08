@@ -23,7 +23,7 @@
   </PropertyGroup>
   <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
     <PackageReference Include="Microsoft.WindowsAppSDK" />
-    <PackageReference Include="Microsoft.Graphics.Win2D" />
+    <!--<PackageReference Include="Microsoft.Graphics.Win2D" />-->
   </ItemGroup>
   
 </Project>

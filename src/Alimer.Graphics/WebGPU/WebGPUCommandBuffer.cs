@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using WebGPU;
@@ -7,8 +7,8 @@ using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.WebGPU.WebGPUUtils;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
-using System.Drawing;
 using Alimer.Utilities;
+using Vortice.Mathematics;
 
 namespace Alimer.Graphics.WebGPU;
 
@@ -41,6 +41,7 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
         }
 
         _queue.Commit(_encoder);
+        wgpuCommandEncoderRelease(_encoder);
         _encoder = default;
     }
 
@@ -166,7 +167,7 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
         }
     }
 
-    public override void SetScissorRect(in Rectangle rect)
+    public override void SetScissorRect(in RectI rect)
     {
     }
 
@@ -174,7 +175,7 @@ internal unsafe class WebGPUCommandBuffer : RenderContext
     {
     }
 
-    public override void SetBlendColor(Numerics.Color color)
+    public override void SetBlendColor(Color4 color)
     {
     }
 

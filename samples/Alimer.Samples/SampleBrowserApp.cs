@@ -3,7 +3,6 @@
 
 using Alimer.Engine;
 using Alimer.Graphics;
-using Alimer.Samples.Engime;
 using Alimer.Samples.Graphics;
 
 namespace Alimer.Samples;
@@ -34,13 +33,13 @@ public sealed class SampleBrowserApp : GameApplication
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
-        //_runningSample = new HelloWindowSample(Services, MainWindow);
+        _runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
-        _runningSample = new DrawMeshSample(Services, MainWindow);
+        //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);

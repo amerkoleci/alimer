@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using WebGPU;
@@ -10,11 +10,11 @@ internal unsafe class WebGPUSampler : Sampler
 {
     private readonly WebGPUGraphicsDevice _device;
 
-    public WebGPUSampler(WebGPUGraphicsDevice device, in SamplerDescription description)
-        : base(description)
+    public WebGPUSampler(WebGPUGraphicsDevice device, in SamplerDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
-        Handle = device.GetOrCreateWGPUSampler(in description);
+        Handle = device.GetOrCreateWGPUSampler(in descriptor);
         wgpuSamplerReference(Handle);
     }
 

@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -11,8 +11,8 @@ internal unsafe class WebGPUSwapChain : SwapChain
 {
     private readonly WebGPUGraphicsDevice _device;
     private readonly WGPUSurface _surface;
-    private WGPUTextureView _acquiredTexture = default;
-    private readonly Dictionary<WGPUTextureView, WebGPUTexture> _backendTextures = new();
+    private WGPUTexture _acquiredTexture = default;
+    private readonly Dictionary<WGPUTexture, WebGPUTexture> _backendTextures = [];
 
     public WebGPUSwapChain(WebGPUGraphicsDevice device, ISwapChainSurface surfaceSource, in SwapChainDescription descriptor)
         : base(surfaceSource, descriptor)
@@ -148,7 +148,7 @@ internal unsafe class WebGPUSwapChain : SwapChain
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
     public WGPUTextureFormat SwapChainFormat { get; private set; }
-    public WGPUSwapChain Handle { get; private set; }
+    public WGPUSurface Handle => _surface;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="WebGPUSwapChain" /> class.
@@ -161,16 +161,21 @@ internal unsafe class WebGPUSwapChain : SwapChain
         SwapChainFormat = wgpuSurfaceGetPreferredFormat(_surface, _device.Adapter);
         Debug.Assert(SwapChainFormat != WGPUTextureFormat.Undefined);
 
-        WGPUSwapChainDescriptor swapChainDesc = new()
+        WGPUTextureFormat viewFormat = SwapChainFormat;
+        WGPUSurfaceConfiguration surfaceConfiguration = new()
         {
             nextInChain = null,
-            usage = WGPUTextureUsage.RenderAttachment,
+            device = _device.Handle,
             format = SwapChainFormat,
+            usage = WGPUTextureUsage.RenderAttachment,
+            viewFormatCount = 1,
+            viewFormats = &viewFormat,
+            alphaMode = WGPUCompositeAlphaMode.Auto,
             width = (uint)DrawableSize.Width,
             height = (uint)DrawableSize.Height,
-            presentMode = PresentMode.ToWebGPU()
+            presentMode = PresentMode.ToWebGPU(),
         };
-        Handle = wgpuDeviceCreateSwapChain(_device.Handle, _surface, &swapChainDesc);
+        wgpuSurfaceConfigure(_surface, &surfaceConfiguration);
     }
 
     protected override void Dispose(bool disposing)
@@ -186,7 +191,6 @@ internal unsafe class WebGPUSwapChain : SwapChain
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        wgpuSwapChainRelease(Handle);
         wgpuSurfaceRelease(_surface);
     }
 
@@ -203,15 +207,28 @@ internal unsafe class WebGPUSwapChain : SwapChain
 
     public override Texture? GetCurrentTexture()
     {
-        WGPUTextureView nextTextureView = wgpuSwapChainGetCurrentTextureView(Handle);
-        if (nextTextureView.IsNull)
-            return null;
+        WGPUSurfaceTexture surfaceTexture = default;
+        wgpuSurfaceGetCurrentTexture(_surface, &surfaceTexture);
 
-        _acquiredTexture = nextTextureView;
-        if (!_backendTextures.TryGetValue(nextTextureView, out WebGPUTexture? texture))
+        // Getting the texture may fail, in particular if the window has been resized
+        // and thus the target surface changed.
+        if (surfaceTexture.status == WGPUSurfaceGetCurrentTextureStatus.Timeout)
         {
-            texture = new WebGPUTexture(_device, nextTextureView, TextureDescription.Texture2D(PixelFormat.BGRA8UnormSrgb, (uint)DrawableSize.Width, (uint)DrawableSize.Height));
-            _backendTextures.Add(nextTextureView, texture);
+            Log.Error("Cannot acquire next swap chain texture");
+            return default;
+        }
+
+        if (surfaceTexture.status == WGPUSurfaceGetCurrentTextureStatus.Outdated)
+        {
+            Log.Warn("Surface texture is outdated, reconfigure the surface!");
+            return default;
+        }
+
+        _acquiredTexture = surfaceTexture.texture;
+        if (!_backendTextures.TryGetValue(surfaceTexture.texture, out WebGPUTexture? texture))
+        {
+            texture = new WebGPUTexture(_device, surfaceTexture.texture, TextureDescriptor.Texture2D(PixelFormat.BGRA8UnormSrgb, (uint)DrawableSize.Width, (uint)DrawableSize.Height));
+            _backendTextures.Add(surfaceTexture.texture, texture);
         }
 
         return texture;
@@ -222,7 +239,7 @@ internal unsafe class WebGPUSwapChain : SwapChain
         if (_acquiredTexture.IsNull)
             return;
 
-        wgpuTextureViewRelease(_acquiredTexture);
-        _acquiredTexture = WGPUTextureView.Null;
+        //wgpuTextureRelease(_acquiredTexture);
+        _acquiredTexture = WGPUTexture.Null;
     }
 }

@@ -49,11 +49,11 @@ internal readonly partial struct BOOL : IComparable, IComparable<BOOL>, IEquatab
 
     public static implicit operator int(BOOL value) => value.Value;
 
-    public static explicit operator BOOL(long value) => new BOOL((int)(value));
+    public static explicit operator BOOL(long value) => new BOOL(unchecked((int)(value)));
 
     public static implicit operator long(BOOL value) => value.Value;
 
-    public static explicit operator BOOL(nint value) => new BOOL((int)(value));
+    public static explicit operator BOOL(nint value) => new BOOL(unchecked((int)(value)));
 
     public static implicit operator nint(BOOL value) => value.Value;
 
@@ -65,21 +65,21 @@ internal readonly partial struct BOOL : IComparable, IComparable<BOOL>, IEquatab
 
     public static explicit operator ushort(BOOL value) => (ushort)(value.Value);
 
-    public static explicit operator BOOL(uint value) => new BOOL((int)(value));
+    public static explicit operator BOOL(uint value) => new BOOL(unchecked((int)(value)));
 
     public static explicit operator uint(BOOL value) => (uint)(value.Value);
 
-    public static explicit operator BOOL(ulong value) => new BOOL((int)(value));
+    public static explicit operator BOOL(ulong value) => new BOOL(unchecked((int)(value)));
 
     public static explicit operator ulong(BOOL value) => (ulong)(value.Value);
 
-    public static explicit operator BOOL(nuint value) => new BOOL((int)(value));
+    public static explicit operator BOOL(nuint value) => new BOOL(unchecked((int)(value)));
 
     public static explicit operator nuint(BOOL value) => (nuint)(value.Value);
 
     public int CompareTo(object? obj)
     {
-        if (obj is BOOL other)
+            if (obj is BOOL other)
         {
             return CompareTo(other);
         }

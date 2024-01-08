@@ -37,49 +37,49 @@ internal readonly unsafe partial struct HWND : IComparable, IComparable<HWND>, I
 
     public static implicit operator HANDLE(HWND value) => new HANDLE(value.Value);
 
-    public static explicit operator HWND(byte value) => new HWND((void*)(value));
+    public static explicit operator HWND(byte value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator byte(HWND value) => (byte)(value.Value);
 
-    public static explicit operator HWND(short value) => new HWND((void*)(value));
+    public static explicit operator HWND(short value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator short(HWND value) => (short)(value.Value);
 
-    public static explicit operator HWND(int value) => new HWND((void*)(value));
+    public static explicit operator HWND(int value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator int(HWND value) => (int)(value.Value);
 
-    public static explicit operator HWND(long value) => new HWND((void*)(value));
+    public static explicit operator HWND(long value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator long(HWND value) => (long)(value.Value);
 
-    public static explicit operator HWND(nint value) => new HWND((void*)(value));
+    public static explicit operator HWND(nint value) => new HWND(unchecked((void*)(value)));
 
     public static implicit operator nint(HWND value) => (nint)(value.Value);
 
-    public static explicit operator HWND(sbyte value) => new HWND((void*)(value));
+    public static explicit operator HWND(sbyte value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator sbyte(HWND value) => (sbyte)(value.Value);
 
-    public static explicit operator HWND(ushort value) => new HWND((void*)(value));
+    public static explicit operator HWND(ushort value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator ushort(HWND value) => (ushort)(value.Value);
 
-    public static explicit operator HWND(uint value) => new HWND((void*)(value));
+    public static explicit operator HWND(uint value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator uint(HWND value) => (uint)(value.Value);
 
-    public static explicit operator HWND(ulong value) => new HWND((void*)(value));
+    public static explicit operator HWND(ulong value) => new HWND(unchecked((void*)(value)));
 
     public static explicit operator ulong(HWND value) => (ulong)(value.Value);
 
-    public static explicit operator HWND(nuint value) => new HWND((void*)(value));
+    public static explicit operator HWND(nuint value) => new HWND(unchecked((void*)(value)));
 
     public static implicit operator nuint(HWND value) => (nuint)(value.Value);
 
     public int CompareTo(object? obj)
     {
-        if (obj is HWND other)
+            if (obj is HWND other)
         {
             return CompareTo(other);
         }

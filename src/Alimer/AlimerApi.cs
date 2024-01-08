@@ -136,7 +136,7 @@ internal unsafe static partial class AlimerApi
     [StructLayout(LayoutKind.Sequential)]
     public struct ImageDesc
     {
-        public TextureDimension dimension;
+        public ImageDimension dimension;
         public PixelFormat format;
         public uint width;
         public uint height;

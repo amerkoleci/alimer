@@ -1,4 +1,4 @@
-// Copyright © Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using WebGPU;
@@ -94,7 +94,7 @@ internal unsafe class WebGPUCommandQueue : IDisposable
         // Present SwapChains
         foreach (WebGPUSwapChain swapChain in _presentSwapChains)
         {
-            wgpuSwapChainPresent(swapChain.Handle);
+            wgpuSurfacePresent(swapChain.Handle);
         }
         _presentSwapChains.Clear();
     }

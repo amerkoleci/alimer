@@ -20,6 +20,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\BOOL.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HANDLE.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HRESULT.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HRESULT.Manual.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\HWND.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\INativeGuid.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\other\helper-types\LPARAM.cs" />
@@ -32,8 +33,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\Unknwnbase\IID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\Unknwnbase\IUnknown.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\LARGE_INTEGER.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\LARGE_INTEGER.Manual.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\LUID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\ULARGE_INTEGER.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\ULARGE_INTEGER.Manual.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\um\winnt\Windows.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\shared\winerror\S.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\Windows\shared\uuids\Windows.Manual.cs" />
