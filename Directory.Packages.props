@@ -1,40 +1,44 @@
 <Project>
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
-    <TerraFXWindowsVersion>10.0.22621.5</TerraFXWindowsVersion>
+    <TerraFXWindowsVersion>10.0.22621.6</TerraFXWindowsVersion>
+    <ImGuiVersion>1.0.2</ImGuiVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.2.2" />
 
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.5.240124002-experimental2" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.1.1" />
     
     <!-- Engine -->
     <PackageVersion Include="Vortice.Mathematics" Version="1.7.6" />
-    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.4.4" />
-    <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.3.4" />
+    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.4.6" />
+    <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.3.5" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
-    <PackageVersion Include="Vortice.Vulkan" Version="1.8.3" />
-    <PackageVersion Include="Vortice.VulkanMemoryAllocator" Version="1.4.0" />
-    <PackageVersion Include="BepuPhysics" Version="2.5.0-beta.17" />
+    <PackageVersion Include="Vortice.Vulkan" Version="1.8.4" />
+    <PackageVersion Include="Vortice.VulkanMemoryAllocator" Version="1.4.1" />
+    <PackageVersion Include="BepuPhysics" Version="2.5.0-beta.19" />
     <PackageVersion Include="DotRecast.Recast" Version="2024.1.1" />
     
-    <PackageVersion Include="ImGui.NET" Version="1.90.0.1" />
-
+    <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />
+    <PackageVersion Include="Hexa.NET.ImGuizmo" Version="$(ImGuiVersion)" />
+    <PackageVersion Include="Hexa.NET.ImNodes" Version="$(ImGuiVersion)" />
+    <PackageVersion Include="Hexa.NET.ImPlot" Version="$(ImGuiVersion)" />
+    
     <!-- Asset Pipeline -->
-    <PackageVersion Include="SkiaSharp" Version="2.88.6" />
-    <PackageVersion Include="HarfBuzzSharp" Version="7.3.0" />
-    <PackageVersion Include="SharpGLTF.Core" Version="1.0.0-alpha0030" />
+    <PackageVersion Include="SkiaSharp" Version="2.88.7" />
+    <PackageVersion Include="SkiaSharp.HarfBuzz" Version="2.88.7" />
+    <PackageVersion Include="SharpGLTF.Core" Version="1.0.0-alpha0031" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.20.0" />
-    <PackageVersion Include="Vortice.SpirvCross" Version="1.4.4" />
+    <PackageVersion Include="Vortice.SpirvCross" Version="1.4.5" />
 
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageVersion Include="xunit" Version="2.6.5" />
-    <PackageVersion Include="xunit.console" Version="2.6.5" />
+    <PackageVersion Include="xunit" Version="2.6.6" />
+    <PackageVersion Include="xunit.console" Version="2.6.6" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.6" />
   </ItemGroup>
 

@@ -129,40 +129,6 @@ internal unsafe static partial class AlimerApi
         NativeMemory.Free(ptr.ToPointer());
     }
 
-    [LibraryImport(Library)]
-    public static partial void Alimer_GetVersion(int* major, int* minor, int* patch);
-
-    #region Image
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ImageDesc
-    {
-        public ImageDimension dimension;
-        public PixelFormat format;
-        public uint width;
-        public uint height;
-        public uint depthOrArrayLayers;
-        public uint mipLevelCount;
-    }
-
-    [LibraryImport(Library)]
-    public static partial nint AlimerImage_CreateFromMemory(void* data, nuint size);
-
-    [LibraryImport(Library)]
-    public static partial void AlimerImage_Destroy(nint image);
-
-    [LibraryImport(Library)]
-    public static partial void AlimerImage_GetDesc(nint image, out ImageDesc desc);
-
-    [LibraryImport(Library)]
-    public static partial void* AlimerImage_GetData(nint handle, out nuint size);
-
-    [LibraryImport(Library)]
-    public static partial int Alimer_ImageSaveBmp(nint handle, delegate* unmanaged<nint, void*, uint, void> callback);
-
-    [LibraryImport(Library)]
-    public static partial int Alimer_ImageSavePng(nint handle, delegate* unmanaged<nint, void*, uint, void> callback);
-    #endregion
-
     #region Font
     [LibraryImport(Library)]
     public static partial nint Alimer_FontCreateFromMemory(void* data, nuint size);

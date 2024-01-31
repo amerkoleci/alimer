@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alimer.Engine\Alimer.Engine.csproj" />
-    <PackageReference Include="ImGui.NET" />
+    <PackageReference Include="Hexa.NET.ImGui" />
   </ItemGroup>
 
 </Project>

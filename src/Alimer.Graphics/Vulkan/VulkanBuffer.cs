@@ -3,17 +3,24 @@
 
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
-using static Vortice.Vulkan.Vma;
 using System.Runtime.CompilerServices;
 using Vortice.Mathematics;
+#if VMA
+using static Vortice.Vulkan.Vma;
+#endif
 
 namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanBuffer : GraphicsBuffer
 {
     private readonly VulkanGraphicsDevice _device;
-    private readonly VkBuffer _handle = VkBuffer.Null;
-    private readonly VmaAllocation _allocation = VmaAllocation.Null;
+    private VkBuffer _handle = VkBuffer.Null;
+#if VMA
+    private VmaAllocation _allocation = VmaAllocation.Null;
+#else
+    private VkDeviceMemory _memory = VkDeviceMemory.Null;
+#endif
+
     public readonly void* pMappedData;
     private readonly ulong _mappedSize;
     private ulong _gpuAddress;
@@ -85,7 +92,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         device.FillBufferSharingIndices(ref createInfo, sharingIndices);
 
         // TODO: Add sparse buffer support
-
+#if VMA
         VmaAllocationCreateInfo memoryInfo = new()
         {
             usage = VmaMemoryUsage.Auto
@@ -112,6 +119,26 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             out _handle,
             out _allocation,
             &allocationInfo);
+#else
+        VkMemoryPropertyFlags memoryPropertyFlags = VkMemoryPropertyFlags.DeviceLocal;
+
+        if (description.CpuAccess == CpuAccessMode.Read)
+        {
+            createInfo.usage |= VkBufferUsageFlags.TransferDst;
+            memoryPropertyFlags = VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCached;
+        }
+        else if (description.CpuAccess == CpuAccessMode.Write)
+        {
+            createInfo.usage |= VkBufferUsageFlags.TransferSrc;
+            memoryPropertyFlags = VkMemoryPropertyFlags.HostVisible;
+        }
+        else
+        {
+            createInfo.usage |= VkBufferUsageFlags.TransferSrc | VkBufferUsageFlags.TransferDst;
+        }
+
+        VkResult result = vkCreateBuffer(_device.Handle, &createInfo, null, out _handle);
+#endif
 
         if (result != VkResult.Success)
         {
@@ -124,11 +151,24 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             OnLabelChanged(description.Label!);
         }
 
+#if VMA
         if ((memoryInfo.flags & VmaAllocationCreateFlags.Mapped) != 0)
         {
             pMappedData = allocationInfo.pMappedData;
             _mappedSize = allocationInfo.size;
         }
+#else
+        _memory = device.Allocator.AllocateBufferMemory(_handle, memoryPropertyFlags, out ulong allocatedSize, false);
+
+        if(description.CpuAccess != CpuAccessMode.None)
+        {
+            // Map and copy
+            void* mappedData = default;
+            vkMapMemory(device.Handle, _memory, 0, allocatedSize, 0, &mappedData).CheckResult();
+            pMappedData = mappedData;
+            _mappedSize = allocatedSize;
+        }
+#endif
 
         if ((createInfo.usage & VkBufferUsageFlags.ShaderDeviceAddress) != 0)
         {
@@ -294,12 +334,23 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     /// <inheitdoc />
     protected internal override void Destroy()
     {
+#if VMA
         VmaAllocator memoryAllocator = _device.MemoryAllocator;
 
         if (!_allocation.IsNull)
         {
             vmaDestroyBuffer(memoryAllocator, _handle, _allocation);
         }
+#else
+        if (_memory.IsNotNull)
+        {
+            _device.Allocator.FreeBufferMemory(_memory);
+            _memory = VkDeviceMemory.Null;
+        }
+
+        vkDestroyBuffer(_device.Handle, _handle, null);
+        _handle = VkBuffer.Null;
+#endif
     }
 
     /// <inheitdoc />

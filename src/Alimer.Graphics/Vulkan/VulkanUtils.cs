@@ -218,18 +218,20 @@ internal static unsafe class VulkanUtils
             {
                 extensions.Video.DecodeH265 = true;
             }
+#if TODO_VIDEO_ENCODE
             else if (extensionName == VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME)
             {
                 extensions.Video.EncodeQueue = true;
             }
-            else if (extensionName == VK_EXT_VIDEO_ENCODE_H264_EXTENSION_NAME)
+            else if (extensionName == VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME)
             {
                 extensions.Video.EncodeH264 = true;
             }
-            else if (extensionName == VK_EXT_VIDEO_ENCODE_H265_EXTENSION_NAME)
+            else if (extensionName == VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME)
             {
                 extensions.Video.EncodeH265 = true;
-            }
+            } 
+#endif
 
             if (OperatingSystem.IsWindows())
             {

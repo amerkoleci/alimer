@@ -15,7 +15,7 @@ public sealed class SampleBrowserApp : GameApplication
     public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(preferredGraphicsBackend)
     {
-        GameSystems.Add(new ImGuiSystem(GraphicsDevice));
+        //GameSystems.Add(new ImGuiSystem(Services));
     }
 
     protected override void Initialize()
@@ -33,13 +33,13 @@ public sealed class SampleBrowserApp : GameApplication
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
-        _runningSample = new HelloWindowSample(Services, MainWindow);
+        //_runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
-        //_runningSample = new DrawMeshSample(Services, MainWindow);
+        _runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);

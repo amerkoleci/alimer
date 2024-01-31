@@ -5,16 +5,22 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
-using static Vortice.Vulkan.Vma;
 using static Vortice.Vulkan.Vulkan;
+#if VMA
+using static Vortice.Vulkan.Vma;
+#endif
 
 namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanTexture : Texture
 {
     private readonly VulkanGraphicsDevice _device;
+    private readonly Dictionary<int, VkImageView> _views = [];
+#if VMA
     private readonly VmaAllocation _allocation = VmaAllocation.Null;
-    private readonly Dictionary<int, VkImageView> _views = new();
+#else
+    private VkDeviceMemory _memory = VkDeviceMemory.Null;
+#endif
 
     public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
         : base(descriptor)
@@ -99,9 +105,9 @@ internal unsafe class VulkanTexture : Texture
             usage |= VkImageUsageFlags.InputAttachment;
         }
 
+        bool isShared = false;
 #if TODO_SHARED
         VkExternalMemoryImageCreateInfo externalInfo = new();
-        bool isShared = false;
         if ((description.Usage & TextureUsage.Shared) != 0)
         {
             isShared = true;
@@ -157,13 +163,7 @@ internal unsafe class VulkanTexture : Texture
         } 
 #endif
 
-        VmaAllocationInfo allocationInfo = default;
-        VmaAllocationCreateInfo memoryInfo = new()
-        {
-            usage = VmaMemoryUsage.Auto
-        };
-
-        VkImageCreateInfo createInfo = new()
+        VkImageCreateInfo imageInfo = new()
         {
             flags = flags,
             imageType = imageType,
@@ -177,15 +177,24 @@ internal unsafe class VulkanTexture : Texture
         };
 
         uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
-        device.FillImageSharingIndices(ref createInfo, sharingIndices);
+        device.FillImageSharingIndices(ref imageInfo, sharingIndices);
+
+#if VMA
+        VmaAllocationInfo allocationInfo = default;
+        VmaAllocationCreateInfo memoryInfo = new()
+        {
+            usage = VmaMemoryUsage.Auto
+        };
 
         VkResult result = vmaCreateImage(device.MemoryAllocator,
-            &createInfo,
+            &imageInfo,
             &memoryInfo,
             out VkImage handle,
             out _allocation,
             &allocationInfo);
-
+#else
+        VkResult result = vkCreateImage(device.Handle, &imageInfo, null, out VkImage handle);
+#endif
         if (result != VkResult.Success)
         {
             Log.Error("Vulkan: Failed to create image.");
@@ -199,8 +208,12 @@ internal unsafe class VulkanTexture : Texture
             OnLabelChanged(descriptor.Label!);
         }
 
+#if !VMA
+        _memory = device.Allocator.AllocateTextureMemory(Handle, isShared, out ulong allocatedSize);
+#endif
+
         // Issue data copy on request
-        VkImageSubresourceRange subresourceRange = new(VkFormat.GetVkImageAspectFlags(), 0, createInfo.mipLevels, 0, createInfo.arrayLayers);
+        VkImageSubresourceRange subresourceRange = new(VkFormat.GetVkImageAspectFlags(), 0, imageInfo.mipLevels, 0, imageInfo.arrayLayers);
 
         if (initialData != null)
         {
@@ -217,7 +230,7 @@ internal unsafe class VulkanTexture : Texture
             }
             else
             {
-                context = _device.Allocate(allocationInfo.size);
+                context = _device.Allocate(allocatedSize);
                 mappedData = context.UploadBuffer.pMappedData;
             }
 
@@ -228,12 +241,12 @@ internal unsafe class VulkanTexture : Texture
 
             ulong copyOffset = 0;
             uint initDataIndex = 0;
-            for (uint layer = 0; layer < createInfo.arrayLayers; ++layer)
+            for (uint layer = 0; layer < imageInfo.arrayLayers; ++layer)
             {
-                uint width = createInfo.extent.width;
-                uint height = createInfo.extent.height;
-                uint depth = createInfo.extent.depth;
-                for (uint mip = 0; mip < createInfo.mipLevels; ++mip)
+                uint width = imageInfo.extent.width;
+                uint height = imageInfo.extent.height;
+                uint depth = imageInfo.extent.depth;
+                for (uint mip = 0; mip < imageInfo.mipLevels; ++mip)
                 {
                     ref TextureData subresourceData = ref initialData[initDataIndex++];
                     uint srcRowPitch = subresourceData.RowPitch;
@@ -296,7 +309,7 @@ internal unsafe class VulkanTexture : Texture
                         srcAccessMask = 0,
                         dstStageMask = VkPipelineStageFlags2.Transfer,
                         dstAccessMask = VkAccessFlags2.TransferWrite,
-                        oldLayout = createInfo.initialLayout,
+                        oldLayout = imageInfo.initialLayout,
                         newLayout = VkImageLayout.TransferDstOptimal,
                         srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                         dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -336,7 +349,7 @@ internal unsafe class VulkanTexture : Texture
                     {
                         srcAccessMask = 0,
                         dstAccessMask = VkAccessFlags.TransferWrite,
-                        oldLayout = createInfo.initialLayout,
+                        oldLayout = imageInfo.initialLayout,
                         newLayout = VkImageLayout.TransferDstOptimal,
                         srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                         dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -396,7 +409,7 @@ internal unsafe class VulkanTexture : Texture
                     srcAccessMask = 0,
                     dstStageMask = VkPipelineStageFlags2.AllCommands,
                     dstAccessMask = mappingAfter.AccessMask,
-                    oldLayout = createInfo.initialLayout,
+                    oldLayout = imageInfo.initialLayout,
                     newLayout = mappingAfter.ImageLayout,
                     srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -421,7 +434,7 @@ internal unsafe class VulkanTexture : Texture
                 {
                     srcAccessMask = 0u,
                     dstAccessMask = mappingAfter.AccessMask,
-                    oldLayout = createInfo.initialLayout,
+                    oldLayout = imageInfo.initialLayout,
                     newLayout = mappingAfter.ImageLayout,
                     srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -477,10 +490,20 @@ internal unsafe class VulkanTexture : Texture
         }
         _views.Clear();
 
+#if VMA
         if (!_allocation.IsNull)
         {
             vmaDestroyImage(_device.MemoryAllocator, Handle, _allocation);
         }
+#else
+        if (_memory.IsNotNull)
+        {
+            _device.Allocator.FreeTextureMemory(_memory);
+            _memory = VkDeviceMemory.Null;
+        }
+
+        vkDestroyImage(_device.Handle, Handle, null);
+#endif
     }
 
     /// <inheritdoc />

@@ -5,9 +5,11 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
-using static Vortice.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using CommunityToolkit.Diagnostics;
+#if VMA
+using static Vortice.Vulkan.Vma;
+#endif
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -38,18 +40,20 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkPipelineCache _pipelineCache = VkPipelineCache.Null;
 
     private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)QueueType.Count];
+#if VMA
     private readonly VmaAllocator _allocator;
+    private readonly VmaAllocation _nullBufferAllocation = default;
+    private readonly VmaAllocation _nullImageAllocation1D = default;
+    private readonly VmaAllocation _nullImageAllocation2D = default;
+    private readonly VmaAllocation _nullImageAllocation3D = default;
+#endif
 
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
     private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = new();
 
     private readonly VkBuffer _nullBuffer = default;
-    private readonly VmaAllocation _nullBufferAllocation = default;
     private readonly VkBufferView _nullBufferView = default;
-    private readonly VmaAllocation _nullImageAllocation1D = default;
-    private readonly VmaAllocation _nullImageAllocation2D = default;
-    private readonly VmaAllocation _nullImageAllocation3D = default;
     private readonly VkImage _nullImage1D = default;
     private readonly VkImage _nullImage2D = default;
     private readonly VkImage _nullImage3D = default;
@@ -652,12 +656,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
                         if (physicalDeviceExtensions.Video.EncodeH264)
                         {
-                            enabledDeviceExtensions.Add(VK_EXT_VIDEO_ENCODE_H264_EXTENSION_NAME);
+                            enabledDeviceExtensions.Add(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME);
                         }
 
                         if (physicalDeviceExtensions.Video.EncodeH265)
                         {
-                            enabledDeviceExtensions.Add(VK_EXT_VIDEO_ENCODE_H265_EXTENSION_NAME);
+                            enabledDeviceExtensions.Add(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME);
                         }
                     }
                 }
@@ -812,8 +816,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     {
                         VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
 
-                        if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH264EXT) == 0 &&
-                            (videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH265EXT) == 0)
+                        if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH264) == 0 &&
+                            (videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH265) == 0)
                         {
                             continue;
                         }
@@ -964,6 +968,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             };
         }
 
+        Allocator = new VulkanAllocator(this);
+
         // Queues
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
@@ -973,6 +979,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
+#if VMA
         // Memory Allocator
         {
             VmaAllocatorCreateInfo allocatorCreateInfo;
@@ -1006,10 +1013,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             vmaCreateAllocator(&allocatorCreateInfo, out _allocator).CheckResult();
         }
+#endif
 
         _copyAllocator = new(this);
 
         // Create default null descriptors
+#if VMA
         {
             VkBufferCreateInfo bufferInfo = new()
             {
@@ -1178,6 +1187,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
+#else
+        _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
+#endif
 
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
         SupportsD32S8 = IsDepthStencilFormatSupported(VkFormat.D32SfloatS8Uint);
@@ -1288,7 +1300,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)QueueType.VideoDecode];
     public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)QueueType.VideoEncode];
 
+#if VMA
     public VmaAllocator MemoryAllocator => _allocator;
+#else
+    public VulkanAllocator Allocator { get; }
+#endif
+
     public VkPipelineCache PipelineCache => _pipelineCache;
 
     public VkBuffer NullBuffer => _nullBuffer;
@@ -1326,6 +1343,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
             _samplerCache.Clear();
 
+#if VMA
             // Destroy null descriptor
             vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
             vkDestroyBufferView(_handle, _nullBufferView);
@@ -1339,12 +1357,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             vkDestroyImageView(_handle, _nullImageViewCube);
             vkDestroyImageView(_handle, _nullImageViewCubeArray);
             vkDestroyImageView(_handle, _nullImageView3D);
+#endif
 
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
             _frameCount = 0;
             _frameIndex = 0;
 
+#if VMA
             if (_allocator.Handle != 0)
             {
                 VmaTotalStatistics stats;
@@ -1357,6 +1377,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
                 vmaDestroyAllocator(_allocator);
             }
+#else
+            Allocator.Dispose();
+#endif
 
             if (_pipelineCache.IsNotNull)
             {

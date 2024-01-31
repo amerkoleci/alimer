@@ -4,32 +4,33 @@
 using Alimer.Engine;
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 
 namespace Alimer;
 
 public sealed class ImGuiSystem : GameSystem
 {
-    public ImGuiSystem(GraphicsDevice device)
+    private ImGuiContextPtr _context;
+
+    public ImGuiSystem(IServiceRegistry services,
+        ImGuiConfigFlags flags = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad | ImGuiConfigFlags.DockingEnable/* | ImGuiConfigFlags.ViewportsEnable*/)
     {
-        Guard.IsNotNull(device, nameof(device));
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
 
-        Device = device;
+        GraphicsDevice = services.GetService<GraphicsDevice>();
+        MainWindow = services.GetService<Window>();
 
-        IntPtr context = ImGui.CreateContext();
-        ImGui.SetCurrentContext(context);
+        _context = ImGui.CreateContext();
+        ImGui.SetCurrentContext(_context);
 
         ImGuiIOPtr io = ImGui.GetIO();
         //ImGui.GetIO().IniFilename = null;
+        io.ConfigFlags |= flags;
         io.ConfigViewportsNoDecoration = false;
         io.ConfigDockingTransparentPayload = true;
-        io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
-        io.ConfigFlags |= ImGuiConfigFlags.NavEnableGamepad;
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-        //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-        //io.ConfigViewportsNoAutoMerge = true;
-        //io.ConfigViewportsNoTaskBarIcon = true;
-        //io.BackendRendererName = "Alimer";
+        io.ConfigViewportsNoAutoMerge = false;
+        io.ConfigViewportsNoTaskBarIcon = false;
+
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 
         ImGui.StyleColorsDark();
@@ -41,10 +42,10 @@ public sealed class ImGuiSystem : GameSystem
             style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
         }
 
-
-        ImGui.GetIO().Fonts.AddFontDefault();
-        ImGui.GetIO().Fonts.Flags |= ImFontAtlasFlags.NoBakedLines;
+        io.Fonts.AddFontDefault();
+        io.Fonts.Flags |= ImFontAtlasFlags.NoBakedLines;
     }
 
-    public GraphicsDevice Device { get; }
+    public GraphicsDevice GraphicsDevice { get; }
+    public Window MainWindow { get; }
 }

@@ -7,4 +7,6 @@ public enum StorageTextureAccess
 {
     Undefined = 0,
     WriteOnly,
+    ReadOnly,
+    ReadWrite,
 }

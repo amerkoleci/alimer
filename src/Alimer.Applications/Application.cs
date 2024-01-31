@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -54,6 +54,7 @@ public abstract class Application : DisposableObject, IApplication
 
         _services.AddService(GraphicsDevice);
         _services.AddService(AudioDevice);
+        _services.AddService(MainWindow);
     }
 
     /// <summary>
@@ -243,7 +244,6 @@ public abstract class Application : DisposableObject, IApplication
 
     private void InitializeBeforeRun()
     {
-        _services.AddService(MainWindow);
         MainWindow.CreateSwapChain(GraphicsDevice);
         IsRunning = true;
 
