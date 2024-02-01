@@ -121,23 +121,31 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             &allocationInfo);
 #else
         VkMemoryPropertyFlags memoryPropertyFlags = VkMemoryPropertyFlags.DeviceLocal;
+        AllocationCreateFlags allocationCreateFlags = AllocationCreateFlags.None;
 
         if (description.CpuAccess == CpuAccessMode.Read)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferDst;
             memoryPropertyFlags = VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCached;
+            allocationCreateFlags = AllocationCreateFlags.HostAccessRandom | AllocationCreateFlags.Mapped;
         }
         else if (description.CpuAccess == CpuAccessMode.Write)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferSrc;
             memoryPropertyFlags = VkMemoryPropertyFlags.HostVisible;
+            allocationCreateFlags = AllocationCreateFlags.HostAccessSequentialWrite | AllocationCreateFlags.Mapped;
         }
         else
         {
             createInfo.usage |= VkBufferUsageFlags.TransferSrc | VkBufferUsageFlags.TransferDst;
         }
 
-        VkResult result = vkCreateBuffer(_device.Handle, &createInfo, null, out _handle);
+        AllocationCreateInfo memoryInfo = new()
+        {
+            Flags = allocationCreateFlags,
+            Usage = MemoryUsage.Auto,
+        };
+        VkResult result = _device.Allocator.CreateBuffer(createInfo, memoryInfo, out _handle, out Allocation? allocation);
 #endif
 
         if (result != VkResult.Success)

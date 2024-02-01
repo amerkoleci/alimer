@@ -968,7 +968,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             };
         }
 
-        Allocator = new VulkanAllocator(this);
+        Allocator = new VulkanAllocator(_handle, PhysicalDevice);
 
         // Queues
         for (int i = 0; i < (int)QueueType.Count; i++)

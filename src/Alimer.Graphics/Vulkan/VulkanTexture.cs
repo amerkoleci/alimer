@@ -496,13 +496,13 @@ internal unsafe class VulkanTexture : Texture
             vmaDestroyImage(_device.MemoryAllocator, Handle, _allocation);
         }
 #else
+        vkDestroyImage(_device.Handle, Handle, null);
         if (_memory.IsNotNull)
         {
             _device.Allocator.FreeTextureMemory(_memory);
             _memory = VkDeviceMemory.Null;
         }
 
-        vkDestroyImage(_device.Handle, Handle, null);
 #endif
     }
 
