@@ -57,6 +57,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Navigation", "src\Al
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "TerraFX.Interop.Windows.Shared", "src\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.shproj", "{BC61A7B9-4E0B-4F71-B1DE-C5E053E7DFBE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Bindings.OpenAL", "src\Alimer.Bindings.OpenAL\Alimer.Bindings.OpenAL.csproj", "{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -123,6 +125,10 @@ Global
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

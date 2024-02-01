@@ -146,38 +146,4 @@ internal unsafe static partial class AlimerApi
     [LibraryImport(Library)]
     public static partial float Alimer_FontGetKerning(nint handle, int glyph1, int glyph2, float scale);
     #endregion
-
-    #region Audio
-    [StructLayout(LayoutKind.Sequential)]
-    public struct AudioConfig
-    {
-        public uint ListenerCount;
-        public uint Channels;
-        public uint SampleRate;
-    }
-
-    [LibraryImport(Library)]
-    public static partial Bool32 Alimer_AudioInit(AudioConfig* config);
-
-    [LibraryImport(Library)]
-    public static partial void Alimer_AudioShutdown();
-
-    [LibraryImport(Library)]
-    public static partial Bool32 Alimer_AudioStart();
-
-    [LibraryImport(Library)]
-    public static partial Bool32 Alimer_AudioStop();
-
-    [LibraryImport(Library)]
-    public static partial void Alimer_AudioSetMasterVolume(float value);
-
-    [LibraryImport(Library)]
-    public static partial float Alimer_AudioGetMasterVolume();
-
-    [LibraryImport(Library)]
-    public static partial int Alimer_AudioGetOutputChannels();
-
-    [LibraryImport(Library)]
-    public static partial int Alimer_AudioGetOutputSampleRate();
-    #endregion
 }
