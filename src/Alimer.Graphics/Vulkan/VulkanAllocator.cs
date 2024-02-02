@@ -2,7 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Vortice.Mathematics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
@@ -1006,22 +1009,497 @@ internal unsafe class VulkanAllocator : IDisposable
         ImageOptimal = 5
     };
 
-    abstract class BlockMetadata
+    internal unsafe partial class Helpers
     {
-        private readonly ulong _bufferImageGranularity;
-        private readonly bool _isVirtual;
-
-        public BlockMetadata(ulong size, ulong bufferImageGranularity, bool isVirtual)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe nuint __alignof<T>()
+            where T : unmanaged
         {
-            Size = size;
-            _bufferImageGranularity = bufferImageGranularity;
-            _isVirtual = isVirtual;
+            AlignOf<T> alignof = new AlignOf<T>();
+            return (nuint)(nint)(Unsafe.ByteOffset(ref alignof.Origin, ref Unsafe.As<T, byte>(ref alignof.Target)));
         }
 
-        public ulong Size { get; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe uint __sizeof<T>()
+            where T : unmanaged
+        {
+            return (uint)(sizeof(T));
+        }
+
+        public static void* memset(void* s, int c, nuint n)
+        {
+            Unsafe.InitBlock(s, (byte)(c), (uint)(n));
+            return s;
+        }
+
+        public static void* memcpy(void* s1, void* s2, nuint n)
+        {
+            Unsafe.CopyBlock(s1, s2, (uint)(n));
+            return s1;
+        }
+
+        public static void* memmove(void* s1, void* s2, nuint n)
+        {
+            Unsafe.CopyBlock(s1, s2, (uint)(n));
+            return s1;
+        }
+
+        public static void ZeroMemory(void* dst, nuint size)
+        {
+            _ = memset(dst, 0, size);
+        }
+
+        public static T* AllocateArray<T>(nuint count)
+            where T : unmanaged
+        {
+            T* result = (T*)(DefaultAllocate(__sizeof<T>() * count, __alignof<T>()));
+            ZeroMemory(result, __sizeof<T>() * count);
+            return result;
+        }
+
+        public static void Free(void* pMemory)
+        {
+            DefaultFree(pMemory);
+        }
+
+        internal static byte VmaBitScanMSB(ulong mask)
+        {
+            byte pos = 63;
+            ulong bit = 1ul << 63;
+
+            do
+            {
+                if ((mask & bit) != 0)
+                {
+                    return pos;
+                }
+                bit >>= 1;
+            }
+            while (pos-- > 0);
+
+            return byte.MaxValue;
+        }
+
+        /// <summary>Scans integer for index of first nonzero bit from the Most Significant Bit (MSB). If mask is 0 then returns byte.MaxValue</summary>
+        /// <param name="mask"></param>
+        /// <returns></returns>
+        internal static byte VmaBitScanMSB(uint mask)
+        {
+            byte pos = 31;
+            uint bit = 1U << 31;
+
+            do
+            {
+                if ((mask & bit) != 0)
+                {
+                    return pos;
+                }
+
+                bit >>= 1;
+            }
+            while (pos-- > 0);
+
+            return byte.MaxValue;
+        }
+
+        private static void* DefaultAllocate(nuint size, nuint alignment)
+        {
+            return NativeMemory.AlignedAlloc(size, alignment);
+        }
+
+        private static void DefaultFree(void* pMemory)
+        {
+            NativeMemory.AlignedFree(pMemory);
+        }
+
+        private struct AlignOf<T> where T : unmanaged
+        {
+            public byte Origin;
+
+            public T Target;
+        }
     }
 
-    sealed class VmaBlockMetadata_TLSF : BlockMetadata
+    internal unsafe partial struct Pointer<T>(T* value)
+        where T : unmanaged
+    {
+        public T* Value = value;
+    }
+
+    internal unsafe partial struct VmaVector<T> : IDisposable
+        where T : unmanaged
+    {
+        private T* m_pArray;
+
+        private nuint m_Count;
+
+        private nuint m_Capacity;
+
+        public VmaVector()
+        {
+        }
+
+        public VmaVector(nuint count)
+        {
+            m_pArray = (count != 0) ? Helpers.AllocateArray<T>(count) : null;
+            m_Count = count;
+            m_Capacity = count;
+        }
+
+        public VmaVector(in VmaVector<T> src)
+        {
+            m_pArray = (src.m_Count != 0) ? Helpers.AllocateArray<T>(src.m_Count) : null;
+            m_Count = src.m_Count;
+            m_Capacity = src.m_Count;
+
+            if (m_Count > 0)
+            {
+                Unsafe.CopyBlock(m_pArray, src.m_pArray, (uint)(m_Count * Helpers.__sizeof<T>()));
+            }
+        }
+
+        public void Dispose()
+        {
+            Helpers.Free(m_pArray);
+        }
+
+        public readonly bool empty()
+        {
+            return m_Count == 0;
+        }
+
+        public readonly nuint size()
+        {
+            return m_Count;
+        }
+
+        public T* data()
+        {
+            return m_pArray;
+        }
+
+        public void clear(bool freeMemory = false)
+        {
+            resize(0, freeMemory);
+        }
+
+        public T* begin()
+        {
+            return m_pArray;
+        }
+
+        public T* end()
+        {
+            return m_pArray + m_Count;
+        }
+
+        public T* rend()
+        {
+            return begin() - 1;
+        }
+
+        public T* rbegin()
+        {
+            return end() - 1;
+        }
+
+        public readonly T* cbegin()
+        {
+            return m_pArray;
+        }
+
+        public readonly T* cend()
+        {
+            return m_pArray + m_Count;
+        }
+
+        public readonly T* crbegin()
+        {
+            return cend() - 1;
+        }
+
+        public readonly T* crend()
+        {
+            return cbegin() - 1;
+        }
+
+        public void push_front(in T src)
+        {
+            insert(0, src);
+        }
+
+        public void push_back(in T src)
+        {
+            nuint newIndex = size();
+            resize(newIndex + 1);
+            m_pArray[newIndex] = src;
+        }
+
+        public void pop_front()
+        {
+            Debug.Assert(m_Count > 0);
+            remove(0);
+        }
+
+        public void pop_back()
+        {
+            Debug.Assert(m_Count > 0);
+            resize(size() - 1);
+        }
+
+        public ref T front()
+        {
+            Debug.Assert(m_Count > 0);
+            return ref m_pArray[0];
+        }
+
+        public ref T back()
+        {
+            Debug.Assert(m_Count > 0);
+            return ref m_pArray[m_Count - 1];
+        }
+
+        public void reserve(nuint newCapacity, bool freeMemory = false)
+        {
+            newCapacity = Math.Max(newCapacity, m_Count);
+
+            if ((newCapacity < m_Capacity) && !freeMemory)
+            {
+                newCapacity = m_Capacity;
+            }
+
+            if (newCapacity != m_Capacity)
+            {
+                T* newArray = (newCapacity != 0) ? Helpers.AllocateArray<T>(newCapacity) : null;
+
+                if (m_Count != 0)
+                {
+                    Unsafe.CopyBlock(newArray, m_pArray, (uint)(m_Count * Helpers.__sizeof<T>()));
+                }
+                Helpers.Free(m_pArray);
+
+                m_Capacity = newCapacity;
+                m_pArray = newArray;
+            }
+        }
+
+        public void resize(nuint newCount, bool freeMemory = false)
+        {
+            nuint newCapacity = m_Capacity;
+
+            if (newCount > m_Capacity)
+            {
+                newCapacity = Math.Max(newCount, Math.Max(m_Capacity * 3 / 2, 8));
+            }
+            else if (freeMemory)
+            {
+                newCapacity = newCount;
+            }
+
+            if (newCapacity != m_Capacity)
+            {
+                T* newArray = (newCapacity != 0) ? Helpers.AllocateArray<T>(newCapacity) : null;
+                nuint elementsToCopy = Math.Min(m_Count, newCount);
+
+                if (elementsToCopy != 0)
+                {
+                    Unsafe.CopyBlock(newArray, m_pArray, (uint)(elementsToCopy * Helpers.__sizeof<T>()));
+                }
+                Helpers.Free(m_pArray);
+
+                m_Capacity = newCapacity;
+                m_pArray = newArray;
+            }
+
+            m_Count = newCount;
+        }
+
+        public void insert(nuint index, in T src)
+        {
+            Debug.Assert(index <= m_Count);
+
+            nuint oldCount = size();
+            resize(oldCount + 1);
+
+            if (index < oldCount)
+            {
+                _ = Helpers.memmove(m_pArray + (index + 1), m_pArray + index, (oldCount - index) * Helpers.__sizeof<T>());
+            }
+            m_pArray[index] = src;
+        }
+
+        public void remove(nuint index)
+        {
+            Debug.Assert(index < m_Count);
+            nuint oldCount = size();
+
+            if (index < oldCount - 1)
+            {
+                _ = Helpers.memmove(m_pArray + index, m_pArray + (index + 1), (oldCount - index - 1) * Helpers.__sizeof<T>());
+            }
+            resize(oldCount - 1);
+        }
+
+        // template < typename CmpLess >
+        //public nuint InsertSorted<CmpLess>([NativeTypeName("const T &")] in T value, [NativeTypeName("const CmpLess &")] in CmpLess cmp)
+        //    where CmpLess : unmanaged, D3D12MA_CmpLess<T>
+        //{
+        //    nuint indexToInsert = (nuint)(D3D12MA_BinaryFindFirstNotLess(m_pArray, m_pArray + m_Count, value, cmp) - m_pArray);
+        //    insert(indexToInsert, value);
+        //    return indexToInsert;
+        //}
+
+        //public bool RemoveSorted<CmpLess>(in T value, in CmpLess cmp)
+        //    where CmpLess : unmanaged, D3D12MA_CmpLess<T>
+        //{
+        //    T* it = D3D12MA_BinaryFindFirstNotLess(m_pArray, m_pArray + m_Count, value, cmp);
+
+        //    if ((it != end()) && !cmp.Invoke(*it, value) && !cmp.Invoke(value, *it))
+        //    {
+        //        nuint indexToRemove = (nuint)(it - begin());
+        //        remove(indexToRemove);
+        //        return true;
+        //    }
+        //    return false;
+        //}
+
+        public ref T this[nuint index]
+        {
+            get
+            {
+                Debug.Assert(index < m_Count);
+                return ref m_pArray[index];
+            }
+        }
+    }
+
+    internal unsafe partial struct VmaPoolAllocator<T> : IDisposable
+        where T : unmanaged, IDisposable
+    {
+        public uint FirstBlockCapacity { get; }
+        private VmaVector<ItemBlock> _itemBlocks;
+
+        public VmaPoolAllocator(uint firstBlockCapacity)
+        {
+            Debug.Assert(firstBlockCapacity > 1);
+            FirstBlockCapacity = firstBlockCapacity;
+
+            _itemBlocks = new VmaVector<ItemBlock>();
+        }
+
+        public void Dispose()
+        {
+            Clear();
+            _itemBlocks.Dispose();
+        }
+
+        public void Clear()
+        {
+            for (nuint i = _itemBlocks.size(); i-- != 0;)
+            {
+                Helpers.Free(_itemBlocks[i].pItems);
+            }
+            _itemBlocks.clear(true);
+        }
+
+        public T* Alloc()
+        {
+            for (nuint i = _itemBlocks.size(); i-- != 0;)
+            {
+                ref ItemBlock block = ref _itemBlocks[i];
+
+                // This block has some free items: Use first one.
+                if (block.FirstFreeIndex != uint.MaxValue)
+                {
+                    Item* pItem = &block.pItems[block.FirstFreeIndex];
+                    block.FirstFreeIndex = pItem->NextFreeIndex;
+
+                    T* result = (T*)&pItem->Value;
+                    return result;
+                }
+            }
+
+            {
+                // No block has free item: Create new one and use it.
+                ref ItemBlock newBlock = ref CreateNewBlock();
+
+                Item* pItem = &newBlock.pItems[0];
+                newBlock.FirstFreeIndex = pItem->NextFreeIndex;
+
+                T* result = &pItem->Value;
+                return result;
+            }
+        }
+
+        private ref ItemBlock CreateNewBlock()
+        {
+            uint newBlockCapacity = _itemBlocks.empty() ? FirstBlockCapacity : (_itemBlocks.back().Capacity * 3 / 2);
+
+            ItemBlock newBlock = new()
+            {
+                pItems = Helpers.AllocateArray<Item>(newBlockCapacity),
+                Capacity = newBlockCapacity,
+                FirstFreeIndex = 0u,
+            };
+            _itemBlocks.push_back(newBlock);
+
+            // Setup singly-linked list of all free items in this block.
+            for (uint i = 0; i < newBlockCapacity - 1; ++i)
+            {
+                newBlock.pItems[i].NextFreeIndex = i + 1;
+            }
+
+            newBlock.pItems[newBlockCapacity - 1].NextFreeIndex = uint.MaxValue;
+            return ref _itemBlocks.back();
+        }
+        internal partial struct Item
+        {
+            [UnscopedRef]
+            public ref uint NextFreeIndex
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    // uint.MaxValue means end of list.
+                    return ref Unsafe.As<T, uint>(ref Value);
+                }
+            }
+
+            public T Value;
+        }
+
+        internal partial struct ItemBlock
+        {
+            public Item* pItems;
+
+            public uint Capacity;
+
+            public uint FirstFreeIndex;
+        }
+    }
+
+    struct AllocationRequest
+    {
+        public ulong allocHandle;
+        public ulong size;
+        //VmaSuballocationList::iterator item;
+        //void* customData;
+        public ulong algorithmData;
+        //VmaAllocationRequestType type;
+    }
+
+    interface IBlockMetadata
+    {
+        public ulong Size { get; }
+
+        public bool CreateAllocationRequest(ulong size, ulong alignment, bool upperAddress,
+            SuballocationType allocType,
+            // Always one of VMA_ALLOCATION_CREATE_STRATEGY_* or VMA_ALLOCATION_INTERNAL_STRATEGY_* flags.
+            uint strategy,
+            AllocationRequest* allocationRequest);
+    }
+
+    sealed class VmaBlockMetadata_TLSF : IBlockMetadata
     {
         // According to original paper it should be preferable 4 or 5:
         // M. Masmano, I. Ripoll, A. Crespo, and J. Real "TLSF: a New Dynamic Memory Allocator for Real-Time Systems"
@@ -1032,9 +1510,262 @@ internal unsafe class VulkanAllocator : IDisposable
         private const byte MEMORY_CLASS_SHIFT = 7;
         private const byte MAX_MEMORY_CLASSES = 65 - MEMORY_CLASS_SHIFT;
 
-        public VmaBlockMetadata_TLSF(ulong size, ulong bufferImageGranularity, bool isVirtual)
-            : base(size, bufferImageGranularity, isVirtual)
+        private nuint _allocCount;
+        // Total number of free blocks besides null block
+        private nuint _blocksFreeCount;
+        // Total size of free blocks excluding null block
+        private ulong _blocksFreeSize;
+        private uint _isFreeBitmap;
+        private byte _memoryClasses;
+
+        [InlineArray(MAX_MEMORY_CLASSES)]
+        struct _m_InnerIsFreeBitmap_e__FixedBuffer
         {
+            public uint e0;
+        }
+
+        private _m_InnerIsFreeBitmap_e__FixedBuffer _innerIsFreeBitmap;
+        private uint _listsCount;
+
+        ///
+        /// 0: 0-3 lists for small buffers
+        /// 1+: 0-(2^SLI-1) lists for normal buffers
+        private Pointer<Block>* _freeList = null;
+        private VmaPoolAllocator<Block> _blockAllocator;
+        //VmaPoolAllocator<Block> m_BlockAllocator;
+        private Block* _nullBlock;
+        //VmaBlockBufferImageGranularity m_GranularityHandler;
+
+        public VmaBlockMetadata_TLSF(ulong size, ulong bufferImageGranularity, bool isVirtual)
+        {
+            Size = size;
+            BufferImageGranularity = bufferImageGranularity;
+            IsVirtual = isVirtual;
+
+            _allocCount = 0;
+            _blocksFreeCount = 0;
+            _blocksFreeSize = 0;
+            _isFreeBitmap = 0;
+            _memoryClasses = 0;
+
+            MemoryMarshal.CreateSpan(ref _innerIsFreeBitmap[0], MAX_MEMORY_CLASSES).Clear();
+            _listsCount = 0;
+
+            _freeList = null;
+            _blockAllocator = new VmaPoolAllocator<Block>(INITIAL_BLOCK_ALLOC_COUNT);
+            _nullBlock = null;
+            // VmaBlockMetadata_TLSF::Init(VkDeviceSize size)
+
+            //if (!IsVirtual)
+            //    m_GranularityHandler.Init(GetAllocationCallbacks(), size);
+
+            _nullBlock = _blockAllocator.Alloc();
+            _nullBlock->_ctor();
+            _nullBlock->size = size;
+            _nullBlock->offset = 0;
+            _nullBlock->prevPhysical = null;
+            _nullBlock->nextPhysical = null;
+            _nullBlock->MarkFree();
+            _nullBlock->NextFree() = null;
+            _nullBlock->PrevFree() = null;
+
+            byte memoryClass = SizeToMemoryClass(size);
+            ushort sli = SizeToSecondIndex(size, memoryClass);
+
+            _listsCount = ((memoryClass == 0u) ? 0u : ((memoryClass - 1u) * (1u << SECOND_LEVEL_INDEX) + sli)) + 1u;
+
+            if (isVirtual)
+            {
+                _listsCount += 1u << SECOND_LEVEL_INDEX;
+            }
+            else
+            {
+                _listsCount += 4;
+            }
+
+            _memoryClasses = (byte)(memoryClass + 2);
+            fixed (void* innerIsFreeBitmapPtr = &_innerIsFreeBitmap[0])
+            {
+                _ = Helpers.memset(innerIsFreeBitmapPtr, 0, MAX_MEMORY_CLASSES * sizeof(uint));
+            }
+
+            _freeList = Helpers.AllocateArray<Pointer<Block>>(_listsCount);
+            _ = Helpers.memset(_freeList, 0, _listsCount * Helpers.__sizeof<Pointer<Block>>());
+        }
+
+        public ulong Size { get; }
+        public ulong BufferImageGranularity { get; }
+        public bool IsVirtual { get; }
+
+        //private static Block* Alloc(ref this VmaPoolAllocator<Block> self)
+        //{
+        //    Block* result = self.Alloc();
+        //    result->_ctor();
+        //    return result;
+        //}
+
+        private static byte SizeToMemoryClass(ulong size)
+        {
+            if (size > SMALL_BUFFER_SIZE)
+                return (byte)(Helpers.VmaBitScanMSB(size) - MEMORY_CLASS_SHIFT);
+            return 0;
+        }
+
+        private ushort SizeToSecondIndex(ulong size, byte memoryClass)
+        {
+            if (memoryClass == 0)
+            {
+                if (IsVirtual)
+                    return (ushort)((size - 1) / 8);
+                else
+                    return (ushort)((size - 1) / 64);
+            }
+            return (ushort)((size >> (memoryClass + MEMORY_CLASS_SHIFT - SECOND_LEVEL_INDEX)) ^ (1U << SECOND_LEVEL_INDEX));
+        }
+
+        public bool CreateAllocationRequest(ulong size, ulong alignment, bool upperAddress, SuballocationType allocType, uint strategy, AllocationRequest* allocationRequest)
+        {
+            Debug.Assert(size > 0);
+            Debug.Assert(!upperAddress, "VMA_ALLOCATION_CREATE_UPPER_ADDRESS_BIT can be used only with linear algorithm.");
+
+            // For small granularity round up
+            if (!IsVirtual)
+            {
+                //m_GranularityHandler.RoundupAllocRequest(allocType, allocSize, allocAlignment);
+            }
+
+            size += GetDebugMargin();
+            // Quick check for too small pool
+            if (size > GetSumFreeSize())
+            {
+                allocationRequest = default;
+                return false;
+            }
+
+            // If no free blocks in pool then check only null block
+            if (_blocksFreeCount == nuint.Zero)
+            {
+                return CheckBlock(ref *_nullBlock, _listsCount, size, alignment, allocType, allocationRequest);
+            }
+
+            allocationRequest = default;
+            return false;
+        }
+
+        private ulong GetDebugMargin() => IsVirtual ? (ulong)0 : DebugMargin;
+        private ulong GetSumFreeSize() => _blocksFreeSize + _nullBlock->size;
+
+        private bool CheckBlock(ref Block block, uint listIndex,  ulong allocSize, ulong allocAlignment, SuballocationType allocType, AllocationRequest* pAllocationRequest)
+        {
+            Debug.Assert(block.IsFree(), "Block is already taken!");
+
+            ulong alignedOffset = MathHelper.AlignUp(block.offset, allocAlignment);
+
+            if (block.size < (allocSize + alignedOffset - block.offset))
+            {
+                return false;
+            }
+
+            // Alloc successful
+            pAllocationRequest->allocHandle = (ulong)(Unsafe.AsPointer(ref block));
+            pAllocationRequest->size = allocSize - GetDebugMargin();
+            pAllocationRequest->algorithmData = alignedOffset;
+
+            // Place block at the start of list if it's normal block
+            if ((listIndex != _listsCount) && (block.PrevFree() != null))
+            {
+                block.PrevFree()->NextFree() = block.NextFree();
+
+                if (block.NextFree() != null)
+                {
+                    block.NextFree()->PrevFree() = block.PrevFree();
+                }
+
+                block.PrevFree() = null;
+                block.NextFree() = _freeList[listIndex].Value;
+
+                _freeList[listIndex].Value = (Block*)(Unsafe.AsPointer(ref block));
+
+                if (block.NextFree() != null)
+                {
+                    block.NextFree()->PrevFree() = (Block*)(Unsafe.AsPointer(ref block));
+                }
+            }
+
+            return true;
+        }
+
+        internal partial struct Block : IDisposable
+        {
+            public ulong offset;
+            public ulong size;
+
+            public Block* prevPhysical;
+
+            public Block* nextPhysical;
+
+            private Block* prevFree; // Address of the same block here indicates that block is taken
+
+            private _Anonymous_e__Union Anonymous;
+
+            internal void _ctor()
+            {
+                offset = 0;
+                size = 0;
+                prevPhysical = null;
+                nextPhysical = null;
+                prevFree = null;
+                Anonymous = new _Anonymous_e__Union();
+            }
+
+            void IDisposable.Dispose()
+            {
+            }
+
+            public void MarkFree()
+            {
+                prevFree = null;
+            }
+
+            public void MarkTaken()
+            {
+                prevFree = (Block*)(Unsafe.AsPointer(ref this));
+            }
+
+            public readonly bool IsFree()
+            {
+                return prevFree != (Block*)(Unsafe.AsPointer(ref Unsafe.AsRef(in this)));
+            }
+
+            [UnscopedRef]
+            public ref void* PrivateData()
+            {
+                Debug.Assert(!IsFree());
+                return ref Anonymous.privateData;
+            }
+
+            [UnscopedRef]
+            public ref Block* PrevFree()
+            {
+                return ref prevFree;
+            }
+
+            [UnscopedRef]
+            public ref Block* NextFree()
+            {
+                Debug.Assert(IsFree());
+                return ref Anonymous.nextFree;
+            }
+
+            [StructLayout(LayoutKind.Explicit)]
+            private partial struct _Anonymous_e__Union
+            {
+                [FieldOffset(0)]
+                public Block* nextFree;
+
+                [FieldOffset(0)]
+                public void* privateData;
+            }
         }
     }
 
@@ -1076,7 +1807,7 @@ internal unsafe class VulkanAllocator : IDisposable
         public VkDeviceMemory Memory { get; }
         public uint Id { get; }
 
-        public BlockMetadata MetaData { get; }
+        public IBlockMetadata MetaData { get; }
 
         public void Dispose() => throw new NotImplementedException();
     }
@@ -1261,7 +1992,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
         private VkResult AllocatePage(ulong size, ulong alignment, in AllocationCreateInfo createInfo, SuballocationType suballocType, out Allocation? allocation)
         {
             allocation = default;
-            bool isUpperAddress = (createInfo.Flags & AllocationCreateFlags.VMA_ALLOCATION_CREATE_UPPER_ADDRESS_BIT) != 0;
+            bool isUpperAddress = (createInfo.Flags & AllocationCreateFlags.UpperAddress) != 0;
 
             ulong freeMemory;
             {
@@ -1439,16 +2170,14 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                     DeviceMemoryBlock block = _blocks[newBlockIndex];
                     Debug.Assert(block.MetaData.Size >= size);
 
-#if TODO
-            res = AllocateFromBlock(Block, size, alignment, createInfo.flags, createInfo.pUserData, suballocType, strategy, pAllocation);
-            if (res == VK_SUCCESS)
-            {
-                //Debug.WriteLine("    Created new block #%" PRIu32 " Size=%" PRIu64, pBlock->GetId(), newBlockSize);
-                IncrementallySortBlocks();
-                return VK_SUCCESS;
-            } 
-            else
-#endif
+                    res = AllocateFromBlock(block, size, alignment, createInfo.Flags, createInfo.UserData, suballocType, strategy, out allocation);
+                    if (res == VK_SUCCESS)
+                    {
+                        //Debug.WriteLine("    Created new block #%" PRIu32 " Size=%" PRIu64, pBlock->GetId(), newBlockSize);
+                        IncrementallySortBlocks();
+                        return VK_SUCCESS;
+                    }
+                    else
                     {
                         // Allocation from new block failed, possibly due to VMA_DEBUG_MARGIN or alignment.
                         return VkResult.ErrorOutOfDeviceMemory;
@@ -1456,6 +2185,31 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                 }
             }
 
+            return VkResult.ErrorOutOfDeviceMemory;
+        }
+
+        private VkResult AllocateFromBlock(DeviceMemoryBlock block, ulong size, ulong alignment,
+            AllocationCreateFlags allocFlags,
+            object? userData,
+            SuballocationType suballocType,
+            uint strategy,
+            out Allocation allocation)
+        {
+            bool isUpperAddress = (allocFlags & AllocationCreateFlags.UpperAddress) != 0;
+
+            AllocationRequest currRequest = default;
+            if (block.MetaData.CreateAllocationRequest(
+                size,
+                alignment,
+                isUpperAddress,
+                suballocType,
+                strategy,
+                &currRequest))
+            {
+                //return CommitAllocationRequest(currRequest, pBlock, alignment, allocFlags, pUserData, suballocType, pAllocation);
+            }
+
+            allocation = default;
             return VkResult.ErrorOutOfDeviceMemory;
         }
 
@@ -1583,19 +2337,11 @@ internal enum AllocationCreateFlags
     DedicatedMemory = 0x00000001,
     NeverAllocate = 0x00000002,
     Mapped = 0x00000004,
-    /** \deprecated Preserved for backward compatibility. Consider using vmaSetAllocationName() instead.
-
-Set this flag to treat VmaAllocationCreateInfo::pUserData as pointer to a
-null-terminated string. Instead of copying pointer value, a local copy of the
-string is made and stored in allocation's `pName`. The string is automatically
-freed together with the allocation. It is also used in vmaBuildStatsString().
-*/
-    VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT = 0x00000020,
     /** Allocation will be created from upper stack in a double stack pool.
 
     This flag is only allowed for custom pools created with #VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT flag.
     */
-    VMA_ALLOCATION_CREATE_UPPER_ADDRESS_BIT = 0x00000040,
+    UpperAddress = 0x00000040,
     /** Create both buffer/image and allocation, but don't bind them together.
     It is useful when you want to bind yourself to do some more advanced binding, e.g. using some extensions.
     The flag is meaningful only with functions that bind by default: vmaCreateBuffer(), vmaCreateImage().
