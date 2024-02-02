@@ -4,6 +4,8 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+namespace Alimer.Bindings.OpenAL;
+
 /// <summary>
 /// A boolean value stored on 4 bytes (instead of 1 in .NET).
 /// </summary>

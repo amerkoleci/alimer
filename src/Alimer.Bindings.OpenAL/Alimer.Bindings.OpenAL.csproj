@@ -2,11 +2,48 @@
 
   <PropertyGroup>
     <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
+    <RootNamespace>Alimer.Bindings.OpenAL</RootNamespace>
+    <CopyContentFiles>True</CopyContentFiles>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="build\**" PackagePath="build" Pack="true" />
-    <Content Include="runtimes\**" PackagePath="runtimes" Pack="true" />
+  <ItemGroup Condition="'$(CopyContentFiles)' == 'True'">
+    <Content Include="$(AlimerNativeDirectory)win-x64\OpenAL32.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>runtimes\win-x64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <PackagePath>runtimes/win-x64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <Content Include="$(AlimerNativeDirectory)win-arm64\OpenAL32.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>runtimes\win-arm64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <PackagePath>runtimes/win-arm64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <Content Include="$(AlimerNativeDirectory)linux-x64\libopenal.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>runtimes\linux-x64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <PackagePath>runtimes/linux-x64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <Content Include="$(AlimerNativeDirectory)linux-arm64\libopenal.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>runtimes\linux-arm64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <PackagePath>runtimes/linux-arm64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <!-- TODO: Add osx-universal -->
+    <Content Include="$(AlimerNativeDirectory)osx-x64\libopenal.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>runtimes\osx-x64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <PackagePath>runtimes/osx-x64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <Content Include="$(AlimerNativeDirectory)osx-arm64\libopenal.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>runtimes\osx-arm64\native\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <PackagePath>runtimes/osx-arm64/native</PackagePath>
+      <Pack>true</Pack>
+    </Content>
   </ItemGroup>
 
 </Project>

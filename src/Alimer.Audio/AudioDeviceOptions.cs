@@ -21,10 +21,10 @@ public record struct AudioDeviceOptions
     /// The sample rate to which all sources will be resampled to (if required). 
     /// Then coverts to the maximum supported sample rate by the device.
     /// </summary>
-    public int SampleRate { get; set; } 
+    public int SampleRate { get; set; } = 44100;
 
     /// <summary>
     /// The number of channels that this device is sammpling
     /// </summary>
-    public int SampleChannels { get; set; } 
+    public int SampleChannels { get; set; } = 2;
 }

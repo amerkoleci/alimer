@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
+namespace Alimer.Bindings.OpenAL;
+
 internal unsafe static class Interop
 {
     /// <inheritdoc cref="MemoryMarshal.CreateReadOnlySpan{T}(ref T, int)" />
@@ -94,4 +96,13 @@ internal unsafe static class Interop
     /// <returns>A string created from <paramref name="span" />.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetStringOrEmpty(this ReadOnlySpan<byte> span) => span.GetPointerUnsafe() != null ? Encoding.UTF8.GetString(span) : string.Empty;
+
+    /// <summary>Gets a string for a given span.</summary>
+    /// <param name="span">The span for which to create the string.</param>
+    /// <returns>A string created from <paramref name="span" />.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string GetStringOrEmpty(byte* source, int maxLength = -1)
+    {
+        return GetUtf8Span(source, maxLength).GetStringOrEmpty();
+    }
 }
