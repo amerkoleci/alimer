@@ -68,7 +68,6 @@ internal unsafe class VulkanAllocator : IDisposable
 
         _preferredLargeHeapBlockSize = (preferredLargeHeapBlockSize != 0) ? preferredLargeHeapBlockSize : DefaultLargeHeapBlockSize;
 
-        UseKhrDedicatedAllocation = true;
         GlobalMemoryTypeBits = CalculateGlobalMemoryTypeBits();
         for (int memTypeIndex = 0; memTypeIndex < MemoryTypeCount; ++memTypeIndex)
         {
@@ -103,7 +102,8 @@ internal unsafe class VulkanAllocator : IDisposable
 
     public uint GlobalMemoryTypeBits { get; }
 
-    public bool UseKhrDedicatedAllocation { get; set; }
+    public bool UseKhrDedicatedAllocation { get; set; } = true;
+    public bool UseKhrBindMemory2 { get; set; } = true;
     public bool UseKhrBufferDeviceAddress { get; set; }
 
     public ref readonly VkPhysicalDeviceProperties PhysicalDeviceProperties => ref _physicalDeviceProperties;
@@ -165,6 +165,20 @@ internal unsafe class VulkanAllocator : IDisposable
         return budgets.ToArray();
     }
 
+    public AllocationInfo GetAllocationInfo(Allocation allocation)
+    {
+        return new()
+        {
+            MemoryType = (uint)allocation.MemoryTypeIndex,
+            DeviceMemory = allocation.GetMemory(),
+            Offset = allocation.Offset,
+            Size = allocation.Size,
+            pMappedData = allocation.GetMappedData()
+        };
+        //pAllocationInfo->pUserData = hAllocation->GetUserData();
+        //pAllocationInfo->pName = hAllocation->GetName();
+    }
+
     public VkResult CreateBuffer(VkBufferCreateInfo createInfo,
         AllocationCreateInfo allocationCreateInfo,
         out VkBuffer buffer,
@@ -178,12 +192,12 @@ internal unsafe class VulkanAllocator : IDisposable
             return VkResult.ErrorInitializationFailed;
         }
 
-        //if (((uint)createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_COPY) != 0 &&
-        //    !allocator->m_UseKhrBufferDeviceAddress)
-        //{
-        //    Log.Error("Creating a buffer with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT is not valid if VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT was not used.");
-        //    return VkResult.ErrorInitializationFailed;
-        //}
+        if (((uint)createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_COPY) != 0 &&
+            !UseKhrBufferDeviceAddress)
+        {
+            Log.Error("Creating a buffer with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT is not valid if VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT was not used.");
+            return VkResult.ErrorInitializationFailed;
+        }
 
         VkResult result = vkCreateBuffer(_device.Handle, &createInfo, null, out buffer);
         if (result >= VkResult.Success)
@@ -204,15 +218,12 @@ internal unsafe class VulkanAllocator : IDisposable
                 // 3. Bind buffer with memory.
                 if ((allocationCreateInfo.Flags & AllocationCreateFlags.DontBind) == 0)
                 {
-                    //result = allocator->BindBufferMemory(*pAllocation, 0, *pBuffer, VMA_NULL);
+                    result = BindBufferMemory(allocation!, 0, buffer, null);
                 }
 
                 if (result >= 0)
                 {
                     // All steps succeeded.
-#if VMA_STATS_STRING_ENABLED
-                    (*pAllocation)->InitBufferImageUsage(pBufferCreateInfo->usage);
-#endif
                     //if (pAllocationInfo != VMA_NULL)
                     //{
                     //    allocator->GetAllocationInfo(*pAllocation, pAllocationInfo);
@@ -238,6 +249,72 @@ internal unsafe class VulkanAllocator : IDisposable
         }
 
         return result;
+    }
+
+    public void DestroyBuffer(VkBuffer buffer, Allocation allocation)
+    {
+        if (buffer.IsNull && allocation == null)
+        {
+            return;
+        }
+
+        //VMA_DEBUG_LOG("vmaDestroyBuffer");
+        //VMA_DEBUG_GLOBAL_MUTEX_LOCK
+
+        if (buffer.IsNotNull)
+        {
+            vkDestroyBuffer(_device, buffer, null);
+        }
+
+        if (allocation != null)
+        {
+            FreeMemory(allocation);
+        }
+    }
+
+    public VkResult BindVulkanBuffer(VkDeviceMemory memory, ulong memoryOffset, VkBuffer buffer, void* pNext)
+    {
+        if (pNext != null)
+        {
+            if (UseKhrBindMemory2)
+            {
+                VkBindBufferMemoryInfo bindBufferMemoryInfo = new();
+                bindBufferMemoryInfo.pNext = pNext;
+                bindBufferMemoryInfo.buffer = buffer;
+                bindBufferMemoryInfo.memory = memory;
+                bindBufferMemoryInfo.memoryOffset = memoryOffset;
+                return vkBindBufferMemory2(_device, 1, &bindBufferMemoryInfo);
+            }
+            else
+            {
+                return VkResult.ErrorExtensionNotPresent;
+            }
+        }
+        else
+        {
+            return vkBindBufferMemory(_device, buffer, memory, memoryOffset);
+        }
+    }
+
+    public VkResult BindBufferMemory(Allocation allocation, ulong allocationLocalOffset, VkBuffer buffer, void* pNext)
+    {
+        VkResult res = VkResult.ErrorUnknown;
+        switch (allocation.AllocationType)
+        {
+            case AllocationType.Dedicated:
+                res = BindVulkanBuffer(allocation.GetMemory(), allocationLocalOffset, buffer, pNext);
+                break;
+            case AllocationType.Block:
+                {
+                    VmaDeviceMemoryBlock pBlock = allocation.GetBlock();
+                    Debug.Assert(pBlock != null, "Binding buffer to allocation that doesn't belong to any block.");
+                    res = pBlock.BindBufferMemory(this, allocation, allocationLocalOffset, buffer, pNext);
+                    break;
+                }
+            default:
+                throw new InvalidOperationException();
+        }
+        return res;
     }
 
     public void GetBufferMemoryRequirements(VkBuffer buffer, out VkMemoryRequirements memReq, out bool requiresDedicatedAllocation, out bool prefersDedicatedAllocation)
@@ -671,13 +748,13 @@ internal unsafe class VulkanAllocator : IDisposable
 
             if (canAllocateDedicated)
             {
-#if TODO
                 // Heuristics: Allocate dedicated memory if requested size if greater than half of preferred block size.
                 if (size > blockVector.PreferredBlockSize / 2)
                 {
                     dedicatedPreferred = true;
                 }
 
+#if TODO
                 // Protection against creating each allocation as dedicated when we reach or exceed heap size/budget,
                 // which can quickly deplete maxMemoryAllocationCount: Don't prefer dedicated allocations when above
                 // 3/4 of the maximum allocation count.
@@ -796,6 +873,41 @@ internal unsafe class VulkanAllocator : IDisposable
         }
 
         return VkResult.Success;
+    }
+
+    private void FreeMemory(Allocation allocation)
+    {
+        //if (VMA_DEBUG_INITIALIZE_ALLOCATIONS)
+        //{
+        //    FillAllocation(allocation, VMA_ALLOCATION_FILL_PATTERN_DESTROYED);
+        //}
+
+        switch (allocation.AllocationType)
+        {
+            case AllocationType.Block:
+                {
+                    BlockVector? pBlockVector = null;
+                    //VmaPool hPool = allocation->GetParentPool();
+                    //if (hPool != VK_NULL_HANDLE)
+                    //{
+                    //    pBlockVector = &hPool->m_BlockVector;
+                    //}
+                    //else
+                    //{
+                    int memTypeIndex = allocation.MemoryTypeIndex;
+                    pBlockVector = _blockVectors[memTypeIndex];
+                    Debug.Assert(pBlockVector != null, "Trying to free memory of unsupported type!");
+                    //}
+                    pBlockVector.Free(allocation);
+                }
+                break;
+            case AllocationType.Dedicated:
+                //FreeDedicatedMemory(allocation);
+                break;
+            default:
+                Debug.Assert(false);
+                break;
+        }
     }
 
     private VkResult CalcMemTypeParams(ref AllocationCreateInfo createInfo,
@@ -925,32 +1037,12 @@ internal unsafe class VulkanAllocator : IDisposable
         return deviceMemory;
     }
 
-    public VkDeviceMemory AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlags memProperties, out ulong size, bool shared, bool enableDeviceAddress = false)
-    {
-        // grab the image memory requirements
-        GetBufferMemoryRequirements(buffer, out VkMemoryRequirements memRequirements, out bool requiresDedicatedAllocation, out bool prefersDedicatedAllocation);
-
-        // allocate memory
-        bool enableMemoryExport = shared;
-        VkResult res = AllocateMemory(out VkDeviceMemory deviceMemory, memRequirements, memProperties, VkImage.Null, buffer, enableDeviceAddress, enableMemoryExport);
-        res.CheckResult();
-
-        vkBindBufferMemory(_device.Handle, buffer, deviceMemory, 0);
-        size = memRequirements.size;
-        return deviceMemory;
-    }
-
     public void FreeMemory(VkDeviceMemory deviceMemory)
     {
         vkFreeMemory(_device.Handle, deviceMemory, null);
     }
 
     public void FreeTextureMemory(VkDeviceMemory deviceMemory)
-    {
-        FreeMemory(deviceMemory);
-    }
-
-    public void FreeBufferMemory(VkDeviceMemory deviceMemory)
     {
         FreeMemory(deviceMemory);
     }
@@ -999,7 +1091,7 @@ internal unsafe class VulkanAllocator : IDisposable
         public ulong Budget;
     }
 
-    enum SuballocationType
+    internal enum SuballocationType
     {
         Free = 0,
         Unknown = 1,
@@ -1007,7 +1099,7 @@ internal unsafe class VulkanAllocator : IDisposable
         ImageUnknown = 3,
         ImageLinear = 4,
         ImageOptimal = 5
-    };
+    }
 
     internal unsafe partial class Helpers
     {
@@ -1060,6 +1152,35 @@ internal unsafe class VulkanAllocator : IDisposable
         public static void Free(void* pMemory)
         {
             DefaultFree(pMemory);
+        }
+
+        internal static void VMA_SWAP<T>(ref T a, ref T b)
+            where T : unmanaged
+        {
+            T tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        /// <summary>Scans integer for index of first nonzero bit from the Least Significant Bit (LSB). If mask is 0 then returns byte.MaxValue</summary>
+        /// <param name="mask"></param>
+        /// <returns></returns>
+        internal static byte VmaBitScanLSB(ulong mask)
+        {
+            byte pos = 0;
+            ulong bit = 1;
+
+            do
+            {
+                if ((mask & bit) != 0)
+                {
+                    return pos;
+                }
+                bit <<= 1;
+            }
+            while (pos++ < 63);
+
+            return byte.MaxValue;
         }
 
         internal static byte VmaBitScanMSB(ulong mask)
@@ -1478,19 +1599,39 @@ internal unsafe class VulkanAllocator : IDisposable
         }
     }
 
-    struct AllocationRequest
+    internal enum VmaAllocationRequestType
+    {
+        Normal,
+        TLSF,
+        // Used by "Linear" algorithm.
+        UpperAddress,
+        EndOf1st,
+        EndOf2nd,
+    }
+
+    internal struct AllocationRequest
     {
         public ulong allocHandle;
         public ulong size;
         //VmaSuballocationList::iterator item;
         //void* customData;
         public ulong algorithmData;
-        //VmaAllocationRequestType type;
+        public VmaAllocationRequestType type;
     }
 
-    interface IBlockMetadata
+    internal interface IBlockMetadata
     {
+        public bool IsVirtual { get; }
         public ulong Size { get; }
+
+        public bool Validate();
+
+        public ulong GetSumFreeSize();
+
+        public ulong GetAllocationOffset(ulong allocHandle);
+
+        // Makes actual allocation based on request. Request must already be checked and valid.
+        public void Alloc(in AllocationRequest request, SuballocationType type, object? userData);
 
         public bool CreateAllocationRequest(ulong size, ulong alignment, bool upperAddress,
             SuballocationType allocType,
@@ -1597,12 +1738,10 @@ internal unsafe class VulkanAllocator : IDisposable
         public ulong BufferImageGranularity { get; }
         public bool IsVirtual { get; }
 
-        //private static Block* Alloc(ref this VmaPoolAllocator<Block> self)
-        //{
-        //    Block* result = self.Alloc();
-        //    result->_ctor();
-        //    return result;
-        //}
+        public ulong GetAllocationOffset(ulong allocHandle)
+        {
+            return ((Block*)allocHandle)->offset;
+        }
 
         private static byte SizeToMemoryClass(ulong size)
         {
@@ -1621,6 +1760,309 @@ internal unsafe class VulkanAllocator : IDisposable
                     return (ushort)((size - 1) / 64);
             }
             return (ushort)((size >> (memoryClass + MEMORY_CLASS_SHIFT - SECOND_LEVEL_INDEX)) ^ (1U << SECOND_LEVEL_INDEX));
+        }
+
+        private uint GetListIndex(byte memoryClass, ushort secondIndex)
+        {
+            if (memoryClass == 0)
+                return secondIndex;
+
+            uint index = (uint)(memoryClass - 1) * (1 << SECOND_LEVEL_INDEX) + secondIndex;
+            if (IsVirtual)
+                return index + (1 << SECOND_LEVEL_INDEX);
+            else
+                return index + 4;
+        }
+
+        private uint GetListIndex(ulong size)
+        {
+            byte memoryClass = SizeToMemoryClass(size);
+            return GetListIndex(memoryClass, SizeToSecondIndex(size, memoryClass));
+        }
+
+        public bool Validate()
+        {
+            Debug.Assert(GetSumFreeSize() <= Size);
+
+            ulong calculatedSize = _nullBlock->size;
+            ulong calculatedFreeSize = _nullBlock->size;
+            nuint allocCount = 0;
+            nuint freeCount = 0;
+
+            // Check integrity of free lists
+            for (uint list = 0; list < _listsCount; ++list)
+            {
+                Block* block = _freeList[list].Value;
+                if (block != null)
+                {
+                    Debug.Assert(block->IsFree());
+                    Debug.Assert(block->PrevFree() == null);
+                    while (block->NextFree() != null)
+                    {
+                        Debug.Assert(block->NextFree()->IsFree());
+                        Debug.Assert(block->NextFree()->PrevFree() == block);
+                        block = block->NextFree();
+                    }
+                }
+            }
+
+            ulong nextOffset = _nullBlock->offset;
+            //auto validateCtx = m_GranularityHandler.StartValidation(GetAllocationCallbacks(), IsVirtual());
+
+            Debug.Assert(_nullBlock->nextPhysical == null);
+            if (_nullBlock->prevPhysical != null)
+            {
+                Debug.Assert(_nullBlock->prevPhysical->nextPhysical == _nullBlock);
+            }
+            // Check all blocks
+            for (Block* prev = _nullBlock->prevPhysical; prev != null; prev = prev->prevPhysical)
+            {
+                Debug.Assert(prev->offset + prev->size == nextOffset);
+                nextOffset = prev->offset;
+                calculatedSize += prev->size;
+
+                uint listIndex = GetListIndex(prev->size);
+                if (prev->IsFree())
+                {
+                    ++freeCount;
+                    // Check if free block belongs to free list
+                    Block* freeBlock = _freeList[listIndex].Value;
+                    Debug.Assert(freeBlock != null);
+
+                    bool found = false;
+                    do
+                    {
+                        if (freeBlock == prev)
+                            found = true;
+
+                        freeBlock = freeBlock->NextFree();
+                    } while (!found && freeBlock != null);
+
+                    Debug.Assert(found);
+                    calculatedFreeSize += prev->size;
+                }
+                else
+                {
+                    ++allocCount;
+                    // Check if taken block is not on a free list
+                    Block* freeBlock = _freeList[listIndex].Value;
+                    while (freeBlock != null)
+                    {
+                        Debug.Assert(freeBlock != prev);
+                        freeBlock = freeBlock->NextFree();
+                    }
+
+                    if (!IsVirtual)
+                    {
+                        //Debug.Assert(m_GranularityHandler.Validate(validateCtx, prev->offset, prev->size));
+                    }
+                }
+
+                if (prev->prevPhysical != null)
+                {
+                    Debug.Assert(prev->prevPhysical->nextPhysical == prev);
+                }
+            }
+
+            if (!IsVirtual)
+            {
+                //Debug.Assert(m_GranularityHandler.FinishValidation(validateCtx));
+            }
+
+            Debug.Assert(nextOffset == 0);
+            Debug.Assert(calculatedSize == Size);
+            Debug.Assert(calculatedFreeSize == GetSumFreeSize());
+            Debug.Assert(allocCount == _allocCount);
+            Debug.Assert(freeCount == _blocksFreeCount);
+
+            return true;
+        }
+
+        public void Alloc(in AllocationRequest request, SuballocationType type, object? userData)
+        {
+            Debug.Assert(request.type == VmaAllocationRequestType.TLSF);
+
+            // Get block and pop it from the free list
+            Block* currentBlock = (Block*)request.allocHandle;
+            ulong offset = request.algorithmData;
+            Debug.Assert(currentBlock != null);
+            Debug.Assert(currentBlock->offset <= offset);
+
+            if (currentBlock != _nullBlock)
+            {
+                RemoveFreeBlock(currentBlock);
+            }
+
+            ulong debugMargin = GetDebugMargin();
+            ulong misssingAlignment = offset - currentBlock->offset;
+
+            // Append missing alignment to prev block or create new one
+            if (misssingAlignment != 0)
+            {
+                Block* prevBlock = currentBlock->prevPhysical;
+                Debug.Assert(prevBlock != null, "There should be no missing alignment at offset 0!");
+
+                if (prevBlock->IsFree() && prevBlock->size != debugMargin)
+                {
+                    uint oldList = GetListIndex(prevBlock->size);
+                    prevBlock->size += misssingAlignment;
+                    // Check if new size crosses list bucket
+                    if (oldList != GetListIndex(prevBlock->size))
+                    {
+                        prevBlock->size -= misssingAlignment;
+                        RemoveFreeBlock(prevBlock);
+                        prevBlock->size += misssingAlignment;
+                        InsertFreeBlock(prevBlock);
+                    }
+                    else
+                    {
+                        _blocksFreeSize += misssingAlignment;
+                    }
+                }
+                else
+                {
+                    Block* newBlock = _blockAllocator.Alloc();
+                    newBlock->_ctor();
+                    currentBlock->prevPhysical = newBlock;
+                    prevBlock->nextPhysical = newBlock;
+                    newBlock->prevPhysical = prevBlock;
+                    newBlock->nextPhysical = currentBlock;
+                    newBlock->size = misssingAlignment;
+                    newBlock->offset = currentBlock->offset;
+                    newBlock->MarkTaken();
+
+                    InsertFreeBlock(newBlock);
+                }
+
+                currentBlock->size -= misssingAlignment;
+                currentBlock->offset += misssingAlignment;
+            }
+
+            ulong size = request.size + debugMargin;
+            if (currentBlock->size == size)
+            {
+                if (currentBlock == _nullBlock)
+                {
+                    // Setup new null block
+                    _nullBlock = _blockAllocator.Alloc();
+                    _nullBlock->_ctor();
+                    _nullBlock->size = 0;
+                    _nullBlock->offset = currentBlock->offset + size;
+                    _nullBlock->prevPhysical = currentBlock;
+                    _nullBlock->nextPhysical = null;
+                    _nullBlock->MarkFree();
+                    _nullBlock->PrevFree() = null;
+                    _nullBlock->NextFree() = null;
+                    currentBlock->nextPhysical = _nullBlock;
+                    currentBlock->MarkTaken();
+                }
+            }
+            else
+            {
+                Debug.Assert(currentBlock->size > size, "Proper block already found, shouldn't find smaller one!");
+
+                // Create new free block
+                Block* newBlock = _blockAllocator.Alloc();
+                newBlock->_ctor();
+                newBlock->size = currentBlock->size - size;
+                newBlock->offset = currentBlock->offset + size;
+                newBlock->prevPhysical = currentBlock;
+                newBlock->nextPhysical = currentBlock->nextPhysical;
+                currentBlock->nextPhysical = newBlock;
+                currentBlock->size = size;
+
+                if (currentBlock == _nullBlock)
+                {
+                    _nullBlock = newBlock;
+                    _nullBlock->MarkFree();
+                    _nullBlock->NextFree() = null;
+                    _nullBlock->PrevFree() = null;
+                    currentBlock->MarkTaken();
+                }
+                else
+                {
+                    newBlock->nextPhysical->prevPhysical = newBlock;
+                    newBlock->MarkTaken();
+                    InsertFreeBlock(newBlock);
+                }
+            }
+            //currentBlock->UserData() = userData;
+
+            if (debugMargin > 0)
+            {
+                currentBlock->size -= debugMargin;
+                Block* newBlock = _blockAllocator.Alloc();
+                newBlock->_ctor();
+                newBlock->size = debugMargin;
+                newBlock->offset = currentBlock->offset + currentBlock->size;
+                newBlock->prevPhysical = currentBlock;
+                newBlock->nextPhysical = currentBlock->nextPhysical;
+                newBlock->MarkTaken();
+                currentBlock->nextPhysical->prevPhysical = newBlock;
+                currentBlock->nextPhysical = newBlock;
+                InsertFreeBlock(newBlock);
+            }
+
+            if (!IsVirtual)
+            {
+                //m_GranularityHandler.AllocPages((uint8_t)(uintptr_t)request.customData, currentBlock->offset, currentBlock->size);
+
+            }
+            ++_allocCount;
+        }
+
+        private void RemoveFreeBlock(Block* block)
+        {
+            Debug.Assert(block != _nullBlock);
+            Debug.Assert(block->IsFree());
+
+            if (block->NextFree() != null)
+                block->NextFree()->PrevFree() = block->PrevFree();
+            if (block->PrevFree() != null)
+                block->PrevFree()->NextFree() = block->NextFree();
+            else
+            {
+                byte memClass = SizeToMemoryClass(block->size);
+                ushort secondIndex = SizeToSecondIndex(block->size, memClass);
+                uint index = GetListIndex(memClass, secondIndex);
+                Debug.Assert(_freeList[index].Value == block);
+                _freeList[index].Value = block->NextFree();
+                if (block->NextFree() == null)
+                {
+                    _innerIsFreeBitmap[memClass] &= ~(1U << secondIndex);
+                    if (_innerIsFreeBitmap[memClass] == 0)
+                        _isFreeBitmap &= ~(1u << memClass);
+                }
+            }
+            block->MarkTaken();
+            //block->UserData() = null;
+            --_blocksFreeCount;
+            _blocksFreeSize -= block->size;
+        }
+
+        private void InsertFreeBlock(Block* block)
+        {
+            Debug.Assert(block != _nullBlock);
+            Debug.Assert(!block->IsFree(), "Cannot insert block twice!");
+
+            byte memClass = SizeToMemoryClass(block->size);
+            ushort secondIndex = SizeToSecondIndex(block->size, memClass);
+            uint index = GetListIndex(memClass, secondIndex);
+            Debug.Assert(index < _listsCount);
+            block->PrevFree() = null;
+            block->NextFree() = _freeList[index].Value;
+            _freeList[index].Value = block;
+            if (block->NextFree() != null)
+            {
+                block->NextFree()->PrevFree() = block;
+            }
+            else
+            {
+                _innerIsFreeBitmap[memClass] |= 1U << secondIndex;
+                _isFreeBitmap |= 1u << memClass;
+            }
+            ++_blocksFreeCount;
+            _blocksFreeSize += block->size;
         }
 
         public bool CreateAllocationRequest(ulong size, ulong alignment, bool upperAddress, SuballocationType allocType, uint strategy, AllocationRequest* allocationRequest)
@@ -1648,14 +2090,177 @@ internal unsafe class VulkanAllocator : IDisposable
                 return CheckBlock(ref *_nullBlock, _listsCount, size, alignment, allocType, allocationRequest);
             }
 
-            allocationRequest = default;
+            // Round up to the next block
+            ulong sizeForNextList = size;
+            ulong smallSizeStep = (ulong)(SMALL_BUFFER_SIZE / (IsVirtual ? 1 << SECOND_LEVEL_INDEX : 4));
+            if (size > SMALL_BUFFER_SIZE)
+            {
+                sizeForNextList += (ulong)(1 << (Helpers.VmaBitScanMSB(size) - SECOND_LEVEL_INDEX));
+            }
+            else if (size > SMALL_BUFFER_SIZE - smallSizeStep)
+            {
+                sizeForNextList = SMALL_BUFFER_SIZE + 1;
+            }
+            else
+            {
+                sizeForNextList += smallSizeStep;
+            }
+
+            uint nextListIndex = _listsCount;
+            uint prevListIndex = _listsCount;
+            Block* nextListBlock = null;
+            Block* prevListBlock = null;
+
+            // Check blocks according to strategies
+            if ((strategy & (uint)AllocationCreateFlags.VMA_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT) != 0)
+            {
+                // Quick check for larger block first
+                nextListBlock = FindFreeBlock(sizeForNextList, ref nextListIndex);
+                if (nextListBlock != null && CheckBlock(ref *nextListBlock, nextListIndex, size, alignment, allocType, allocationRequest))
+                    return true;
+
+                // If not fitted then null block
+                if (CheckBlock(ref *_nullBlock, _listsCount, size, alignment, allocType, allocationRequest))
+                    return true;
+
+                // Null block failed, search larger bucket
+                while (nextListBlock != null)
+                {
+                    if (CheckBlock(ref *nextListBlock, nextListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    nextListBlock = nextListBlock->NextFree();
+                }
+
+                // Failed again, check best fit bucket
+                prevListBlock = FindFreeBlock(size, ref prevListIndex);
+                while (prevListBlock != null)
+                {
+                    if (CheckBlock(ref *prevListBlock, prevListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    prevListBlock = prevListBlock->NextFree();
+                }
+            }
+            else if ((strategy & (uint)AllocationCreateFlags.VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT) != 0)
+            {
+                // Check best fit bucket
+                prevListBlock = FindFreeBlock(size, ref prevListIndex);
+                while (prevListBlock != null)
+                {
+                    if (CheckBlock(ref *prevListBlock, prevListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    prevListBlock = prevListBlock->NextFree();
+                }
+
+                // If failed check null block
+                if (CheckBlock(ref *_nullBlock, _listsCount, size, alignment, allocType, allocationRequest))
+                    return true;
+
+                // Check larger bucket
+                nextListBlock = FindFreeBlock(sizeForNextList, ref nextListIndex);
+                while (nextListBlock != null)
+                {
+                    if (CheckBlock(ref *nextListBlock, nextListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    nextListBlock = nextListBlock->NextFree();
+                }
+            }
+            else if ((strategy & (uint)AllocationCreateFlags.VMA_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT) != 0)
+            {
+                // Perform search from the start
+                using VmaVector<Pointer<Block>> blockList = new VmaVector<Pointer<Block>>(_blocksFreeCount);
+
+                nuint i = _blocksFreeCount;
+                for (Block* block = _nullBlock->prevPhysical; block != null; block = block->prevPhysical)
+                {
+                    if (block->IsFree() && block->size >= size)
+                        blockList[--i].Value = block;
+                }
+
+                for (; i < _blocksFreeCount; ++i)
+                {
+                    ref Block block = ref *blockList[i].Value;
+                    if (CheckBlock(ref block, GetListIndex(block.size), size, alignment, allocType, allocationRequest))
+                        return true;
+                }
+
+                // If failed check null block
+                if (CheckBlock(ref *_nullBlock, _listsCount, size, alignment, allocType, allocationRequest))
+                    return true;
+
+                // Whole range searched, no more memory
+                return false;
+            }
+            else
+            {
+                // Check larger bucket
+                nextListBlock = FindFreeBlock(sizeForNextList, ref nextListIndex);
+                while (nextListBlock != null)
+                {
+                    if (CheckBlock(ref *nextListBlock, nextListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    nextListBlock = nextListBlock->NextFree();
+                }
+
+                // If failed check null block
+                if (CheckBlock(ref *_nullBlock, _listsCount, size, alignment, allocType, allocationRequest))
+                    return true;
+
+                // Check best fit bucket
+                prevListBlock = FindFreeBlock(size, ref prevListIndex);
+                while (prevListBlock != null)
+                {
+                    if (CheckBlock(ref *prevListBlock, prevListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    prevListBlock = prevListBlock->NextFree();
+                }
+            }
+
+            // Worst case, full search has to be done
+            while (++nextListIndex < _listsCount)
+            {
+                nextListBlock = _freeList[nextListIndex].Value;
+                while (nextListBlock != null)
+                {
+                    if (CheckBlock(ref *nextListBlock, nextListIndex, size, alignment, allocType, allocationRequest))
+                        return true;
+                    nextListBlock = nextListBlock->NextFree();
+                }
+            }
+
+            // No more memory sadly
             return false;
         }
 
         private ulong GetDebugMargin() => IsVirtual ? (ulong)0 : DebugMargin;
-        private ulong GetSumFreeSize() => _blocksFreeSize + _nullBlock->size;
+        public ulong GetSumFreeSize() => _blocksFreeSize + _nullBlock->size;
 
-        private bool CheckBlock(ref Block block, uint listIndex,  ulong allocSize, ulong allocAlignment, SuballocationType allocType, AllocationRequest* pAllocationRequest)
+        private Block* FindFreeBlock(ulong size, ref uint listIndex)
+        {
+            byte memoryClass = SizeToMemoryClass(size);
+            uint innerFreeMap = _innerIsFreeBitmap[memoryClass] & (~0U << SizeToSecondIndex(size, memoryClass));
+
+            if (innerFreeMap == 0)
+            {
+                // Check higher levels for avaiable blocks
+                uint freeMap = _isFreeBitmap & (~0u << (memoryClass + 1));
+
+                if (freeMap == 0)
+                {
+                    return null; // No more memory avaible
+                }
+
+                // Find lowest free region
+                memoryClass = Helpers.VmaBitScanLSB(freeMap);
+                innerFreeMap = _innerIsFreeBitmap[memoryClass];
+
+                Debug.Assert(innerFreeMap != 0);
+            }
+            // Find lowest free subregion
+            listIndex = GetListIndex(memoryClass, Helpers.VmaBitScanLSB(innerFreeMap));
+            return _freeList[listIndex].Value;
+        }
+
+        private bool CheckBlock(ref Block block, uint listIndex, ulong allocSize, ulong allocAlignment, SuballocationType allocType, AllocationRequest* pAllocationRequest)
         {
             Debug.Assert(block.IsFree(), "Block is already taken!");
 
@@ -1667,6 +2272,7 @@ internal unsafe class VulkanAllocator : IDisposable
             }
 
             // Alloc successful
+            pAllocationRequest->type = VmaAllocationRequestType.TLSF;
             pAllocationRequest->allocHandle = (ulong)(Unsafe.AsPointer(ref block));
             pAllocationRequest->size = allocSize - GetDebugMargin();
             pAllocationRequest->algorithmData = alignedOffset;
@@ -1769,11 +2375,85 @@ internal unsafe class VulkanAllocator : IDisposable
         }
     }
 
-    class DeviceMemoryBlock : IDisposable
+    class VmaMappingHysteresis
+    {
+        private const int COUNTER_MIN_EXTRA_MAPPING = 7;
+
+        private uint _minorCounter = 0;
+        private uint _majorCounter = 0;
+
+        public VmaMappingHysteresis()
+        {
+
+        }
+
+        public uint ExtraMapping { get; private set; }
+
+        // Call when Map was called.
+        // Returns true if switched to extra +1 mapping reference count.
+        public bool PostMap()
+        {
+            if (ExtraMapping == 0)
+            {
+                ++_majorCounter;
+                if (_majorCounter >= COUNTER_MIN_EXTRA_MAPPING)
+                {
+                    ExtraMapping = 1;
+                    _majorCounter = 0;
+                    _minorCounter = 0;
+                    return true;
+                }
+            }
+            else // m_ExtraMapping == 1
+            {
+                PostMinorCounter();
+
+            }
+
+            return false;
+        }
+
+        // Call when Unmap was called.
+        public void PostUnmap()
+        {
+            if (ExtraMapping == 0)
+                ++_majorCounter;
+            else // m_ExtraMapping == 1
+                PostMinorCounter();
+        }
+
+        // Call when allocation was made from the memory block.
+        public void PostAlloc()
+        {
+            if (ExtraMapping == 1)
+                ++_majorCounter;
+            else // m_ExtraMapping == 0
+                PostMinorCounter();
+        }
+
+
+        private void PostMinorCounter()
+        {
+            if (_minorCounter < _majorCounter)
+            {
+                ++_minorCounter;
+            }
+            else if (_majorCounter > 0)
+            {
+                --_majorCounter;
+                --_minorCounter;
+            }
+        }
+    }
+
+    internal class VmaDeviceMemoryBlock : IDisposable
     {
         private readonly VulkanAllocator _allocator;
+        private readonly VmaMappingHysteresis _mappingHysteresis = new();
+        private uint _mapCount;
+        private void* _pMappedData;
 
-        public DeviceMemoryBlock(VulkanAllocator allocator,
+        public VmaDeviceMemoryBlock(VulkanAllocator allocator,
             /* VmaPool */ object? parentPool,
             int memoryTypeIndex,
             VkDeviceMemory memory,
@@ -1810,6 +2490,71 @@ internal unsafe class VulkanAllocator : IDisposable
         public IBlockMetadata MetaData { get; }
 
         public void Dispose() => throw new NotImplementedException();
+
+        public void* GetMappedData() => _pMappedData;
+        public uint GetMapRefCount() => _mapCount;
+
+        public void PostAlloc(VulkanAllocator allocator)
+        {
+            // VmaMutexLock lock(m_MapAndBindMutex, hAllocator->m_UseMutex);
+            _mappingHysteresis.PostAlloc();
+        }
+
+        public VkResult Map(VulkanAllocator allocator, uint count, void** ppData)
+        {
+            if (count == 0)
+            {
+                return VkResult.Success;
+            }
+
+            //VmaMutexLock lock (m_MapAndBindMutex, hAllocator->m_UseMutex);
+            uint oldTotalMapCount = _mapCount + _mappingHysteresis.ExtraMapping;
+            _mappingHysteresis.PostMap();
+            if (oldTotalMapCount != 0)
+            {
+                _mapCount += count;
+                Debug.Assert(_pMappedData != null);
+                if (ppData != null)
+                {
+                    *ppData = _pMappedData;
+                }
+
+                return VkResult.Success;
+            }
+            else
+            {
+                fixed (void* ppMappedData = &_pMappedData)
+                {
+                    VkResult result = vkMapMemory(
+                        _allocator._device,
+                        Memory,
+                        0, // offset
+                        VK_WHOLE_SIZE,
+                        0, // flags
+                        ppMappedData
+                        );
+                    if (result == VK_SUCCESS)
+                    {
+                        if (ppData != null)
+                        {
+                            *ppData = ppMappedData;
+                        }
+                        _mapCount = count;
+                    }
+                    return result;
+                }
+            }
+        }
+
+        public VkResult BindBufferMemory(VulkanAllocator allocator, Allocation allocation, ulong allocationLocalOffset, VkBuffer buffer, void* pNext)
+        {
+            Debug.Assert(allocation.AllocationType == AllocationType.Block && allocation.GetBlock() == this);
+            Debug.Assert(allocationLocalOffset < allocation.Size, "Invalid allocationLocalOffset. Did you forget that this offset is relative to the beginning of the allocation, not the whole memory block?");
+            ulong memoryOffset = allocation.Offset + allocationLocalOffset;
+            // This lock is important so that we don't call vkBind... and/or vkMap... simultaneously on the same VkDeviceMemory from multiple threads.
+            //VmaMutexLock lock (m_MapAndBindMutex, hAllocator->m_UseMutex);
+            return allocator.BindVulkanBuffer(Memory, memoryOffset, buffer, pNext);
+        }
     }
 
     class BlockVector : IDisposable
@@ -1817,7 +2562,7 @@ internal unsafe class VulkanAllocator : IDisposable
         private readonly VulkanAllocator _allocator;
         private readonly ReaderWriterLockSlim _mutex = new(LockRecursionPolicy.NoRecursion);
         // Incrementally sorted by sumFreeSize, ascending.
-        private readonly List<DeviceMemoryBlock> _blocks = new();
+        private readonly List<VmaDeviceMemoryBlock> _blocks = new();
         private uint _nextBlockId;
         private readonly void* _pMemoryAllocateNext;
 
@@ -1864,6 +2609,11 @@ internal unsafe class VulkanAllocator : IDisposable
         public bool IncrementalSort { get; set; } = true;
 
         public void Dispose()
+        {
+
+        }
+
+        public void Free(Allocation allocation)
         {
 
         }
@@ -1927,7 +2677,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
             // New VkDeviceMemory successfully created.
 
             // Create new Allocation for it.
-            DeviceMemoryBlock block = new(_allocator, ParentPool, MemoryTypeIndex, memory,
+            VmaDeviceMemoryBlock block = new(_allocator, ParentPool, MemoryTypeIndex, memory,
                 allocInfo.allocationSize, _nextBlockId++, Algorithm, BufferImageGranularity);
 
             _blocks.Add(block);
@@ -2057,7 +2807,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                             // Forward order in m_Blocks - prefer blocks with smallest amount of free space.
                             for (int blockIndex = 0; blockIndex < _blocks.Count; ++blockIndex)
                             {
-                                DeviceMemoryBlock pCurrBlock = _blocks[blockIndex];
+                                VmaDeviceMemoryBlock pCurrBlock = _blocks[blockIndex];
                                 Debug.Assert(pCurrBlock != null);
 #if TODO
                         bool isBlockMapped = pCurrBlock->GetMappedData() != VMA_NULL;
@@ -2081,7 +2831,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                         // Forward order in m_Blocks - prefer blocks with smallest amount of free space.
                         for (int blockIndex = 0; blockIndex < _blocks.Count; ++blockIndex)
                         {
-                            DeviceMemoryBlock pCurrBlock = _blocks[blockIndex];
+                            VmaDeviceMemoryBlock pCurrBlock = _blocks[blockIndex];
                             Debug.Assert(pCurrBlock != null);
 #if TODO
                     VkResult res = AllocateFromBlock(
@@ -2101,7 +2851,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                     // Backward order in m_Blocks - prefer blocks with largest amount of free space.
                     for (int blockIndex = _blocks.Count - 1; blockIndex >= 0; blockIndex--)
                     {
-                        DeviceMemoryBlock pCurrBlock = _blocks[blockIndex];
+                        VmaDeviceMemoryBlock pCurrBlock = _blocks[blockIndex];
                         Debug.Assert(pCurrBlock != null);
 #if TODO
                 VkResult res = AllocateFromBlock(pCurrBlock, size, alignment, createInfo.flags, createInfo.pUserData, suballocType, strategy, pAllocation);
@@ -2167,7 +2917,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                 }
                 if (res == VkResult.Success)
                 {
-                    DeviceMemoryBlock block = _blocks[newBlockIndex];
+                    VmaDeviceMemoryBlock block = _blocks[newBlockIndex];
                     Debug.Assert(block.MetaData.Size >= size);
 
                     res = AllocateFromBlock(block, size, alignment, createInfo.Flags, createInfo.UserData, suballocType, strategy, out allocation);
@@ -2188,12 +2938,12 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
             return VkResult.ErrorOutOfDeviceMemory;
         }
 
-        private VkResult AllocateFromBlock(DeviceMemoryBlock block, ulong size, ulong alignment,
+        private VkResult AllocateFromBlock(VmaDeviceMemoryBlock block, ulong size, ulong alignment,
             AllocationCreateFlags allocFlags,
             object? userData,
             SuballocationType suballocType,
             uint strategy,
-            out Allocation allocation)
+            out Allocation? allocation)
         {
             bool isUpperAddress = (allocFlags & AllocationCreateFlags.UpperAddress) != 0;
 
@@ -2206,11 +2956,67 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                 strategy,
                 &currRequest))
             {
-                //return CommitAllocationRequest(currRequest, pBlock, alignment, allocFlags, pUserData, suballocType, pAllocation);
+                return CommitAllocationRequest(currRequest, block, alignment, allocFlags, userData, suballocType, out allocation);
             }
 
             allocation = default;
             return VkResult.ErrorOutOfDeviceMemory;
+        }
+
+        private VkResult CommitAllocationRequest(in AllocationRequest allocRequest,
+            VmaDeviceMemoryBlock pBlock,
+            ulong alignment,
+            AllocationCreateFlags allocFlags,
+            object? userData,
+            SuballocationType suballocType,
+            out Allocation? allocation)
+        {
+            bool mapped = (allocFlags & AllocationCreateFlags.Mapped) != 0;
+            //bool isUserDataString = (allocFlags & AllocationCreateFlags.u VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT) != 0;
+            bool isMappingAllowed = (allocFlags & (AllocationCreateFlags.HostAccessSequentialWrite | AllocationCreateFlags.HostAccessRandom)) != 0;
+
+            pBlock.PostAlloc(_allocator);
+            // Allocate from pCurrBlock.
+            if (mapped)
+            {
+                VkResult res = pBlock.Map(_allocator, 1, null);
+                if (res != VkResult.Success)
+                {
+                    allocation = default;
+                    return res;
+                }
+            }
+
+            //        *pAllocation = m_hAllocator->m_AllocationObjectAllocator.Allocate(isMappingAllowed);
+            allocation = new(isMappingAllowed);
+            pBlock.MetaData.Alloc(allocRequest, suballocType, allocation);
+            allocation.InitBlockAllocation(
+                pBlock,
+                allocRequest.allocHandle,
+                alignment,
+                allocRequest.size, // Not size, as actual allocation size may be larger than requested!
+                MemoryTypeIndex,
+                suballocType,
+                mapped);
+
+            //Debug.Assert(pBlock.Validate());
+            //        if (isUserDataString)
+            //            (*pAllocation)->SetName(m_hAllocator, (const char*)pUserData);
+            //else
+            //            (*pAllocation)->SetUserData(m_hAllocator, pUserData);
+
+            //        m_hAllocator->m_Budget.AddAllocation(m_hAllocator->MemoryTypeIndexToHeapIndex(m_MemoryTypeIndex), allocRequest.size);
+            //        if (VMA_DEBUG_INITIALIZE_ALLOCATIONS)
+            //        {
+            //            m_hAllocator->FillAllocation(*pAllocation, VMA_ALLOCATION_FILL_PATTERN_CREATED);
+            //        }
+            //        if (IsCorruptionDetectionEnabled())
+            //        {
+            //            VkResult res = pBlock->WriteMagicValueAfterAllocation(m_hAllocator, (*pAllocation)->GetOffset(), allocRequest.size);
+            //            VMA_ASSERT(res == VK_SUCCESS && "Couldn't map block memory to write magic value.");
+            //        }
+
+            return VkResult.Success;
         }
 
         private ulong CalcMaxBlockSize()
@@ -2219,7 +3025,7 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
 
             for (int i = _blocks.Count - 1; i >= 0; --i)
             {
-                var blockSize = _blocks[i].MetaData.Size;
+                ulong blockSize = _blocks[i].MetaData.Size;
 
                 if (result < blockSize)
                 {
@@ -2246,11 +3052,14 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
                 // Bubble sort only until first swap.
                 for (int i = 1; i < _blocks.Count; ++i)
                 {
-                    //if (_blocks[i - 1]->m_pMetadata->GetSumFreeSize() > m_Blocks[i]->m_pMetadata->GetSumFreeSize())
-                    //{
-                    //    VMA_SWAP(m_Blocks[i - 1], m_Blocks[i]);
-                    //    return;
-                    //}
+                    if (_blocks[i - 1].MetaData.GetSumFreeSize() > _blocks[i].MetaData.GetSumFreeSize())
+                    {
+                        //Helpers.VMA_SWAP(ref _blocks[i - 1], ref _blocks[i]);
+                        VmaDeviceMemoryBlock tmp = _blocks[i - 1];
+                        _blocks[i - 1] = _blocks[i];
+                        _blocks[i] = tmp;
+                        return;
+                    }
                 }
             }
         }
@@ -2319,12 +3128,157 @@ VmaPnextChainPushFront(&allocInfo, &exportMemoryAllocInfo);
     }
 }
 
+public enum AllocationType
+{
+    None,
+    Block,
+    Dedicated
+}
+
 /// <summary>
 /// The object containing details on a suballocation of Vulkan Memory
 /// </summary>
-public unsafe abstract class Allocation : IDisposable
+public unsafe class Allocation : IDisposable
 {
-    public void Dispose() => throw new NotImplementedException();
+    private Flags _flags;
+    // Reference counter for vmaMapMemory()/vmaUnmapMemory().
+    private byte _mapCount;
+    // Allocation out of VmaDeviceMemoryBlock.
+    //struct BlockAllocation
+    //{
+    //    VmaDeviceMemoryBlock* m_Block;
+    //    VmaAllocHandle m_AllocHandle;
+    //};
+    private VulkanAllocator.VmaDeviceMemoryBlock? _block;
+    private ulong _allocHandle;
+
+    // Allocation for an object that has its own private VkDeviceMemory.
+    //struct DedicatedAllocation
+    //{
+    //    VmaPool m_hParentPool; // VK_NULL_HANDLE if not belongs to custom pool.
+    //    VkDeviceMemory m_hMemory;
+    //    void* m_pMappedData; // Not null means memory is mapped.
+    //    VmaAllocation_T* m_Prev;
+    //    VmaAllocation_T* m_Next;
+    //};
+    private VkDeviceMemory _dedicatedAllocationMemory = VkDeviceMemory.Null;
+    private void* _dedicatedAllocationMappedData; // Not null means memory is mapped.
+    public Allocation(bool mappingAllowed)
+    {
+        if (mappingAllowed)
+            _flags |= Flags.MappingAllowed;
+    }
+
+    public void Dispose()
+    {
+        Debug.Assert(_mapCount == 0, "Allocation was not unmapped before destruction.");
+    }
+
+    public ulong Alignment { get; private set; } = 1;
+    public ulong Size { get; private set; }
+    public ulong Offset
+    {
+        get
+        {
+            switch (AllocationType)
+            {
+                case AllocationType.Block:
+                    return _block!.MetaData.GetAllocationOffset(_allocHandle);
+                case AllocationType.Dedicated:
+                    return 0;
+                default:
+                    Debug.Assert(false);
+                    return 0;
+            }
+        }
+    }
+    public AllocationType AllocationType { get; private set; }
+    public int MemoryTypeIndex { get; private set; }
+
+    public bool IsPersistentMap => (_flags & Flags.PersistentMap) != 0;
+    public bool IsMappingAllowed => (_flags & Flags.MappingAllowed) != 0;
+
+    internal VulkanAllocator.SuballocationType SuballocationType { get; private set; }
+
+    internal void InitBlockAllocation(VulkanAllocator.VmaDeviceMemoryBlock block,
+        ulong allocHandle,
+        ulong alignment,
+        ulong size,
+        int memoryTypeIndex,
+        VulkanAllocator.SuballocationType suballocationType,
+        bool mapped)
+    {
+        Debug.Assert(AllocationType == AllocationType.None);
+        Debug.Assert(block != null);
+        AllocationType = AllocationType.Block;
+        Alignment = alignment;
+        Size = size;
+        MemoryTypeIndex = memoryTypeIndex;
+        if (mapped)
+        {
+            Debug.Assert(IsMappingAllowed, "Mapping is not allowed on this allocation! Please use one of the new VMA_ALLOCATION_CREATE_HOST_ACCESS_* flags when creating it.");
+            _flags |= Flags.PersistentMap;
+        }
+
+        SuballocationType = suballocationType;
+        _block = block;
+        _allocHandle = allocHandle;
+    }
+
+    internal VulkanAllocator.VmaDeviceMemoryBlock GetBlock() => _block!;
+
+    public VkDeviceMemory GetMemory()
+    {
+        switch (AllocationType)
+        {
+            case AllocationType.Block:
+                return _block!.Memory;
+            case AllocationType.Dedicated:
+                return _dedicatedAllocationMemory;
+            default:
+                Debug.Assert(false);
+                return VkDeviceMemory.Null;
+        }
+    }
+
+    public void* GetMappedData()
+    {
+        switch (AllocationType)
+        {
+            case AllocationType.Block:
+                if (_mapCount != 0 || IsPersistentMap)
+                {
+                    void* pBlockData = _block!.GetMappedData();
+                    Debug.Assert(pBlockData != null);
+                    return (char*)pBlockData + Offset;
+                }
+                return null;
+
+            case AllocationType.Dedicated:
+                Debug.Assert((_dedicatedAllocationMappedData != null) == (_mapCount != 0 || IsPersistentMap));
+                return _dedicatedAllocationMappedData;
+            default:
+                Debug.Assert(false);
+                return null;
+        }
+    }
+
+    [Flags]
+    enum Flags : byte
+    {
+        None = 0,
+        PersistentMap = 0x01,
+        MappingAllowed = 0x02
+    }
+}
+
+internal readonly struct AllocationInfo
+{
+    public uint MemoryType { get; init; }
+    public VkDeviceMemory DeviceMemory { get; init; }
+    public ulong Offset { get; init; }
+    public ulong Size { get; init; }
+    public unsafe void* pMappedData { get; init; }
 }
 
 /// <summary>

@@ -969,6 +969,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         Allocator = new VulkanAllocator(_handle, PhysicalDevice);
+        if (PhysicalDeviceFeatures1_2.bufferDeviceAddress)
+        {
+            Allocator.UseKhrBufferDeviceAddress = true;
+        }
 
         // Queues
         for (int i = 0; i < (int)QueueType.Count; i++)
