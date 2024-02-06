@@ -1368,22 +1368,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _frameCount = 0;
             _frameIndex = 0;
 
-#if VMA
-            if (_allocator.Handle != 0)
+            TotalStatistics stats = Allocator.CalculateStatistics();
+
+            if (stats.Total.Statistics.AllocationBytes > 0)
             {
-                VmaTotalStatistics stats;
-                vmaCalculateStatistics(_allocator, &stats);
-
-                if (stats.total.statistics.allocationBytes > 0)
-                {
-                    Log.Warn($"Total device memory leaked:  {stats.total.statistics.allocationBytes} bytes.");
-                }
-
-                vmaDestroyAllocator(_allocator);
+                Log.Warn($"Total device memory leaked:  {stats.Total.Statistics.AllocationBytes} bytes.");
             }
-#else
+
             Allocator.Dispose();
-#endif
 
             if (_pipelineCache.IsNotNull)
             {

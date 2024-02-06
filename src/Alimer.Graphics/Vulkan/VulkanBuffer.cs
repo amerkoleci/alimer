@@ -5,9 +5,6 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using System.Runtime.CompilerServices;
 using Vortice.Mathematics;
-#if VMA
-using static Vortice.Vulkan.Vma;
-#endif
 
 namespace Alimer.Graphics.Vulkan;
 

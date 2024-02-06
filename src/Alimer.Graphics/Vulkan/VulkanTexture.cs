@@ -6,9 +6,6 @@ using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.Vulkan;
-#if VMA
-using static Vortice.Vulkan.Vma;
-#endif
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -16,11 +13,7 @@ internal unsafe class VulkanTexture : Texture
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly Dictionary<int, VkImageView> _views = [];
-#if VMA
-    private readonly VmaAllocation _allocation = VmaAllocation.Null;
-#else
-    private VkDeviceMemory _memory = VkDeviceMemory.Null;
-#endif
+    private Allocation? _allocation = default;
 
     public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
         : base(descriptor)
@@ -179,22 +172,12 @@ internal unsafe class VulkanTexture : Texture
         uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
         device.FillImageSharingIndices(ref imageInfo, sharingIndices);
 
-#if VMA
-        VmaAllocationInfo allocationInfo = default;
-        VmaAllocationCreateInfo memoryInfo = new()
+        AllocationCreateInfo memoryInfo = new()
         {
-            usage = VmaMemoryUsage.Auto
+            Usage = MemoryUsage.Auto,
         };
 
-        VkResult result = vmaCreateImage(device.MemoryAllocator,
-            &imageInfo,
-            &memoryInfo,
-            out VkImage handle,
-            out _allocation,
-            &allocationInfo);
-#else
-        VkResult result = vkCreateImage(device.Handle, &imageInfo, null, out VkImage handle);
-#endif
+        VkResult result = _device.Allocator.CreateImage(imageInfo, memoryInfo, out VkImage handle, out _allocation);
         if (result != VkResult.Success)
         {
             Log.Error("Vulkan: Failed to create image.");
@@ -207,10 +190,6 @@ internal unsafe class VulkanTexture : Texture
         {
             OnLabelChanged(descriptor.Label!);
         }
-
-#if !VMA
-        _memory = device.Allocator.AllocateTextureMemory(Handle, isShared, out ulong allocatedSize);
-#endif
 
         // Issue data copy on request
         VkImageSubresourceRange subresourceRange = new(VkFormat.GetVkImageAspectFlags(), 0, imageInfo.mipLevels, 0, imageInfo.arrayLayers);
@@ -230,7 +209,7 @@ internal unsafe class VulkanTexture : Texture
             }
             else
             {
-                context = _device.Allocate(allocatedSize);
+                context = _device.Allocate(_allocation!.Size);
                 mappedData = context.UploadBuffer.pMappedData;
             }
 
@@ -484,26 +463,16 @@ internal unsafe class VulkanTexture : Texture
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        foreach (var view in _views.Values)
+        foreach (VkImageView view in _views.Values)
         {
             vkDestroyImageView(_device.Handle, view);
         }
         _views.Clear();
 
-#if VMA
-        if (!_allocation.IsNull)
+        if (_allocation != null)
         {
-            vmaDestroyImage(_device.MemoryAllocator, Handle, _allocation);
+            _device.Allocator.DestroyImage(Handle, _allocation);
         }
-#else
-        if (_memory.IsNotNull)
-        {
-            vkDestroyImage(_device.Handle, Handle, null);
-            _device.Allocator.FreeTextureMemory(_memory);
-            _memory = VkDeviceMemory.Null;
-        }
-
-#endif
     }
 
     /// <inheritdoc />
