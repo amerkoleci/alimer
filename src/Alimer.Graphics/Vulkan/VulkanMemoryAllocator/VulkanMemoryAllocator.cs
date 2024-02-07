@@ -7,12 +7,12 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vortice.Mathematics;
-using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Vortice.Vulkan.VmaUtils;
 
-namespace Alimer.Graphics.Vulkan;
+namespace Vortice.Vulkan;
 
-internal unsafe class VulkanAllocator : IDisposable
+internal unsafe class VulkanMemoryAllocator : IDisposable
 {
     const uint VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT = 0x00000004;
 
@@ -35,6 +35,7 @@ internal unsafe class VulkanAllocator : IDisposable
     /// Default size of a block allocated as single VkDeviceMemory from a "large" heap.
     private const ulong DefaultLargeHeapBlockSize = 256 * 1024 * 1024; // VMA_DEFAULT_LARGE_HEAP_BLOCK_SIZE
 
+    private volatile uint _isDisposed = 0;
     private readonly VkDevice _device;
     private readonly VkPhysicalDevice _physicalDevice;
     private readonly VkPhysicalDeviceProperties _physicalDeviceProperties;
@@ -52,8 +53,7 @@ internal unsafe class VulkanAllocator : IDisposable
     // Each bit (1 << i) is set if HeapSizeLimit is enabled for that heap, so cannot allocate more than the heap size.
     private readonly uint _heapSizeLimitMask;
 
-
-    public VulkanAllocator(VkDevice device, VkPhysicalDevice physicalDevice, ulong preferredLargeHeapBlockSize = 0)
+    public VulkanMemoryAllocator(VkDevice device, VkPhysicalDevice physicalDevice, ulong preferredLargeHeapBlockSize = 0)
     {
         _device = device;
         _physicalDevice = physicalDevice;
@@ -111,13 +111,38 @@ internal unsafe class VulkanAllocator : IDisposable
     public ref readonly VkPhysicalDeviceProperties PhysicalDeviceProperties => ref _physicalDeviceProperties;
     public ref readonly VkPhysicalDeviceMemoryProperties PhysicalDeviceMemoryProperties => ref _memoryProperties;
 
+    /// <summary>
+    /// Gets <c>true</c> if the object has been disposed; otherwise, <c>false</c>.
+    /// </summary>
+    public bool IsDisposed => _isDisposed != 0;
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="VulkanMemoryAllocator" /> class.
+    /// </summary>
+    ~VulkanMemoryAllocator() => Dispose(disposing: false);
+
+    /// <inheritdoc />
     public void Dispose()
     {
-        //VMA_ASSERT(m_Pools.IsEmpty());
-
-        for (int memTypeIndex = 0; memTypeIndex < MemoryTypeCount; ++memTypeIndex)
+        if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
         {
-            _blockVectors[memTypeIndex].Dispose();
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    /// <inheritdoc cref="Dispose()" />
+    /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
+    private void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            //VMA_ASSERT(m_Pools.IsEmpty());
+
+            for (int memTypeIndex = 0; memTypeIndex < MemoryTypeCount; ++memTypeIndex)
+            {
+                _blockVectors[memTypeIndex].Dispose();
+            }
         }
     }
 
@@ -198,24 +223,22 @@ internal unsafe class VulkanAllocator : IDisposable
         // Process dedicated allocations.
         for (int memTypeIndex = 0; memTypeIndex < MemoryTypeCount; ++memTypeIndex)
         {
-            m_DedicatedAllocations[memTypeIndex].AddDetailedStatistics(pStats->memoryType[memTypeIndex]);
+            //_dedicatedAllocations[memTypeIndex].AddDetailedStatistics(pStats->memoryType[memTypeIndex]);
         }
 
         // Sum from memory types to memory heaps.
-        for (uint32_t memTypeIndex = 0; memTypeIndex < GetMemoryTypeCount(); ++memTypeIndex)
+        for (int memTypeIndex = 0; memTypeIndex < MemoryTypeCount; ++memTypeIndex)
         {
-            const uint32_t memHeapIndex = m_MemProps.memoryTypes[memTypeIndex].heapIndex;
-            VmaAddDetailedStatistics(pStats->memoryHeap[memHeapIndex], pStats->memoryType[memTypeIndex]);
+            int memHeapIndex = (int)_memoryProperties.memoryTypes[memTypeIndex].heapIndex;
+            VmaAddDetailedStatistics(ref result.MemoryHeap[memHeapIndex], result.MemoryType[memTypeIndex]);
         }
 
         // Sum from memory heaps to total.
-        for (uint32_t memHeapIndex = 0; memHeapIndex < GetMemoryHeapCount(); ++memHeapIndex)
-            VmaAddDetailedStatistics(pStats->total, pStats->memoryHeap[memHeapIndex]);
+        for (int memHeapIndex = 0; memHeapIndex < MemoryHeapCount; ++memHeapIndex)
+            VmaAddDetailedStatistics(ref result.Total, result.MemoryHeap[memHeapIndex]);
 
-        VMA_ASSERT(pStats->total.statistics.allocationCount == 0 ||
-            pStats->total.allocationSizeMax >= pStats->total.allocationSizeMin);
-        VMA_ASSERT(pStats->total.unusedRangeCount == 0 ||
-            pStats->total.unusedRangeSizeMax >= pStats->total.unusedRangeSizeMin);
+        Debug.Assert(result.Total.Statistics.AllocationCount == 0 || result.Total.AllocationSizeMax >= result.Total.AllocationSizeMin);
+        Debug.Assert(result.Total.UnusedRangeCount == 0 || result.Total.UnusedRangeSizeMax >= result.Total.UnusedRangeSizeMin);
 
         return result;
     }
@@ -248,7 +271,7 @@ internal unsafe class VulkanAllocator : IDisposable
         if (((uint)createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_COPY) != 0 &&
             !UseKhrBufferDeviceAddress)
         {
-            Log.Error("Creating a buffer with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT is not valid if VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT was not used.");
+            //Log.Error("Creating a buffer with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT is not valid if VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT was not used.");
             return VkResult.ErrorInitializationFailed;
         }
 
@@ -783,7 +806,7 @@ internal unsafe class VulkanAllocator : IDisposable
                 {
                     if (bufImgUsage == uint.MaxValue)
                     {
-                        Log.Error("VMA_MEMORY_USAGE_AUTO* values can only be used with functions like vmaCreateBuffer, vmaCreateImage so that the details of the created resource are known.");
+                        //Log.Error("VMA_MEMORY_USAGE_AUTO* values can only be used with functions like vmaCreateBuffer, vmaCreateImage so that the details of the created resource are known.");
                         return false;
                     }
 
@@ -1120,7 +1143,7 @@ internal unsafe class VulkanAllocator : IDisposable
         if ((createInfo.Flags & AllocationCreateFlags.DedicatedMemory) != 0
             && (createInfo.Flags & AllocationCreateFlags.NeverAllocate) != 0)
         {
-            Log.Error("Specifying VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT together with VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT makes no sense.");
+            //Log.Error("Specifying VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT together with VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT makes no sense.");
             return VkResult.ErrorFeatureNotPresent;
         }
 
@@ -1265,220 +1288,6 @@ internal unsafe class VulkanAllocator : IDisposable
         ImageOptimal = 5
     }
 
-    internal unsafe partial class Helpers
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe nuint __alignof<T>()
-            where T : unmanaged
-        {
-            AlignOf<T> alignof = new AlignOf<T>();
-            return (nuint)(nint)(Unsafe.ByteOffset(ref alignof.Origin, ref Unsafe.As<T, byte>(ref alignof.Target)));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe uint __sizeof<T>()
-            where T : unmanaged
-        {
-            return (uint)(sizeof(T));
-        }
-
-        public static void* memset(void* s, int c, nuint n)
-        {
-            Unsafe.InitBlock(s, (byte)(c), (uint)(n));
-            return s;
-        }
-
-        public static void* memcpy(void* s1, void* s2, nuint n)
-        {
-            Unsafe.CopyBlock(s1, s2, (uint)(n));
-            return s1;
-        }
-
-        public static void* memmove(void* s1, void* s2, nuint n)
-        {
-            Unsafe.CopyBlock(s1, s2, (uint)(n));
-            return s1;
-        }
-
-        public static void ZeroMemory(void* dst, nuint size)
-        {
-            _ = memset(dst, 0, size);
-        }
-
-        public static T* AllocateArray<T>(nuint count)
-            where T : unmanaged
-        {
-            T* result = (T*)(DefaultAllocate(__sizeof<T>() * count, __alignof<T>()));
-            ZeroMemory(result, __sizeof<T>() * count);
-            return result;
-        }
-
-        public static void DeleteArray<T>(T* memory)
-            where T : unmanaged
-        {
-            if (memory != null)
-            {
-                Free(memory);
-            }
-        }
-
-        public static void DeleteArray<T>(T* memory, nuint count)
-            where T : unmanaged, IDisposable
-        {
-            if (memory != null)
-            {
-                for (nuint i = count; i-- != 0;)
-                {
-                    memory[i].Dispose();
-                }
-                Free(memory);
-            }
-        }
-
-        public static void Free(void* pMemory)
-        {
-            DefaultFree(pMemory);
-        }
-
-        internal static void VMA_SWAP<T>(ref T a, ref T b)
-            where T : unmanaged
-        {
-            T tmp = a;
-            a = b;
-            b = tmp;
-        }
-
-        /// <summary>Scans integer for index of first nonzero bit from the Least Significant Bit (LSB). If mask is 0 then returns byte.MaxValue</summary>
-        /// <param name="mask"></param>
-        /// <returns></returns>
-        internal static byte VmaBitScanLSB(ulong mask)
-        {
-            byte pos = 0;
-            ulong bit = 1;
-
-            do
-            {
-                if ((mask & bit) != 0)
-                {
-                    return pos;
-                }
-                bit <<= 1;
-            }
-            while (pos++ < 63);
-
-            return byte.MaxValue;
-        }
-
-        internal static byte VmaBitScanMSB(ulong mask)
-        {
-            byte pos = 63;
-            ulong bit = 1ul << 63;
-
-            do
-            {
-                if ((mask & bit) != 0)
-                {
-                    return pos;
-                }
-                bit >>= 1;
-            }
-            while (pos-- > 0);
-
-            return byte.MaxValue;
-        }
-
-        /// <summary>Scans integer for index of first nonzero bit from the Most Significant Bit (MSB). If mask is 0 then returns byte.MaxValue</summary>
-        /// <param name="mask"></param>
-        /// <returns></returns>
-        internal static byte VmaBitScanMSB(uint mask)
-        {
-            byte pos = 31;
-            uint bit = 1U << 31;
-
-            do
-            {
-                if ((mask & bit) != 0)
-                {
-                    return pos;
-                }
-
-                bit >>= 1;
-            }
-            while (pos-- > 0);
-
-            return byte.MaxValue;
-        }
-
-        private static void* DefaultAllocate(nuint size, nuint alignment)
-        {
-            return NativeMemory.AlignedAlloc(size, alignment);
-        }
-
-        private static void DefaultFree(void* pMemory)
-        {
-            NativeMemory.AlignedFree(pMemory);
-        }
-
-        public static void VmaClearStatistics(ref Statistics stats)
-        {
-            stats.BlockCount = 0;
-            stats.AllocationCount = 0;
-            stats.BlockBytes = 0;
-            stats.AllocationBytes = 0;
-        }
-
-        public static void VmaAddStatistics(ref Statistics stats, in Statistics src)
-        {
-            stats.BlockCount += src.BlockCount;
-            stats.AllocationCount += src.AllocationCount;
-            stats.BlockBytes += src.BlockBytes;
-            stats.AllocationBytes += src.AllocationBytes;
-        }
-
-        public static void VmaClearDetailedStatistics(ref DetailedStatistics outStats)
-        {
-            VmaClearStatistics(ref outStats.Statistics);
-            outStats.UnusedRangeCount = 0;
-            outStats.AllocationSizeMin = VK_WHOLE_SIZE;
-            outStats.AllocationSizeMax = 0;
-            outStats.UnusedRangeSizeMin = VK_WHOLE_SIZE;
-            outStats.UnusedRangeSizeMax = 0;
-        }
-
-
-        public static void VmaAddDetailedStatisticsAllocation(ref DetailedStatistics inoutStats, ulong size)
-        {
-            inoutStats.Statistics.AllocationCount++;
-            inoutStats.Statistics.AllocationBytes += size;
-            inoutStats.AllocationSizeMin = Math.Min(inoutStats.AllocationSizeMin, size);
-            inoutStats.AllocationSizeMax = Math.Max(inoutStats.AllocationSizeMax, size);
-        }
-
-        public static void VmaAddDetailedStatisticsUnusedRange(ref DetailedStatistics inoutStats, ulong size)
-        {
-            inoutStats.UnusedRangeCount++;
-            inoutStats.UnusedRangeSizeMin = Math.Min(inoutStats.UnusedRangeSizeMin, size);
-            inoutStats.UnusedRangeSizeMax = Math.Max(inoutStats.UnusedRangeSizeMax, size);
-        }
-
-        public static void VmaAddDetailedStatistics(ref DetailedStatistics stats, in DetailedStatistics src)
-        {
-            VmaAddStatistics(ref stats.Statistics, src.Statistics);
-            stats.UnusedRangeCount += src.UnusedRangeCount;
-            stats.AllocationSizeMin = Math.Min(stats.AllocationSizeMin, src.AllocationSizeMin);
-            stats.AllocationSizeMax = Math.Max(stats.AllocationSizeMax, src.AllocationSizeMax);
-            stats.UnusedRangeSizeMin = Math.Min(stats.UnusedRangeSizeMin, src.UnusedRangeSizeMin);
-            stats.UnusedRangeSizeMax = Math.Max(stats.UnusedRangeSizeMax, src.UnusedRangeSizeMax);
-        }
-
-        private struct AlignOf<T> where T : unmanaged
-        {
-            public byte Origin;
-
-            public T Target;
-        }
-    }
-
     internal unsafe partial struct Pointer<T>(T* value)
         where T : unmanaged
     {
@@ -1500,26 +1309,26 @@ internal unsafe class VulkanAllocator : IDisposable
 
         public VmaVector(nuint count)
         {
-            m_pArray = (count != 0) ? Helpers.AllocateArray<T>(count) : null;
+            m_pArray = (count != 0) ? AllocateArray<T>(count) : null;
             m_Count = count;
             m_Capacity = count;
         }
 
         public VmaVector(in VmaVector<T> src)
         {
-            m_pArray = (src.m_Count != 0) ? Helpers.AllocateArray<T>(src.m_Count) : null;
+            m_pArray = (src.m_Count != 0) ? AllocateArray<T>(src.m_Count) : null;
             m_Count = src.m_Count;
             m_Capacity = src.m_Count;
 
             if (m_Count > 0)
             {
-                Unsafe.CopyBlock(m_pArray, src.m_pArray, (uint)(m_Count * Helpers.__sizeof<T>()));
+                Unsafe.CopyBlock(m_pArray, src.m_pArray, (uint)(m_Count * __sizeof<T>()));
             }
         }
 
         public void Dispose()
         {
-            Helpers.Free(m_pArray);
+            Free(m_pArray);
         }
 
         public readonly bool empty()
@@ -1629,13 +1438,13 @@ internal unsafe class VulkanAllocator : IDisposable
 
             if (newCapacity != m_Capacity)
             {
-                T* newArray = (newCapacity != 0) ? Helpers.AllocateArray<T>(newCapacity) : null;
+                T* newArray = (newCapacity != 0) ? AllocateArray<T>(newCapacity) : null;
 
                 if (m_Count != 0)
                 {
-                    Unsafe.CopyBlock(newArray, m_pArray, (uint)(m_Count * Helpers.__sizeof<T>()));
+                    Unsafe.CopyBlock(newArray, m_pArray, (uint)(m_Count * __sizeof<T>()));
                 }
-                Helpers.Free(m_pArray);
+                Free(m_pArray);
 
                 m_Capacity = newCapacity;
                 m_pArray = newArray;
@@ -1657,14 +1466,14 @@ internal unsafe class VulkanAllocator : IDisposable
 
             if (newCapacity != m_Capacity)
             {
-                T* newArray = (newCapacity != 0) ? Helpers.AllocateArray<T>(newCapacity) : null;
+                T* newArray = (newCapacity != 0) ? AllocateArray<T>(newCapacity) : null;
                 nuint elementsToCopy = Math.Min(m_Count, newCount);
 
                 if (elementsToCopy != 0)
                 {
-                    Unsafe.CopyBlock(newArray, m_pArray, (uint)(elementsToCopy * Helpers.__sizeof<T>()));
+                    Unsafe.CopyBlock(newArray, m_pArray, (uint)(elementsToCopy * __sizeof<T>()));
                 }
-                Helpers.Free(m_pArray);
+                Free(m_pArray);
 
                 m_Capacity = newCapacity;
                 m_pArray = newArray;
@@ -1682,7 +1491,7 @@ internal unsafe class VulkanAllocator : IDisposable
 
             if (index < oldCount)
             {
-                _ = Helpers.memmove(m_pArray + (index + 1), m_pArray + index, (oldCount - index) * Helpers.__sizeof<T>());
+                _ = memmove(m_pArray + (index + 1), m_pArray + index, (oldCount - index) * __sizeof<T>());
             }
             m_pArray[index] = src;
         }
@@ -1694,7 +1503,7 @@ internal unsafe class VulkanAllocator : IDisposable
 
             if (index < oldCount - 1)
             {
-                _ = Helpers.memmove(m_pArray + index, m_pArray + (index + 1), (oldCount - index - 1) * Helpers.__sizeof<T>());
+                _ = memmove(m_pArray + index, m_pArray + (index + 1), (oldCount - index - 1) * __sizeof<T>());
             }
             resize(oldCount - 1);
         }
@@ -1733,7 +1542,7 @@ internal unsafe class VulkanAllocator : IDisposable
         {
             for (nuint i = _itemBlocks.size(); i-- != 0;)
             {
-                Helpers.Free(_itemBlocks[i].pItems);
+                VmaUtils.Free(_itemBlocks[i].pItems);
             }
             _itemBlocks.clear(true);
         }
@@ -1775,7 +1584,7 @@ internal unsafe class VulkanAllocator : IDisposable
                 ref ItemBlock block = ref _itemBlocks[i];
 
                 Item* pItemPtr;
-                _ = Helpers.memcpy(&pItemPtr, &ptr, Helpers.__sizeof<nuint>());
+                _ = memcpy(&pItemPtr, &ptr, __sizeof<nuint>());
 
                 // Check if pItemPtr is in address range of this block.
                 if ((pItemPtr >= block.pItems) && (pItemPtr < block.pItems + block.Capacity))
@@ -1799,7 +1608,7 @@ internal unsafe class VulkanAllocator : IDisposable
 
             ItemBlock newBlock = new()
             {
-                pItems = Helpers.AllocateArray<Item>(newBlockCapacity),
+                pItems = AllocateArray<Item>(newBlockCapacity),
                 Capacity = newBlockCapacity,
                 FirstFreeIndex = 0u,
             };
@@ -1974,11 +1783,11 @@ internal unsafe class VulkanAllocator : IDisposable
             _memoryClasses = (byte)(memoryClass + 2);
             fixed (void* innerIsFreeBitmapPtr = &_innerIsFreeBitmap[0])
             {
-                _ = Helpers.memset(innerIsFreeBitmapPtr, 0, MAX_MEMORY_CLASSES * sizeof(uint));
+                _ = memset(innerIsFreeBitmapPtr, 0, MAX_MEMORY_CLASSES * sizeof(uint));
             }
 
-            _freeList = Helpers.AllocateArray<Pointer<Block>>(_listsCount);
-            _ = Helpers.memset(_freeList, 0, _listsCount * Helpers.__sizeof<Pointer<Block>>());
+            _freeList = AllocateArray<Pointer<Block>>(_listsCount);
+            _ = memset(_freeList, 0, _listsCount * __sizeof<Pointer<Block>>());
         }
 
         public ulong Size { get; }
@@ -1988,7 +1797,7 @@ internal unsafe class VulkanAllocator : IDisposable
 
         public void Dispose()
         {
-            Helpers.DeleteArray(_freeList);
+            DeleteArray(_freeList);
             //Helpers.DeleteArray(_freeList, _listsCount);
             //m_GranularityHandler.Destroy(GetAllocationCallbacks());
         }
@@ -2001,7 +1810,7 @@ internal unsafe class VulkanAllocator : IDisposable
         private static byte SizeToMemoryClass(ulong size)
         {
             if (size > SMALL_BUFFER_SIZE)
-                return (byte)(Helpers.VmaBitScanMSB(size) - MEMORY_CLASS_SHIFT);
+                return (byte)(VmaBitScanMSB(size) - MEMORY_CLASS_SHIFT);
             return 0;
         }
 
@@ -2405,7 +2214,7 @@ internal unsafe class VulkanAllocator : IDisposable
             ulong smallSizeStep = (ulong)(SMALL_BUFFER_SIZE / (IsVirtual ? 1 << SECOND_LEVEL_INDEX : 4));
             if (size > SMALL_BUFFER_SIZE)
             {
-                sizeForNextList += (ulong)(1 << (Helpers.VmaBitScanMSB(size) - SECOND_LEVEL_INDEX));
+                sizeForNextList += (ulong)(1 << (VmaBitScanMSB(size) - SECOND_LEVEL_INDEX));
             }
             else if (size > SMALL_BUFFER_SIZE - smallSizeStep)
             {
@@ -2546,14 +2355,14 @@ internal unsafe class VulkanAllocator : IDisposable
             stats.Statistics.BlockCount++;
             stats.Statistics.BlockBytes += Size;
             if (_nullBlock->size > 0)
-                Helpers.VmaAddDetailedStatisticsUnusedRange(ref stats, _nullBlock->size);
+                VmaAddDetailedStatisticsUnusedRange(ref stats, _nullBlock->size);
 
             for (Block* block = _nullBlock->prevPhysical; block != null; block = block->prevPhysical)
             {
                 if (block->IsFree())
-                    Helpers.VmaAddDetailedStatisticsUnusedRange(ref stats, block->size);
+                    VmaAddDetailedStatisticsUnusedRange(ref stats, block->size);
                 else
-                    Helpers.VmaAddDetailedStatisticsAllocation(ref stats, block->size);
+                    VmaAddDetailedStatisticsAllocation(ref stats, block->size);
             }
         }
 
@@ -2576,13 +2385,13 @@ internal unsafe class VulkanAllocator : IDisposable
                 }
 
                 // Find lowest free region
-                memoryClass = Helpers.VmaBitScanLSB(freeMap);
+                memoryClass = VmaBitScanLSB(freeMap);
                 innerFreeMap = _innerIsFreeBitmap[memoryClass];
 
                 Debug.Assert(innerFreeMap != 0);
             }
             // Find lowest free subregion
-            listIndex = GetListIndex(memoryClass, Helpers.VmaBitScanLSB(innerFreeMap));
+            listIndex = GetListIndex(memoryClass, VmaBitScanLSB(innerFreeMap));
             return _freeList[listIndex].Value;
         }
 
@@ -2798,13 +2607,13 @@ internal unsafe class VulkanAllocator : IDisposable
 
     internal unsafe partial class VmaDeviceMemoryBlock : IDisposable
     {
-        private readonly VulkanAllocator _allocator;
+        private readonly VulkanMemoryAllocator _allocator;
         private readonly VmaMappingHysteresis _mappingHysteresis = new();
         private uint _mapCount;
         private void* _pMappedData;
         private readonly object _syncLock = new object();
 
-        public VmaDeviceMemoryBlock(VulkanAllocator allocator,
+        public VmaDeviceMemoryBlock(VulkanMemoryAllocator allocator,
             /* VmaPool */ object? parentPool,
             int memoryTypeIndex,
             VkDeviceMemory memory,
@@ -2849,7 +2658,7 @@ internal unsafe class VulkanAllocator : IDisposable
         public void* GetMappedData() => _pMappedData;
         public uint GetMapRefCount() => _mapCount;
 
-        public void PostAlloc(VulkanAllocator allocator)
+        public void PostAlloc(VulkanMemoryAllocator allocator)
         {
             lock (_syncLock)
             {
@@ -2857,7 +2666,7 @@ internal unsafe class VulkanAllocator : IDisposable
             }
         }
 
-        public void PostFree(VulkanAllocator allocator)
+        public void PostFree(VulkanMemoryAllocator allocator)
         {
             lock (_syncLock)
             {
@@ -2880,7 +2689,7 @@ internal unsafe class VulkanAllocator : IDisposable
             return MetaData.Validate();
         }
 
-        public void Destroy(VulkanAllocator allocator)
+        public void Destroy(VulkanMemoryAllocator allocator)
         {
             // Define macro VMA_DEBUG_LOG_FORMAT or more specialized VMA_LEAK_LOG_FORMAT
             // to receive the list of the unfreed allocations.
@@ -2901,7 +2710,7 @@ internal unsafe class VulkanAllocator : IDisposable
             MetaData.Dispose();
         }
 
-        public VkResult Map(VulkanAllocator allocator, uint count, void** ppData)
+        public VkResult Map(VulkanMemoryAllocator allocator, uint count, void** ppData)
         {
             if (count == 0)
             {
@@ -2949,7 +2758,7 @@ internal unsafe class VulkanAllocator : IDisposable
             }
         }
 
-        public void Unmap(VulkanAllocator allocator, uint count)
+        public void Unmap(VulkanMemoryAllocator allocator, uint count)
         {
             if (count == 0)
             {
@@ -2976,7 +2785,7 @@ internal unsafe class VulkanAllocator : IDisposable
             }
         }
 
-        public VkResult BindBufferMemory(VulkanAllocator allocator, Allocation allocation, ulong allocationLocalOffset, VkBuffer buffer, void* pNext)
+        public VkResult BindBufferMemory(VulkanMemoryAllocator allocator, Allocation allocation, ulong allocationLocalOffset, VkBuffer buffer, void* pNext)
         {
             Debug.Assert(allocation.AllocationType == AllocationType.Block && allocation.GetBlock() == this);
             Debug.Assert(allocationLocalOffset < allocation.Size, "Invalid allocationLocalOffset. Did you forget that this offset is relative to the beginning of the allocation, not the whole memory block?");
@@ -2988,7 +2797,7 @@ internal unsafe class VulkanAllocator : IDisposable
             }
         }
 
-        public VkResult BindImageMemory(VulkanAllocator allocator, Allocation allocation, ulong allocationLocalOffset, VkImage image, void* pNext)
+        public VkResult BindImageMemory(VulkanMemoryAllocator allocator, Allocation allocation, ulong allocationLocalOffset, VkImage image, void* pNext)
         {
             Debug.Assert(allocation.AllocationType == AllocationType.Block && allocation.GetBlock() == this);
             Debug.Assert(allocationLocalOffset < allocation.Size, "Invalid allocationLocalOffset. Did you forget that this offset is relative to the beginning of the allocation, not the whole memory block?");
@@ -3003,14 +2812,14 @@ internal unsafe class VulkanAllocator : IDisposable
 
     class BlockVector : IDisposable
     {
-        private readonly VulkanAllocator _allocator;
+        private readonly VulkanMemoryAllocator _allocator;
         private readonly ReaderWriterLockSlim _mutex = new(LockRecursionPolicy.NoRecursion);
         // Incrementally sorted by sumFreeSize, ascending.
         private readonly List<VmaDeviceMemoryBlock> _blocks = new();
         private uint _nextBlockId;
         private readonly void* _pMemoryAllocateNext;
 
-        public BlockVector(VulkanAllocator allocator,
+        public BlockVector(VulkanMemoryAllocator allocator,
             object? parentPool, // VmaPool
             int memoryTypeIndex,
             ulong preferredBlockSize,
@@ -3720,7 +3529,7 @@ public unsafe class Allocation : IDisposable
     //    VmaDeviceMemoryBlock* m_Block;
     //    VmaAllocHandle m_AllocHandle;
     //};
-    private VulkanAllocator.VmaDeviceMemoryBlock? _block;
+    private VulkanMemoryAllocator.VmaDeviceMemoryBlock? _block;
     private ulong _allocHandle;
 
     // Allocation for an object that has its own private VkDeviceMemory.
@@ -3769,14 +3578,14 @@ public unsafe class Allocation : IDisposable
     public bool IsPersistentMap => (_flags & Flags.PersistentMap) != 0;
     public bool IsMappingAllowed => (_flags & Flags.MappingAllowed) != 0;
 
-    internal VulkanAllocator.SuballocationType SuballocationType { get; private set; }
+    internal VulkanMemoryAllocator.SuballocationType SuballocationType { get; private set; }
 
-    internal void InitBlockAllocation(VulkanAllocator.VmaDeviceMemoryBlock block,
+    internal void InitBlockAllocation(VulkanMemoryAllocator.VmaDeviceMemoryBlock block,
         ulong allocHandle,
         ulong alignment,
         ulong size,
         int memoryTypeIndex,
-        VulkanAllocator.SuballocationType suballocationType,
+        VulkanMemoryAllocator.SuballocationType suballocationType,
         bool mapped)
     {
         Debug.Assert(AllocationType == AllocationType.None);
@@ -3796,7 +3605,7 @@ public unsafe class Allocation : IDisposable
         _allocHandle = allocHandle;
     }
 
-    internal VulkanAllocator.VmaDeviceMemoryBlock GetBlock() => _block!;
+    internal VulkanMemoryAllocator.VmaDeviceMemoryBlock GetBlock() => _block!;
     internal ulong GetAllocHandle() => _allocHandle;
 
     public VkDeviceMemory GetMemory()
@@ -3864,7 +3673,7 @@ public unsafe class Allocation : IDisposable
         }
     }
 
-    internal VkResult DedicatedAllocMap(VulkanAllocator allocator, void** ppData)
+    internal VkResult DedicatedAllocMap(VulkanMemoryAllocator allocator, void** ppData)
     {
         Debug.Assert(AllocationType == AllocationType.Dedicated);
         Debug.Assert(IsMappingAllowed, "Mapping is not allowed on this allocation! Please use one of the new VMA_ALLOCATION_CREATE_HOST_ACCESS_* flags when creating it.");
@@ -3903,7 +3712,7 @@ public unsafe class Allocation : IDisposable
         }
     }
 
-    internal void DedicatedAllocUnmap(VulkanAllocator allocator)
+    internal void DedicatedAllocUnmap(VulkanMemoryAllocator allocator)
     {
         Debug.Assert(AllocationType == AllocationType.Dedicated);
 
@@ -4164,53 +3973,3 @@ internal struct AllocationCreateInfo
     public float Priority;
 }
 
-
-public struct Statistics
-{
-    public uint BlockCount;
-    public uint AllocationCount;
-    public ulong BlockBytes;
-    public ulong AllocationBytes;
-}
-
-public struct DetailedStatistics
-{
-    /// Basic statistics.
-    public Statistics Statistics;
-    /// Number of free ranges of memory between allocations.
-    public uint UnusedRangeCount;
-    /// Smallest allocation size. `VK_WHOLE_SIZE` if there are 0 allocations.
-    public ulong AllocationSizeMin;
-    /// Largest allocation size. 0 if there are 0 allocations.
-    public ulong AllocationSizeMax;
-    /// Smallest empty range size. `VK_WHOLE_SIZE` if there are 0 empty ranges.
-    public ulong UnusedRangeSizeMin;
-    /// Largest empty range size. 0 if there are 0 empty ranges.
-    public ulong UnusedRangeSizeMax;
-}
-
-public struct TotalStatistics
-{
-    public memoryType__FixedBuffer MemoryType;
-    public memoryHeap__FixedBuffer MemoryHeap;
-    public DetailedStatistics Total;
-
-    [InlineArray((int)VK_MAX_MEMORY_TYPES)]
-    public partial struct memoryType__FixedBuffer
-    {
-        public DetailedStatistics e0;
-    }
-
-    [InlineArray((int)VK_MAX_MEMORY_TYPES)]
-    public partial struct memoryHeap__FixedBuffer
-    {
-        public DetailedStatistics e0;
-    }
-}
-
-public struct MemoryBudget // VmaBudget
-{
-    public Statistics Statistics;
-    public ulong Usage;
-    public ulong Budget;
-}

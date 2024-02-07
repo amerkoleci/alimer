@@ -13,7 +13,7 @@ public class ImageTests
     public void Test2D_Creation(PixelFormat format, int width, int height)
     {
         using Image image = new(ImageDescription.Image2D(format, width, height, 0));
-        Assert.Equal(TextureDimension.Texture2D, image.Dimension);
+        Assert.Equal(ImageDimension.Image2D, image.Dimension);
         Assert.Equal(format, image.Format);
         Assert.Equal(width, image.Width);
         Assert.Equal(height, image.Height);
@@ -27,7 +27,7 @@ public class ImageTests
     public void Test3D_Creation(PixelFormat format, int width, int height, int depth)
     {
         using Image image = new(ImageDescription.Image3D(format, width, height, depth));
-        Assert.Equal(TextureDimension.Texture3D, image.Dimension);
+        Assert.Equal(ImageDimension.Image3D, image.Dimension);
         Assert.Equal(format, image.Format);
         Assert.Equal(width, image.Width);
         Assert.Equal(height, image.Height);

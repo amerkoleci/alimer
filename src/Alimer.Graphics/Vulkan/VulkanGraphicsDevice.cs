@@ -968,7 +968,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             };
         }
 
-        Allocator = new VulkanAllocator(_handle, PhysicalDevice);
+        Allocator = new VulkanMemoryAllocator(_handle, PhysicalDevice);
         if (PhysicalDeviceFeatures1_2.bufferDeviceAddress)
         {
             Allocator.UseKhrBufferDeviceAddress = true;
@@ -1307,7 +1307,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 #if VMA
     public VmaAllocator MemoryAllocator => _allocator;
 #else
-    public VulkanAllocator Allocator { get; }
+    public VulkanMemoryAllocator Allocator { get; }
 #endif
 
     public VkPipelineCache PipelineCache => _pipelineCache;
