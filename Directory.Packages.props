@@ -4,6 +4,7 @@
     <TerraFXWindowsVersion>10.0.22621.6</TerraFXWindowsVersion>
     <ImGuiVersion>1.0.2</ImGuiVersion>
     <AvaloniaVersion>11.0.7</AvaloniaVersion>
+    <SkiaSharpVersion>3.0.0-preview.1.8</SkiaSharpVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,8 +30,8 @@
     <PackageVersion Include="Hexa.NET.ImPlot" Version="$(ImGuiVersion)" />
     
     <!-- Asset Pipeline -->
-    <PackageVersion Include="SkiaSharp" Version="3.0.0-preview.1.8 " />
-    <PackageVersion Include="SkiaSharp.HarfBuzz" Version="3.0.0-preview.1.8 " />
+    <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
+    <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SharpGLTF.Core" Version="1.0.0-alpha0031" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.20.0" />
     <PackageVersion Include="Vortice.SpirvCross" Version="1.4.5" />
