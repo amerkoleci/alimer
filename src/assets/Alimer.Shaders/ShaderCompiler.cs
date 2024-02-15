@@ -11,6 +11,12 @@ using static TerraFX.Interop.Windows.CLSID;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.DXC;
 using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
+using static Vortice.SpirvCross.SpirvCrossApi;
+using static Vortice.SpirvCross.spvc_backend;
+using static Vortice.SpirvCross.spvc_capture_mode;
+using static Vortice.SpirvCross.spvc_compiler_option;
+using static Vortice.SpirvCross.spvc_resource_type;
+using Vortice.SpirvCross;
 
 namespace Alimer.Shaders;
 
@@ -352,6 +358,33 @@ public sealed unsafe partial class ShaderCompiler
                 }
 #endif
             }
+        }
+        else
+        {
+            ReadOnlySpan<byte> bytecode = new ReadOnlySpan<byte>(byteCode.Get()->GetBufferPointer(), (int)byteCode.Get()->GetBufferSize());
+            // Use SpirvCross for reflection
+            spvc_context_create(out spvc_context context).CheckResult("Cannot create SPIRV-Cross context");
+            spvc_context_parse_spirv(context, bytecode, out spvc_parsed_ir parsedIr).CheckResult();
+            spvc_context_create_compiler(context, SPVC_BACKEND_HLSL, parsedIr, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, out spvc_compiler compiler).CheckResult();
+
+            spvc_compiler_create_shader_resources(compiler, out spvc_resources resources);
+
+            spvc_reflected_resource* resourceList;
+            spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, out resourceList, out nuint resourceSize).CheckResult();
+
+            for (uint i = 0; i < (uint)resourceSize; i++)
+            {
+                //Assert.That(resourceList[i].id, Is.EqualTo(19));
+                //Assert.That(resourceList[i].base_type_id, Is.EqualTo(17));
+                //Assert.That(resourceList[i].type_id, Is.EqualTo(18));
+                //Assert.That(resourceList[i].GetName(), Is.EqualTo("UBO"));
+
+                uint descriptorSet = spvc_compiler_get_decoration(compiler, resourceList[i].id, SpvDecoration.DescriptorSet);
+                uint binding = spvc_compiler_get_decoration(compiler, resourceList[i].id, SpvDecoration.Binding);
+            }
+
+            spvc_context_release_allocations(context);
+            spvc_context_destroy(context);
         }
 
         return new DxcShaderCompilationResult(byteCode);
