@@ -5,6 +5,7 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
 using System.Diagnostics;
+using static Alimer.Utilities.MemoryUtilities;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -34,7 +35,7 @@ internal unsafe class VulkanPipeline : Pipeline
             ReadOnlySpan<sbyte> entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
             int entryPointNameLength = entryPointName.Length + 1;
 
-            sbyte* pName = Interop.AllocateArray<sbyte>((uint)entryPointNameLength);
+            sbyte* pName = AllocateArray<sbyte>((uint)entryPointNameLength);
             Span<sbyte> destination = new(pName, entryPointNameLength);
 
             entryPointName.CopyTo(destination);

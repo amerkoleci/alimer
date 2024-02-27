@@ -6,8 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
-
-    <PackageReference Include="Vortice.SpirvCross" />
+    <PackageReference Include="Vortice.SPIRV.Reflect" />
   </ItemGroup>
 
   <Import Project="..\..\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.projitems" Label="Shared" />

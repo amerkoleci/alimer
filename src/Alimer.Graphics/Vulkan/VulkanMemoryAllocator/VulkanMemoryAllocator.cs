@@ -2734,26 +2734,26 @@ internal unsafe class VulkanMemoryAllocator : IDisposable
                 }
                 else
                 {
-                    fixed (void* ppMappedData = &_pMappedData)
+                    void* mappedAddress;
+                    VkResult result = vkMapMemory(
+                        _allocator._device,
+                        Memory,
+                        0, // offset
+                        VK_WHOLE_SIZE,
+                        0, // flags
+                        &mappedAddress
+                        );
+                    _pMappedData = mappedAddress;
+                    if (result == VkResult.Success)
                     {
-                        VkResult result = vkMapMemory(
-                            _allocator._device,
-                            Memory,
-                            0, // offset
-                            VK_WHOLE_SIZE,
-                            0, // flags
-                            ppMappedData
-                            );
-                        if (result == VK_SUCCESS)
+                        if (ppData != null)
                         {
-                            if (ppData != null)
-                            {
-                                *ppData = ppMappedData;
-                            }
-                            _mapCount = count;
+                            *ppData = _pMappedData;
                         }
-                        return result;
+                        _mapCount = count;
                     }
+
+                    return result;
                 }
             }
         }
