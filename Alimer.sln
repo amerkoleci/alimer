@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".root", ".root", "{AC691932
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{6E75A307-8EA0-441A-9882-967B5048E707}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "editor", "editor", "{922968E0-A70B-4E09-BF72-5DB37F5936AE}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{446FAFB5-D0FC-4A98-BEDF-7967B7C200E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3A53E2F8-A5FB-401A-AAA4-0845842B3614}"
@@ -47,8 +49,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Assets", "src\assets
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Physics", "src\Alimer.Physics\Alimer.Physics.csproj", "{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ImGui", "src\Alimer.ImGui\Alimer.ImGui.csproj", "{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.UI", "src\Alimer.UI\Alimer.UI.csproj", "{18D54D83-0AA5-4916-87CF-48B69E9F66EA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Audio", "src\Alimer.Audio\Alimer.Audio.csproj", "{F46E6E40-194E-4E8F-8695-154E53B329AB}"
@@ -58,6 +58,12 @@ EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "TerraFX.Interop.Windows.Shared", "src\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.shproj", "{BC61A7B9-4E0B-4F71-B1DE-C5E053E7DFBE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Bindings.OpenAL", "src\Alimer.Bindings.OpenAL\Alimer.Bindings.OpenAL.csproj", "{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.EditorFramework", "src\editor\Alimer.EditorFramework\Alimer.EditorFramework.csproj", "{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Editor", "src\editor\Alimer.Editor\Alimer.Editor.csproj", "{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ImGui", "src\Alimer.ImGui\Alimer.ImGui.csproj", "{B8CA8405-66BB-40FE-B5DD-527BF6821856}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -109,10 +115,6 @@ Global
 		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9A3F717A-2FBE-4ED3-B982-06EAEF935D4E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -129,6 +131,18 @@ Global
 		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -139,6 +153,8 @@ Global
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08} = {6E75A307-8EA0-441A-9882-967B5048E707}
 		{A80A537D-096C-4916-9222-0F65FBFD64A8} = {6E75A307-8EA0-441A-9882-967B5048E707}
+		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7} = {922968E0-A70B-4E09-BF72-5DB37F5936AE}
+		{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513} = {922968E0-A70B-4E09-BF72-5DB37F5936AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F91C04E-B42E-4037-8FF3-A9C768E70094}

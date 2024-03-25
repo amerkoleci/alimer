@@ -16,6 +16,7 @@ public sealed class StandardMaterial : UnlitMaterial
         : base(device)
     {
     }
+
     /// <summary>
     /// Finalizes an instance of the <see cref="StandardMaterial" /> class.
     /// </summary>
@@ -40,6 +41,7 @@ public sealed class StandardMaterial : UnlitMaterial
     public Vector3 EmissiveFactor { get; set; } = Vector3.Zero;
     public Texture? EmissiveTexture { get; set; }
     public Texture? OcclusionTexture { get; set; }
+
     [DefaultValue(1.0f)]
     public float OcclusionStrength { get; set; } = 1.0f;
 }

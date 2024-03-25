@@ -132,7 +132,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
     private void OnCanvasSizeChanged(object? sender, EventArgs e)
     {
-        Resize((int)MainWindow.ClientSize.Width, (int)MainWindow.ClientSize.Height);
+        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
     }
 
     private void UpdateCamera(CameraComponent camera)

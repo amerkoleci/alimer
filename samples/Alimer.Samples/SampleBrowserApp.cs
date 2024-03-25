@@ -3,6 +3,7 @@
 
 using Alimer.Engine;
 using Alimer.Graphics;
+using Alimer.Samples.Engime;
 using Alimer.Samples.Graphics;
 
 namespace Alimer.Samples;
@@ -15,7 +16,7 @@ public sealed class SampleBrowserApp : GameApplication
     public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(preferredGraphicsBackend)
     {
-        //GameSystems.Add(new ImGuiSystem(Services));
+        GameSystems.Add(new ImGuiSystem(Services));
     }
 
     protected override void Initialize()
@@ -39,10 +40,10 @@ public sealed class SampleBrowserApp : GameApplication
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
-        _runningSample = new DrawMeshSample(Services, MainWindow);
+        //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
-        //_runningSample = new SceneCubeSample(Services);
+        _runningSample = new SceneCubeSample(Services);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }

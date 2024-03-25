@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Alimer.Engine\Alimer.Engine.csproj" />
     <ProjectReference Include="..\..\src\Alimer\Alimer.csproj" />
   </ItemGroup>
 

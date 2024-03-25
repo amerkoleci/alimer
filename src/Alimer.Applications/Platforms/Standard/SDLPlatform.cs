@@ -21,7 +21,7 @@ internal unsafe class SDLPlatform : AppPlatform
     public SDLPlatform()
     {
         //SDL_LogSetPriority(SDL_LogCategory.Error, SDL_LogPriority.Debug);
-        SDL_LogSetOutputFunction(OnLog);
+        SDL_SetLogOutputFunction(OnLog);
 
         SDL_GetVersion(out SDL_version version);
         ApiVersion = new Version(version.major, version.minor, version.patch);

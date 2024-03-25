@@ -15,7 +15,7 @@ namespace Alimer.Engine;
 
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public sealed partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChanged
+public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChanged
 {
     private Entity? _parent;
     private string _name;

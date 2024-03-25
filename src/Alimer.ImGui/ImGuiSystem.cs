@@ -3,7 +3,6 @@
 
 using Alimer.Engine;
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 using Hexa.NET.ImGui;
 
 namespace Alimer;
@@ -48,4 +47,10 @@ public sealed class ImGuiSystem : GameSystem
 
     public GraphicsDevice GraphicsDevice { get; }
     public Window MainWindow { get; }
+    public ref readonly ImGuiContextPtr Context => ref _context;
+
+    public override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    {
+
+    }
 }

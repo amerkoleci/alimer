@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TerraFXWindowsVersion>10.0.22621.6</TerraFXWindowsVersion>
     <ImGuiVersion>1.0.2</ImGuiVersion>
-    <AvaloniaVersion>11.1.0-beta1</AvaloniaVersion>
     <SkiaSharpVersion>3.0.0-preview.2.1</SkiaSharpVersion>
   </PropertyGroup>
 
@@ -16,7 +15,7 @@
     
     <!-- Engine -->
     <PackageVersion Include="Vortice.Mathematics" Version="1.7.8" />
-    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.5.0" />
+    <PackageVersion Include="Alimer.Bindings.SDL" Version="3.5.1" />
     <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.4.0" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
@@ -39,14 +38,6 @@
     <!-- Editor -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
-    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
-    <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
-    <PackageVersion Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)" />
-    <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
-    <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
-    <PackageVersion Include="Avalonia.Xaml.Interactions" Version="11.1.0-beta1" />
-    <PackageVersion Include="Markdown.Avalonia.Tight" Version="11.0.2" />
 
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />

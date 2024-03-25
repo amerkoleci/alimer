@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Alimer.Editor</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hexa.NET.ImGui" />
+    <PackageReference Include="Hexa.NET.ImGuizmo" />
+    <PackageReference Include="Hexa.NET.ImNodes" />
+    <PackageReference Include="Hexa.NET.ImPlot" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Alimer.ImGui\Alimer.ImGui.csproj" />
+    <ProjectReference Include="..\..\Alimer.Physics\Alimer.Physics.csproj" />
+    <ProjectReference Include="..\..\assets\Alimer.Assets\Alimer.Assets.csproj" />
+  </ItemGroup>
+
+</Project>
