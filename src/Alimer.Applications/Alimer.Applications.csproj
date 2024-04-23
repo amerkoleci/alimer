@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
-    <PackageReference Include="Alimer.Bindings.SDL" />
+    <PackageReference Include="ppy.SDL3-CS" />
   </ItemGroup>
 
 </Project>

@@ -32,7 +32,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
 
         _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
-        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, CpuAccessMode.Write));
+        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color4), BufferUsage.Constant, CpuAccessMode.Write));
 
         _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex),
@@ -47,7 +47,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0));
 
-        ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStages.Vertex);
+        Dictionary<string, string> vsDefines = new() { { "VERTEX_COLOR", "0" } };
+        ShaderStageDescription vertexShader = CompileShader("Cube.hlsl", "vertexMain", ShaderStages.Vertex, vsDefines);
         ShaderStageDescription fragmentShader = CompileShader("Cube.hlsl", "fragmentMain", ShaderStages.Fragment);
 
         var shaderStages = new ShaderStageDescription[2]
@@ -58,7 +59,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
+            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
         RenderPipelineDescription renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
@@ -81,7 +82,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
         _constantBuffer0.SetData(worldViewProjection);
 
-        Color testColor = new Color(0.0f, 0.0f, 1.0f, 1.0f);
+        Color4 testColor = new(0.0f, 1.0f, 1.0f, 1.0f);
         _constantBuffer1.SetData(testColor);
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color4(0.3f, 0.3f, 0.3f));

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
@@ -35,7 +35,11 @@ public abstract class GraphicsSampleBase : SampleBase
         return GraphicsDevice.CreateBuffer(dataSpan, usage, cpuAccess);
     }
 
-    protected ShaderStageDescription CompileShader(string fileName, string entryPoint, ShaderStages stage)
+    protected ShaderStageDescription CompileShader(
+        string fileName,
+        string entryPoint,
+        ShaderStages stage,
+        Dictionary<string, string>? defines = default)
     {
         ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
@@ -52,8 +56,16 @@ public abstract class GraphicsSampleBase : SampleBase
             IncludeDirs =
             {
                 shadersPath
-            }
+            },
         };
+
+        if (defines != null && defines.Count > 0)
+        {
+            foreach (KeyValuePair<string, string> pair in defines)
+            {
+                options.Defines.Add(pair.Key, pair.Value);
+            }
+        }
 
         using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource, in options);
         if (result.Failed)

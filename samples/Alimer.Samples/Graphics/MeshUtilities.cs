@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
@@ -16,26 +16,26 @@ public static class MeshUtilities
 
     public static (List<VertexPositionNormalTexture> Vertices, List<ushort> Indices) CreateBox(in Vector3 size)
     {
-        List<VertexPositionNormalTexture> vertices = new();
-        List<ushort> indices = new();
+        List<VertexPositionNormalTexture> vertices = [];
+        List<ushort> indices = [];
 
-        Vector3[] faceNormals = new Vector3[CubeFaceCount]
-        {
+        Vector3[] faceNormals =
+        [
             Vector3.UnitZ,
             new Vector3(0.0f, 0.0f, -1.0f),
             Vector3.UnitX,
             new Vector3(-1.0f, 0.0f, 0.0f),
             Vector3.UnitY,
             new Vector3(0.0f, -1.0f, 0.0f),
-        };
+        ];
 
-        Vector2[] textureCoordinates = new Vector2[4]
-        {
+        Vector2[] textureCoordinates =
+        [
             Vector2.UnitX,
             Vector2.One,
             Vector2.UnitY,
             Vector2.Zero,
-        };
+        ];
 
         Vector3 tsize = size / 2.0f;
 
