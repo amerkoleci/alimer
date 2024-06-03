@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TerraFXWindowsVersion>10.0.22621.6</TerraFXWindowsVersion>
     <ImGuiVersion>1.0.3</ImGuiVersion>
-    <SkiaSharpVersion>3.0.0-preview.2.1</SkiaSharpVersion>
+    <SkiaSharpVersion>3.0.0-preview.3.1</SkiaSharpVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,8 +33,8 @@
     <!-- Asset Pipeline -->
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
-    <PackageVersion Include="SharpGLTF.Core" Version="1.0.0-alpha0031" />
-    <PackageVersion Include="Silk.NET.Assimp" Version="2.20.0" />
+    <PackageVersion Include="SharpGLTF.Core" Version="1.0.0" />
+    <PackageVersion Include="Silk.NET.Assimp" Version="2.21.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.1" />
 
     <!-- Editor -->
@@ -42,10 +42,10 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
 
     <!-- Tests -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-    <PackageVersion Include="xunit" Version="2.7.0" />
-    <PackageVersion Include="xunit.console" Version="2.7.0" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.7" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageVersion Include="xunit" Version="2.8.1" />
+    <PackageVersion Include="xunit.console" Version="2.8.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.1" />
   </ItemGroup>
 
 </Project>

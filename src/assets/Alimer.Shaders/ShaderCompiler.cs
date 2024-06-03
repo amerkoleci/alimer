@@ -376,7 +376,7 @@ public sealed unsafe partial class ShaderCompiler
             spvReflectDestroyShaderModule(&module);
         }
 
-        return new DxcShaderCompilationResult(byteCode);
+        return new DxcShaderCompilationResult(byteCode, format);
     }
 
     private HRESULT Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)

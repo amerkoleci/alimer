@@ -27,6 +27,10 @@
 
   <!-- Assets-->
   <ItemGroup>
+    <Shader Include="Assets\Shaders\*.hlsl" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

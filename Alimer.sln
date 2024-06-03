@@ -75,6 +75,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Editor", "src\editor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ImGui", "src\Alimer.ImGui\Alimer.ImGui.csproj", "{B8CA8405-66BB-40FE-B5DD-527BF6821856}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ShaderCompiler", "src\assets\Alimer.ShaderCompiler\Alimer.ShaderCompiler.csproj", "{40A434AE-8653-4F40-B096-3B620DD092A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,6 +155,10 @@ Global
 		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8CA8405-66BB-40FE-B5DD-527BF6821856}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40A434AE-8653-4F40-B096-3B620DD092A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40A434AE-8653-4F40-B096-3B620DD092A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40A434AE-8653-4F40-B096-3B620DD092A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40A434AE-8653-4F40-B096-3B620DD092A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -166,6 +172,7 @@ Global
 		{A80A537D-096C-4916-9222-0F65FBFD64A8} = {6E75A307-8EA0-441A-9882-967B5048E707}
 		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7} = {922968E0-A70B-4E09-BF72-5DB37F5936AE}
 		{2696DBC8-C7A4-4AD2-AE5A-C7008AABF513} = {922968E0-A70B-4E09-BF72-5DB37F5936AE}
+		{40A434AE-8653-4F40-B096-3B620DD092A7} = {6E75A307-8EA0-441A-9882-967B5048E707}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F91C04E-B42E-4037-8FF3-A9C768E70094}

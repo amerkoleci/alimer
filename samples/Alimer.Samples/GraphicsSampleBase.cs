@@ -35,6 +35,27 @@ public abstract class GraphicsSampleBase : SampleBase
         return GraphicsDevice.CreateBuffer(dataSpan, usage, cpuAccess);
     }
 
+    protected Stream OpenEmbeddedAssetStream(string name) => typeof(GraphicsSampleBase).Assembly!.GetManifestResourceStream(name);
+    protected byte[] ReadEmbeddedAssetBytes(string name)
+    {
+        using Stream stream = OpenEmbeddedAssetStream(name);
+        byte[] bytes = new byte[stream.Length];
+        using (MemoryStream ms = new MemoryStream(bytes))
+        {
+            stream.CopyTo(ms);
+            return bytes;
+        }
+    }
+
+    protected ShaderStageDescription LoadShader(string name, ShaderStages stage, string entryPoint)
+    {
+        string shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? "spirv" : "dxil";
+
+        string entryName = $"{name}_{entryPoint}_{shaderFormat}.bin";
+        byte[] bytecode = ReadEmbeddedAssetBytes(entryName);
+        return new ShaderStageDescription(stage, bytecode, entryPoint);
+    }
+
     protected ShaderStageDescription CompileShader(
         string fileName,
         string entryPoint,

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
+
+  <PropertyGroup>
+    <_ShaderCompilerPath>$(AlimerSrcDirectory)assets/Alimer.ShaderCompiler/bin/$(Configuration)/net8.0/Alimer.ShaderCompiler.dll</_ShaderCompilerPath>
+    <_ProcessDir>$(BaseIntermediateOutputPath)/CompiledShaders</_ProcessDir>
+  </PropertyGroup>
+
+  <Target Name="ProcessShaders" AfterTargets="AssignTargetPaths" Condition="'@(Shader)' != ''">
+    <PropertyGroup>
+      <_Command>dotnet $(_ShaderCompilerPath)</_Command>
+      <_Command>$(_Command) $(_ProcessDir)</_Command>
+      <_Command>$(_Command) @(Shader->'%(Identity)', ' ')</_Command>
+    </PropertyGroup>
+    <Message Importance="high" Text="Executing: $(_Command)" />
+    <Exec Command="$(_Command)" />
+    <ItemGroup>
+      <_ProcessedAsset Include="$(_ProcessDir)/*.bin" />
+      <EmbeddedResource Include="@(_ProcessedAsset)">
+        <LogicalName>%(FileName)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+  </Target>
+
+  <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
+    <ProjectReference Include="$(AlimerSrcDirectory)assets/Alimer.ShaderCompiler/Alimer.ShaderCompiler.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

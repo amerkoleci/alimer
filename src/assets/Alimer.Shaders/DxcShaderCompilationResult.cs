@@ -15,16 +15,19 @@ internal unsafe class DxcShaderCompilationResult : ShaderCompilationResult
     {
     }
 
-    public DxcShaderCompilationResult(ComPtr<IDxcBlob> byteCode)
+    public DxcShaderCompilationResult(ComPtr<IDxcBlob> byteCode, ShaderFormat format)
     {
         _byteCode = byteCode.Move();
         _byteCode.Get()->AddRef();
+        Format = format;
     }
 
     public override void Dispose()
     {
         _byteCode.Dispose();
     }
+
+    public override ShaderFormat Format { get; }
 
     public override ReadOnlySpan<byte> GetByteCode()
     {

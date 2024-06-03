@@ -11,6 +11,7 @@ public abstract class ShaderCompilationResult : IDisposable
     public string ErrorMessage { get; }
     public bool Failed => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool Succeeded => !Failed;
+    public abstract ShaderFormat Format { get; }
 
     public abstract void Dispose();
 
