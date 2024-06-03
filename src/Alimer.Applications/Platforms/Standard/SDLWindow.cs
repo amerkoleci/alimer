@@ -158,20 +158,20 @@ internal unsafe class SDLWindow : Window
         SDL_SetWindowTitle(SDLWindowHandle, title);
     }
 
-    public void HandleEvent(in SDL_Event evt)
+    public void HandleEvent(in SDL_WindowEvent evt)
     {
-        switch (evt.window.type)
+        switch (evt.type)
         {
             case SDL_EVENT_WINDOW_MINIMIZED:
                 _minimized = true;
-                _clientSize = new(evt.window.data1, evt.window.data2);
+                _clientSize = new(evt.data1, evt.data2);
                 OnSizeChanged();
                 break;
 
             case SDL_EVENT_WINDOW_MAXIMIZED:
             case SDL_EVENT_WINDOW_RESTORED:
                 _minimized = false;
-                _clientSize = new(evt.window.data1, evt.window.data2);
+                _clientSize = new(evt.data1, evt.data2);
                 OnSizeChanged();
                 break;
 
@@ -187,17 +187,17 @@ internal unsafe class SDLWindow : Window
 
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 Destroy();
-                _platform.WindowClosed(evt.window.windowID);
+                _platform.WindowClosed(evt.windowID);
                 break;
         }
     }
 
-    private void HandleResize(in SDL_Event evt)
+    private void HandleResize(in SDL_WindowEvent evt)
     {
-        if (_clientSize.Width != evt.window.data1 ||
-            _clientSize.Height != evt.window.data2)
+        if (_clientSize.Width != evt.data1 ||
+            _clientSize.Height != evt.data2)
         {
-            _clientSize = new(evt.window.data1, evt.window.data2);
+            _clientSize = new(evt.data1, evt.data2);
             OnSizeChanged();
         }
     }

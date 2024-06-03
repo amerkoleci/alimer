@@ -21,9 +21,9 @@ internal unsafe static partial class AlimerApi
         NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), OnDllImport);
     }
 
-    private static IntPtr OnDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+    private static nint OnDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (TryResolveLibrary(libraryName, assembly, searchPath, out IntPtr nativeLibrary))
+        if (TryResolveLibrary(libraryName, assembly, searchPath, out nint nativeLibrary))
         {
             return nativeLibrary;
         }
@@ -33,7 +33,7 @@ internal unsafe static partial class AlimerApi
 
     private static bool TryResolveLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath, out nint nativeLibrary)
     {
-        nativeLibrary = IntPtr.Zero;
+        nativeLibrary = 0;
         if (libraryName is not Library)
             return false;
 

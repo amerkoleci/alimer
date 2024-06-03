@@ -43,3 +43,6 @@
 *.gif 	    binary
 *.wav       binary
 *.snk       binary
+*.dll       binary
+*.so        binary
+*.dylib     binary

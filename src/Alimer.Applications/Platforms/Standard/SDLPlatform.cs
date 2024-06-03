@@ -5,7 +5,6 @@ using Alimer.Input;
 using static SDL.SDL3;
 using SDL;
 using System.Runtime.InteropServices;
-using static SDL.SDL_InitFlags;
 using static SDL.SDL_EventType;
 using System.Runtime.CompilerServices;
 
@@ -14,7 +13,7 @@ namespace Alimer;
 internal unsafe class SDLPlatform : AppPlatform
 {
     private const int _eventsPerPeep = 64;
-    private readonly SDL_Event* _events = (SDL_Event*)NativeMemory.Alloc(_eventsPerPeep, (nuint)sizeof(SDL_Event));
+    private readonly SDL_Event[] _events = new SDL_Event[_eventsPerPeep];
 
     private readonly SDLInput _input;
     private readonly SDLWindow _window;
@@ -27,16 +26,24 @@ internal unsafe class SDLPlatform : AppPlatform
         //SDL_LogSetPriority(SDL_LogCategory.SDL_LOG_CATEGORY_ERROR, SDL_LogPriority.SDL_LOG_PRIORITY_DEBUG);
         SDL_SetLogOutputFunction(&OnLog, IntPtr.Zero);
 
-        SDL_Version version;
-        SDL_GetVersion(&version);
-        ApiVersion = new Version(version.major, version.minor, version.patch);
+        int version = SDL_GetVersion();
+        string? revision = SDL_GetRevision();
+        ApiVersion = new Version(
+            SDL_VERSIONNUM_MAJOR(version),
+            SDL_VERSIONNUM_MINOR(version),
+            SDL_VERSIONNUM_MICRO(version));
 
         // Init SDL3
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMEPAD) != 0)
+        if (SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_TIMER | SDL_InitFlags.SDL_INIT_GAMEPAD) != 0)
         {
             Log.Error($"Unable to initialize SDL: {SDL_GetError()}");
             throw new Exception("");
         }
+
+        Log.Info($@"SDL3 Initialized
+                  SDL3 Version: {SDL_VERSIONNUM_MAJOR(version)}.{SDL_VERSIONNUM_MINOR(version)}.{SDL_VERSIONNUM_MICRO(version)}
+                  SDL3 Revision: {SDL3.SDL_GetRevision()}"
+                  );
 
         _input = new SDLInput(this);
         MainWindow = (_window = new SDLWindow(this, WindowFlags.Resizable));
@@ -97,7 +104,7 @@ internal unsafe class SDLPlatform : AppPlatform
 
         do
         {
-            eventsRead = SDL_PeepEvents(_events, _eventsPerPeep, SDL_eventaction.SDL_GETEVENT, (uint)SDL_EVENT_FIRST, (uint)SDL_EVENT_LAST);
+            eventsRead = SDL_PeepEvents(_events, SDL_EventAction.SDL_GETEVENT, SDL_EventType.SDL_EVENT_FIRST, SDL_EventType.SDL_EVENT_LAST);
             for (int i = 0; i < eventsRead; i++)
             {
                 HandleSDLEvent(_events[i]);
@@ -107,25 +114,36 @@ internal unsafe class SDLPlatform : AppPlatform
 
     private void HandleSDLEvent(SDL_Event evt)
     {
+        if (evt.Type >= SDL_EventType.SDL_EVENT_DISPLAY_FIRST && evt.Type <= SDL_EventType.SDL_EVENT_DISPLAY_LAST)
+        {
+            HandleDisplayEvent(evt.display);
+            return;
+        }
+
+        if (evt.Type >= SDL_EventType.SDL_EVENT_WINDOW_FIRST && evt.Type <= SDL_EventType.SDL_EVENT_WINDOW_LAST)
+        {
+            HandleWindowEvent(in evt.window);
+            return;
+        }
+
         switch (evt.type)
         {
             case (uint)SDL_EVENT_QUIT:
             case (uint)SDL_EVENT_TERMINATING:
                 _exitRequested = true;
                 break;
-
-            default:
-                if (evt.type >= (uint)SDL_EVENT_WINDOW_FIRST && evt.type <= (uint)SDL_EVENT_WINDOW_LAST)
-                {
-                    HandleWindowEvent(evt);
-                }
-                break;
         }
     }
 
-    private void HandleWindowEvent(in SDL_Event evt)
+    private void FetchDisplays()
     {
-        if (_idLookup.TryGetValue(evt.window.windowID, out SDLWindow? window))
+    }
+
+    private void HandleDisplayEvent(SDL_DisplayEvent _) => FetchDisplays();
+
+    private void HandleWindowEvent(in SDL_WindowEvent evt)
+    {
+        if (_idLookup.TryGetValue(evt.windowID, out SDLWindow? window))
         {
             window.HandleEvent(evt);
         }
