@@ -6,16 +6,21 @@
   </PropertyGroup>
 
   <!-- Settings that are only set for executables -->
-  <PropertyGroup Condition="'$(OutputType)' != 'Library' AND '$(UseWindowsForms)' != 'true'">
+  <PropertyGroup Condition="'$(OutputType)' != 'Library' AND '$(UseWindowsForms)' != 'true' AND '$(UseWPF)' != 'true'  AND '$(UseWinUI)' != 'true' ">
     <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
-  <!-- Settings that are only set for libraries -->
-  <PropertyGroup Condition="'$(OutputType)' == 'Library'">
-    <IsAotCompatible>true</IsAotCompatible>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
-    <IsTrimmable>true</IsTrimmable>
-  </PropertyGroup>
+  <!-- Emit the [DisableRuntimeMarshalling] attribute for all .NET 8 projects -->
+  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.DisableRuntimeMarshallingAttribute" />
+  </ItemGroup>
+
+  <!-- Emit the [ComVisible(false)] attribute for WinUI targets -->
+  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0-windows'))">
+    <AssemblyAttribute Include="System.Runtime.InteropServices.ComVisibleAttribute">
+      <_Parameter1>false</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
   <!-- Assembly attributes to include for every project -->
   <ItemGroup>
@@ -28,6 +33,12 @@
   <PropertyGroup Condition="'$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
     <SupportedOSPlatformVersion>10.0.19043.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion>10.0.19043.0</TargetPlatformMinVersion>
+    <WindowsSdkPackageVersion>10.0.22621.35-preview</WindowsSdkPackageVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_AlimerTargetPlatformIsAndroid)' == 'True'">
+    <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion>21.0</TargetPlatformMinVersion>
   </PropertyGroup>
 
 </Project>

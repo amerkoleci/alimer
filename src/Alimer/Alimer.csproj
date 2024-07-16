@@ -14,6 +14,10 @@
     <PackageReference Include="Vortice.Mathematics" />
   </ItemGroup>
 
+  <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
+    <PackageReference Include="StbImageSharp" />
+  </ItemGroup>
+
   <!-- Native Libs -->
   <ItemGroup>
     <Content Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">

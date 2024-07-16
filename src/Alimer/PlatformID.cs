@@ -9,10 +9,6 @@ namespace Alimer;
 public enum PlatformID 
 {
     /// <summary>
-    /// Unknown platform.
-    /// </summary>
-    Unknown,
-    /// <summary>
     /// Windows platform.
     /// </summary>
     Windows,
@@ -21,21 +17,13 @@ public enum PlatformID
     /// </summary>
     Linux,
     /// <summary>
-    /// macOS platform.
+    /// macOS/MacCatalyst platform.
     /// </summary>
     MacOS,
     /// Android platform.
     Android,
-    /// Web platform.
-    Web,
     /// iOS platform.
     iOS,
-    /// tvOS platform.
-    tvOS,
-    /// Universal Windows platform.
-    UWP,
-    /// Xbox One platform.
-    XboxOne,
-    /// Xbox Series platform.
-    XboxSeries,
+    /// Browser (WASM) platform.
+    Browser,
 }

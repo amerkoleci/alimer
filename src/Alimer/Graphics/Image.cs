@@ -5,7 +5,12 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
+#if __WINUI__
+using Windows.Graphics.Imaging;
+#elif __ANDROID__ 
+#else
 using StbImageSharp;
+#endif
 
 namespace Alimer.Graphics;
 
@@ -259,18 +264,23 @@ public sealed unsafe class Image : DisposableObject
         }
         else
         {
+#if __WINUI__
+            throw new NotImplementedException("Windows: Image loading is not supported");
+#elif __ANDROID__
+            throw new NotImplementedException("Android: Image loading is not supported");
+#else
             bool isHdr = IsHDR(data);
             using MemoryStream stream = new(data.ToArray());
 
             if (isHdr)
             {
-                using ImageResultFloat imageResultFloat = ImageResultFloat.FromStream(stream, (ColorComponents)channels);
+                ImageResultFloat imageResultFloat = ImageResultFloat.FromStream(stream, (ColorComponents)channels);
                 ImageDescription imageDescription = ImageDescription.Image2D(PixelFormat.RGBA32Float, imageResultFloat.Width, imageResultFloat.Height);
-                return new(imageDescription, imageResultFloat.Data.As<float, byte>());
+                return new(imageDescription, MemoryMarshal.AsBytes<float>(imageResultFloat.Data));
             }
             else
             {
-                using ImageResult imageResult = ImageResult.FromStream(stream, (ColorComponents)channels);
+                ImageResult imageResult = ImageResult.FromStream(stream, (ColorComponents)channels);
                 PixelFormat format = PixelFormat.RGBA8Unorm;
                 switch (imageResult.Comp)
                 {
@@ -290,6 +300,7 @@ public sealed unsafe class Image : DisposableObject
                 ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, imageResult.Width, imageResult.Height);
                 return new(imageDescription, imageResult.Data);
             }
+#endif
         }
 
 #if TODO_OLD

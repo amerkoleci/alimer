@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>
+    <!--<TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>-->
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <RootNamespace>Alimer.Samples</RootNamespace>

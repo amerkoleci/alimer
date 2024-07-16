@@ -8,14 +8,6 @@ namespace Alimer.Physics;
 
 public class PhysicsSystem : EntitySystem<PhysicsComponent>
 {
-#pragma warning disable CA2255
-    [ModuleInitializer]
-#pragma warning restore CA2255
-    internal static void Register()
-    {
-        EntityManager.RegisterSystemFactory<PhysicsSystem>();
-    }
-
     public PhysicsSystem()
     : base(typeof(TransformComponent))
     {

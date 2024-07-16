@@ -12,7 +12,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 {
     private readonly VulkanGraphicsDevice _device;
     private VkBuffer _handle = VkBuffer.Null;
-    private Allocation? _allocation = default;
+    private VmaAllocation? _allocation = default;
 
     public readonly void* pMappedData;
     private readonly ulong _mappedSize;

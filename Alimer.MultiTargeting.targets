@@ -10,21 +10,41 @@
     <Compile Include="Platforms\Standard\**\*.cs" />
   </ItemGroup>
 
-  <!-- Windows/WinUI -->
-  <ItemGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
+  <!-- Windows WPF -->
+  <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindowsClassic)' == 'True' ">
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    
     <None Remove="Platforms\Windows\**\*.cs" />
     <Compile Include="Platforms\Windows\**\*.cs" />
   </ItemGroup>
-  
-  <!-- Windows -->
-  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
-    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
-    <EnableMsixTooling>true</EnableMsixTooling>
+  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindowsClassic)' == 'True' ">
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
+
+  <!-- WinUI -->
+  <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWinUI)' == 'True' ">
+    <None Remove="Platforms\Windows\**\*.cs" />
+    <Compile Include="Platforms\Windows\**\*.cs" />
+
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <!--<PackageReference Include="Microsoft.Graphics.Win2D" />-->
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWinUI)' == 'True' ">
+    <PublishAot>false</PublishAot>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+  </PropertyGroup>
+
+  <!-- Android -->
+  <ItemGroup Condition=" '$(_AlimerTargetPlatformIsAndroid)' == 'True' ">
+    <None Remove="Platforms\Android\**\*.cs" />
+    <Compile Include="Platforms\Android\**\*.cs" />
   </ItemGroup>
   
 </Project>

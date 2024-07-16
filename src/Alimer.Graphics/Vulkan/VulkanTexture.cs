@@ -13,7 +13,7 @@ internal unsafe class VulkanTexture : Texture
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly Dictionary<int, VkImageView> _views = [];
-    private Allocation? _allocation = default;
+    private VmaAllocation? _allocation = default;
 
     public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
         : base(descriptor)
