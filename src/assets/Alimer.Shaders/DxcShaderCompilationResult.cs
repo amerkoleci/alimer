@@ -1,8 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
+using Win32;
+using Win32.Graphics.Direct3D.Dxc;
 
 namespace Alimer.Shaders;
 
@@ -15,19 +15,16 @@ internal unsafe class DxcShaderCompilationResult : ShaderCompilationResult
     {
     }
 
-    public DxcShaderCompilationResult(ComPtr<IDxcBlob> byteCode, ShaderFormat format)
+    public DxcShaderCompilationResult(ComPtr<IDxcBlob> byteCode)
     {
         _byteCode = byteCode.Move();
         _byteCode.Get()->AddRef();
-        Format = format;
     }
 
     public override void Dispose()
     {
         _byteCode.Dispose();
     }
-
-    public override ShaderFormat Format { get; }
 
     public override ReadOnlySpan<byte> GetByteCode()
     {

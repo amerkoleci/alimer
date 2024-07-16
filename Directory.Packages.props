@@ -1,6 +1,7 @@
 <Project>
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
+    <VorticeWin32Version>2.2.2</VorticeWin32Version>
     <TerraFXWindowsVersion>10.0.22621.6</TerraFXWindowsVersion>
     <ImGuiVersion>1.0.3</ImGuiVersion>
     <SkiaSharpVersion>3.0.0-preview.3.1</SkiaSharpVersion>
@@ -17,6 +18,9 @@
     <!-- Engine -->
     <PackageVersion Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
     <PackageVersion Include="Vortice.Mathematics" Version="1.7.8" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Dxgi" Version="$(VorticeWin32Version)" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D11" Version="$(VorticeWin32Version)" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D12" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="ppy.SDL3-CS" Version="2024.528.0" />
     <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.4.2" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
@@ -31,11 +35,13 @@
     <PackageVersion Include="Hexa.NET.ImPlot" Version="$(ImGuiVersion)" />
     
     <!-- Asset Pipeline -->
+    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.1" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SharpGLTF.Core" Version="1.0.0" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.21.0" />
-    <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.1" />
+    <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.3" />
 
     <!-- Editor -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />

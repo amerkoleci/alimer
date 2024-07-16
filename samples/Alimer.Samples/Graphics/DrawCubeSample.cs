@@ -48,7 +48,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0));
 
         Dictionary<string, string> vsDefines = new() { { "VERTEX_COLOR", "0" } };
-        ShaderStageDescription vertexShader = LoadShader("Cube", ShaderStages.Vertex, "vertexMain");
+        ShaderStageDescription vertexShader = CompileShader("Cube", "vertexMain", ShaderStages.Vertex, vsDefines);
+        //ShaderStageDescription vertexShader = LoadShader("Cube", ShaderStages.Vertex, "vertexMain");
         ShaderStageDescription fragmentShader = LoadShader("Cube", ShaderStages.Fragment, "fragmentMain");
 
         var shaderStages = new ShaderStageDescription[2]

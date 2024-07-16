@@ -3,7 +3,6 @@
 
 using Alimer.Engine;
 using Alimer.Graphics;
-using Alimer.Samples.Engime;
 using Alimer.Samples.Graphics;
 
 namespace Alimer.Samples;
@@ -71,7 +70,7 @@ public sealed class SampleBrowserApp : GameApplication
 
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
 #endif
 
         using SampleBrowserApp game = new(preferredGraphicsBackend);

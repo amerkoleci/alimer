@@ -5,49 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="$(AlimerNativeDirectory)win-x64\dxil.dll">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\win-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)win-x64\dxcompiler.dll">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\win-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)win-arm64\dxil.dll">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\win-arm64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)win-arm64\dxcompiler.dll">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\win-arm64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)linux-x64\libdxil.so">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\linux-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)linux-x64\libdxcompiler.so">
-      <CopyToOutputDirectory Condition="$([MSBuild]::IsOSPlatform('Linux')) AND '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes\linux-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </Content>
+    <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D12" />
     <PackageReference Include="Vortice.SPIRV.Reflect" />
+    <PackageReference Include="Vortice.Dxc.Native" />
   </ItemGroup>
-
-  <Import Project="..\..\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.projitems" Label="Shared" />
 
 </Project>

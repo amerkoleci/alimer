@@ -39,7 +39,7 @@ class Program
     }
 
     private static void Compile(string outputDirectory, string shaderSourceFileName,
-        ShaderFormat format, ShaderStages stage, string entryPoint)
+        ShaderFormat shaderFormat, ShaderStages stage, string entryPoint)
     {
         string shadersPath = Path.GetDirectoryName(shaderSourceFileName);
         string shaderSource = File.ReadAllText(shaderSourceFileName);
@@ -47,6 +47,7 @@ class Program
         ShaderCompilationOptions options = new()
         {
             SourceFileName = shaderSourceFileName,
+            ShaderFormat = shaderFormat,
             ShaderStage = stage,
             EntryPoint = entryPoint,
             IncludeDirs =
@@ -63,7 +64,7 @@ class Program
         //   }
         //
 
-        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(format, shaderSource, in options);
+        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderSource, in options);
         if (result.Failed)
         {
             Console.Error.WriteLine($"Shader compilation failed: {result.ErrorMessage}.");
@@ -72,8 +73,8 @@ class Program
         }
 
         string shaderFile = Path.GetFileNameWithoutExtension(shaderSourceFileName);
-        string outputFile = Path.GetFileNameWithoutExtension(shaderFile) + "_" + options.EntryPoint + "_" + result.Format.ToString().ToLower();
-        switch (result.Format)
+        string outputFile = Path.GetFileNameWithoutExtension(shaderFile) + "_" + options.EntryPoint + "_" + options.ShaderFormat.ToString().ToLower();
+        switch (options.ShaderFormat)
         {
             case ShaderFormat.DXIL:
                 //outputFile = Path.ChangeExtension(outputFile, ".cso");

@@ -8,6 +8,7 @@ namespace Alimer.Shaders;
 public struct ShaderCompilationOptions
 {
     public string SourceFileName { get; set; } = string.Empty;
+    public ShaderFormat ShaderFormat { get; set; } = ShaderFormat.SPIRV;
     public ShaderStages ShaderStage { get; set; } = ShaderStages.Vertex;
     public string EntryPoint { get; set; } = "main";
     public Dictionary<string, string> Defines { get; } = [];

@@ -4,15 +4,13 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.CLSID;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DXC;
-using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
 using Vortice.SPIRV.Reflect;
+using Win32;
+using Win32.Graphics.Direct3D.Dxc;
+using static Win32.Apis;
+using static Win32.Graphics.Direct3D.Dxc.Apis;
 using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
+using Win32.Graphics.Direct3D12;
 
 namespace Alimer.Shaders;
 
@@ -86,7 +84,6 @@ public sealed unsafe partial class ShaderCompiler
     public static ShaderCompiler Instance => s_instance ??= new();
 
     public ShaderCompilationResult Compile(
-        ShaderFormat format,
         ReadOnlySpan<char> source,
         in ShaderCompilationOptions options)
     {
@@ -110,7 +107,7 @@ public sealed unsafe partial class ShaderCompiler
         arguments.Add("-D");
         arguments.Add("COMPILER_DXC");
 
-        if (format == ShaderFormat.SPIRV)
+        if (options.ShaderFormat == ShaderFormat.SPIRV)
         {
             arguments.Add("-D");
             arguments.Add("SPIRV");
@@ -182,7 +179,7 @@ public sealed unsafe partial class ShaderCompiler
         if (options.PackMatrixColumnMajor)
             arguments.Add(DXC_ARG_PACK_MATRIX_COLUMN_MAJOR);
 
-        if (format == ShaderFormat.SPIRV)
+        if (options.ShaderFormat == ShaderFormat.SPIRV)
         {
             arguments.Add("-spirv");
             arguments.Add($"-fspv-target-env=vulkan{options.SpvTargetEnvMajor}.{options.SpvTargetEnvMinor}");
@@ -219,9 +216,9 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add("-Qstrip_debug");
         }
 
-        HRESULT hr = Compile(source, arguments.ToArray(), __uuidof<IDxcResult>(), results.GetVoidAddressOf());
+        HResult hr = Compile(source, arguments.ToArray(), __uuidof<IDxcResult>(), results.GetVoidAddressOf());
 
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hr}");
         }
@@ -245,9 +242,9 @@ public sealed unsafe partial class ShaderCompiler
         }
 
         // Quit if the compilation failed.
-        HRESULT hrStatus;
+        HResult hrStatus;
         results.Get()->GetStatus(&hrStatus);
-        if (hrStatus.FAILED)
+        if (hrStatus.Failure)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus}");
         }
@@ -285,7 +282,7 @@ public sealed unsafe partial class ShaderCompiler
         {
         }
 
-        if (format == ShaderFormat.DXIL)
+        if (options.ShaderFormat == ShaderFormat.DXIL)
         {
             using ComPtr<IDxcBlob> reflectionData = default;
             results.Get()->GetOutput(DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
@@ -302,7 +299,7 @@ public sealed unsafe partial class ShaderCompiler
                 using ComPtr<ID3D12ShaderReflection> reflection = default;
                 _dxcUtils.Get()->CreateReflection(&reflectionDataBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
 
-                D3D12_SHADER_DESC description;
+                ShaderDescription description;
                 ThrowIfFailed(reflection.Get()->GetDesc(&description));
 #if TODO
 
@@ -376,10 +373,10 @@ public sealed unsafe partial class ShaderCompiler
             spvReflectDestroyShaderModule(&module);
         }
 
-        return new DxcShaderCompilationResult(byteCode, format);
+        return new DxcShaderCompilationResult(byteCode);
     }
 
-    private HRESULT Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
+    private HResult Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
 
@@ -404,7 +401,7 @@ public sealed unsafe partial class ShaderCompiler
 
         try
         {
-            HRESULT hr = _dxcCompiler.Get()->Compile(
+            HResult hr = _dxcCompiler.Get()->Compile(
                 &buffer,
                 (char**)pArguments,
                 (uint)arguments.Length,

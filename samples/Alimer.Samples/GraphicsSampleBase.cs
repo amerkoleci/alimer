@@ -65,13 +65,13 @@ public abstract class GraphicsSampleBase : SampleBase
         ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
-        string shaderSourceFileName = Path.Combine(shadersPath, fileName);
+        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".hlsl");
         string shaderSource = File.ReadAllText(shaderSourceFileName);
-
 
         ShaderCompilationOptions options = new()
         {
             SourceFileName = shaderSourceFileName,
+            ShaderFormat = shaderFormat,
             ShaderStage = stage,
             EntryPoint = entryPoint,
             IncludeDirs =
@@ -88,7 +88,7 @@ public abstract class GraphicsSampleBase : SampleBase
             }
         }
 
-        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource, in options);
+        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderSource, in options);
         if (result.Failed)
         {
             throw new GraphicsException(result.ErrorMessage);

@@ -7,7 +7,7 @@ using Alimer.Graphics;
 using Alimer.Physics;
 using Alimer.Rendering;
 
-namespace Alimer.Samples.Engime;
+namespace Alimer.Samples;
 
 [Description("Engine - Scene Cube")]
 public sealed class SceneCubeSample : SampleBase
