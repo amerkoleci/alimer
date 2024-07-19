@@ -720,12 +720,14 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         return false;
     }
 
+#if TODO
     /// <inheritdoc />
     public override bool QueryVertexFormatSupport(VertexFormat format)
     {
         // TODO:
         return false;
-    }
+    } 
+#endif
 
     /// <inheritdoc />
     public override void WaitIdle()

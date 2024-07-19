@@ -199,7 +199,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public abstract bool QueryFeatureSupport(Feature feature);
     public abstract /*PixelFormatSupport*/bool QueryPixelFormatSupport(PixelFormat format);
-    public abstract bool QueryVertexFormatSupport(VertexFormat format);
+    //public abstract bool QueryVertexFormatSupport(VertexFormat format);
 
     public virtual void WriteShadingRateValue(ShadingRate rate, void* dest)
     {

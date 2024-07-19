@@ -78,7 +78,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                     {
                         VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = new()
                         {
-                            display = surfaceSource.ContextHandle,
+                            dpy = surfaceSource.ContextHandle,
                             window = (nuint)surfaceSource.Handle,
                         };
                         vkCreateXlibSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();

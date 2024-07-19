@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
@@ -61,17 +61,17 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         // If no buffer was found that fits the data, create one:
         if (!context.IsValid)
         {
-            vkCreateCommandPool(_device.Handle, VkCommandPoolCreateFlags.Transient, _device.CopyQueueFamily, out context.TransferCommandPool).DebugCheckResult();
-            vkCreateCommandPool(_device.Handle, VkCommandPoolCreateFlags.Transient, _device.GraphicsFamily, out context.TransitionCommandPool).DebugCheckResult();
+            vkCreateCommandPool(_device.Handle, VkCommandPoolCreateFlags.Transient, _device.CopyQueueFamily, out context.TransferCommandPool).CheckResult();
+            vkCreateCommandPool(_device.Handle, VkCommandPoolCreateFlags.Transient, _device.GraphicsFamily, out context.TransitionCommandPool).CheckResult();
 
-            vkAllocateCommandBuffer(_device.Handle, context.TransferCommandPool, out context.TransferCommandBuffer).DebugCheckResult();
-            vkAllocateCommandBuffer(_device.Handle, context.TransitionCommandPool, out context.TransitionCommandBuffer).DebugCheckResult();
+            vkAllocateCommandBuffer(_device.Handle, context.TransferCommandPool, out context.TransferCommandBuffer).CheckResult();
+            vkAllocateCommandBuffer(_device.Handle, context.TransitionCommandPool, out context.TransitionCommandBuffer).CheckResult();
 
-            vkCreateFence(_device.Handle, out context.Fence).DebugCheckResult();
+            vkCreateFence(_device.Handle, out context.Fence).CheckResult();
 
-            vkCreateSemaphore(_device.Handle, out context.Semaphores[0]).DebugCheckResult();
-            vkCreateSemaphore(_device.Handle, out context.Semaphores[1]).DebugCheckResult();
-            vkCreateSemaphore(_device.Handle, out context.Semaphores[2]).DebugCheckResult();
+            vkCreateSemaphore(_device.Handle, out context.Semaphores[0]).CheckResult();
+            vkCreateSemaphore(_device.Handle, out context.Semaphores[1]).CheckResult();
+            vkCreateSemaphore(_device.Handle, out context.Semaphores[2]).CheckResult();
 
             context.UploadBufferSize = BitOperations.RoundUpToPowerOf2(size);
             context.UploadBufferSize = Math.Max(context.UploadBufferSize, 65536);
@@ -81,25 +81,25 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         }
 
         // Begin command list in valid state
-        vkResetCommandPool(_device.Handle, context.TransferCommandPool, 0).DebugCheckResult();
-        vkResetCommandPool(_device.Handle, context.TransitionCommandPool, 0).DebugCheckResult();
+        vkResetCommandPool(_device.Handle, context.TransferCommandPool, 0).CheckResult();
+        vkResetCommandPool(_device.Handle, context.TransitionCommandPool, 0).CheckResult();
 
         VkCommandBufferBeginInfo beginInfo = new()
         {
             flags = VkCommandBufferUsageFlags.OneTimeSubmit,
             pInheritanceInfo = null
         };
-        vkBeginCommandBuffer(context.TransferCommandBuffer, &beginInfo).DebugCheckResult();
-        vkBeginCommandBuffer(context.TransitionCommandBuffer, &beginInfo).DebugCheckResult();
+        vkBeginCommandBuffer(context.TransferCommandBuffer, &beginInfo).CheckResult();
+        vkBeginCommandBuffer(context.TransitionCommandBuffer, &beginInfo).CheckResult();
 
-        vkResetFences(_device.Handle, context.Fence).DebugCheckResult();
+        vkResetFences(_device.Handle, context.Fence).CheckResult();
         return context;
     }
 
     public void Submit(in VulkanUploadContext context)
     {
-        vkEndCommandBuffer(context.TransferCommandBuffer).DebugCheckResult();
-        vkEndCommandBuffer(context.TransitionCommandBuffer).DebugCheckResult();
+        vkEndCommandBuffer(context.TransferCommandBuffer).CheckResult();
+        vkEndCommandBuffer(context.TransitionCommandBuffer).CheckResult();
 
         if (_device.PhysicalDeviceFeatures1_3.synchronization2 == true)
         {
@@ -141,7 +141,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.CopyQueue.LockObject)
             {
-                vkQueueSubmit2(_device.CopyQueue.Handle, 1, &submitInfo, VkFence.Null).DebugCheckResult();
+                vkQueueSubmit2(_device.CopyQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -184,7 +184,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.GraphicsQueue.LockObject)
             {
-                vkQueueSubmit2(_device.GraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).DebugCheckResult();
+                vkQueueSubmit2(_device.GraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -209,7 +209,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.VideoDecodeQueue!.LockObject)
             {
-                vkQueueSubmit2(_device.VideoDecodeQueue!.Handle, 1, &submitInfo, VkFence.Null).DebugCheckResult();
+                vkQueueSubmit2(_device.VideoDecodeQueue!.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -234,7 +234,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.ComputeQueue.LockObject)
             {
-                vkQueueSubmit2(_device.ComputeQueue.Handle, 1, &submitInfo, context.Fence).DebugCheckResult();
+                vkQueueSubmit2(_device.ComputeQueue.Handle, 1, &submitInfo, context.Fence).CheckResult();
             }
         }
     }
@@ -262,7 +262,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.CopyQueue.LockObject)
             {
-                vkQueueSubmit(_device.CopyQueue.Handle, 1, &submitInfo, VkFence.Null).DebugCheckResult();
+                vkQueueSubmit(_device.CopyQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -299,7 +299,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.GraphicsQueue.LockObject)
             {
-                vkQueueSubmit2(_device.GraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).DebugCheckResult();
+                vkQueueSubmit2(_device.GraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -342,7 +342,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
             lock (_device.ComputeQueue.LockObject)
             {
-                vkQueueSubmit2(_device.ComputeQueue.Handle, 1, &submitInfo, context.Fence).DebugCheckResult();
+                vkQueueSubmit2(_device.ComputeQueue.Handle, 1, &submitInfo, context.Fence).CheckResult();
             }
         }
     }

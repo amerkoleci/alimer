@@ -65,8 +65,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Audio", "src\Alimer.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Navigation", "src\Alimer.Navigation\Alimer.Navigation.csproj", "{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "TerraFX.Interop.Windows.Shared", "src\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.shproj", "{BC61A7B9-4E0B-4F71-B1DE-C5E053E7DFBE}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Bindings.OpenAL", "src\Alimer.Bindings.OpenAL\Alimer.Bindings.OpenAL.csproj", "{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.EditorFramework", "src\editor\Alimer.EditorFramework\Alimer.EditorFramework.csproj", "{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}"
@@ -176,8 +174,5 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F91C04E-B42E-4037-8FF3-A9C768E70094}
-	EndGlobalSection
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		src\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.projitems*{bc61a7b9-4e0b-4f71-b1de-c5e053e7dfbe}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal

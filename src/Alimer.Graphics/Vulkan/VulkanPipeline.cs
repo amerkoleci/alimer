@@ -6,6 +6,7 @@ using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
 using System.Diagnostics;
 using static Alimer.Utilities.MemoryUtilities;
+using static Alimer.Utilities.MarshalUtilities;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -25,18 +26,18 @@ internal unsafe class VulkanPipeline : Pipeline
         // ShaderStages
         int shaderStageCount = description.ShaderStages.Length;
         VkPipelineShaderStageCreateInfo* shaderStages = stackalloc VkPipelineShaderStageCreateInfo[shaderStageCount];
-        sbyte** vkShaderNames = stackalloc sbyte*[shaderStageCount];
+        byte** vkShaderNames = stackalloc byte*[shaderStageCount];
 
         VkResult result;
         for (int i = 0; i < shaderStageCount; i++)
         {
             ref ShaderStageDescription shaderDesc = ref description.ShaderStages[i];
 
-            ReadOnlySpan<sbyte> entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
+            ReadOnlySpan<byte> entryPointName = shaderDesc.EntryPoint.GetUtf8Span();
             int entryPointNameLength = entryPointName.Length + 1;
 
-            sbyte* pName = AllocateArray<sbyte>((uint)entryPointNameLength);
-            Span<sbyte> destination = new(pName, entryPointNameLength);
+            byte* pName = AllocateArray<byte>((uint)entryPointNameLength);
+            Span<byte> destination = new(pName, entryPointNameLength);
 
             entryPointName.CopyTo(destination);
             destination[entryPointName.Length] = 0x00;
@@ -328,7 +329,7 @@ internal unsafe class VulkanPipeline : Pipeline
         _layout = (VulkanPipelineLayout)description.Layout;
         BindPoint = VkPipelineBindPoint.Compute;
 
-        VkString entryPoint = new(description.ComputeShader.EntryPoint);
+        VkUtf8String entryPoint = new(VkStringInterop.ConvertToUnmanaged(description.ComputeShader.EntryPoint));
 
         VkPipelineShaderStageCreateInfo stage = new()
         {

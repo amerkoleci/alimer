@@ -9,6 +9,12 @@
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
+  <PropertyGroup Condition=" $(TargetFramework.Contains('-android')) ">
+    <ExcludeD3D12>true</ExcludeD3D12>
+    <ExcludeWebGPU>true</ExcludeWebGPU>
+    <ExcludeMetal>true</ExcludeMetal>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
     <ExcludeVulkan>true</ExcludeVulkan>
     <ExcludeWebGPU>true</ExcludeWebGPU>

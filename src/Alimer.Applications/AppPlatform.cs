@@ -37,6 +37,8 @@ public abstract class AppPlatform : DisposableObject
     {
 #if WINDOWS || WINDOWS_UWP
         return new WindowsPlatform(swapChainPanel: default);
+#elif __ANDROID__
+        throw new NotImplementedException();
 #else
         return new SDLPlatform();
 #endif

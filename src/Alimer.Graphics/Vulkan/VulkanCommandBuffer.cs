@@ -42,7 +42,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                 queueFamilyIndex = queue.Device.GetQueueFamily(queue.QueueType)
             };
 
-            vkCreateCommandPool(queue.Device.Handle, &poolInfo, null, out _commandPools[i]).DebugCheckResult();
+            vkCreateCommandPool(queue.Device.Handle, &poolInfo, null, out _commandPools[i]).CheckResult();
 
             VkCommandBufferAllocateInfo commandBufferInfo = new()
             {
@@ -50,7 +50,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                 level = VkCommandBufferLevel.Primary,
                 commandBufferCount = 1
             };
-            vkAllocateCommandBuffer(queue.Device.Handle, &commandBufferInfo, out _commandBuffers[i]).DebugCheckResult();
+            vkAllocateCommandBuffer(queue.Device.Handle, &commandBufferInfo, out _commandBuffers[i]).CheckResult();
 
             //binderPools[i].Init(device);
         }
@@ -89,7 +89,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _numBoundBindGroups = 0;
         Array.Clear(_descriptorSets, 0, _descriptorSets.Length);
 
-        vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).DebugCheckResult();
+        vkResetCommandPool(_queue.Device.Handle, _commandPools[frameIndex], 0).CheckResult();
         _commandBuffer = _commandBuffers[frameIndex];
 
         VkCommandBufferBeginInfo beginInfo = new()
@@ -97,7 +97,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             flags = VkCommandBufferUsageFlags.OneTimeSubmit,
             pInheritanceInfo = null // Optional
         };
-        vkBeginCommandBuffer(_commandBuffer, &beginInfo).DebugCheckResult();
+        vkBeginCommandBuffer(_commandBuffer, &beginInfo).CheckResult();
 
         if (_queue.QueueType == QueueType.Graphics)
         {
@@ -136,18 +136,17 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         if (!_queue.Device.DebugUtils)
             return;
 
-        fixed (sbyte* pLabelName = Interop.GetUtf8Span(groupLabel))
+        byte* pLabelName = VkStringInterop.ConvertToUnmanaged(groupLabel);
+        VkDebugUtilsLabelEXT label = new()
         {
-            VkDebugUtilsLabelEXT label = new()
-            {
-                pLabelName = pLabelName
-            };
-            label.color[0] = 0.0f;
-            label.color[1] = 0.0f;
-            label.color[2] = 0.0f;
-            label.color[3] = 1.0f;
-            vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &label);
-        }
+            pLabelName = pLabelName
+        };
+        label.color[0] = 0.0f;
+        label.color[1] = 0.0f;
+        label.color[2] = 0.0f;
+        label.color[3] = 1.0f;
+        vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &label);
+        VkStringInterop.Free(pLabelName);
     }
 
     public override void PopDebugGroup()
@@ -163,18 +162,17 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         if (!_queue.Device.DebugUtils)
             return;
 
-        fixed (sbyte* pLabelName = Interop.GetUtf8Span(debugLabel))
+        byte* pLabelName = VkStringInterop.ConvertToUnmanaged(debugLabel);
+        VkDebugUtilsLabelEXT label = new()
         {
-            VkDebugUtilsLabelEXT label = new()
-            {
-                pLabelName = pLabelName
-            };
-            label.color[0] = 0.0f;
-            label.color[1] = 0.0f;
-            label.color[2] = 0.0f;
-            label.color[3] = 1.0f;
-            vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &label);
-        }
+            pLabelName = pLabelName
+        };
+        label.color[0] = 0.0f;
+        label.color[1] = 0.0f;
+        label.color[2] = 0.0f;
+        label.color[3] = 1.0f;
+        vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &label);
+        VkStringInterop.Free(pLabelName);
     }
 
     public void TextureBarrier(VulkanTexture texture, ResourceStates newState)
@@ -296,7 +294,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             PushDebugGroup(renderPass.Label);
         }
 
-        VkRect2D renderArea = new(_queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferWidth, _queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferHeight);
+        VkRect2D renderArea = new(0, 0, _queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferWidth, _queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferHeight);
 
         if (_queue.Device.DynamicRendering)
         {
@@ -387,7 +385,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             };
             vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
 
-            VkRect2D scissorRect = new(renderArea.extent.width, renderArea.extent.height);
+            VkRect2D scissorRect = new(0, 0, renderArea.extent.width, renderArea.extent.height);
             vkCmdSetScissor(_commandBuffer, 0, 1, &scissorRect);
         }
 
@@ -467,7 +465,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     public override void SetScissorRect(in RectI rect)
     {
-        VkRect2D vkRect = new(rect.X, rect.Y, rect.Width, rect.Height);
+        VkRect2D vkRect = new(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height);
         vkCmdSetScissor(_commandBuffer, 0, 1, &vkRect);
     }
 

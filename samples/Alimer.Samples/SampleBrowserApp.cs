@@ -22,14 +22,6 @@ public sealed class SampleBrowserApp : GameApplication
     {
         base.Initialize();
 
-        foreach (VertexFormat format in Enum.GetValues<VertexFormat>())
-        {
-            if (format == VertexFormat.Undefined)
-                continue;
-
-            GraphicsDevice.QueryVertexFormatSupport(format);
-        }
-
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
@@ -70,7 +62,7 @@ public sealed class SampleBrowserApp : GameApplication
 
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
 #endif
 
         using SampleBrowserApp game = new(preferredGraphicsBackend);

@@ -85,27 +85,27 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         device.FillBufferSharingIndices(ref createInfo, sharingIndices);
 
         // TODO: Add sparse buffer support
-        AllocationCreateFlags allocationCreateFlags = AllocationCreateFlags.None;
+        VmaAllocationCreateFlags allocationCreateFlags = VmaAllocationCreateFlags.None;
 
         if (description.CpuAccess == CpuAccessMode.Read)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferDst;
-            allocationCreateFlags = AllocationCreateFlags.HostAccessRandom | AllocationCreateFlags.Mapped;
+            allocationCreateFlags = VmaAllocationCreateFlags.HostAccessRandom | VmaAllocationCreateFlags.Mapped;
         }
         else if (description.CpuAccess == CpuAccessMode.Write)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferSrc;
-            allocationCreateFlags = AllocationCreateFlags.HostAccessSequentialWrite | AllocationCreateFlags.Mapped;
+            allocationCreateFlags = VmaAllocationCreateFlags.HostAccessSequentialWrite | VmaAllocationCreateFlags.Mapped;
         }
         else
         {
             createInfo.usage |= VkBufferUsageFlags.TransferSrc | VkBufferUsageFlags.TransferDst;
         }
 
-        AllocationCreateInfo memoryInfo = new()
+        VmaAllocationCreateInfo memoryInfo = new()
         {
             Flags = allocationCreateFlags,
-            Usage = MemoryUsage.Auto,
+            Usage = VmaMemoryUsage.Auto,
         };
         VkResult result = _device.Allocator.CreateBuffer(createInfo, memoryInfo, out _handle, out _allocation);
 
@@ -120,7 +120,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             OnLabelChanged(description.Label!);
         }
 
-        if ((memoryInfo.Flags & AllocationCreateFlags.Mapped) != 0)
+        if ((memoryInfo.Flags & VmaAllocationCreateFlags.Mapped) != 0)
         {
             pMappedData = _allocation!.GetMappedData();
             _mappedSize = _allocation.Size;

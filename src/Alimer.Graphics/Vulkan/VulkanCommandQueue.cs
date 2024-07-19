@@ -46,7 +46,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
             flags = 0
         };
 
-        vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).DebugCheckResult();
+        vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
 
         _frameFences = new VkFence[MaxFramesInFlight];
         for (int frameIndex = 0; frameIndex < MaxFramesInFlight; ++frameIndex)
@@ -88,7 +88,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
     public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
     {
-        vkEndCommandBuffer(commandBuffer).DebugCheckResult();
+        vkEndCommandBuffer(commandBuffer).CheckResult();
 
         _submitCommandBuffers.Add(commandBuffer);
     }
@@ -157,7 +157,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
                     pSignalSemaphoreInfos = signalSemaphoreInfos
                 };
 
-                vkQueueSubmit2(Handle, 1, &submitInfo, fence).DebugCheckResult();
+                vkQueueSubmit2(Handle, 1, &submitInfo, fence).CheckResult();
             }
             else
             {

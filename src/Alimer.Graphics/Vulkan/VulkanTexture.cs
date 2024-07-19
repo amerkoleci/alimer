@@ -172,9 +172,9 @@ internal unsafe class VulkanTexture : Texture
         uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
         device.FillImageSharingIndices(ref imageInfo, sharingIndices);
 
-        AllocationCreateInfo memoryInfo = new()
+        VmaAllocationCreateInfo memoryInfo = new()
         {
-            Usage = MemoryUsage.Auto,
+            Usage = VmaMemoryUsage.Auto,
         };
 
         VkResult result = _device.Allocator.CreateImage(imageInfo, memoryInfo, out VkImage handle, out _allocation);

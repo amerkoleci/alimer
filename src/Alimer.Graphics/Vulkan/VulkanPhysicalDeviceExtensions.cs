@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 namespace Alimer.Graphics.Vulkan;
@@ -32,6 +32,7 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool AMD_DeviceCoherentMemory;
     public bool MemoryPriority;
 
+    public bool Maintenance5;
     public bool SupportsExternalSemaphore;
     public bool SupportsExternalMemory;
 
