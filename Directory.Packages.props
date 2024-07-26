@@ -1,8 +1,8 @@
 <Project>
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
-    <VorticeWin32Version>2.2.2</VorticeWin32Version>
-    <TerraFXWindowsVersion>10.0.22621.6</TerraFXWindowsVersion>
+    <VorticeWin32Version>2.2.5</VorticeWin32Version>
+    <TerraFXWindowsVersion>10.0.26100</TerraFXWindowsVersion>
     <ImGuiVersion>1.0.4</ImGuiVersion>
     <SkiaSharpVersion>3.0.0-preview.4.1</SkiaSharpVersion>
   </PropertyGroup>
@@ -11,9 +11,8 @@
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.2.2" />
 
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1" />
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.5.240627000" />
-    <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.2.0" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.6.240701003-experimental2" />
+    <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.2.1-experimental1" />
     
     <!-- Engine -->
     <PackageVersion Include="Vortice.Mathematics" Version="1.8.0" />
@@ -28,7 +27,7 @@
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
     <PackageVersion Include="Vortice.Vulkan" Version="1.9.4" />
-    <PackageVersion Include="BepuPhysics" Version="2.5.0-beta.23" />
+    <PackageVersion Include="JoltPhysicsSharp" Version="2.5.8" />
     <PackageVersion Include="DotRecast.Recast" Version="2024.3.1" />
     
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />
@@ -41,8 +40,9 @@
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
-    <PackageVersion Include="SharpGLTF.Core" Version="1.0.0" />
+    <PackageVersion Include="SharpGLTF.Core" Version="1.0.1" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.21.0" />
+    <PackageVersion Include="Vortice.SpirvCross" Version="1.5.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.3" />
 
     <!-- Editor -->
@@ -52,8 +52,8 @@
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="xunit" Version="2.8.1" />
-    <PackageVersion Include="xunit.console" Version="2.8.1" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.1" />
+    <PackageVersion Include="xunit.console" Version="2.9.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
 </Project>

@@ -57,7 +57,7 @@ internal unsafe class VulkanBindGroup : BindGroup
         VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[_layout.LayoutBindingCount];
         VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[_layout.LayoutBindingCount];
         VkDescriptorImageInfo* imageInfos = stackalloc VkDescriptorImageInfo[_layout.LayoutBindingCount];
-        //VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[descriptorWriteCount];
+        VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[descriptorWriteCount];
 
         for (uint i = 0; i < _layout.LayoutBindingCount; i++)
         {

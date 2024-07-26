@@ -8,7 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Alimer.Engine\Alimer.Engine.csproj" />
 
-    <PackageReference Include="BepuPhysics" />
+    <PackageReference Include="JoltPhysicsSharp" />
   </ItemGroup>
 
 </Project>

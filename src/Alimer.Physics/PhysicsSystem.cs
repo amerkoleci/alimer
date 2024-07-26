@@ -3,13 +3,14 @@
 
 using System.Runtime.CompilerServices;
 using Alimer.Engine;
+using JoltPhysicsSharp;
 
 namespace Alimer.Physics;
 
 public class PhysicsSystem : EntitySystem<PhysicsComponent>
 {
     public PhysicsSystem()
-    : base(typeof(TransformComponent))
+        : base(typeof(TransformComponent))
     {
     }
 
@@ -26,18 +27,63 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
         base.Dispose(disposing);
     }
 
+    protected override void OnEntityComponentAdded(PhysicsComponent component)
+    {
+        component.Simulation = Simulation;
+        component.Attach();
+    }
+
+    protected override void OnEntityComponentRemoved(PhysicsComponent component)
+    {
+        component.Detach();
+        component.Simulation = null;
+    }
+
     public override void Update(AppTime time)
     {
-        //foreach (var rigidBody in Simulation.RigidBodies)
-        //{
-        //    rigidBody.Value.PhysicsWorldTransform = rigidBody.Value.Entity!.Transform.WorldMatrix;
-        //}
+        BodyInterface bodyInterface = Simulation.BodyInterface;
 
-        Simulation.Timestep(time.Elapsed);
+        foreach (var rigidBody in Simulation.RigidBodies)
+        {
+            //rigidBody.Value.PhysicsWorldTransform = rigidBody.Value.Entity!.Transform.WorldMatrix;
+        }
 
-        //foreach (var rigidBody in Simulation.RigidBodies)
-        //{
-        //    rigidBody.Value.UpdateTransformComponent();
-        //}
+        Simulation.Step((float)time.Elapsed.TotalSeconds);
+
+        foreach (var rigidBody in Simulation.RigidBodies)
+        {
+            if (bodyInterface.IsActive(rigidBody.Key))
+            {
+                rigidBody.Value.UpdateTransformComponent();
+            }
+        }
     }
+
+#pragma warning disable CA2255
+    [ModuleInitializer]
+    public static void Initialize()
+    {
+        if (Foundation.Init() == false)
+        {
+            throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
+        }
+
+#if DEBUG
+        Foundation.SetAssertFailureHandler((inExpression, inMessage, inFile, inLine) =>
+        {
+            string message = inMessage ?? inExpression;
+
+            string outMessage = $"[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}";
+
+            System.Diagnostics.Debug.WriteLine(outMessage);
+
+            Log.Debug(outMessage);
+
+            throw new Exception(outMessage);
+        });
+#endif
+
+        EntityManager.RegisterSystemFactory<PhysicsSystem>();
+    }
+#pragma warning restore CA2255
 }

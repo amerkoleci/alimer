@@ -96,7 +96,7 @@ public readonly record struct ImageDescription
     }
 
     /// <summary>
-    /// Gets or the dimension of <see cref="Texture"/>
+    /// Gets or the dimension of <see cref="Image"/>
     /// </summary>
     public required ImageDimension Dimension { get; init; }
 
@@ -106,7 +106,7 @@ public readonly record struct ImageDescription
     public required PixelFormat Format { get; init; }
 
     /// <summary>
-    /// Gets the width of <see cref="Texture"/>
+    /// Gets the width of <see cref="Image"/>
     /// </summary>
     public required int Width { get; init; } = 1;
 

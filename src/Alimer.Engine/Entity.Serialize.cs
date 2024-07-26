@@ -14,20 +14,20 @@ partial class Entity
     {
     }
 
-    public virtual JsonObject? Serialize(SerializeOptions? options = null)
-    {
-        if (Flags.HasFlag(EntityFlags.NotSaved))
-            return null;
+    //public virtual JsonObject? Serialize(SerializeOptions? options = null)
+    //{
+    //    if (Flags.HasFlag(EntityFlags.NotSaved))
+    //        return null;
 
-        JsonObject json = new()
-        {
-            { "Id", Id },
-            { "Name", Name },
-        };
+    //    JsonObject json = new()
+    //    {
+    //        { "Id", Id },
+    //        { "Name", Name },
+    //    };
 
-        if (Transform.Position != Vector3.Zero) json.Add("Position", JsonValue.Create(Transform.Position));
-        return json;
-    }
+    //    if (Transform.Position != Vector3.Zero) json.Add("Position", JsonValue.Create(Transform.Position));
+    //    return json;
+    //}
 
     //public string? Serialize(SerializeOptions? options = default)
     //{

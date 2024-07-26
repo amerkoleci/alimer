@@ -653,6 +653,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             // Always unsupported features
             case Feature.TextureCompressionETC2:
             case Feature.TextureCompressionASTC:
+            case Feature.TextureCompressionASTC_HDR:
                 return false;
 
             case Feature.ShaderFloat16:

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
@@ -51,15 +51,15 @@ public class DisposeCollector : DisposableObject
     }
 
     /// <summary>
-    /// Adds a <see cref="IDisposable"/> object or a <see cref="IntPtr"/> allocated using <see cref="Utilities.AllocateMemory"/> to the list of the objects to dispose.
+    /// Adds a <see cref="IDisposable"/> object.
     /// </summary>
     /// <param name="toDispose">To dispose.</param>
-    /// <exception cref="ArgumentException">If toDispose argument is not IDisposable or a valid memory pointer allocated by <see cref="Utilities.AllocateMemory"/></exception>
+    /// <exception cref="ArgumentException">If toDispose argument is not valid IDisposable</exception>
     public T Collect<T>([NotNull] T toDispose) where T : IDisposable
     {
         ArgumentNullException.ThrowIfNull(toDispose, nameof(toDispose));
 
-        _disposables ??= new List<IDisposable>();
+        _disposables ??= [];
 
         if (!_disposables.Contains(toDispose))
         {

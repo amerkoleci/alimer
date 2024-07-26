@@ -41,7 +41,7 @@ class Program
     private static void Compile(string outputDirectory, string shaderSourceFileName,
         ShaderFormat shaderFormat, ShaderStages stage, string entryPoint)
     {
-        string shadersPath = Path.GetDirectoryName(shaderSourceFileName);
+        string shadersPath = Path.GetDirectoryName(shaderSourceFileName)!;
         string shaderSource = File.ReadAllText(shaderSourceFileName);
 
         ShaderCompilationOptions options = new()

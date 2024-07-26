@@ -35,6 +35,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkPhysicalDeviceRayQueryFeaturesKHR _raytracingQueryFeatures;
     private readonly VkPhysicalDeviceConditionalRenderingFeaturesEXT _conditionalRenderingFeatures;
     private readonly VkPhysicalDeviceMeshShaderFeaturesEXT _meshShaderFeatures;
+    private readonly bool _textureCompressionASTC_HDR;
 
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
     private readonly VkDevice _handle = VkDevice.Null;
@@ -308,6 +309,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures = default;
         VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
         VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = default;
+        VkPhysicalDeviceTextureCompressionASTCHDRFeatures astcHdrFeatures = default;
 
         // Core in 1.3
         VkPhysicalDeviceMaintenance4Features maintenance4Features = default;
@@ -361,7 +363,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     continue;
                 }
 
-                VulkanPhysicalDeviceExtensions physicalDeviceExtensions = QueryPhysicalDeviceExtensions(candidatePhysicalDevice);
+                VulkanPhysicalDeviceExtensions physicalDeviceExtensions = VulkanPhysicalDeviceExtensions.Query(candidatePhysicalDevice);
                 if (!physicalDeviceExtensions.Swapchain)
                 {
                     continue;
@@ -434,11 +436,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 propertiesChain = &depthStencilResolveProperties.pNext;
 
                 // Device extensions
-                enabledDeviceExtensions = new()
-                {
+                enabledDeviceExtensions =
+                [
                     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                    VK_KHR_MAINTENANCE_1_EXTENSION_NAME
-                };
+                ];
 
                 // Core in 1.3
                 if (physicalDeviceProperties.apiVersion < VkVersion.Version_1_3)
@@ -525,7 +526,16 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     featuresChain = &portabilityFeatures.pNext;
                 }
 
-                if (physicalDeviceExtensions.performance_query)
+                if (physicalDeviceExtensions.TextureCompressionAstcHdr)
+                {
+                    enabledDeviceExtensions.Add(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
+
+                    astcHdrFeatures = new();
+                    *featuresChain = &astcHdrFeatures;
+                    featuresChain = &astcHdrFeatures.pNext;
+                }
+
+                if (physicalDeviceExtensions.PerformanceQuery)
                 {
                     enabledDeviceExtensions.Add(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
 
@@ -536,7 +546,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
                 if (physicalDeviceExtensions.accelerationStructure)
                 {
-                    Guard.IsTrue(physicalDeviceExtensions.deferred_host_operations);
+                    Guard.IsTrue(physicalDeviceExtensions.DeferredHostOperations);
 
                     // Required by VK_KHR_acceleration_structure
                     enabledDeviceExtensions.Add(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
@@ -613,26 +623,36 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
                 if (OperatingSystem.IsWindows())
                 {
-                    if (physicalDeviceExtensions.SupportsExternalSemaphore)
+                    if (physicalDeviceExtensions.ExternalMemory)
+                    {
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+                    }
+
+                    if (physicalDeviceExtensions.ExternalSemaphore)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
                     }
 
-                    if (physicalDeviceExtensions.SupportsExternalMemory)
+                    if (physicalDeviceExtensions.ExternalFence)
                     {
-                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME);
                     }
                 }
                 else
                 {
-                    if (physicalDeviceExtensions.SupportsExternalSemaphore)
+                    if (physicalDeviceExtensions.ExternalMemory)
+                    {
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+                    }
+
+                    if (physicalDeviceExtensions.ExternalSemaphore)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
                     }
 
-                    if (physicalDeviceExtensions.SupportsExternalMemory)
+                    if (physicalDeviceExtensions.ExternalFence)
                     {
-                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+                        enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME);
                     }
                 }
 
@@ -697,7 +717,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 throw new GraphicsException("Vulkan: Failed to find a suitable GPU");
             }
 
-            PhysicalDeviceExtensions = QueryPhysicalDeviceExtensions(_physicalDevice);
+            PhysicalDeviceExtensions = VulkanPhysicalDeviceExtensions.Query(_physicalDevice);
             vkGetPhysicalDeviceFeatures2(_physicalDevice, &features2);
             vkGetPhysicalDeviceProperties2(_physicalDevice, &properties2);
 
@@ -722,6 +742,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _raytracingQueryFeatures = raytracingQueryFeatures;
             _conditionalRenderingFeatures = conditionalRenderingFeatures;
             _meshShaderFeatures = meshShaderFeatures;
+            _textureCompressionASTC_HDR = astcHdrFeatures.textureCompressionASTC_HDR;
 
             Guard.IsTrue(features2.features.robustBufferAccess);
             Guard.IsTrue(features2.features.depthBiasClamp);
@@ -1462,6 +1483,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             case Feature.TextureCompressionASTC:
                 return PhysicalDeviceFeatures2.features.textureCompressionASTC_LDR == true;
 
+            case Feature.TextureCompressionASTC_HDR:
+                return _textureCompressionASTC_HDR;
+
             case Feature.IndirectFirstInstance:
                 return PhysicalDeviceFeatures2.features.drawIndirectFirstInstance == true;
 
@@ -1932,32 +1956,17 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         void* userData)
     {
         string message = VkStringInterop.ConvertToManaged(pCallbackData->pMessage)!;
-        if (messageTypes == VkDebugUtilsMessageTypeFlagsEXT.Validation)
-        {
-            if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
-            {
-                Log.Error($"[Vulkan]: Validation: {messageSeverity} - {message}");
-            }
-            else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Warning)
-            {
-                Log.Warn($"[Vulkan]: Validation: {messageSeverity} - {message}");
-            }
 
-            Debug.WriteLine($"[Vulkan]: Validation: {messageSeverity} - {message}");
-        }
-        else
+        if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
         {
-            if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
-            {
-                Log.Error($"[Vulkan]: {messageSeverity} - {message}");
-            }
-            else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Warning)
-            {
-                Log.Warn($"[Vulkan]: {messageSeverity} - {message}");
-            }
-
-            Debug.WriteLine($"[Vulkan]: {messageSeverity} - {message}");
+            Log.Error($"[Vulkan]: {messageTypes}: {messageSeverity} - {message}");
         }
+        else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Warning)
+        {
+            Log.Warn($"[Vulkan]: {messageTypes}: {messageSeverity} - {message}");
+        }
+
+        Debug.WriteLine($"[Vulkan]: {messageTypes}: {messageSeverity} - {message}");
 
         return VK_FALSE;
     }

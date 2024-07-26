@@ -18,6 +18,10 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
     private readonly BindGroupLayout _bindGroupLayout0;
     private readonly BindGroup _bindGroup0;
+
+    private readonly BindGroupLayout _bindGroupLayout1;
+    private readonly BindGroup _bindGroup1;
+
     private readonly PipelineLayout _pipelineLayout;
     private readonly Pipeline _renderPipeline;
 
@@ -35,22 +39,31 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color4), BufferUsage.Constant, CpuAccessMode.Write));
 
         _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
-            new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex),
-            new BindGroupLayoutEntry(new BufferBindingLayout(), 1, ShaderStages.Fragment)
+            new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex)
             ));
 
         _bindGroup0 = ToDispose(GraphicsDevice.CreateBindGroup(
             _bindGroupLayout0,
-            new BindGroupEntry(0, _constantBuffer0),
-            new BindGroupEntry(1, _constantBuffer1)
+            new BindGroupEntry(0, _constantBuffer0)
             ));
 
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0));
+        _bindGroupLayout1 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
+            new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Fragment)
+            ));
+
+        _bindGroup1 = ToDispose(GraphicsDevice.CreateBindGroup(
+            _bindGroupLayout1,
+            new BindGroupEntry(0, _constantBuffer1)
+            ));
+
+        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0, _bindGroupLayout1));
 
         Dictionary<string, string> vsDefines = new() { { "VERTEX_COLOR", "0" } };
         ShaderStageDescription vertexShader = CompileShader("Cube", "vertexMain", ShaderStages.Vertex, vsDefines);
+        ShaderStageDescription fragmentShader = CompileShader("Cube", "fragmentMain", ShaderStages.Fragment, vsDefines);
+
         //ShaderStageDescription vertexShader = LoadShader("Cube", ShaderStages.Vertex, "vertexMain");
-        ShaderStageDescription fragmentShader = LoadShader("Cube", ShaderStages.Fragment, "fragmentMain");
+        //ShaderStageDescription fragmentShader = LoadShader("Cube", ShaderStages.Fragment, "fragmentMain");
 
         var shaderStages = new ShaderStageDescription[2]
         {
@@ -97,6 +110,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         {
             context.SetPipeline(_renderPipeline!);
             context.SetBindGroup(0, _bindGroup0);
+            context.SetBindGroup(1, _bindGroup1);
 
             context.SetVertexBuffer(0, _vertexBuffer);
             context.SetIndexBuffer(_indexBuffer, IndexType.Uint16);

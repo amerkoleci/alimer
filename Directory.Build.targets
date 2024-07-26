@@ -30,13 +30,22 @@
   </ItemGroup>
 
   <!-- platform version number information -->
-  <PropertyGroup Condition="'$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">
+  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWinUI)' == 'True' ">
     <SupportedOSPlatformVersion>10.0.19043.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion>10.0.19043.0</TargetPlatformMinVersion>
     <WindowsSdkPackageVersion>10.0.22621.35-preview</WindowsSdkPackageVersion>
+
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+
+    <!--
+      Workaround for the 'CoreWebView2' SDK package referencing the WinRT implementation binary (Microsoft.Web.WebView2.Core.dll)
+      when 'TargetPlatform=AnyCPU'. It's not needed for the CsWinRT projection, so set it to not be loaded at all to fix the build.
+    -->
+    <WebView2EnableCsWinRTProjectionExcludeCoreRef>true</WebView2EnableCsWinRTProjectionExcludeCoreRef>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(_AlimerTargetPlatformIsAndroid)' == 'True'">
+  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsAndroid)' == 'True' ">
     <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion>21.0</TargetPlatformMinVersion>
   </PropertyGroup>

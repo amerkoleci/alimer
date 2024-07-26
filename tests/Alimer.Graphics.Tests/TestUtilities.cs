@@ -9,12 +9,12 @@ public static class TestUtilities
 {
     public static ShaderStageDescription CompileShader(string fileName, string entryPoint, GraphicsBackendType backendType, ShaderStages stage)
     {
-        ShaderFormat shaderFormat = backendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));
 
         ShaderCompilationOptions options = new()
         {
+            ShaderFormat = backendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL,
             ShaderStage = stage,
             EntryPoint = entryPoint,
 #if DEBUG
@@ -22,7 +22,7 @@ public static class TestUtilities
 #endif
         };
 
-        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderFormat, shaderSource, in options);
+        using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderSource, in options);
         if (result.Failed)
         {
             throw new GraphicsException(result.ErrorMessage);

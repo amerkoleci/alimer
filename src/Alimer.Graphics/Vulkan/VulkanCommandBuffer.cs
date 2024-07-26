@@ -5,11 +5,12 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
-using static Alimer.Utilities.UnsafeUtilities;
+//using static Alimer.Utilities.UnsafeUtilities;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Vortice.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -666,7 +667,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             _currentPipelineLayout.Handle,
             0u,
             (uint)_currentPipelineLayout.BindGroupLayoutCount,
-            (VkDescriptorSet*)Unsafe.AsPointer(ref _descriptorSets.GetReferenceUnsafe())
+            (VkDescriptorSet*)Unsafe.AsPointer(ref MemoryMarshal.GetArrayDataReference(_descriptorSets))
         );
         _bindGroupsDirty = false;
     }

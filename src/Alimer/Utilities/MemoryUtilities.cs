@@ -5,7 +5,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Utilities;
 
@@ -42,7 +41,7 @@ public static unsafe class MemoryUtilities
 
         if (result == null)
         {
-            ThrowOutOfMemoryException(count, SizeOf<T>());
+            ThrowOutOfMemoryException(count, unchecked((ulong)sizeof(T)));
         }
         return result;
     }

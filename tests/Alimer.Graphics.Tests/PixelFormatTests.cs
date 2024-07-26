@@ -165,13 +165,13 @@ public class PixelFormatTests
     [Theory]
     [InlineData(PixelFormat.RGBA8UnormSrgb, PixelFormat.RGBA8Unorm)]
     [InlineData(PixelFormat.BGRA8UnormSrgb, PixelFormat.BGRA8Unorm)]
-    [InlineData(PixelFormat.BC1RGBAUnormSrgb, PixelFormat.BC1RGBAUnorm)]
-    [InlineData(PixelFormat.BC2RGBAUnormSrgb, PixelFormat.BC2RGBAUnorm)]
-    [InlineData(PixelFormat.BC3RGBAUnormSrgb, PixelFormat.BC3RGBAUnorm)]
-    [InlineData(PixelFormat.BC7RGBAUnormSrgb, PixelFormat.BC7RGBAUnorm)]
-    [InlineData(PixelFormat.ETC2RGB8UnormSrgb, PixelFormat.ETC2RGB8Unorm)]
-    [InlineData(PixelFormat.ETC2RGB8A1UnormSrgb, PixelFormat.ETC2RGB8A1Unorm)]
-    [InlineData(PixelFormat.ETC2RGBA8UnormSrgb, PixelFormat.ETC2RGBA8Unorm)]
+    [InlineData(PixelFormat.Bc1RgbaUnormSrgb, PixelFormat.Bc1RgbaUnorm)]
+    [InlineData(PixelFormat.Bc2RgbaUnormSrgb, PixelFormat.Bc2RgbaUnorm)]
+    [InlineData(PixelFormat.Bc3RgbaUnormSrgb, PixelFormat.Bc3RgbaUnorm)]
+    [InlineData(PixelFormat.Bc7RgbaUnormSrgb, PixelFormat.Bc7RgbaUnorm)]
+    [InlineData(PixelFormat.Etc2Rgb8UnormSrgb, PixelFormat.Etc2Rgb8Unorm)]
+    [InlineData(PixelFormat.Etc2Rgb8A1UnormSrgb, PixelFormat.Etc2Rgb8A1Unorm)]
+    [InlineData(PixelFormat.Etc2Rgba8UnormSrgb, PixelFormat.Etc2Rgba8Unorm)]
     public void TestSrgbToLinearFormat(PixelFormat srgbFormat, PixelFormat linearFormat)
     {
         Assert.True(srgbFormat.IsSrgb());
@@ -180,20 +180,20 @@ public class PixelFormatTests
     }
 
     [Theory]
-    [InlineData(PixelFormat.BC1RGBAUnorm, 8, FormatKind.Unorm, DxgiFormat.BC1Unorm)]
-    [InlineData(PixelFormat.BC1RGBAUnormSrgb, 8, FormatKind.UnormSrgb, DxgiFormat.BC1UnormSrgb)]
-    [InlineData(PixelFormat.BC2RGBAUnorm, 16, FormatKind.Unorm, DxgiFormat.BC2Unorm)]
-    [InlineData(PixelFormat.BC2RGBAUnormSrgb, 16, FormatKind.UnormSrgb, DxgiFormat.BC2UnormSrgb)]
-    [InlineData(PixelFormat.BC3RGBAUnorm, 16, FormatKind.Unorm, DxgiFormat.BC3Unorm)]
-    [InlineData(PixelFormat.BC3RGBAUnormSrgb, 16, FormatKind.UnormSrgb, DxgiFormat.BC3UnormSrgb)]
-    [InlineData(PixelFormat.BC4RUnorm, 8, FormatKind.Unorm, DxgiFormat.BC4Unorm)]
-    [InlineData(PixelFormat.BC4RSnorm, 8, FormatKind.Snorm, DxgiFormat.BC4Snorm)]
-    [InlineData(PixelFormat.BC5RGUnorm, 16, FormatKind.Unorm, DxgiFormat.BC5Unorm)]
-    [InlineData(PixelFormat.BC5RGSnorm, 16, FormatKind.Snorm, DxgiFormat.BC5Snorm)]
-    [InlineData(PixelFormat.BC6HRGBUfloat, 16, FormatKind.Float, DxgiFormat.BC6HUF16)]
-    [InlineData(PixelFormat.BC6HRGBFloat, 16, FormatKind.Float, DxgiFormat.BC6HSF16)]
-    [InlineData(PixelFormat.BC7RGBAUnorm, 16, FormatKind.Unorm, DxgiFormat.BC7Unorm)]
-    [InlineData(PixelFormat.BC7RGBAUnormSrgb, 16, FormatKind.UnormSrgb, DxgiFormat.BC7UnormSrgb)]
+    [InlineData(PixelFormat.Bc1RgbaUnorm, 8, FormatKind.Unorm, DxgiFormat.BC1Unorm)]
+    [InlineData(PixelFormat.Bc1RgbaUnormSrgb, 8, FormatKind.UnormSrgb, DxgiFormat.BC1UnormSrgb)]
+    [InlineData(PixelFormat.Bc2RgbaUnorm, 16, FormatKind.Unorm, DxgiFormat.BC2Unorm)]
+    [InlineData(PixelFormat.Bc2RgbaUnormSrgb, 16, FormatKind.UnormSrgb, DxgiFormat.BC2UnormSrgb)]
+    [InlineData(PixelFormat.Bc3RgbaUnorm, 16, FormatKind.Unorm, DxgiFormat.BC3Unorm)]
+    [InlineData(PixelFormat.Bc3RgbaUnormSrgb, 16, FormatKind.UnormSrgb, DxgiFormat.BC3UnormSrgb)]
+    [InlineData(PixelFormat.Bc4RUnorm, 8, FormatKind.Unorm, DxgiFormat.BC4Unorm)]
+    [InlineData(PixelFormat.Bc4RSnorm, 8, FormatKind.Snorm, DxgiFormat.BC4Snorm)]
+    [InlineData(PixelFormat.Bc5RgUnorm, 16, FormatKind.Unorm, DxgiFormat.BC5Unorm)]
+    [InlineData(PixelFormat.Bc5RgSnorm, 16, FormatKind.Snorm, DxgiFormat.BC5Snorm)]
+    [InlineData(PixelFormat.Bc6hRgbUfloat, 16, FormatKind.Float, DxgiFormat.BC6HUF16)]
+    [InlineData(PixelFormat.Bc6hRgbFloat, 16, FormatKind.Float, DxgiFormat.BC6HSF16)]
+    [InlineData(PixelFormat.Bc7RgbaUnorm, 16, FormatKind.Unorm, DxgiFormat.BC7Unorm)]
+    [InlineData(PixelFormat.Bc7RgbaUnormSrgb, 16, FormatKind.UnormSrgb, DxgiFormat.BC7UnormSrgb)]
     public void TestBCCompressed(PixelFormat format, uint bytesPerBlock, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;
@@ -205,8 +205,8 @@ public class PixelFormatTests
         Assert.Equal(kind, formatInfo.Kind);
 
         Assert.True(format.IsCompressedFormat());
-        Assert.True(format.IsBCCompressedFormat());
-        Assert.False(format.IsASTCCompressedFormat());
+        Assert.True(format.IsBcCompressedFormat());
+        Assert.False(format.IsAstcCompressedFormat());
         Assert.False(format.IsDepthFormat());
         Assert.False(format.IsStencilFormat());
         Assert.False(format.IsDepthStencilFormat());
@@ -223,16 +223,16 @@ public class PixelFormatTests
     }
 
     [Theory]
-    [InlineData(PixelFormat.ETC2RGB8Unorm, 8, FormatKind.Unorm)]
-    [InlineData(PixelFormat.ETC2RGB8UnormSrgb, 8, FormatKind.UnormSrgb)]
-    [InlineData(PixelFormat.ETC2RGB8A1Unorm, 16, FormatKind.Unorm)]
-    [InlineData(PixelFormat.ETC2RGB8A1UnormSrgb, 16, FormatKind.UnormSrgb)]
-    [InlineData(PixelFormat.ETC2RGBA8Unorm, 16, FormatKind.Unorm)]
-    [InlineData(PixelFormat.ETC2RGBA8UnormSrgb, 16, FormatKind.UnormSrgb)]
-    [InlineData(PixelFormat.EACR11Unorm, 8, FormatKind.Unorm)]
-    [InlineData(PixelFormat.EACR11Snorm, 8, FormatKind.Snorm)]
-    [InlineData(PixelFormat.EACRG11Unorm, 16, FormatKind.Unorm)]
-    [InlineData(PixelFormat.EACRG11Snorm, 16, FormatKind.Snorm)]
+    [InlineData(PixelFormat.Etc2Rgb8Unorm, 8, FormatKind.Unorm)]
+    [InlineData(PixelFormat.Etc2Rgb8UnormSrgb, 8, FormatKind.UnormSrgb)]
+    [InlineData(PixelFormat.Etc2Rgb8A1Unorm, 16, FormatKind.Unorm)]
+    [InlineData(PixelFormat.Etc2Rgb8A1UnormSrgb, 16, FormatKind.UnormSrgb)]
+    [InlineData(PixelFormat.Etc2Rgba8Unorm, 16, FormatKind.Unorm)]
+    [InlineData(PixelFormat.Etc2Rgba8UnormSrgb, 16, FormatKind.UnormSrgb)]
+    [InlineData(PixelFormat.EacR11Unorm, 8, FormatKind.Unorm)]
+    [InlineData(PixelFormat.EacR11Snorm, 8, FormatKind.Snorm)]
+    [InlineData(PixelFormat.EacRg11Unorm, 16, FormatKind.Unorm)]
+    [InlineData(PixelFormat.EacRg11Snorm, 16, FormatKind.Snorm)]
     public void TestETC2_EAC_Compressed(PixelFormat format, uint bytesPerBlock, FormatKind kind)
     {
         uint width = 1024;
@@ -244,8 +244,8 @@ public class PixelFormatTests
         Assert.Equal(kind, formatInfo.Kind);
 
         Assert.True(format.IsCompressedFormat());
-        Assert.False(format.IsBCCompressedFormat());
-        Assert.False(format.IsASTCCompressedFormat());
+        Assert.False(format.IsBcCompressedFormat());
+        Assert.False(format.IsAstcCompressedFormat());
         Assert.False(format.IsDepthFormat());
         Assert.False(format.IsStencilFormat());
         Assert.False(format.IsDepthStencilFormat());

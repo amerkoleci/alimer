@@ -210,7 +210,7 @@ public sealed unsafe class Image : DisposableObject
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> mipLevel) : 0;
     }
 
-    // <summary>
+    /// <summary>
     /// Get a mip-level height.
     /// </summary>
     /// <param name="mipLevel"></param>
@@ -220,7 +220,7 @@ public sealed unsafe class Image : DisposableObject
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> mipLevel) : 0;
     }
 
-    // <summary>
+    /// <summary>
     /// Get a mip-level depth.
     /// </summary>
     /// <param name="mipLevel"></param>
@@ -275,7 +275,7 @@ public sealed unsafe class Image : DisposableObject
             if (isHdr)
             {
                 ImageResultFloat imageResultFloat = ImageResultFloat.FromStream(stream, (ColorComponents)channels);
-                ImageDescription imageDescription = ImageDescription.Image2D(PixelFormat.RGBA32Float, imageResultFloat.Width, imageResultFloat.Height);
+                ImageDescription imageDescription = ImageDescription.Image2D(PixelFormat.Rgba32Float, imageResultFloat.Width, imageResultFloat.Height);
                 return new(imageDescription, MemoryMarshal.AsBytes<float>(imageResultFloat.Data));
             }
             else

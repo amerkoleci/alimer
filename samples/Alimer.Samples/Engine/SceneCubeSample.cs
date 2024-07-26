@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.ComponentModel;
+using System.Numerics;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Physics;
@@ -26,26 +27,37 @@ public sealed class SceneCubeSample : SampleBase
         // Camera
         _cameraEntity = new();
         _ = _cameraEntity.Add<CameraComponent>();
+        root.Children.Add(_cameraEntity);
 
         //var test = _cameraEntity.Serialize();
 
+        // Floor
+        RigidBodyComponent floorRigidBody = new()
+        {
+            ColliderShape = new BoxColliderShape(new Vector3(200.0f, 2.0f, 200.0f)),
+            MotionType = MotionType.Static
+        };
+
+        var floorEntity = new Entity("Floor", new Vector3(0.0f, -1.0f, 0.0f));
+        floorEntity.Add(floorRigidBody);
+        root.Children.Add(floorEntity);
+
         // Mesh
-        _meshEntity = new();
+        RigidBodyComponent sphereRigidBody = new()
+        {
+            ColliderShape = new SphereColliderShape(50.0f),
+            //Mass = 100.0f
+        };
+
+        _meshEntity = new("Sphere", new Vector3(0.0f, 2.0f, 0.0f));
 
         MeshComponent meshComponent = new()
         {
             Mesh = new Mesh(GraphicsDevice)
         };
 
-        RigidBodyComponent rigidBody = new()
-        {
-            //ColliderShape = new SphereColliderShape(50.0f),
-            //Mass = 100.0f
-        };
-
-        _meshEntity.Add(meshComponent).Add(rigidBody);
-
-        root.Children.Add(_cameraEntity);
+        _meshEntity.Add(meshComponent).Add(sphereRigidBody);
+        
         root.Children.Add(_meshEntity);
 
         Scene.RootEntity = root;

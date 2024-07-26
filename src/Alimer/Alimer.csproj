@@ -4,7 +4,6 @@
     <TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <DefineConstants>$(DefineConstants);STBSHARP_INTERNAL</DefineConstants>
   </PropertyGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
@@ -20,26 +19,26 @@
 
   <!-- Native Libs -->
   <ItemGroup>
-    <Content Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">
+    <None Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">
       <PackagePath>runtimes\win-x64\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)win-arm64\alimer_native.dll">
+    </None>
+    <None Include="$(AlimerNativeDirectory)win-arm64\alimer_native.dll">
       <PackagePath>runtimes\win-arm64\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)linux-x64\libalimer_native.so">
+    </None>
+    <None Include="$(AlimerNativeDirectory)linux-x64\libalimer_native.so">
       <PackagePath>runtimes\linux-x64\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>
-    </Content>
-    <Content Include="$(AlimerNativeDirectory)osx-universal\libalimer_native.dylib">
+    </None>
+    <None Include="$(AlimerNativeDirectory)osx-universal\libalimer_native.dylib">
       <PackagePath>runtimes\osx\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>
-    </Content>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

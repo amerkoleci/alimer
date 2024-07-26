@@ -11,6 +11,9 @@ using static Win32.Apis;
 using static Win32.Graphics.Direct3D.Dxc.Apis;
 using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
 using Win32.Graphics.Direct3D12;
+using static Vortice.SpirvCross.SpirvCrossApi;
+using Vortice.SpirvCross;
+using Vortice.SPIRV;
 
 namespace Alimer.Shaders;
 
@@ -237,7 +240,7 @@ public sealed unsafe partial class ShaderCompiler
         // will be zero if there are no warnings or errors.
         if (errors.Get() is not null && errors.Get()->GetStringLength() != 0)
         {
-            string warningAndErrors = new(errors.Get()->GetStringPointer());
+            string warningAndErrors = StringUtilities.GetString(errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength())!;
             //Log.Warn"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
         }
 
@@ -355,6 +358,33 @@ public sealed unsafe partial class ShaderCompiler
         else
         {
             ReadOnlySpan<byte> bytecode = new (byteCode.Get()->GetBufferPointer(), (int)byteCode.Get()->GetBufferSize());
+
+            {
+                spvc_context_create(out spvc_context context).CheckResult();
+                spvc_context_parse_spirv(context, bytecode, out spvc_parsed_ir parsedIr).CheckResult();
+                spvc_context_create_compiler(context, Backend.HLSL, parsedIr, CaptureMode.TakeOwnership, out spvc_compiler compiler).CheckResult();
+
+                spvc_compiler_create_compiler_options(compiler, out spvc_compiler_options compileOptions).CheckResult();
+                spvc_compiler_options_set_uint(compileOptions, CompilerOption.HLSLShaderModel, 50);
+                //spvc_compiler_set_entry_point(compileOptions, "", );
+                spvc_compiler_install_compiler_options(compiler, compileOptions);
+
+                spvc_compiler_create_shader_resources(compiler, out spvc_resources resources);
+                FlatDescriptorBindingsForType(compiler, resources, ResourceType.UniformBuffer);
+                FlatDescriptorBindingsForType(compiler, resources, ResourceType.SampledImage);
+                FlatDescriptorBindingsForType(compiler, resources, ResourceType.SeparateSamplers);
+                FlatDescriptorBindingsForType(compiler, resources, ResourceType.SeparateImage);
+
+                if (spvc_compiler_compile(compiler, out string? hlsl) != Result.Success)
+                {
+                    string errorMessage = spvc_context_get_last_error_string(context)!;
+                    throw new Exception($"Failed to compile SPIRV shader: {errorMessage}");
+                }
+
+                spvc_context_release_allocations(context);
+                spvc_context_destroy(context);
+            }
+
             // Use SpirvReflect for reflection
             SpvReflectShaderModule module = default;
             spvReflectCreateShaderModule(bytecode, &module).CheckResult();
@@ -374,6 +404,28 @@ public sealed unsafe partial class ShaderCompiler
         }
 
         return new DxcShaderCompilationResult(byteCode);
+    }
+
+    private static unsafe void FlatDescriptorBindingsForType(
+        in spvc_compiler compiler,
+        in spvc_resources resources,
+        ResourceType type)
+    {
+        // D3D11/OpenGL has flat namespace so remap bindings
+
+        spvc_reflected_resource* resourceList;
+        spvc_resources_get_resource_list_for_type(resources, type, out resourceList, out nuint resourceSize).CheckResult();
+
+        for (uint i = 0; i < (uint)resourceSize; i++)
+        {
+            uint id = resourceList[i].id;
+
+            uint currentSet = spvc_compiler_get_decoration(compiler, resourceList[i].id, SpvDecoration.DescriptorSet);
+            uint currentBinding = spvc_compiler_get_decoration(compiler, resourceList[i].id, SpvDecoration.Binding);
+
+            spvc_compiler_unset_decoration(compiler, id, SpvDecoration.DescriptorSet);
+            //spvc_compiler_set_decoration(compiler, id, SpvDecoration.Binding, newBinding);
+        }
     }
 
     private HResult Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)

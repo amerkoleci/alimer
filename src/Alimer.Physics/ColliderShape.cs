@@ -1,9 +1,11 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Alimer.UI;
+using JoltPhysicsSharp;
 
-public abstract class UIElement
+namespace Alimer.Physics;
+
+public abstract class ColliderShape
 {
-    
+    internal abstract Shape Handle { get; }
 }

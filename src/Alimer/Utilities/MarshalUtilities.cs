@@ -5,7 +5,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Utilities;
 
@@ -40,10 +39,10 @@ public static unsafe class MarshalUtilities
 
         if (source is not null)
         {
-            var maxLength = Encoding.UTF8.GetMaxByteCount(source.Length);
-            var bytes = new byte[maxLength + 1];
+            int maxLength = Encoding.UTF8.GetMaxByteCount(source.Length);
+            byte[] bytes = new byte[maxLength + 1];
 
-            var length = Encoding.UTF8.GetBytes(source, bytes);
+            int length = Encoding.UTF8.GetBytes(source, bytes);
             result = bytes.AsSpan(0, length);
         }
         else
@@ -71,7 +70,7 @@ public static unsafe class MarshalUtilities
     {
         ReadOnlySpan<byte> result;
 
-        if (!IsNullRef(in source))
+        if (!Unsafe.IsNullRef(in source))
         {
             if (maxLength < 0)
             {
@@ -118,7 +117,7 @@ public static unsafe class MarshalUtilities
     {
         ReadOnlySpan<char> result;
 
-        if (!IsNullRef(in source))
+        if (!Unsafe.IsNullRef(in source))
         {
             if (maxLength < 0)
             {

@@ -1,151 +1,135 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuPhysics;
-using BepuPhysics.Collidables;
-using BepuPhysics.CollisionDetection;
-using BepuPhysics.Constraints;
-using BepuUtilities;
-using BepuUtilities.Memory;
+using System.Runtime.InteropServices;
+using JoltPhysicsSharp;
+using JoltPhysicsSystem = JoltPhysicsSharp.PhysicsSystem;
 
 namespace Alimer.Physics;
 
 public sealed class PhysicsSimulation : DisposableObject
 {
-    private readonly ThreadDispatcher _dispatcher;
-    private readonly BufferPool _bufferPool;
-    private readonly NarrowPhaseCallbacks _narrowPhaseCallbacks;
-    private readonly PoseIntegratorCallbacks _poseIntegratorCallbacks;
-    private readonly SolveDescription _solveDescription;
-
-    private readonly CollidableProperty<PhysicsMaterial> _materials;
+    private const int MaxBodies = 65536;
+    private const int MaxBodyPairs = 65536;
+    private const int MaxContactConstraints = 65536;
+    private const int NumBodyMutexes = 0;
+    private bool _optimizeBroadPhase = true;
+    public Dictionary<BodyID, RigidBodyComponent> RigidBodies { get; } = [];
 
     public PhysicsSimulation()
     {
-        int targetThreadCount = Math.Max(1, Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : Environment.ProcessorCount - 1);
+        // TODO: Add Layers/LayerMask
+        // We use only 2 layers: one for non-moving objects and one for moving objects
+        ObjectLayerPairFilterTable objectLayerPairFilterTable = new(2);
+        objectLayerPairFilterTable.EnableCollision(Layers.NonMoving, Layers.Moving);
+        objectLayerPairFilterTable.EnableCollision(Layers.Moving, Layers.Moving);
 
-        _dispatcher = new(targetThreadCount);
-        _bufferPool = new();
-        _materials = new(_bufferPool);
-        _narrowPhaseCallbacks = new(_materials);
-        _poseIntegratorCallbacks = new (new Vector3(0.0f, -9.81f, 0.0f));
-        _solveDescription = new SolveDescription(1, 1);
+        // We use a 1-to-1 mapping between object layers and broadphase layers
+        BroadPhaseLayerInterfaceTable broadPhaseLayerInterfaceTable = new(2, 2);
+        broadPhaseLayerInterfaceTable.MapObjectToBroadPhaseLayer(Layers.NonMoving, BroadPhaseLayers.NonMoving);
+        broadPhaseLayerInterfaceTable.MapObjectToBroadPhaseLayer(Layers.Moving, BroadPhaseLayers.Moving);
 
-        InternalSimulation = Simulation.Create(_bufferPool, _narrowPhaseCallbacks, _poseIntegratorCallbacks, _solveDescription);
+        ObjectVsBroadPhaseLayerFilterTable objectVsBroadPhaseLayerFilter = new(
+            broadPhaseLayerInterfaceTable, 2, objectLayerPairFilterTable, 2
+        );
+
+        PhysicsSystemSettings settings = new()
+        {
+            MaxBodies = MaxBodies,
+            MaxBodyPairs = MaxBodyPairs,
+            MaxContactConstraints = MaxContactConstraints,
+            NumBodyMutexes = NumBodyMutexes,
+            ObjectLayerPairFilter = objectLayerPairFilterTable,
+            BroadPhaseLayerInterface = broadPhaseLayerInterfaceTable,
+            ObjectVsBroadPhaseLayerFilter = objectVsBroadPhaseLayerFilter
+        };
+
+        InternalSimulation = new(settings);
+
+        // ContactListener
+        InternalSimulation.OnContactValidate += OnContactValidate;
+        InternalSimulation.OnContactAdded += OnContactAdded;
+        InternalSimulation.OnContactPersisted += OnContactPersisted;
+        InternalSimulation.OnContactRemoved += OnContactRemoved;
+        // BodyActivationListener
+        InternalSimulation.OnBodyActivated += OnBodyActivated;
+        InternalSimulation.OnBodyDeactivated += OnBodyDeactivated;
     }
 
-    internal Simulation InternalSimulation { get; }
-    public CollidableProperty<PhysicsMaterial> Materials => _materials;
+    internal JoltPhysicsSystem InternalSimulation { get; }
+    internal BodyInterface BodyInterface => InternalSimulation.BodyInterface;
+    internal BodyInterface BodyInterfaceNoLock => InternalSimulation.BodyInterfaceNoLock;
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _materials.Dispose();
-            _narrowPhaseCallbacks.Dispose();
-            _bufferPool.Clear();
-            _dispatcher.Dispose();
             InternalSimulation.Dispose();
         }
     }
 
-    public void Timestep(TimeSpan deltaTime)
+    public void Step(float deltaTime)
     {
-        InternalSimulation.Timestep((float)deltaTime.TotalSeconds);
+        if (_optimizeBroadPhase)
+        {
+            InternalSimulation.OptimizeBroadPhase();
+            _optimizeBroadPhase = false;
+        }
+
+        // When running below 55 Hz, do 2 steps instead of 1
+        int numSteps = 1; // deltaTime > 1.0 / 55.0 ? 2 : 1;
+
+        //const int steps = ::clamp(int(dt / TIMESTEP), 1, ACCURACY);
+
+        InternalSimulation.Step(deltaTime, numSteps);
     }
 
-    #region Nested
-    private struct NarrowPhaseCallbacks(CollidableProperty<PhysicsMaterial> materials) : INarrowPhaseCallbacks
+    #region ContactListener
+    private ValidateResult OnContactValidate(JoltPhysicsSystem system, in Body body1, in Body body2, Double3 baseOffset, nint collisionResult)
     {
-        public CollidableProperty<PhysicsMaterial> Materials = materials;
+        Console.WriteLine("Contact validate callback");
 
-        public readonly void Initialize(Simulation simulation)
-        {
-            Materials.Initialize(simulation);
-        }
-
-        public readonly void Dispose()
-        {
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool AllowContactGeneration(int workerIndex, CollidableReference a, CollidableReference b, ref float speculativeMargin)
-        {
-            return a.Mobility == CollidableMobility.Dynamic || b.Mobility == CollidableMobility.Dynamic;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool AllowContactGeneration(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB)
-        {
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool ConfigureContactManifold<TManifold>(int workerIndex, CollidablePair pair, ref TManifold manifold, out PairMaterialProperties pairMaterial) where TManifold : unmanaged, IContactManifold<TManifold>
-        {
-            PhysicsMaterial a = Materials[pair.A];
-            PhysicsMaterial b = Materials[pair.B];
-            pairMaterial.FrictionCoefficient = a.FrictionCoefficient * b.FrictionCoefficient;
-            pairMaterial.MaximumRecoveryVelocity = MathF.Max(a.MaximumRecoveryVelocity, b.MaximumRecoveryVelocity);
-            pairMaterial.SpringSettings = pairMaterial.MaximumRecoveryVelocity == a.MaximumRecoveryVelocity ? a.SpringSettings : b.SpringSettings;
-            //Characters.TryReportContacts(pair, ref manifold, workerIndex, ref pairMaterial);
-            //Events.HandleManifold(workerIndex, pair, ref manifold);
-
-            pairMaterial.FrictionCoefficient = 1.0f;
-            pairMaterial.MaximumRecoveryVelocity = 2.0f;
-            pairMaterial.SpringSettings = new SpringSettings(30.0f, 1.0f);
-
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool ConfigureContactManifold(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB, ref ConvexContactManifold manifold)
-        {
-            return true;
-        }
+        // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
+        return ValidateResult.AcceptAllContactsForThisBodyPair;
     }
 
-    private struct PoseIntegratorCallbacks(Vector3 gravity) : IPoseIntegratorCallbacks
+    private void OnContactAdded(JoltPhysicsSystem system, in Body body1, in Body body2, in ContactManifold manifold, in ContactSettings settings)
     {
-        //Note that velocity integration uses "wide" types. These are array-of-struct-of-arrays types that use SIMD accelerated types underneath.
-        //Rather than handling a single body at a time, the callback handles up to Vector<float>.Count bodies simultaneously.
-        private Vector3Wide _gravityWideDt;
+        Console.WriteLine("A contact was added");
+    }
 
-        public readonly AngularIntegrationMode AngularIntegrationMode => AngularIntegrationMode.Nonconserving;
-        public bool AllowSubstepsForUnconstrainedBodies { get; }
-        public bool IntegrateVelocityForKinematics { get; }
-        public Vector3 Gravity { get; set; } = gravity;
+    private void OnContactPersisted(JoltPhysicsSystem system, in Body body1, in Body body2, in ContactManifold manifold, in ContactSettings settings)
+    {
+        Console.WriteLine("A contact was persisted");
+    }
 
-        public void Initialize(Simulation simulation)
-        {
-
-        }
-
-        public void PrepareForIntegration(float dt)
-        {
-            _gravityWideDt = Vector3Wide.Broadcast(Gravity * dt);
-        }
-
-        /// <summary>
-        /// Callback called for each active body within the simulation during body integration.
-        /// </summary>
-        /// <param dbgName="bodyIndex">Index of the body being visited.</param>
-        /// <param dbgName="pose">Body's current pose.</param>
-        /// <param dbgName="localInertia">Body's current local inertia.</param>
-        /// <param dbgName="workerIndex">Index of the worker thread processing this body.</param>
-        /// <param dbgName="velocity">Reference to the body's current velocity to integrate.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly void IntegrateVelocity(Vector<int> bodyIndices, Vector3Wide position, QuaternionWide orientation, BodyInertiaWide localInertia, Vector<int> integrationMask, int workerIndex, Vector<float> dt, ref BodyVelocityWide velocity)
-        {
-            // This also is a handy spot to implement things like position dependent gravity or per-body damping.
-            // We don't have to check for kinematics; IntegrateVelocityForKinematics returns false in this type, so we'll never see them in this callback.
-            // Note that these are SIMD operations and "Wide" types. There are Vector<float>.Count lanes of execution being evaluated simultaneously.
-            // The types are laid out in array-of-structures-of-arrays (AOSOA) format. That's because this function is frequently called from vectorized contexts within the solver.
-            // Transforming to "array of structures" (AOS) format for the callback and then back to AOSOA would involve a lot of overhead, so instead the callback works on the AOSOA representation directly.
-            velocity.Linear += _gravityWideDt;
-        }
+    private void OnContactRemoved(JoltPhysicsSystem system, ref SubShapeIDPair subShapePair)
+    {
+        Console.WriteLine("A contact was removed");
     }
     #endregion
+
+    #region BodyActivationListener
+    private void OnBodyActivated(JoltPhysicsSystem system, in BodyID bodyID, ulong bodyUserData)
+    {
+        Console.WriteLine("A body got activated");
+    }
+
+    private void OnBodyDeactivated(JoltPhysicsSystem system, in BodyID bodyID, ulong bodyUserData)
+    {
+        Console.WriteLine("A body went to sleep");
+    }
+    #endregion
+
+    internal static class Layers
+    {
+        public static readonly ObjectLayer NonMoving = 0;
+        public static readonly ObjectLayer Moving = 1;
+    }
+
+    static class BroadPhaseLayers
+    {
+        public static readonly BroadPhaseLayer NonMoving = 0;
+        public static readonly BroadPhaseLayer Moving = 1;
+    }
 }

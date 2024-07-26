@@ -28,7 +28,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         _defaultNormalTexture = CreateTextureFromColor(new Color4(0.5f, 0.5f, 1.0f, 0f));
         _defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
 
-        ColorFormat = MainWindow.SwapChain.ColorFormat;
+        ColorFormat = MainWindow.SwapChain!.ColorFormat;
         DepthStencilFormat = PixelFormat.Depth24UnormStencil8;
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
