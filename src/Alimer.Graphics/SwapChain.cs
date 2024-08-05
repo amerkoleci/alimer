@@ -7,14 +7,14 @@ namespace Alimer.Graphics;
 
 public abstract class SwapChain : GraphicsObject
 {
-    public SwapChain(ISwapChainSurface surface, in SwapChainDescription descriptor)
-        : base(descriptor.Label)
+    public SwapChain(ISwapChainSurface surface, in SwapChainDescription description)
+        : base(description.Label)
     {
         Surface = surface;
         Surface.SizeChanged += OnSurfaceSizeChanged;
-        ColorFormat = descriptor.Format;
-        PresentMode = descriptor.PresentMode;
-        IsFullscreen = descriptor.IsFullscreen;
+        ColorFormat = description.Format;
+        PresentMode = description.PresentMode;
+        IsFullscreen = description.IsFullscreen;
     }
 
     public ISwapChainSurface Surface { get; }

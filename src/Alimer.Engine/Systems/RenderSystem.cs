@@ -85,14 +85,18 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
     {
         UpdateCamera(camera);
 
-        RenderPassColorAttachment colorAttachment = new(output, Colors.Black);
+        RenderPassColorAttachment colorAttachment = new(output, Colors.Black)
+        {
+            LoadAction = LoadAction.Clear,
+            StoreAction = MultisampleColorTexture != null ? StoreAction.Discard : StoreAction.Store,
+        };
 
-        RenderPassDescription outputPass = new(colorAttachment)
+        RenderPassDescription renderPass = new(colorAttachment)
         {
             Label = "Output pass"
         };
 
-        using (renderContext.PushScopedPassPass(outputPass))
+        using (renderContext.PushScopedPassPass(renderPass))
         {
             //renderContext.SetBindGroup(0, camera.bindGroup);
 
@@ -141,7 +145,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
     private Texture CreateTextureFromColor(in Color4 color)
     {
-        Span<uint> pixels = [(uint)color.ToRgba()];
+        ReadOnlySpan<uint> pixels = [color.ToRgba()];
         return GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);
     }
 }

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <VorticeWin32Version>2.2.5</VorticeWin32Version>
     <TerraFXWindowsVersion>10.0.26100</TerraFXWindowsVersion>
-    <ImGuiVersion>1.0.4</ImGuiVersion>
+    <ImGuiVersion>2.0.1</ImGuiVersion>
     <SkiaSharpVersion>3.0.0-preview.4.1</SkiaSharpVersion>
   </PropertyGroup>
 
@@ -20,14 +20,14 @@
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D11" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D12" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="XenoAtom.Collections" Version="1.1.0" />
-    <PackageVersion Include="ppy.SDL3-CS" Version="2024.717.0" />
+    <PackageVersion Include="ppy.SDL3-CS" Version="2024.731.0" />
     <PackageVersion Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
     <PackageVersion Include="StbImageSharp" Version="2.27.14" />
     <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.4.3" />
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
-    <PackageVersion Include="Vortice.Vulkan" Version="1.9.4" />
-    <PackageVersion Include="JoltPhysicsSharp" Version="2.5.8" />
+    <PackageVersion Include="Vortice.Vulkan" Version="1.9.5" />
+    <PackageVersion Include="JoltPhysicsSharp" Version="2.5.10" />
     <PackageVersion Include="DotRecast.Recast" Version="2024.3.1" />
     
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />

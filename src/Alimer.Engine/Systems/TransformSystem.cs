@@ -1,11 +1,11 @@
-﻿// Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 namespace Alimer.Engine;
 
 public sealed class TransformSystem : EntitySystem<TransformComponent>
 {
-    private readonly HashSet<TransformComponent> _transformationRoots = new();
+    private readonly HashSet<TransformComponent> _transformationRoots = [];
 
     public TransformSystem()
     {
@@ -29,7 +29,7 @@ public sealed class TransformSystem : EntitySystem<TransformComponent>
         _transformationRoots.Remove(component);
     }
 
-    private void UpdateTransformations(IEnumerable<TransformComponent> transformationRoots)
+    private static void UpdateTransformations(IEnumerable<TransformComponent> transformationRoots)
     {
         foreach (TransformComponent transformComponent in transformationRoots)
         {
@@ -37,7 +37,7 @@ public sealed class TransformSystem : EntitySystem<TransformComponent>
         }
     }
 
-    private void UpdateTransformationsRecursive(TransformComponent transformComponent)
+    private static void UpdateTransformationsRecursive(TransformComponent transformComponent)
     {
         transformComponent.UpdateLocalMatrix();
         transformComponent.UpdateWorldMatrixInternal(false);

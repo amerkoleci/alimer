@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.InteropServices;
+using System.Diagnostics;
 using JoltPhysicsSharp;
 using JoltPhysicsSystem = JoltPhysicsSharp.PhysicsSystem;
 
@@ -81,7 +81,8 @@ public sealed class PhysicsSimulation : DisposableObject
 
         //const int steps = ::clamp(int(dt / TIMESTEP), 1, ACCURACY);
 
-        InternalSimulation.Step(deltaTime, numSteps);
+        PhysicsUpdateError error = InternalSimulation.Step(deltaTime, numSteps);
+        Debug.Assert(error == PhysicsUpdateError.None);
     }
 
     #region ContactListener

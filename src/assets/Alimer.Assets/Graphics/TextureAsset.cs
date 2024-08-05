@@ -30,6 +30,7 @@ public class TextureAsset : AssetWithSource
         ArgumentNullException.ThrowIfNull(device, nameof(device));
         Guard.IsNotNull(PixelData, nameof(PixelData));
 
-        return device.CreateTexture2D(PixelData!.AsSpan(), Format, (uint)Width, (uint)Height);
+        ReadOnlySpan<byte> span = PixelData!.AsSpan();
+        return device.CreateTexture2D(span, Format, (uint)Width, (uint)Height);
     }
 }

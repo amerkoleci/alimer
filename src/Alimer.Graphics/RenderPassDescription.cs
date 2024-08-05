@@ -3,11 +3,11 @@
 
 namespace Alimer.Graphics;
 
-public readonly record struct RenderPassDescription
+public record struct RenderPassDescription
 {
     public RenderPassDescription()
     {
-        ColorAttachments = Array.Empty<RenderPassColorAttachment>();
+        ColorAttachments = [];
         DepthStencilAttachment = default;
     }
 
@@ -23,11 +23,11 @@ public readonly record struct RenderPassDescription
         DepthStencilAttachment = depthStencilAttachment;
     }
 
-    public RenderPassColorAttachment[] ColorAttachments { get; init; }
-    public RenderPassDepthStencilAttachment DepthStencilAttachment { get; init; }
+    public RenderPassColorAttachment[] ColorAttachments { get; set; }
+    public RenderPassDepthStencilAttachment DepthStencilAttachment { get; set; }
 
     /// <summary>
     /// Gets or sets the label of the render pass.
     /// </summary>
-    public string? Label { get; init; }
+    public string? Label { get; set; }
 }

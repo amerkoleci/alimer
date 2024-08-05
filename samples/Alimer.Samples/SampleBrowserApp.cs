@@ -28,13 +28,13 @@ public sealed class SampleBrowserApp : GameApplication
         //_runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
-        _runningSample = new DrawCubeSample(Services, MainWindow);
+        //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedFromFileCubeSample(GraphicsDevice, MainWindow);
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
-        //_runningSample = new SceneCubeSample(Services);
+        _runningSample = new SceneCubeSample(Services);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }

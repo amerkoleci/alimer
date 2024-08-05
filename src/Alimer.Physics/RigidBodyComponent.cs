@@ -97,6 +97,8 @@ public class RigidBodyComponent : PhysicsComponent
         if (_shape is null)
             return;
 
+        BodyInterface bodyInterface = Simulation!.BodyInterface;
+
         Matrix4x4.Decompose(Entity!.Transform.WorldMatrix, out _, out Quaternion rotation, out Vector3 translation);
 
         BodyCreationSettings bodySettings = new(
@@ -106,11 +108,11 @@ public class RigidBodyComponent : PhysicsComponent
             MotionType.ToJolt(),
             (MotionType == MotionType.Static) ? PhysicsSimulation.Layers.NonMoving : PhysicsSimulation.Layers.Moving);
 
-        Handle = Simulation!.BodyInterface.CreateBody(bodySettings);
+        Handle = bodyInterface.CreateBody(bodySettings);
         BodyID = Handle.ID;
 
         // Add it to the world
-        Simulation!.BodyInterface.AddBody(Handle, (MotionType == MotionType.Static) ? Activation.DontActivate : Activation.Activate);
+        bodyInterface.AddBody(Handle, (MotionType == MotionType.Static) ? Activation.DontActivate : Activation.Activate);
         Simulation.RigidBodies.Add(BodyID,  this);
     }
 

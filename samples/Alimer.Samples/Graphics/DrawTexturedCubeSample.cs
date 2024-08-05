@@ -38,7 +38,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 
-        Span<uint> pixels = stackalloc uint[16] {
+        ReadOnlySpan<uint> pixels = [
             0xFFFFFFFF,
             0x00000000,
             0xFFFFFFFF,
@@ -55,7 +55,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
             0xFFFFFFFF,
             0x00000000,
             0xFFFFFFFF,
-        };
+        ];
         _texture = ToDispose(GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4));
 
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));

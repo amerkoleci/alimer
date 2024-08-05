@@ -24,11 +24,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{D85D
 		.github\FUNDING.yml = .github\FUNDING.yml
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{64DC574C-47E6-4CA5-AD9B-A31551876AF9}"
-	ProjectSection(SolutionItems) = preProject
-		.github\workflows\build.yml = .github\workflows\build.yml
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{6E75A307-8EA0-441A-9882-967B5048E707}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "editor", "editor", "{922968E0-A70B-4E09-BF72-5DB37F5936AE}"
@@ -162,7 +157,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{64DC574C-47E6-4CA5-AD9B-A31551876AF9} = {D85DD55D-F755-4828-BC33-026710543E55}
 		{F797B201-801E-4786-9C7E-C5B9929BCD57} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
 		{351AA2B8-1343-49BF-9E34-DECB218C8505} = {446FAFB5-D0FC-4A98-BEDF-7967B7C200E0}
 		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}

@@ -278,19 +278,11 @@ public abstract class RenderContext : ComputeContext
     }
 
     #region Nested
-    readonly struct ScopedRenderPass : IDisposable
+    readonly struct ScopedRenderPass(RenderContext context) : IDisposable
     {
-        private readonly RenderContext _context;
+        private readonly RenderContext _context = context;
 
-        public ScopedRenderPass(RenderContext context)
-        {
-            _context = context;
-        }
-
-        public void Dispose()
-        {
-            _context.EndRenderPass();
-        }
+        public void Dispose() => _context.EndRenderPass();
     }
     #endregion
 }

@@ -184,7 +184,7 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the image data.
     /// </summary>
-    public Span<byte> Data => new(_data, (int)SizeInBytes);
+    public ReadOnlySpan<byte> Data => new(_data, (int)SizeInBytes);
 
     /// <summary>
     /// Gets a pointer to the image buffer in memory.
@@ -194,7 +194,7 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the image data.
     /// </summary>
-    public Span<T> GetData<T>()
+    public ReadOnlySpan<T> GetData<T>()
         where T : unmanaged
     {
         return MemoryMarshal.Cast<byte, T>(Data);

@@ -62,27 +62,27 @@ internal unsafe class SDLWindow : Window
         {
             Kind = SwapChainSurfaceType.Win32;
             ContextHandle = GetModuleHandleW(null);
-            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WIN32_HWND_POINTER, IntPtr.Zero);
+            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WIN32_HWND_POINTER, IntPtr.Zero);
         }
         else if (OperatingSystem.IsAndroid())
         {
             Kind = SwapChainSurfaceType.Android;
             ContextHandle = 0;
-            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, IntPtr.Zero);
+            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, IntPtr.Zero);
         }
         else if (OperatingSystem.IsIOS())
         {
             Kind = SwapChainSurfaceType.MetalLayer;
             ContextHandle = 0;
             // the (__unsafe_unretained) UIWindow associated with the window
-            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER, IntPtr.Zero);
+            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER, IntPtr.Zero);
         }
         else if (OperatingSystem.IsMacOS())
         {
             Kind = SwapChainSurfaceType.MetalLayer;
             ContextHandle = 0;
             // the (__unsafe_unretained) NSWindow associated with the window
-            Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, IntPtr.Zero);
+            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, IntPtr.Zero);
         }
         else if (OperatingSystem.IsLinux())
         {
@@ -90,14 +90,14 @@ internal unsafe class SDLWindow : Window
             {
                 // Wayland
                 Kind = SwapChainSurfaceType.Wayland;
-                ContextHandle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, IntPtr.Zero);
-                Handle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, IntPtr.Zero);
+                ContextHandle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, IntPtr.Zero);
+                Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, IntPtr.Zero);
             }
             else
             {
                 // X11
                 Kind = SwapChainSurfaceType.Xlib;
-                ContextHandle = SDL_GetProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, IntPtr.Zero);
+                ContextHandle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, IntPtr.Zero);
                 Handle = new IntPtr(SDL_GetNumberProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0));
             }
 
