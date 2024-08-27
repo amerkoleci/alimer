@@ -4,9 +4,8 @@
 using Vortice.Mathematics;
 using Alimer.Graphics;
 using System.Runtime.InteropServices;
-using static SDL.SDL3;
-using static SDL.SDL_EventType;
-using SDL;
+using static SDL3.SDL3;
+using SDL3;
 
 namespace Alimer;
 
@@ -17,44 +16,43 @@ internal unsafe class SDLWindow : Window
     private bool _minimized;
     private bool _isFullscreen;
 
-    public readonly SDL_Window* SDLWindowHandle;
+    public readonly SDL_Window SDLWindowHandle;
     public readonly SDL_WindowID Id;
 
     public SDLWindow(SDLPlatform platform, WindowFlags flags)
     {
         _platform = platform;
 
-        SDL_WindowFlags sdlWindowFlags = SDL_WindowFlags.SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WindowFlags.SDL_WINDOW_HIDDEN | SDL_WindowFlags.SDL_WINDOW_VULKAN;
+        SDL_WindowFlags sdlWindowFlags = SDL_WindowFlags.HighPixelDensity | SDL_WindowFlags.Hidden | SDL_WindowFlags.Vulkan;
 
         if ((flags & WindowFlags.Borderless) != 0)
-            sdlWindowFlags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
+            sdlWindowFlags |= SDL_WindowFlags.Borderless;
 
         if ((flags & WindowFlags.Resizable) != 0)
-            sdlWindowFlags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
+            sdlWindowFlags |= SDL_WindowFlags.Resizable;
 
         if ((flags & WindowFlags.Fullscreen) != 0)
         {
-            sdlWindowFlags |= SDL_WindowFlags.SDL_WINDOW_FULLSCREEN;
+            sdlWindowFlags |= SDL_WindowFlags.Fullscreen;
             _isFullscreen = true;
         }
 
         if ((flags & WindowFlags.Maximized) != 0)
         {
-            sdlWindowFlags |= SDL_WindowFlags.SDL_WINDOW_MAXIMIZED;
+            sdlWindowFlags |= SDL_WindowFlags.Maximized;
         }
 
         _title = "Alimer";
-        SDLWindowHandle = SDL_CreateWindow((Utf8String)_title, 1200, 800, sdlWindowFlags);
-        if (SDLWindowHandle == null)
+        SDLWindowHandle = SDL_CreateWindow(_title, 1200, 800, sdlWindowFlags);
+        if (SDLWindowHandle.IsNull)
         {
             Log.Error($"SDL_CreateWindow Failed: {SDL_GetError()}");
             return;
         }
 
         Id = SDL_GetWindowID(SDLWindowHandle);
-        SDL_SetWindowPosition(SDLWindowHandle, (int)SDL_WINDOWPOS_CENTERED, (int)SDL_WINDOWPOS_CENTERED);
-        int width, height;
-        SDL_GetWindowSizeInPixels(SDLWindowHandle, &width, &height);
+        SDL_SetWindowPosition(SDLWindowHandle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_GetWindowSizeInPixels(SDLWindowHandle, out int width, out int height);
         _clientSize = new(width, height);
 
         // Native handle
@@ -116,7 +114,7 @@ internal unsafe class SDLWindow : Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                SDL_SetWindowFullscreen(SDLWindowHandle, value ? SDL_TRUE : SDL_FALSE);
+                SDL_SetWindowFullscreen(SDLWindowHandle, value);
             }
         }
     }
@@ -126,8 +124,7 @@ internal unsafe class SDLWindow : Window
     {
         get
         {
-            int x, y;
-            _ = SDL_GetWindowPosition(SDLWindowHandle, &x, &y);
+            _ = SDL_GetWindowPosition(SDLWindowHandle, out int x, out int y);
             return new Int2(x, y);
         }
         set
@@ -150,12 +147,12 @@ internal unsafe class SDLWindow : Window
 
     public void Show()
     {
-        SDL_ShowWindow(SDLWindowHandle);
+        _ = SDL_ShowWindow(SDLWindowHandle);
     }
 
     protected override void SetTitle(string title)
     {
-        SDL_SetWindowTitle(SDLWindowHandle, title);
+        _ = SDL_SetWindowTitle(SDLWindowHandle, title);
     }
 
     public void HandleEvent(in SDL_WindowEvent evt)

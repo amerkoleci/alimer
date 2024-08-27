@@ -63,10 +63,15 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
     [ModuleInitializer]
     public static void Initialize()
     {
-        if (Foundation.Init() == false)
+        if (Foundation.Init(false) == false)
         {
             throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
         }
+
+        Foundation.SetTraceHandler((message) =>
+        {
+            Log.Trace(message);
+        });
 
 #if DEBUG
         Foundation.SetAssertFailureHandler((inExpression, inMessage, inFile, inLine) =>

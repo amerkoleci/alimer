@@ -22,7 +22,7 @@ public class RigidBodyComponent : PhysicsComponent
                 return;
 
             _motionType = value;
-            if (Handle != null)
+            if (Handle.IsNotNull)
             {
                 Handle.MotionType = value.ToJolt();
             }
@@ -58,7 +58,7 @@ public class RigidBodyComponent : PhysicsComponent
             _mass = value;
 
             // TODO: Update Jolt mass?
-            if(Handle != null)
+            if(Handle.IsNotNull)
             {
             }
         }
@@ -68,7 +68,7 @@ public class RigidBodyComponent : PhysicsComponent
     {
         get
         {
-            if (Handle is null)
+            if (Handle.IsNull)
                 return Matrix4x4.Identity;
 
             return Handle.GetWorldTransform();
@@ -76,20 +76,20 @@ public class RigidBodyComponent : PhysicsComponent
         set
         {
             // TODO: Update Jolt WorldTransform?
-            if (Handle != null)
+            if (Handle.IsNotNull)
             {
             }
         }
     }
 
-    internal Body? Handle { get; private set; }
+    internal Body Handle;
     internal BodyID BodyID { get; private set; }
 
     protected override void OnAttach()
     {
         base.OnAttach();
 
-        if (Handle != null)
+        if (Handle.IsNotNull)
         {
             Simulation!.BodyInterface.DestroyBody(Handle.ID);
         }
@@ -113,7 +113,7 @@ public class RigidBodyComponent : PhysicsComponent
 
         // Add it to the world
         bodyInterface.AddBody(Handle, (MotionType == MotionType.Static) ? Activation.DontActivate : Activation.Activate);
-        Simulation.RigidBodies.Add(BodyID,  this);
+        Simulation.RigidBodies.Add(BodyID, this);
     }
 
     protected override void OnDetach()

@@ -11,5 +11,5 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public class MeshAsset : AssetWithSource
 {
-    public MeshData? Data { get; set; }
+    public MeshData Data { get; set; }
 }

@@ -2,10 +2,9 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Input;
-using static SDL.SDL3;
-using SDL;
+using static SDL3.SDL3;
+using SDL3;
 using System.Runtime.InteropServices;
-using static SDL.SDL_EventType;
 using System.Runtime.CompilerServices;
 
 namespace Alimer;
@@ -24,7 +23,7 @@ internal unsafe class SDLPlatform : AppPlatform
     {
         //SDL_LogSetPriority(SDL_LogCategory.Error, SDL_LogPriority.Debug);
         //SDL_LogSetPriority(SDL_LogCategory.SDL_LOG_CATEGORY_ERROR, SDL_LogPriority.SDL_LOG_PRIORITY_DEBUG);
-        SDL_SetLogOutputFunction(&OnLog, IntPtr.Zero);
+        SDL_SetLogOutputFunction(OnLog);
 
         int version = SDL_GetVersion();
         string? revision = SDL_GetRevision();
@@ -34,7 +33,7 @@ internal unsafe class SDLPlatform : AppPlatform
             SDL_VERSIONNUM_MICRO(version));
 
         // Init SDL3
-        if (SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_TIMER | SDL_InitFlags.SDL_INIT_GAMEPAD) != 0)
+        if (SDL_Init(SDL_InitFlags.Video | SDL_InitFlags.Timer | SDL_InitFlags.Gamepad) != 0)
         {
             Log.Error($"Unable to initialize SDL: {SDL_GetError()}");
             throw new Exception("");
@@ -42,7 +41,7 @@ internal unsafe class SDLPlatform : AppPlatform
 
         Log.Info($@"SDL3 Initialized
                   SDL3 Version: {SDL_VERSIONNUM_MAJOR(version)}.{SDL_VERSIONNUM_MINOR(version)}.{SDL_VERSIONNUM_MICRO(version)}
-                  SDL3 Revision: {SDL3.SDL_GetRevision()}"
+                  SDL3 Revision: {SDL_GetRevision()}"
                   );
 
         _input = new SDLInput(this);
@@ -104,7 +103,7 @@ internal unsafe class SDLPlatform : AppPlatform
 
         do
         {
-            eventsRead = SDL_PeepEvents(_events, SDL_EventAction.SDL_GETEVENT, SDL_EventType.SDL_EVENT_FIRST, SDL_EventType.SDL_EVENT_LAST);
+            eventsRead = SDL_PeepEvents(_events, SDL_EventAction.GetEvent, SDL_EventType.First, SDL_EventType.Last);
             for (int i = 0; i < eventsRead; i++)
             {
                 HandleSDLEvent(_events[i]);
@@ -114,13 +113,13 @@ internal unsafe class SDLPlatform : AppPlatform
 
     private void HandleSDLEvent(SDL_Event evt)
     {
-        if (evt.Type >= SDL_EventType.SDL_EVENT_DISPLAY_FIRST && evt.Type <= SDL_EventType.SDL_EVENT_DISPLAY_LAST)
+        if (evt.type >= SDL_EventType.DisplayFirst && evt.type <= SDL_EventType.DisplayLast)
         {
             HandleDisplayEvent(evt.display);
             return;
         }
 
-        if (evt.Type >= SDL_EventType.SDL_EVENT_WINDOW_FIRST && evt.Type <= SDL_EventType.SDL_EVENT_WINDOW_LAST)
+        if (evt.type >= SDL_EventType.WindowFirst && evt.type <= SDL_EventType.WindowLast)
         {
             HandleWindowEvent(in evt.window);
             return;
@@ -128,8 +127,8 @@ internal unsafe class SDLPlatform : AppPlatform
 
         switch (evt.type)
         {
-            case (uint)SDL_EVENT_QUIT:
-            case (uint)SDL_EVENT_TERMINATING:
+            case SDL_EventType.Quit:
+            case SDL_EventType.Terminating:
                 _exitRequested = true;
                 break;
         }
@@ -154,10 +153,8 @@ internal unsafe class SDLPlatform : AppPlatform
         _idLookup.Remove(windowID);
     }
 
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void OnLog(IntPtr _, SDL_LogCategory category, SDL_LogPriority priority, byte* messagePtr)
+    private static void OnLog(SDL_LogCategory category, SDL_LogPriority priority, string? message)
     {
-        string? message = PtrToStringUTF8(messagePtr);
         Log.Info($"SDL: {message}");
     }
 }

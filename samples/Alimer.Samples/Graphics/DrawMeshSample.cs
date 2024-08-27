@@ -45,7 +45,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         MeshImporter meshImporter = new();
         MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), Services).Result;
 
-        Span<VertexPositionNormalTexture> vertices = new VertexPositionNormalTexture[meshAsset.Data.VertexCount];
+        Span<VertexPositionNormalTexture> vertices = stackalloc VertexPositionNormalTexture[meshAsset.Data!.VertexCount];
         for (int i = 0; i < meshAsset.Data.VertexCount; i++)
         {
             vertices[i] = new VertexPositionNormalTexture(meshAsset.Data.Positions[i], meshAsset.Data.Normals[i], meshAsset.Data.Texcoords[i]);
@@ -56,7 +56,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         //_indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertices, BufferUsage.Vertex));
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Data.Indices!.AsSpan(), BufferUsage.Index));
-        _indexCount = (uint)meshAsset.Data.Indices.Length;
+        _indexCount = (uint)meshAsset.Data!.Indices.Length;
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
 

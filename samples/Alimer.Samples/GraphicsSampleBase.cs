@@ -35,7 +35,7 @@ public abstract class GraphicsSampleBase : SampleBase
         return GraphicsDevice.CreateBuffer(dataSpan, usage, cpuAccess);
     }
 
-    protected Stream OpenEmbeddedAssetStream(string name) => typeof(GraphicsSampleBase).Assembly!.GetManifestResourceStream(name);
+    protected Stream OpenEmbeddedAssetStream(string name) => typeof(GraphicsSampleBase).Assembly!.GetManifestResourceStream(name)!;
     protected byte[] ReadEmbeddedAssetBytes(string name)
     {
         using Stream stream = OpenEmbeddedAssetStream(name);
