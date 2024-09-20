@@ -49,7 +49,7 @@ public readonly record struct DepthStencilState
     /// Initializes a new instance of the <see cref="DepthStencilState"/> struct. 
     /// </summary>
     /// <param name="depthWriteEnabled">Controls whether new depth values are written to the depth buffer.</param>
-    /// <param name="depthCompare">The <see cref="ComparisonKind"/> used when considering new depth values.</param>
+    /// <param name="depthCompare">The <see cref="CompareFunction"/> used when considering new depth values.</param>
     /// <param name="stencilFront">Controls how stencil tests are handled for pixels whose surface faces towards the camera.</param>
     /// <param name="stencilBack">Controls how stencil tests are handled for pixels whose surface faces away from the camera.</param>
     /// <param name="stencilReadMask">Controls the portion of the stencil buffer used for reading.</param>

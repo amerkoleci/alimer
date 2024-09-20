@@ -17,7 +17,7 @@ public class EditorApplication : GameApplication
     private readonly ImNodesContextPtr _nodesContext;
     private readonly ImPlotContextPtr _plotContext;
 
-    public EditorApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
+    public unsafe EditorApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
         : base(preferredGraphicsBackend)
     {
         _imGui = new ImGuiSystem(Services);

@@ -80,7 +80,7 @@ public abstract class Texture : GraphicsResource
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> mipLevel) : 0;
     }
 
-    // <summary>
+    /// <summary>
     /// Get a mip-level height.
     /// </summary>
     /// <param name="mipLevel"></param>
@@ -90,7 +90,7 @@ public abstract class Texture : GraphicsResource
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> mipLevel) : 0;
     }
 
-    // <summary>
+    /// <summary>
     /// Get a mip-level depth.
     /// </summary>
     /// <param name="mipLevel"></param>

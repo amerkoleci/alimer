@@ -159,6 +159,7 @@ internal unsafe readonly struct D3D12Features
     public D3D_ROOT_SIGNATURE_VERSION RootSignatureHighestVersion { get; }
     public D3D_SHADER_MODEL HighestShaderModel { get; }
     public D3D12_TILED_RESOURCES_TIER TiledResourcesTier => _options.TiledResourcesTier;
+    public D3D12_CONSERVATIVE_RASTERIZATION_TIER ConservativeRasterizationTier => _options.ConservativeRasterizationTier;
     public bool DepthBoundsTestSupported => _options2.DepthBoundsTestSupported;
     public bool Native16BitShaderOpsSupported => _options4.Native16BitShaderOpsSupported;
 

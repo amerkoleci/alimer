@@ -5,6 +5,7 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using System.Runtime.CompilerServices;
 using Vortice.Mathematics;
+using static Vortice.Vulkan.Vma;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -12,7 +13,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 {
     private readonly VulkanGraphicsDevice _device;
     private VkBuffer _handle = VkBuffer.Null;
-    private VmaAllocation? _allocation = default;
+    private VmaAllocation _allocation = default;
 
     public readonly void* pMappedData;
     private readonly ulong _mappedSize;
@@ -104,10 +105,11 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
         VmaAllocationCreateInfo memoryInfo = new()
         {
-            Flags = allocationCreateFlags,
-            Usage = VmaMemoryUsage.Auto,
+            flags = allocationCreateFlags,
+            usage = VmaMemoryUsage.Auto,
         };
-        VkResult result = _device.Allocator.CreateBuffer(createInfo, memoryInfo, out _handle, out _allocation);
+        VmaAllocationInfo allocationInfo;
+        VkResult result = vmaCreateBuffer(device.Allocator, in createInfo, in memoryInfo, out _handle, out _allocation, &allocationInfo);
 
         if (result != VkResult.Success)
         {
@@ -120,10 +122,10 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             OnLabelChanged(description.Label!);
         }
 
-        if ((memoryInfo.Flags & VmaAllocationCreateFlags.Mapped) != 0)
+        if ((memoryInfo.flags & VmaAllocationCreateFlags.Mapped) != 0)
         {
-            pMappedData = _allocation!.GetMappedData();
-            _mappedSize = _allocation.Size;
+            pMappedData = allocationInfo.pMappedData;
+            _mappedSize = allocationInfo.size;
         }
 
         if ((createInfo.usage & VkBufferUsageFlags.ShaderDeviceAddress) != 0)
@@ -290,9 +292,10 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        if (_allocation != null)
+        if (_allocation.IsNotNull)
         {
-            _device.Allocator.DestroyBuffer(_handle, _allocation);
+            vmaDestroyBuffer(_device.Allocator, _handle, _allocation);
+            _allocation = VmaAllocation.Null;
         }
         else
         {

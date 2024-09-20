@@ -28,7 +28,7 @@
 
   <!-- Assets-->
   <ItemGroup>
-    <Shader Include="Assets\Shaders\*.hlsl" />
+    <!--<Shader Include="Assets\Shaders\*.hlsl" />-->
   </ItemGroup>
   
   <ItemGroup>

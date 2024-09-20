@@ -11,7 +11,6 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="Vortice.Mathematics" />
-    <PackageReference Include="XenoAtom.Collections" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">

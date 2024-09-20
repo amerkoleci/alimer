@@ -58,7 +58,7 @@ public abstract class AppPlatform : DisposableObject
     }
 
     /// <summary>
-    /// The User Directory & a safe location to store save data or preferences
+    /// The User Directory safe location to store save data or preferences
     /// </summary>
     public virtual string UserDirectory(string applicationName) => DefaultUserDirectory(applicationName);
 

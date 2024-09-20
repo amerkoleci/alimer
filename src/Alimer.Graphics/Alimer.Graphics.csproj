@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
+    <WarningsAsErrors>true</WarningsAsErrors>
     <ExcludeWebGPU>true</ExcludeWebGPU>
     <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
@@ -47,10 +48,11 @@
     <PackageReference Include="Vortice.Mathematics" />
     <PackageReference Include="XenoAtom.Collections" />
 
-    <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="contentfiles;analyzers;build;compile" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="contentfiles;analyzers;build;compile" />
-    <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="contentfiles;analyzers;build;compile" />
-    <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" PrivateAssets="contentfiles;analyzers;build;compile" />
+    <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Vortice.VulkanMemoryAllocator" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" PrivateAssets="compile" />
 
   </ItemGroup>
 

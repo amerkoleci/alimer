@@ -77,7 +77,7 @@ public readonly record struct QueryHeapDescriptor
     /// </summary>
     public QueryPipelineStatisticFlags PipelineStatistics { get; init; } = QueryPipelineStatisticFlags.None;
 
-    // <summary>
+    /// <summary>
     /// Gets or sets the debug label for the query set.
     /// </summary>
     public string? Label { get; init; }

@@ -38,7 +38,7 @@ public readonly record struct BufferDescription
     /// </summary>
     public CpuAccessMode CpuAccess { get; init; } = CpuAccessMode.None;
 
-    // <summary>
+    /// <summary>
     /// Gets or sets the label of <see cref="Buffer"/>.
     /// </summary>
     public string? Label { get; init; }

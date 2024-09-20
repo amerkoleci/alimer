@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines a <see cref="SwapChainSurface"/> type.
+/// Defines a <see cref="ISwapChainSurface"/> type.
 /// </summary>
 public enum SwapChainSurfaceType
 {

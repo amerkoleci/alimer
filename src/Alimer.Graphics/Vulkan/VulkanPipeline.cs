@@ -129,22 +129,36 @@ internal unsafe class VulkanPipeline : Pipeline
         };
 
         // RasterizationState
-        VkPipelineRasterizationStateCreateInfo rasterizationState = new();
-        rasterizationState.depthClampEnable = description.RasterizerState.DepthClipMode == DepthClipMode.Clamp;
+        VkPipelineRasterizationStateCreateInfo rasterizationState = new()
+        {
+            depthClampEnable = description.RasterizerState.DepthClipMode == DepthClipMode.Clamp
+        };
 
         VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = new();
+        void** tail = &rasterizationState.pNext;
         if (device.DepthClipEnable)
         {
             rasterizationState.depthClampEnable = true;
             depthClipStateInfo.depthClipEnable = description.RasterizerState.DepthClipMode == DepthClipMode.Clip;
 
-            rasterizationState.pNext = &depthClipStateInfo;
+            *tail = &depthClipStateInfo;
+            tail = &depthClipStateInfo.pNext;
+        }
+
+        VkPipelineRasterizationConservativeStateCreateInfoEXT rasterizationConservativeState = new();
+        if (description.RasterizerState.ConservativeRaster)
+        {
+            rasterizationConservativeState.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
+            rasterizationConservativeState.extraPrimitiveOverestimationSize = 0.0f;
+
+            *tail = &rasterizationConservativeState;
+            tail = &rasterizationConservativeState.pNext;
         }
 
         rasterizationState.rasterizerDiscardEnable = false;
         rasterizationState.polygonMode = VkPolygonMode.Fill; // ToVk(features2, desc.rasterizerState.fillMode);
         rasterizationState.cullMode = description.RasterizerState.CullMode.ToVk();
-        rasterizationState.frontFace = description.RasterizerState.FrontFaceCounterClockwise ? VkFrontFace.CounterClockwise : VkFrontFace.Clockwise;
+        rasterizationState.frontFace = (description.RasterizerState.FrontFace == FrontFace.Clockwise) ? VkFrontFace.Clockwise : VkFrontFace.CounterClockwise;
         // Can be managed by command buffer
         //rasterizationState.depthBiasEnable = desc.rasterizerState.depthBias != 0.0f || desc.rasterizerState.slopeScaledDepthBias != 0.0f;
         //rasterizationState.depthBiasConstantFactor = desc.rasterizerState.depthBias;
@@ -153,8 +167,10 @@ internal unsafe class VulkanPipeline : Pipeline
         rasterizationState.lineWidth = 1.0f;
 
         // MultisampleState
-        VkPipelineMultisampleStateCreateInfo multisampleState = new();
-        multisampleState.rasterizationSamples = description.SampleCount.ToVk();
+        VkPipelineMultisampleStateCreateInfo multisampleState = new()
+        {
+            rasterizationSamples = description.SampleCount.ToVk()
+        };
 
         Debug.Assert((int)multisampleState.rasterizationSamples <= 32);
         if (multisampleState.rasterizationSamples > VkSampleCountFlags.Count1)

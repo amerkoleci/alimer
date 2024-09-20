@@ -12,28 +12,28 @@ namespace Alimer;
 public static class Log
 {
     private static readonly StringBuilder s_log = new();
-    private static readonly LogAttribute[] s_logAttributes = new LogAttribute[]
-    {
+    private static readonly LogAttribute[] s_logAttributes =
+    [
+        new("TRACE ", LogColor.White),
+        new("DEBUG ", LogColor.Cyan),
+        new("INFO  ", LogColor.Green),
+        new("WARN  ", LogColor.Yellow),
+        new("ERROR ", LogColor.Red),
+        new("FATAL ", LogColor.Magenta),
         new("SYSTEM", LogColor.Cyan),
         new("ASSERT", LogColor.Magenta),
-        new("ERROR ", LogColor.Red),
-        new("WARN  ", LogColor.Yellow),
-        new("INFO  ", LogColor.Green),
-        new("DEBUG ", LogColor.Cyan),
-        new("TRACE ", LogColor.White)
-    };
+    ];
     private static readonly bool s_colorEnabled;
 
 #if DEBUG
-    public static LogLevel Verbosity { get; set; } = LogLevel.Trace;
+    public static LogLevel Level { get; set; } = LogLevel.Debug;
 #else
-    public static LogLevel Verbosity { get; set; } = LogLevel.Info;
+    public static LogLevel Level { get; set; } = LogLevel.Info;
 #endif
     public static bool PrintToConsole { get; set; } = true;
 
     static Log()
     {
-#if !WINDOWS_UWP
         if (OperatingSystem.IsWindows())
         {
             nint stdOut = Kernel32.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
@@ -42,12 +42,11 @@ public static class Log
                            Kernel32.SetConsoleMode(stdOut, outConsoleMode | Kernel32.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
         }
         else
-#endif
         {
             s_colorEnabled = false;
         }
 
-        Log.System($"Logging Enabled ({Enum.GetName(typeof(LogLevel), Verbosity)})");
+        Info($"Logging Enabled ({Level})");
     }
 
     private static void LogInternalIf(
@@ -65,10 +64,8 @@ public static class Log
 
     private static void LogInternal(LogLevel logLevel, string message)
     {
-        if (Verbosity < logLevel)
-        {
+        if (logLevel < Level)
             return;
-        }
 
         LogAttribute logAttribute = s_logAttributes[(int)logLevel];
 
@@ -90,10 +87,8 @@ public static class Log
 
     private static void LogInternal(LogLevel logLevel, string message, string callerFilePath, int callerLineNumber)
     {
-        if (Verbosity < logLevel)
-        {
+        if (logLevel < Level)
             return;
-        }
 
         LogAttribute logAttribute = s_logAttributes[(int)logLevel];
         string callSite = $"{Path.GetFileName(callerFilePath)}:{callerLineNumber}";
@@ -248,14 +243,6 @@ public static class Log
         }
     }
 
-    public static void System(
-        string message,
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
-    {
-        LogInternal(LogLevel.System, message, callerFilePath, callerLineNumber);
-    }
-
     public static void WriteToFile(string file)
     {
         string? directory = Path.GetDirectoryName(file);
@@ -275,7 +262,6 @@ public static class Log
         Warn,
         Error,
         Critical,
-        System,
         Assert,
     }
 
@@ -302,7 +288,6 @@ public static class Log
     private record struct LogAttribute(string Name, string Color);
 }
 
-#if !WINDOWS_UWP
 internal partial class Kernel32
 {
     private const string LibraryName = "kernel32.dll";
@@ -312,9 +297,7 @@ internal partial class Kernel32
     internal const int STD_OUTPUT_HANDLE = -11;
 
     [LibraryImport(LibraryName)]
-#if !NO_SUPPRESS_GC_TRANSITION
     [SuppressGCTransition]
-#endif
     internal static partial nint GetStdHandle(int nStdHandle);
 
     [LibraryImport(LibraryName, SetLastError = true)]
@@ -325,4 +308,3 @@ internal partial class Kernel32
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool SetConsoleMode(nint handle, uint mode);
 }
-#endif

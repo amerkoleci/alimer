@@ -192,7 +192,7 @@ public record struct TextureDescriptor
     /// </summary>
     public ResourceStates InitialLayout { get; set; } = ResourceStates.ShaderResource;
 
-    // <summary>
+    /// <summary>
     /// Gets or sets the label of <see cref="Texture"/>.
     /// </summary>
     public string? Label { get; init; }

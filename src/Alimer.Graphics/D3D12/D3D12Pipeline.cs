@@ -12,6 +12,7 @@ using static TerraFX.Interop.DirectX.D3D12_INDEX_BUFFER_STRIP_CUT_VALUE;
 using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
 using static TerraFX.Interop.DirectX.D3D12_PRIMITIVE_TOPOLOGY_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_MODE;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
 using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
@@ -74,7 +75,7 @@ internal unsafe class D3D12Pipeline : Pipeline
         D3D12_RASTERIZER_DESC rasterizerState = D3D12_RASTERIZER_DESC.DEFAULT;
         rasterizerState.FillMode = description.RasterizerState.FillMode.ToD3D12();
         rasterizerState.CullMode = description.RasterizerState.CullMode.ToD3D12();
-        rasterizerState.FrontCounterClockwise = description.RasterizerState.FrontFaceCounterClockwise ? TRUE : FALSE;
+        rasterizerState.FrontCounterClockwise = (description.RasterizerState.FrontFace == FrontFace.CounterClockwise) ? TRUE : FALSE;
         //rasterizerState.DepthBias = static_cast<INT>(desc.rasterizerState.depthBias);
         //rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
         //rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
@@ -83,6 +84,11 @@ internal unsafe class D3D12Pipeline : Pipeline
         rasterizerState.AntialiasedLineEnable = FALSE;
         rasterizerState.ForcedSampleCount = 0;
         rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+        if (description.RasterizerState.ConservativeRaster &&
+            device.D3D12Features.ConservativeRasterizationTier != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED)
+        {
+            rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
+        }
         stream.stream1.RasterizerState = rasterizerState;
 
         stream.stream1.DepthStencilState = D3D12_DEPTH_STENCIL_DESC1.DEFAULT;

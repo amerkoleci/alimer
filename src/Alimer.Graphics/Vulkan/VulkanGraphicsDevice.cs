@@ -9,9 +9,7 @@ using static Alimer.Graphics.Vulkan.VulkanUtils;
 using CommunityToolkit.Diagnostics;
 using XenoAtom.Collections;
 using Alimer.Utilities;
-#if VMA
 using static Vortice.Vulkan.Vma;
-#endif
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -43,17 +41,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkPipelineCache _pipelineCache = VkPipelineCache.Null;
 
     private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)QueueType.Count];
-#if VMA
     private readonly VmaAllocator _allocator;
-    private readonly VmaAllocation _nullBufferAllocation = default;
-    private readonly VmaAllocation _nullImageAllocation1D = default;
-    private readonly VmaAllocation _nullImageAllocation2D = default;
-    private readonly VmaAllocation _nullImageAllocation3D = default;
-#endif
+    private readonly VmaAllocation _nullBufferAllocation = VmaAllocation.Null;
+    private readonly VmaAllocation _nullImageAllocation1D = VmaAllocation.Null;
+    private readonly VmaAllocation _nullImageAllocation2D = VmaAllocation.Null;
+    private readonly VmaAllocation _nullImageAllocation3D = VmaAllocation.Null;
 
     private readonly GraphicsAdapterProperties _adapterProperties;
     private readonly GraphicsDeviceLimits _limits;
-    private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = new();
+    private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = [];
 
     private readonly VkBuffer _nullBuffer = default;
     private readonly VkBufferView _nullBufferView = default;
@@ -676,6 +672,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                         }
                     }
 
+#if TODO_BETA
                     if (physicalDeviceExtensions.Video.EncodeQueue)
                     {
                         enabledDeviceExtensions.Add(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
@@ -689,7 +686,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                         {
                             enabledDeviceExtensions.Add(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME);
                         }
-                    }
+                    } 
+#endif
                 }
 
                 vkGetPhysicalDeviceFeatures2(candidatePhysicalDevice, &features2);
@@ -994,14 +992,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 AdapterType = adapterType,
             };
         }
-        VmaAllocatorCreateFlags allocatorFlags = VmaAllocatorCreateFlags.None;
 
         // Core in 1.1
-        //allocatorFlags |= VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
+        VmaAllocatorCreateFlags allocatorFlags =
+            VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
 
         if (PhysicalDeviceExtensions.MemoryBudget)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.ExtMemoryBudget;
+            allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryBudget;
         }
 
         if (PhysicalDeviceExtensions.AMD_DeviceCoherentMemory)
@@ -1016,30 +1014,31 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         if (PhysicalDeviceExtensions.MemoryPriority)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.ExtMemoryPriority;
+            allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryPriority;
         }
 
         if (PhysicalDeviceProperties.properties.apiVersion < VkVersion.Version_1_3)
         {
             if (maintenance4Features.maintenance4)
             {
-                allocatorFlags |= VmaAllocatorCreateFlags.KhrMaintenance4;
+                allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance4;
             }
         }
 
         if (PhysicalDeviceExtensions.Maintenance5)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.KhrMaintenance5;
+            allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance5;
         }
 
         VmaAllocatorCreateInfo allocatorCreateInfo = new()
         {
-            Flags = allocatorFlags,
-            VulkanApiVersion = VkVersion.Version_1_3,
-            PhysicalDevice = PhysicalDevice,
-            Device = _handle,
+            physicalDevice = PhysicalDevice,
+            device = _handle,
+            instance = _instance,
+            vulkanApiVersion = VkVersion.Version_1_3,
+            flags = allocatorFlags,
         };
-        Allocator = new VmaAllocator(in allocatorCreateInfo);
+        vmaCreateAllocator(&allocatorCreateInfo, out _allocator).CheckResult();
 
         // Queues
         for (int i = 0; i < (int)QueueType.Count; i++)
@@ -1050,46 +1049,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
-#if VMA
-        // Memory Allocator
-        {
-            VmaAllocatorCreateInfo allocatorCreateInfo;
-            allocatorCreateInfo.vulkanApiVersion = VkVersion.Version_1_3;
-            allocatorCreateInfo.physicalDevice = PhysicalDevice;
-            allocatorCreateInfo.device = Handle;
-            allocatorCreateInfo.instance = Instance;
-
-            // Core in 1.1
-            allocatorCreateInfo.flags = VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
-
-            if (PhysicalDeviceExtensions.MemoryBudget)
-            {
-                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.EXTMemoryBudget;
-            }
-
-            if (PhysicalDeviceExtensions.AMD_DeviceCoherentMemory)
-            {
-                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.AMDDeviceCoherentMemory;
-            }
-
-            if (PhysicalDeviceFeatures1_2.bufferDeviceAddress)
-            {
-                allocatorCreateInfo.flags = VmaAllocatorCreateFlags.BufferDeviceAddress;
-            }
-
-            if (PhysicalDeviceExtensions.MemoryPriority)
-            {
-                allocatorCreateInfo.flags |= VmaAllocatorCreateFlags.EXTMemoryPriority;
-            }
-
-            vmaCreateAllocator(&allocatorCreateInfo, out _allocator).CheckResult();
-        }
-#endif
-
         _copyAllocator = new(this);
 
         // Create default null descriptors
-#if VMA
         {
             VkBufferCreateInfo bufferInfo = new()
             {
@@ -1102,7 +1064,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 preferredFlags = VkMemoryPropertyFlags.DeviceLocal
             };
-            vmaCreateBuffer(_allocator, &bufferInfo, &allocInfo, out _nullBuffer, out _nullBufferAllocation).CheckResult();
+            vmaCreateBuffer(_allocator, in bufferInfo, in allocInfo, out _nullBuffer, out _nullBufferAllocation).CheckResult();
 
             VkBufferViewCreateInfo viewInfo = new()
             {
@@ -1128,17 +1090,17 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             allocInfo.usage = VmaMemoryUsage.GpuOnly;
 
             imageInfo.imageType = VkImageType.Image1D;
-            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage1D, out _nullImageAllocation1D).CheckResult();
+            vmaCreateImage(_allocator, in imageInfo, in allocInfo, out _nullImage1D, out _nullImageAllocation1D).CheckResult();
 
             imageInfo.imageType = VkImageType.Image2D;
             imageInfo.flags = VkImageCreateFlags.CubeCompatible;
             imageInfo.arrayLayers = 6;
-            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage2D, out _nullImageAllocation2D).CheckResult();
+            vmaCreateImage(_allocator, in imageInfo, in allocInfo, out _nullImage2D, out _nullImageAllocation2D).CheckResult();
 
             imageInfo.imageType = VkImageType.Image3D;
             imageInfo.flags = 0;
             imageInfo.arrayLayers = 1;
-            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage3D, out _nullImageAllocation3D).CheckResult();
+            vmaCreateImage(_allocator, in imageInfo, in allocInfo, out _nullImage3D, out _nullImageAllocation3D).CheckResult();
 
             // Transitions:
             {
@@ -1258,9 +1220,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
-#else
-        _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
-#endif
 
         SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
         SupportsD32S8 = IsDepthStencilFormatSupported(VkFormat.D32SfloatS8Uint);
@@ -1371,7 +1330,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)QueueType.VideoDecode];
     public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)QueueType.VideoEncode];
 
-    public VmaAllocator Allocator { get; }
+    public VmaAllocator Allocator => _allocator;
 
     public VkPipelineCache PipelineCache => _pipelineCache;
 
@@ -1410,7 +1369,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
             _samplerCache.Clear();
 
-#if VMA
             // Destroy null descriptor
             vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
             vkDestroyBufferView(_handle, _nullBufferView);
@@ -1424,21 +1382,21 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             vkDestroyImageView(_handle, _nullImageViewCube);
             vkDestroyImageView(_handle, _nullImageViewCubeArray);
             vkDestroyImageView(_handle, _nullImageView3D);
-#endif
 
             _frameCount = ulong.MaxValue;
             ProcessDeletionQueue();
             _frameCount = 0;
             _frameIndex = 0;
 
-            VmaTotalStatistics stats = Allocator.CalculateStatistics();
+            VmaTotalStatistics stats;
+            vmaCalculateStatistics(_allocator, &stats);
 
-            if (stats.Total.Statistics.AllocationBytes > 0)
+            if (stats.total.statistics.allocationBytes > 0)
             {
-                Log.Warn($"Total device memory leaked:  {stats.Total.Statistics.AllocationBytes} bytes.");
+                Log.Warn($"Total device memory leaked:  {stats.total.statistics.allocationBytes} bytes.");
             }
 
-            Allocator.Dispose();
+            vmaDestroyAllocator(_allocator);
 
             if (_pipelineCache.IsNotNull)
             {

@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.Vulkan;
+using static Vortice.Vulkan.Vma;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -13,7 +14,8 @@ internal unsafe class VulkanTexture : Texture
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly Dictionary<int, VkImageView> _views = [];
-    private VmaAllocation? _allocation = default;
+    private VkImage _handle = VkImage.Null;
+    private VmaAllocation _allocation;
 
     public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
         : base(descriptor)
@@ -98,8 +100,8 @@ internal unsafe class VulkanTexture : Texture
             usage |= VkImageUsageFlags.InputAttachment;
         }
 
-        bool isShared = false;
 #if TODO_SHARED
+        bool isShared = false;
         VkExternalMemoryImageCreateInfo externalInfo = new();
         if ((description.Usage & TextureUsage.Shared) != 0)
         {
@@ -174,17 +176,15 @@ internal unsafe class VulkanTexture : Texture
 
         VmaAllocationCreateInfo memoryInfo = new()
         {
-            Usage = VmaMemoryUsage.Auto,
+            usage = VmaMemoryUsage.Auto,
         };
-
-        VkResult result = _device.Allocator.CreateImage(imageInfo, memoryInfo, out VkImage handle, out _allocation);
+        VmaAllocationInfo allocationInfo;
+        VkResult result = vmaCreateImage(_device.Allocator, in imageInfo, in memoryInfo, out _handle, out _allocation, &allocationInfo);
         if (result != VkResult.Success)
         {
             Log.Error("Vulkan: Failed to create image.");
             return;
         }
-
-        Handle = handle;
 
         if (!string.IsNullOrEmpty(descriptor.Label))
         {
@@ -209,7 +209,7 @@ internal unsafe class VulkanTexture : Texture
             }
             else
             {
-                context = _device.Allocate(_allocation!.Size);
+                context = _device.Allocate(allocationInfo.size);
                 mappedData = context.UploadBuffer.pMappedData;
             }
 
@@ -440,7 +440,7 @@ internal unsafe class VulkanTexture : Texture
         : base(descriptor)
     {
         _device = device;
-        Handle = existingTexture;
+        _handle = existingTexture;
         VkFormat = device.ToVkFormat(descriptor.Format);
 
         if (!string.IsNullOrEmpty(descriptor.Label))
@@ -451,7 +451,7 @@ internal unsafe class VulkanTexture : Texture
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
-    public VkImage Handle { get; }
+    public VkImage Handle => _handle;
     public VkFormat VkFormat { get; }
     public ResourceStates CurrentState { get; set; }
 
@@ -469,10 +469,13 @@ internal unsafe class VulkanTexture : Texture
         }
         _views.Clear();
 
-        if (_allocation != null)
+        if (_allocation.IsNotNull)
         {
-            _device.Allocator.DestroyImage(Handle, _allocation);
+            vmaDestroyImage(_device.Allocator, _handle, _allocation);
+            _allocation = VmaAllocation.Null;
         }
+
+        _handle = VkImage.Null;
     }
 
     /// <inheritdoc />

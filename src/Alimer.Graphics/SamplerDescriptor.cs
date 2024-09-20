@@ -39,7 +39,7 @@ public record struct SamplerDescriptor
     /// <param name="addressModeW">Method to use for resolving a w texture coordinate that is outside the 0 to 1 range.</param>
     /// <param name="maxAnisotropy">The number of samples that can be taken to improve the quality of sample footprints that are anisotropic. Valid values are between 1 and 16.</param>
     /// <param name="compareFunction">A function that compares sampled data against existing sampled data. </param>
-    /// <param name="borderColor">Border color to use if <see cref="TextureAddressMode.Border"/> is specified for AddressU, AddressV, or AddressW.</param>
+    /// <param name="borderColor">Border color to use if <see cref="SamplerAddressMode.ClampToBorder"/> is specified for AddressU, AddressV, or AddressW.</param>
     /// <param name="lodMinClamp">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
     /// <param name="lodMaxClamp">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This value must be greater than or equal to MinLOD. </param>
     public SamplerDescriptor(

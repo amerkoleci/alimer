@@ -27,7 +27,7 @@ public record struct GraphicsDeviceDescription
     /// </summary>
     public GpuPowerPreference PowerPreference { get; set; } = GpuPowerPreference.Undefined;
 
-    // <summary>
+    /// <summary>
     /// Gets or sets the label of <see cref="GraphicsDevice"/>.
     /// </summary>
     public string? Label { get; set; } = default;

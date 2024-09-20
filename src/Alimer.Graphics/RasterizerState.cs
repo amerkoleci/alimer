@@ -16,6 +16,13 @@ public enum CullMode
     None,
 }
 
+public enum FrontFace
+{
+    Clockwise,
+    CounterClockwise,
+}
+
+
 public enum DepthClipMode
 {
     Clip,
@@ -26,36 +33,39 @@ public readonly record struct RasterizerState
 {
     public FillMode FillMode { get; init; }
     public CullMode CullMode { get; init; }
-    public bool FrontFaceCounterClockwise { get; init; }
+    public FrontFace FrontFace { get; init; }
     public DepthClipMode DepthClipMode { get; init; }
+    public bool ConservativeRaster { get; init; }
 
     public RasterizerState()
     {
         FillMode = FillMode.Solid;
         CullMode = CullMode.Back;
-        FrontFaceCounterClockwise = false;
+        FrontFace = FrontFace.Clockwise;
+        DepthClipMode = DepthClipMode.Clip;
+        ConservativeRaster = false;
     }
 
-    public static readonly RasterizerState CullNone = new()
+    public static RasterizerState CullNone => new()
     {
         FillMode = FillMode.Solid,
         CullMode = CullMode.None,
-        FrontFaceCounterClockwise = false,
+        FrontFace = FrontFace.Clockwise,
     };
 
-    public static readonly RasterizerState CullFront = new()
+    public static RasterizerState CullFront => new()
     {
         FillMode = FillMode.Solid,
         CullMode = CullMode.Front,
-        FrontFaceCounterClockwise = false,
+        FrontFace = FrontFace.Clockwise,
     };
 
-    public static readonly RasterizerState CullBack = new()
+    public static RasterizerState CullBack => new()
     {
         FillMode = FillMode.Solid,
         CullMode = CullMode.Back,
-        FrontFaceCounterClockwise = false,
+        FrontFace = FrontFace.Clockwise,
     };
 
-    public static readonly RasterizerState Default = CullBack;
+    public static RasterizerState Default => CullBack;
 }

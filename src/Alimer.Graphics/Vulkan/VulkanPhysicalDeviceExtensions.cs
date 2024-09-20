@@ -31,6 +31,7 @@ internal struct VulkanPhysicalDeviceExtensions
     // Extensions
     public bool Swapchain;
     public bool DepthClipEnable;
+    public bool ConservativeRasterization;
     public bool MemoryBudget;
     public bool AMD_DeviceCoherentMemory;
     public bool MemoryPriority;
@@ -108,6 +109,10 @@ internal struct VulkanPhysicalDeviceExtensions
             {
                 extensions.DepthClipEnable = true;
             }
+            else if (extensionName == VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME)
+            {
+                extensions.ConservativeRasterization = true;
+            }
             else if (extensionName == VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)
             {
                 extensions.MemoryBudget = true;
@@ -184,7 +189,6 @@ internal struct VulkanPhysicalDeviceExtensions
             {
                 extensions.Maintenance5 = true;
             }
-#if TODO_VIDEO_ENCODE
             else if (extensionName == VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME)
             {
                 extensions.Video.EncodeQueue = true;
@@ -197,7 +201,6 @@ internal struct VulkanPhysicalDeviceExtensions
             {
                 extensions.Video.EncodeH265 = true;
             } 
-#endif
 
             if (OperatingSystem.IsWindows())
             {

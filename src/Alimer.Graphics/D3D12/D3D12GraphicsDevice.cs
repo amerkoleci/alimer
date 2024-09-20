@@ -33,6 +33,7 @@ using static TerraFX.Interop.DirectX.DXGI_FEATURE;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
 using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
@@ -687,6 +688,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 }
 
                 return (_features.MaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
+
+            case Feature.ConservativeRasterization:
+                return _features.ConservativeRasterizationTier != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED;
 
             case Feature.CacheCoherentUMA:
                 return _features.CacheCoherentUMA();

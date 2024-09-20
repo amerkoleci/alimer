@@ -33,7 +33,7 @@ internal unsafe class SDLPlatform : AppPlatform
             SDL_VERSIONNUM_MICRO(version));
 
         // Init SDL3
-        if (SDL_Init(SDL_InitFlags.Video | SDL_InitFlags.Timer | SDL_InitFlags.Gamepad) != 0)
+        if (!SDL_Init(SDL_InitFlags.Video | SDL_InitFlags.Timer | SDL_InitFlags.Gamepad))
         {
             Log.Error($"Unable to initialize SDL: {SDL_GetError()}");
             throw new Exception("");
