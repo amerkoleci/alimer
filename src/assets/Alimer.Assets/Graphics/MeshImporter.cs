@@ -110,6 +110,9 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
             }
         }
 
+        Span<uint> optimized = stackalloc uint[indices.Length];
+        VertexHelper.OptimizeVertexCache(optimized, indices, (uint)positions.Count);
+
         MeshAsset asset = new()
         {
             Source = source,
@@ -120,7 +123,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
                 Normals = normals.ToArray(),
                 Tangents = tangents.ToArray(),
                 Texcoords = texCoords0.ToArray(),
-                Indices = indices
+                Indices = optimized.ToArray()
             }
         };
 

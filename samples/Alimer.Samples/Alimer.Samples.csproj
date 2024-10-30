@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!--<TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>-->
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <RootNamespace>Alimer.Samples</RootNamespace>
@@ -13,10 +13,9 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <InvariantGlobalization>true</InvariantGlobalization>
     <OptimizationPreference>Speed</OptimizationPreference>
+    <StackTraceSupport>false</StackTraceSupport>
     <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
     <IlcDisableReflection>false</IlcDisableReflection>
-    <!--<DebuggerSupport>false</DebuggerSupport>
-    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>-->
   </PropertyGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />

@@ -14,8 +14,8 @@ namespace Alimer.Engine;
 [DefaultEntitySystem(typeof(TransformSystem))]
 public sealed class TransformComponent : EntityComponent, IEnumerable<TransformComponent>, INotifyPropertyChanged
 {
-    private Matrix4x4 localMatrix = Matrix4x4.Identity;
-    private Matrix4x4 worldMatrix = Matrix4x4.Identity;
+    private Matrix4x4 _localMatrix = Matrix4x4.Identity;
+    private Matrix4x4 _worldMatrix = Matrix4x4.Identity;
 
     private Vector3 _position;
     private Quaternion _rotation = Quaternion.Identity;
@@ -53,11 +53,11 @@ public sealed class TransformComponent : EntityComponent, IEnumerable<TransformC
 
     [IgnoreDataMember]
     [JsonIgnore]
-    public ref Matrix4x4 LocalMatrix => ref localMatrix;
+    public ref Matrix4x4 LocalMatrix => ref _localMatrix;
 
     [IgnoreDataMember]
     [JsonIgnore]
-    public ref Matrix4x4 WorldMatrix => ref worldMatrix;
+    public ref Matrix4x4 WorldMatrix => ref _worldMatrix;
 
     [JsonPropertyOrder(10)]
     public Vector3 Position { get => _position; set => Set(ref _position, value); }
@@ -81,7 +81,7 @@ public sealed class TransformComponent : EntityComponent, IEnumerable<TransformC
 
     public void UpdateLocalMatrix()
     {
-        LocalMatrix = Matrix4x4.CreateScale(Scale)
+        _localMatrix = Matrix4x4.CreateScale(Scale)
             * Matrix4x4.CreateFromQuaternion(Rotation)
             * Matrix4x4.CreateTranslation(Position);
     }

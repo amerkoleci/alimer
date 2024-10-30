@@ -7,10 +7,15 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
+      - .github/workflows/build_native.yml
+      - 'src/native/**'
   pull_request:
     paths-ignore:
       - 'docs/**'
       - '*.md'
+      - .github/workflows/build_native.yml
+      - 'src/native/**'
+
 jobs:
   build:
     runs-on: windows-latest
@@ -19,20 +24,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup .NET 8 SDK
+    - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
         global-json-file: ./global.json
 
     - name: Build/Pack
       run: dotnet pack Alimer.sln --configuration Release -p:Packing=true
-
-    - name: Publish to NuGet
-      if: github.event_name == 'push'
-      run: |      
-          if ( "${{github.ref}}" -match "^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$" ) {
-              dotnet nuget push artifacts/package/release/*.nupkg -k ${{secrets.NUGET_TOKEN}} --skip-duplicate --source https://api.nuget.org/v3/index.json
-          } else {
-              echo "publish is only enabled by tagging with a release tag"
-          }
-      working-directory: .

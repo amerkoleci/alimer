@@ -113,12 +113,12 @@ public abstract class Texture : GraphicsResource
 
     public static Texture FromStream(GraphicsDevice device, Stream stream, int channels = 4, bool srgb = true)
     {
-        byte[] data = new byte[stream.Length];
-        stream.Read(data, 0, (int)stream.Length);
+        Span<byte> data = stackalloc byte[(int)stream.Length];
+        stream.ReadExactly(data);
         return FromMemory(device, data, channels, srgb);
     }
 
-    public static Texture FromMemory(GraphicsDevice device, byte[] data, int channels = 4, bool srgb = true)
+    public static Texture FromMemory(GraphicsDevice device, Span<byte> data, int channels = 4, bool srgb = true)
     {
         using Image image = Image.FromMemory(data, channels, srgb);
         return device.CreateTexture2D(image.Data, image.Format, (uint)image.Width, (uint)image.Height);

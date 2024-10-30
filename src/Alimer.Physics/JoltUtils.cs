@@ -10,7 +10,6 @@ namespace Alimer.Physics;
 
 public static class JoltUtils
 {
-
     public static JoltMotionType ToJolt(this MotionType value)
     {
         return value switch

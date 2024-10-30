@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,11 +11,13 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
-    
+
+    <PackageReference Include="System.Text.Json" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.HarfBuzz" />
     <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="Silk.NET.Assimp" />
+    <PackageReference Include="Alimer.Bindings.MeshOptimizer" />
   </ItemGroup>
   
 

@@ -5,6 +5,7 @@ using Vortice.Mathematics;
 using Alimer.Graphics;
 using System.Runtime.InteropServices;
 using static SDL3.SDL3;
+using static SDL3.SDL_EventType;
 using SDL3;
 
 namespace Alimer;
@@ -51,7 +52,7 @@ internal unsafe class SDLWindow : Window
         }
 
         Id = SDL_GetWindowID(SDLWindowHandle);
-        SDL_SetWindowPosition(SDLWindowHandle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowPosition(SDLWindowHandle, (int)SDL_WINDOWPOS_CENTERED, (int)SDL_WINDOWPOS_CENTERED);
         SDL_GetWindowSizeInPixels(SDLWindowHandle, out int width, out int height);
         _clientSize = new(width, height);
 

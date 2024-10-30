@@ -6,6 +6,7 @@ using static SDL3.SDL3;
 using SDL3;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using static SDL3.SDL_EventAction;
 
 namespace Alimer;
 
@@ -23,7 +24,7 @@ internal unsafe class SDLPlatform : AppPlatform
     {
         //SDL_LogSetPriority(SDL_LogCategory.Error, SDL_LogPriority.Debug);
         //SDL_LogSetPriority(SDL_LogCategory.SDL_LOG_CATEGORY_ERROR, SDL_LogPriority.SDL_LOG_PRIORITY_DEBUG);
-        SDL_SetLogOutputFunction(OnLog);
+        SDL_SetLogOutputFunction(&OnLog, 0);
 
         int version = SDL_GetVersion();
         string? revision = SDL_GetRevision();
@@ -33,7 +34,7 @@ internal unsafe class SDLPlatform : AppPlatform
             SDL_VERSIONNUM_MICRO(version));
 
         // Init SDL3
-        if (!SDL_Init(SDL_InitFlags.Video | SDL_InitFlags.Timer | SDL_InitFlags.Gamepad))
+        if (!SDL_Init((SDL_InitFlags)(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)))
         {
             Log.Error($"Unable to initialize SDL: {SDL_GetError()}");
             throw new Exception("");
@@ -103,7 +104,7 @@ internal unsafe class SDLPlatform : AppPlatform
 
         do
         {
-            eventsRead = SDL_PeepEvents(_events, SDL_EventAction.GetEvent, SDL_EventType.First, SDL_EventType.Last);
+            eventsRead = SDL_PeepEvents(_events, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST);
             for (int i = 0; i < eventsRead; i++)
             {
                 HandleSDLEvent(_events[i]);
@@ -153,8 +154,10 @@ internal unsafe class SDLPlatform : AppPlatform
         _idLookup.Remove(windowID);
     }
 
-    private static void OnLog(SDL_LogCategory category, SDL_LogPriority priority, string? message)
+    [UnmanagedCallersOnly]
+    private static void OnLog(nint userdata, int category, SDL_LogPriority priority, byte* messagePtr)
     {
+        string message = ConvertToManaged(messagePtr)!;
         Log.Info($"SDL: {message}");
     }
 }

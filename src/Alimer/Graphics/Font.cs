@@ -49,7 +49,7 @@ public sealed unsafe class Font : DisposableObject
     public static Font FromStream(Stream stream, bool srgb = true)
     {
         byte[] data = new byte[stream.Length];
-        stream.Read(data, 0, (int)stream.Length);
+        stream.ReadExactly(data, 0, (int)stream.Length);
         return FromMemory(data, srgb);
     }
 
@@ -70,7 +70,7 @@ public sealed unsafe class Font : DisposableObject
 	/// </summary>
 	public int GetGlyphIndex(int codepoint)
     {
-        if (!_codepointToGlyphLookup.TryGetValue(codepoint, out var glyphIndex))
+        if (!_codepointToGlyphLookup.TryGetValue(codepoint, out int glyphIndex))
         {
             _codepointToGlyphLookup[codepoint] = glyphIndex = Alimer_FontGetGlyphIndex(_handle, codepoint);
         }

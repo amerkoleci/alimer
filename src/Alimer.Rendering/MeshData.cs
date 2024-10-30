@@ -6,7 +6,7 @@ using Vortice.Mathematics;
 
 namespace Alimer.Rendering;
 
-public struct MeshData 
+public struct MeshData
 {
     public MeshData()
     {
@@ -15,7 +15,7 @@ public struct MeshData
     /// <summary>
     /// Gets or sets number of vertices in the vertex buffers.
     /// </summary>
-    public int VertexCount { get; set; }
+    public required int VertexCount { get; set; }
 
     public required Vector3[] Positions { get; set; }
     public Vector3[]? Normals { get; set; }
@@ -23,5 +23,5 @@ public struct MeshData
     public Vector2[]? Texcoords { get; set; }
     public Vector2[]? Texcoords2 { get; set; }
     public Color4[]? Colors { get; set; }
-    public uint[]? Indices { get; set; }
+    public required uint[] Indices { get; set; }
 }

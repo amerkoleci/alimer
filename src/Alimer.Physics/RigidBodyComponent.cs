@@ -2,6 +2,8 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Alimer.Engine;
 using JoltPhysicsSharp;
 
@@ -58,12 +60,42 @@ public class RigidBodyComponent : PhysicsComponent
             _mass = value;
 
             // TODO: Update Jolt mass?
-            if(Handle.IsNotNull)
+            if (Handle.IsNotNull)
             {
             }
         }
     }
 
+    /// <summary>
+    /// Gets or sets the linear velocity.
+    /// </summary>
+    /// <value>
+    /// The linear velocity.
+    /// </value>
+    [IgnoreDataMember]
+    [JsonIgnore]
+    public Vector3 LinearVelocity
+    {
+        get
+        {
+            if (!IsValid)
+                return Vector3.Zero;
+
+            return Simulation!.BodyInterfaceNoLock.GetLinearVelocity(BodyID);
+        }
+        set
+        {
+            if (!IsValid)
+                return;
+
+            //Handle.SetLinearVelocity(value);
+            Simulation!.BodyInterfaceNoLock.SetLinearVelocity(BodyID, value);
+        }
+    }
+
+
+    [IgnoreDataMember]
+    [JsonIgnore]
     public override Matrix4x4 PhysicsWorldTransform
     {
         get
@@ -84,6 +116,7 @@ public class RigidBodyComponent : PhysicsComponent
 
     internal Body Handle;
     internal BodyID BodyID { get; private set; }
+    internal bool IsValid => BodyID.IsValid;
 
     protected override void OnAttach()
     {

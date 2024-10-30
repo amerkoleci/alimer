@@ -18,6 +18,8 @@ public sealed class PhysicsSimulation : DisposableObject
 
     public PhysicsSimulation()
     {
+        JobSystem = new JobSystemThreadPool();
+
         // TODO: Add Layers/LayerMask
         // We use only 2 layers: one for non-moving objects and one for moving objects
         ObjectLayerPairFilterTable objectLayerPairFilterTable = new(2);
@@ -56,6 +58,7 @@ public sealed class PhysicsSimulation : DisposableObject
         InternalSimulation.OnBodyDeactivated += OnBodyDeactivated;
     }
 
+    internal JobSystem JobSystem { get; }
     internal JoltPhysicsSystem InternalSimulation { get; }
     internal BodyInterface BodyInterface => InternalSimulation.BodyInterface;
     internal BodyInterface BodyInterfaceNoLock => InternalSimulation.BodyInterfaceNoLock;
@@ -65,6 +68,7 @@ public sealed class PhysicsSimulation : DisposableObject
         if (disposing)
         {
             InternalSimulation.Dispose();
+            JobSystem.Dispose();
         }
     }
 
@@ -81,7 +85,7 @@ public sealed class PhysicsSimulation : DisposableObject
 
         //const int steps = ::clamp(int(dt / TIMESTEP), 1, ACCURACY);
 
-        PhysicsUpdateError error = InternalSimulation.Step(deltaTime, numSteps);
+        PhysicsUpdateError error = InternalSimulation.Update(deltaTime, numSteps, JobSystem);
         Debug.Assert(error == PhysicsUpdateError.None);
     }
 

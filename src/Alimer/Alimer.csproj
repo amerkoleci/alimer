@@ -1,10 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;$(AlimerPlatforms)</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(AlimerRootDirectory)/README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
@@ -42,8 +46,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="$(AlimerRootDirectory)/README.md" Pack="true" PackagePath="/" />
-
     <Using Include="Vortice.Mathematics" />
     <Using Remove="System.Linq" />
   </ItemGroup>

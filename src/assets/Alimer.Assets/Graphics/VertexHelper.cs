@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using Vortice.Mathematics;
+using MeshOptimizer;
 
 namespace Alimer.Assets.Graphics;
 
@@ -106,6 +107,12 @@ public static unsafe class VertexHelper
         }
 
         return tangentBuffer;
+    }
+
+    public static void OptimizeVertexCache(Span<uint> destination, ReadOnlySpan<uint> indices, uint vertexCount)
+    {
+        // https://github.com/zeux/meshoptimizer#vertex-cache-optimization
+        Meshopt.OptimizeVertexCache(destination, indices, vertexCount);
     }
 }
 
