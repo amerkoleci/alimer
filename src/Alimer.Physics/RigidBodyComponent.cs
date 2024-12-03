@@ -24,7 +24,7 @@ public class RigidBodyComponent : PhysicsComponent
                 return;
 
             _motionType = value;
-            if (Handle.IsNotNull)
+            if (Handle != null)
             {
                 Handle.MotionType = value.ToJolt();
             }
@@ -60,7 +60,7 @@ public class RigidBodyComponent : PhysicsComponent
             _mass = value;
 
             // TODO: Update Jolt mass?
-            if (Handle.IsNotNull)
+            if (Handle != null)
             {
             }
         }
@@ -100,7 +100,7 @@ public class RigidBodyComponent : PhysicsComponent
     {
         get
         {
-            if (Handle.IsNull)
+            if (Handle == null)
                 return Matrix4x4.Identity;
 
             return Handle.GetWorldTransform();
@@ -108,13 +108,13 @@ public class RigidBodyComponent : PhysicsComponent
         set
         {
             // TODO: Update Jolt WorldTransform?
-            if (Handle.IsNotNull)
+            if (Handle != null)
             {
             }
         }
     }
 
-    internal Body Handle;
+    internal Body? Handle { get; private set; }
     internal BodyID BodyID { get; private set; }
     internal bool IsValid => BodyID.IsValid;
 
@@ -122,7 +122,7 @@ public class RigidBodyComponent : PhysicsComponent
     {
         base.OnAttach();
 
-        if (Handle.IsNotNull)
+        if (Handle != null)
         {
             Simulation!.BodyInterface.DestroyBody(Handle.ID);
         }

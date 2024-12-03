@@ -154,7 +154,7 @@ internal unsafe class SDLPlatform : AppPlatform
         _idLookup.Remove(windowID);
     }
 
-    [UnmanagedCallersOnly]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void OnLog(nint userdata, int category, SDL_LogPriority priority, byte* messagePtr)
     {
         string message = ConvertToManaged(messagePtr)!;

@@ -349,7 +349,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
                 depthAttachment.imageView = texture.GetView(mipLevel, slice);
                 depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                depthAttachment.resolveMode = VkResolveModeFlags.NoneKHR;
+                depthAttachment.resolveMode = VkResolveModeFlags.None;
                 depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
                 depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
                 depthAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
@@ -359,7 +359,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                 {
                     stencilAttachment.imageView = depthAttachment.imageView;
                     stencilAttachment.imageLayout = VkImageLayout.StencilAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                    stencilAttachment.resolveMode = VkResolveModeFlags.NoneKHR;
+                    stencilAttachment.resolveMode = VkResolveModeFlags.None;
                     stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
                     stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
                     stencilAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
