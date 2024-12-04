@@ -8,22 +8,12 @@ static struct {
     GPUInstance* instance = nullptr;
 } state;
 
-Bool32 agpuIsBackendSupport(GPUBackendType backend)
+bool agpuIsBackendSupport(GPUBackendType backend)
 {
     switch (backend)
     {
-        case GPUBackendType_WebGPU:
-#if defined(ALIMER_GPU_WEBGPU)
-            return WGPU_IsSupported();
-#else
-            return false;
-#endif
-
-        case GPUBackendType_D3D12:
-            return false;
-
-        case GPUBackendType_Metal:
-            return false;
+        case GPUBackendType_Null:
+            return true;
 
         case GPUBackendType_Vulkan:
 #if defined(ALIMER_GPU_VULKAN)
@@ -32,15 +22,27 @@ Bool32 agpuIsBackendSupport(GPUBackendType backend)
             return false;
 #endif
 
-        case GPUBackendType_Null:
-            return true;
+        case GPUBackendType_D3D12:
+#if defined(ALIMER_GPU_D3D12)
+            return D3D12_IsSupported();
+#else
+            return false;
+#endif
+
+        case GPUBackendType_WebGPU:
+#if defined(ALIMER_GPU_WEBGPU)
+            return WGPU_IsSupported();
+#else
+            return false;
+#endif
 
         default:
+        case GPUBackendType_Metal:
             return false;
     }
 }
 
-Bool32 agpuInit(const GPUConfig* config)
+bool agpuInit(const GPUConfig* config)
 {
     ALIMER_ASSERT(config);
 
@@ -70,23 +72,8 @@ Bool32 agpuInit(const GPUConfig* config)
 
     switch (backend)
     {
-        case GPUBackendType_WebGPU:
-#if defined(ALIMER_GPU_WEBGPU)
-            if (WGPU_IsSupported())
-                state.instance = WGPU_CreateInstance(config);
-            break;
-#else
-            alimerLogError(LogCategory_GPU, "WebGPU is not supported");
-            return false;
-#endif
-
-        case GPUBackendType_D3D12:
-            state.instance = nullptr;
-            break;
-
-        case GPUBackendType_Metal:
-            state.instance = nullptr;
-            break;
+        case GPUBackendType_Null:
+            return true;
 
         case GPUBackendType_Vulkan:
 #if defined(ALIMER_GPU_VULKAN)
@@ -98,8 +85,30 @@ Bool32 agpuInit(const GPUConfig* config)
             return false;
 #endif
 
-        case GPUBackendType_Null:
-            return true;
+        case GPUBackendType_D3D12:
+#if defined(ALIMER_GPU_D3D12)
+            if (D3D12_IsSupported())
+                state.instance = D3D12_CreateInstance(config);
+            break;
+#else
+            alimerLogError(LogCategory_GPU, "D3D12 is not supported");
+            return false;
+#endif
+            break;
+
+        case GPUBackendType_Metal:
+            state.instance = nullptr;
+            break;
+
+        case GPUBackendType_WebGPU:
+#if defined(ALIMER_GPU_WEBGPU)
+            if (WGPU_IsSupported())
+                state.instance = WGPU_CreateInstance(config);
+            break;
+#else
+            alimerLogError(LogCategory_GPU, "WebGPU is not supported");
+            return false;
+#endif
 
         default:
             break;
@@ -170,23 +179,28 @@ GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type)
     return device->GetQueue(type);
 }
 
+bool agpuDeviceWaitIdle(GPUDevice device)
+{
+    return device->WaitIdle();
+}
+
 uint64_t agpuDeviceCommitFrame(GPUDevice device)
 {
     return device->CommitFrame();
 }
 
 /* Queue */
-GPUCommandBuffer agpuQueueCreateCommandBuffer(GPUQueue queue, const GPUCommandBufferDescriptor* descriptor)
+GPUCommandBuffer agpuQueueCreateCommandBuffer(GPUQueue queue, const GPUCommandBufferDesc* desc)
 {
-    return queue->CreateCommandBuffer(descriptor);
+    return queue->CreateCommandBuffer(desc);
 }
 
 /* CommandBuffer */
 
 /* Buffer */
-GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDescriptor* descriptor, const void* pInitialData)
+GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
 {
-    if (!descriptor)
+    if (!desc)
         return nullptr;
 
     // TODO: Validation
@@ -196,7 +210,7 @@ GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDescriptor* descript
     //    return nullptr;
     //}
 
-    return device->CreateBuffer(descriptor, pInitialData);
+    return device->CreateBuffer(desc, pInitialData);
 }
 
 uint32_t agpuBufferAddRef(GPUBuffer buffer)
@@ -209,5 +223,23 @@ uint32_t agpuBufferRelease(GPUBuffer buffer)
     return buffer->Release();
 }
 
+/* Texture */
+GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc)
+{
+    if (!desc)
+        return nullptr;
+
+    return device->CreateTexture(desc, nullptr);
+}
+
+uint32_t agpuTextureAddRef(GPUTexture texture)
+{
+    return texture->AddRef();
+}
+
+uint32_t agpuTextureRelease(GPUTexture texture)
+{
+    return texture->Release();
+}
 
 #endif /* defined(ALIMER_GPU) */

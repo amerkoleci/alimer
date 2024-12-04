@@ -338,7 +338,7 @@ static void OnWindowMouseWheelMove(GLFWwindow* window, double xoffs, double yoff
     PushEvent(std::move(evt));
 }
 
-Bool32 alimerPlatformInit(void)
+bool alimerPlatformInit(void)
 {
     if (state.initialized)
         return true;
@@ -374,7 +374,7 @@ void alimerPlatformShutdown(void)
     memset(&state, 0, sizeof(state));
 }
 
-Bool32 alimerPollEvent(Event* evt)
+bool alimerPollEvent(Event* evt)
 {
     ALIMER_ASSERT(state.initialized);
 
@@ -502,7 +502,7 @@ uint32_t alimerWindowGetID(Window* window)
     return window->id;
 }
 
-Bool32 alimerWindowIsOpen(Window* window)
+bool alimerWindowIsOpen(Window* window)
 {
     return !glfwWindowShouldClose(window->handle);
 }
@@ -552,12 +552,12 @@ const char* alimerWindowGetTitle(Window* window)
     return window->title;
 }
 
-Bool32 alimerWindowIsMinimized(Window* window)
+bool alimerWindowIsMinimized(Window* window)
 {
     return glfwGetWindowAttrib(window->handle, GLFW_ICONIFIED) != 0;
 }
 
-Bool32 alimerWindowHasFocus(Window* window)
+bool alimerWindowHasFocus(Window* window)
 {
     return glfwGetWindowAttrib(window->handle, GLFW_FOCUSED) != 0;
 }

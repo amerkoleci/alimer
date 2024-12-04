@@ -5,7 +5,6 @@
 #define ALIMER_INTERNAL_H_
 
 #include "alimer.h"
-#include <stdbool.h>
 #include <stdlib.h> // malloc, free
 #include <string.h> // memset
 
@@ -361,6 +360,15 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 #define NOHELP
 
 #include <Windows.h>
+
+// Helper utility converts D3D API failures into exceptions.
+inline void ThrowIfFailed(HRESULT hr)
+{
+    if (FAILED(hr))
+    {
+        alimerLogError(LogCategory_Application, "Failure with HRESULT of %08X", static_cast<unsigned int>(hr));
+    }
+}
 #endif
 
 // Convenience macros for invoking custom memory allocation callbacks.

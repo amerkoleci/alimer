@@ -390,15 +390,15 @@ ALIMER_API Blob* alimerBlobCreate(void* data, size_t size, const char* name);
 ALIMER_API void alimerBlobDestroy(Blob* blob);
 
 /* Platform */
-ALIMER_API Bool32 alimerPlatformInit(void);
+ALIMER_API bool alimerPlatformInit(void);
 ALIMER_API void alimerPlatformShutdown(void);
-ALIMER_API Bool32 alimerPollEvent(Event* evt);
+ALIMER_API bool alimerPollEvent(Event* evt);
 
 /* Window */
 ALIMER_API Window* alimerWindowCreate(const WindowDesc* desc);
 ALIMER_API void alimerWindowDestroy(Window* window);
 ALIMER_API uint32_t alimerWindowGetID(Window* window);
-ALIMER_API Bool32 alimerWindowIsOpen(Window* window);
+ALIMER_API bool alimerWindowIsOpen(Window* window);
 ALIMER_API void alimerWindowSetPosition(Window* window, int32_t x, int32_t y);
 ALIMER_API void alimerWindowGetPosition(Window* window, int32_t* x, int32_t* y);
 ALIMER_API void alimerWindowSetCentered(Window* window);
@@ -406,8 +406,8 @@ ALIMER_API void alimerWindowSetSize(Window* window, uint32_t width, uint32_t hei
 ALIMER_API void alimerWindowGetSize(Window* window, uint32_t* width, uint32_t* height);
 ALIMER_API void alimerWindowSetTitle(Window* window, const char* title);
 ALIMER_API const char* alimerWindowGetTitle(Window* window);
-ALIMER_API Bool32 alimerWindowIsMinimized(Window* window);
-ALIMER_API Bool32 alimerWindowHasFocus(Window* window);
+ALIMER_API bool alimerWindowIsMinimized(Window* window);
+ALIMER_API bool alimerWindowHasFocus(Window* window);
 ALIMER_API void alimerWindowShow(Window* window);
 ALIMER_API void alimerWindowHide(Window* window);
 ALIMER_API void alimerWindowMaximize(Window* window);

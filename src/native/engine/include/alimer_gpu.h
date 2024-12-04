@@ -55,13 +55,16 @@ static const GPUBufferUsage GPUBufferUsage_Predication = 0x0000000000000040;
 /// Supports ray tracing acceleration structure usage.
 static const GPUBufferUsage GPUBufferUsage_RayTracing = 0x0000000000000080;
 
+typedef uint64_t GPUTextureUsage;
+static const GPUTextureUsage GPUTextureUsage_None = 0x0000000000000000;
+
 typedef enum GPUBackendType {
     GPUBackendType_Undefined = 0,
-    GPUBackendType_Null = 1,
-    GPUBackendType_WebGPU = 2,
-    GPUBackendType_D3D12 = 3,
-    GPUBackendType_Metal = 4,
-    GPUBackendType_Vulkan = 5,
+    GPUBackendType_Null,
+    GPUBackendType_Vulkan,
+    GPUBackendType_D3D12,
+    GPUBackendType_Metal,
+    GPUBackendType_WebGPU,
 
     _GPUBackendType_Force32 = 0x7FFFFFFF
 } GPUBackendType;
@@ -88,7 +91,7 @@ typedef enum GPUQueueType {
     GPUQueueType_Graphics = 0,
     GPUQueueType_Compute,
     GPUQueueType_Copy,
-    GPUQueueType_VideoDecode,
+    //GPUQueueType_VideoDecode,
 
     GPUQueueType_Count,
     _GPUQueueType_Force32 = 0x7FFFFFFF
@@ -103,16 +106,28 @@ typedef struct GPULimits {
     uint32_t maxTextureArrayLayers;
 } GPULimits;
 
-typedef struct GPUCommandBufferDescriptor {
+typedef struct GPUCommandBufferDesc {
     const char* label;
-} GPUCommandBufferDescriptor;
+} GPUCommandBufferDesc;
 
-typedef struct GPUBufferDescriptor {
+typedef struct GPUBufferDesc {
     const char* label;
     uint64_t size;
     GPUBufferUsage usage;
     GPUMemoryType memoryType;
-} GPUBufferDescriptor;
+} GPUBufferDesc;
+
+typedef struct GPUTextureDesc {
+    const char* label;
+    TextureDimension dimension;
+    PixelFormat format;
+    GPUTextureUsage usage;
+    uint64_t width;
+    uint64_t height;
+    uint32_t depthOrArrayLayers;
+    uint32_t mipLevelCount;
+    uint32_t sampleCount;
+} GPUTextureDesc;
 
 typedef struct GPURequestAdapterOptions {
     GPUSurface compatibleSurface;
@@ -124,8 +139,8 @@ typedef struct GPUConfig {
     GPUValidationMode validationMode;
 } GPUConfig;
 
-ALIMER_API Bool32 agpuIsBackendSupport(GPUBackendType backend);
-ALIMER_API Bool32 agpuInit(const GPUConfig* config);
+ALIMER_API bool agpuIsBackendSupport(GPUBackendType backend);
+ALIMER_API bool agpuInit(const GPUConfig* config);
 ALIMER_API void agpuShutdown(void);
 ALIMER_API GPUSurface agpuCreateSurface(Window* window);
 ALIMER_API GPUAdapter agpuRequestAdapter(const GPURequestAdapterOptions* options);
@@ -141,17 +156,24 @@ ALIMER_API GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter);
 /* Device */
 ALIMER_API void agpuDeviceRelease(GPUDevice device);
 ALIMER_API GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type);
+ALIMER_API bool agpuDeviceWaitIdle(GPUDevice device);
+
 /// Commit the current frame and advance to next frame
 ALIMER_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
 
 /* Queue */
-ALIMER_API GPUCommandBuffer agpuQueueCreateCommandBuffer(GPUQueue queue, const GPUCommandBufferDescriptor* descriptor);
+ALIMER_API GPUCommandBuffer agpuQueueCreateCommandBuffer(GPUQueue queue, const GPUCommandBufferDesc* desc);
 
 /* CommandBuffer */
 
 /* Buffer */
-ALIMER_API GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDescriptor* descriptor, const void* pInitialData);
+ALIMER_API GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
 ALIMER_API uint32_t agpuBufferAddRef(GPUBuffer buffer);
 ALIMER_API uint32_t agpuBufferRelease(GPUBuffer buffer);
+
+/* Texture */
+ALIMER_API GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc);
+ALIMER_API uint32_t agpuTextureAddRef(GPUTexture texture);
+ALIMER_API uint32_t agpuTextureRelease(GPUTexture texture);
 
 #endif /* ALIMER_GPU_H_ */

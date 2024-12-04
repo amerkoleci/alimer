@@ -139,7 +139,7 @@ static constexpr UINT STANDARD_HEAP_TYPE_COUNT = 4; // Only DEFAULT, UPLOAD, REA
 static constexpr UINT DEFAULT_POOL_MAX_COUNT = STANDARD_HEAP_TYPE_COUNT * 3;
 static const UINT NEW_BLOCK_SIZE_SHIFT_MAX = 3;
 // Minimum size of a free suballocation to register it in the free suballocation collection.
-static const UINT64 MIN_FREE_SUBALLOCATION_SIZE_TO_REGISTER = 16;
+[[maybe_unused]] static const UINT64 MIN_FREE_SUBALLOCATION_SIZE_TO_REGISTER = 16;
 
 static const WCHAR* const HeapTypeNames[] =
 {
@@ -285,7 +285,7 @@ template<typename T>
 static void D3D12MA_SWAP(T& a, T& b) { T tmp = a; a = b; b = tmp; }
 
 // Scans integer for index of first nonzero bit from the Least Significant Bit (LSB). If mask is 0 then returns UINT8_MAX
-static UINT8 BitScanLSB(UINT64 mask)
+[[maybe_unused]] static UINT8 BitScanLSB(UINT64 mask)
 {
 #if defined(_MSC_VER) && defined(_WIN64)
     unsigned long pos;
@@ -352,7 +352,7 @@ static UINT8 BitScanMSB(UINT64 mask)
     return UINT8_MAX;
 }
 // Scans integer for index of first nonzero bit from the Most Significant Bit (MSB). If mask is 0 then returns UINT8_MAX
-static UINT8 BitScanMSB(UINT32 mask)
+[[maybe_unused]] static UINT8 BitScanMSB(UINT32 mask)
 {
 #ifdef _MSC_VER
     unsigned long pos;
@@ -2799,8 +2799,8 @@ public:
 
 private:
     D3D12MA_MUTEX m_Mutex;
-    bool m_UseMutex;
     PoolAllocator<Allocation> m_Allocator;
+    bool m_UseMutex;
 };
 
 #ifndef _D3D12MA_ALLOCATION_OBJECT_ALLOCATOR_FUNCTIONS
@@ -2979,7 +2979,7 @@ void BlockMetadata::DebugLogAllocation(UINT64 offset, UINT64 size, void* private
         Allocation* allocation = reinterpret_cast<Allocation*>(privateData);
 
         privateData = allocation->GetPrivateData();
-        LPCWSTR name = allocation->GetName();
+        [[maybe_unused]] LPCWSTR name = allocation->GetName();
 
         D3D12MA_DEBUG_LOG(L"UNFREED ALLOCATION; Offset: %llu; Size: %llu; PrivateData: %p; Name: %s",
             offset, size, privateData, name ? name : L"D3D12MA_Empty");
@@ -5030,7 +5030,8 @@ void BlockMetadata_TLSF::WriteAllocationInfoToJson(JsonWriter& json) const
     }
     D3D12MA_ASSERT(i == 0);
 
-    PrintDetailedMap_Begin(json, GetSumFreeSize(), GetAllocationCount(), m_BlocksFreeCount + static_cast<bool>(m_NullBlock->size));
+    PrintDetailedMap_Begin(json, GetSumFreeSize(), GetAllocationCount(), m_BlocksFreeCount +
+        (m_NullBlock->size > 0 ? 1 : 0));
     for (; i < blockCount; ++i)
     {
         Block* block = blockList[i];
@@ -9324,6 +9325,8 @@ void Allocation::ReleaseThis()
         break;
     case TYPE_HEAP:
         m_Allocator->FreeHeapMemory(this);
+        break;
+    default:
         break;
     }
 

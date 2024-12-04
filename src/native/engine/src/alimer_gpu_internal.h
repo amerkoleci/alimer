@@ -299,16 +299,18 @@ struct GPUCommandBufferImpl : public GPUResource
 
 struct GPUQueueImpl : public GPUResource
 {
-    virtual GPUCommandBuffer CreateCommandBuffer(const GPUCommandBufferDescriptor* descriptor) = 0;
+    virtual GPUCommandBuffer CreateCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
 };
 
 struct GPUDeviceImpl : public GPUResource
 {
     virtual GPUQueue GetQueue(GPUQueueType type) = 0;
+    virtual bool WaitIdle() = 0;
     virtual uint64_t CommitFrame() = 0;
 
     /* Resource creation */
-    virtual GPUBuffer CreateBuffer(const GPUBufferDescriptor* descriptor, const void* pInitialData) = 0;
+    virtual GPUBuffer CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) = 0;
+    virtual GPUTexture CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) = 0;
 };
 
 struct GPUSurfaceImpl : public GPUResource
@@ -331,6 +333,11 @@ public:
 #if defined(ALIMER_GPU_VULKAN)
 _ALIMER_EXTERN bool Vulkan_IsSupported(void);
 _ALIMER_EXTERN GPUInstance* Vulkan_CreateInstance(const GPUConfig* config);
+#endif
+
+#if defined(ALIMER_GPU_D3D12)
+_ALIMER_EXTERN bool D3D12_IsSupported(void);
+_ALIMER_EXTERN GPUInstance* D3D12_CreateInstance(const GPUConfig* config);
 #endif
 
 #if defined(ALIMER_GPU_WEBGPU)

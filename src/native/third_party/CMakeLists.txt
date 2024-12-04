@@ -30,7 +30,7 @@ if (ALIMER_GPU_VULKAN)
     add_library(vma INTERFACE)
     set(VMA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator/include)
     target_sources(vma INTERFACE ${VMA_DIR}/vk_mem_alloc.h)
-    target_include_directories(vma SYSTEM INTERFACE ${VMA_DIR})
+    target_include_directories(vma INTERFACE  ${VMA_DIR})
     target_link_libraries(vma INTERFACE vulkan)
 endif()
 
@@ -50,7 +50,7 @@ if (ALIMER_GPU_D3D12)
         "${D3D12_DIR}/D3D12MemAlloc.cpp"
         "${D3D12_DIR}/D3D12MemAlloc.h"
     )
-    target_include_directories(d3d12ma SYSTEM PUBLIC ${D3D12_DIR})
+    target_include_directories(d3d12ma PUBLIC ${D3D12_DIR})
     target_link_libraries(d3d12ma PUBLIC DirectX-Headers)
     target_compile_definitions(d3d12ma PUBLIC D3D12MA_USING_DIRECTX_HEADERS)
     set_target_properties(d3d12ma PROPERTIES FOLDER "ThirdParty")

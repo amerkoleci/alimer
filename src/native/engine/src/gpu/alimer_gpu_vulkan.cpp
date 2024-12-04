@@ -40,6 +40,7 @@ ALIMER_ENABLE_WARNINGS()
 #endif
 
 #include <vector>
+#include <deque>
 
 #if defined(_DEBUG)
 /// Helper macro to test the result of Vulkan calls which can return an error.
@@ -612,6 +613,7 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
 
     if (supportsVideoQueue)
     {
+#if TODO_VIDEO_DECODE
         if (!FindVacantQueue(indices.familyIndices[GPUQueueType_VideoDecode],
             indices.queueIndices[GPUQueueType_VideoDecode],
             VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
@@ -619,6 +621,8 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
             indices.familyIndices[GPUQueueType_VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
             indices.queueIndices[GPUQueueType_VideoDecode] = UINT32_MAX;
         }
+#endif // TODO_VIDEO_DECODE
+
 
 #ifdef VK_ENABLE_BETA_EXTENSIONS
         //if ((flags & CONTEXT_CREATION_ENABLE_VIDEO_ENCODE_BIT) != 0)
@@ -673,7 +677,7 @@ struct VulkanGPUQueue final : public GPUQueueImpl
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUCommandBuffer CreateCommandBuffer(const GPUCommandBufferDescriptor* descriptor) override;
+    GPUCommandBuffer CreateCommandBuffer(const GPUCommandBufferDesc* desc) override;
     void Submit(VkFence fence);
 };
 
@@ -691,16 +695,34 @@ struct VulkanGPUDevice final : public GPUDeviceImpl
     uint64_t frameCount = 0;
     uint32_t frameIndex = 0;
 
+    // Deletion queue objects
+    std::mutex destroyMutex;
+    std::deque<std::pair<VmaAllocation, uint64_t>> destroyedAllocations;
+    std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> destroyedImages;
+    std::deque<std::pair<VkImageView, uint64_t>> destroyedImageViews;
+    std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> destroyedBuffers;
+    //std::deque<std::pair<VkBufferView, uint64_t>> destroyedBufferViews;
+    //std::deque<std::pair<VkDescriptorSetLayout, uint64_t>> destroyedDescriptorSetLayouts;
+    //std::deque<std::pair<VkPipelineLayout, uint64_t>> destroyedPipelineLayouts;
+    //std::deque<std::pair<VkPipeline, uint64_t>> destroyedPipelines;
+    //std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
+    //std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
+    //std::deque<std::pair<VkSwapchainKHR, uint64_t>> destroyedSwapchains;
+    //std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
+    //std::deque<std::pair<std::pair<VkDescriptorPool, VkDescriptorSet>, uint64_t>> destroyedDescriptorSets;
+
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "alimer_gpu_vulkan_funcs.h"
 
     ~VulkanGPUDevice() override;
     GPUQueue GetQueue(GPUQueueType type) override;
+    bool WaitIdle() override;
     uint64_t CommitFrame() override;
-    void ProcessDeletionQueue();
+    void ProcessDeletionQueue(bool force);
 
     /* Resource creation */
-    GPUBuffer CreateBuffer(const GPUBufferDescriptor* descriptor, const void* pInitialData) override;
+    GPUBuffer CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
+    GPUTexture CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label);
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices);
@@ -796,7 +818,7 @@ void VulkanGPUBuffer::SetLabel(const char* label)
 }
 
 /* VulkanGPUQueue */
-GPUCommandBuffer VulkanGPUQueue::CreateCommandBuffer(const GPUCommandBufferDescriptor* descriptor)
+GPUCommandBuffer VulkanGPUQueue::CreateCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
@@ -884,8 +906,10 @@ void VulkanGPUQueue::Submit(VkFence fence)
 VulkanGPUDevice::~VulkanGPUDevice()
 {
     VK_CHECK(vkDeviceWaitIdle(handle));
-    //WaitIdle();
-    //shuttingDown = true;
+
+    // Destory pending objects.
+    ProcessDeletionQueue(true);
+    frameCount = 0;
 
     for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
     {
@@ -938,6 +962,16 @@ GPUQueue VulkanGPUDevice::GetQueue(GPUQueueType type)
     return &queues[type];
 }
 
+bool VulkanGPUDevice::WaitIdle()
+{
+    VkResult result = vkDeviceWaitIdle(handle);
+    if (result != VK_SUCCESS)
+        return false;
+
+    ProcessDeletionQueue(true);
+    return true;
+}
+
 uint64_t VulkanGPUDevice::CommitFrame()
 {
     // Final submits with fences.
@@ -963,67 +997,96 @@ uint64_t VulkanGPUDevice::CommitFrame()
         }
     }
 
-    ProcessDeletionQueue();
+    ProcessDeletionQueue(false);
 
     return frameCount;
 }
 
-void VulkanGPUDevice::ProcessDeletionQueue()
+void VulkanGPUDevice::ProcessDeletionQueue(bool force)
 {
+    const auto Destroy = [&](auto&& queue, auto&& handler) {
+        while (!queue.empty()) {
+            if (force || (queue.front().second + GPU_MAX_INFLIGHT_FRAMES < frameCount))
+            {
+                auto item = queue.front();
+                queue.pop_front();
+                handler(item.first);
+            }
+            else
+            {
+                break;
+            }
+        }
+        };
 
+    destroyMutex.lock();
+    Destroy(destroyedAllocations, [&](auto& item) { vmaFreeMemory(allocator, item); });
+    Destroy(destroyedImages, [&](auto& item) { vmaDestroyImage(allocator, item.first, item.second); });
+    Destroy(destroyedImageViews, [&](auto& item) { vkDestroyImageView(handle, item, nullptr); });
+    Destroy(destroyedBuffers, [&](auto& item) { vmaDestroyBuffer(allocator, item.first, item.second); });
+    //Destroy(destroyedBufferViews, [&](auto& item) { vkDestroyBufferView(handle, item, nullptr); });
+    //Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(handle, item, nullptr); });
+    //Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
+    //Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
+    //Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
+    //Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
+    //Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(handle, item, nullptr); });
+    //Destroy(destroyedSurfaces, [&](auto& item) { vkDestroySurfaceKHR(instance, item, nullptr); });
+    //Destroy(destroyedDescriptorSets, [&](auto& item) { vkFreeDescriptorSets(handle, item.first, 1u, &item.second); });
+    destroyMutex.unlock();
 }
 
-GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDescriptor* descriptor, const void* pInitialData)
+GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
 {
     VkBufferCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    createInfo.size = descriptor->size;
+    createInfo.size = desc->size;
     createInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     bool needBufferDeviceAddress = false;
-    if (descriptor->usage & GPUBufferUsage_Vertex)
+    if (desc->usage & GPUBufferUsage_Vertex)
     {
         createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         needBufferDeviceAddress = true;
     }
 
-    if (descriptor->usage & GPUBufferUsage_Index)
+    if (desc->usage & GPUBufferUsage_Index)
     {
         createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         needBufferDeviceAddress = true;
     }
 
-    if (descriptor->usage & GPUBufferUsage_Constant)
+    if (desc->usage & GPUBufferUsage_Constant)
     {
         createInfo.size = VmaAlignUp(createInfo.size, adapter->properties2.properties.limits.minUniformBufferOffsetAlignment);
         createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
 
-    if (descriptor->usage & GPUBufferUsage_ShaderRead)
+    if (desc->usage & GPUBufferUsage_ShaderRead)
     {
         // Read only ByteAddressBuffer is also storage buffer
         createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     }
 
-    if (descriptor->usage & GPUBufferUsage_ShaderWrite)
+    if (desc->usage & GPUBufferUsage_ShaderWrite)
     {
         createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     }
 
-    if (descriptor->usage & GPUBufferUsage_Indirect)
+    if (desc->usage & GPUBufferUsage_Indirect)
     {
         createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         needBufferDeviceAddress = true;
     }
 
-    if ((descriptor->usage & GPUBufferUsage_Predication)
+    if ((desc->usage & GPUBufferUsage_Predication)
         /* && QueryFeatureSupport(RHIFeature::Predication)*/
         )
     {
         createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
     }
 
-    if ((descriptor->usage & GPUBufferUsage_RayTracing)
+    if ((desc->usage & GPUBufferUsage_RayTracing)
         /* && QueryFeatureSupport(RHIFeature::RayTracing) */
         )
     {
@@ -1044,11 +1107,11 @@ GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDescriptor* descriptor, c
 
     VmaAllocationCreateInfo memoryInfo = {};
     memoryInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    if (descriptor->memoryType == GPUMemoryType_Readback)
+    if (desc->memoryType == GPUMemoryType_Readback)
     {
         memoryInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
-    else if (descriptor->memoryType == GPUMemoryType_Upload)
+    else if (desc->memoryType == GPUMemoryType_Upload)
     {
         createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         memoryInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -1080,9 +1143,9 @@ GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDescriptor* descriptor, c
         return nullptr;
     }
 
-    if (descriptor->label)
+    if (desc->label)
     {
-        buffer->SetLabel(descriptor->label);
+        buffer->SetLabel(desc->label);
     }
 
     buffer->allocatedSize = allocationInfo.size;
@@ -1101,6 +1164,11 @@ GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDescriptor* descriptor, c
     }
 
     return buffer;
+}
+
+GPUTexture VulkanGPUDevice::CreateTexture(const GPUTextureDesc* descriptor, const void* pInitialData)
+{
+    return nullptr;
 }
 
 static void AddUniqueFamily(uint32_t* sharing_indices, uint32_t& count, uint32_t family)

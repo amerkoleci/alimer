@@ -32,9 +32,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Types */
-typedef uint32_t Bool32;
 typedef uint64_t Flags;
 
 #endif /* ALIMER_PLATFORM_H_ */
