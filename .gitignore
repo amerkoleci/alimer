@@ -48,4 +48,4 @@ project.assets.json
 .vs
 [Bb]in/
 [Oo]bj/
-src/native/build
+src/native/build*/
