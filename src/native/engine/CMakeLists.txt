@@ -124,6 +124,15 @@ if (ALIMER_GPU)
     endif()
 endif ()
 
+if (ALIMER_PHYSICS)
+    target_sources(${TARGET_NAME} PRIVATE
+        include/alimer_physics.h
+        src/alimer_physics.cpp
+    )
+
+    target_link_libraries(${TARGET_NAME} PRIVATE Jolt)
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_PHYSICS)
+endif()
 
 # Install
 if (ALIMER_INSTALL)

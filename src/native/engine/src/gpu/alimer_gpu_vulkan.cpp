@@ -724,9 +724,9 @@ struct VulkanGPUDevice final : public GPUDeviceImpl
     GPUBuffer CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
     GPUTexture CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) override;
 
-    void SetObjectName(VkObjectType type, uint64_t handle_, const char* label);
-    void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices);
-    void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices);
+    void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
+    void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
+    void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices) const;
 };
 
 struct VulkanGPUSurface final : public GPUSurfaceImpl
@@ -1185,7 +1185,7 @@ static void AddUniqueFamily(uint32_t* sharing_indices, uint32_t& count, uint32_t
     sharing_indices[count++] = family;
 }
 
-void VulkanGPUDevice::SetObjectName(VkObjectType type, uint64_t handle_, const char* label)
+void VulkanGPUDevice::SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const
 {
     if (!adapter->instance->debugUtils)
         return;
@@ -1198,7 +1198,7 @@ void VulkanGPUDevice::SetObjectName(VkObjectType type, uint64_t handle_, const c
     vkSetDebugUtilsObjectNameEXT(handle, &nameInfo);
 }
 
-void VulkanGPUDevice::FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices)
+void VulkanGPUDevice::FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const
 {
     for (auto& i : adapter->queueFamilyIndices.familyIndices)
     {
@@ -1221,7 +1221,7 @@ void VulkanGPUDevice::FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_
     }
 }
 
-void VulkanGPUDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices)
+void VulkanGPUDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices) const
 {
     for (auto& i : adapter->queueFamilyIndices.familyIndices)
     {
