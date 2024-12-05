@@ -253,6 +253,9 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 /* Compiler defines */
 #if defined(__clang__)
+#define ALIMER_THREADLOCAL _Thread_local
+#define ALIMER_DEPRECATED __attribute__(deprecated)
+#define ALIMER_FORCE_INLINE inline __attribute__((__always_inline__))
 #define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define ALIMER_UNREACHABLE() __builtin_unreachable()
@@ -272,6 +275,9 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 #define ALIMER_ENABLE_WARNINGS() _Pragma("clang diagnostic pop")
 #elif defined(__GNUC__) || defined(__GNUG__)
+#define ALIMER_THREADLOCAL __thread
+#define ALIMER_DEPRECATED __attribute__(deprecated)
+#define ALIMER_FORCE_INLINE inline __attribute__((__always_inline__))
 #define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define ALIMER_UNREACHABLE() __builtin_unreachable()
@@ -290,6 +296,9 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 #define ALIMER_ENABLE_WARNINGS() _Pragma("GCC diagnostic pop")
 #elif defined(_MSC_VER)
+#define ALIMER_THREADLOCAL __declspec(thread)
+#define ALIMER_DEPRECATED __declspec(deprecated)
+#define ALIMER_FORCE_INLINE __forceinline
 #define ALIMER_LIKELY(x) (x)
 #define ALIMER_UNLIKELY(x) (x)
 #define ALIMER_UNREACHABLE() __assume(false)
@@ -308,6 +317,7 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 #else
 #   define ALIMER_ARRAYSIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
+
 
 #ifndef ALIMER_ASSERT
 #   include <assert.h>
@@ -361,19 +371,39 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 #include <Windows.h>
 
-// Helper utility converts D3D API failures into exceptions.
-inline void ThrowIfFailed(HRESULT hr)
+_ALIMER_EXTERN WCHAR* Win32_CreateWideStringFromUTF8(const char* source);
+_ALIMER_EXTERN char* Win32_CreateUTF8FromWideString(const WCHAR* source);
+#else
+ALIMER_FORCE_INLINE static uint32_t InterlockedIncrement(uint32_t volatile* dst)
 {
-    if (FAILED(hr))
-    {
-        alimerLogError(LogCategory_Application, "Failure with HRESULT of %08X", static_cast<unsigned int>(hr));
-    }
+    return __sync_add_and_fetch(dst, 1);
+}
+ALIMER_FORCE_INLINE static uint32_t InterlockedDecrement(uint32_t volatile* dst)
+{
+    return __sync_sub_and_fetch(dst, 1);
 }
 #endif
 
 // Convenience macros for invoking custom memory allocation callbacks.
 #define ALIMER_ALLOC(type)          ((type*)alimerCalloc(1, sizeof(type)))
 #define ALIMER_ALLOCN(type, n)      ((type*)alimerCalloc(n, sizeof(type)))
-char* _alimer_strdup(const char* source);
+_ALIMER_EXTERN char* _alimer_strdup(const char* source);
+
+#ifdef __cplusplus
+namespace
+{
+    constexpr uint64_t GetNextPowerOfTwo(uint64_t x)
+    {
+        --x;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        x |= x >> 32u;
+        return ++x;
+    }
+}
+#endif
 
 #endif /* ALIMER_INTERNAL_H_ */

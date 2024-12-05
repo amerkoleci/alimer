@@ -17,37 +17,13 @@
     <PackageReference Include="Vortice.Mathematics" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
-    <PackageReference Include="StbImageSharp" />
-  </ItemGroup>
-
-  <!-- Native Libs -->
-  <ItemGroup>
-    <None Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">
-      <PackagePath>runtimes\win-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
-    <None Include="$(AlimerNativeDirectory)win-arm64\alimer_native.dll">
-      <PackagePath>runtimes\win-arm64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
-    <None Include="$(AlimerNativeDirectory)linux-x64\libalimer_native.so">
-      <PackagePath>runtimes\linux-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
-    <None Include="$(AlimerNativeDirectory)osx-universal\libalimer_native.dylib">
-      <PackagePath>runtimes\osx\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
-  </ItemGroup>
-
   <ItemGroup>
     <Using Include="Vortice.Mathematics" />
     <Using Remove="System.Linq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
   </ItemGroup>
 
 </Project>

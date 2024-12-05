@@ -10,12 +10,9 @@ namespace Alimer;
 
 internal unsafe static partial class AlimerApi
 {
-#if (IOS || TVOS || WEBGL)
-    private const string Library = "__Internal";
-#else
-    private const string Library = "alimer_native";
-#endif
+    private const string LibraryName = "alimer_native";
 
+#if ALIMER_OWN_LIBRARY_LOADING
     static AlimerApi()
     {
         NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), OnDllImport);
@@ -34,18 +31,18 @@ internal unsafe static partial class AlimerApi
     private static bool TryResolveLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath, out nint nativeLibrary)
     {
         nativeLibrary = 0;
-        if (libraryName is not Library)
+        if (libraryName is not LibraryName)
             return false;
 
         string rid = RuntimeInformation.RuntimeIdentifier;
 
         string nugetNativeLibsPath = Path.Combine(AppContext.BaseDirectory, "runtimes", rid, "native");
         bool isNuGetRuntimeLibrariesDirectoryPresent = Directory.Exists(nugetNativeLibsPath);
-        string dllName = Library;
+        string dllName = LibraryName;
 
         if (OperatingSystem.IsWindows())
         {
-            dllName = $"{Library}.dll";
+            dllName = $"{LibraryName}.dll";
 
             if (!isNuGetRuntimeLibrariesDirectoryPresent)
             {
@@ -62,11 +59,11 @@ internal unsafe static partial class AlimerApi
         }
         else if (OperatingSystem.IsLinux())
         {
-            dllName = $"lib{Library}.so";
+            dllName = $"lib{LibraryName}.so";
         }
         else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
-            dllName = $"lib{Library}.dylib";
+            dllName = $"lib{LibraryName}.dylib";
         }
 
         if (isNuGetRuntimeLibrariesDirectoryPresent)
@@ -79,14 +76,15 @@ internal unsafe static partial class AlimerApi
             }
         }
 
-        if (NativeLibrary.TryLoad(Library, assembly, searchPath, out nativeLibrary))
+        if (NativeLibrary.TryLoad(LibraryName, assembly, searchPath, out nativeLibrary))
         {
             return true;
         }
 
         nativeLibrary = 0;
         return false;
-    }
+    } 
+#endif
 
     //[LibraryImport(Library)]
     //public static partial void Alimer_FreeString(byte* memory);
@@ -129,21 +127,48 @@ internal unsafe static partial class AlimerApi
         NativeMemory.Free(ptr.ToPointer());
     }
 
+    #region Image
+    internal struct ImageDesc
+    {
+        public TextureDimension dimension;
+        public PixelFormat format;
+        public uint width;
+        public uint height;
+        public uint depthOrArrayLayers;
+        public uint mipLevelCount;
+    }
+
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerImageCreate2D(PixelFormat format, uint width, uint height, uint arrayLayers, uint mipLevelCount);
+
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerImageCreateFromMemory(void* data, nuint size);
+
+    [LibraryImport(LibraryName)]
+    public static partial void alimerImageDestroy(nint handle);
+
+    [LibraryImport(LibraryName)]
+    public static partial void alimerImageGetDesc(nint handle, ImageDesc* desc);
+
+    [LibraryImport(LibraryName)]
+    public static partial void* alimerImageGetData(nint handle, nuint* dataSize);
+    #endregion
+
     #region Font
-    [LibraryImport(Library)]
+    [LibraryImport(LibraryName)]
     public static partial nint Alimer_FontCreateFromMemory(void* data, nuint size);
 
-    [LibraryImport(Library)]
+    [LibraryImport(LibraryName)]
     public static partial void Alimer_FontDestroy(nint handle);
 
-    [LibraryImport(Library)]
+    [LibraryImport(LibraryName)]
     public static partial void Alimer_FontGetMetrics(nint handle, out int ascent, out int descent, out int linegap);
 
-    [LibraryImport(Library)]
+    [LibraryImport(LibraryName)]
     public static partial int Alimer_FontGetGlyphIndex(nint handle, int codepoint);
-    [LibraryImport(Library)]
+    [LibraryImport(LibraryName)]
     public static partial float Alimer_FontGetScale(nint handle, float size);
-    [LibraryImport(Library)]
+    [LibraryImport(LibraryName)]
     public static partial float Alimer_FontGetKerning(nint handle, int glyph1, int glyph2, float scale);
     #endregion
 }

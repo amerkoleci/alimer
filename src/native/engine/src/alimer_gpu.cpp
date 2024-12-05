@@ -131,31 +131,41 @@ void agpuShutdown(void)
     memset(&state, 0, sizeof(state));
 }
 
-GPUSurface agpuCreateSurface(Window* window)
+GPUAdapter* agpuRequestAdapter(const GPURequestAdapterOptions* options)
+{
+    return state.instance->RequestAdapter(options);
+}
+
+/* Surface */
+GPUSurface* agpuSurfaceCreate(Window* window)
 {
     ALIMER_ASSERT(window);
 
     return state.instance->CreateSurface(window);
 }
 
-GPUAdapter agpuRequestAdapter(const GPURequestAdapterOptions* options)
+void agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfiguration* config)
 {
-    return state.instance->RequestAdapter(options);
+    surface->Configure(config);
 }
 
-/* Surface */
-uint32_t agpuSurfaceAddRef(GPUSurface surface)
+void agpuSurfaceUnconfigure(GPUSurface* surface)
+{
+    surface->Unconfigure();
+}
+
+uint32_t agpuSurfaceAddRef(GPUSurface* surface)
 {
     return surface->AddRef();
 }
 
-uint32_t agpuSurfaceRelease(GPUSurface surface)
+uint32_t agpuSurfaceRelease(GPUSurface* surface)
 {
     return surface->Release();
 }
 
 /* Adapter */
-GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits)
+GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits)
 {
     if (!limits)
         return GPUResult_InvalidOperation;
@@ -163,42 +173,57 @@ GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits)
     return adapter->GetLimits(limits);
 }
 
-GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter)
+GPUDevice* agpuAdapterCreateDevice(GPUAdapter* adapter)
 {
     return adapter->CreateDevice();
 }
 
 /* Device */
-void agpuDeviceRelease(GPUDevice device)
+uint32_t agpuDeviceAddRef(GPUDevice* device)
 {
-    device->Release();
+    return device->AddRef();
 }
 
-GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type)
+uint32_t agpuDeviceRelease(GPUDevice* device)
+{
+    return device->Release();
+}
+
+GPUQueue* agpuDeviceGetQueue(GPUDevice* device, GPUQueueType type)
 {
     return device->GetQueue(type);
 }
 
-bool agpuDeviceWaitIdle(GPUDevice device)
+bool agpuDeviceWaitIdle(GPUDevice* device)
 {
     return device->WaitIdle();
 }
 
-uint64_t agpuDeviceCommitFrame(GPUDevice device)
+uint64_t agpuDeviceCommitFrame(GPUDevice* device)
 {
     return device->CommitFrame();
 }
 
 /* Queue */
-GPUCommandBuffer agpuQueueCreateCommandBuffer(GPUQueue queue, const GPUCommandBufferDesc* desc)
+GPUQueueType agpuQueueGetType(GPUQueue* queue)
 {
-    return queue->CreateCommandBuffer(desc);
+    return queue->GetType();
+}
+
+GPUCommandBuffer* agpuQueueAcquireCommandBuffer(GPUQueue* queue, const GPUCommandBufferDesc* desc)
+{
+    return queue->AcquireCommandBuffer(desc);
+}
+
+void agpuQueueSubmit(GPUQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers)
+{
+    queue->Submit(numCommandBuffers, commandBuffers);
 }
 
 /* CommandBuffer */
 
 /* Buffer */
-GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer* agpuDeviceCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const void* pInitialData)
 {
     if (!desc)
         return nullptr;
@@ -213,18 +238,28 @@ GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const vo
     return device->CreateBuffer(desc, pInitialData);
 }
 
-uint32_t agpuBufferAddRef(GPUBuffer buffer)
+uint32_t agpuBufferAddRef(GPUBuffer* buffer)
 {
     return buffer->AddRef();
 }
 
-uint32_t agpuBufferRelease(GPUBuffer buffer)
+uint32_t agpuBufferRelease(GPUBuffer* buffer)
 {
     return buffer->Release();
 }
 
+uint64_t agpuBufferGetSize(GPUBuffer* buffer)
+{
+    return buffer->GetSize();
+}
+
+GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer)
+{
+    return buffer->GetDeviceAddress();
+}
+
 /* Texture */
-GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc)
+GPUTexture* agpuDeviceCreateTexture(GPUDevice* device, const GPUTextureDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -232,12 +267,12 @@ GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc)
     return device->CreateTexture(desc, nullptr);
 }
 
-uint32_t agpuTextureAddRef(GPUTexture texture)
+uint32_t agpuTextureAddRef(GPUTexture* texture)
 {
     return texture->AddRef();
 }
 
-uint32_t agpuTextureRelease(GPUTexture texture)
+uint32_t agpuTextureRelease(GPUTexture* texture)
 {
     return texture->Release();
 }

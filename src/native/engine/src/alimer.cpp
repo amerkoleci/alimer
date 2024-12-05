@@ -85,3 +85,57 @@ char* _alimer_strdup(const char* source)
     memcpy(result, source, length + 1);
     return result;
 }
+
+
+#if defined(_WIN32)
+/// Returns a wide string version of the specified UTF-8 string
+WCHAR* Win32_CreateWideStringFromUTF8(const char* source)
+{
+    WCHAR* target;
+    int count;
+
+    count = MultiByteToWideChar(CP_UTF8, 0, source, -1, NULL, 0);
+    if (!count)
+    {
+        alimerLogError(LogCategory_System, "Win32: Failed to convert string from UTF-8");
+        return nullptr;
+    }
+
+    target = ALIMER_ALLOCN(WCHAR, count);
+
+    if (!MultiByteToWideChar(CP_UTF8, 0, source, -1, target, count))
+    {
+        alimerLogError(LogCategory_System, "Win32: Failed to convert string from UTF-8");
+        alimerFree(target);
+        return nullptr;
+    }
+
+    return target;
+}
+
+/// Returns a UTF-8 string version of the specified wide string
+char* Win32_CreateUTF8FromWideString(const WCHAR* source)
+{
+    char* target;
+    int size;
+
+    size = WideCharToMultiByte(CP_UTF8, 0, source, -1, NULL, 0, NULL, NULL);
+    if (!size)
+    {
+        alimerLogError(LogCategory_System, "Win32: Failed to convert string to UTF-8");
+        return nullptr;
+    }
+
+    target = ALIMER_ALLOCN(char, size);
+
+    if (!WideCharToMultiByte(CP_UTF8, 0, source, -1, target, size, NULL, NULL))
+    {
+        alimerLogError(LogCategory_System, "Win32: Failed to convert string to UTF-8");
+        alimerFree(target);
+        return nullptr;
+    }
+
+    return target;
+}
+
+#endif

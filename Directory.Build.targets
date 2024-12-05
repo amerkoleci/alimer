@@ -22,13 +22,6 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-  <!-- Assembly attributes to include for every project -->
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
-      <_Parameter1>windows10.0.19043.0</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
   <!-- platform version number information -->
   <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWinUI)' == 'True' ">
     <SupportedOSPlatformVersion>10.0.19043.0</SupportedOSPlatformVersion>

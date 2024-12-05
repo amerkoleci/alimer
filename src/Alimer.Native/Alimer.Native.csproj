@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net461;net8.0;net9.0</TargetFrameworks>
+    <Description>Alimer native libraries</Description>
+    <PackageVersion>1.0.0</PackageVersion>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(AlimerRootDirectory)/README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="build\**" PackagePath="build/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/netstandard2.0" />
+    <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net461" />
+    <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net8.0" />
+    <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)win-x64\openal.dll">
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)win-arm64\alimer_native.dll">
+      <PackagePath>runtimes\win-arm64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)linux-x64\libalimer_native.so">
+      <PackagePath>runtimes\linux-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)linux-x64\libopenal.so">
+      <PackagePath>runtimes\linux-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)osx\libalimer_native.dylib">
+      <PackagePath>runtimes\osx\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)osx\libopenal.dylib">
+      <PackagePath>runtimes\osx\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+  </ItemGroup>
+
+</Project>

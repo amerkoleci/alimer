@@ -7,15 +7,18 @@
 #include "alimer.h"
 
 /* Forward declarations */
-typedef struct GPUAdapterImpl*          GPUAdapter;
-typedef struct GPUSurfaceImpl*          GPUSurface;
-typedef struct GPUDeviceImpl*           GPUDevice;
-typedef struct GPUQueueImpl*            GPUQueue;
-typedef struct GPUCommandBufferImpl*    GPUCommandBuffer;
-typedef struct GPUBufferImpl*           GPUBuffer;
-typedef struct GPUTextureImpl*          GPUTexture;
-typedef struct GPUTextureViewImpl*      GPUTextureView;
-typedef struct GPUShaderModuleImpl*     GPUShaderModule;
+typedef struct GPUAdapter               GPUAdapter;
+typedef struct GPUSurface               GPUSurface;
+typedef struct GPUDevice                GPUDevice;
+typedef struct GPUQueue                 GPUQueue;
+typedef struct GPUCommandBuffer         GPUCommandBuffer;
+typedef struct GPUBuffer                GPUBuffer;
+typedef struct GPUTexture               GPUTexture;
+typedef struct GPUTextureView           GPUTextureView;
+typedef struct GPUShaderModule          GPUShaderModule;
+
+/* Types */
+typedef uint64_t GPUDeviceAddress;
 
 /* Constants */
 #define GPU_MAX_INFLIGHT_FRAMES (2u)
@@ -41,22 +44,27 @@ typedef enum GPUMemoryType {
 } GPUMemoryType;
 
 typedef uint64_t GPUBufferUsage;
-static const GPUBufferUsage GPUBufferUsage_None = 0x0000000000000000;
-static const GPUBufferUsage GPUBufferUsage_Vertex = 0x0000000000000001;
-static const GPUBufferUsage GPUBufferUsage_Index = 0x0000000000000002;
+static const GPUBufferUsage GPUBufferUsage_None = 0;
+static const GPUBufferUsage GPUBufferUsage_Vertex = (1 << 0);
+static const GPUBufferUsage GPUBufferUsage_Index = (1 << 1);
 /// Supports Constant buffer access.
-static const GPUBufferUsage GPUBufferUsage_Constant = 0x0000000000000004;
-static const GPUBufferUsage GPUBufferUsage_ShaderRead = 0x0000000000000008;
-static const GPUBufferUsage GPUBufferUsage_ShaderWrite = 0x0000000000000010;
+static const GPUBufferUsage GPUBufferUsage_Constant = (1 << 2);
+static const GPUBufferUsage GPUBufferUsage_ShaderRead = (1 << 3);
+static const GPUBufferUsage GPUBufferUsage_ShaderWrite = (1 << 4);
 /// Supports indirect buffer access for indirect draw/dispatch.
-static const GPUBufferUsage GPUBufferUsage_Indirect = 0x0000000000000020;
+static const GPUBufferUsage GPUBufferUsage_Indirect = (1 << 5);
 /// Supports predication access for conditional rendering.
-static const GPUBufferUsage GPUBufferUsage_Predication = 0x0000000000000040;
+static const GPUBufferUsage GPUBufferUsage_Predication = (1 << 6);
 /// Supports ray tracing acceleration structure usage.
-static const GPUBufferUsage GPUBufferUsage_RayTracing = 0x0000000000000080;
+static const GPUBufferUsage GPUBufferUsage_RayTracing = (1 << 7);
 
 typedef uint64_t GPUTextureUsage;
-static const GPUTextureUsage GPUTextureUsage_None = 0x0000000000000000;
+static const GPUTextureUsage GPUTextureUsage_None = 0;
+static const GPUTextureUsage GPUTextureUsage_ShaderRead = (1 << 0);
+static const GPUTextureUsage GPUTextureUsage_ShaderWrite = (1 << 1);
+static const GPUTextureUsage GPUTextureUsage_RenderTarget = (1 << 2);
+static const GPUTextureUsage GPUTextureUsage_Transient = (1 << 3);
+static const GPUTextureUsage GPUTextureUsage_ShadingRate = (1 << 4);
 
 typedef enum GPUBackendType {
     GPUBackendType_Undefined = 0,
@@ -91,20 +99,28 @@ typedef enum GPUQueueType {
     GPUQueueType_Graphics = 0,
     GPUQueueType_Compute,
     GPUQueueType_Copy,
-    //GPUQueueType_VideoDecode,
+    GPUQueueType_VideoDecode,
 
     GPUQueueType_Count,
     _GPUQueueType_Force32 = 0x7FFFFFFF
 } GPUQueueType;
 
 /* Structs */
-typedef struct GPULimits {
-    uint32_t maxTextureDimension1D;
-    uint32_t maxTextureDimension2D;
-    uint32_t maxTextureDimension3D;
-    uint32_t maxTextureDimensionCube;
-    uint32_t maxTextureArrayLayers;
-} GPULimits;
+typedef struct ScissorRect {
+    uint32_t x;
+    uint32_t y;
+    uint32_t width;
+    uint32_t height;
+} ScissorRect;
+
+typedef struct GPUViewport {
+    float x;
+    float y;
+    float width;
+    float height;
+    float minDepth;
+    float maxDepth;
+} GPUViewport;
 
 typedef struct GPUCommandBufferDesc {
     const char* label;
@@ -130,9 +146,36 @@ typedef struct GPUTextureDesc {
 } GPUTextureDesc;
 
 typedef struct GPURequestAdapterOptions {
-    GPUSurface compatibleSurface;
+    GPUSurface* compatibleSurface;
     GPUPowerPreference powerPreference;
 } GPURequestAdapterOptions;
+
+typedef struct GPULimits {
+    uint32_t maxTextureDimension1D;
+    uint32_t maxTextureDimension2D;
+    uint32_t maxTextureDimension3D;
+    uint32_t maxTextureDimensionCube;
+    uint32_t maxTextureArrayLayers;
+    uint64_t maxConstantBufferBindingSize;
+    uint64_t maxStorageBufferBindingSize;
+    uint32_t minConstantBufferOffsetAlignment;
+    uint32_t minStorageBufferOffsetAlignment;
+    uint64_t maxBufferSize;
+    uint32_t maxColorAttachments;
+    uint32_t maxComputeWorkgroupStorageSize;
+    uint32_t maxComputeInvocationsPerWorkgroup;
+    uint32_t maxComputeWorkgroupSizeX;
+    uint32_t maxComputeWorkgroupSizeY;
+    uint32_t maxComputeWorkgroupSizeZ;
+    uint32_t maxComputeWorkgroupsPerDimension;
+} GPULimits;
+
+typedef struct GPUSurfaceConfiguration {
+    GPUDevice* device;
+    PixelFormat format;
+    uint32_t width;
+    uint32_t height;
+} GPUSurfaceConfiguration;
 
 typedef struct GPUConfig {
     GPUBackendType preferredBackend;
@@ -142,38 +185,46 @@ typedef struct GPUConfig {
 ALIMER_API bool agpuIsBackendSupport(GPUBackendType backend);
 ALIMER_API bool agpuInit(const GPUConfig* config);
 ALIMER_API void agpuShutdown(void);
-ALIMER_API GPUSurface agpuCreateSurface(Window* window);
-ALIMER_API GPUAdapter agpuRequestAdapter(const GPURequestAdapterOptions* options);
+ALIMER_API GPUAdapter* agpuRequestAdapter(const GPURequestAdapterOptions* options);
 
 /* Surface */
-ALIMER_API uint32_t agpuSurfaceAddRef(GPUSurface surface);
-ALIMER_API uint32_t agpuSurfaceRelease(GPUSurface surface);
+ALIMER_API GPUSurface* agpuSurfaceCreate(Window* window);
+ALIMER_API void agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfiguration* config);
+ALIMER_API void agpuSurfaceUnconfigure(GPUSurface* surface);
+ALIMER_API uint32_t agpuSurfaceAddRef(GPUSurface* surface);
+ALIMER_API uint32_t agpuSurfaceRelease(GPUSurface* surface);
 
 /* Adapter */
-ALIMER_API GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits);
-ALIMER_API GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter);
+ALIMER_API GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits);
+ALIMER_API GPUDevice* agpuAdapterCreateDevice(GPUAdapter* adapter);
 
 /* Device */
-ALIMER_API void agpuDeviceRelease(GPUDevice device);
-ALIMER_API GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type);
-ALIMER_API bool agpuDeviceWaitIdle(GPUDevice device);
+ALIMER_API uint32_t agpuDeviceAddRef(GPUDevice* device);
+ALIMER_API uint32_t agpuDeviceRelease(GPUDevice* device);
+ALIMER_API GPUQueue* agpuDeviceGetQueue(GPUDevice* device, GPUQueueType type);
+ALIMER_API bool agpuDeviceWaitIdle(GPUDevice* device);
 
 /// Commit the current frame and advance to next frame
-ALIMER_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
+ALIMER_API uint64_t agpuDeviceCommitFrame(GPUDevice* device);
+
+ALIMER_API GPUBuffer* agpuDeviceCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const void* pInitialData);
+ALIMER_API GPUTexture* agpuDeviceCreateTexture(GPUDevice* device, const GPUTextureDesc* desc);
 
 /* Queue */
-ALIMER_API GPUCommandBuffer agpuQueueCreateCommandBuffer(GPUQueue queue, const GPUCommandBufferDesc* desc);
+ALIMER_API GPUQueueType agpuQueueGetType(GPUQueue* queue);
+ALIMER_API GPUCommandBuffer* agpuQueueAcquireCommandBuffer(GPUQueue* queue, const GPUCommandBufferDesc* desc);
+ALIMER_API void agpuQueueSubmit(GPUQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers);
 
 /* CommandBuffer */
 
 /* Buffer */
-ALIMER_API GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
-ALIMER_API uint32_t agpuBufferAddRef(GPUBuffer buffer);
-ALIMER_API uint32_t agpuBufferRelease(GPUBuffer buffer);
+ALIMER_API uint32_t agpuBufferAddRef(GPUBuffer* buffer);
+ALIMER_API uint32_t agpuBufferRelease(GPUBuffer* buffer);
+ALIMER_API uint64_t agpuBufferGetSize(GPUBuffer* buffer);
+ALIMER_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer);
 
 /* Texture */
-ALIMER_API GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc);
-ALIMER_API uint32_t agpuTextureAddRef(GPUTexture texture);
-ALIMER_API uint32_t agpuTextureRelease(GPUTexture texture);
+ALIMER_API uint32_t agpuTextureAddRef(GPUTexture* texture);
+ALIMER_API uint32_t agpuTextureRelease(GPUTexture* texture);
 
 #endif /* ALIMER_GPU_H_ */

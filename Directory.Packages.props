@@ -22,7 +22,6 @@
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D12" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="XenoAtom.Collections" Version="1.2.0" />
     <PackageVersion Include="Alimer.Bindings.SDL" Version="3.9.4" />
-    <PackageVersion Include="StbImageSharp" Version="2.30.15" />
 
     <!-- Graphics -->
     <PackageVersion Include="Alimer.Bindings.WebGPU" Version="1.5.0" />

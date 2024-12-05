@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <AlimerTargetSystem Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">win</AlimerTargetSystem>
+    <AlimerTargetSystem Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">osx</AlimerTargetSystem>
+    <AlimerTargetSystem Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</AlimerTargetSystem>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- handle PlatformTarget specifically -->
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and '$(PlatformTarget)' == 'ARM'">arm</AlimerTargetPlatform>
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and '$(PlatformTarget)' == 'ARM64'">arm64</AlimerTargetPlatform>
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and '$(PlatformTarget)' == 'x86'">x86</AlimerTargetPlatform>
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and '$(PlatformTarget)' == 'x64'">x64</AlimerTargetPlatform>
+    <!-- handle Any CPU, considering Prefer32Bit -->
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and '$(Prefer32Bit)' == 'False'">x64</AlimerTargetPlatform>
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and '$(Prefer32Bit)' == 'True'">x86</AlimerTargetPlatform>
+    <!-- fall back to x64 on 64-bit machines -->
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == '' and $([System.Environment]::Is64BitOperatingSystem)">x64</AlimerTargetPlatform>
+    <!-- fall back to x86 -->
+    <AlimerTargetPlatform Condition="'$(AlimerTargetPlatform)' == ''">x86</AlimerTargetPlatform>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AlimerNativeLibrary Condition="'$(AlimerTargetSystem)' == 'win'">$(MSBuildThisFileDirectory)..\..\runtimes\$(AlimerTargetSystem)-$(AlimerTargetPlatform)\native\alimer_native.dll</AlimerNativeLibrary>
+    <AlimerNativeLibrary Condition="'$(AlimerTargetSystem)' == 'osx'">$(MSBuildThisFileDirectory)..\..\runtimes\$(AlimerTargetSystem)-$(AlimerTargetPlatform)\native\libalimer_native.dylib</AlimerNativeLibrary>
+    <AlimerNativeLibrary Condition="'$(AlimerTargetSystem)' == 'linux'">$(MSBuildThisFileDirectory)..\..\runtimes\$(AlimerTargetSystem)-$(AlimerTargetPlatform)\native\libalimer_native.so</AlimerNativeLibrary>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(AlimerNativeLibrary)" Condition="Exists('$(AlimerNativeLibrary)')">
+      <Link>$([System.IO.Path]::GetFilename('$(AlimerNativeLibrary)'))</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

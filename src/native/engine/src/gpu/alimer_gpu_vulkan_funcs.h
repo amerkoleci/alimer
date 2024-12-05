@@ -213,6 +213,11 @@ VULKAN_DEVICE_FUNCTION(vkCmdDrawMeshTasksIndirectCountEXT)
 VULKAN_DEVICE_FUNCTION(vkCmdDrawMeshTasksIndirectEXT)
 #endif /* defined(VK_EXT_mesh_shader) */
 
+// Functions that require a device with 1.4 or VK_KHR_synchronization2
+#if defined(VK_VERSION_1_4) || defined(VK_KHR_push_descriptor)
+VULKAN_DEVICE_FUNCTION(vkCmdPushDescriptorSet)
+#endif /* defined(VK_VERSION_1_4) || defined(VK_KHR_push_descriptor) */
+
 /* Redefine these every time you include this header! */
 #undef VULKAN_GLOBAL_FUNCTION
 #undef VULKAN_INSTANCE_FUNCTION

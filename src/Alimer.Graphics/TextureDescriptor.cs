@@ -35,7 +35,7 @@ public record struct TextureDescriptor
         Width = width;
         Height = height;
         DepthOrArrayLayers = depthOrArrayLayers;
-        MipLevelCount = mipLevelCount == 0 ? (uint)ImageDescription.GetMipLevelCount((int)width, (int)height, dimension == TextureDimension.Texture3D ? (int)depthOrArrayLayers : 1) : mipLevelCount;
+        MipLevelCount = mipLevelCount == 0 ? ImageDescription.GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1u) : mipLevelCount;
         SampleCount = sampleCount;
         Usage = usage;
         CpuAccess = access;

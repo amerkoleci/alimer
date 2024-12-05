@@ -39,6 +39,7 @@ ALIMER_ENABLE_WARNINGS()
 #include <dlfcn.h>
 #endif
 
+#include <inttypes.h>
 #include <vector>
 #include <deque>
 
@@ -218,6 +219,9 @@ struct VulkanPhysicalDeviceExtensions final
     bool pipelineCreationCacheControl;
     bool formatFeatureFlags2;
 
+    // Core 1.4
+    bool pushDescriptor;
+
     // Extensions
     bool swapchain;
     bool memoryBudget;
@@ -227,7 +231,6 @@ struct VulkanPhysicalDeviceExtensions final
     bool hostQueryReset;
     bool deferredHostOperations;
     bool multiview;
-    bool samplerFilterMinmax;
     bool portabilitySubset;
     bool depthClipEnable;
     bool textureCompressionAstcHdr;
@@ -239,6 +242,7 @@ struct VulkanPhysicalDeviceExtensions final
     bool externalFence;
 
     bool maintenance5;
+    bool maintenance6;
     bool accelerationStructure;
     bool raytracingPipeline;
     bool rayQuery;
@@ -328,6 +332,10 @@ static inline VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhy
         {
             extensions.formatFeatureFlags2 = true;
         }
+        else if (strcmp(vk_extensions[i].extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) == 0)
+        {
+            extensions.pushDescriptor = true;
+        }
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             extensions.swapchain = true;
@@ -360,10 +368,6 @@ static inline VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhy
         {
             extensions.multiview = true;
         }
-        else if (strcmp(vk_extensions[i].extensionName, VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME) == 0)
-        {
-            extensions.samplerFilterMinmax = true;
-        }
         else if (strcmp(vk_extensions[i].extensionName, "VK_KHR_portability_subset") == 0) // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
         {
             extensions.portabilitySubset = true;
@@ -387,6 +391,10 @@ static inline VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhy
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_MAINTENANCE_5_EXTENSION_NAME) == 0)
         {
             extensions.maintenance5 = true;
+        }
+        else if (strcmp(vk_extensions[i].extensionName, VK_KHR_MAINTENANCE_6_EXTENSION_NAME) == 0)
+        {
+            extensions.maintenance6 = true;
         }
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) == 0)
         {
@@ -477,6 +485,13 @@ static inline VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhy
     VkPhysicalDeviceProperties gpuProps;
     vkGetPhysicalDeviceProperties(physicalDevice, &gpuProps);
 
+    // Core 1.4
+    if (gpuProps.apiVersion >= VK_API_VERSION_1_4)
+    {
+        extensions.maintenance6 = true;
+        extensions.pushDescriptor = true;
+    }
+
     // Core 1.3
     if (gpuProps.apiVersion >= VK_API_VERSION_1_3)
     {
@@ -487,12 +502,6 @@ static inline VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhy
         extensions.extendedDynamicState2 = true;
         extensions.pipelineCreationCacheControl = true;
         extensions.formatFeatureFlags2 = true;
-    }
-
-    // Core 1.2
-    if (gpuProps.apiVersion >= VK_API_VERSION_1_2)
-    {
-        extensions.samplerFilterMinmax = true;
     }
 
     return extensions;
@@ -613,7 +622,6 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
 
     if (supportsVideoQueue)
     {
-#if TODO_VIDEO_DECODE
         if (!FindVacantQueue(indices.familyIndices[GPUQueueType_VideoDecode],
             indices.queueIndices[GPUQueueType_VideoDecode],
             VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
@@ -621,8 +629,6 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
             indices.familyIndices[GPUQueueType_VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
             indices.queueIndices[GPUQueueType_VideoDecode] = UINT32_MAX;
         }
-#endif // TODO_VIDEO_DECODE
-
 
 #ifdef VK_ENABLE_BETA_EXTENSIONS
         //if ((flags & CONTEXT_CREATION_ENABLE_VIDEO_ENCODE_BIT) != 0)
@@ -643,11 +649,12 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
 
 struct VulkanGPUInstance;
 struct VulkanGPUAdapter;
-struct VulkanGPUQueue;
+struct VulkanQueue;
 struct VulkanGPUDevice;
 
-struct VulkanGPUBuffer final : public GPUBufferImpl
+struct VulkanBuffer final : public GPUBuffer
 {
+    GPUBufferDesc desc;
     VulkanGPUDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
@@ -656,39 +663,93 @@ struct VulkanGPUBuffer final : public GPUBufferImpl
     void* pMappedData = nullptr;
     void* sharedHandle = nullptr;
 
-    ~VulkanGPUBuffer() override;
-    void SetLabel([[maybe_unused]] const char* label) override;
+    ~VulkanBuffer() override;
+    void SetLabel(const char* label) override;
+    uint64_t GetSize() const override { return desc.size; }
+    GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct VulkanGPUCommandBuffer final : public GPUCommandBufferImpl
-{
-    VulkanGPUQueue* queue = nullptr;
-    uint32_t index = 0;
-};
-
-struct VulkanGPUQueue final : public GPUQueueImpl
+struct VulkanGPUTexture final : public GPUTexture
 {
     VulkanGPUDevice* device = nullptr;
+    VkImage handle = VK_NULL_HANDLE;
+    VmaAllocation allocation = nullptr;
+
+    ~VulkanGPUTexture() override;
+};
+
+struct VulkanCommandBuffer final : public GPUCommandBuffer
+{
+    VulkanQueue* queue = nullptr;
+    uint32_t index = 0;
+    VkCommandPool commandPools[GPU_MAX_INFLIGHT_FRAMES] = {};
+    VkCommandBuffer commandBuffers[GPU_MAX_INFLIGHT_FRAMES] = {};
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    uint32_t numBarriersToCommit = 0;
+    std::vector<VkMemoryBarrier2> memoryBarriers;
+    std::vector<VkImageMemoryBarrier2> imageBarriers;
+    std::vector<VkBufferMemoryBarrier2> bufferBarriers;
+
+    ~VulkanCommandBuffer() override;
+    void Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc);
+    VkCommandBuffer End() const;
+};
+
+struct VulkanQueue final : public GPUQueue
+{
+    VulkanGPUDevice* device = nullptr;
+    GPUQueueType type = GPUQueueType_Count;
     VkQueue handle = VK_NULL_HANDLE;
     VkFence frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
     std::mutex mutex;
 
-    std::vector<VulkanGPUCommandBuffer*> commandBuffers;
+    std::vector<VulkanCommandBuffer*> commandBuffers;
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUCommandBuffer CreateCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    GPUQueueType GetType() const override { return type; }
+    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers) override;
     void Submit(VkFence fence);
 };
 
-struct VulkanGPUDevice final : public GPUDeviceImpl
+struct VulkanUploadContext final
+{
+    VkCommandPool transferCommandPool = VK_NULL_HANDLE;
+    VkCommandBuffer transferCommandBuffer = VK_NULL_HANDLE;
+    VkCommandPool transitionCommandPool = VK_NULL_HANDLE;
+    VkCommandBuffer transitionCommandBuffer = VK_NULL_HANDLE;
+    VkFence fence = VK_NULL_HANDLE;
+    VkSemaphore semaphores[3] = { VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE }; // graphics, compute, video
+    VulkanBuffer* uploadBuffer = nullptr;
+    void* uploadBufferData = nullptr;
+    uint64_t uploadBufferSize = 0;
+
+    inline bool IsValid() const { return transferCommandBuffer != VK_NULL_HANDLE; }
+};
+
+struct VulkanCopyAllocator final
+{
+    VulkanGPUDevice* device = nullptr;
+    std::mutex locker;
+    std::vector<VulkanUploadContext> freeList;
+
+    void Init(VulkanGPUDevice* device);
+    void Shutdown();
+    VulkanUploadContext Allocate(uint64_t size);
+    void Submit(VulkanUploadContext context);
+};
+
+struct VulkanGPUDevice final : public GPUDevice
 {
     VulkanGPUAdapter* adapter = nullptr;
     VkDevice handle = VK_NULL_HANDLE;
-    VulkanGPUQueue queues[GPUQueueType_Count];
+    VulkanQueue queues[GPUQueueType_Count];
     VkPipelineCache pipelineCache = VK_NULL_HANDLE;
     VmaAllocator allocator = nullptr;
     VmaAllocator externalAllocator = nullptr;
+    VulkanCopyAllocator copyAllocator;
+
     std::vector<VkDynamicState> psoDynamicStates;
     VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
 
@@ -715,29 +776,31 @@ struct VulkanGPUDevice final : public GPUDeviceImpl
 #include "alimer_gpu_vulkan_funcs.h"
 
     ~VulkanGPUDevice() override;
-    GPUQueue GetQueue(GPUQueueType type) override;
+    GPUQueue* GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
     void ProcessDeletionQueue(bool force);
 
     /* Resource creation */
-    GPUBuffer CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
-    GPUTexture CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) override;
+    GPUBuffer* CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
     void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices) const;
 };
 
-struct VulkanGPUSurface final : public GPUSurfaceImpl
+struct VulkanSurface final : public GPUSurface
 {
     VkInstance instance = VK_NULL_HANDLE;
     VkSurfaceKHR handle = VK_NULL_HANDLE;
 
-    ~VulkanGPUSurface() override;
+    ~VulkanSurface() override;
+    void Configure(const GPUSurfaceConfiguration* config) override;
+    void Unconfigure() override;
 };
 
-struct VulkanGPUAdapter final : public GPUAdapterImpl
+struct VulkanGPUAdapter final : public GPUAdapter
 {
     VulkanGPUInstance* instance = nullptr;
     VkPhysicalDevice handle = nullptr;
@@ -752,6 +815,7 @@ struct VulkanGPUAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceVulkan11Features features11 = {};
     VkPhysicalDeviceVulkan12Features features12 = {};
     VkPhysicalDeviceVulkan13Features features13 = {};
+    VkPhysicalDeviceVulkan14Features features14 = {};
 
     // Core 1.3
     VkPhysicalDeviceMaintenance4Features maintenance4Features = {};
@@ -787,7 +851,7 @@ struct VulkanGPUAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceMemoryProperties2 memoryProperties2;
 
     GPUResult GetLimits(GPULimits* limits) const override;
-    GPUDevice CreateDevice() override;
+    GPUDevice* CreateDevice() override;
 };
 
 struct VulkanGPUInstance final : public GPUInstance
@@ -802,41 +866,211 @@ struct VulkanGPUInstance final : public GPUInstance
     VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
 
     ~VulkanGPUInstance() override;
-    GPUSurface CreateSurface(Window* window) override;
-    GPUAdapter RequestAdapter(const GPURequestAdapterOptions* options) override;
+    GPUSurface* CreateSurface(Window* window) override;
+    GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
-/* VulkanGPUBuffer */
-VulkanGPUBuffer::~VulkanGPUBuffer()
+/* VulkanBuffer */
+VulkanBuffer::~VulkanBuffer()
 {
+    const uint64_t frameCount = device->frameCount;
 
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedBuffers.push_back(std::make_pair(std::make_pair(handle, allocation), frameCount));
+        handle = nullptr;
+    }
+    else if (allocation != nullptr)
+    {
+        device->destroyedAllocations.push_back(std::make_pair(allocation, frameCount));
+    }
+    device->destroyMutex.unlock();
+
+    handle = VK_NULL_HANDLE;
+    allocation = nullptr;
 }
 
-void VulkanGPUBuffer::SetLabel(const char* label)
+void VulkanBuffer::SetLabel(const char* label)
 {
     device->SetObjectName(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(handle), label);
 }
 
-/* VulkanGPUQueue */
-GPUCommandBuffer VulkanGPUQueue::CreateCommandBuffer(const GPUCommandBufferDesc* desc)
+/* VulkanCommandBuffer */
+VulkanCommandBuffer::~VulkanCommandBuffer()
+{
+    for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+    {
+        queue->device->vkDestroyCommandPool(queue->device->handle, commandPools[i], nullptr);
+    }
+
+    //vkDestroySemaphore(device->device, semaphore, nullptr);
+}
+
+void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc)
+{
+    //GraphicsContext::Reset(frameIndex);
+    //waits.clear();
+    //hasPendingWaits.store(false);
+    //currentPipeline.Reset();
+    //currentPipelineLayout.Reset();
+    //presentSwapChains.clear();
+    memoryBarriers.clear();
+    imageBarriers.clear();
+    bufferBarriers.clear();
+
+    VK_CHECK(queue->device->vkResetCommandPool(queue->device->handle, commandPools[frameIndex], 0));
+    commandBuffer = commandBuffers[frameIndex];
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr; // Optional
+    VK_CHECK(queue->device->vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+#if TODO
+    if (queue->type != GPUQueueType_Copy)
+    {
+        bindGroupsDirty = false;
+        numBoundBindGroups = 0;
+        for (uint32_t i = 0; i < kMaxBindGroups; ++i)
+        {
+            boundBindGroups[i].Reset();
+            descriptorSets[i] = VK_NULL_HANDLE;
+        }
+    }
+#endif
+    if (queue->type == GPUQueueType_Graphics)
+    {
+        VkRect2D scissors[16];
+        for (uint32_t i = 0; i < 16; ++i)
+        {
+            scissors[i].offset.x = 0;
+            scissors[i].offset.y = 0;
+            scissors[i].extent.width = 65535;
+            scissors[i].extent.height = 65535;
+        }
+        queue->device->vkCmdSetScissor(commandBuffer, 0, 16, scissors);
+
+        const float blendConstants[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        queue->device->vkCmdSetBlendConstants(commandBuffer, blendConstants);
+        queue->device->vkCmdSetStencilReference(commandBuffer, VK_STENCIL_FRONT_AND_BACK, ~0u);
+
+#if TODO
+        if (device->physicalDeviceFeatures2.features.depthBounds == VK_TRUE)
+        {
+            vkCmdSetDepthBounds(commandBuffer, 0.0f, 1.0f);
+        }
+
+        if (device->QueryFeatureSupport(RHIFeature::VariableRateShading))
+        {
+            VkExtent2D fragmentSize = {};
+            fragmentSize.width = 1;
+            fragmentSize.height = 1;
+
+            VkFragmentShadingRateCombinerOpKHR combiner[] = {
+                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
+            };
+
+            vkCmdSetFragmentShadingRateKHR(commandBuffer, &fragmentSize, combiner);
+        }
+#endif // TODO
+
+    }
+
+#if TODO
+    hasLabel = !label.empty();
+    if (hasLabel)
+    {
+        PushDebugGroup(label);
+        hasLabel = true;
+    }
+#endif // TODO
+
+}
+
+VkCommandBuffer VulkanCommandBuffer::End() const
+{
+    //for (auto& swapChain : presentSwapChains)
+    //{
+    //    VulkanTexture* swapChainTexture = swapChain->backbufferTextures[swapChain->imageIndex].Get();
+    //    TextureBarrier(swapChainTexture, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+    //}
+    //CommitBarriers();
+    //
+    //if (hasLabel)
+    //{
+    //    PopDebugGroup();
+    //}
+
+    VK_CHECK(queue->device->vkEndCommandBuffer(commandBuffer));
+    return commandBuffer;
+}
+
+/* VulkanQueue */
+GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
     if (index >= commandBuffers.size())
     {
-        VulkanGPUCommandBuffer* commandBuffer = new VulkanGPUCommandBuffer();
+        VulkanCommandBuffer* commandBuffer = new VulkanCommandBuffer();
         commandBuffer->queue = this;
         commandBuffer->index = index;
+
+        for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+        {
+            VkCommandPoolCreateInfo poolInfo = {};
+            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            poolInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[type];
+            VK_CHECK(device->vkCreateCommandPool(device->handle, &poolInfo, nullptr, &commandBuffer->commandPools[i]));
+
+            VkCommandBufferAllocateInfo commandBufferInfo = {};
+            commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            commandBufferInfo.commandPool = commandBuffer->commandPools[i];
+            commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            commandBufferInfo.commandBufferCount = 1;
+            VK_CHECK(device->vkAllocateCommandBuffers(device->handle, &commandBufferInfo, &commandBuffer->commandBuffers[i]));
+        }
+
         commandBuffers.push_back(commandBuffer);
     }
     cmdBuffersLocker.unlock();
-
-    //commandBuffers[index]->Begin(frameIndex, label);
+    commandBuffers[index]->Begin(device->frameIndex, desc);
 
     return commandBuffers[index];
 }
 
-void VulkanGPUQueue::Submit(VkFence fence)
+void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers)
+{
+    std::vector<VkSemaphoreSubmitInfo> submitWaitSemaphoreInfos;
+    std::vector<VkSemaphoreSubmitInfo> submitSignalSemaphoreInfos;
+    std::vector<VkCommandBufferSubmitInfo> submitCommandBufferInfos;
+
+    for (uint32_t i = 0; i < numCommandBuffers; i++)
+    {
+        const VulkanCommandBuffer* commandBuffer = static_cast<const VulkanCommandBuffer*>(commandBuffers[i]);
+
+        VkCommandBufferSubmitInfo& commandBufferSubmitInfo = submitCommandBufferInfos.emplace_back();
+        commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+        commandBufferSubmitInfo.commandBuffer = commandBuffer->End();
+    }
+
+    VkFence fence = VK_NULL_HANDLE;
+    VkSubmitInfo2 submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+    submitInfo.waitSemaphoreInfoCount = (uint32_t)submitWaitSemaphoreInfos.size();
+    submitInfo.pWaitSemaphoreInfos = submitWaitSemaphoreInfos.data();
+    submitInfo.commandBufferInfoCount = (uint32_t)submitCommandBufferInfos.size();
+    submitInfo.pCommandBufferInfos = submitCommandBufferInfos.data();
+    submitInfo.signalSemaphoreInfoCount = (uint32_t)submitSignalSemaphoreInfos.size();
+    submitInfo.pSignalSemaphoreInfos = submitSignalSemaphoreInfos.data();
+    VK_CHECK(device->vkQueueSubmit2(handle, 1, &submitInfo, fence));
+}
+
+void VulkanQueue::Submit(VkFence fence)
 {
     if (handle == VK_NULL_HANDLE)
         return;
@@ -902,25 +1136,253 @@ void VulkanGPUQueue::Submit(VkFence fence)
 
 }
 
+/* VulkanCopyAllocator */
+void VulkanCopyAllocator::Init(VulkanGPUDevice* device_)
+{
+    device = device_;
+}
+
+void VulkanCopyAllocator::Shutdown()
+{
+    device->vkQueueWaitIdle(device->queues[GPUQueueType_Copy].handle);
+    for (auto& context : freeList)
+    {
+        device->vkDestroyCommandPool(device->handle, context.transferCommandPool, nullptr);
+        device->vkDestroyCommandPool(device->handle, context.transitionCommandPool, nullptr);
+        device->vkDestroySemaphore(device->handle, context.semaphores[0], nullptr);
+        device->vkDestroySemaphore(device->handle, context.semaphores[1], nullptr);
+        device->vkDestroySemaphore(device->handle, context.semaphores[2], nullptr);
+        device->vkDestroyFence(device->handle, context.fence, nullptr);
+
+        context.uploadBuffer->Release();
+        context.uploadBuffer = nullptr;
+        context.uploadBufferData = nullptr;
+    }
+}
+
+VulkanUploadContext VulkanCopyAllocator::Allocate(uint64_t size)
+{
+    VulkanUploadContext context;
+
+    locker.lock();
+    // Try to search for a staging buffer that can fit the request:
+    for (size_t i = 0; i < freeList.size(); ++i)
+    {
+        if (freeList[i].uploadBufferSize >= size)
+        {
+            if (device->vkGetFenceStatus(device->handle, freeList[i].fence) == VK_SUCCESS)
+            {
+                context = std::move(freeList[i]);
+                std::swap(freeList[i], freeList.back());
+                freeList.pop_back();
+                break;
+            }
+        }
+    }
+    locker.unlock();
+
+    // If no buffer was found that fits the data then create new one.
+    if (!context.IsValid())
+    {
+        VkCommandPoolCreateInfo poolCreateInfo = {};
+        poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUQueueType_Copy];
+        VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transferCommandPool));
+
+        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUQueueType_Graphics];
+        VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transitionCommandPool));
+
+        VkCommandBufferAllocateInfo commandBufferInfo = {};
+        commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        commandBufferInfo.commandPool = context.transferCommandPool;
+        commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferInfo.commandBufferCount = 1u;
+        VK_CHECK(device->vkAllocateCommandBuffers(device->handle, &commandBufferInfo, &context.transferCommandBuffer));
+
+        commandBufferInfo.commandPool = context.transitionCommandPool;
+        VK_CHECK(device->vkAllocateCommandBuffers(device->handle, &commandBufferInfo, &context.transitionCommandBuffer));
+
+        VkFenceCreateInfo fenceInfo = {};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        VK_CHECK(device->vkCreateFence(device->handle, &fenceInfo, nullptr, &context.fence));
+
+        VkSemaphoreCreateInfo semaphoreInfo = {};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[0]));
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[1]));
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[2]));
+
+        context.uploadBufferSize = VmaNextPow2(size);
+        context.uploadBufferSize = VMA_MAX(context.uploadBufferSize, uint64_t(65536));
+
+        GPUBufferDesc uploadBufferDesc;
+        uploadBufferDesc.label = "CopyAllocator::UploadBuffer";
+        uploadBufferDesc.size = context.uploadBufferSize;
+        uploadBufferDesc.memoryType = GPUMemoryType_Upload;
+
+        if (context.uploadBuffer)
+        {
+            context.uploadBuffer->Release();
+        }
+        context.uploadBuffer = static_cast<VulkanBuffer*>(device->CreateBuffer(&uploadBufferDesc, nullptr));
+        ALIMER_ASSERT(context.uploadBuffer != nullptr);
+        context.uploadBufferData = context.uploadBuffer->pMappedData;
+    }
+
+    // Begin command list in valid state.
+    VK_CHECK(device->vkResetCommandPool(device->handle, context.transferCommandPool, 0));
+    VK_CHECK(device->vkResetCommandPool(device->handle, context.transitionCommandPool, 0));
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+    VK_CHECK(device->vkBeginCommandBuffer(context.transferCommandBuffer, &beginInfo));
+    VK_CHECK(device->vkBeginCommandBuffer(context.transitionCommandBuffer, &beginInfo));
+    VK_CHECK(device->vkResetFences(device->handle, 1, &context.fence));
+
+    return context;
+}
+
+void VulkanCopyAllocator::Submit(VulkanUploadContext context)
+{
+    VK_CHECK(device->vkEndCommandBuffer(context.transferCommandBuffer));
+    VK_CHECK(device->vkEndCommandBuffer(context.transitionCommandBuffer));
+
+    VkSemaphoreSubmitInfo waitSemaphoreInfo{};
+    waitSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+
+    // Copy queue first
+    {
+        VkCommandBufferSubmitInfo commandBufferInfo{};
+        commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+        commandBufferInfo.commandBuffer = context.transferCommandBuffer;
+
+        VkSemaphoreSubmitInfo signalSemaphoreInfo = {};
+        signalSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+        signalSemaphoreInfo.semaphore = context.semaphores[0]; // Signal for graphics queue
+        signalSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+
+        VkSubmitInfo2 submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+        submitInfo.waitSemaphoreInfoCount = 0;
+        submitInfo.pWaitSemaphoreInfos = nullptr;
+        submitInfo.commandBufferInfoCount = 1;
+        submitInfo.pCommandBufferInfos = &commandBufferInfo;
+        submitInfo.signalSemaphoreInfoCount = 1;
+        submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
+
+        std::scoped_lock lock(device->queues[GPUQueueType_Copy].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Copy].handle, 1, &submitInfo, VK_NULL_HANDLE));
+    }
+
+    // Graphics queue
+    {
+        waitSemaphoreInfo.semaphore = context.semaphores[0]; // Wait for copy queue
+        waitSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+
+        VkCommandBufferSubmitInfo commandBufferInfo{};
+        commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+        commandBufferInfo.commandBuffer = context.transitionCommandBuffer;
+
+        VkSemaphoreSubmitInfo signalSemaphoreInfos[2] = {};
+        signalSemaphoreInfos[0].sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+        signalSemaphoreInfos[0].semaphore = context.semaphores[1]; // Signal for compute queue
+        signalSemaphoreInfos[0].stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT; // Signal for compute queue
+
+        VkSubmitInfo2 submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+        submitInfo.waitSemaphoreInfoCount = 1;
+        submitInfo.pWaitSemaphoreInfos = &waitSemaphoreInfo;
+        submitInfo.commandBufferInfoCount = 1;
+        submitInfo.pCommandBufferInfos = &commandBufferInfo;
+
+        //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
+        //{
+        //    signalSemaphoreInfos[1].sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+        //    signalSemaphoreInfos[1].semaphore = cmd.semaphores[2]; // signal for video decode queue
+        //    signalSemaphoreInfos[1].stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT; // signal for video decode queue
+        //    submitInfo.signalSemaphoreInfoCount = 2;
+        //}
+        //else
+        {
+            submitInfo.signalSemaphoreInfoCount = 1;
+        }
+        submitInfo.pSignalSemaphoreInfos = signalSemaphoreInfos;
+
+        std::scoped_lock lock(device->queues[GPUQueueType_Graphics].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Graphics].handle, 1, &submitInfo, VK_NULL_HANDLE));
+    }
+
+    //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
+    //{
+    //    waitSemaphoreInfo.semaphore = cmd.semaphores[2]; // wait for graphics queue
+    //    waitSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    //
+    //    submitInfo.waitSemaphoreInfoCount = 1;
+    //    submitInfo.pWaitSemaphoreInfos = &waitSemaphoreInfo;
+    //    submitInfo.commandBufferInfoCount = 0;
+    //    submitInfo.pCommandBufferInfos = nullptr;
+    //    submitInfo.signalSemaphoreInfoCount = 0;
+    //    submitInfo.pSignalSemaphoreInfos = nullptr;
+    //
+    //    std::scoped_lock lock(device->queues[QUEUE_VIDEO_DECODE].locker);
+    //    res = vkQueueSubmit2(device->queues[QUEUE_VIDEO_DECODE].queue, 1, &submitInfo, VK_NULL_HANDLE);
+    //    assert(res == VK_SUCCESS);
+    //}
+
+    // This must be final submit in this function because it will also signal a fence for state tracking by CPU!
+    {
+        waitSemaphoreInfo.semaphore = context.semaphores[1]; // wait for graphics queue
+        waitSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+
+        VkSubmitInfo2 submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+        submitInfo.waitSemaphoreInfoCount = 1;
+        submitInfo.pWaitSemaphoreInfos = &waitSemaphoreInfo;
+        submitInfo.commandBufferInfoCount = 0;
+        submitInfo.pCommandBufferInfos = nullptr;
+        submitInfo.signalSemaphoreInfoCount = 0;
+        submitInfo.pSignalSemaphoreInfos = nullptr;
+
+        // Final submit also signals fence!
+        std::scoped_lock lock(device->queues[GPUQueueType_Compute].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Compute].handle, 1, &submitInfo, context.fence));
+    }
+
+    std::scoped_lock lock(locker);
+    freeList.push_back(context);
+}
+
 /* VulkanGPUDevice */
 VulkanGPUDevice::~VulkanGPUDevice()
 {
     VK_CHECK(vkDeviceWaitIdle(handle));
 
-    // Destory pending objects.
-    ProcessDeletionQueue(true);
-    frameCount = 0;
-
-    for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
+    for (uint32_t queueIndex = 0; queueIndex < GPUQueueType_Count; ++queueIndex)
     {
-        if (queues[i].handle == VK_NULL_HANDLE)
+        if (queues[queueIndex].handle == VK_NULL_HANDLE)
             continue;
 
         for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
         {
-            vkDestroyFence(handle, queues[i].frameFences[frameIndex], nullptr);
+            vkDestroyFence(handle, queues[queueIndex].frameFences[frameIndex], nullptr);
         }
+
+        // Destroy command buffers and pools
+        for (size_t cmdBufferIndex = 0, count = queues[queueIndex].commandBuffers.size(); cmdBufferIndex < count; ++cmdBufferIndex)
+        {
+            delete queues[queueIndex].commandBuffers[cmdBufferIndex];
+        }
+        queues[queueIndex].commandBuffers.clear();
     }
+
+    copyAllocator.Shutdown();
+
+    // Destory pending objects.
+    ProcessDeletionQueue(true);
+    frameCount = 0;
 
     if (allocator != nullptr)
     {
@@ -930,7 +1392,7 @@ VulkanGPUDevice::~VulkanGPUDevice()
 
         if (stats.total.statistics.allocationBytes > 0)
         {
-            //alimerLogWarn("Total device memory leaked:  {} bytes.", stats.total.statistics.allocationBytes);
+            alimerLogWarn(LogCategory_GPU, "Total device memory leaked: %" PRId64 " bytes.", stats.total.statistics.allocationBytes);
         }
 #endif
 
@@ -940,6 +1402,16 @@ VulkanGPUDevice::~VulkanGPUDevice()
 
     if (externalAllocator != nullptr)
     {
+#if defined(_DEBUG)
+        VmaTotalStatistics stats;
+        vmaCalculateStatistics(externalAllocator, &stats);
+
+        if (stats.total.statistics.allocationBytes > 0)
+        {
+            alimerLogWarn(LogCategory_GPU, "Total device external memory leaked: %" PRId64 " bytes.", stats.total.statistics.allocationBytes);
+        }
+#endif
+
         vmaDestroyAllocator(externalAllocator);
         externalAllocator = VK_NULL_HANDLE;
     }
@@ -957,7 +1429,7 @@ VulkanGPUDevice::~VulkanGPUDevice()
     }
 }
 
-GPUQueue VulkanGPUDevice::GetQueue(GPUQueueType type)
+GPUQueue* VulkanGPUDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
@@ -978,6 +1450,7 @@ uint64_t VulkanGPUDevice::CommitFrame()
     for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
     {
         queues[i].Submit(queues[i].frameFences[frameIndex]);
+        queues[i].cmdBuffersCount = 0;
     }
 
     // Begin new frame
@@ -1036,8 +1509,12 @@ void VulkanGPUDevice::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer* VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
 {
+    VulkanBuffer* buffer = new VulkanBuffer();
+    buffer->device = this;
+    buffer->desc = *desc;
+
     VkBufferCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     createInfo.size = desc->size;
@@ -1125,9 +1602,6 @@ GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* p
         createInfo.pNext = &bufUsageFlags2;
     }
 
-    VulkanGPUBuffer* buffer = new VulkanGPUBuffer();
-    buffer->device = this;
-
     VmaAllocationInfo allocationInfo{};
     VkResult result = vmaCreateBuffer(allocator,
         &createInfo,
@@ -1163,10 +1637,112 @@ GPUBuffer VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* p
         buffer->deviceAddress = vkGetBufferDeviceAddress(handle, &info);
     }
 
+    // Issue data copy on request
+    if (pInitialData != nullptr)
+    {
+        VulkanUploadContext context;
+        void* pMappedData = nullptr;
+        if (desc->memoryType == GPUMemoryType_Upload)
+        {
+            pMappedData = buffer->pMappedData;
+        }
+        else
+        {
+            context = copyAllocator.Allocate(createInfo.size);
+            pMappedData = context.uploadBufferData;
+        }
+
+        std::memcpy(pMappedData, pInitialData, desc->size);
+
+        if (context.IsValid())
+        {
+            VkBufferCopy copyRegion = {};
+            copyRegion.size = desc->size;
+            copyRegion.srcOffset = 0;
+            copyRegion.dstOffset = 0;
+
+            vkCmdCopyBuffer(
+                context.transferCommandBuffer,
+                context.uploadBuffer->handle,
+                buffer->handle,
+                1,
+                &copyRegion
+            );
+
+            VkBufferMemoryBarrier2 barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+            barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+            barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.buffer = buffer->handle;
+            barrier.size = VK_WHOLE_SIZE;
+
+            if (desc->usage & GPUBufferUsage_Vertex)
+            {
+                barrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
+                barrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+            }
+
+            if (desc->usage & GPUBufferUsage_Index)
+            {
+                barrier.dstStageMask |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
+                barrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
+            }
+
+            if (desc->usage & GPUBufferUsage_Constant)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
+            }
+
+            if (desc->usage & GPUBufferUsage_ShaderRead)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+            }
+
+            if (desc->usage & GPUBufferUsage_ShaderWrite)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+                barrier.dstAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
+            }
+
+            if (desc->usage & GPUBufferUsage_Indirect)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+            }
+
+            if (desc->usage & GPUBufferUsage_Predication)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT;
+            }
+
+            if (desc->usage & GPUBufferUsage_RayTracing)
+            {
+                barrier.dstAccessMask |= VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+            }
+
+            //if (CheckBitsAny(desc.usage, BufferUsage::VideoDecode))
+            //{
+            //    barrier.dstAccessMask |= VK_ACCESS_2_VIDEO_DECODE_READ_BIT_KHR;
+            //}
+
+            VkDependencyInfo dependencyInfo = {};
+            dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            dependencyInfo.bufferMemoryBarrierCount = 1;
+            dependencyInfo.pBufferMemoryBarriers = &barrier;
+
+            vkCmdPipelineBarrier2(context.transitionCommandBuffer, &dependencyInfo);
+
+            copyAllocator.Submit(context);
+        }
+    }
+
     return buffer;
 }
 
-GPUTexture VulkanGPUDevice::CreateTexture(const GPUTextureDesc* descriptor, const void* pInitialData)
+GPUTexture* VulkanGPUDevice::CreateTexture(const GPUTextureDesc* descriptor, const void* pInitialData)
 {
     return nullptr;
 }
@@ -1243,14 +1819,24 @@ void VulkanGPUDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t*
     }
 }
 
-/* VulkanGPUSurface */
-VulkanGPUSurface::~VulkanGPUSurface()
+/* VulkanSurface */
+VulkanSurface::~VulkanSurface()
 {
     if (handle != VK_NULL_HANDLE)
     {
         vkDestroySurfaceKHR(instance, handle, nullptr);
         handle = VK_NULL_HANDLE;
     }
+}
+
+void VulkanSurface::Configure(const GPUSurfaceConfiguration* config)
+{
+
+}
+
+void VulkanSurface::Unconfigure()
+{
+
 }
 
 /* VulkanGPUAdapter */
@@ -1261,11 +1847,31 @@ GPUResult VulkanGPUAdapter::GetLimits(GPULimits* limits) const
     limits->maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
     limits->maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
     limits->maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
+    limits->maxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange;
+    limits->maxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange;
+    limits->minConstantBufferOffsetAlignment = properties2.properties.limits.minUniformBufferOffsetAlignment;
+    limits->minStorageBufferOffsetAlignment = properties2.properties.limits.minStorageBufferOffsetAlignment;
+    limits->maxBufferSize = properties13.maxBufferSize;
+    limits->maxColorAttachments = properties2.properties.limits.maxColorAttachments;
+
+    /* Compute */
+    limits->maxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize;
+    limits->maxComputeInvocationsPerWorkgroup = properties2.properties.limits.maxComputeWorkGroupInvocations;
+
+    limits->maxComputeWorkgroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0];
+    limits->maxComputeWorkgroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1];
+    limits->maxComputeWorkgroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2];
+
+    limits->maxComputeWorkgroupsPerDimension = std::min({
+        properties2.properties.limits.maxComputeWorkGroupCount[0],
+        properties2.properties.limits.maxComputeWorkGroupCount[1],
+        properties2.properties.limits.maxComputeWorkGroupCount[2],
+        });
 
     return GPUResult_Success;
 }
 
-GPUDevice VulkanGPUAdapter::CreateDevice()
+GPUDevice* VulkanGPUAdapter::CreateDevice()
 {
     VulkanGPUDevice* device = new VulkanGPUDevice();
     device->adapter = this;
@@ -1506,6 +2112,14 @@ GPUDevice VulkanGPUAdapter::CreateDevice()
         device->vkQueueSubmit2 = (PFN_vkQueueSubmit2)vkGetDeviceProcAddr(device->handle, "vkQueueSubmit2KHR");
     }
 
+    if (features13.synchronization2 == VK_FALSE &&
+        synchronization2Features.synchronization2 == VK_TRUE)
+    {
+        device->vkCmdPipelineBarrier2 = (PFN_vkCmdPipelineBarrier2)vkGetDeviceProcAddr(device->handle, "vkCmdPipelineBarrier2KHR");
+        device->vkCmdWriteTimestamp2 = (PFN_vkCmdWriteTimestamp2)vkGetDeviceProcAddr(device->handle, "vkCmdWriteTimestamp2KHR");
+        device->vkQueueSubmit2 = (PFN_vkQueueSubmit2)vkGetDeviceProcAddr(device->handle, "vkQueueSubmit2KHR");
+    }
+
     // Queues
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -1515,6 +2129,7 @@ GPUDevice VulkanGPUAdapter::CreateDevice()
         if (queueFamilyIndices.familyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
         {
             device->queues[i].device = device;
+            device->queues[i].type = (GPUQueueType)i;
 
             device->vkGetDeviceQueue(device->handle, queueFamilyIndices.familyIndices[i], queueFamilyIndices.queueIndices[i], &device->queues[i].handle);
             queueFamilyIndices.counts[i] = queueFamilyIndices.queueOffsets[queueFamilyIndices.familyIndices[i]];
@@ -1611,7 +2226,8 @@ GPUDevice VulkanGPUAdapter::CreateDevice()
         }
     }
 
-    //device->copyAllocator.Init(this);
+    // Init copy allocator
+    device->copyAllocator.Init(device);
 
     // Dynamic PSO states
     device->psoDynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
@@ -1651,7 +2267,7 @@ VulkanGPUInstance::~VulkanGPUInstance()
     }
 }
 
-GPUSurface VulkanGPUInstance::CreateSurface(Window* window)
+GPUSurface* VulkanGPUInstance::CreateSurface(Window* window)
 {
     VkResult result = VK_SUCCESS;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
@@ -1703,13 +2319,13 @@ GPUSurface VulkanGPUInstance::CreateSurface(Window* window)
         return nullptr;
     }
 
-    VulkanGPUSurface* surface = new VulkanGPUSurface();
+    VulkanSurface* surface = new VulkanSurface();
     surface->instance = handle;
     surface->handle = vk_surface;
     return surface;
 }
 
-GPUAdapter VulkanGPUInstance::RequestAdapter(const GPURequestAdapterOptions* options)
+GPUAdapter* VulkanGPUInstance::RequestAdapter(const GPURequestAdapterOptions* options)
 {
     // Enumerate physical device and detect best one.
     uint32_t physicalDeviceCount = 0;
@@ -1768,7 +2384,7 @@ GPUAdapter VulkanGPUInstance::RequestAdapter(const GPURequestAdapterOptions* opt
 
         if (options && options->compatibleSurface != nullptr)
         {
-            VulkanGPUSurface* surface = static_cast<VulkanGPUSurface*>(options->compatibleSurface);
+            VulkanSurface* surface = static_cast<VulkanSurface*>(options->compatibleSurface);
             VkBool32 presentSupport = false;
             VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
                 physicalDevice,
@@ -1803,6 +2419,12 @@ GPUAdapter VulkanGPUInstance::RequestAdapter(const GPURequestAdapterOptions* opt
 
         adapter->features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
         addToFeatureChain(&adapter->features13);
+
+        if (physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_4)
+        {
+            adapter->features14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
+            addToFeatureChain(&adapter->features14);
+        }
 
         // Properties
         VkBaseOutStructure* propertiesChainCurrent{ nullptr };

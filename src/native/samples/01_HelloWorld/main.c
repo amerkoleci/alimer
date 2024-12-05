@@ -15,8 +15,12 @@
 #include <emscripten/emscripten.h>
 #endif
 
+GPUQueue* graphicsQueue = NULL;
+
 void Render()
 {
+    GPUCommandBuffer* commandBuffer = agpuQueueAcquireCommandBuffer(graphicsQueue, NULL);
+    agpuQueueSubmit(graphicsQueue, 1u, &commandBuffer);
 }
 
 int main()
@@ -27,6 +31,7 @@ int main()
     }
 
     GPUConfig config = {};
+    //config.preferredBackend = GPUBackendType_Vulkan;
 #if defined(_DEBUG)
     config.validationMode = GPUValidationMode_Enabled;
 #endif
@@ -56,18 +61,30 @@ int main()
     Window* window = alimerWindowCreate(&windowDesc);
     alimerWindowSetCentered(window);
 
-    GPUSurface surface = agpuCreateSurface(window);
+    GPUSurface* surface = agpuSurfaceCreate(window);
 
     GPURequestAdapterOptions adapterOptions = {
         .compatibleSurface = surface
     };
-    GPUAdapter adapter = agpuRequestAdapter(&adapterOptions);
+    GPUAdapter* adapter = agpuRequestAdapter(&adapterOptions);
 
     GPULimits limits;
     agpuAdapterGetLimits(adapter, &limits);
-    GPUDevice device = agpuAdapterCreateDevice(adapter);
-    GPUQueue graphicsQueue = agpuDeviceGetQueue(device, GPUQueueType_Graphics);
-    GPUCommandBuffer commandBuffer = agpuQueueCreateCommandBuffer(graphicsQueue, NULL);
+    GPUDevice* device = agpuAdapterCreateDevice(adapter);
+
+    const float vertices[] = {
+        // positions            colors
+         0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
+    };
+    GPUBuffer* vertexBuffer = agpuDeviceCreateBuffer(device, &(GPUBufferDesc) {
+        .usage = GPUBufferUsage_Vertex,
+        .size = sizeof(vertices)
+    }, vertices);
+    agpuBufferRelease(vertexBuffer);
+
+    graphicsQueue = agpuDeviceGetQueue(device, GPUQueueType_Graphics);
 
     // GPU setup ready, show window
     alimerWindowShow(window);
@@ -88,7 +105,7 @@ int main()
             }
         }
 
-        //Render();
+        Render();
         //surface.Present();
         agpuDeviceCommitFrame(device);
     }

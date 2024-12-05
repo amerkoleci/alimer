@@ -16,6 +16,16 @@ function(add_sample SAMPLE_NAME)
     endif ()
     target_link_libraries(${SAMPLE_NAME} alimer_native)
 
+    set_target_properties(${SAMPLE_NAME} PROPERTIES
+        COMPILE_WARNING_AS_ERROR ON
+    )
+
+    if (MSVC)
+        target_compile_options(${SAMPLE_NAME} PRIVATE /W4)
+    else()
+        target_compile_options(${SAMPLE_NAME} PRIVATE -Wall -Wextra -pedantic)
+    endif()
+
     if (EMSCRIPTEN)
         set_target_properties(${SAMPLE_NAME} PROPERTIES SUFFIX ".html")
     endif ()

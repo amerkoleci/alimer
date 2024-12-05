@@ -5,12 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
-#if __WINUI__
-using Windows.Graphics.Imaging;
-#elif __ANDROID__ 
-#else
-using StbImageSharp;
-#endif
+using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
@@ -33,12 +28,13 @@ public sealed unsafe class Image : DisposableObject
         uint levelsCount = 0;
         switch (Description.Dimension)
         {
-            case ImageDimension.Image1D:
-            case ImageDimension.Image2D:
+            case TextureDimension.Texture1D:
+            case TextureDimension.Texture2D:
+            case TextureDimension.TextureCube:
                 for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
                 {
-                    uint mipWidth = (uint)Width;
-                    uint mipHeight = (uint)Height;
+                    uint mipWidth = Width;
+                    uint mipHeight = Height;
 
                     for (uint level = 0; level < MipLevelCount; ++level)
                     {
@@ -66,43 +62,43 @@ public sealed unsafe class Image : DisposableObject
                 }
                 break;
 
-            case ImageDimension.Image3D:
+            case TextureDimension.Texture3D:
+            {
+                uint mipWidth = Width;
+                uint mipHeight = Height;
+                uint mipDepth = Depth;
+
+                for (uint level = 0; level < MipLevelCount; ++level)
                 {
-                    uint mipWidth = (uint)Width;
-                    uint mipHeight = (uint)Height;
-                    uint mipDepth = (uint)Depth;
+                    PixelFormatUtils.GetSurfaceInfo(Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
 
-                    for (uint level = 0; level < MipLevelCount; ++level)
+                    _mipmaps[level] = new MipMapDescription(
+                       mipWidth,
+                       mipHeight,
+                       mipDepth,
+                       rowPitch,
+                       slicePitch,
+                       widthCount,
+                       heightCount
+                       );
+
+                    for (uint slice = 0; slice < mipDepth; ++slice)
                     {
-                        PixelFormatUtils.GetSurfaceInfo(Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
-
-                        _mipmaps[level] = new MipMapDescription(
-                           mipWidth,
-                           mipHeight,
-                           mipDepth,
-                           rowPitch,
-                           slicePitch,
-                           widthCount,
-                           heightCount
-                           );
-
-                        for (uint slice = 0; slice < mipDepth; ++slice)
-                        {
-                            SizeInBytes += slicePitch;
-                            levelsCount++;
-                        }
-
-                        if (mipWidth > 1)
-                            mipWidth >>= 1;
-
-                        if (mipHeight > 1)
-                            mipHeight >>= 1;
-
-                        if (mipDepth > 1)
-                            mipDepth >>= 1;
+                        SizeInBytes += slicePitch;
+                        levelsCount++;
                     }
+
+                    if (mipWidth > 1)
+                        mipWidth >>= 1;
+
+                    if (mipHeight > 1)
+                        mipHeight >>= 1;
+
+                    if (mipDepth > 1)
+                        mipDepth >>= 1;
                 }
-                break;
+            }
+            break;
 
             default:
                 throw new InvalidOperationException("Invalid Image dimension");
@@ -144,7 +140,7 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Gets the image dimension.
     /// </summary>
-    public ImageDimension Dimension => Description.Dimension;
+    public TextureDimension Dimension => Description.Dimension;
 
     /// <summary>
     /// Gets the data format.
@@ -154,27 +150,27 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the width of the image.
     /// </summary>
-    public int Width => Description.Width;
+    public uint Width => Description.Width;
 
     /// <summary>
     /// Get the height of the image.
     /// </summary>
-    public int Height => Description.Height;
+    public uint Height => Description.Height;
 
     /// <summary>
     /// Get the depth of the image.
     /// </summary>
-    public int Depth => Description.Dimension == ImageDimension.Image3D ? Description.DepthOrArrayLayers : 1;
+    public uint Depth => Description.Dimension == TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
     /// Get the array layers of the image.
     /// </summary>
-    public int ArrayLayers => Description.Dimension != ImageDimension.Image3D ? Description.DepthOrArrayLayers : 1;
+    public uint ArrayLayers => Description.Dimension != TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
     /// Get the number of mipmap levels in the.
     /// </summary>
-    public int MipLevelCount => Description.MipLevelCount;
+    public uint MipLevelCount => Description.MipLevelCount;
 
     /// <summary>
     /// Get the data size in bytes.
@@ -205,9 +201,9 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public int GetWidth(int mipLevel = 0)
+    public uint GetWidth(uint mipLevel = 0)
     {
-        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> mipLevel) : 0;
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> (int)mipLevel) : 0;
     }
 
     /// <summary>
@@ -215,9 +211,9 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public int GetHeight(int mipLevel = 0)
+    public uint GetHeight(uint mipLevel = 0)
     {
-        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> mipLevel) : 0;
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> (int)mipLevel) : 0;
     }
 
     /// <summary>
@@ -225,9 +221,9 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public int GetDepth(int mipLevel = 0)
+    public uint GetDepth(uint mipLevel = 0)
     {
-        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> mipLevel) : 0;
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> (int)mipLevel) : 0;
     }
 
     /// <summary>
@@ -235,7 +231,7 @@ public sealed unsafe class Image : DisposableObject
     /// </summary>
     /// <param name="level">The mipmap level to get information.</param>
     /// <returns>A description of a particular mipmap for this texture.</returns>
-    public MipMapDescription GetMipMapDescription(int level)
+    public MipMapDescription GetMipMapDescription(uint level)
     {
         Guard.IsGreaterThan(level, 0);
         Guard.IsLessThan(level, MipLevelCount);
@@ -264,69 +260,31 @@ public sealed unsafe class Image : DisposableObject
         }
         else
         {
-#if __WINUI__
-            throw new NotImplementedException("Windows: Image loading is not supported");
-#elif __ANDROID__
-            throw new NotImplementedException("Android: Image loading is not supported");
-#else
-            bool isHdr = IsHDR(data);
-            using MemoryStream stream = new(data.ToArray());
+            fixed (byte* dataPtr = data)
+            {
+                nint handle = alimerImageCreateFromMemory(dataPtr, (uint)data.Length);
 
-            if (isHdr)
-            {
-                ImageResultFloat imageResultFloat = ImageResultFloat.FromStream(stream, (ColorComponents)channels);
-                ImageDescription imageDescription = ImageDescription.Image2D(PixelFormat.Rgba32Float, imageResultFloat.Width, imageResultFloat.Height);
-                return new(imageDescription, MemoryMarshal.AsBytes<float>(imageResultFloat.Data));
-            }
-            else
-            {
-                ImageResult imageResult = ImageResult.FromStream(stream, (ColorComponents)channels);
-                PixelFormat format = PixelFormat.RGBA8Unorm;
-                switch (imageResult.Comp)
+                ImageDesc imageDesc;
+                nuint dataSize;
+
+                alimerImageGetDesc(handle, &imageDesc);
+                void* pData = alimerImageGetData(handle, &dataSize);
+
+                byte[] imageData = new byte[dataSize];
+                fixed (byte* destDataPtr = imageData)
                 {
-                    case ColorComponents.Grey:
-                        format = PixelFormat.R8Unorm;
-                        break;
-                    case ColorComponents.GreyAlpha:
-                        format = PixelFormat.RG8Unorm;
-                        break;
-                    case ColorComponents.RedGreenBlue:
-                        throw new NotSupportedException("RGB images are not supported");
-                    case ColorComponents.RedGreenBlueAlpha:
-                        format = PixelFormat.RGBA8Unorm;
-                        break;
+                    NativeMemory.Copy(pData, destDataPtr, dataSize);
                 }
 
-                ImageDescription imageDescription = ImageDescription.Image2D(srgb ? format.LinearToSrgbFormat() : format, imageResult.Width, imageResult.Height);
-                return new(imageDescription, imageResult.Data);
+                alimerImageDestroy(handle);
+
+                ImageDescription imageDescription = ImageDescription.Image2D(srgb ?
+                    imageDesc.format.LinearToSrgbFormat() : imageDesc.format,
+                    imageDesc.width,
+                    imageDesc.height);
+                return new(imageDescription, imageData);
             }
-#endif
         }
-
-#if TODO_OLD
-        fixed (byte* dataPtr = data)
-        {
-            nint handle = AlimerImage_CreateFromMemory(dataPtr, (uint)data.Length);
-            AlimerImage_GetDesc(handle, out ImageDesc desc);
-            void* pData = AlimerImage_GetData(handle, out nuint dataSize);
-
-            byte[] imageData = new byte[dataSize];
-            fixed (byte* destDataPtr = imageData)
-            {
-                Unsafe.CopyBlockUnaligned(destDataPtr, pData, (uint)dataSize);
-            }
-
-            //_bmpStream = File.OpenWrite(Path.Combine(AppContext.BaseDirectory, "Test.bmp"));
-            //var result = Alimer_ImageSaveBmp(handle, &SaveBmpCallback);
-            //_bmpStream.Dispose();
-            //result = Alimer_ImageSavePng(handle, &SaveCallback);
-
-            AlimerImage_Destroy(handle);
-
-            ImageDescription imageDescription = ImageDescription.Image2D(srgb ? desc.format.LinearToSrgbFormat() : desc.format, desc.width, desc.height);
-            return new Image(imageDescription, imageData);
-        } 
-#endif
     }
 
     private static void SetupImageArray(byte* pixels, nuint memorySize, in ImageDescription description, ImageData[] levels)
@@ -340,68 +298,69 @@ public sealed unsafe class Image : DisposableObject
 
         switch (description.Dimension)
         {
-            case ImageDimension.Image1D:
-            case ImageDimension.Image2D:
+            case TextureDimension.Texture1D:
+            case TextureDimension.Texture2D:
+            case TextureDimension.TextureCube:
+            {
+                for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
                 {
-                    for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
-                    {
-                        uint mipWidth = (uint)description.Width;
-                        uint mipHeight = (uint)description.Height;
-
-                        for (uint level = 0; level < description.MipLevelCount; ++level)
-                        {
-                            PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
-
-                            levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
-                            ++index;
-
-                            pixels += slicePitch;
-                            Debug.Assert(pixels <= pEndBits);
-
-                            if (mipWidth > 1)
-                                mipWidth >>= 1;
-
-                            if (mipHeight > 1)
-                                mipHeight >>= 1;
-                        }
-                    }
-                }
-                break;
-
-            case ImageDimension.Image3D:
-                {
-                    uint mipWidth = (uint)description.Width;
-                    uint mipHeight = (uint)description.Height;
-                    uint mipDepth = (uint)description.DepthOrArrayLayers;
+                    uint mipWidth = description.Width;
+                    uint mipHeight = description.Height;
 
                     for (uint level = 0; level < description.MipLevelCount; ++level)
                     {
                         PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
 
-                        for (uint slice = 0; slice < mipDepth; ++slice)
-                        {
-                            Debug.Assert(index < levels.Length);
+                        levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
+                        ++index;
 
-                            // We use the same memory organization that Direct3D 11 needs for D3D11_SUBRESOURCE_DATA
-                            // with all slices of a given miplevel being continuous in memory
-                            levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
-                            ++index;
-
-                            pixels += slicePitch;
-                            Debug.Assert(pixels <= pEndBits);
-                        }
+                        pixels += slicePitch;
+                        Debug.Assert(pixels <= pEndBits);
 
                         if (mipWidth > 1)
                             mipWidth >>= 1;
 
                         if (mipHeight > 1)
                             mipHeight >>= 1;
-
-                        if (mipDepth > 1)
-                            mipDepth >>= 1;
                     }
                 }
-                break;
+            }
+            break;
+
+            case TextureDimension.Texture3D:
+            {
+                uint mipWidth = description.Width;
+                uint mipHeight = description.Height;
+                uint mipDepth = description.DepthOrArrayLayers;
+
+                for (uint level = 0; level < description.MipLevelCount; ++level)
+                {
+                    PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+
+                    for (uint slice = 0; slice < mipDepth; ++slice)
+                    {
+                        Debug.Assert(index < levels.Length);
+
+                        // We use the same memory organization that Direct3D 11 needs for D3D11_SUBRESOURCE_DATA
+                        // with all slices of a given miplevel being continuous in memory
+                        levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
+                        ++index;
+
+                        pixels += slicePitch;
+                        Debug.Assert(pixels <= pEndBits);
+                    }
+
+                    if (mipWidth > 1)
+                        mipWidth >>= 1;
+
+                    if (mipHeight > 1)
+                        mipHeight >>= 1;
+
+                    if (mipDepth > 1)
+                        mipDepth >>= 1;
+                }
+            }
+            break;
         }
     }
 

@@ -13,12 +13,12 @@ public readonly record struct ImageDescription
 {
     [SetsRequiredMembers]
     public ImageDescription(
-        ImageDimension dimension,
+        TextureDimension dimension,
         PixelFormat format,
-        int width,
-        int height,
-        int depthOrArrayLayers,
-        int mipLevelCount = 1)
+        uint width,
+        uint height,
+        uint depthOrArrayLayers,
+        uint mipLevelCount = 1)
     {
         Guard.IsTrue(format != PixelFormat.Undefined);
         Guard.IsGreaterThanOrEqualTo(width, 1);
@@ -30,17 +30,17 @@ public readonly record struct ImageDescription
         Width = width;
         Height = height;
         DepthOrArrayLayers = depthOrArrayLayers;
-        MipLevelCount = mipLevelCount == 0 ? GetMipLevelCount(width, height, dimension == ImageDimension.Image3D ? depthOrArrayLayers : 1) : mipLevelCount;
+        MipLevelCount = mipLevelCount == 0 ? GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
     }
 
     public static ImageDescription Image1D(
         PixelFormat format,
-        int width,
-        int mipLevelCount = 1,
-        int arrayLayers = 1)
+        uint width,
+        uint mipLevelCount = 1,
+        uint arrayLayers = 1)
     {
         return new(
-            ImageDimension.Image1D,
+            TextureDimension.Texture1D,
             format,
             width,
             1,
@@ -50,13 +50,13 @@ public readonly record struct ImageDescription
 
     public static ImageDescription Image2D(
         PixelFormat format,
-        int width,
-        int height,
-        int mipLevelCount = 1,
-        int arrayLayers = 1)
+        uint width,
+        uint height,
+        uint mipLevelCount = 1,
+        uint arrayLayers = 1)
     {
         return new(
-            ImageDimension.Image2D,
+            TextureDimension.Texture2D,
             format,
             width,
             height,
@@ -66,13 +66,13 @@ public readonly record struct ImageDescription
 
     public static ImageDescription Image3D(
         PixelFormat format,
-        int width,
-        int height,
-        int depth,
-        int mipLevelCount = 1)
+        uint width,
+        uint height,
+        uint depth,
+        uint mipLevelCount = 1)
     {
         return new(
-            ImageDimension.Image3D,
+            TextureDimension.Texture3D,
             format,
             width,
             height,
@@ -82,12 +82,12 @@ public readonly record struct ImageDescription
 
     public static ImageDescription ImageCube(
         PixelFormat format,
-        int size,
-        int mipLevelCount = 1,
-        int arrayLayers = 1)
+        uint size,
+        uint mipLevelCount = 1,
+        uint arrayLayers = 1)
     {
         return new(
-            ImageDimension.Image2D,
+            TextureDimension.TextureCube,
             format,
             size,
             size,
@@ -98,7 +98,7 @@ public readonly record struct ImageDescription
     /// <summary>
     /// Gets or the dimension of <see cref="Image"/>
     /// </summary>
-    public required ImageDimension Dimension { get; init; }
+    public required TextureDimension Dimension { get; init; }
 
     /// <summary>
     /// Gets the pixel format of <see cref="Image"/>
@@ -108,34 +108,34 @@ public readonly record struct ImageDescription
     /// <summary>
     /// Gets the width of <see cref="Image"/>
     /// </summary>
-    public required int Width { get; init; } = 1;
+    public required uint Width { get; init; } = 1;
 
     /// <summary>
     /// Gets the height of <see cref="Image"/>
     /// </summary>
-    public required int Height { get; init; } = 1;
+    public required uint Height { get; init; } = 1;
 
     /// <summary>
     /// Gets the depth of <see cref="Image"/>, if it is 3D, or the array layers if it is an array of 1D or 2D resources.
     /// </summary>
-    public required int DepthOrArrayLayers { get; init; } = 1;
+    public required uint DepthOrArrayLayers { get; init; } = 1;
 
     /// <summary>
     /// The number of mipmap levels in the <see cref="Image"/>.
     /// </summary>
-    public required int MipLevelCount { get; init; } = 1;
+    public required uint MipLevelCount { get; init; } = 1;
 
-    public static int GetMipLevelCount(int width, int height, int depth = 1, int minDimension = 1, uint requiredAlignment = 1u)
+    public static uint GetMipLevelCount(uint width, uint height, uint depth = 1, uint minDimension = 1, uint requiredAlignment = 1u)
     {
-        int mipLevelCount = 1;
+        uint mipLevelCount = 1;
         while (width > minDimension || height > minDimension || depth > minDimension)
         {
             width = Math.Max(minDimension, width >> 1);
             height = Math.Max(minDimension, height >> 1);
             depth = Math.Max(minDimension, depth >> 1);
-            if (MathHelper.AlignUp((uint)width, requiredAlignment) != width ||
-                MathHelper.AlignUp((uint)height, requiredAlignment) != height ||
-                MathHelper.AlignUp((uint)depth, requiredAlignment) != depth)
+            if (MathHelper.AlignUp(width, requiredAlignment) != width
+                || MathHelper.AlignUp(height, requiredAlignment) != height
+                || MathHelper.AlignUp(depth, requiredAlignment) != depth)
             {
                 break;
             }

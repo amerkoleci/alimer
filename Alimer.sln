@@ -70,6 +70,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ImGui", "src\Alimer.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ShaderCompiler", "src\assets\Alimer.ShaderCompiler\Alimer.ShaderCompiler.csproj", "{40A434AE-8653-4F40-B096-3B620DD092A7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alimer.Native", "src\Alimer.Native\Alimer.Native.csproj", "{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -152,6 +154,10 @@ Global
 		{40A434AE-8653-4F40-B096-3B620DD092A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40A434AE-8653-4F40-B096-3B620DD092A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{40A434AE-8653-4F40-B096-3B620DD092A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
