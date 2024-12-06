@@ -15,12 +15,22 @@
 #include <emscripten/emscripten.h>
 #endif
 
+GPUSurface* surface = NULL;
+GPUDevice* device = NULL;
 GPUQueue* graphicsQueue = NULL;
 
 void Render()
 {
+    GPUTexture* surfaceTexture = NULL;
+    GPUResult result = agpuSurfaceGetCurrentTexture(surface, &surfaceTexture);
+    if (result != GPUResult_Success)
+        return;
+
     GPUCommandBuffer* commandBuffer = agpuQueueAcquireCommandBuffer(graphicsQueue, NULL);
     agpuQueueSubmit(graphicsQueue, 1u, &commandBuffer);
+
+    // We can tell the surface to present the next texture.
+    agpuSurfacePresent(surface);
 }
 
 int main()
@@ -61,7 +71,7 @@ int main()
     Window* window = alimerWindowCreate(&windowDesc);
     alimerWindowSetCentered(window);
 
-    GPUSurface* surface = agpuSurfaceCreate(window);
+    surface = agpuSurfaceCreate(window);
 
     GPURequestAdapterOptions adapterOptions = {
         .compatibleSurface = surface
@@ -70,7 +80,20 @@ int main()
 
     GPULimits limits;
     agpuAdapterGetLimits(adapter, &limits);
-    GPUDevice* device = agpuAdapterCreateDevice(adapter);
+
+    GPUSurfaceCapabilities surfaceCaps;
+    agpuSurfaceGetCapabilities(surface, adapter, &surfaceCaps);
+
+    device = agpuAdapterCreateDevice(adapter);
+    agpuAdapterRelease(adapter);
+
+    GPUSurfaceConfig surfaceConfig = {
+        .device = device,
+        .format = surfaceCaps.preferredFormat,
+        .width = windowDesc.width,
+        .height = windowDesc.height
+    };
+    agpuSurfaceConfigure(surface, &surfaceConfig);
 
     const float vertices[] = {
         // positions            colors

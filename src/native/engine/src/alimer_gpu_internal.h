@@ -6,6 +6,7 @@
 
 #include "alimer_internal.h"
 #include "alimer_gpu.h"
+#include <atomic>
 
 class GPUResource
 {
@@ -22,12 +23,12 @@ public:
 
     virtual uint32_t AddRef()
     {
-        return InterlockedIncrement(&_refCount);
+        return  ++refCount;
     }
 
     virtual uint32_t Release()
     {
-        uint32_t newCount = InterlockedDecrement(&_refCount);
+        uint32_t newCount = --refCount;
         if (newCount == 0) {
             delete this;
         }
@@ -39,7 +40,7 @@ public:
     }
 
 private:
-    uint32_t _refCount = 1;
+    std::atomic_uint32_t refCount = 1;
 };
 
 struct GPUBuffer : public GPUResource
@@ -63,15 +64,16 @@ struct GPUShaderModule : public GPUResource
 
 };
 
-
 struct GPUCommandBuffer : public GPUResource
 {
-
+    virtual void PushDebugGroup(const char* groupLabel) const = 0;
+    virtual void PopDebugGroup() const = 0;
+    virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 };
 
 struct GPUQueue : public GPUResource
 {
-    virtual GPUQueueType GetType() const = 0;
+    virtual GPUQueueType GetQueueType() const = 0;
     virtual GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
     virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers) = 0;
 };
@@ -89,8 +91,13 @@ struct GPUDevice : public GPUResource
 
 struct GPUSurface : public GPUResource
 {
-    virtual void Configure(const GPUSurfaceConfiguration* config) = 0;
+    virtual GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
+    virtual bool Configure(const GPUSurfaceConfig* config_) = 0;
     virtual void Unconfigure() = 0;
+    virtual GPUResult GetCurrentTexture(GPUTexture** surfaceTexture) = 0;
+    virtual GPUResult Present() = 0;
+
+    GPUSurfaceConfig config;
 };
 
 struct GPUAdapter : public GPUResource
@@ -99,9 +106,11 @@ struct GPUAdapter : public GPUResource
     virtual GPUDevice* CreateDevice() = 0;
 };
 
-struct GPUInstance : public GPUResource
+struct GPUInstance 
 {
 public:
+    virtual ~GPUInstance() = default;
+
     virtual GPUSurface* CreateSurface(Window* window) = 0;
     virtual GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) = 0;
 };

@@ -289,7 +289,7 @@ struct VulkanQueueFamilyIndices final
     }
 };
 
-static inline VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
+static VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
 {
     uint32_t count = 0;
     VkResult result = vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
@@ -647,15 +647,15 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
     return indices;
 }
 
-struct VulkanGPUInstance;
-struct VulkanGPUAdapter;
 struct VulkanQueue;
-struct VulkanGPUDevice;
+struct VulkanDevice;
+struct VulkanAdapter;
+struct VulkanInstance;
 
 struct VulkanBuffer final : public GPUBuffer
 {
     GPUBufferDesc desc;
-    VulkanGPUDevice* device = nullptr;
+    VulkanDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
     uint64_t allocatedSize = 0;
@@ -669,13 +669,14 @@ struct VulkanBuffer final : public GPUBuffer
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct VulkanGPUTexture final : public GPUTexture
+struct VulkanTexture final : public GPUTexture
 {
-    VulkanGPUDevice* device = nullptr;
+    VulkanDevice* device = nullptr;
     VkImage handle = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
 
-    ~VulkanGPUTexture() override;
+    ~VulkanTexture() override;
+    void SetLabel(const char* label) override;
 };
 
 struct VulkanCommandBuffer final : public GPUCommandBuffer
@@ -693,12 +694,16 @@ struct VulkanCommandBuffer final : public GPUCommandBuffer
     ~VulkanCommandBuffer() override;
     void Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc);
     VkCommandBuffer End() const;
+
+    void PushDebugGroup(const char* groupLabel) const override;
+    void PopDebugGroup() const override;
+    void InsertDebugMarker(const char* markerLabel) const override;
 };
 
 struct VulkanQueue final : public GPUQueue
 {
-    VulkanGPUDevice* device = nullptr;
-    GPUQueueType type = GPUQueueType_Count;
+    VulkanDevice* device = nullptr;
+    GPUQueueType queueType = GPUQueueType_Count;
     VkQueue handle = VK_NULL_HANDLE;
     VkFence frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
     std::mutex mutex;
@@ -707,7 +712,7 @@ struct VulkanQueue final : public GPUQueue
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUQueueType GetType() const override { return type; }
+    GPUQueueType GetQueueType() const override { return queueType; }
     GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
     void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers) override;
     void Submit(VkFence fence);
@@ -730,19 +735,19 @@ struct VulkanUploadContext final
 
 struct VulkanCopyAllocator final
 {
-    VulkanGPUDevice* device = nullptr;
+    VulkanDevice* device = nullptr;
     std::mutex locker;
     std::vector<VulkanUploadContext> freeList;
 
-    void Init(VulkanGPUDevice* device);
+    void Init(VulkanDevice* device);
     void Shutdown();
     VulkanUploadContext Allocate(uint64_t size);
     void Submit(VulkanUploadContext context);
 };
 
-struct VulkanGPUDevice final : public GPUDevice
+struct VulkanDevice final : public GPUDevice
 {
-    VulkanGPUAdapter* adapter = nullptr;
+    VulkanAdapter* adapter = nullptr;
     VkDevice handle = VK_NULL_HANDLE;
     VulkanQueue queues[GPUQueueType_Count];
     VkPipelineCache pipelineCache = VK_NULL_HANDLE;
@@ -775,7 +780,7 @@ struct VulkanGPUDevice final : public GPUDevice
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "alimer_gpu_vulkan_funcs.h"
 
-    ~VulkanGPUDevice() override;
+    ~VulkanDevice() override;
     GPUQueue* GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
@@ -796,13 +801,17 @@ struct VulkanSurface final : public GPUSurface
     VkSurfaceKHR handle = VK_NULL_HANDLE;
 
     ~VulkanSurface() override;
-    void Configure(const GPUSurfaceConfiguration* config) override;
+    GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
+    GPUResult GetCurrentTexture(GPUTexture** surfaceTexture) override;
+    GPUResult Present() override;
 };
 
-struct VulkanGPUAdapter final : public GPUAdapter
+struct VulkanAdapter final : public GPUAdapter
 {
-    VulkanGPUInstance* instance = nullptr;
+    VulkanInstance* instance = nullptr;
+    bool debugUtils = false;
     VkPhysicalDevice handle = nullptr;
     VulkanPhysicalDeviceExtensions extensions;
     VulkanQueueFamilyIndices queueFamilyIndices;
@@ -854,7 +863,7 @@ struct VulkanGPUAdapter final : public GPUAdapter
     GPUDevice* CreateDevice() override;
 };
 
-struct VulkanGPUInstance final : public GPUInstance
+struct VulkanInstance final : public GPUInstance
 {
     bool debugUtils = false;
     bool headless = false;
@@ -865,7 +874,7 @@ struct VulkanGPUInstance final : public GPUInstance
     VkInstance handle = nullptr;
     VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
 
-    ~VulkanGPUInstance() override;
+    ~VulkanInstance() override;
     GPUSurface* CreateSurface(Window* window) override;
     GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
@@ -894,6 +903,17 @@ VulkanBuffer::~VulkanBuffer()
 void VulkanBuffer::SetLabel(const char* label)
 {
     device->SetObjectName(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(handle), label);
+}
+
+/* VulkanTexture */
+VulkanTexture::~VulkanTexture()
+{
+
+}
+
+void VulkanTexture::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(handle), label);
 }
 
 /* VulkanCommandBuffer */
@@ -940,7 +960,8 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
         }
     }
 #endif
-    if (queue->type == GPUQueueType_Graphics)
+
+    if (queue->queueType == GPUQueueType_Graphics)
     {
         VkRect2D scissors[16];
         for (uint32_t i = 0; i < 16; ++i)
@@ -1008,6 +1029,46 @@ VkCommandBuffer VulkanCommandBuffer::End() const
     return commandBuffer;
 }
 
+void VulkanCommandBuffer::PushDebugGroup(const char* groupLabel) const
+{
+    if (!queue->device->adapter->debugUtils)
+        return;
+
+    VkDebugUtilsLabelEXT label{};
+    label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    label.pNext = nullptr;
+    label.pLabelName = groupLabel;
+    label.color[0] = 0.0f;
+    label.color[1] = 0.0f;
+    label.color[2] = 0.0f;
+    label.color[3] = 1.0f;
+    vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label);
+}
+
+void VulkanCommandBuffer::PopDebugGroup() const
+{
+    if (!queue->device->adapter->debugUtils)
+        return;
+
+    vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+}
+
+void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
+{
+    if (!queue->device->adapter->debugUtils)
+        return;
+
+    VkDebugUtilsLabelEXT label{};
+    label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    label.pNext = nullptr;
+    label.pLabelName = markerLabel;
+    label.color[0] = 0.0f;
+    label.color[1] = 0.0f;
+    label.color[2] = 0.0f;
+    label.color[3] = 1.0f;
+    vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &label);
+}
+
 /* VulkanQueue */
 GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
@@ -1024,7 +1085,7 @@ GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* 
             VkCommandPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-            poolInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[type];
+            poolInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[queueType];
             VK_CHECK(device->vkCreateCommandPool(device->handle, &poolInfo, nullptr, &commandBuffer->commandPools[i]));
 
             VkCommandBufferAllocateInfo commandBufferInfo = {};
@@ -1137,7 +1198,7 @@ void VulkanQueue::Submit(VkFence fence)
 }
 
 /* VulkanCopyAllocator */
-void VulkanCopyAllocator::Init(VulkanGPUDevice* device_)
+void VulkanCopyAllocator::Init(VulkanDevice* device_)
 {
     device = device_;
 }
@@ -1355,8 +1416,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
     freeList.push_back(context);
 }
 
-/* VulkanGPUDevice */
-VulkanGPUDevice::~VulkanGPUDevice()
+/* VulkanDevice */
+VulkanDevice::~VulkanDevice()
 {
     VK_CHECK(vkDeviceWaitIdle(handle));
 
@@ -1429,12 +1490,12 @@ VulkanGPUDevice::~VulkanGPUDevice()
     }
 }
 
-GPUQueue* VulkanGPUDevice::GetQueue(GPUQueueType type)
+GPUQueue* VulkanDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
 
-bool VulkanGPUDevice::WaitIdle()
+bool VulkanDevice::WaitIdle()
 {
     VkResult result = vkDeviceWaitIdle(handle);
     if (result != VK_SUCCESS)
@@ -1444,7 +1505,7 @@ bool VulkanGPUDevice::WaitIdle()
     return true;
 }
 
-uint64_t VulkanGPUDevice::CommitFrame()
+uint64_t VulkanDevice::CommitFrame()
 {
     // Final submits with fences.
     for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
@@ -1475,7 +1536,7 @@ uint64_t VulkanGPUDevice::CommitFrame()
     return frameCount;
 }
 
-void VulkanGPUDevice::ProcessDeletionQueue(bool force)
+void VulkanDevice::ProcessDeletionQueue(bool force)
 {
     const auto Destroy = [&](auto&& queue, auto&& handler) {
         while (!queue.empty()) {
@@ -1509,7 +1570,7 @@ void VulkanGPUDevice::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer* VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
     buffer->device = this;
@@ -1742,7 +1803,7 @@ GPUBuffer* VulkanGPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* 
     return buffer;
 }
 
-GPUTexture* VulkanGPUDevice::CreateTexture(const GPUTextureDesc* descriptor, const void* pInitialData)
+GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* descriptor, const void* pInitialData)
 {
     return nullptr;
 }
@@ -1761,7 +1822,7 @@ static void AddUniqueFamily(uint32_t* sharing_indices, uint32_t& count, uint32_t
     sharing_indices[count++] = family;
 }
 
-void VulkanGPUDevice::SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const
+void VulkanDevice::SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const
 {
     if (!adapter->instance->debugUtils)
         return;
@@ -1774,7 +1835,7 @@ void VulkanGPUDevice::SetObjectName(VkObjectType type, uint64_t handle_, const c
     vkSetDebugUtilsObjectNameEXT(handle, &nameInfo);
 }
 
-void VulkanGPUDevice::FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const
+void VulkanDevice::FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const
 {
     for (auto& i : adapter->queueFamilyIndices.familyIndices)
     {
@@ -1797,7 +1858,7 @@ void VulkanGPUDevice::FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_
     }
 }
 
-void VulkanGPUDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices) const
+void VulkanDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices) const
 {
     for (auto& i : adapter->queueFamilyIndices.familyIndices)
     {
@@ -1829,9 +1890,28 @@ VulkanSurface::~VulkanSurface()
     }
 }
 
-void VulkanSurface::Configure(const GPUSurfaceConfiguration* config)
+GPUResult VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
+    //capabilities->preferredFormat = Format::R8G8B8A8_UNORM;
+    capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
+    static const PixelFormat kSupportedFormats[] = {
+        PixelFormat_BGRA8Unorm,
+        PixelFormat_BGRA8UnormSrgb,
+        PixelFormat_RGBA8Unorm,
+        PixelFormat_RGBA8UnormSrgb,
+        PixelFormat_RGBA16Float,
+        PixelFormat_RGB10A2Unorm,
+    };
+    capabilities->formats = kSupportedFormats;
+    capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
+    return GPUResult_Success;
+}
 
+bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
+{
+    config = *config_;
+
+    return false;
 }
 
 void VulkanSurface::Unconfigure()
@@ -1839,8 +1919,18 @@ void VulkanSurface::Unconfigure()
 
 }
 
-/* VulkanGPUAdapter */
-GPUResult VulkanGPUAdapter::GetLimits(GPULimits* limits) const
+GPUResult VulkanSurface::GetCurrentTexture(GPUTexture** surfaceTexture)
+{
+    return GPUResult_Success;
+}
+
+GPUResult VulkanSurface::Present()
+{
+    return GPUResult_Success;
+}
+
+/* VulkanAdapter */
+GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
 {
     limits->maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
     limits->maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
@@ -1871,9 +1961,9 @@ GPUResult VulkanGPUAdapter::GetLimits(GPULimits* limits) const
     return GPUResult_Success;
 }
 
-GPUDevice* VulkanGPUAdapter::CreateDevice()
+GPUDevice* VulkanAdapter::CreateDevice()
 {
-    VulkanGPUDevice* device = new VulkanGPUDevice();
+    VulkanDevice* device = new VulkanDevice();
     device->adapter = this;
 
     std::vector<const char*> enabledDeviceExtensions;
@@ -2129,7 +2219,7 @@ GPUDevice* VulkanGPUAdapter::CreateDevice()
         if (queueFamilyIndices.familyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
         {
             device->queues[i].device = device;
-            device->queues[i].type = (GPUQueueType)i;
+            device->queues[i].queueType = (GPUQueueType)i;
 
             device->vkGetDeviceQueue(device->handle, queueFamilyIndices.familyIndices[i], queueFamilyIndices.queueIndices[i], &device->queues[i].handle);
             queueFamilyIndices.counts[i] = queueFamilyIndices.queueOffsets[queueFamilyIndices.familyIndices[i]];
@@ -2251,8 +2341,8 @@ GPUDevice* VulkanGPUAdapter::CreateDevice()
     return device;
 }
 
-/* VulkanGPUInstance */
-VulkanGPUInstance::~VulkanGPUInstance()
+/* VulkanInstance */
+VulkanInstance::~VulkanInstance()
 {
     if (debugUtilsMessenger != VK_NULL_HANDLE)
     {
@@ -2267,7 +2357,7 @@ VulkanGPUInstance::~VulkanGPUInstance()
     }
 }
 
-GPUSurface* VulkanGPUInstance::CreateSurface(Window* window)
+GPUSurface* VulkanInstance::CreateSurface(Window* window)
 {
     VkResult result = VK_SUCCESS;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
@@ -2325,14 +2415,14 @@ GPUSurface* VulkanGPUInstance::CreateSurface(Window* window)
     return surface;
 }
 
-GPUAdapter* VulkanGPUInstance::RequestAdapter(const GPURequestAdapterOptions* options)
+GPUAdapter* VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* options)
 {
     // Enumerate physical device and detect best one.
     uint32_t physicalDeviceCount = 0;
     VK_CHECK(vkEnumeratePhysicalDevices(handle, &physicalDeviceCount, nullptr));
     if (physicalDeviceCount == 0)
     {
-        //alimerLogDebug("Vulkan: Failed to find GPUs with Vulkan support");
+        alimerLogDebug(LogCategory_GPU, "Vulkan: Failed to find GPUs with Vulkan support");
         return nullptr;
     }
 
@@ -2340,8 +2430,9 @@ GPUAdapter* VulkanGPUInstance::RequestAdapter(const GPURequestAdapterOptions* op
     VK_CHECK(vkEnumeratePhysicalDevices(handle, &physicalDeviceCount, physicalDevices.data()));
 
     // The result adapter
-    VulkanGPUAdapter* adapter = new VulkanGPUAdapter();
+    VulkanAdapter* adapter = new VulkanAdapter();
     adapter->instance = this;
+    adapter->debugUtils = debugUtils;
 
     for (VkPhysicalDevice physicalDevice : physicalDevices)
     {
@@ -2694,7 +2785,7 @@ bool Vulkan_IsSupported(void)
 
 GPUInstance* Vulkan_CreateInstance(const GPUConfig* config)
 {
-    VulkanGPUInstance* instance = new VulkanGPUInstance();
+    VulkanInstance* instance = new VulkanInstance();
 
     uint32_t instanceLayerCount;
     VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr));

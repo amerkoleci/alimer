@@ -60,9 +60,8 @@ if(ALIMER_PHYSICS)
     CPMAddPackage(
         NAME JoltPhysics
         GITHUB_REPOSITORY jrouwe/JoltPhysics
-        GIT_TAG 24c4873fb51f2c35d51050afdd721079714237d2
+        GIT_TAG e0e434f59c2ff6816e07af7f6f6fcf9726e2aa0f
         SOURCE_SUBDIR Build
-        GIT_SHALLOW ON
         OPTIONS
             "OBJECT_LAYER_BITS 16"
             "DOUBLE_PRECISION OFF"

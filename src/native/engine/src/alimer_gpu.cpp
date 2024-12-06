@@ -127,7 +127,7 @@ void agpuShutdown(void)
     if (!state.instance)
         return;
 
-    state.instance->Release();
+    delete state.instance;
     memset(&state, 0, sizeof(state));
 }
 
@@ -144,14 +144,38 @@ GPUSurface* agpuSurfaceCreate(Window* window)
     return state.instance->CreateSurface(window);
 }
 
-void agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfiguration* config)
+GPUResult agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities)
 {
-    surface->Configure(config);
+    if (!surface || !adapter)
+        return GPUResult_InvalidOperation;
+
+    if(!capabilities)
+        return GPUResult_InvalidOperation;
+
+    return surface->GetCapabilities(adapter, capabilities);
+}
+
+bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config)
+{
+    return surface->Configure(config);
 }
 
 void agpuSurfaceUnconfigure(GPUSurface* surface)
 {
     surface->Unconfigure();
+}
+
+GPUResult agpuSurfaceGetCurrentTexture(GPUSurface* surface, GPUTexture** surfaceTexture)
+{
+    if (!surfaceTexture)
+        return GPUResult_InvalidOperation;
+
+    return surface->GetCurrentTexture(surfaceTexture);
+}
+
+GPUResult agpuSurfacePresent(GPUSurface* surface)
+{
+    return surface->Present();
 }
 
 uint32_t agpuSurfaceAddRef(GPUSurface* surface)
@@ -176,6 +200,16 @@ GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits)
 GPUDevice* agpuAdapterCreateDevice(GPUAdapter* adapter)
 {
     return adapter->CreateDevice();
+}
+
+uint32_t agpuAdapterAddRef(GPUAdapter* adapter)
+{
+    return adapter->AddRef();
+}
+
+uint32_t agpuAdapterRelease(GPUAdapter* adapter)
+{
+    return adapter->Release();
 }
 
 /* Device */
@@ -207,7 +241,7 @@ uint64_t agpuDeviceCommitFrame(GPUDevice* device)
 /* Queue */
 GPUQueueType agpuQueueGetType(GPUQueue* queue)
 {
-    return queue->GetType();
+    return queue->GetQueueType();
 }
 
 GPUCommandBuffer* agpuQueueAcquireCommandBuffer(GPUQueue* queue, const GPUCommandBufferDesc* desc)
@@ -221,6 +255,20 @@ void agpuQueueSubmit(GPUQueue* queue, uint32_t numCommandBuffers, GPUCommandBuff
 }
 
 /* CommandBuffer */
+void agpuPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel)
+{
+    commandBuffer->PushDebugGroup(groupLabel);
+}
+
+void agpuPopDebugGroup(GPUCommandBuffer* commandBuffer)
+{
+    commandBuffer->PopDebugGroup();
+}
+
+void agpuInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel)
+{
+    commandBuffer->InsertDebugMarker(markerLabel);
+}
 
 /* Buffer */
 GPUBuffer* agpuDeviceCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const void* pInitialData)

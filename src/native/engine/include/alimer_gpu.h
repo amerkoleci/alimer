@@ -22,6 +22,7 @@ typedef uint64_t GPUDeviceAddress;
 
 /* Constants */
 #define GPU_MAX_INFLIGHT_FRAMES (2u)
+#define GPU_MAX_VERTEX_BUFFER_BINDINGS (8u)
 
 /* Enums */
 typedef enum GPUResult {
@@ -170,12 +171,19 @@ typedef struct GPULimits {
     uint32_t maxComputeWorkgroupsPerDimension;
 } GPULimits;
 
-typedef struct GPUSurfaceConfiguration {
+typedef struct GPUSurfaceCapabilities {
+    PixelFormat preferredFormat;
+    GPUTextureUsage supportedUsage;
+    uint32_t formatCount;
+    const PixelFormat* formats;
+} GPUSurfaceCapabilities;
+
+typedef struct GPUSurfaceConfig {
     GPUDevice* device;
     PixelFormat format;
     uint32_t width;
     uint32_t height;
-} GPUSurfaceConfiguration;
+} GPUSurfaceConfig;
 
 typedef struct GPUConfig {
     GPUBackendType preferredBackend;
@@ -189,14 +197,19 @@ ALIMER_API GPUAdapter* agpuRequestAdapter(const GPURequestAdapterOptions* option
 
 /* Surface */
 ALIMER_API GPUSurface* agpuSurfaceCreate(Window* window);
-ALIMER_API void agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfiguration* config);
+ALIMER_API GPUResult agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities);
+ALIMER_API bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config);
 ALIMER_API void agpuSurfaceUnconfigure(GPUSurface* surface);
+ALIMER_API GPUResult agpuSurfaceGetCurrentTexture(GPUSurface* surface, GPUTexture** surfaceTexture);
+ALIMER_API GPUResult agpuSurfacePresent(GPUSurface* surface);
 ALIMER_API uint32_t agpuSurfaceAddRef(GPUSurface* surface);
 ALIMER_API uint32_t agpuSurfaceRelease(GPUSurface* surface);
 
 /* Adapter */
 ALIMER_API GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits);
 ALIMER_API GPUDevice* agpuAdapterCreateDevice(GPUAdapter* adapter);
+ALIMER_API uint32_t agpuAdapterAddRef(GPUAdapter* adapter);
+ALIMER_API uint32_t agpuAdapterRelease(GPUAdapter* adapter);
 
 /* Device */
 ALIMER_API uint32_t agpuDeviceAddRef(GPUDevice* device);
@@ -216,6 +229,9 @@ ALIMER_API GPUCommandBuffer* agpuQueueAcquireCommandBuffer(GPUQueue* queue, cons
 ALIMER_API void agpuQueueSubmit(GPUQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers);
 
 /* CommandBuffer */
+ALIMER_API void agpuPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel);
+ALIMER_API void agpuPopDebugGroup(GPUCommandBuffer* commandBuffer);
+ALIMER_API void agpuInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel);
 
 /* Buffer */
 ALIMER_API uint32_t agpuBufferAddRef(GPUBuffer* buffer);

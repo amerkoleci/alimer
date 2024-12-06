@@ -309,6 +309,7 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 #define ALIMER_STRINGIZE_HELPER(X) #X
 #define ALIMER_STRINGIZE(X) ALIMER_STRINGIZE_HELPER(X)
+#define ALIMER_COUNT_OF(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define ALIMER_UNUSED(x) (void)(x)
 
 // Macro for determining size of arrays.
@@ -373,21 +374,20 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 _ALIMER_EXTERN WCHAR* Win32_CreateWideStringFromUTF8(const char* source);
 _ALIMER_EXTERN char* Win32_CreateUTF8FromWideString(const WCHAR* source);
-#else
-ALIMER_FORCE_INLINE static uint32_t InterlockedIncrement(uint32_t volatile* dst)
-{
-    return __sync_add_and_fetch(dst, 1);
-}
-ALIMER_FORCE_INLINE static uint32_t InterlockedDecrement(uint32_t volatile* dst)
-{
-    return __sync_sub_and_fetch(dst, 1);
-}
 #endif
 
 // Convenience macros for invoking custom memory allocation callbacks.
 #define ALIMER_ALLOC(type)          ((type*)alimerCalloc(1, sizeof(type)))
 #define ALIMER_ALLOCN(type, n)      ((type*)alimerCalloc(n, sizeof(type)))
 _ALIMER_EXTERN char* _alimer_strdup(const char* source);
+
+#define SAFE_RELEASE(obj) do \
+{ \
+  if ((obj)) { \
+    (obj)->Release(); \
+    (obj) = nullptr; \
+  } \
+} while(0)
 
 #ifdef __cplusplus
 namespace

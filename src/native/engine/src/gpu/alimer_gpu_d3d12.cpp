@@ -39,14 +39,6 @@
   } \
 } while(0)
 
-#define SAFE_RELEASE(obj) do \
-{ \
-  if ((obj)) { \
-    (obj)->Release(); \
-    (obj) = nullptr; \
-  } \
-} while(0)
-
 #include <wrl/client.h>
 
 #include <dxgi1_6.h>
@@ -294,14 +286,14 @@ struct D3D12_State {
 #define d3d12_D3D12SerializeVersionedRootSignature D3D12SerializeVersionedRootSignature
 #endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */
 
-struct D3D12GPUInstance;
-struct D3D12GPUAdapter;
 struct D3D12Queue;
-struct D3D12GPUDevice;
+struct D3D12Device;
+struct D3D12Adapter;
+struct D3D12Instance;
 
 struct D3D12Resource
 {
-    D3D12GPUDevice* device = nullptr;
+    D3D12Device* device = nullptr;
     ID3D12Resource* handle = nullptr;
     D3D12MA::Allocation* allocation = nullptr;
     bool immutableState = false;
@@ -325,6 +317,7 @@ struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
 
 struct D3D12Texture final : public GPUTexture, public D3D12Resource
 {
+    GPUTextureDesc desc;
     HANDLE sharedHandle = nullptr;
 
     ~D3D12Texture() override;
@@ -335,24 +328,37 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
 {
     D3D12Queue* queue = nullptr;
     uint32_t index = 0;
+    bool hasLabel = false;
+
+    ID3D12CommandAllocator* commandAllocators[GPU_MAX_INFLIGHT_FRAMES] = {};
+    ID3D12GraphicsCommandList6* commandList = nullptr;
+    D3D12_VERTEX_BUFFER_VIEW vboViews[GPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
+
+    ~D3D12CommandBuffer() override;
+    void Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc);
+    ID3D12CommandList* End() const;
+
+    void PushDebugGroup(const char* groupLabel) const override;
+    void PopDebugGroup() const override;
+    void InsertDebugMarker(const char* markerLabel) const override;
 };
 
 struct D3D12Queue final : public GPUQueue
 {
-    D3D12GPUDevice* device = nullptr;
-    GPUQueueType type = GPUQueueType_Count;
-    ComPtr<ID3D12CommandQueue> handle;
-    ComPtr<ID3D12Fence> fence;
+    D3D12Device* device = nullptr;
+    GPUQueueType queueType = GPUQueueType_Count;
+    ID3D12CommandQueue* handle = nullptr;
+    ID3D12Fence* fence = nullptr;
     uint64_t nextFenceValue = 0;
     uint64_t lastCompletedFenceValue = 0;
     std::mutex fenceMutex;
-    ComPtr<ID3D12Fence> frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
+    ID3D12Fence* frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
 
     std::vector<D3D12CommandBuffer*> commandBuffers;
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUQueueType GetType() const override { return type; }
+    GPUQueueType GetQueueType() const override { return queueType; }
     GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
 
     uint64_t IncrementFenceValue();
@@ -368,7 +374,8 @@ struct D3D12UploadContext final
     ID3D12GraphicsCommandList* commandList = nullptr;
     ID3D12Fence* fence = nullptr;
     uint64_t fenceValueSignaled = 0;
-    D3D12Buffer* uploadBuffer = nullptr;
+    ID3D12Resource* uploadBuffer = nullptr;
+    D3D12MA::Allocation* uploadBufferAllocation = nullptr;
     void* uploadBufferData = nullptr;
 
     inline bool IsValid() const { return commandList != nullptr; }
@@ -377,27 +384,27 @@ struct D3D12UploadContext final
 
 struct D3D12CopyAllocator final
 {
-    D3D12GPUDevice* device = nullptr;
+    D3D12Device* device = nullptr;
     // Separate copy queue to reduce interference with main copy queue.
     ID3D12CommandQueue* queue = nullptr;
     std::mutex locker;
     std::vector<D3D12UploadContext> freeList;
 
-    void Init(D3D12GPUDevice* device);
+    void Init(D3D12Device* device);
     void Shutdown();
     D3D12UploadContext Allocate(uint64_t size);
     void Submit(D3D12UploadContext context);
 };
 
-struct D3D12GPUDevice final : public GPUDevice
+struct D3D12Device final : public GPUDevice
 {
-    D3D12GPUAdapter* adapter = nullptr;
+    D3D12Adapter* adapter = nullptr;
     ID3D12Device5* handle = nullptr;
     ComPtr<ID3D12VideoDevice> videoDevice;
     CD3DX12FeatureSupport features;
     DWORD callbackCookie = 0;
     bool shuttingDown = false;
-        
+
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     //ComPtr<D3D12MA::Pool> umaPool;
     ComPtr<ID3D12Fence> deviceRemovedFence;
@@ -419,7 +426,7 @@ struct D3D12GPUDevice final : public GPUDevice
     //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessResources;
     //std::deque<std::pair<uint32_t, uint64_t>> destroyedBindlessSamplers;
 
-    ~D3D12GPUDevice() override;
+    ~D3D12Device() override;
     void OnDeviceRemoved();
     GPUQueue* GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
@@ -434,34 +441,45 @@ struct D3D12GPUDevice final : public GPUDevice
 
 struct D3D12Surface final : public GPUSurface
 {
-    D3D12GPUInstance* instance = nullptr;
+    D3D12Instance* instance = nullptr;
+    D3D12Device* device = nullptr;
+
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     HWND handle = nullptr;
 #endif
     uint32_t width = 0;
     uint32_t height = 0;
+    IDXGISwapChain3* swapChain3 = nullptr;
+    uint32_t swapChainWidth = 0;
+    uint32_t swapChainHeight = 0;
+    uint32_t backBufferIndex = 0;
+    std::vector<D3D12Texture*> backbufferTextures;
 
     ~D3D12Surface() override;
-    void Configure(const GPUSurfaceConfiguration* config) override;
+    GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
+    GPUResult GetCurrentTexture(GPUTexture** surfaceTexture) override;
+    GPUResult Present() override;
 };
 
-struct D3D12GPUAdapter final : public GPUAdapter
+struct D3D12Adapter final : public GPUAdapter
 {
-    D3D12GPUInstance* instance = nullptr;
+    D3D12Instance* instance = nullptr;
     ComPtr<IDXGIAdapter1> dxgiAdapter1;
 
+    ~D3D12Adapter() override;
     GPUResult GetLimits(GPULimits* limits) const override;
     GPUDevice* CreateDevice() override;
 };
 
-struct D3D12GPUInstance final : public GPUInstance
+struct D3D12Instance final : public GPUInstance
 {
     ComPtr<IDXGIFactory4> dxgiFactory4;
     bool tearingSupported = false;
     GPUValidationMode validationMode;
 
-    ~D3D12GPUInstance() override;
+    ~D3D12Instance() override;
     GPUSurface* CreateSurface(Window* window) override;
     GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
@@ -491,7 +509,9 @@ void D3D12Buffer::SetLabel(const char* label)
 /* D3D12Texture */
 D3D12Texture::~D3D12Texture()
 {
-
+    device->DeferDestroy(handle, allocation);
+    handle = nullptr;
+    allocation = nullptr;
 }
 
 void D3D12Texture::SetLabel(const char* label)
@@ -508,6 +528,148 @@ void D3D12Texture::SetLabel(const char* label)
     }
 }
 
+/* D3D12CommandBuffer */
+D3D12CommandBuffer::~D3D12CommandBuffer()
+{
+    //for (uint32_t i = 0; i < kMaxBindGroups; ++i)
+    //{
+    //    boundBindGroups[i].Reset();
+    //}
+
+    for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+    {
+        SAFE_RELEASE(commandAllocators[i]);
+    }
+
+    SAFE_RELEASE(commandList);
+}
+
+void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc)
+{
+    //GraphicsContext::Reset(frameIndex);
+    //waits.clear();
+    //hasPendingWaits.store(false);
+    //currentPipeline.Reset();
+    //currentPipelineLayout.Reset();
+    //frameAllocators[frameIndex].Reset();
+    //presentSwapChains.clear();
+    //numBarriersToCommit = 0;
+
+    // Start the command list in a default state:
+    VHR(commandAllocators[frameIndex]->Reset());
+    VHR(commandList->Reset(commandAllocators[frameIndex], nullptr));
+
+#if TODO
+    if (queue->queueType != GPUQueueType_Copy)
+    {
+        bindGroupsDirty = false;
+        numBoundBindGroups = 0;
+
+        for (uint32_t i = 0; i < kMaxBindGroups; ++i)
+        {
+            boundBindGroups[i].Reset();
+        }
+
+        ID3D12DescriptorHeap* heaps[2] = {
+            device->shaderResourceViewHeap.GetShaderVisibleHeap(),
+            device->samplerHeap.GetShaderVisibleHeap()
+        };
+        commandList->SetDescriptorHeaps(ALIMER_STATIC_ARRAY_SIZE(heaps), heaps);
+    }
+#endif // TODO
+
+    if (queue->queueType == GPUQueueType_Graphics)
+    {
+        for (uint32_t i = 0; i < GPU_MAX_VERTEX_BUFFER_BINDINGS; ++i)
+        {
+            vboViews[i] = {};
+        }
+
+        D3D12_RECT scissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
+        for (size_t i = 0; i < std::size(scissorRects); ++i)
+        {
+            scissorRects[i].bottom = D3D12_VIEWPORT_BOUNDS_MAX;
+            scissorRects[i].left = D3D12_VIEWPORT_BOUNDS_MIN;
+            scissorRects[i].right = D3D12_VIEWPORT_BOUNDS_MAX;
+            scissorRects[i].top = D3D12_VIEWPORT_BOUNDS_MIN;
+        }
+        commandList->RSSetScissorRects(D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX, scissorRects);
+        const float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        commandList->OMSetBlendFactor(blendFactor);
+    }
+
+    hasLabel = desc && !desc->label;
+    if (hasLabel)
+    {
+        PushDebugGroup(desc->label);
+        hasLabel = true;
+    }
+}
+
+ID3D12CommandList* D3D12CommandBuffer::End() const
+{
+    if (hasLabel)
+    {
+        PopDebugGroup();
+    }
+
+    VHR(commandList->Close());
+
+    return commandList;
+}
+
+void D3D12CommandBuffer::PushDebugGroup(const char* groupLabel) const
+{
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    if (d3d12_state.PIXBeginEventOnCommandList != nullptr)
+    {
+        d3d12_state.PIXBeginEventOnCommandList(commandList, PIX_COLOR_DEFAULT, groupLabel);
+    }
+    else
+#endif
+    {
+        WCHAR* wideLabel = Win32_CreateWideStringFromUTF8(groupLabel);
+        if (wideLabel)
+        {
+            PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, wideLabel);
+            alimerFree(wideLabel);
+        }
+    }
+}
+
+void D3D12CommandBuffer::PopDebugGroup() const
+{
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    if (d3d12_state.PIXEndEventOnCommandList != nullptr)
+    {
+        d3d12_state.PIXEndEventOnCommandList(commandList);
+    }
+    else
+#endif
+    {
+        PIXEndEvent(commandList);
+    }
+}
+
+void D3D12CommandBuffer::InsertDebugMarker(const char* markerLabel) const
+{
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    if (d3d12_state.PIXSetMarkerOnCommandList != nullptr)
+    {
+        d3d12_state.PIXSetMarkerOnCommandList(commandList, PIX_COLOR_DEFAULT, markerLabel);
+    }
+    else
+#endif
+    {
+        WCHAR* wideLabel = Win32_CreateWideStringFromUTF8(markerLabel);
+        if (wideLabel)
+        {
+            PIXSetMarker(commandList, PIX_COLOR_DEFAULT, wideLabel);
+            alimerFree(wideLabel);
+        }
+    }
+}
+
 /* D3D12Queue */
 GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
@@ -518,11 +680,21 @@ GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
         D3D12CommandBuffer* commandBuffer = new D3D12CommandBuffer();
         commandBuffer->queue = this;
         commandBuffer->index = index;
+
+        D3D12_COMMAND_LIST_TYPE d3dCommandListType = ToD3D12(queueType);
+
+        for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+        {
+            VHR(device->handle->CreateCommandAllocator(d3dCommandListType, PPV_ARGS(commandBuffer->commandAllocators[i])));
+        }
+
+        VHR(device->handle->CreateCommandList1(0, d3dCommandListType, D3D12_COMMAND_LIST_FLAG_NONE, PPV_ARGS(commandBuffer->commandList)));
+
         commandBuffers.push_back(commandBuffer);
     }
     cmdBuffersLocker.unlock();
 
-    //commandBuffers[index]->Begin(frameIndex, label);
+    commandBuffers[index]->Begin(device->frameIndex, desc);
 
     return commandBuffers[index];
 }
@@ -530,7 +702,7 @@ GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
 uint64_t D3D12Queue::IncrementFenceValue()
 {
     std::lock_guard<std::mutex> LockGuard(fenceMutex);
-    handle->Signal(fence.Get(), nextFenceValue);
+    handle->Signal(fence, nextFenceValue);
     return nextFenceValue++;
 }
 
@@ -565,10 +737,26 @@ void D3D12Queue::WaitIdle()
 
 void D3D12Queue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers)
 {
+    std::vector<ID3D12CommandList*> submitCommandLists;
+    for (uint32_t i = 0; i < numCommandBuffers; i++)
+    {
+        const D3D12CommandBuffer* commandBuffer = static_cast<const D3D12CommandBuffer*>(commandBuffers[i]);
+
+        ID3D12CommandList* commandList = commandBuffer->End();
+        submitCommandLists.push_back(commandList);
+    }
+
+    // Kickoff the command lists
+    handle->ExecuteCommandLists((UINT)submitCommandLists.size(), submitCommandLists.data());
+    // Signal the next fence value (with the GPU)
+    handle->Signal(fence, nextFenceValue++);
+
+    //if (WaitForCompletion)
+    //    g_CommandManager.WaitForFence(FenceValue);
 }
 
 /* D3D12CopyAllocator */
-void D3D12CopyAllocator::Init(D3D12GPUDevice* device_)
+void D3D12CopyAllocator::Init(D3D12Device* device_)
 {
     device = device_;
 
@@ -589,6 +777,7 @@ void D3D12CopyAllocator::Shutdown()
         SAFE_RELEASE(context.commandList);
         SAFE_RELEASE(context.fence);
         SAFE_RELEASE(context.uploadBuffer);
+        SAFE_RELEASE(context.uploadBufferAllocation);
         context.uploadBufferData = nullptr;
     }
 
@@ -605,7 +794,7 @@ D3D12UploadContext D3D12CopyAllocator::Allocate(uint64_t size)
     for (size_t i = 0; i < freeList.size(); ++i)
     {
         if (freeList[i].uploadBuffer != nullptr &&
-            freeList[i].uploadBuffer->GetSize() >= size)
+            freeList[i].uploadBuffer->GetDesc().Width >= size)
         {
             if (freeList[i].IsCompleted())
             {
@@ -628,15 +817,34 @@ D3D12UploadContext D3D12CopyAllocator::Allocate(uint64_t size)
 
         VHR(device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&context.fence)));
         SAFE_RELEASE(context.uploadBuffer);
+        SAFE_RELEASE(context.uploadBufferAllocation);
 
-        GPUBufferDesc uploadBufferDesc;
-        uploadBufferDesc.label = "CopyAllocator::UploadBuffer";
-        uploadBufferDesc.size = GetNextPowerOfTwo(size);
-        uploadBufferDesc.memoryType = GPUMemoryType_Upload;
+        D3D12MA::ALLOCATION_DESC allocationDesc = {};
+        allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 
-        context.uploadBuffer = static_cast<D3D12Buffer*>(device->CreateBuffer(&uploadBufferDesc, nullptr));
-        ALIMER_ASSERT(context.uploadBuffer != nullptr);
-        context.uploadBufferData = context.uploadBuffer->pMappedData;
+        D3D12_RESOURCE_DESC bufferDesc{};
+        bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+        bufferDesc.Width = GetNextPowerOfTwo(size);
+        bufferDesc.Height = 1;
+        bufferDesc.MipLevels = 1;
+        bufferDesc.DepthOrArraySize = 1;
+        bufferDesc.Alignment = 0;
+        bufferDesc.SampleDesc.Count = 1;
+        bufferDesc.SampleDesc.Quality = 0;
+        bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+        VHR(device->allocator->CreateResource(
+            &allocationDesc,
+            &bufferDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            &context.uploadBufferAllocation,
+            IID_PPV_ARGS(&context.uploadBuffer)
+        ));
+        D3D12_RANGE readRange = {};
+        VHR(context.uploadBuffer->Map(0, &readRange, &context.uploadBufferData));
     }
 
     // Begin command list
@@ -670,8 +878,8 @@ void D3D12CopyAllocator::Submit(D3D12UploadContext context)
     }
 }
 
-/* D3D12GPUDevice */
-D3D12GPUDevice::~D3D12GPUDevice()
+/* D3D12Device */
+D3D12Device::~D3D12Device()
 {
     WaitIdle();
     shuttingDown = true;
@@ -682,15 +890,26 @@ D3D12GPUDevice::~D3D12GPUDevice()
     ProcessDeletionQueue(true);
     frameCount = 0;
 
-    for (uint8_t i = 0; i < GPUQueueType_Count; ++i)
+    for (uint32_t queueIndex = 0; queueIndex < GPUQueueType_Count; ++queueIndex)
     {
-        queues[i].handle.Reset();
-        queues[i].fence.Reset();
+        D3D12Queue& queue = queues[queueIndex];
+        if (!queue.handle)
+            continue;
+
+        SAFE_RELEASE(queue.handle);
+        SAFE_RELEASE(queue.fence);
 
         for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
         {
-            queues[i].frameFences[frameIndex].Reset();
+            SAFE_RELEASE(queue.frameFences[frameIndex]);
         }
+
+        // Destroy command buffers
+        for (size_t cmdBufferIndex = 0, count = queue.commandBuffers.size(); cmdBufferIndex < count; ++cmdBufferIndex)
+        {
+            delete queue.commandBuffers[cmdBufferIndex];
+        }
+        queue.commandBuffers.clear();
     }
 
     // Allocator.
@@ -720,7 +939,7 @@ D3D12GPUDevice::~D3D12GPUDevice()
         callbackCookie = 0;
     }
 
-    //videoDevice.Reset();
+    videoDevice.Reset();
     //deviceConfiguration.Reset();
     const ULONG refCount = handle->Release();
 #if defined(_DEBUG)
@@ -738,19 +957,21 @@ D3D12GPUDevice::~D3D12GPUDevice()
 #else
     (void)refCount; // avoid warning
 #endif
+
+    SAFE_RELEASE(adapter);
 }
 
-void D3D12GPUDevice::OnDeviceRemoved()
+void D3D12Device::OnDeviceRemoved()
 {
 
 }
 
-GPUQueue* D3D12GPUDevice::GetQueue(GPUQueueType type)
+GPUQueue* D3D12Device::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
 
-bool D3D12GPUDevice::WaitIdle()
+bool D3D12Device::WaitIdle()
 {
     for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
     {
@@ -764,12 +985,17 @@ bool D3D12GPUDevice::WaitIdle()
     return true;
 }
 
-uint64_t D3D12GPUDevice::CommitFrame()
+uint64_t D3D12Device::CommitFrame()
 {
-    // Final submits with fences.
+    // Mark the completion of queues for this frame:
     for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
     {
-        //queues[i].Submit(queues[i].frameFences[frameIndex]);
+        D3D12Queue& queue = queues[i];
+        if (queue.handle == nullptr)
+            continue;
+
+        VHR(queue.handle->Signal(queue.frameFences[frameIndex], 1));
+        queues[i].cmdBuffersCount = 0;
     }
 
     // Begin new frame
@@ -777,16 +1003,22 @@ uint64_t D3D12GPUDevice::CommitFrame()
     frameIndex = frameCount % GPU_MAX_INFLIGHT_FRAMES;
 
     // Initiate stalling CPU when GPU is not yet finished with next frame
-    if (frameCount >= GPU_MAX_INFLIGHT_FRAMES)
+    for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
     {
-        for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
-        {
-            if (queues[i].handle == nullptr)
-                continue;
+        D3D12Queue& queue = queues[i];
 
-            //VK_CHECK(vkWaitForFences(handle, 1, &queues[i].frameFences[frameIndex], true, 0xFFFFFFFFFFFFFFFF));
-            //VK_CHECK(vkResetFences(handle, 1, &queues[i].frameFences[frameIndex]));
+        if (queue.handle == nullptr)
+            continue;
+
+        if (frameCount >= GPU_MAX_INFLIGHT_FRAMES
+            && queue.frameFences[frameIndex]->GetCompletedValue() < 1)
+        {
+            // NULL event handle will simply wait immediately:
+            //	https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12fence-seteventoncompletion#remarks
+            VHR(queue.frameFences[frameIndex]->SetEventOnCompletion(1, nullptr));
         }
+
+        VHR(queue.frameFences[frameIndex]->Signal(0));
     }
 
     ProcessDeletionQueue(false);
@@ -794,7 +1026,7 @@ uint64_t D3D12GPUDevice::CommitFrame()
     return frameCount;
 }
 
-void D3D12GPUDevice::DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation)
+void D3D12Device::DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation)
 {
     if (resource == nullptr)
     {
@@ -817,7 +1049,7 @@ void D3D12GPUDevice::DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocati
     destroyMutex.unlock();
 }
 
-void D3D12GPUDevice::ProcessDeletionQueue(bool force)
+void D3D12Device::ProcessDeletionQueue(bool force)
 {
     destroyMutex.lock();
     while (!deferredAllocations.empty())
@@ -853,7 +1085,7 @@ void D3D12GPUDevice::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer* D3D12GPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
 {
     D3D12Buffer* buffer = new D3D12Buffer();
     buffer->device = this;
@@ -871,9 +1103,11 @@ GPUBuffer* D3D12GPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* p
     resourceDesc.Width = alignedSize;
     resourceDesc.Height = 1;
     resourceDesc.MipLevels = 1;
-    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     resourceDesc.DepthOrArraySize = 1;
     resourceDesc.Alignment = 0;
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.SampleDesc.Quality = 0;
+    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
     if (desc->usage & GPUBufferUsage_ShaderWrite)
     {
@@ -886,8 +1120,6 @@ GPUBuffer* D3D12GPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* p
         resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
     }
 
-    resourceDesc.SampleDesc.Count = 1;
-    resourceDesc.SampleDesc.Quality = 0;
 
     D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
 
@@ -982,7 +1214,7 @@ GPUBuffer* D3D12GPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* p
             context.commandList->CopyBufferRegion(
                 buffer->handle,
                 0,
-                context.uploadBuffer->handle,
+                context.uploadBuffer,
                 0,
                 desc->size
             );
@@ -994,7 +1226,7 @@ GPUBuffer* D3D12GPUDevice::CreateBuffer(const GPUBufferDesc* desc, const void* p
     return buffer;
 }
 
-GPUTexture* D3D12GPUDevice::CreateTexture(const GPUTextureDesc* desc, const void* pInitialData)
+GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc* desc, const void* pInitialData)
 {
     return nullptr;
 }
@@ -1002,14 +1234,38 @@ GPUTexture* D3D12GPUDevice::CreateTexture(const GPUTextureDesc* desc, const void
 /* D3D12Surface */
 D3D12Surface::~D3D12Surface()
 {
+    Unconfigure();
 }
 
-void D3D12Surface::Configure(const GPUSurfaceConfiguration* config)
+GPUResult D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
+    capabilities->preferredFormat = PixelFormat_BGRA8UnormSrgb;
+    capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
+    static const PixelFormat kSupportedFormats[] = {
+        PixelFormat_BGRA8Unorm,
+        PixelFormat_BGRA8UnormSrgb,
+        PixelFormat_RGBA8Unorm,
+        PixelFormat_RGBA8UnormSrgb,
+        PixelFormat_RGBA16Float,
+        PixelFormat_RGB10A2Unorm,
+    };
+    capabilities->formats = kSupportedFormats;
+    capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
+    return GPUResult_Success;
+}
+
+bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
+{
+    Unconfigure();
+
+    config = *config_;
+    device = static_cast<D3D12Device*>(config.device);
+    device->AddRef();
+
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-    swapChainDesc.Width = config->width;
-    swapChainDesc.Height = config->height;
-    swapChainDesc.Format = ToDxgiSwapChainFormat(config->format);
+    swapChainDesc.Width = config.width;
+    swapChainDesc.Height = config.height;
+    swapChainDesc.Format = ToDxgiSwapChainFormat(config.format);
     swapChainDesc.Stereo = FALSE;
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
@@ -1019,15 +1275,128 @@ void D3D12Surface::Configure(const GPUSurfaceConfiguration* config)
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
     swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | (instance->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u);
+
+    HRESULT hr = E_FAIL;
+    ComPtr<IDXGISwapChain1> tempSwapChain;
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
+    fullscreenDesc.Windowed = TRUE; // !desc.fullscreen;
+
+    hr = instance->dxgiFactory4->CreateSwapChainForHwnd(
+        device->queues[GPUQueueType_Graphics].handle,
+        handle,
+        &swapChainDesc,
+        &fullscreenDesc,
+        nullptr,
+        tempSwapChain.GetAddressOf()
+    );
+
+    // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
+    VHR(instance->dxgiFactory4->MakeWindowAssociation(handle, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER));
+#endif
+
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    hr = tempSwapChain->QueryInterface(&swapChain3);
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    VHR(swapChain3->GetDesc1(&swapChainDesc));
+    swapChainWidth = swapChainDesc.Width;
+    swapChainHeight = swapChainDesc.Height;
+
+    backBufferIndex = 0;
+    backbufferTextures.resize(swapChainDesc.BufferCount);
+
+    GPUTextureDesc textureDesc{};
+    textureDesc.format = config.format;
+    textureDesc.width = swapChainWidth;
+    textureDesc.height = swapChainHeight;
+    textureDesc.usage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
+
+    for (uint32_t i = 0; i < swapChainDesc.BufferCount; ++i)
+    {
+        //std::string name = FMT::format("BackBuffer texture {}", i);
+
+        D3D12Texture* texture = new D3D12Texture();
+        texture->device = device;
+        texture->desc = textureDesc;
+        //texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(swapChain->colorFormat);
+        VHR(swapChain3->GetBuffer(i, IID_PPV_ARGS(&texture->handle)));
+
+        backbufferTextures[i] = texture;
+    }
+
+    backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
+
+    return true;
 }
 
 void D3D12Surface::Unconfigure()
 {
+    if (device)
+    {
+        device->WaitIdle();
+    }
+
+    for (size_t i = 0; i < backbufferTextures.size(); ++i)
+    {
+        backbufferTextures[i]->Release();
+    }
+
+    swapChainWidth = 0;
+    swapChainHeight = 0;
+    backBufferIndex = 0;
+    backbufferTextures.clear();
+    SAFE_RELEASE(swapChain3);
+    SAFE_RELEASE(device);
+}
+
+
+GPUResult D3D12Surface::GetCurrentTexture(GPUTexture** surfaceTexture)
+{
+    // Fence and events?
+    backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
+    D3D12Texture* currentTexture = backbufferTextures[backBufferIndex];
+    *surfaceTexture = currentTexture;
+
+    return GPUResult_Success;
+}
+
+GPUResult D3D12Surface::Present()
+{
+    const HRESULT hr = swapChain3->Present(1, 0/*swapChain->syncInterval, swapChain->presentFlags*/);
+
+    // If the device was reset we must completely reinitialize the renderer.
+    if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+    {
+#ifdef _DEBUG
+        char buff[64] = {};
+        sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n",
+            static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? device->handle->GetDeviceRemovedReason() : hr));
+        OutputDebugStringA(buff);
+#endif
+
+        // Handle device lost
+        device->OnDeviceRemoved();
+    }
+
+    return GPUResult_Success;
+}
+
+/* D3D12Adapter */
+D3D12Adapter::~D3D12Adapter()
+{
 
 }
 
-/* D3D12GPUAdapter */
-GPUResult D3D12GPUAdapter::GetLimits(GPULimits* limits) const
+GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
 {
     limits->maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
     limits->maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
@@ -1038,7 +1407,7 @@ GPUResult D3D12GPUAdapter::GetLimits(GPULimits* limits) const
     limits->maxConstantBufferBindingSize = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
     limits->maxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1;
     limits->minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
-    limits->minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT; 
+    limits->minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
     limits->maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
     limits->maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
 
@@ -1061,15 +1430,16 @@ GPUResult D3D12GPUAdapter::GetLimits(GPULimits* limits) const
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 inline void HandleDeviceRemoved(PVOID context, BOOLEAN)
 {
-    D3D12GPUDevice* removedDevice = (D3D12GPUDevice*)context;
+    D3D12Device* removedDevice = (D3D12Device*)context;
     removedDevice->OnDeviceRemoved();
 }
 #endif
 
-GPUDevice* D3D12GPUAdapter::CreateDevice()
+GPUDevice* D3D12Adapter::CreateDevice()
 {
-    D3D12GPUDevice* device = new D3D12GPUDevice();
+    D3D12Device* device = new D3D12Device();
     device->adapter = this;
+    device->adapter->AddRef();
 
     HRESULT hr = E_FAIL;
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -1178,19 +1548,16 @@ GPUDevice* D3D12GPUAdapter::CreateDevice()
         if (queueType >= GPUQueueType_VideoDecode && device->videoDevice == nullptr)
             continue;
 
-        device->queues[queue].type = queueType;
+        device->queues[queue].device = device;
+        device->queues[queue].queueType = queueType;
 
         D3D12_COMMAND_QUEUE_DESC queueDesc{};
         queueDesc.Type = ToD3D12(queueType);
         queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         queueDesc.NodeMask = 0;
-        VHR(
-            device->handle->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(device->queues[queue].handle.ReleaseAndGetAddressOf()))
-        );
-        VHR(
-            device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(device->queues[queue].fence.ReleaseAndGetAddressOf()))
-        );
+        VHR(device->handle->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&device->queues[queue].handle)));
+        VHR(device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&device->queues[queue].fence)));
         VHR(device->queues[queue].fence->Signal((uint64_t)queueDesc.Type << 56));
         device->queues[queue].nextFenceValue = ((uint64_t)queueDesc.Type << 56 | 1);
         device->queues[queue].lastCompletedFenceValue = (uint64_t)queueDesc.Type << 56;
@@ -1221,7 +1588,7 @@ GPUDevice* D3D12GPUAdapter::CreateDevice()
         for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
         {
             VHR(
-                device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(device->queues[queue].frameFences[frameIndex].ReleaseAndGetAddressOf()))
+                device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&device->queues[queue].frameFences[frameIndex]))
             );
 
 #if defined(_DEBUG)
@@ -1270,12 +1637,12 @@ GPUDevice* D3D12GPUAdapter::CreateDevice()
     return device;
 }
 
-/* D3D12GPUInstance */
-D3D12GPUInstance::~D3D12GPUInstance()
+/* D3D12Instance */
+D3D12Instance::~D3D12Instance()
 {
 }
 
-GPUSurface* D3D12GPUInstance::CreateSurface(Window* window)
+GPUSurface* D3D12Instance::CreateSurface(Window* window)
 {
     D3D12Surface* surface = new D3D12Surface();
     surface->instance = this;
@@ -1294,11 +1661,11 @@ GPUSurface* D3D12GPUInstance::CreateSurface(Window* window)
     surface->width = static_cast<uint32_t>(windowRect.right - windowRect.left);
     surface->height = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
 #endif
-    
+
     return surface;
 }
 
-GPUAdapter* D3D12GPUInstance::RequestAdapter(const GPURequestAdapterOptions* options)
+GPUAdapter* D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options)
 {
     const DXGI_GPU_PREFERENCE gpuPreference = (options && options->powerPreference == GPUPowerPreference_LowPower) ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
 
@@ -1350,7 +1717,7 @@ GPUAdapter* D3D12GPUInstance::RequestAdapter(const GPURequestAdapterOptions* opt
         return nullptr;
     }
 
-    D3D12GPUAdapter* adapter = new D3D12GPUAdapter();
+    D3D12Adapter* adapter = new D3D12Adapter();
     adapter->instance = this;
     adapter->dxgiAdapter1 = dxgiAdapter1;
     return adapter;
@@ -1486,7 +1853,7 @@ bool D3D12_IsSupported(void)
 
 GPUInstance* D3D12_CreateInstance(const GPUConfig* config)
 {
-    D3D12GPUInstance* instance = new D3D12GPUInstance();
+    D3D12Instance* instance = new D3D12Instance();
     instance->validationMode = config->validationMode;
 
     HRESULT hr = E_FAIL;
