@@ -184,6 +184,201 @@ namespace
         return true;
 #endif
     }
+
+    VkFormat ToVkFormat(PixelFormat format)
+    {
+        //if (format == PixelFormat_Stencil8 && !supportsS8)
+        //{
+        //    return VK_FORMAT_D24_UNORM_S8_UINT;
+        //}
+        //
+        //if (format == PixelFormat_Depth24UnormStencil8 && !supportsD24S8)
+        //{
+        //    return VK_FORMAT_D32_SFLOAT_S8_UINT;
+        //}
+
+        // https://github.com/doitsujin/dxvk/blob/master/src/dxgi/dxgi_format.cpp
+        VkFormat vkFormat = static_cast<VkFormat>(alimerPixelFormatToVkFormat(format));
+        return vkFormat;
+    }
+
+    [[maybe_unused]] constexpr VkFormat ToVkVertexFormat(GPUVertexFormat format)
+    {
+        switch (format)
+        {
+            case GPUVertexFormat_UByte:               return VK_FORMAT_R8_UINT;
+            case GPUVertexFormat_UByte2:              return VK_FORMAT_R8G8_UINT;
+            case GPUVertexFormat_UByte4:              return VK_FORMAT_R8G8B8A8_UINT;
+            case GPUVertexFormat_Byte:                return VK_FORMAT_R8_SINT;
+            case GPUVertexFormat_Byte2:               return VK_FORMAT_R8G8_SINT;
+            case GPUVertexFormat_Byte4:               return VK_FORMAT_R8G8B8A8_SINT;
+            case GPUVertexFormat_UByteNormalized:     return VK_FORMAT_R8_UNORM;
+            case GPUVertexFormat_UByte2Normalized:    return VK_FORMAT_R8G8_UNORM;
+            case GPUVertexFormat_UByte4Normalized:    return VK_FORMAT_R8G8B8A8_UNORM;
+            case GPUVertexFormat_ByteNormalized:      return VK_FORMAT_R8_SNORM;
+            case GPUVertexFormat_Byte2Normalized:     return VK_FORMAT_R8G8_SNORM;
+            case GPUVertexFormat_Byte4Normalized:     return VK_FORMAT_R8G8B8A8_SNORM;
+
+            case GPUVertexFormat_UShort:              return VK_FORMAT_R16_UINT;
+            case GPUVertexFormat_UShort2:             return VK_FORMAT_R16G16_UINT;
+            case GPUVertexFormat_UShort4:             return VK_FORMAT_R16G16B16A16_UINT;
+            case GPUVertexFormat_Short:               return VK_FORMAT_R16_SINT;
+            case GPUVertexFormat_Short2:              return VK_FORMAT_R16G16_SINT;
+            case GPUVertexFormat_Short4:              return VK_FORMAT_R16G16B16A16_SINT;
+            case GPUVertexFormat_UShortNormalized:    return VK_FORMAT_R16_UNORM;
+            case GPUVertexFormat_UShort2Normalized:   return VK_FORMAT_R16G16_UNORM;
+            case GPUVertexFormat_UShort4Normalized:   return VK_FORMAT_R16G16B16A16_UNORM;
+            case GPUVertexFormat_ShortNormalized:     return VK_FORMAT_R16_SNORM;
+            case GPUVertexFormat_Short2Normalized:    return VK_FORMAT_R16G16_SNORM;
+            case GPUVertexFormat_Short4Normalized:    return VK_FORMAT_R16G16B16A16_SNORM;
+            case GPUVertexFormat_Half:                return VK_FORMAT_R16_SFLOAT;
+            case GPUVertexFormat_Half2:               return VK_FORMAT_R16G16_SFLOAT;
+            case GPUVertexFormat_Half4:               return VK_FORMAT_R16G16B16A16_SFLOAT;
+
+            case GPUVertexFormat_Float:               return VK_FORMAT_R32_SFLOAT;
+            case GPUVertexFormat_Float2:              return VK_FORMAT_R32G32_SFLOAT;
+            case GPUVertexFormat_Float3:              return VK_FORMAT_R32G32B32_SFLOAT;
+            case GPUVertexFormat_Float4:              return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+            case GPUVertexFormat_UInt:                return VK_FORMAT_R32_UINT;
+            case GPUVertexFormat_UInt2:               return VK_FORMAT_R32G32_UINT;
+            case GPUVertexFormat_UInt3:               return VK_FORMAT_R32G32B32_UINT;
+            case GPUVertexFormat_UInt4:               return VK_FORMAT_R32G32B32A32_UINT;
+
+            case GPUVertexFormat_Int:                 return VK_FORMAT_R32_SINT;
+            case GPUVertexFormat_Int2:                return VK_FORMAT_R32G32_SINT;
+            case GPUVertexFormat_Int3:                return VK_FORMAT_R32G32B32_SINT;
+            case GPUVertexFormat_Int4:                return VK_FORMAT_R32G32B32A32_SINT;
+
+            case GPUVertexFormat_Unorm10_10_10_2:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case GPUVertexFormat_Unorm8x4BGRA:   return VK_FORMAT_B8G8R8A8_UNORM;
+                //case VertexFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+                //case VertexFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+
+            default:
+                ALIMER_UNREACHABLE();
+        }
+    }
+
+    constexpr VkImageAspectFlags GetImageAspectFlags(VkFormat format, GPUTextureAspect aspect)
+    {
+        switch (aspect)
+        {
+            case GPUTextureAspect_All:
+                switch (format)
+                {
+                    case VK_FORMAT_D16_UNORM_S8_UINT:
+                    case VK_FORMAT_D24_UNORM_S8_UINT:
+                    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                        return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+                    case VK_FORMAT_D16_UNORM:
+                    case VK_FORMAT_D32_SFLOAT:
+                    case VK_FORMAT_X8_D24_UNORM_PACK32:
+                        return VK_IMAGE_ASPECT_DEPTH_BIT;
+                    case VK_FORMAT_S8_UINT:
+                        return VK_IMAGE_ASPECT_STENCIL_BIT;
+                    default:
+                        return VK_IMAGE_ASPECT_COLOR_BIT;
+                }
+            case GPUTextureAspect_DepthOnly:
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+            case GPUTextureAspect_StencilOnly:
+                return VK_IMAGE_ASPECT_STENCIL_BIT;
+            default:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+    }
+
+    constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
+    {
+        switch (mode)
+        {
+            case VK_PRESENT_MODE_FIFO_KHR:
+            case VK_PRESENT_MODE_IMMEDIATE_KHR:
+                return 2;
+            case VK_PRESENT_MODE_MAILBOX_KHR:
+                return 3;
+            default:
+                return 2;
+        }
+    }
+
+    struct VkImageLayoutMapping final
+    {
+        VkPipelineStageFlags2 stageFlags;
+        VkAccessFlags2 accessMask;
+
+        VkImageLayoutMapping(VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
+            : stageFlags(stageFlags_)
+            , accessMask(accessMask_)
+        {
+        }
+    };
+
+    VkImageLayoutMapping ConvertImageLayout(VkImageLayout layout)
+    {
+        switch (layout)
+        {
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                return { VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_2_NONE };
+
+            case VK_IMAGE_LAYOUT_GENERAL:
+                return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT };
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                return { VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT };
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                return {
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                };
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+                return {
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                };
+
+                // TODO: Understand this
+            case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+            case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+            case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+                return {
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                };
+
+                // TODO: Understand this
+            case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+            case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+            case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+                return {
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                };
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                //return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
+                return { VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT };
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                return { VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
+
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                return { VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
+
+            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+                return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,VK_ACCESS_2_MEMORY_READ_BIT };
+
+            case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+                return { VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR };
+
+            default:
+                ALIMER_UNREACHABLE();
+        }
+    }
 }
 
 struct VK_State {
@@ -672,8 +867,12 @@ struct VulkanBuffer final : public GPUBuffer
 struct VulkanTexture final : public GPUTexture
 {
     VulkanDevice* device = nullptr;
+    GPUTextureDesc desc = {};
+    VkFormat vkFormat = VK_FORMAT_UNDEFINED;
     VkImage handle = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
+    uint32_t numSubResources = 0;
+    mutable std::vector<VkImageLayout> imageLayouts;
 
     ~VulkanTexture() override;
     void SetLabel(const char* label) override;
@@ -698,6 +897,8 @@ struct VulkanCommandBuffer final : public GPUCommandBuffer
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
+
+    GPURenderCommandEncoder* BeginRenderPass(const GPURenderPassDesc* desc) override;
 };
 
 struct VulkanQueue final : public GPUQueue
@@ -772,10 +973,10 @@ struct VulkanDevice final : public GPUDevice
     //std::deque<std::pair<VkPipelineLayout, uint64_t>> destroyedPipelineLayouts;
     //std::deque<std::pair<VkPipeline, uint64_t>> destroyedPipelines;
     //std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
-    //std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
-    //std::deque<std::pair<VkSwapchainKHR, uint64_t>> destroyedSwapchains;
-    //std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
+    std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
+    std::deque<std::pair<VkSwapchainKHR, uint64_t>> destroyedSwapchains;
     //std::deque<std::pair<std::pair<VkDescriptorPool, VkDescriptorSet>, uint64_t>> destroyedDescriptorSets;
+    std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
 
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "alimer_gpu_vulkan_funcs.h"
@@ -788,7 +989,7 @@ struct VulkanDevice final : public GPUDevice
 
     /* Resource creation */
     GPUBuffer* CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
@@ -798,7 +999,17 @@ struct VulkanDevice final : public GPUDevice
 struct VulkanSurface final : public GPUSurface
 {
     VkInstance instance = VK_NULL_HANDLE;
+    VulkanDevice* device = nullptr;
     VkSurfaceKHR handle = VK_NULL_HANDLE;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+    VkExtent2D swapchainExtent = {};
+    uint32_t backBufferIndex = 0;
+    std::vector<VulkanTexture*> backbufferTextures;
+    std::mutex locker;
+    size_t swapChainAcquireSemaphoreIndex = 0;
+    std::vector<VkSemaphore> swapchainAcquireSemaphores;
+    VkSemaphore swapchainReleaseSemaphore = VK_NULL_HANDLE;
+    mutable std::vector<PixelFormat> supportedFormats;
 
     ~VulkanSurface() override;
     GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
@@ -908,7 +1119,29 @@ void VulkanBuffer::SetLabel(const char* label)
 /* VulkanTexture */
 VulkanTexture::~VulkanTexture()
 {
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
 
+    if (allocation != VK_NULL_HANDLE)
+    {
+        if (handle)
+        {
+            device->destroyedImages.push_back(std::make_pair(std::make_pair(handle, allocation), frameCount));
+        }
+        //else if (stagingResource)
+        //{
+        //    device->destroyedBuffers.push_back(std::make_pair(std::make_pair(stagingResource, allocation), frameCount));
+        //}
+        else if (allocation)
+        {
+            device->destroyedAllocations.push_back(std::make_pair(allocation, frameCount));
+        }
+    }
+    //stagingResource = VK_NULL_HANDLE;
+    handle = VK_NULL_HANDLE;
+    allocation = nullptr;
+
+    device->destroyMutex.unlock();
 }
 
 void VulkanTexture::SetLabel(const char* label)
@@ -1067,6 +1300,11 @@ void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
     label.color[2] = 0.0f;
     label.color[3] = 1.0f;
     vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &label);
+}
+
+GPURenderCommandEncoder* VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
+{
+    return nullptr;
 }
 
 /* VulkanQueue */
@@ -1488,6 +1726,8 @@ VulkanDevice::~VulkanDevice()
         vkDestroyDevice(handle, nullptr);
         handle = VK_NULL_HANDLE;
     }
+
+    SAFE_RELEASE(adapter);
 }
 
 GPUQueue* VulkanDevice::GetQueue(GPUQueueType type)
@@ -1563,9 +1803,9 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     //Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
     //Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
     //Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
-    //Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
-    //Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(handle, item, nullptr); });
-    //Destroy(destroyedSurfaces, [&](auto& item) { vkDestroySurfaceKHR(instance, item, nullptr); });
+    Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
+    Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(handle, item, nullptr); });
+    Destroy(destroyedSurfaces, [&](auto& item) { vkDestroySurfaceKHR(adapter->instance->handle, item, nullptr); });
     //Destroy(destroyedDescriptorSets, [&](auto& item) { vkFreeDescriptorSets(handle, item.first, 1u, &item.second); });
     destroyMutex.unlock();
 }
@@ -1803,9 +2043,319 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
     return buffer;
 }
 
-GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* descriptor, const void* pInitialData)
+GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
 {
-    return nullptr;
+    const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc->format);
+
+    VulkanTexture* texture = new VulkanTexture();
+    texture->device = this;
+    texture->desc = *desc;
+    texture->vkFormat = ToVkFormat(desc->format);
+
+    VkImageCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    createInfo.format = texture->vkFormat;
+    createInfo.extent.width = desc->width;
+    createInfo.extent.height = 1;
+    createInfo.extent.depth = 1;
+    createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    switch (desc->dimension)
+    {
+        case TextureDimension_1D:
+            createInfo.imageType = VK_IMAGE_TYPE_1D;
+            createInfo.arrayLayers = desc->depthOrArrayLayers;
+            break;
+
+        case TextureDimension_2D:
+            createInfo.imageType = VK_IMAGE_TYPE_2D;
+            createInfo.extent.height = desc->height;
+            createInfo.arrayLayers = desc->depthOrArrayLayers;
+            break;
+
+        case TextureDimension_3D:
+            createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+            createInfo.imageType = VK_IMAGE_TYPE_3D;
+            createInfo.extent.height = desc->height;
+            createInfo.extent.depth = desc->depthOrArrayLayers;
+            createInfo.arrayLayers = 1u;
+            break;
+
+        case TextureDimension_Cube:
+            createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+            createInfo.imageType = VK_IMAGE_TYPE_2D;
+            createInfo.extent.height = desc->height;
+            createInfo.arrayLayers = desc->depthOrArrayLayers * 6;
+            break;
+
+        default:
+            alimerLogError(LogCategory_GPU, "Invalid texture dimension");
+            delete texture;
+            return nullptr;
+    }
+
+    createInfo.mipLevels = desc->mipLevelCount;
+    createInfo.samples = (VkSampleCountFlagBits)desc->sampleCount;
+    createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    createInfo.usage = 0u;
+
+    if (desc->usage & GPUTextureUsage_Transient)
+    {
+        createInfo.usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+    }
+    else
+    {
+        createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+
+    VkImageLayout currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if (desc->usage & GPUTextureUsage_ShaderRead)
+    {
+        createInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+
+    if (desc->usage & GPUTextureUsage_ShaderWrite)
+    {
+        createInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+        currentLayout = VK_IMAGE_LAYOUT_GENERAL;
+    }
+
+    if (desc->usage & GPUTextureUsage_RenderTarget)
+    {
+        if (isDepthStencil)
+        {
+            createInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            if (alimerPixelFormatIsDepthOnly(desc->format))
+            {
+                currentLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            }
+            else
+            {
+                currentLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+        }
+        else
+        {
+            createInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            currentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
+    }
+
+    if (desc->usage & GPUTextureUsage_ShadingRate)
+    {
+        createInfo.usage |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+    }
+
+    // If ShaderRead and RenderTarget add input attachment
+    if (!isDepthStencil &&
+        (desc->usage & (GPUTextureUsage_RenderTarget | GPUTextureUsage_ShaderRead)))
+    {
+        createInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+    }
+
+    uint32_t sharingIndices[3];
+    FillImageSharingIndices(createInfo, sharingIndices);
+
+    VkResult result = VK_SUCCESS;
+
+    VmaAllocationInfo allocationInfo{};
+    VmaAllocationCreateInfo memoryInfo = {};
+    memoryInfo.flags = VMA_ALLOCATION_CREATE_CAN_ALIAS_BIT | VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT;
+    memoryInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+    result = vmaCreateImage(allocator, &createInfo, &memoryInfo,
+        &texture->handle,
+        &texture->allocation,
+        &allocationInfo);
+
+    if (result != VK_SUCCESS)
+    {
+        VK_LOG_ERROR(result, "Failed to create image.");
+        return nullptr;
+    }
+
+    if (desc->label)
+    {
+        texture->SetLabel(desc->label);
+    }
+
+    texture->numSubResources = desc->mipLevelCount * desc->depthOrArrayLayers;
+    texture->imageLayouts.resize(texture->numSubResources);
+    for (uint32_t i = 0; i < texture->numSubResources; i++)
+    {
+        texture->imageLayouts[i] = currentLayout;
+    }
+
+    // Issue data copy on request or transition barrier
+    VkImageSubresourceRange range{};
+    range.aspectMask = GetImageAspectFlags(createInfo.format, GPUTextureAspect_All);
+    range.baseMipLevel = 0;
+    range.levelCount = createInfo.mipLevels;
+    range.baseArrayLayer = 0;
+    range.layerCount = createInfo.arrayLayers;
+
+    if (pInitialData != nullptr)
+    {
+        VulkanUploadContext uploadContext;
+        void* pMappedData = nullptr;
+#if TEXTURE_STAGING
+        if (desc.memoryType == MemoryType::Upload)
+        {
+            pMappedData = texture->pMappedData;
+        }
+        else
+#endif // TEXTURE_STAGING
+
+        {
+            uploadContext = copyAllocator.Allocate(allocationInfo.size);
+            pMappedData = uploadContext.uploadBuffer->pMappedData;
+        }
+
+        std::vector<VkBufferImageCopy> copyRegions;
+
+        PixelFormatInfo formatInfo;
+        alimerPixelFormatGetInfo(desc->format, &formatInfo);
+        const uint32_t blockSize = formatInfo.blockWidth;
+
+        VkDeviceSize copyOffset = 0;
+        uint32_t initDataIndex = 0;
+        for (uint32_t arrayIndex = 0; arrayIndex < createInfo.arrayLayers; ++arrayIndex)
+        {
+            uint32_t levelWidth = createInfo.extent.width;
+            uint32_t levelHeight = createInfo.extent.height;
+            uint32_t levelDepth = createInfo.extent.depth;
+
+            for (uint32_t mipIndex = 0; mipIndex < createInfo.mipLevels; ++mipIndex)
+            {
+                const GPUTextureData& subresourceData = pInitialData[initDataIndex++];
+                const uint32_t numBlocksX = std::max(1u, levelWidth / blockSize);
+                const uint32_t numBlocksY = std::max(1u, levelHeight / blockSize);
+                const uint32_t dstRowPitch = numBlocksX * formatInfo.bytesPerBlock;
+                const uint32_t dstSlicePitch = dstRowPitch * numBlocksY;
+
+                uint32_t srcRowPitch = subresourceData.rowPitch;
+                uint32_t srcSlicePitch = subresourceData.slicePitch;
+                //GetSurfaceInfo(desc.format, levelWidth, levelHeight, &srcRowPitch, &srcSlicePitch);
+
+                for (uint32_t z = 0; z < levelDepth; ++z)
+                {
+                    uint8_t* dstSlice = (uint8_t*)pMappedData + copyOffset + dstSlicePitch * z;
+                    uint8_t* srcSlice = (uint8_t*)subresourceData.pData + srcSlicePitch * z;
+                    for (uint32_t y = 0; y < numBlocksY; ++y)
+                    {
+                        std::memcpy(
+                            dstSlice + dstRowPitch * y,
+                            srcSlice + srcRowPitch * y,
+                            dstRowPitch
+                        );
+                    }
+                }
+
+                if (uploadContext.IsValid())
+                {
+                    VkBufferImageCopy copyRegion = {};
+                    copyRegion.bufferOffset = copyOffset;
+                    copyRegion.bufferRowLength = 0;
+                    copyRegion.bufferImageHeight = 0;
+
+                    copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    copyRegion.imageSubresource.mipLevel = mipIndex;
+                    copyRegion.imageSubresource.baseArrayLayer = arrayIndex;
+                    copyRegion.imageSubresource.layerCount = 1;
+
+                    copyRegion.imageOffset = { 0, 0, 0 };
+                    copyRegion.imageExtent.width = levelWidth;
+                    copyRegion.imageExtent.height = levelHeight;
+                    copyRegion.imageExtent.depth = levelDepth;
+
+                    copyRegions.push_back(copyRegion);
+                }
+
+                copyOffset += dstSlicePitch * levelDepth;
+
+                levelWidth = std::max(1u, levelWidth / 2);
+                levelHeight = std::max(1u, levelHeight / 2);
+                levelDepth = std::max(1u, levelDepth / 2);
+            }
+        }
+
+        if (uploadContext.IsValid())
+        {
+            const VkImageLayoutMapping mappingBefore = ConvertImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+            VkImageMemoryBarrier2 barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+            barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+            barrier.srcAccessMask = 0;
+            barrier.dstStageMask = mappingBefore.stageFlags;
+            barrier.dstAccessMask = mappingBefore.accessMask;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = texture->handle;
+            barrier.subresourceRange = range;
+
+            VkDependencyInfo dependencyInfo = {};
+            dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            dependencyInfo.imageMemoryBarrierCount = 1;
+            dependencyInfo.pImageMemoryBarriers = &barrier;
+            vkCmdPipelineBarrier2(uploadContext.transferCommandBuffer, &dependencyInfo);
+
+            vkCmdCopyBufferToImage(
+                uploadContext.transferCommandBuffer,
+                uploadContext.uploadBuffer->handle,
+                texture->handle,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                (uint32_t)copyRegions.size(),
+                copyRegions.data()
+            );
+
+            const VkImageLayoutMapping mappingAfter = ConvertImageLayout(currentLayout);
+
+            std::swap(barrier.srcStageMask, barrier.dstStageMask);
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.newLayout = currentLayout;
+            barrier.srcAccessMask = mappingBefore.accessMask;
+            barrier.dstAccessMask = mappingAfter.accessMask;
+
+            vkCmdPipelineBarrier2(uploadContext.transitionCommandBuffer, &dependencyInfo);
+
+            copyAllocator.Submit(uploadContext);
+        }
+    }
+    else if (currentLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+    {
+        VulkanUploadContext uploadContext = copyAllocator.Allocate(allocationInfo.size);
+
+        const VkImageLayoutMapping mappingAfter = ConvertImageLayout(currentLayout);
+
+        VkImageMemoryBarrier2 barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.srcAccessMask = VK_PIPELINE_STAGE_2_NONE;
+        barrier.dstStageMask = mappingAfter.stageFlags;
+        barrier.dstAccessMask = mappingAfter.accessMask;
+        barrier.oldLayout = createInfo.initialLayout;
+        barrier.newLayout = currentLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = texture->handle;
+        barrier.subresourceRange = range;
+
+        VkDependencyInfo dependencyInfo{};
+        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependencyInfo.imageMemoryBarrierCount = 1;
+        dependencyInfo.pImageMemoryBarriers = &barrier;
+        vkCmdPipelineBarrier2(uploadContext.transitionCommandBuffer, &dependencyInfo);
+
+        copyAllocator.Submit(uploadContext);
+    }
+
+    return texture;
 }
 
 static void AddUniqueFamily(uint32_t* sharing_indices, uint32_t& count, uint32_t family)
@@ -1883,49 +2433,308 @@ void VulkanDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sh
 /* VulkanSurface */
 VulkanSurface::~VulkanSurface()
 {
+    for (size_t i = 0; i < backbufferTextures.size(); ++i)
+    {
+        backbufferTextures[i]->Release();
+    }
+
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+
+    for (size_t i = 0; i < backbufferTextures.size(); ++i)
+    {
+        device->destroyedSemaphores.push_back(std::make_pair(swapchainAcquireSemaphores[i], frameCount));
+    }
+    device->destroyedSemaphores.push_back(std::make_pair(swapchainReleaseSemaphore, frameCount));
+
+    if (swapchain)
+    {
+        device->destroyedSwapchains.push_back(std::make_pair(swapchain, frameCount));
+        swapchain = VK_NULL_HANDLE;
+    }
+
     if (handle != VK_NULL_HANDLE)
     {
-        vkDestroySurfaceKHR(instance, handle, nullptr);
+        device->destroyedSurfaces.push_back(std::make_pair(handle, frameCount));
         handle = VK_NULL_HANDLE;
     }
+
+
+    device->destroyMutex.unlock();
+
+    backBufferIndex = 0;
+    backbufferTextures.clear();
+    swapchainExtent = {};
+    SAFE_RELEASE(device);
 }
 
 GPUResult VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
-    //capabilities->preferredFormat = Format::R8G8B8A8_UNORM;
+    VulkanAdapter* backendAdapter = static_cast<VulkanAdapter*>(adapter);
+
+    VkSurfaceCapabilitiesKHR caps;
+    VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backendAdapter->handle, handle, &caps);
+    if (result != VK_SUCCESS)
+        return GPUResult_InvalidOperation;
+
+    uint32_t formatCount;
+    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(backendAdapter->handle, handle, &formatCount, nullptr));
+    std::vector<VkSurfaceFormatKHR> vkFormats(formatCount);
+    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(backendAdapter->handle, handle, &formatCount, vkFormats.data()));
+
+    uint32_t presentModeCount;
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(backendAdapter->handle, handle, &presentModeCount, nullptr));
+    std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(backendAdapter->handle, handle, &presentModeCount, swapchainPresentModes.data()));
+
+    // TODO: Add ColorSpace
+    supportedFormats.clear();
+    supportedFormats.reserve(formatCount);
+    for (const auto& surfaceFormat : vkFormats)
+    {
+        PixelFormat format = alimerPixelFormatFromVkFormat(static_cast<uint32_t>(surfaceFormat.format));
+        supportedFormats.push_back(format);
+    }
+
+    capabilities->preferredFormat = PixelFormat_BGRA8UnormSrgb;
     capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
-    static const PixelFormat kSupportedFormats[] = {
-        PixelFormat_BGRA8Unorm,
-        PixelFormat_BGRA8UnormSrgb,
-        PixelFormat_RGBA8Unorm,
-        PixelFormat_RGBA8UnormSrgb,
-        PixelFormat_RGBA16Float,
-        PixelFormat_RGB10A2Unorm,
-    };
-    capabilities->formats = kSupportedFormats;
-    capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
+    capabilities->formatCount = (uint32_t)supportedFormats.size();
+    capabilities->formats = supportedFormats.data();
     return GPUResult_Success;
 }
 
 bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
 {
-    config = *config_;
+    Unconfigure();
 
-    return false;
+    config = *config_;
+    device = static_cast<VulkanDevice*>(config.device);
+    device->AddRef();
+
+    VkSurfaceCapabilitiesKHR caps;
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->adapter->handle, handle, &caps));
+
+    uint32_t formatCount;
+    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device->adapter->handle, handle, &formatCount, nullptr));
+
+    std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
+    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device->adapter->handle, handle, &formatCount, swapchainFormats.data()));
+
+    uint32_t presentModeCount;
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(device->adapter->handle, handle, &presentModeCount, nullptr));
+    std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(device->adapter->handle, handle, &presentModeCount, swapchainPresentModes.data()));
+
+    VkPresentModeKHR vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    // Determine the number of images
+    uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
+    imageCount = ALIMER_MAX(imageCount, caps.minImageCount);
+    if (caps.maxImageCount != 0)
+    {
+        imageCount = ALIMER_MIN(imageCount, caps.maxImageCount);
+    }
+
+    // Format and color space
+    VkSurfaceFormatKHR surfaceFormat = {};
+    surfaceFormat.format = ToVkFormat(config.format);
+    surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+
+    bool valid = false;
+    bool allowHDR = true;
+    for (const auto& format : swapchainFormats)
+    {
+        if (!allowHDR && format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            continue;
+
+        if (format.format == surfaceFormat.format)
+        {
+            surfaceFormat = format;
+            valid = true;
+            break;
+        }
+    }
+
+    if (!valid)
+    {
+        surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+        surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    }
+
+    if (caps.currentExtent.width != 0xFFFFFFFF &&
+        caps.currentExtent.height != 0xFFFFFFFF)
+    {
+        swapchainExtent = caps.currentExtent;
+    }
+    else
+    {
+        swapchainExtent.width = ALIMER_MAX(caps.minImageExtent.width, ALIMER_MIN(caps.maxImageExtent.width, config.width));
+        swapchainExtent.height = ALIMER_MAX(caps.minImageExtent.height, ALIMER_MIN(caps.maxImageExtent.height, config.height));
+    }
+
+    VkSwapchainCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = handle;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = { swapchainExtent.width, swapchainExtent.height };
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    VkFormatProperties formatProps;
+    vkGetPhysicalDeviceFormatProperties(device->adapter->handle, createInfo.imageFormat, &formatProps);
+
+    if ((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR) || (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+    {
+        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.preTransform = caps.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = vkPresentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = swapchain;
+
+    VK_CHECK(device->vkCreateSwapchainKHR(device->handle, &createInfo, nullptr, &swapchain));
+
+    if (createInfo.oldSwapchain != VK_NULL_HANDLE)
+    {
+        device->vkDestroySwapchainKHR(device->handle, createInfo.oldSwapchain, nullptr);
+    }
+
+    VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, swapchain, &imageCount, nullptr));
+    std::vector<VkImage> swapchainImages(imageCount);
+    VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, swapchain, &imageCount, swapchainImages.data()));
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    if (swapchainAcquireSemaphores.empty())
+    {
+        for (size_t i = 0; i < swapchainImages.size(); ++i)
+        {
+            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainAcquireSemaphores.emplace_back()));
+        }
+    }
+
+    if (swapchainReleaseSemaphore == VK_NULL_HANDLE)
+    {
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainReleaseSemaphore));
+    }
+
+    backBufferIndex = 0;
+    backbufferTextures.resize(imageCount);
+
+    GPUTextureDesc textureDesc{};
+    textureDesc.format = alimerPixelFormatFromVkFormat(createInfo.imageFormat);
+    textureDesc.width = createInfo.imageExtent.width;
+    textureDesc.height = createInfo.imageExtent.height;
+    textureDesc.usage = GPUTextureUsage_RenderTarget;
+
+    for (uint32_t i = 0; i < imageCount; ++i)
+    {
+        VulkanTexture* texture = new VulkanTexture();
+        texture->device = device;
+        texture->desc = textureDesc;
+        texture->vkFormat = createInfo.imageFormat;
+        texture->handle = swapchainImages[i];
+        //texture->allocatedSize = 0;
+        texture->numSubResources = 1;
+        texture->imageLayouts.resize(1);
+        texture->imageLayouts[0] = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        backbufferTextures[i] = texture;
+    }
+
+    return true;
 }
 
 void VulkanSurface::Unconfigure()
 {
+    if (device)
+    {
+        device->WaitIdle();
+    }
 
+    for (size_t i = 0; i < backbufferTextures.size(); ++i)
+    {
+        backbufferTextures[i]->Release();
+    }
+
+    backBufferIndex = 0;
+    backbufferTextures.clear();
+    swapchainExtent = {};
+    SAFE_RELEASE(device);
 }
 
 GPUResult VulkanSurface::GetCurrentTexture(GPUTexture** surfaceTexture)
 {
+    swapChainAcquireSemaphoreIndex = (swapChainAcquireSemaphoreIndex + 1) % swapchainAcquireSemaphores.size();
+
+    locker.lock();
+    VkResult result = device->vkAcquireNextImageKHR(
+        device->handle,
+        swapchain,
+        UINT64_MAX,
+        swapchainAcquireSemaphores[swapChainAcquireSemaphoreIndex],
+        VK_NULL_HANDLE,
+        &backBufferIndex
+    );
+    locker.unlock();
+
+    if (result != VK_SUCCESS)
+    {
+        // Handle outdated error in acquire
+        if (result == VK_SUBOPTIMAL_KHR
+            || result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            // we need to create a new semaphore or jump through a few hoops to
+            // wait for the current one to be unsignalled before we can use it again
+            // creating a new one is easiest. See also:
+            // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
+            // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
+            {
+                const uint64_t frameCount = device->frameCount;
+                std::scoped_lock lock(device->destroyMutex);
+                for (auto& x : swapchainAcquireSemaphores)
+                {
+                    device->destroyedSemaphores.emplace_back(x, frameCount);
+                }
+            }
+            swapchainAcquireSemaphores.clear();
+        }
+        assert(0);
+    }
+
     return GPUResult_Success;
 }
 
 GPUResult VulkanSurface::Present()
 {
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &swapchainReleaseSemaphore;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain;
+    presentInfo.pImageIndices = &backBufferIndex;
+
+    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUQueueType_Graphics].handle, &presentInfo);
+    if (result != VK_SUCCESS)
+    {
+        // Handle outdated error in present
+        if (result == VK_SUBOPTIMAL_KHR
+            || result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+        }
+        else
+        {
+            ALIMER_UNREACHABLE();
+        }
+    }
+
     return GPUResult_Success;
 }
 
@@ -1939,8 +2748,8 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     limits->maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
     limits->maxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange;
     limits->maxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange;
-    limits->minConstantBufferOffsetAlignment = properties2.properties.limits.minUniformBufferOffsetAlignment;
-    limits->minStorageBufferOffsetAlignment = properties2.properties.limits.minStorageBufferOffsetAlignment;
+    limits->minConstantBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
+    limits->minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
     limits->maxBufferSize = properties13.maxBufferSize;
     limits->maxColorAttachments = properties2.properties.limits.maxColorAttachments;
 
@@ -1956,7 +2765,8 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
         properties2.properties.limits.maxComputeWorkGroupCount[0],
         properties2.properties.limits.maxComputeWorkGroupCount[1],
         properties2.properties.limits.maxComputeWorkGroupCount[2],
-        });
+        }
+        );
 
     return GPUResult_Success;
 }
@@ -1965,6 +2775,7 @@ GPUDevice* VulkanAdapter::CreateDevice()
 {
     VulkanDevice* device = new VulkanDevice();
     device->adapter = this;
+    device->adapter->AddRef();
 
     std::vector<const char*> enabledDeviceExtensions;
     enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);

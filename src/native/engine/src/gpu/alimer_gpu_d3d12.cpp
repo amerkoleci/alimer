@@ -67,6 +67,7 @@ static constexpr IID DXGI_DEBUG_DXGI = { 0x25cddaa4, 0xb1c6, 0x47e1, {0xac, 0x3e
 #include <mutex>
 #include <vector>
 #include <deque>
+#include <unordered_map>
 
 using Microsoft::WRL::ComPtr;
 
@@ -180,6 +181,103 @@ namespace
         }
     }
 
+    [[maybe_unused]] inline DXGI_FORMAT ToDxgiRTVFormat(PixelFormat format)
+    {
+        return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
+    }
+
+    [[maybe_unused]] inline DXGI_FORMAT ToDxgiDSVFormat(PixelFormat format)
+    {
+        return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
+    }
+
+    [[maybe_unused]] inline DXGI_FORMAT ToDxgiSRVFormat(PixelFormat format)
+    {
+        // Try to resolve resource format:
+        switch (format)
+        {
+            case PixelFormat_Depth16Unorm:
+                return DXGI_FORMAT_R16_UNORM;
+
+            case PixelFormat_Depth32Float:
+                return DXGI_FORMAT_R32_FLOAT;
+
+                //case PixelFormat_Stencil8:
+            case PixelFormat_Depth24UnormStencil8:
+                return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+            case PixelFormat_Depth32FloatStencil8:
+                return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+
+                //case PixelFormat::NV12:
+                //    srvDesc.Format = DXGI_FORMAT_R8_UNORM;
+                //    break;
+            default:
+                return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
+        }
+    }
+
+    [[maybe_unused]] inline DXGI_FORMAT ToDxgiUAVFormat(PixelFormat format)
+    {
+        return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
+    }
+
+    [[maybe_unused]] constexpr DXGI_FORMAT ToDxgiFormat(GPUVertexFormat format)
+    {
+        switch (format)
+        {
+            case GPUVertexFormat_UByte:               return DXGI_FORMAT_R8_UINT;
+            case GPUVertexFormat_UByte2:              return DXGI_FORMAT_R8G8_UINT;
+            case GPUVertexFormat_UByte4:              return DXGI_FORMAT_R8G8B8A8_UINT;
+            case GPUVertexFormat_Byte:                return DXGI_FORMAT_R8_SINT;
+            case GPUVertexFormat_Byte2:               return DXGI_FORMAT_R8G8_SINT;
+            case GPUVertexFormat_Byte4:               return DXGI_FORMAT_R8G8B8A8_SINT;
+            case GPUVertexFormat_UByteNormalized:     return DXGI_FORMAT_R8_UNORM;
+            case GPUVertexFormat_UByte2Normalized:    return DXGI_FORMAT_R8G8_UNORM;
+            case GPUVertexFormat_UByte4Normalized:    return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case GPUVertexFormat_ByteNormalized:      return DXGI_FORMAT_R8_SNORM;
+            case GPUVertexFormat_Byte2Normalized:     return DXGI_FORMAT_R8G8_SNORM;
+            case GPUVertexFormat_Byte4Normalized:     return DXGI_FORMAT_R8G8B8A8_SNORM;
+
+            case GPUVertexFormat_UShort:              return DXGI_FORMAT_R16_UINT;
+            case GPUVertexFormat_UShort2:             return DXGI_FORMAT_R16G16_UINT;
+            case GPUVertexFormat_UShort4:             return DXGI_FORMAT_R16G16B16A16_UINT;
+            case GPUVertexFormat_Short:               return DXGI_FORMAT_R16_SINT;
+            case GPUVertexFormat_Short2:              return DXGI_FORMAT_R16G16_SINT;
+            case GPUVertexFormat_Short4:              return DXGI_FORMAT_R16G16B16A16_SINT;
+            case GPUVertexFormat_UShortNormalized:    return DXGI_FORMAT_R16_UNORM;
+            case GPUVertexFormat_UShort2Normalized:   return DXGI_FORMAT_R16G16_UNORM;
+            case GPUVertexFormat_UShort4Normalized:   return DXGI_FORMAT_R16G16B16A16_UNORM;
+            case GPUVertexFormat_ShortNormalized:     return DXGI_FORMAT_R16_SNORM;
+            case GPUVertexFormat_Short2Normalized:    return DXGI_FORMAT_R16G16_SNORM;
+            case GPUVertexFormat_Short4Normalized:    return DXGI_FORMAT_R16G16B16A16_SNORM;
+            case GPUVertexFormat_Half:                return DXGI_FORMAT_R16_FLOAT;
+            case GPUVertexFormat_Half2:               return DXGI_FORMAT_R16G16_FLOAT;
+            case GPUVertexFormat_Half4:               return DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+            case GPUVertexFormat_Float:               return DXGI_FORMAT_R32_FLOAT;
+            case GPUVertexFormat_Float2:              return DXGI_FORMAT_R32G32_FLOAT;
+            case GPUVertexFormat_Float3:              return DXGI_FORMAT_R32G32B32_FLOAT;
+            case GPUVertexFormat_Float4:              return DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+            case GPUVertexFormat_UInt:                return DXGI_FORMAT_R32_UINT;
+            case GPUVertexFormat_UInt2:               return DXGI_FORMAT_R32G32_UINT;
+            case GPUVertexFormat_UInt3:               return DXGI_FORMAT_R32G32B32_UINT;
+            case GPUVertexFormat_UInt4:               return DXGI_FORMAT_R32G32B32A32_UINT;
+
+            case GPUVertexFormat_Int:                 return DXGI_FORMAT_R32_SINT;
+            case GPUVertexFormat_Int2:                return DXGI_FORMAT_R32G32_SINT;
+            case GPUVertexFormat_Int3:                return DXGI_FORMAT_R32G32B32_SINT;
+            case GPUVertexFormat_Int4:                return DXGI_FORMAT_R32G32B32A32_SINT;
+
+            case GPUVertexFormat_Unorm10_10_10_2:     return DXGI_FORMAT_R10G10B10A2_UNORM;
+            case GPUVertexFormat_Unorm8x4BGRA:        return DXGI_FORMAT_B8G8R8A8_UNORM;
+
+            default:
+                ALIMER_UNREACHABLE();
+        }
+    }
+
     constexpr DXGI_FORMAT ToDxgiSwapChainFormat(PixelFormat format)
     {
         // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
@@ -286,10 +384,16 @@ struct D3D12_State {
 #define d3d12_D3D12SerializeVersionedRootSignature D3D12SerializeVersionedRootSignature
 #endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */
 
+struct D3D12CommandBuffer;
 struct D3D12Queue;
 struct D3D12Device;
 struct D3D12Adapter;
 struct D3D12Instance;
+
+using DescriptorIndex = uint32_t;
+using RootParameterIndex = uint32_t;
+
+static constexpr DescriptorIndex kInvalidDescriptorIndex = ~0u;
 
 struct D3D12Resource
 {
@@ -318,10 +422,28 @@ struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
 struct D3D12Texture final : public GPUTexture, public D3D12Resource
 {
     GPUTextureDesc desc;
+    DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
     HANDLE sharedHandle = nullptr;
+    mutable std::unordered_map<size_t, DescriptorIndex> RTVs;
 
     ~D3D12Texture() override;
     void SetLabel(const char* label) override;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint32_t mipLevel) const;
+};
+
+struct D3D12RenderCommandEncoder final : public GPURenderCommandEncoder
+{
+    D3D12CommandBuffer* commandBuffer = nullptr;
+    D3D12_RENDER_PASS_RENDER_TARGET_DESC RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+    D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = {};
+    D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
+
+    void EndEncoding() override;
+    void PushDebugGroup(const char* groupLabel) const override;
+    void PopDebugGroup() const override;
+    void InsertDebugMarker(const char* markerLabel) const override;
+
+    void Begin(const GPURenderPassDesc* desc);
 };
 
 struct D3D12CommandBuffer final : public GPUCommandBuffer
@@ -329,6 +451,8 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
     D3D12Queue* queue = nullptr;
     uint32_t index = 0;
     bool hasLabel = false;
+    bool encoderActive = false;
+    D3D12RenderCommandEncoder* renderPassEncoder = nullptr;
 
     ID3D12CommandAllocator* commandAllocators[GPU_MAX_INFLIGHT_FRAMES] = {};
     ID3D12GraphicsCommandList6* commandList = nullptr;
@@ -341,6 +465,8 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
+
+    GPURenderCommandEncoder* BeginRenderPass(const GPURenderPassDesc* desc) override;
 };
 
 struct D3D12Queue final : public GPUQueue
@@ -396,6 +522,205 @@ struct D3D12CopyAllocator final
     void Submit(D3D12UploadContext context);
 };
 
+class D3D12DescriptorAllocator final
+{
+public:
+    void Init(ID3D12Device* device_, D3D12_DESCRIPTOR_HEAP_TYPE heapType_, uint32_t numDescriptors_)
+    {
+        device = device_;
+        heapType = heapType_;
+        shaderVisible = heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        stride = device_->GetDescriptorHandleIncrementSize(heapType);
+
+        VHR(AllocateResources(numDescriptors_));
+    }
+
+    void Shutdown()
+    {
+        heap = nullptr;
+        shaderVisibleHeap = nullptr;
+    }
+
+    DescriptorIndex AllocateDescriptors(uint32_t count = 1u)
+    {
+        std::lock_guard lockGuard(mutex);
+
+        DescriptorIndex foundIndex = 0;
+        uint32_t freeCount = 0;
+        bool found = false;
+
+        // Find a contiguous range of 'count' indices for which m_AllocatedDescriptors[index] is false
+        for (DescriptorIndex index = searchStart; index < numDescriptors; index++)
+        {
+            if (allocatedDescriptors[index])
+                freeCount = 0;
+            else
+                freeCount += 1;
+
+            if (freeCount >= count)
+            {
+                foundIndex = index - count + 1;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            foundIndex = numDescriptors;
+
+            if (FAILED(Grow(numDescriptors + count)))
+            {
+                alimerLogError(LogCategory_GPU, "D3D12: Failed to grow a descriptor heap!");
+                return kInvalidDescriptorIndex;
+            }
+        }
+
+        for (DescriptorIndex index = foundIndex; index < foundIndex + count; index++)
+        {
+            allocatedDescriptors[index] = true;
+        }
+
+        numAllocatedDescriptors += count;
+
+        searchStart = foundIndex + count;
+        return foundIndex;
+    }
+
+    void ReleaseDescriptors(DescriptorIndex baseIndex, uint32_t count)
+    {
+        if (count == 0)
+            return;
+
+        std::lock_guard lockGuard(mutex);
+
+        for (DescriptorIndex index = baseIndex; index < baseIndex + count; index++)
+        {
+#ifdef _DEBUG
+            if (!allocatedDescriptors[index])
+            {
+                alimerLogError(LogCategory_GPU, "D3D12: Attempted to release an un-allocated descriptor");
+            }
+#endif
+
+            allocatedDescriptors[index] = false;
+        }
+
+        numAllocatedDescriptors -= count;
+
+        if (searchStart > baseIndex)
+            searchStart = baseIndex;
+    }
+
+    void ReleaseDescriptor(DescriptorIndex index)
+    {
+        ReleaseDescriptors(index, 1);
+    }
+
+    void CopyToShaderVisibleHeap(DescriptorIndex index, uint32_t count = 1)
+    {
+        device->CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), heapType);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(DescriptorIndex index)
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE handle = startCpuHandle;
+        handle.ptr += index * stride;
+        return handle;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(DescriptorIndex index)
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE handle = startCpuHandleShaderVisible;
+        handle.ptr += index * stride;
+        return handle;
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(DescriptorIndex index)
+    {
+        D3D12_GPU_DESCRIPTOR_HANDLE handle = startGpuHandleShaderVisible;
+        handle.ptr += index * stride;
+        return handle;
+    }
+
+    [[nodiscard]] ID3D12DescriptorHeap* GetHeap() const { return heap.Get(); }
+    [[nodiscard]] ID3D12DescriptorHeap* GetShaderVisibleHeap() const { return shaderVisibleHeap.Get(); }
+    [[nodiscard]] uint32_t GetStride() const { return stride; }
+
+private:
+    ID3D12Device* device = nullptr;
+    ComPtr<ID3D12DescriptorHeap> heap;
+    ComPtr<ID3D12DescriptorHeap> shaderVisibleHeap;
+    D3D12_DESCRIPTOR_HEAP_TYPE heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    uint32_t numDescriptors = 0;
+    bool shaderVisible = true;
+    uint32_t stride = 0;
+    D3D12_CPU_DESCRIPTOR_HANDLE startCpuHandle = { 0 };
+    D3D12_CPU_DESCRIPTOR_HANDLE startCpuHandleShaderVisible = { 0 };
+    D3D12_GPU_DESCRIPTOR_HANDLE startGpuHandleShaderVisible = { 0 };
+    std::vector<bool> allocatedDescriptors;
+    DescriptorIndex searchStart = 0;
+    uint32_t numAllocatedDescriptors = 0;
+    std::mutex mutex;
+
+    HRESULT AllocateResources(uint32_t numDescriptors_)
+    {
+        heap = nullptr;
+        shaderVisibleHeap = nullptr;
+        numDescriptors = numDescriptors_;
+
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+        heapDesc.Type = heapType;
+        heapDesc.NumDescriptors = numDescriptors;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+        HRESULT hr = device->CreateDescriptorHeap(&heapDesc, PPV_ARGS(heap));
+
+        if (FAILED(hr))
+            return hr;
+
+        if (shaderVisible)
+        {
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+            hr = device->CreateDescriptorHeap(&heapDesc, PPV_ARGS(shaderVisibleHeap));
+
+            if (FAILED(hr))
+                return hr;
+
+            startCpuHandleShaderVisible = shaderVisibleHeap->GetCPUDescriptorHandleForHeapStart();
+            startGpuHandleShaderVisible = shaderVisibleHeap->GetGPUDescriptorHandleForHeapStart();
+        }
+
+        startCpuHandle = heap->GetCPUDescriptorHandleForHeapStart();
+        allocatedDescriptors.resize(numDescriptors);
+
+        return S_OK;
+    }
+
+    HRESULT Grow(uint32_t minRequiredSize)
+    {
+        uint32_t oldSize = numDescriptors;
+        uint32_t newSize = GetNextPowerOfTwo(minRequiredSize);
+
+        ComPtr<ID3D12DescriptorHeap> oldHeap = heap;
+
+        HRESULT hr = AllocateResources(newSize);
+
+        if (FAILED(hr))
+            return hr;
+
+        device->CopyDescriptorsSimple(oldSize, startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), heapType);
+
+        if (shaderVisibleHeap != nullptr)
+        {
+            device->CopyDescriptorsSimple(oldSize, startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), heapType);
+        }
+
+        return S_OK;
+    }
+};
+
 struct D3D12Device final : public GPUDevice
 {
     D3D12Adapter* adapter = nullptr;
@@ -414,6 +739,11 @@ struct D3D12Device final : public GPUDevice
     D3D12Queue queues[GPUQueueType_Count];
     ComPtr<D3D12MA::Allocator> allocator;
     D3D12CopyAllocator copyAllocator;
+
+    D3D12DescriptorAllocator renderTargetViewHeap;
+    D3D12DescriptorAllocator depthStencilViewHeap;
+    D3D12DescriptorAllocator shaderResourceViewHeap;
+    D3D12DescriptorAllocator samplerHeap;
 
     uint64_t frameCount = 0;
     uint32_t frameIndex = 0;
@@ -436,7 +766,7 @@ struct D3D12Device final : public GPUDevice
 
     /* Resource creation */
     GPUBuffer* CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData) override;
 };
 
 struct D3D12Surface final : public GPUSurface
@@ -528,6 +858,86 @@ void D3D12Texture::SetLabel(const char* label)
     }
 }
 
+/* D3D12RenderCommandEncoder */
+void D3D12RenderCommandEncoder::EndEncoding()
+{
+    //commandList->EndRenderPass();
+    commandBuffer->encoderActive = false;
+}
+
+void D3D12RenderCommandEncoder::PushDebugGroup(const char* groupLabel) const
+{
+    commandBuffer->PushDebugGroup(groupLabel);
+}
+
+void D3D12RenderCommandEncoder::PopDebugGroup() const
+{
+    commandBuffer->PopDebugGroup();
+}
+
+void D3D12RenderCommandEncoder::InsertDebugMarker(const char* markerLabel) const
+{
+    commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
+{
+#if TODO
+    //Rect2D renderArea = { 0u, 0u, UINT32_MAX, UINT32_MAX };
+    uint32_t width = UINT32_MAX;
+    uint32_t height = UINT32_MAX;
+
+    for (uint32_t i = 0; i < desc->colorAttachmentCount; ++i)
+    {
+        const GPURenderPassColorAttachment& attachment = desc->colorAttachments[i];
+        if (!attachment.texture)
+            continue;
+
+        D3D12Texture* texture = static_cast<D3D12Texture*>(attachment.texture);
+
+        //width = std::min(width, view->GetWidth());
+        //height = std::min(height, view->GetHeight());
+
+        RTVs[i].cpuDescriptor = view->RTV;
+        RTVs[i].BeginningAccess.Clear.ClearValue.Format = view->RTVFormat;
+
+        switch (attachment.loadAction)
+        {
+            default:
+            case GPULoadAction_Load:
+                RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                break;
+
+            case GPULoadAction_Clear:
+                RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                RTVs[i].BeginningAccess.Clear.ClearValue.Color[0] = attachment.clearColor.r;
+                RTVs[i].BeginningAccess.Clear.ClearValue.Color[1] = attachment.clearColor.g;
+                RTVs[i].BeginningAccess.Clear.ClearValue.Color[2] = attachment.clearColor.b;
+                RTVs[i].BeginningAccess.Clear.ClearValue.Color[3] = attachment.clearColor.a;
+                break;
+
+            case GPULoadAction_Discard:
+                RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                break;
+        }
+
+        switch (attachment.storeAction)
+        {
+            default:
+            case GPUStoreAction_Store:
+                RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                break;
+            case GPUStoreAction_Discard:
+                RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                break;
+        }
+
+        // TODO: Barrier -> D3D12_RESOURCE_STATE_RENDER_TARGET
+    }
+#endif // TODO
+
+}
+
 /* D3D12CommandBuffer */
 D3D12CommandBuffer::~D3D12CommandBuffer()
 {
@@ -604,6 +1014,8 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
         PushDebugGroup(desc->label);
         hasLabel = true;
     }
+
+    encoderActive = false;
 }
 
 ID3D12CommandList* D3D12CommandBuffer::End() const
@@ -670,6 +1082,19 @@ void D3D12CommandBuffer::InsertDebugMarker(const char* markerLabel) const
     }
 }
 
+GPURenderCommandEncoder* D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
+{
+    if (encoderActive)
+    {
+        alimerLogError(LogCategory_GPU, "CommandEncoder already active");
+        return nullptr;
+    }
+
+    renderPassEncoder->Begin(desc);
+    encoderActive = true;
+    return renderPassEncoder;
+}
+
 /* D3D12Queue */
 GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
@@ -680,6 +1105,8 @@ GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
         D3D12CommandBuffer* commandBuffer = new D3D12CommandBuffer();
         commandBuffer->queue = this;
         commandBuffer->index = index;
+        commandBuffer->renderPassEncoder = new D3D12RenderCommandEncoder();
+        commandBuffer->renderPassEncoder->commandBuffer = commandBuffer;
 
         D3D12_COMMAND_LIST_TYPE d3dCommandListType = ToD3D12(queueType);
 
@@ -884,7 +1311,14 @@ D3D12Device::~D3D12Device()
     WaitIdle();
     shuttingDown = true;
 
+    // Shutdown copy allocator
     copyAllocator.Shutdown();
+
+    // Shutdown descriptor heap allocators
+    renderTargetViewHeap.Shutdown();
+    depthStencilViewHeap.Shutdown();
+    shaderResourceViewHeap.Shutdown();
+    samplerHeap.Shutdown();
 
     // Destory pending objects.
     ProcessDeletionQueue(true);
@@ -1226,7 +1660,7 @@ GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc* desc, const void* pIni
     return buffer;
 }
 
-GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc* desc, const void* pInitialData)
+GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
 {
     return nullptr;
 }
@@ -1327,7 +1761,7 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
         D3D12Texture* texture = new D3D12Texture();
         texture->device = device;
         texture->desc = textureDesc;
-        //texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(swapChain->colorFormat);
+        texture->dxgiFormat = (DXGI_FORMAT)alimerPixelFormatToDxgiFormat(config.format);
         VHR(swapChain3->GetBuffer(i, IID_PPV_ARGS(&texture->handle)));
 
         backbufferTextures[i] = texture;
@@ -1633,6 +2067,23 @@ GPUDevice* D3D12Adapter::CreateDevice()
 
     // Init copy/upload allocatr
     device->copyAllocator.Init(device);
+
+    // Init CPU/GPU descriptor allocators
+    const uint32_t renderTargetViewHeapSize = 1024;
+    const uint32_t depthStencilViewHeapSize = 256;
+
+    // Maximum number of CBV/SRV/UAV descriptors in heap for Tier 1
+    const uint32_t shaderResourceViewHeapSize = 1000000;
+
+    // Maximum number of samplers descriptors in heap for Tier 1
+    const uint32_t samplerHeapSize = 2048; // 2048 ->  Tier1 limit
+
+    device->renderTargetViewHeap.Init(device->handle, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, renderTargetViewHeapSize);
+    device->depthStencilViewHeap.Init(device->handle, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, depthStencilViewHeapSize);
+
+    // Shader visible descriptor heaps
+    device->shaderResourceViewHeap.Init(device->handle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize);
+    device->samplerHeap.Init(device->handle, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize);
 
     return device;
 }

@@ -6,12 +6,17 @@
 
 #include "alimer.h"
 
+#if !defined(GPU_NULLABLE)
+#define GPU_NULLABLE
+#endif
+
 /* Forward declarations */
 typedef struct GPUAdapter               GPUAdapter;
 typedef struct GPUSurface               GPUSurface;
 typedef struct GPUDevice                GPUDevice;
 typedef struct GPUQueue                 GPUQueue;
 typedef struct GPUCommandBuffer         GPUCommandBuffer;
+typedef struct GPURenderCommandEncoder  GPURenderCommandEncoder;
 typedef struct GPUBuffer                GPUBuffer;
 typedef struct GPUTexture               GPUTexture;
 typedef struct GPUTextureView           GPUTextureView;
@@ -67,6 +72,15 @@ static const GPUTextureUsage GPUTextureUsage_RenderTarget = (1 << 2);
 static const GPUTextureUsage GPUTextureUsage_Transient = (1 << 3);
 static const GPUTextureUsage GPUTextureUsage_ShadingRate = (1 << 4);
 
+typedef enum GPUTextureAspect {
+    GPUTextureAspect_All = 0,
+    GPUTextureAspect_DepthOnly = 1,
+    GPUTextureAspect_StencilOnly = 2,
+
+    _GPUTextureAspect_Count,
+    _GPUTextureAspect_Force32 = 0x7FFFFFFF
+} GPUTextureAspect;
+
 typedef enum GPUBackendType {
     GPUBackendType_Undefined = 0,
     GPUBackendType_Null,
@@ -75,6 +89,7 @@ typedef enum GPUBackendType {
     GPUBackendType_Metal,
     GPUBackendType_WebGPU,
 
+    _GPUBackendType_Count,
     _GPUBackendType_Force32 = 0x7FFFFFFF
 } GPUBackendType;
 
@@ -106,6 +121,86 @@ typedef enum GPUQueueType {
     _GPUQueueType_Force32 = 0x7FFFFFFF
 } GPUQueueType;
 
+typedef enum GPUVertexFormat {
+    GPUVertexFormat_Undefined = 0,
+    GPUVertexFormat_UByte,
+    GPUVertexFormat_UByte2,
+    GPUVertexFormat_UByte4,
+    GPUVertexFormat_Byte,
+    GPUVertexFormat_Byte2,
+    GPUVertexFormat_Byte4,
+    GPUVertexFormat_UByteNormalized,
+    GPUVertexFormat_UByte2Normalized,
+    GPUVertexFormat_UByte4Normalized,
+    GPUVertexFormat_ByteNormalized,
+    GPUVertexFormat_Byte2Normalized,
+    GPUVertexFormat_Byte4Normalized,
+    GPUVertexFormat_UShort,
+    GPUVertexFormat_UShort2,
+    GPUVertexFormat_UShort4,
+    GPUVertexFormat_Short,
+    GPUVertexFormat_Short2,
+    GPUVertexFormat_Short4,
+    GPUVertexFormat_UShortNormalized,
+    GPUVertexFormat_UShort2Normalized,
+    GPUVertexFormat_UShort4Normalized,
+    GPUVertexFormat_ShortNormalized,
+    GPUVertexFormat_Short2Normalized,
+    GPUVertexFormat_Short4Normalized,
+    GPUVertexFormat_Half,
+    GPUVertexFormat_Half2,
+    GPUVertexFormat_Half4,
+    GPUVertexFormat_Float,
+    GPUVertexFormat_Float2,
+    GPUVertexFormat_Float3,
+    GPUVertexFormat_Float4,
+    GPUVertexFormat_UInt,
+    GPUVertexFormat_UInt2,
+    GPUVertexFormat_UInt3,
+    GPUVertexFormat_UInt4,
+    GPUVertexFormat_Int,
+    GPUVertexFormat_Int2,
+    GPUVertexFormat_Int3,
+    GPUVertexFormat_Int4,
+    GPUVertexFormat_Unorm10_10_10_2,
+    GPUVertexFormat_Unorm8x4BGRA,
+
+    _GPUVertexFormat_Count,
+    _GPUVertexFormat_Force32 = 0x7FFFFFFF
+} GPUVertexFormat;
+
+typedef enum GPUCompareFunction {
+    GPUCompareFunction_Undefined = 0,
+    GPUCompareFunction_Never,
+    GPUCompareFunction_Less,
+    GPUCompareFunction_Equal,
+    GPUCompareFunction_LessEqual,
+    GPUCompareFunction_Greater,
+    GPUCompareFunction_NotEqual,
+    GPUCompareFunction_GreaterEqual,
+    GPUCompareFunction_Always,
+
+    _GPUCompareFunction_Count,
+    _GPUCompareFunction_Force32 = 0x7FFFFFFF
+} GPUCompareFunction;
+
+typedef enum GPULoadAction {
+    GPULoadAction_Load,
+    GPULoadAction_Clear,
+    GPULoadAction_Discard,
+
+    _GPULoadAction_Count,
+    _GPULoadAction_Force32 = 0x7FFFFFFF
+} GPULoadAction;
+
+typedef enum GPUStoreAction {
+    GPUStoreAction_Store,
+    GPUStoreAction_Discard,
+
+    _GPUStoreAction_Count,
+    _GPUStoreAction_Force32 = 0x7FFFFFFF
+} GPUStoreAction;
+
 /* Structs */
 typedef struct ScissorRect {
     uint32_t x;
@@ -122,6 +217,13 @@ typedef struct GPUViewport {
     float minDepth;
     float maxDepth;
 } GPUViewport;
+
+typedef struct GPUColor {
+    float r;
+    float g;
+    float b;
+    float a;
+} GPUColor;
 
 typedef struct GPUCommandBufferDesc {
     const char* label;
@@ -146,6 +248,41 @@ typedef struct GPUTextureDesc {
     uint32_t sampleCount;
 } GPUTextureDesc;
 
+typedef struct GPUTextureData
+{
+    const void* pData;
+    uint32_t rowPitch;
+    uint32_t slicePitch;
+} GPUTextureData;
+
+typedef struct GPURenderPassColorAttachment {
+    GPU_NULLABLE GPUTexture* texture;
+    uint32_t mipLevel;
+    GPULoadAction loadAction;
+    GPUStoreAction storeAction;
+    GPUColor clearColor;
+} GPURenderPassColorAttachment;
+
+typedef struct GPURenderPassDepthStencilAttachment {
+    GPUTexture* texture;
+    uint32_t mipLevel;
+    GPULoadAction depthLoadAction;
+    GPUStoreAction depthStoreAction;
+    float depthClearValue;
+    bool depthReadOnly;
+    GPULoadAction stencilLoadActin;
+    GPUStoreAction stencilStoreAction;
+    uint32_t stencilClearValue;
+    bool stencilReadOnly;
+} GPURenderPassDepthStencilAttachment;
+
+typedef struct GPURenderPassDesc {
+    const char* label;
+    uint32_t colorAttachmentCount;
+    const GPURenderPassColorAttachment* colorAttachments;
+    const GPURenderPassDepthStencilAttachment* depthStencilAttachment;
+} GPURenderPassDesc;
+
 typedef struct GPURequestAdapterOptions {
     GPUSurface* compatibleSurface;
     GPUPowerPreference powerPreference;
@@ -157,8 +294,8 @@ typedef struct GPULimits {
     uint32_t maxTextureDimension3D;
     uint32_t maxTextureDimensionCube;
     uint32_t maxTextureArrayLayers;
-    uint64_t maxConstantBufferBindingSize;
-    uint64_t maxStorageBufferBindingSize;
+    uint32_t maxConstantBufferBindingSize;
+    uint32_t maxStorageBufferBindingSize;
     uint32_t minConstantBufferOffsetAlignment;
     uint32_t minStorageBufferOffsetAlignment;
     uint64_t maxBufferSize;
@@ -221,7 +358,7 @@ ALIMER_API bool agpuDeviceWaitIdle(GPUDevice* device);
 ALIMER_API uint64_t agpuDeviceCommitFrame(GPUDevice* device);
 
 ALIMER_API GPUBuffer* agpuDeviceCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const void* pInitialData);
-ALIMER_API GPUTexture* agpuDeviceCreateTexture(GPUDevice* device, const GPUTextureDesc* desc);
+ALIMER_API GPUTexture* agpuDeviceCreateTexture(GPUDevice* device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
 
 /* Queue */
 ALIMER_API GPUQueueType agpuQueueGetType(GPUQueue* queue);
@@ -229,9 +366,16 @@ ALIMER_API GPUCommandBuffer* agpuQueueAcquireCommandBuffer(GPUQueue* queue, cons
 ALIMER_API void agpuQueueSubmit(GPUQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers);
 
 /* CommandBuffer */
-ALIMER_API void agpuPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel);
-ALIMER_API void agpuPopDebugGroup(GPUCommandBuffer* commandBuffer);
-ALIMER_API void agpuInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel);
+ALIMER_API void agpuCommandBufferPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel);
+ALIMER_API void agpuCommandBufferPopDebugGroup(GPUCommandBuffer* commandBuffer);
+ALIMER_API void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel);
+ALIMER_API GPURenderCommandEncoder* agpuCommandBufferBeginRenderPass(GPUCommandBuffer* commandBuffer, const GPURenderPassDesc* desc);
+
+/* RenderCommandEncoder */
+ALIMER_API void agpuRenderCommandEncoderPushDebugGroup(GPURenderCommandEncoder* encoder, const char* groupLabel);
+ALIMER_API void agpuRenderCommandEncoderPopDebugGroup(GPURenderCommandEncoder* encoder);
+ALIMER_API void agpuRenderCommandEncoderInsertDebugMarker(GPURenderCommandEncoder* encoder, const char* markerLabel);
+ALIMER_API void agpuRenderPassEncoderEnd(GPURenderCommandEncoder* encoder);
 
 /* Buffer */
 ALIMER_API uint32_t agpuBufferAddRef(GPUBuffer* buffer);

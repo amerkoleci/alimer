@@ -149,7 +149,7 @@ GPUResult agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, G
     if (!surface || !adapter)
         return GPUResult_InvalidOperation;
 
-    if(!capabilities)
+    if (!capabilities)
         return GPUResult_InvalidOperation;
 
     return surface->GetCapabilities(adapter, capabilities);
@@ -255,19 +255,51 @@ void agpuQueueSubmit(GPUQueue* queue, uint32_t numCommandBuffers, GPUCommandBuff
 }
 
 /* CommandBuffer */
-void agpuPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel)
+void agpuCommandBufferPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel)
 {
     commandBuffer->PushDebugGroup(groupLabel);
 }
 
-void agpuPopDebugGroup(GPUCommandBuffer* commandBuffer)
+void agpuCommandBufferPopDebugGroup(GPUCommandBuffer* commandBuffer)
 {
     commandBuffer->PopDebugGroup();
 }
 
-void agpuInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel)
+void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel)
 {
     commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+GPURenderCommandEncoder* agpuCommandBufferBeginRenderPass(GPUCommandBuffer* commandBuffer, const GPURenderPassDesc* desc)
+{
+    if (!desc)
+    {
+        alimerLogError(LogCategory_GPU, "Invalid RenderPass description");
+        return nullptr;
+    }
+
+    return commandBuffer->BeginRenderPass(desc);
+}
+
+/* RenderCommandEncoder */
+void agpuRenderCommandEncoderPushDebugGroup(GPURenderCommandEncoder* encoder, const char* groupLabel)
+{
+    encoder->PushDebugGroup(groupLabel);
+}
+
+void agpuRenderCommandEncoderPopDebugGroup(GPURenderCommandEncoder* encoder)
+{
+    encoder->PopDebugGroup();
+}
+
+void agpuRenderCommandEncoderInsertDebugMarker(GPURenderCommandEncoder* encoder, const char* markerLabel)
+{
+    encoder->InsertDebugMarker(markerLabel);
+}
+
+void agpuRenderPassEncoderEnd(GPURenderCommandEncoder* encoder)
+{
+    encoder->EndEncoding();
 }
 
 /* Buffer */
@@ -307,12 +339,12 @@ GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer)
 }
 
 /* Texture */
-GPUTexture* agpuDeviceCreateTexture(GPUDevice* device, const GPUTextureDesc* desc)
+GPUTexture* agpuDeviceCreateTexture(GPUDevice* device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
 {
     if (!desc)
         return nullptr;
 
-    return device->CreateTexture(desc, nullptr);
+    return device->CreateTexture(desc, pInitialData);
 }
 
 uint32_t agpuTextureAddRef(GPUTexture* texture)

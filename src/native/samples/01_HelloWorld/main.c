@@ -27,6 +27,22 @@ void Render()
         return;
 
     GPUCommandBuffer* commandBuffer = agpuQueueAcquireCommandBuffer(graphicsQueue, NULL);
+
+    GPURenderPassColorAttachment colorAttachment = {
+        .texture = surfaceTexture,
+        .loadAction = GPULoadAction_Clear,
+        .storeAction = GPUStoreAction_Store,
+        .clearColor = {0.3f, 0.3f, 0.3f, 1.0}
+    };
+
+    GPURenderPassDesc renderPass = {
+        .label = "RenderPass",
+        .colorAttachmentCount = 1,
+        .colorAttachments = &colorAttachment
+    };
+
+    GPURenderCommandEncoder* encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
+    agpuRenderPassEncoderEnd(encoder);
     agpuQueueSubmit(graphicsQueue, 1u, &commandBuffer);
 
     // We can tell the surface to present the next texture.

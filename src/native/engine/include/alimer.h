@@ -141,8 +141,8 @@ typedef enum PixelFormat {
     // Packed 32-Bit Pixel Formats
     PixelFormat_RGB10A2Unorm,
     PixelFormat_RGB10A2Uint,
-    PixelFormat_RG11B10UFloat,
-    PixelFormat_RGB9E5UFloat,
+    PixelFormat_RG11B10Ufloat,
+    PixelFormat_RGB9E5Ufloat,
     // 64-bit formats
     PixelFormat_RG32Uint,
     PixelFormat_RG32Sint,
@@ -240,6 +240,23 @@ typedef enum PixelFormat {
     _PixelFormat_Force32 = 0x7FFFFFFF
 } PixelFormat;
 
+typedef enum PixelFormatKind {
+    /// Unsigned normalized formats
+    PixelFormatKind_Unorm,
+    /// Unsigned normalized sRGB formats
+    PixelFormatKind_UnormSrgb,
+    /// Signed normalized formats
+    PixelFormatKind_Snorm,
+    /// Unsigned integer formats
+    PixelFormatKind_Uint,
+    /// Unsigned integer formats
+    PixelFormatKind_Sint,
+    /// Floating-point formats
+    PixelFormatKind_Float,
+
+    _PixelFormatKind_Count,
+    _PixelFormatKind_Force32 = 0x7FFFFFFF
+} PixelFormatKind;
 
 typedef enum TextureDimension {
     /// One-dimensional Texture.
@@ -281,6 +298,16 @@ typedef struct Vector4 {
     float z;
     float w;
 } Vector4;
+
+typedef struct PixelFormatInfo
+{
+    PixelFormat format;
+    const char* name;
+    uint8_t bytesPerBlock;
+    uint8_t blockWidth;
+    uint8_t blockHeight;
+    PixelFormatKind kind;
+} PixelFormatInfo;
 
 typedef struct Blob {
     uint32_t ref;
@@ -421,6 +448,41 @@ ALIMER_API void* alimerWindowGetNativeHandle(Window* window);
 /* Clipboard */
 ALIMER_API void alimerClipboardSetText(const char* text);
 ALIMER_API const char* alimerClipboardGetText(void);
+
+/* PixelFormat */
+ALIMER_API void alimerPixelFormatGetInfo(PixelFormat format, PixelFormatInfo* pInfo);
+/// Check if the format has a depth component
+ALIMER_API bool alimerPixelFormatIsDepth(PixelFormat format);
+/// Check if the format has a stencil component
+ALIMER_API bool alimerPixelFormatIsStencil(PixelFormat format);
+/// Check if the format has depth or stencil components
+ALIMER_API bool alimerPixelFormatIsDepthStencil(PixelFormat format);
+/// Check if the format has a depth only component.
+ALIMER_API bool alimerPixelFormatIsDepthOnly(PixelFormat format);
+/// Check if the format is a compressed format.
+ALIMER_API bool alimerPixelFormatIsCompressed(PixelFormat format);
+/// Check if the format is a BC-compressed format.
+ALIMER_API bool alimerPixelFormatIsCompressedBC(PixelFormat format);
+/// Check if the format is a ASTC-compressed format.
+ALIMER_API bool alimerPixelFormatIsCompressedASTC(PixelFormat format);
+/// Get the number of bytes per format.
+ALIMER_API uint32_t alimerPixelFormatGetBytesPerBlock(PixelFormat format);
+/// Get the pixel format kind
+ALIMER_API PixelFormatKind alimerPixelFormatGetKind(PixelFormat format);
+/// Check if a format is an integer type.
+ALIMER_API bool alimerPixelFormatIsInteger(PixelFormat format);
+/// Check if a format represents sRGB color space
+ALIMER_API bool alimerPixelFormatIsSrgb(PixelFormat format);
+
+/// Convert an SRGB format to linear. If the format is already linear, will return it
+ALIMER_API PixelFormat alimerPixelFormatSrgbToLinear(PixelFormat format);
+/// Convert an linear format to sRGB. If the format doesn't have a matching sRGB format, will return the original
+ALIMER_API PixelFormat alimerPixelFormatLinearToSrgb(PixelFormat format);
+
+ALIMER_API uint32_t alimerPixelFormatToDxgiFormat(PixelFormat format);
+ALIMER_API PixelFormat alimerPixelFormatFromDxgiFormat(uint32_t dxgiFormat);
+ALIMER_API uint32_t alimerPixelFormatToVkFormat(PixelFormat format);
+ALIMER_API PixelFormat alimerPixelFormatFromVkFormat(uint32_t vkFormat);
 
 /* Image */
 ALIMER_API Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);

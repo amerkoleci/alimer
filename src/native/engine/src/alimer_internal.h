@@ -392,6 +392,17 @@ _ALIMER_EXTERN char* _alimer_strdup(const char* source);
 #ifdef __cplusplus
 namespace
 {
+    constexpr uint32_t GetNextPowerOfTwo(uint32_t x)
+    {
+        --x;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return ++x;
+    }
+
     constexpr uint64_t GetNextPowerOfTwo(uint64_t x)
     {
         --x;
@@ -402,6 +413,15 @@ namespace
         x |= x >> 16;
         x |= x >> 32u;
         return ++x;
+    }
+
+    /// @brief Helper function that hashes a single value into ioSeed
+  /// Taken from: https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
+    template <typename T>
+    inline void HashCombine(size_t& ioSeed, const T& value)
+    {
+        std::hash<T> hasher;
+        ioSeed ^= hasher(value) + 0x9e3779b9 + (ioSeed << 6) + (ioSeed >> 2);
     }
 }
 #endif

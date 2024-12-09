@@ -64,11 +64,26 @@ struct GPUShaderModule : public GPUResource
 
 };
 
+struct GPUCommandEncoder : public GPUResource
+{
+    virtual void EndEncoding() = 0;
+    virtual void PushDebugGroup(const char* groupLabel) const = 0;
+    virtual void PopDebugGroup() const = 0;
+    virtual void InsertDebugMarker(const char* markerLabel) const = 0;
+};
+
+struct GPURenderCommandEncoder : public GPUCommandEncoder
+{
+
+};
+
 struct GPUCommandBuffer : public GPUResource
 {
     virtual void PushDebugGroup(const char* groupLabel) const = 0;
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
+
+    virtual GPURenderCommandEncoder* BeginRenderPass(const GPURenderPassDesc* desc) = 0;
 };
 
 struct GPUQueue : public GPUResource
@@ -86,7 +101,7 @@ struct GPUDevice : public GPUResource
 
     /* Resource creation */
     virtual GPUBuffer* CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) = 0;
-    virtual GPUTexture* CreateTexture(const GPUTextureDesc* desc, const void* pInitialData) = 0;
+    virtual GPUTexture* CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData) = 0;
 };
 
 struct GPUSurface : public GPUResource
