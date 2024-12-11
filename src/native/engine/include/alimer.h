@@ -6,12 +6,27 @@
 
 #include "alimer_platform.h"
 
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#   pragma clang diagnostic ignored "-Wnested-anon-types"
+#elif defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable : 4201) // nameless struct/union
+#endif
+
 /* Version API */
 #define ALIMER_VERSION_MAJOR    1
 #define ALIMER_VERSION_MINOR    0
 #define ALIMER_VERSION_PATCH	0
 
 #define MAX_LOG_MESSAGE_SIZE        1024
+
+#ifdef __cplusplus
+#   define DEFAULT_INITIALIZER(x) = x
+#else
+#   define DEFAULT_INITIALIZER(x)
+#endif
 
 /* Forward declarations */
 typedef struct Window Window;
@@ -259,14 +274,16 @@ typedef enum PixelFormatKind {
 } PixelFormatKind;
 
 typedef enum TextureDimension {
+    /// Undefined - default to 2D texture.
+    TextureDimension_Undefined = 0,
     /// One-dimensional Texture.
-    TextureDimension_1D = 0,
+    TextureDimension_1D = 1,
     /// Two-dimensional Texture.
-    TextureDimension_2D = 1,
+    TextureDimension_2D = 2,
     /// Three-dimensional Texture.
-    TextureDimension_3D = 2,
+    TextureDimension_3D = 3,
     /// Cubemap Texture.
-    TextureDimension_Cube = 3,
+    TextureDimension_Cube = 4,
 
     _TextureDimension_Force32 = 0x7FFFFFFF
 } TextureDimension;
@@ -511,5 +528,11 @@ ALIMER_API float alimerFontGetScale(Font* font, float size);
 ALIMER_API float alimerFontGetKerning(Font* font, int glyph1, int glyph2, float scale);
 ALIMER_API void alimerFontGetCharacter(Font* font, int glyph, float scale, int* width, int* height, float* advance, float* offsetX, float* offsetY, int* visible);
 ALIMER_API void alimerFontGetPixels(Font* font, uint8_t* dest, int glyph, int width, int height, float scale);
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #endif /* ALIMER_H_ */

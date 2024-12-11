@@ -374,12 +374,12 @@ PixelFormat alimerImageGetFormat(Image* image)
 
 uint32_t alimerImageGetWidth(Image* image, uint32_t level)
 {
-    return ALIMER_MAX(image->desc.width >> level, 1);
+    return std::max(image->desc.width >> level, 1u);
 }
 
 uint32_t alimerImageGetHeight(Image* image, uint32_t level)
 {
-    return ALIMER_MAX(image->desc.height >> level, 1);
+    return std::max(image->desc.height >> level, 1u);
 }
 
 uint32_t alimerImageGetDepth(Image* image, uint32_t level)
@@ -388,7 +388,7 @@ uint32_t alimerImageGetDepth(Image* image, uint32_t level)
         return 1u;
     }
 
-    return ALIMER_MAX(image->desc.depthOrArrayLayers >> level, 1);
+    return std::max(image->desc.depthOrArrayLayers >> level, 1u);
 }
 
 uint32_t alimerImageGetArrayLayers(Image* image)

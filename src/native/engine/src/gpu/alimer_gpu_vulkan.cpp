@@ -305,45 +305,65 @@ namespace
 
     struct VkImageLayoutMapping final
     {
+        VkImageLayout imageLayout;
         VkPipelineStageFlags2 stageFlags;
         VkAccessFlags2 accessMask;
 
-        VkImageLayoutMapping(VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
-            : stageFlags(stageFlags_)
+        VkImageLayoutMapping(VkImageLayout imageLayout_, VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
+            : imageLayout(imageLayout_)
+            , stageFlags(stageFlags_)
             , accessMask(accessMask_)
         {
         }
     };
 
-    VkImageLayoutMapping ConvertImageLayout(VkImageLayout layout)
+    VkImageLayoutMapping ConvertImageLayout(TextureLayout layout, bool depthOnlyFormat)
     {
         switch (layout)
         {
-            case VK_IMAGE_LAYOUT_UNDEFINED:
-            case VK_IMAGE_LAYOUT_PREINITIALIZED:
-                return { VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_2_NONE };
+            case TextureLayout::Undefined:
+            //case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                return { VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_2_NONE };
 
-            case VK_IMAGE_LAYOUT_GENERAL:
-                return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT };
+            case TextureLayout::CopySource:
+                return { VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
 
-            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-                return { VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT };
+            case TextureLayout::CopyDest:
+                return { VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
 
-            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+            case TextureLayout::ShaderResource:
+                //return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
+                return { VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT };
+
+            case TextureLayout::UnorderedAccess:
+                return { VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT };
+
+            case TextureLayout::RenderTarget:
+                return { VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT };
+
+            case TextureLayout::DepthWrite:
                 return {
+                    depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                     VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                 };
 
-            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+            case TextureLayout::DepthRead:
                 return {
+                    depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
                     VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
                 };
 
+            case TextureLayout::Present:
+                return { VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,VK_ACCESS_2_MEMORY_READ_BIT };
+
+            case TextureLayout::ShadingRateSurface:
+                return { VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR, VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR };
+
+#if TODO
                 // TODO: Understand this
             case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-            case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
             case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
                 return {
                     VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
@@ -352,28 +372,13 @@ namespace
 
                 // TODO: Understand this
             case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-            case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
             case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
                 return {
                     VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
                 };
+#endif // TODO
 
-            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                //return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
-                return { VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT };
-
-            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-                return { VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
-
-            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-                return { VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
-
-            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-                return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,VK_ACCESS_2_MEMORY_READ_BIT };
-
-            case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
-                return { VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR };
 
             default:
                 ALIMER_UNREACHABLE();
@@ -849,7 +854,6 @@ struct VulkanInstance;
 
 struct VulkanBuffer final : public GPUBuffer
 {
-    GPUBufferDesc desc;
     VulkanDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
@@ -860,19 +864,17 @@ struct VulkanBuffer final : public GPUBuffer
 
     ~VulkanBuffer() override;
     void SetLabel(const char* label) override;
-    uint64_t GetSize() const override { return desc.size; }
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
 struct VulkanTexture final : public GPUTexture
 {
     VulkanDevice* device = nullptr;
-    GPUTextureDesc desc = {};
     VkFormat vkFormat = VK_FORMAT_UNDEFINED;
     VkImage handle = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
     uint32_t numSubResources = 0;
-    mutable std::vector<VkImageLayout> imageLayouts;
+    mutable std::vector<TextureLayout> imageLayouts;
 
     ~VulkanTexture() override;
     void SetLabel(const char* label) override;
@@ -894,6 +896,7 @@ struct VulkanCommandBuffer final : public GPUCommandBuffer
     void Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc);
     VkCommandBuffer End() const;
 
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -988,15 +991,15 @@ struct VulkanDevice final : public GPUDevice
     void ProcessDeletionQueue(bool force);
 
     /* Resource creation */
-    GPUBuffer* CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
     void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices) const;
 };
 
-struct VulkanSurface final : public GPUSurface
+struct VulkanSurface final : public GPUSurfaceImpl
 {
     VkInstance instance = VK_NULL_HANDLE;
     VulkanDevice* device = nullptr;
@@ -1015,8 +1018,7 @@ struct VulkanSurface final : public GPUSurface
     GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
-    GPUResult GetCurrentTexture(GPUTexture** surfaceTexture) override;
-    GPUResult Present() override;
+    void Present();
 };
 
 struct VulkanAdapter final : public GPUAdapter
@@ -1086,7 +1088,7 @@ struct VulkanInstance final : public GPUInstance
     VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
 
     ~VulkanInstance() override;
-    GPUSurface* CreateSurface(Window* window) override;
+    GPUSurface CreateSurface(Window* window) override;
     GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
@@ -1260,6 +1262,48 @@ VkCommandBuffer VulkanCommandBuffer::End() const
 
     VK_CHECK(queue->device->vkEndCommandBuffer(commandBuffer));
     return commandBuffer;
+}
+
+GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+{
+    VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
+    backendSurface->swapChainAcquireSemaphoreIndex = (backendSurface->swapChainAcquireSemaphoreIndex + 1) % backendSurface->swapchainAcquireSemaphores.size();
+
+    backendSurface->locker.lock();
+    VkResult result = queue->device->vkAcquireNextImageKHR(
+        queue->device->handle,
+        backendSurface->swapchain,
+        UINT64_MAX,
+        backendSurface->swapchainAcquireSemaphores[backendSurface->swapChainAcquireSemaphoreIndex],
+        VK_NULL_HANDLE,
+        &backendSurface->backBufferIndex
+    );
+    backendSurface->locker.unlock();
+
+    if (result != VK_SUCCESS)
+    {
+        // Handle outdated error in acquire
+        if (result == VK_SUBOPTIMAL_KHR
+            || result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            // we need to create a new semaphore or jump through a few hoops to
+            // wait for the current one to be unsignalled before we can use it again
+            // creating a new one is easiest. See also:
+            // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
+            // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
+            {
+                const uint64_t frameCount = queue->device->frameCount;
+                std::scoped_lock lock(queue->device->destroyMutex);
+                for (auto& x : backendSurface->swapchainAcquireSemaphores)
+                {
+                    queue->device->destroyedSemaphores.emplace_back(x, frameCount);
+                }
+            }
+            backendSurface->swapchainAcquireSemaphores.clear();
+        }
+    }
+
+    return GPUAcquireSurfaceResult_SuccessOptimal;
 }
 
 void VulkanCommandBuffer::PushDebugGroup(const char* groupLabel) const
@@ -1524,7 +1568,7 @@ VulkanUploadContext VulkanCopyAllocator::Allocate(uint64_t size)
         {
             context.uploadBuffer->Release();
         }
-        context.uploadBuffer = static_cast<VulkanBuffer*>(device->CreateBuffer(&uploadBufferDesc, nullptr));
+        context.uploadBuffer = static_cast<VulkanBuffer*>(device->CreateBuffer(uploadBufferDesc, nullptr));
         ALIMER_ASSERT(context.uploadBuffer != nullptr);
         context.uploadBufferData = context.uploadBuffer->pMappedData;
     }
@@ -1810,61 +1854,61 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
     buffer->device = this;
-    buffer->desc = *desc;
+    buffer->desc = desc;
 
     VkBufferCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    createInfo.size = desc->size;
+    createInfo.size = desc.size;
     createInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     bool needBufferDeviceAddress = false;
-    if (desc->usage & GPUBufferUsage_Vertex)
+    if (desc.usage & GPUBufferUsage_Vertex)
     {
         createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         needBufferDeviceAddress = true;
     }
 
-    if (desc->usage & GPUBufferUsage_Index)
+    if (desc.usage & GPUBufferUsage_Index)
     {
         createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         needBufferDeviceAddress = true;
     }
 
-    if (desc->usage & GPUBufferUsage_Constant)
+    if (desc.usage & GPUBufferUsage_Constant)
     {
         createInfo.size = VmaAlignUp(createInfo.size, adapter->properties2.properties.limits.minUniformBufferOffsetAlignment);
         createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
 
-    if (desc->usage & GPUBufferUsage_ShaderRead)
+    if (desc.usage & GPUBufferUsage_ShaderRead)
     {
         // Read only ByteAddressBuffer is also storage buffer
         createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     }
 
-    if (desc->usage & GPUBufferUsage_ShaderWrite)
+    if (desc.usage & GPUBufferUsage_ShaderWrite)
     {
         createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     }
 
-    if (desc->usage & GPUBufferUsage_Indirect)
+    if (desc.usage & GPUBufferUsage_Indirect)
     {
         createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         needBufferDeviceAddress = true;
     }
 
-    if ((desc->usage & GPUBufferUsage_Predication)
+    if ((desc.usage & GPUBufferUsage_Predication)
         /* && QueryFeatureSupport(RHIFeature::Predication)*/
         )
     {
         createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
     }
 
-    if ((desc->usage & GPUBufferUsage_RayTracing)
+    if ((desc.usage & GPUBufferUsage_RayTracing)
         /* && QueryFeatureSupport(RHIFeature::RayTracing) */
         )
     {
@@ -1885,11 +1929,11 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
 
     VmaAllocationCreateInfo memoryInfo = {};
     memoryInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    if (desc->memoryType == GPUMemoryType_Readback)
+    if (desc.memoryType == GPUMemoryType_Readback)
     {
         memoryInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
-    else if (desc->memoryType == GPUMemoryType_Upload)
+    else if (desc.memoryType == GPUMemoryType_Upload)
     {
         createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         memoryInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -1918,9 +1962,9 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
         return nullptr;
     }
 
-    if (desc->label)
+    if (desc.label)
     {
-        buffer->SetLabel(desc->label);
+        buffer->SetLabel(desc.label);
     }
 
     buffer->allocatedSize = allocationInfo.size;
@@ -1943,7 +1987,7 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
     {
         VulkanUploadContext context;
         void* pMappedData = nullptr;
-        if (desc->memoryType == GPUMemoryType_Upload)
+        if (desc.memoryType == GPUMemoryType_Upload)
         {
             pMappedData = buffer->pMappedData;
         }
@@ -1953,12 +1997,12 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
             pMappedData = context.uploadBufferData;
         }
 
-        std::memcpy(pMappedData, pInitialData, desc->size);
+        std::memcpy(pMappedData, pInitialData, desc.size);
 
         if (context.IsValid())
         {
             VkBufferCopy copyRegion = {};
-            copyRegion.size = desc->size;
+            copyRegion.size = desc.size;
             copyRegion.srcOffset = 0;
             copyRegion.dstOffset = 0;
 
@@ -1981,45 +2025,45 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
             barrier.buffer = buffer->handle;
             barrier.size = VK_WHOLE_SIZE;
 
-            if (desc->usage & GPUBufferUsage_Vertex)
+            if (desc.usage & GPUBufferUsage_Vertex)
             {
                 barrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
                 barrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
             }
 
-            if (desc->usage & GPUBufferUsage_Index)
+            if (desc.usage & GPUBufferUsage_Index)
             {
                 barrier.dstStageMask |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
                 barrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
             }
 
-            if (desc->usage & GPUBufferUsage_Constant)
+            if (desc.usage & GPUBufferUsage_Constant)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
             }
 
-            if (desc->usage & GPUBufferUsage_ShaderRead)
+            if (desc.usage & GPUBufferUsage_ShaderRead)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
             }
 
-            if (desc->usage & GPUBufferUsage_ShaderWrite)
+            if (desc.usage & GPUBufferUsage_ShaderWrite)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                 barrier.dstAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
             }
 
-            if (desc->usage & GPUBufferUsage_Indirect)
+            if (desc.usage & GPUBufferUsage_Indirect)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
             }
 
-            if (desc->usage & GPUBufferUsage_Predication)
+            if (desc.usage & GPUBufferUsage_Predication)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT;
             }
 
-            if (desc->usage & GPUBufferUsage_RayTracing)
+            if (desc.usage & GPUBufferUsage_RayTracing)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
             }
@@ -2043,49 +2087,49 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc* desc, const void* pIn
     return buffer;
 }
 
-GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
+GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
-    const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc->format);
+    const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
     VulkanTexture* texture = new VulkanTexture();
     texture->device = this;
-    texture->desc = *desc;
-    texture->vkFormat = ToVkFormat(desc->format);
+    texture->desc = desc;
+    texture->vkFormat = ToVkFormat(desc.format);
 
     VkImageCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     createInfo.format = texture->vkFormat;
-    createInfo.extent.width = desc->width;
+    createInfo.extent.width = desc.width;
     createInfo.extent.height = 1;
     createInfo.extent.depth = 1;
     createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    switch (desc->dimension)
+    switch (desc.dimension)
     {
         case TextureDimension_1D:
             createInfo.imageType = VK_IMAGE_TYPE_1D;
-            createInfo.arrayLayers = desc->depthOrArrayLayers;
+            createInfo.arrayLayers = desc.depthOrArrayLayers;
             break;
 
         case TextureDimension_2D:
             createInfo.imageType = VK_IMAGE_TYPE_2D;
-            createInfo.extent.height = desc->height;
-            createInfo.arrayLayers = desc->depthOrArrayLayers;
+            createInfo.extent.height = desc.height;
+            createInfo.arrayLayers = desc.depthOrArrayLayers;
             break;
 
         case TextureDimension_3D:
             createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
             createInfo.imageType = VK_IMAGE_TYPE_3D;
-            createInfo.extent.height = desc->height;
-            createInfo.extent.depth = desc->depthOrArrayLayers;
+            createInfo.extent.height = desc.height;
+            createInfo.extent.depth = desc.depthOrArrayLayers;
             createInfo.arrayLayers = 1u;
             break;
 
         case TextureDimension_Cube:
             createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
             createInfo.imageType = VK_IMAGE_TYPE_2D;
-            createInfo.extent.height = desc->height;
-            createInfo.arrayLayers = desc->depthOrArrayLayers * 6;
+            createInfo.extent.height = desc.height;
+            createInfo.arrayLayers = desc.depthOrArrayLayers * 6;
             break;
 
         default:
@@ -2094,12 +2138,12 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
             return nullptr;
     }
 
-    createInfo.mipLevels = desc->mipLevelCount;
-    createInfo.samples = (VkSampleCountFlagBits)desc->sampleCount;
+    createInfo.mipLevels = desc.mipLevelCount;
+    createInfo.samples = (VkSampleCountFlagBits)desc.sampleCount;
     createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     createInfo.usage = 0u;
 
-    if (desc->usage & GPUTextureUsage_Transient)
+    if (desc.usage & GPUTextureUsage_Transient)
     {
         createInfo.usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
     }
@@ -2109,49 +2153,42 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
         createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
 
-    VkImageLayout currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    TextureLayout currentLayout = TextureLayout::Undefined;
 
-    if (desc->usage & GPUTextureUsage_ShaderRead)
+    if (desc.usage & GPUTextureUsage_ShaderRead)
     {
         createInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-        currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        currentLayout = TextureLayout::ShaderResource;
     }
 
-    if (desc->usage & GPUTextureUsage_ShaderWrite)
+    if (desc.usage & GPUTextureUsage_ShaderWrite)
     {
         createInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-        currentLayout = VK_IMAGE_LAYOUT_GENERAL;
+        currentLayout = TextureLayout::UnorderedAccess;
     }
 
-    if (desc->usage & GPUTextureUsage_RenderTarget)
+    if (desc.usage & GPUTextureUsage_RenderTarget)
     {
         if (isDepthStencil)
         {
             createInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-            if (alimerPixelFormatIsDepthOnly(desc->format))
-            {
-                currentLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            }
-            else
-            {
-                currentLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            }
+            currentLayout = TextureLayout::DepthWrite;
         }
         else
         {
             createInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-            currentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            currentLayout = TextureLayout::RenderTarget;
         }
     }
 
-    if (desc->usage & GPUTextureUsage_ShadingRate)
+    if (desc.usage & GPUTextureUsage_ShadingRate)
     {
         createInfo.usage |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
     }
 
     // If ShaderRead and RenderTarget add input attachment
     if (!isDepthStencil &&
-        (desc->usage & (GPUTextureUsage_RenderTarget | GPUTextureUsage_ShaderRead)))
+        (desc.usage & (GPUTextureUsage_RenderTarget | GPUTextureUsage_ShaderRead)))
     {
         createInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
@@ -2177,12 +2214,14 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
         return nullptr;
     }
 
-    if (desc->label)
+    if (desc.label)
     {
-        texture->SetLabel(desc->label);
+        texture->SetLabel(desc.label);
     }
 
-    texture->numSubResources = desc->mipLevelCount * desc->depthOrArrayLayers;
+    const bool depthOnlyFormat = alimerPixelFormatIsDepthOnly(desc.format);
+
+    texture->numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
     texture->imageLayouts.resize(texture->numSubResources);
     for (uint32_t i = 0; i < texture->numSubResources; i++)
     {
@@ -2217,7 +2256,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
         std::vector<VkBufferImageCopy> copyRegions;
 
         PixelFormatInfo formatInfo;
-        alimerPixelFormatGetInfo(desc->format, &formatInfo);
+        alimerPixelFormatGetInfo(desc.format, &formatInfo);
         const uint32_t blockSize = formatInfo.blockWidth;
 
         VkDeviceSize copyOffset = 0;
@@ -2284,7 +2323,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
 
         if (uploadContext.IsValid())
         {
-            const VkImageLayoutMapping mappingBefore = ConvertImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            const VkImageLayoutMapping mappingBefore = ConvertImageLayout(TextureLayout::CopyDest, depthOnlyFormat);
 
             VkImageMemoryBarrier2 barrier = {};
             barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -2314,11 +2353,11 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
                 copyRegions.data()
             );
 
-            const VkImageLayoutMapping mappingAfter = ConvertImageLayout(currentLayout);
+            const VkImageLayoutMapping mappingAfter = ConvertImageLayout(currentLayout, depthOnlyFormat);
 
             std::swap(barrier.srcStageMask, barrier.dstStageMask);
             barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            barrier.newLayout = currentLayout;
+            barrier.newLayout = mappingAfter.imageLayout;
             barrier.srcAccessMask = mappingBefore.accessMask;
             barrier.dstAccessMask = mappingAfter.accessMask;
 
@@ -2327,11 +2366,11 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
             copyAllocator.Submit(uploadContext);
         }
     }
-    else if (currentLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+    else if (currentLayout != TextureLayout::Undefined)
     {
         VulkanUploadContext uploadContext = copyAllocator.Allocate(allocationInfo.size);
 
-        const VkImageLayoutMapping mappingAfter = ConvertImageLayout(currentLayout);
+        const VkImageLayoutMapping mappingAfter = ConvertImageLayout(currentLayout, depthOnlyFormat);
 
         VkImageMemoryBarrier2 barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -2340,7 +2379,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc* desc, const GPUTex
         barrier.dstStageMask = mappingAfter.stageFlags;
         barrier.dstAccessMask = mappingAfter.accessMask;
         barrier.oldLayout = createInfo.initialLayout;
-        barrier.newLayout = currentLayout;
+        barrier.newLayout = mappingAfter.imageLayout;
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = texture->handle;
@@ -2511,8 +2550,8 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     device = static_cast<VulkanDevice*>(config.device);
     device->AddRef();
 
-    VkSurfaceCapabilitiesKHR caps;
-    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->adapter->handle, handle, &caps));
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->adapter->handle, handle, &surfaceCaps));
 
     uint32_t formatCount;
     VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device->adapter->handle, handle, &formatCount, nullptr));
@@ -2528,11 +2567,18 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     VkPresentModeKHR vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
     // Determine the number of images
-    uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
-    imageCount = ALIMER_MAX(imageCount, caps.minImageCount);
-    if (caps.maxImageCount != 0)
+    uint32_t maximumFrameLatency = config.desiredMaximumFrameLatency;
+    uint32_t imageCount = std::min(maximumFrameLatency, MinImageCountForPresentMode(vkPresentMode));
+    imageCount = std::max(imageCount, surfaceCaps.minImageCount);
+    if (surfaceCaps.maxImageCount != 0
+        && imageCount > surfaceCaps.maxImageCount)
     {
-        imageCount = ALIMER_MIN(imageCount, caps.maxImageCount);
+        imageCount = surfaceCaps.maxImageCount;
+    }
+
+    if (imageCount < surfaceCaps.minImageCount)
+    {
+        imageCount = surfaceCaps.minImageCount;
     }
 
     // Format and color space
@@ -2561,15 +2607,15 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
         surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     }
 
-    if (caps.currentExtent.width != 0xFFFFFFFF &&
-        caps.currentExtent.height != 0xFFFFFFFF)
+    if (surfaceCaps.currentExtent.width != 0xFFFFFFFF &&
+        surfaceCaps.currentExtent.height != 0xFFFFFFFF)
     {
-        swapchainExtent = caps.currentExtent;
+        swapchainExtent = surfaceCaps.currentExtent;
     }
     else
     {
-        swapchainExtent.width = ALIMER_MAX(caps.minImageExtent.width, ALIMER_MIN(caps.maxImageExtent.width, config.width));
-        swapchainExtent.height = ALIMER_MAX(caps.minImageExtent.height, ALIMER_MIN(caps.maxImageExtent.height, config.height));
+        swapchainExtent.width = std::clamp(config.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
+        swapchainExtent.height = std::clamp(config.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
     }
 
     VkSwapchainCreateInfoKHR createInfo = {};
@@ -2591,7 +2637,7 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     }
 
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.preTransform = caps.currentTransform;
+    createInfo.preTransform = surfaceCaps.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = vkPresentMode;
     createInfo.clipped = VK_TRUE;
@@ -2643,7 +2689,7 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
         //texture->allocatedSize = 0;
         texture->numSubResources = 1;
         texture->imageLayouts.resize(1);
-        texture->imageLayouts[0] = VK_IMAGE_LAYOUT_UNDEFINED;
+        texture->imageLayouts[0] = TextureLayout::Undefined;
 
         backbufferTextures[i] = texture;
     }
@@ -2669,49 +2715,7 @@ void VulkanSurface::Unconfigure()
     SAFE_RELEASE(device);
 }
 
-GPUResult VulkanSurface::GetCurrentTexture(GPUTexture** surfaceTexture)
-{
-    swapChainAcquireSemaphoreIndex = (swapChainAcquireSemaphoreIndex + 1) % swapchainAcquireSemaphores.size();
-
-    locker.lock();
-    VkResult result = device->vkAcquireNextImageKHR(
-        device->handle,
-        swapchain,
-        UINT64_MAX,
-        swapchainAcquireSemaphores[swapChainAcquireSemaphoreIndex],
-        VK_NULL_HANDLE,
-        &backBufferIndex
-    );
-    locker.unlock();
-
-    if (result != VK_SUCCESS)
-    {
-        // Handle outdated error in acquire
-        if (result == VK_SUBOPTIMAL_KHR
-            || result == VK_ERROR_OUT_OF_DATE_KHR)
-        {
-            // we need to create a new semaphore or jump through a few hoops to
-            // wait for the current one to be unsignalled before we can use it again
-            // creating a new one is easiest. See also:
-            // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
-            // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
-            {
-                const uint64_t frameCount = device->frameCount;
-                std::scoped_lock lock(device->destroyMutex);
-                for (auto& x : swapchainAcquireSemaphores)
-                {
-                    device->destroyedSemaphores.emplace_back(x, frameCount);
-                }
-            }
-            swapchainAcquireSemaphores.clear();
-        }
-        assert(0);
-    }
-
-    return GPUResult_Success;
-}
-
-GPUResult VulkanSurface::Present()
+void VulkanSurface::Present()
 {
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2734,8 +2738,6 @@ GPUResult VulkanSurface::Present()
             ALIMER_UNREACHABLE();
         }
     }
-
-    return GPUResult_Success;
 }
 
 /* VulkanAdapter */
@@ -3168,7 +3170,7 @@ VulkanInstance::~VulkanInstance()
     }
 }
 
-GPUSurface* VulkanInstance::CreateSurface(Window* window)
+GPUSurface VulkanInstance::CreateSurface(Window* window)
 {
     VkResult result = VK_SUCCESS;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;

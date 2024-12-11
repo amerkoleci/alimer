@@ -325,9 +325,8 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 #   define ALIMER_ASSERT(c) assert(c)
 #endif
 
-#define ALIMER_MIN(a, b) (a < b ? a : b)
-#define ALIMER_MAX(a, b) (a > b ? a : b)
-#define ALIMER_CLAMP(val, min, max) ALIMER_MAX(min, ALIMER_MIN(val, max))
+#define _ALIMER_DEF(val, def) (((val) == 0) ? (def) : (val))
+#define _ALIMER_DEF_FLT(val, def) (((val) == 0.0f) ? (def) : (val))
 
 #ifdef __cplusplus
 #define ALIMER_DISABLE_COPY(Class) \
@@ -390,6 +389,8 @@ _ALIMER_EXTERN char* _alimer_strdup(const char* source);
 } while(0)
 
 #ifdef __cplusplus
+#include <functional>
+
 namespace
 {
     constexpr uint32_t GetNextPowerOfTwo(uint32_t x)

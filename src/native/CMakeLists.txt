@@ -63,6 +63,7 @@ endif ()
 include(GNUInstallDirs)
 include(CMakeDependentOption)
 include(cmake/CPM.cmake)
+include(FetchContent)
 
 # Define standard configurations (Debug, Release, Distribution)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")

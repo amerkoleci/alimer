@@ -8,6 +8,21 @@
 #include "alimer_gpu.h"
 #include <atomic>
 
+enum class TextureLayout : uint8_t
+{
+    Undefined,
+    CopySource, // Use as source of copy operation
+    CopyDest, // Use as destination of copy operation
+    ShaderResource,
+    UnorderedAccess,
+    RenderTarget,
+    DepthWrite,
+    DepthRead,
+
+    Present,
+    ShadingRateSurface,
+};
+
 class GPUResource
 {
 protected:
@@ -23,7 +38,7 @@ public:
 
     virtual uint32_t AddRef()
     {
-        return  ++refCount;
+        return ++refCount;
     }
 
     virtual uint32_t Release()
@@ -45,21 +60,46 @@ private:
 
 struct GPUBuffer : public GPUResource
 {
-    virtual uint64_t GetSize() const = 0;
+    GPUBufferDesc desc;
     virtual GPUDeviceAddress GetDeviceAddress() const = 0;
 };
 
 struct GPUTexture : public GPUResource
 {
-
+    GPUTextureDesc desc;
 };
 
-struct GPUTextureView : public GPUResource
+struct GPUSamplerImpl : public GPUResource
 {
 
 };
 
-struct GPUShaderModule : public GPUResource
+struct GPUQuerySetImpl : public GPUResource
+{
+
+};
+
+struct GPUShaderModuleImpl : public GPUResource
+{
+
+};
+
+struct GPUBindGroupLayoutImpl : public GPUResource
+{
+
+};
+
+struct GPUBindGroupImpl : public GPUResource
+{
+
+};
+
+struct GPUPipelineLayoutImpl : public GPUResource
+{
+
+};
+
+struct GPUPipelineImpl : public GPUResource
 {
 
 };
@@ -83,6 +123,7 @@ struct GPUCommandBuffer : public GPUResource
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
+    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) = 0;
     virtual GPURenderCommandEncoder* BeginRenderPass(const GPURenderPassDesc* desc) = 0;
 };
 
@@ -100,17 +141,15 @@ struct GPUDevice : public GPUResource
     virtual uint64_t CommitFrame() = 0;
 
     /* Resource creation */
-    virtual GPUBuffer* CreateBuffer(const GPUBufferDesc* desc, const void* pInitialData) = 0;
-    virtual GPUTexture* CreateTexture(const GPUTextureDesc* desc, const GPUTextureData* pInitialData) = 0;
+    virtual GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
+    virtual GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
 };
 
-struct GPUSurface : public GPUResource
+struct GPUSurfaceImpl : public GPUResource
 {
     virtual GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
     virtual bool Configure(const GPUSurfaceConfig* config_) = 0;
     virtual void Unconfigure() = 0;
-    virtual GPUResult GetCurrentTexture(GPUTexture** surfaceTexture) = 0;
-    virtual GPUResult Present() = 0;
 
     GPUSurfaceConfig config;
 };
@@ -126,7 +165,7 @@ struct GPUInstance
 public:
     virtual ~GPUInstance() = default;
 
-    virtual GPUSurface* CreateSurface(Window* window) = 0;
+    virtual GPUSurface CreateSurface(Window* window) = 0;
     virtual GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) = 0;
 };
 

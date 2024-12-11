@@ -434,8 +434,8 @@ PhysicsShape* alimerPhysicsCreateBoxShape(float dimensions[3])
 
     shape->type = PhysicsShapeType_Box;
     const JPH::Vec3 halfExtent = { dimensions[0] / 2.f, dimensions[1] / 2.f, dimensions[2] / 2.f };
-    float shortestSide = ALIMER_MIN(dimensions[0], ALIMER_MIN(dimensions[1], dimensions[2]));
-    float convexRadius = ALIMER_MIN(shortestSide * .1f, .05f);
+    float shortestSide = std::min(dimensions[0], std::min(dimensions[1], dimensions[2]));
+    float convexRadius = std::min(shortestSide * .1f, .05f);
 
     JPH::BoxShapeSettings settings(halfExtent, convexRadius);
     settings.SetEmbedded();

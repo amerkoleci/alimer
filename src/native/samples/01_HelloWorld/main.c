@@ -15,38 +15,40 @@
 #include <emscripten/emscripten.h>
 #endif
 
-GPUSurface* surface = NULL;
+Window* window = NULL;
+GPUSurface surface = NULL;
 GPUDevice* device = NULL;
 GPUQueue* graphicsQueue = NULL;
 
 void Render()
 {
-    GPUTexture* surfaceTexture = NULL;
-    GPUResult result = agpuSurfaceGetCurrentTexture(surface, &surfaceTexture);
-    if (result != GPUResult_Success)
+    if (alimerWindowIsMinimized(window))
         return;
 
     GPUCommandBuffer* commandBuffer = agpuQueueAcquireCommandBuffer(graphicsQueue, NULL);
 
-    GPURenderPassColorAttachment colorAttachment = {
-        .texture = surfaceTexture,
-        .loadAction = GPULoadAction_Clear,
-        .storeAction = GPUStoreAction_Store,
-        .clearColor = {0.3f, 0.3f, 0.3f, 1.0}
-    };
+    GPUTexture* surfaceTexture = NULL;
+    GPUAcquireSurfaceResult result = agpuCommandBufferAcquireSurfaceTexture(commandBuffer, surface, &surfaceTexture);
+    if (result == GPUAcquireSurfaceResult_SuccessOptimal)
+    {
+        GPURenderPassColorAttachment colorAttachment = {
+            .texture = surfaceTexture,
+            .loadAction = GPULoadAction_Clear,
+            .storeAction = GPUStoreAction_Store,
+            .clearColor = {0.3f, 0.3f, 0.3f, 1.0}
+        };
 
-    GPURenderPassDesc renderPass = {
-        .label = "RenderPass",
-        .colorAttachmentCount = 1,
-        .colorAttachments = &colorAttachment
-    };
+        GPURenderPassDesc renderPass = {
+            .label = "RenderPass",
+            .colorAttachmentCount = 1,
+            .colorAttachments = &colorAttachment
+        };
 
-    GPURenderCommandEncoder* encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
-    agpuRenderPassEncoderEnd(encoder);
+        GPURenderCommandEncoder* encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
+        agpuRenderPassEncoderEnd(encoder);
+    }
+
     agpuQueueSubmit(graphicsQueue, 1u, &commandBuffer);
-
-    // We can tell the surface to present the next texture.
-    agpuSurfacePresent(surface);
 }
 
 int main()
@@ -56,11 +58,14 @@ int main()
         return EXIT_FAILURE;
     }
 
-    GPUConfig config = {};
-    //config.preferredBackend = GPUBackendType_Vulkan;
+    GPUConfig config = {
+        //.preferredBackend = GPUBackendType_Vulkan,
 #if defined(_DEBUG)
-    config.validationMode = GPUValidationMode_Enabled;
+        .validationMode = GPUValidationMode_Enabled
+#else
+        .validationMode = GPUValidationMode_Disabled
 #endif
+    };
     if (!agpuInit(&config))
     {
         return EXIT_FAILURE;
@@ -84,7 +89,7 @@ int main()
         .height = 720,
         .flags = WindowFlags_Hidden | WindowFlags_Resizable
     };
-    Window* window = alimerWindowCreate(&windowDesc);
+    window = alimerWindowCreate(&windowDesc);
     alimerWindowSetCentered(window);
 
     surface = agpuSurfaceCreate(window);
@@ -97,15 +102,14 @@ int main()
     GPULimits limits;
     agpuAdapterGetLimits(adapter, &limits);
 
-    GPUSurfaceCapabilities surfaceCaps;
-    agpuSurfaceGetCapabilities(surface, adapter, &surfaceCaps);
+    //GPUSurfaceCapabilities surfaceCaps;
+    //agpuSurfaceGetCapabilities(surface, adapter, &surfaceCaps);
 
     device = agpuAdapterCreateDevice(adapter);
-    agpuAdapterRelease(adapter);
 
     GPUSurfaceConfig surfaceConfig = {
         .device = device,
-        .format = surfaceCaps.preferredFormat,
+        //.format = surfaceCaps.preferredFormat,
         .width = windowDesc.width,
         .height = windowDesc.height
     };
