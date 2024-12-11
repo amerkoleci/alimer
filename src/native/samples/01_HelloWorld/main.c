@@ -17,17 +17,17 @@
 
 Window* window = NULL;
 GPUSurface surface = NULL;
-GPUDevice* device = NULL;
-GPUQueue* graphicsQueue = NULL;
+GPUDevice device = NULL;
+GPUQueue graphicsQueue = NULL;
 
 void Render()
 {
     if (alimerWindowIsMinimized(window))
         return;
 
-    GPUCommandBuffer* commandBuffer = agpuQueueAcquireCommandBuffer(graphicsQueue, NULL);
+    GPUCommandBuffer commandBuffer = agpuQueueAcquireCommandBuffer(graphicsQueue, NULL);
 
-    GPUTexture* surfaceTexture = NULL;
+    GPUTexture surfaceTexture = NULL;
     GPUAcquireSurfaceResult result = agpuCommandBufferAcquireSurfaceTexture(commandBuffer, surface, &surfaceTexture);
     if (result == GPUAcquireSurfaceResult_SuccessOptimal)
     {
@@ -44,7 +44,7 @@ void Render()
             .colorAttachments = &colorAttachment
         };
 
-        GPURenderCommandEncoder* encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
+        GPURenderCommandEncoder encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
         agpuRenderPassEncoderEnd(encoder);
     }
 
@@ -97,7 +97,7 @@ int main()
     GPURequestAdapterOptions adapterOptions = {
         .compatibleSurface = surface
     };
-    GPUAdapter* adapter = agpuRequestAdapter(&adapterOptions);
+    GPUAdapter adapter = agpuRequestAdapter(&adapterOptions);
 
     GPULimits limits;
     agpuAdapterGetLimits(adapter, &limits);
@@ -121,7 +121,7 @@ int main()
          0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
         -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
     };
-    GPUBuffer* vertexBuffer = agpuDeviceCreateBuffer(device, &(GPUBufferDesc) {
+    GPUBuffer vertexBuffer = agpuDeviceCreateBuffer(device, &(GPUBufferDesc) {
         .usage = GPUBufferUsage_Vertex,
         .size = sizeof(vertices)
     }, vertices);

@@ -79,13 +79,6 @@ using Microsoft::WRL::ComPtr;
 
 namespace
 {
-    template <typename T>
-    static T AlignUp(T val, T alignment)
-    {
-        //D3D12MA_HEAVY_ASSERT(IsPow2(alignment));
-        return (val + alignment - 1) & ~(alignment - 1);
-    }
-
     const char* ToString(D3D12_MESSAGE_CATEGORY category)
     {
         switch (category)
@@ -361,46 +354,114 @@ namespace
         }
     }
 
-    D3D12_BARRIER_LAYOUT ConvertBarrierTextureLayout(TextureLayout layout)
+    struct D3D12TextureLayoutMapping final
+    {
+        D3D12_BARRIER_LAYOUT layout;
+        D3D12_BARRIER_SYNC sync;
+        D3D12_BARRIER_ACCESS access;
+
+        D3D12TextureLayoutMapping(D3D12_BARRIER_LAYOUT layout_, D3D12_BARRIER_SYNC sync_, D3D12_BARRIER_ACCESS access_)
+            : layout(layout_)
+            , sync(sync_)
+            , access(access_)
+        {
+        }
+    };
+
+    D3D12TextureLayoutMapping ConvertTextureLayout(TextureLayout layout)
     {
         switch (layout)
         {
             case TextureLayout::Undefined:
-                return D3D12_BARRIER_LAYOUT_COMMON;
+                return {
+                    D3D12_BARRIER_LAYOUT_COMMON,
+                    D3D12_BARRIER_SYNC_NONE,
+                    D3D12_BARRIER_ACCESS_COMMON
+                };
 
             case TextureLayout::CopySource:
-                return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+                return {
+                    D3D12_BARRIER_LAYOUT_COPY_SOURCE,
+                    D3D12_BARRIER_SYNC_COPY,
+                    D3D12_BARRIER_ACCESS_COPY_SOURCE
+                };
 
             case TextureLayout::CopyDest:
-                return D3D12_BARRIER_LAYOUT_COPY_DEST;
+                return {
+                    D3D12_BARRIER_LAYOUT_COPY_DEST,
+                    D3D12_BARRIER_SYNC_COPY,
+                    D3D12_BARRIER_ACCESS_COPY_DEST
+                };
+
+            case TextureLayout::ResolveSource:
+                return {
+                    D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE,
+                    D3D12_BARRIER_SYNC_RESOLVE,
+                    D3D12_BARRIER_ACCESS_RESOLVE_SOURCE
+                };
+
+            case TextureLayout::ResolveDest:
+                return {
+                    D3D12_BARRIER_LAYOUT_RESOLVE_DEST,
+                    D3D12_BARRIER_SYNC_RESOLVE,
+                    D3D12_BARRIER_ACCESS_RESOLVE_DEST
+                };
 
             case TextureLayout::ShaderResource:
-                return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+                return {
+                    D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
+                    D3D12_BARRIER_SYNC_ALL_SHADING,
+                    D3D12_BARRIER_ACCESS_SHADER_RESOURCE
+                };
 
             case TextureLayout::UnorderedAccess:
-                return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+                return {
+                    D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+                    D3D12_BARRIER_SYNC_ALL_SHADING,
+                    D3D12_BARRIER_ACCESS_UNORDERED_ACCESS
+                };
 
             case TextureLayout::RenderTarget:
-                return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+                return {
+                    D3D12_BARRIER_LAYOUT_RENDER_TARGET,
+                    D3D12_BARRIER_SYNC_RENDER_TARGET,
+                    D3D12_BARRIER_ACCESS_RENDER_TARGET };
 
             case TextureLayout::DepthWrite:
-                return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+                return {
+                    D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE,
+                    D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                    D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE
+                };
 
             case TextureLayout::DepthRead:
-                return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+                return {
+                    D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ,
+                    D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                    D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ
+                };
 
             case TextureLayout::Present:
-                return D3D12_BARRIER_LAYOUT_PRESENT;
+                return {
+                    D3D12_BARRIER_LAYOUT_PRESENT,
+                    D3D12_BARRIER_SYNC_ALL,
+                    D3D12_BARRIER_ACCESS_COMMON
+                };
 
             case TextureLayout::ShadingRateSurface:
-                return D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE;
+                return {
+                    D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE,
+                    D3D12_BARRIER_SYNC_PIXEL_SHADING,
+                    D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
+                };
+
 
             default:
                 ALIMER_UNREACHABLE();
         }
     }
 
-    D3D12_RESOURCE_STATES ConvertLegacyResourceState(TextureLayout layout)
+    D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(TextureLayout layout)
     {
         switch (layout)
         {
@@ -541,7 +602,7 @@ struct D3D12Resource
     bool immutableState = false;
 };
 
-struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
+struct D3D12Buffer final : public GPUBufferImpl, public D3D12Resource
 {
     uint64_t allocatedSize = 0;
     D3D12_GPU_VIRTUAL_ADDRESS deviceAddress = 0;
@@ -554,7 +615,7 @@ struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct D3D12Texture final : public GPUTexture, public D3D12Resource
+struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
 {
     DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
     HANDLE sharedHandle = nullptr;
@@ -572,12 +633,13 @@ struct D3D12Texture final : public GPUTexture, public D3D12Resource
     D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(DXGI_FORMAT rtvFormat, uint32_t mipLevel) const;
 };
 
-struct D3D12RenderCommandEncoder final : public GPURenderCommandEncoder
+struct D3D12RenderCommandEncoder final : public GPURenderCommandEncoderImpl
 {
     D3D12CommandBuffer* commandBuffer = nullptr;
     D3D12_RENDER_PASS_RENDER_TARGET_DESC RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
     D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = {};
     D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
+    bool hasLabel = false;
 
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -587,7 +649,7 @@ struct D3D12RenderCommandEncoder final : public GPURenderCommandEncoder
     void Begin(const GPURenderPassDesc* desc);
 };
 
-struct D3D12CommandBuffer final : public GPUCommandBuffer
+struct D3D12CommandBuffer final : public GPUCommandBufferImpl
 {
     static constexpr uint32_t kMaxBarrierCount = 16;
 
@@ -599,8 +661,13 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
 
     ID3D12CommandAllocator* commandAllocators[GPU_MAX_INFLIGHT_FRAMES] = {};
     ID3D12GraphicsCommandList6* commandList = nullptr;
-    D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
+    ID3D12GraphicsCommandList7* commandList7 = nullptr;
     UINT numBarriersToCommit = 0;
+    std::vector<D3D12_GLOBAL_BARRIER> globalBarriers;
+    std::vector<D3D12_TEXTURE_BARRIER> textureBarriers;
+    std::vector<D3D12_BUFFER_BARRIER> bufferBarriers;
+    // Legacy barriers
+    D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
     std::vector<D3D12Surface*> presentSurfaces;
     D3D12_VERTEX_BUFFER_VIEW vboViews[GPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
 
@@ -613,15 +680,15 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
     void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
     void CommitBarriers();
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPURenderCommandEncoder* BeginRenderPass(const GPURenderPassDesc* desc) override;
+    GPURenderCommandEncoder BeginRenderPass(const GPURenderPassDesc* desc) override;
 };
 
-struct D3D12Queue final : public GPUQueue
+struct D3D12Queue final : public GPUQueueImpl
 {
     D3D12Device* device = nullptr;
     GPUQueueType queueType = GPUQueueType_Count;
@@ -637,13 +704,13 @@ struct D3D12Queue final : public GPUQueue
     std::mutex cmdBuffersLocker;
 
     GPUQueueType GetQueueType() const override { return queueType; }
-    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
 
     uint64_t IncrementFenceValue();
     bool IsFenceComplete(uint64_t fenceValue);
     void WaitForFenceValue(uint64_t fenceValue);
     void WaitIdle();
-    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers) override;
 };
 
 struct D3D12UploadContext final
@@ -873,7 +940,7 @@ private:
     }
 };
 
-struct D3D12Device final : public GPUDevice
+struct D3D12Device final : public GPUDeviceImpl
 {
     D3D12Adapter* adapter = nullptr;
     ID3D12Device5* handle = nullptr;
@@ -910,15 +977,15 @@ struct D3D12Device final : public GPUDevice
 
     ~D3D12Device() override;
     void OnDeviceRemoved();
-    GPUQueue* GetQueue(GPUQueueType type) override;
+    GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
     void DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation = nullptr);
     void ProcessDeletionQueue(bool force);
 
     /* Resource creation */
-    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
 };
 
 struct D3D12Surface final : public GPUSurfaceImpl
@@ -939,20 +1006,20 @@ struct D3D12Surface final : public GPUSurfaceImpl
     std::vector<D3D12Texture*> backbufferTextures;
 
     ~D3D12Surface() override;
-    GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    GPUResult GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
     void Present();
 };
 
-struct D3D12Adapter final : public GPUAdapter
+struct D3D12Adapter final : public GPUAdapterImpl
 {
     D3D12Instance* instance = nullptr;
     ComPtr<IDXGIAdapter1> dxgiAdapter1;
 
     ~D3D12Adapter() override;
     GPUResult GetLimits(GPULimits* limits) const override;
-    GPUDevice* CreateDevice() override;
+    GPUDevice CreateDevice() override;
 };
 
 struct D3D12Instance final : public GPUInstance
@@ -963,7 +1030,7 @@ struct D3D12Instance final : public GPUInstance
 
     ~D3D12Instance() override;
     GPUSurface CreateSurface(Window* window) override;
-    GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
+    GPUAdapter RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
 /* D3D12Buffer */
@@ -1116,7 +1183,14 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
 void D3D12RenderCommandEncoder::EndEncoding()
 {
     commandBuffer->commandList->EndRenderPass();
+
+    if (hasLabel)
+    {
+        PopDebugGroup();
+    }
+
     commandBuffer->encoderActive = false;
+    hasLabel = false;
 }
 
 void D3D12RenderCommandEncoder::PushDebugGroup(const char* groupLabel) const
@@ -1136,6 +1210,12 @@ void D3D12RenderCommandEncoder::InsertDebugMarker(const char* markerLabel) const
 
 void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
 {
+    if (desc && desc->label)
+    {
+        PushDebugGroup(desc->label);
+        hasLabel = true;
+    }
+
     //Rect2D renderArea = { 0u, 0u, UINT32_MAX, UINT32_MAX };
     uint32_t width = UINT32_MAX;
     uint32_t height = UINT32_MAX;
@@ -1224,7 +1304,10 @@ D3D12CommandBuffer::~D3D12CommandBuffer()
         SAFE_RELEASE(commandAllocators[i]);
     }
 
+    SAFE_RELEASE(commandList7);
     SAFE_RELEASE(commandList);
+
+    delete renderPassEncoder;
 }
 
 void D3D12CommandBuffer::Clear()
@@ -1234,6 +1317,9 @@ void D3D12CommandBuffer::Clear()
         surface->Release();
     }
     presentSurfaces.clear();
+    globalBarriers.clear();
+    textureBarriers.clear();
+    bufferBarriers.clear();
     numBarriersToCommit = 0;
 
     //for (uint32_t i = 0; i < kMaxBindGroups; ++i)
@@ -1255,6 +1341,12 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
     // Start the command list in a default state:
     VHR(commandAllocators[frameIndex]->Reset());
     VHR(commandList->Reset(commandAllocators[frameIndex], nullptr));
+
+    if (desc && desc->label)
+    {
+        PushDebugGroup(desc->label);
+        hasLabel = true;
+    }
 
 #if TODO
     if (queue->queueType != GPUQueueType_Copy)
@@ -1295,13 +1387,6 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
         commandList->OMSetBlendFactor(blendFactor);
     }
 
-    hasLabel = desc && !desc->label;
-    if (hasLabel)
-    {
-        PushDebugGroup(desc->label);
-        hasLabel = true;
-    }
-
     encoderActive = false;
 }
 
@@ -1326,15 +1411,44 @@ ID3D12CommandList* D3D12CommandBuffer::End()
 void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* resource, TextureLayout newLayout, uint32_t subresource, bool commit)
 {
     const uint32_t index = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;
-#if TODO_BARRIERS
+    const TextureLayout oldLayout = resource->subResourcesStates[index];
+
     if (queue->device->features.EnhancedBarriersSupported())
     {
+        D3D12TextureLayoutMapping mappingBefore = ConvertTextureLayout(oldLayout);
+        D3D12TextureLayoutMapping mappingAfter = ConvertTextureLayout(newLayout);
+
+        D3D12_TEXTURE_BARRIER& barrier = textureBarriers.emplace_back();
+        barrier.SyncBefore = mappingBefore.sync;
+        barrier.SyncAfter = mappingAfter.sync;
+        barrier.AccessBefore = mappingBefore.access;
+        barrier.AccessAfter = mappingAfter.access;
+        barrier.LayoutBefore = mappingBefore.layout;
+        barrier.LayoutAfter = mappingAfter.layout;
+        barrier.pResource = resource->handle;
+        if (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+        {
+            barrier.Subresources.IndexOrFirstMipLevel = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Subresources.NumMipLevels = 0;
+            barrier.Subresources.FirstArraySlice = 0;
+            barrier.Subresources.NumArraySlices = 0;
+            barrier.Subresources.FirstPlane = 0;
+            barrier.Subresources.NumPlanes = 0;
+        }
+        else
+        {
+            // TODO:
+        }
+        barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE; // TODO Handle discard when we have transient resources
+        ALIMER_ASSERT(barrier.LayoutBefore != barrier.LayoutAfter);
+
+        resource->subResourcesStates[index] = newLayout;
+        numBarriersToCommit++;
     }
     else
-#endif // TODO_BARRIER
     {
-        const D3D12_RESOURCE_STATES oldState = ConvertLegacyResourceState(resource->subResourcesStates[index]);
-        const D3D12_RESOURCE_STATES newState = ConvertLegacyResourceState(newLayout);
+        const D3D12_RESOURCE_STATES oldState = ConvertTextureLayoutLegacy(oldLayout);
+        const D3D12_RESOURCE_STATES newState = ConvertTextureLayoutLegacy(newLayout);
 
         if (queue->queueType == GPUQueueType_Compute)
         {
@@ -1393,14 +1507,50 @@ void D3D12CommandBuffer::InsertUAVBarrier(const D3D12Resource* resource, bool co
 
 void D3D12CommandBuffer::CommitBarriers()
 {
-    if (numBarriersToCommit > 0)
+    if (!globalBarriers.empty() || !textureBarriers.empty() || !bufferBarriers.empty())
+    {
+        uint32_t numBarrierGroups = 0;
+        D3D12_BARRIER_GROUP barrierGroups[3] = {};
+
+        if (!globalBarriers.empty())
+        {
+            barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_GLOBAL;
+            barrierGroups[numBarrierGroups].NumBarriers = (UINT32)globalBarriers.size();
+            barrierGroups[numBarrierGroups].pGlobalBarriers = globalBarriers.data();
+            numBarrierGroups++;
+        }
+
+        if (!textureBarriers.empty())
+        {
+            barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_TEXTURE;
+            barrierGroups[numBarrierGroups].NumBarriers = (UINT32)textureBarriers.size();
+            barrierGroups[numBarrierGroups].pTextureBarriers = textureBarriers.data();
+            numBarrierGroups++;
+        }
+
+        if (!bufferBarriers.empty())
+        {
+            barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_BUFFER;
+            barrierGroups[numBarrierGroups].NumBarriers = (UINT32)bufferBarriers.size();
+            barrierGroups[numBarrierGroups].pBufferBarriers = bufferBarriers.data();
+            numBarrierGroups++;
+        }
+
+        commandList7->Barrier(numBarrierGroups, barrierGroups);
+
+        globalBarriers.clear();
+        textureBarriers.clear();
+        bufferBarriers.clear();
+    }
+    else if (numBarriersToCommit > 0)
     {
         commandList->ResourceBarrier(numBarriersToCommit, barriers);
-        numBarriersToCommit = 0;
     }
+
+    numBarriersToCommit = 0;
 }
 
-GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
 
@@ -1490,7 +1640,7 @@ void D3D12CommandBuffer::InsertDebugMarker(const char* markerLabel) const
     }
 }
 
-GPURenderCommandEncoder* D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
+GPURenderCommandEncoder D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
 {
     if (encoderActive)
     {
@@ -1504,7 +1654,7 @@ GPURenderCommandEncoder* D3D12CommandBuffer::BeginRenderPass(const GPURenderPass
 }
 
 /* D3D12Queue */
-GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+GPUCommandBuffer D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
@@ -1524,6 +1674,7 @@ GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
         }
 
         VHR(device->handle->CreateCommandList1(0, d3dCommandListType, D3D12_COMMAND_LIST_FLAG_NONE, PPV_ARGS(commandBuffer->commandList)));
+        commandBuffer->commandList->QueryInterface(&commandBuffer->commandList7);
 
         commandBuffers.push_back(commandBuffer);
     }
@@ -1570,7 +1721,7 @@ void D3D12Queue::WaitIdle()
     WaitForFenceValue(IncrementFenceValue());
 }
 
-void D3D12Queue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers)
+void D3D12Queue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers)
 {
     std::vector<ID3D12CommandList*> submitCommandLists;
     for (uint32_t i = 0; i < numCommandBuffers; i++)
@@ -1822,7 +1973,7 @@ void D3D12Device::OnDeviceRemoved()
 
 }
 
-GPUQueue* D3D12Device::GetQueue(GPUQueueType type)
+GPUQueue D3D12Device::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
@@ -1941,7 +2092,7 @@ void D3D12Device::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     D3D12Buffer* buffer = new D3D12Buffer();
     buffer->device = this;
@@ -2082,7 +2233,7 @@ GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pIni
     return buffer;
 }
 
-GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
@@ -2097,7 +2248,7 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
     }
 
     const uint32_t arraySizeMultiplier = (desc.dimension == TextureDimension_Cube) ? 6 : 1;
-    D3D12_RESOURCE_DESC resourceDesc{};
+    D3D12_RESOURCE_DESC1 resourceDesc{};
     switch (desc.dimension)
     {
         case TextureDimension_1D:
@@ -2150,27 +2301,27 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
         resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
 
-    D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+    TextureLayout initialLayout = TextureLayout::Undefined;
     if (pInitialData == nullptr)
     {
         if (desc.usage & GPUTextureUsage_RenderTarget)
         {
             if (isDepthStencil)
             {
-                resourceState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+                initialLayout = TextureLayout::DepthWrite;
             }
             else
             {
-                resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                initialLayout = TextureLayout::RenderTarget;
             }
         }
         else if (desc.usage & GPUTextureUsage_ShaderWrite)
         {
-            resourceState |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            initialLayout = TextureLayout::UnorderedAccess;
         }
         else if (desc.usage & GPUTextureUsage_ShaderRead)
         {
-            resourceState |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            initialLayout = TextureLayout::ShaderResource;
         }
     }
 
@@ -2200,7 +2351,7 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
     texture->rowSizesInBytes.resize(texture->footPrints.size());
     texture->numRows.resize(texture->footPrints.size());
     handle->GetCopyableFootprints(
-        &resourceDesc,
+        (D3D12_RESOURCE_DESC*)&resourceDesc,
         0,
         (UINT)texture->footPrints.size(),
         0,
@@ -2212,7 +2363,7 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
 
     for (uint32_t i = 0; i < texture->numSubResources; i++)
     {
-        //texture->subResourcesStates[i] = currentLayout;
+        texture->subResourcesStates[i] = initialLayout;
     }
 
     D3D12MA::ALLOCATION_DESC allocationDesc = {};
@@ -2239,14 +2390,33 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
     }
 #endif
 
-    HRESULT hr = allocator->CreateResource(
-        &allocationDesc,
-        &resourceDesc,
-        resourceState,
-        pClearValue,
-        &texture->allocation,
-        IID_PPV_ARGS(&texture->handle)
-    );
+    D3D12TextureLayoutMapping textureLayout = ConvertTextureLayout(initialLayout);
+
+    HRESULT hr = E_FAIL;
+    if (features.EnhancedBarriersSupported())
+    {
+        hr = allocator->CreateResource3(
+            &allocationDesc,
+            &resourceDesc,
+            textureLayout.layout,
+            nullptr,
+            0, nullptr,
+            &texture->allocation,
+            IID_PPV_ARGS(&texture->handle)
+        );
+    }
+    else
+    {
+        D3D12_RESOURCE_STATES resourceState = ConvertTextureLayoutLegacy(initialLayout);
+        allocator->CreateResource2(
+            &allocationDesc,
+            &resourceDesc,
+            resourceState,
+            pClearValue,
+            &texture->allocation,
+            IID_PPV_ARGS(&texture->handle)
+        );
+    }
 
     if (FAILED(hr))
     {
@@ -2269,7 +2439,7 @@ D3D12Surface::~D3D12Surface()
     Unconfigure();
 }
 
-GPUResult D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
+GPUResult D3D12Surface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = PixelFormat_BGRA8UnormSrgb;
     capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
@@ -2516,7 +2686,7 @@ inline void HandleDeviceRemoved(PVOID context, BOOLEAN)
 }
 #endif
 
-GPUDevice* D3D12Adapter::CreateDevice()
+GPUDevice D3D12Adapter::CreateDevice()
 {
     D3D12Device* device = new D3D12Device();
     device->adapter = this;
@@ -2762,7 +2932,7 @@ GPUSurface D3D12Instance::CreateSurface(Window* window)
     return surface;
 }
 
-GPUAdapter* D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options)
+GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options)
 {
     const DXGI_GPU_PREFERENCE gpuPreference = (options && options->powerPreference == GPUPowerPreference_LowPower) ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
 

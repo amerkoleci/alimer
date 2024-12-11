@@ -191,6 +191,12 @@ VULKAN_DEVICE_FUNCTION(vkGetMemoryFdKHR)
 VULKAN_DEVICE_FUNCTION(vkGetBufferDeviceAddress)
 #endif /* defined(VK_VERSION_1_2) */
 
+// Functions that require a device with 1.3 or VK_KHR_dynamic_rendering
+#if defined(VK_VERSION_1_3) || defined(VK_KHR_dynamic_rendering)
+VULKAN_DEVICE_FUNCTION(vkCmdBeginRendering)
+VULKAN_DEVICE_FUNCTION(vkCmdEndRendering)
+#endif /* defined(VK_VERSION_1_3) || defined(VK_KHR_dynamic_rendering) */
+
 // Functions that require a device with 1.3 or VK_KHR_synchronization2
 #if defined(VK_VERSION_1_3) || defined(VK_KHR_synchronization2)
 VULKAN_DEVICE_FUNCTION(vkCmdPipelineBarrier2)

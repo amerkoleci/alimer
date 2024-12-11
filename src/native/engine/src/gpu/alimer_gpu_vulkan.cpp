@@ -303,14 +303,46 @@ namespace
         }
     }
 
+    constexpr VkAttachmentLoadOp ToVk(GPULoadAction value)
+    {
+        switch (value)
+        {
+            case GPULoadAction_Discard:
+                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            case GPULoadAction_Clear:
+                return VK_ATTACHMENT_LOAD_OP_CLEAR;
+            case GPULoadAction_Load:
+                return VK_ATTACHMENT_LOAD_OP_LOAD;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        }
+    }
+
+    constexpr VkAttachmentStoreOp ToVk(GPUStoreAction value)
+    {
+        switch (value)
+        {
+            case GPUStoreAction_Discard:
+                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            case GPUStoreAction_Store:
+                return VK_ATTACHMENT_STORE_OP_STORE;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+    }
+
     struct VkImageLayoutMapping final
     {
-        VkImageLayout imageLayout;
+        VkImageLayout layout;
         VkPipelineStageFlags2 stageFlags;
         VkAccessFlags2 accessMask;
 
-        VkImageLayoutMapping(VkImageLayout imageLayout_, VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
-            : imageLayout(imageLayout_)
+        VkImageLayoutMapping(VkImageLayout layout_, VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
+            : layout(layout_)
             , stageFlags(stageFlags_)
             , accessMask(accessMask_)
         {
@@ -322,13 +354,19 @@ namespace
         switch (layout)
         {
             case TextureLayout::Undefined:
-            //case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                //case VK_IMAGE_LAYOUT_PREINITIALIZED:
                 return { VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_2_NONE };
 
             case TextureLayout::CopySource:
                 return { VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
 
             case TextureLayout::CopyDest:
+                return { VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
+
+            case TextureLayout::ResolveSource:
+                return { VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
+
+            case TextureLayout::ResolveDest:
                 return { VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
 
             case TextureLayout::ShaderResource:
@@ -847,12 +885,14 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
     return indices;
 }
 
+struct VulkanCommandBuffer;
 struct VulkanQueue;
 struct VulkanDevice;
+struct VulkanSurface;
 struct VulkanAdapter;
 struct VulkanInstance;
 
-struct VulkanBuffer final : public GPUBuffer
+struct VulkanBuffer final : public GPUBufferImpl
 {
     VulkanDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
@@ -867,7 +907,7 @@ struct VulkanBuffer final : public GPUBuffer
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct VulkanTexture final : public GPUTexture
+struct VulkanTexture final : public GPUTextureImpl
 {
     VulkanDevice* device = nullptr;
     VkFormat vkFormat = VK_FORMAT_UNDEFINED;
@@ -875,36 +915,63 @@ struct VulkanTexture final : public GPUTexture
     VmaAllocation allocation = nullptr;
     uint32_t numSubResources = 0;
     mutable std::vector<TextureLayout> imageLayouts;
+    mutable std::unordered_map<size_t, VkImageView> views;
 
     ~VulkanTexture() override;
     void SetLabel(const char* label) override;
+    VkImageView GetView(uint32_t mipLevel) const;
 };
 
-struct VulkanCommandBuffer final : public GPUCommandBuffer
+struct VulkanRenderCommandEncoder final : public GPURenderCommandEncoderImpl
 {
-    VulkanQueue* queue = nullptr;
-    uint32_t index = 0;
-    VkCommandPool commandPools[GPU_MAX_INFLIGHT_FRAMES] = {};
-    VkCommandBuffer commandBuffers[GPU_MAX_INFLIGHT_FRAMES] = {};
-    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-    uint32_t numBarriersToCommit = 0;
-    std::vector<VkMemoryBarrier2> memoryBarriers;
-    std::vector<VkImageMemoryBarrier2> imageBarriers;
-    std::vector<VkBufferMemoryBarrier2> bufferBarriers;
+    VulkanCommandBuffer* commandBuffer = nullptr;
+    bool hasLabel = false;
 
-    ~VulkanCommandBuffer() override;
-    void Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc);
-    VkCommandBuffer End() const;
-
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPURenderCommandEncoder* BeginRenderPass(const GPURenderPassDesc* desc) override;
+    void Begin(const GPURenderPassDesc* desc);
 };
 
-struct VulkanQueue final : public GPUQueue
+struct VulkanCommandBuffer final : public GPUCommandBufferImpl
+{
+    static constexpr uint32_t kMaxBarrierCount = 16;
+
+    VulkanDevice* device = nullptr;
+    VulkanQueue* queue = nullptr;
+    uint32_t index = 0;
+    bool hasLabel = false;
+    bool encoderActive = false;
+    VulkanRenderCommandEncoder* renderPassEncoder = nullptr;
+
+    VkCommandPool commandPools[GPU_MAX_INFLIGHT_FRAMES] = {};
+    VkCommandBuffer commandBuffers[GPU_MAX_INFLIGHT_FRAMES] = {};
+    VkCommandBuffer handle = VK_NULL_HANDLE;
+    uint32_t numBarriersToCommit = 0;
+    std::vector<VkMemoryBarrier2> memoryBarriers;
+    std::vector<VkImageMemoryBarrier2> imageBarriers;
+    std::vector<VkBufferMemoryBarrier2> bufferBarriers;
+    std::vector<VulkanSurface*> presentSurfaces;
+
+    ~VulkanCommandBuffer() override;
+    void Clear();
+    void Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc);
+    VkCommandBuffer End();
+
+    void TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, GPUTextureAspect aspect = GPUTextureAspect_All);
+    void CommitBarriers();
+
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
+    void PushDebugGroup(const char* groupLabel) const override;
+    void PopDebugGroup() const override;
+    void InsertDebugMarker(const char* markerLabel) const override;
+
+    GPURenderCommandEncoder BeginRenderPass(const GPURenderPassDesc* desc) override;
+};
+
+struct VulkanQueue final : public GPUQueueImpl
 {
     VulkanDevice* device = nullptr;
     GPUQueueType queueType = GPUQueueType_Count;
@@ -917,8 +984,8 @@ struct VulkanQueue final : public GPUQueue
     std::mutex cmdBuffersLocker;
 
     GPUQueueType GetQueueType() const override { return queueType; }
-    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
-    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers) override;
+    GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers) override;
     void Submit(VkFence fence);
 };
 
@@ -949,7 +1016,7 @@ struct VulkanCopyAllocator final
     void Submit(VulkanUploadContext context);
 };
 
-struct VulkanDevice final : public GPUDevice
+struct VulkanDevice final : public GPUDeviceImpl
 {
     VulkanAdapter* adapter = nullptr;
     VkDevice handle = VK_NULL_HANDLE;
@@ -985,14 +1052,14 @@ struct VulkanDevice final : public GPUDevice
 #include "alimer_gpu_vulkan_funcs.h"
 
     ~VulkanDevice() override;
-    GPUQueue* GetQueue(GPUQueueType type) override;
+    GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
     void ProcessDeletionQueue(bool force);
 
     /* Resource creation */
-    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
@@ -1015,13 +1082,12 @@ struct VulkanSurface final : public GPUSurfaceImpl
     mutable std::vector<PixelFormat> supportedFormats;
 
     ~VulkanSurface() override;
-    GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    GPUResult GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
-    void Present();
 };
 
-struct VulkanAdapter final : public GPUAdapter
+struct VulkanAdapter final : public GPUAdapterImpl
 {
     VulkanInstance* instance = nullptr;
     bool debugUtils = false;
@@ -1073,7 +1139,7 @@ struct VulkanAdapter final : public GPUAdapter
     VkPhysicalDeviceMemoryProperties2 memoryProperties2;
 
     GPUResult GetLimits(GPULimits* limits) const override;
-    GPUDevice* CreateDevice() override;
+    GPUDevice CreateDevice() override;
 };
 
 struct VulkanInstance final : public GPUInstance
@@ -1089,7 +1155,7 @@ struct VulkanInstance final : public GPUInstance
 
     ~VulkanInstance() override;
     GPUSurface CreateSurface(Window* window) override;
-    GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
+    GPUAdapter RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
 /* VulkanBuffer */
@@ -1124,6 +1190,12 @@ VulkanTexture::~VulkanTexture()
     const uint64_t frameCount = device->frameCount;
     device->destroyMutex.lock();
 
+    for (auto& it : views)
+    {
+        device->destroyedImageViews.push_back(std::make_pair(it.second, frameCount));
+    }
+    views.clear();
+
     if (allocation != VK_NULL_HANDLE)
     {
         if (handle)
@@ -1151,15 +1223,221 @@ void VulkanTexture::SetLabel(const char* label)
     device->SetObjectName(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(handle), label);
 }
 
+VkImageView VulkanTexture::GetView(uint32_t mipLevel) const
+{
+    size_t hash = 0;
+    HashCombine(hash, mipLevel);
+
+    auto it = views.find(hash);
+    if (it == views.end())
+    {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.image = handle;
+        const bool isArray = desc.depthOrArrayLayers > 1;
+        switch (desc.dimension)
+        {
+            case TextureDimension_1D:
+                createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
+                break;
+            case TextureDimension_2D:
+                createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+                break;
+            case TextureDimension_3D:
+                createInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+                break;
+            case TextureDimension_Cube:
+                createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
+                break;
+        }
+
+        createInfo.format = vkFormat; // device->ToVkFormat(desc.format);
+        createInfo.components = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+        createInfo.subresourceRange.aspectMask = GetImageAspectFlags(createInfo.format, GPUTextureAspect_All);
+        createInfo.subresourceRange.baseMipLevel = mipLevel;
+        createInfo.subresourceRange.levelCount = desc.mipLevelCount;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = desc.depthOrArrayLayers;
+
+        VkImageView newView = VK_NULL_HANDLE;
+        const VkResult result = device->vkCreateImageView(
+            device->handle,
+            &createInfo,
+            nullptr,
+            &newView);
+        if (result != VK_SUCCESS)
+        {
+            alimerLogError(LogCategory_GPU, "Vulkan: Failed to create ImageView, error: %s", VkResultToString(result));
+            return VK_NULL_HANDLE;
+        }
+
+        views[hash] = newView;
+        return newView;
+    }
+
+    return it->second;
+}
+
+/* VulkanRenderCommandEncoder */
+void VulkanRenderCommandEncoder::EndEncoding()
+{
+    commandBuffer->device->vkCmdEndRendering(commandBuffer->handle);
+
+    if (hasLabel)
+    {
+        PopDebugGroup();
+    }
+
+    commandBuffer->encoderActive = false;
+    hasLabel = false;
+}
+
+void VulkanRenderCommandEncoder::PushDebugGroup(const char* groupLabel) const
+{
+    commandBuffer->PushDebugGroup(groupLabel);
+}
+
+void VulkanRenderCommandEncoder::PopDebugGroup() const
+{
+    commandBuffer->PopDebugGroup();
+}
+
+void VulkanRenderCommandEncoder::InsertDebugMarker(const char* markerLabel) const
+{
+    commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+void VulkanRenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
+{
+    if (desc && desc->label)
+    {
+        PushDebugGroup(desc->label);
+        hasLabel = true;
+    }
+
+    VkRect2D renderArea = {};
+    renderArea.extent.width = commandBuffer->device->adapter->properties2.properties.limits.maxFramebufferWidth;
+    renderArea.extent.height = commandBuffer->device->adapter->properties2.properties.limits.maxFramebufferHeight;
+    uint32_t layerCount = commandBuffer->device->adapter->properties2.properties.limits.maxFramebufferLayers;
+
+    uint32_t colorAttachmentCount = 0;
+    VkRenderingAttachmentInfo colorAttachments[GPU_MAX_COLOR_ATTACHMENTS] = {};
+    VkRenderingAttachmentInfo depthAttachment = {};
+    VkRenderingAttachmentInfo stencilAttachment = {};
+
+    for (uint32_t i = 0; i < desc->colorAttachmentCount; ++i)
+    {
+        const GPURenderPassColorAttachment& attachment = desc->colorAttachments[i];
+        if (!attachment.texture)
+            continue;
+
+        VulkanTexture* texture = static_cast<VulkanTexture*>(attachment.texture);
+
+        renderArea.extent.width = std::min(renderArea.extent.width, std::max(texture->desc.width >> attachment.mipLevel, 1u));
+        renderArea.extent.height = std::min(renderArea.extent.height, std::max(texture->desc.height >> attachment.mipLevel, 1u));
+        layerCount = std::min(layerCount, texture->desc.depthOrArrayLayers);
+
+        VkRenderingAttachmentInfo& attachmentInfo = colorAttachments[colorAttachmentCount++];
+        attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        attachmentInfo.imageView = texture->GetView(attachment.mipLevel);
+        attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachmentInfo.loadOp = ToVk(_ALIMER_DEF(attachment.loadAction, GPULoadAction_Load));
+        attachmentInfo.storeOp = ToVk(_ALIMER_DEF(attachment.storeAction, GPUStoreAction_Store));
+        attachmentInfo.clearValue.color.float32[0] = attachment.clearColor.r;
+        attachmentInfo.clearValue.color.float32[1] = attachment.clearColor.g;
+        attachmentInfo.clearValue.color.float32[2] = attachment.clearColor.b;
+        attachmentInfo.clearValue.color.float32[3] = attachment.clearColor.a;
+
+        // Barrier
+        commandBuffer->TextureBarrier(texture, TextureLayout::RenderTarget, attachment.mipLevel, 1u, 0u, 1u);
+    }
+
+    const bool hasDepthOrStencil =
+        desc->depthStencilAttachment != nullptr
+        && desc->depthStencilAttachment->texture != nullptr;
+
+    if (hasDepthOrStencil)
+    {
+        const GPURenderPassDepthStencilAttachment& attachment = *desc->depthStencilAttachment;
+
+        VulkanTexture* texture = static_cast<VulkanTexture*>(attachment.texture);
+
+        renderArea.extent.width = std::min(renderArea.extent.width, std::max(texture->desc.width >> attachment.mipLevel, 1u));
+        renderArea.extent.height = std::min(renderArea.extent.height, std::max(texture->desc.height >> attachment.mipLevel, 1u));
+        layerCount = std::min(layerCount, texture->desc.depthOrArrayLayers);
+
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = texture->GetView(attachment.mipLevel);
+        depthAttachment.imageLayout = attachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+        depthAttachment.loadOp = ToVk(attachment.depthLoadAction);
+        depthAttachment.storeOp = ToVk(attachment.depthStoreAction);
+        depthAttachment.clearValue.depthStencil.depth = attachment.depthClearValue;
+
+        // Barrier
+        //commandBuffer->TextureBarrier(texture, depthAttachment.imageLayout, attachment.mipLevel, 1u, 0u, 1u);
+    }
+    commandBuffer->CommitBarriers();
+
+    VkRenderingInfo renderingInfo = {};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.pNext = nullptr;
+    renderingInfo.flags = 0;
+    renderingInfo.renderArea = renderArea;
+    renderingInfo.layerCount = layerCount;
+    renderingInfo.viewMask = 0;
+    renderingInfo.colorAttachmentCount = colorAttachmentCount;
+    renderingInfo.pColorAttachments = colorAttachmentCount > 0 ? colorAttachments : nullptr;
+    renderingInfo.pDepthAttachment = hasDepthOrStencil ? &depthAttachment : nullptr;
+    renderingInfo.pStencilAttachment = nullptr; // hasDepthOrStencil && !alimerPixelFormatIsDepthOnly(depthStencilFormat) ? &depthAttachment : nullptr;
+
+    commandBuffer->device->vkCmdBeginRendering(commandBuffer->handle, &renderingInfo);
+
+    // The viewport and scissor default to cover all of the attachments
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = static_cast<float>(renderArea.extent.height);
+    viewport.width = static_cast<float>(renderArea.extent.width);
+    viewport.height = -static_cast<float>(renderArea.extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    commandBuffer->device->vkCmdSetViewport(commandBuffer->handle, 0, 1, &viewport);
+
+    VkRect2D scissorRect{};
+    scissorRect.offset.x = 0;
+    scissorRect.offset.y = 0;
+    scissorRect.extent.width = renderArea.extent.width;
+    scissorRect.extent.height = renderArea.extent.height;
+    commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, 1, &scissorRect);
+}
+
 /* VulkanCommandBuffer */
 VulkanCommandBuffer::~VulkanCommandBuffer()
 {
+    Clear();
+
     for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
     {
         queue->device->vkDestroyCommandPool(queue->device->handle, commandPools[i], nullptr);
     }
 
     //vkDestroySemaphore(device->device, semaphore, nullptr);
+
+    delete renderPassEncoder;
+}
+
+void VulkanCommandBuffer::Clear()
+{
+    for (auto& surface : presentSurfaces)
+    {
+        surface->Release();
+    }
+    presentSurfaces.clear();
+    memoryBarriers.clear();
+    imageBarriers.clear();
+    bufferBarriers.clear();
 }
 
 void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* desc)
@@ -1169,19 +1447,22 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
     //hasPendingWaits.store(false);
     //currentPipeline.Reset();
     //currentPipelineLayout.Reset();
-    //presentSwapChains.clear();
-    memoryBarriers.clear();
-    imageBarriers.clear();
-    bufferBarriers.clear();
+    Clear();
 
     VK_CHECK(queue->device->vkResetCommandPool(queue->device->handle, commandPools[frameIndex], 0));
-    commandBuffer = commandBuffers[frameIndex];
+    handle = commandBuffers[frameIndex];
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     beginInfo.pInheritanceInfo = nullptr; // Optional
-    VK_CHECK(queue->device->vkBeginCommandBuffer(commandBuffer, &beginInfo));
+    VK_CHECK(queue->device->vkBeginCommandBuffer(handle, &beginInfo));
+
+    if (desc && desc->label)
+    {
+        PushDebugGroup(desc->label);
+        hasLabel = true;
+    }
 
 #if TODO
     if (queue->type != GPUQueueType_Copy)
@@ -1206,16 +1487,16 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
             scissors[i].extent.width = 65535;
             scissors[i].extent.height = 65535;
         }
-        queue->device->vkCmdSetScissor(commandBuffer, 0, 16, scissors);
+        queue->device->vkCmdSetScissor(handle, 0, 16, scissors);
 
         const float blendConstants[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        queue->device->vkCmdSetBlendConstants(commandBuffer, blendConstants);
-        queue->device->vkCmdSetStencilReference(commandBuffer, VK_STENCIL_FRONT_AND_BACK, ~0u);
+        queue->device->vkCmdSetBlendConstants(handle, blendConstants);
+        queue->device->vkCmdSetStencilReference(handle, VK_STENCIL_FRONT_AND_BACK, ~0u);
 
 #if TODO
         if (device->physicalDeviceFeatures2.features.depthBounds == VK_TRUE)
         {
-            vkCmdSetDepthBounds(commandBuffer, 0.0f, 1.0f);
+            vkCmdSetDepthBounds(handle, 0.0f, 1.0f);
         }
 
         if (device->QueryFeatureSupport(RHIFeature::VariableRateShading))
@@ -1229,52 +1510,117 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
                 VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
             };
 
-            vkCmdSetFragmentShadingRateKHR(commandBuffer, &fragmentSize, combiner);
+            vkCmdSetFragmentShadingRateKHR(handle, &fragmentSize, combiner);
         }
 #endif // TODO
-
     }
+}
 
-#if TODO
-    hasLabel = !label.empty();
+VkCommandBuffer VulkanCommandBuffer::End()
+{
+    for (auto& surface : presentSurfaces)
+    {
+        VulkanTexture* swapChainTexture = surface->backbufferTextures[surface->backBufferIndex];
+        TextureBarrier(swapChainTexture, TextureLayout::Present, 0, 1, 0, 1);
+    }
+    CommitBarriers();
+
     if (hasLabel)
     {
-        PushDebugGroup(label);
-        hasLabel = true;
+        PopDebugGroup();
     }
-#endif // TODO
 
+    VK_CHECK(queue->device->vkEndCommandBuffer(handle));
+    return handle;
 }
 
-VkCommandBuffer VulkanCommandBuffer::End() const
+void VulkanCommandBuffer::TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, GPUTextureAspect aspect)
 {
-    //for (auto& swapChain : presentSwapChains)
-    //{
-    //    VulkanTexture* swapChainTexture = swapChain->backbufferTextures[swapChain->imageIndex].Get();
-    //    TextureBarrier(swapChainTexture, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
-    //}
-    //CommitBarriers();
-    //
-    //if (hasLabel)
-    //{
-    //    PopDebugGroup();
-    //}
+    const uint32_t mipLevelCount = texture->desc.mipLevelCount;
+    const uint32_t subresource = CalculateSubresource(baseMiplevel, baseArrayLayer, mipLevelCount);
+    TextureLayout currentLayout = texture->imageLayouts[subresource];
+    if (currentLayout == newLayout)
+        return;
 
-    VK_CHECK(queue->device->vkEndCommandBuffer(commandBuffer));
-    return commandBuffer;
+    const bool depthOnlyFormat = alimerPixelFormatIsDepthOnly(texture->desc.format);
+
+    VkImageSubresourceRange range{};
+    range.aspectMask = GetImageAspectFlags(texture->vkFormat, aspect);
+    range.baseMipLevel = baseMiplevel;
+    range.levelCount = levelCount;
+    range.baseArrayLayer = baseArrayLayer;
+    range.layerCount = layerCount;
+
+    if (device->adapter->synchronization2)
+    {
+        const VkImageLayoutMapping mappingBefore = ConvertImageLayout(currentLayout, depthOnlyFormat);
+        const VkImageLayoutMapping mappingAfter = ConvertImageLayout(newLayout, depthOnlyFormat);
+
+        VkImageMemoryBarrier2 barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        barrier.srcStageMask = mappingBefore.stageFlags;
+        barrier.srcAccessMask = mappingBefore.accessMask;
+        barrier.dstStageMask = mappingAfter.stageFlags;
+        barrier.dstAccessMask = mappingAfter.accessMask;
+        barrier.oldLayout = mappingBefore.layout;
+        barrier.newLayout = mappingAfter.layout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = texture->handle;
+        barrier.subresourceRange = range;
+
+        imageBarriers.push_back(barrier);
+    }
+    else
+    {
+    }
+
+    if (numBarriersToCommit == kMaxBarrierCount)
+        CommitBarriers();
+
+    for (uint32_t arrayLayer = baseArrayLayer; arrayLayer < (baseArrayLayer + layerCount); arrayLayer++)
+    {
+        for (uint32_t mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
+        {
+            const uint32_t iterSubresource = CalculateSubresource(mipLevel, arrayLayer, mipLevelCount);
+            texture->imageLayouts[iterSubresource] = newLayout;
+        }
+    }
 }
 
-GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+void VulkanCommandBuffer::CommitBarriers()
+{
+    if (!memoryBarriers.empty() || !bufferBarriers.empty() || !imageBarriers.empty())
+    {
+        VkDependencyInfo dependencyInfo = {};
+        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependencyInfo.memoryBarrierCount = static_cast<uint32_t>(memoryBarriers.size());
+        dependencyInfo.pMemoryBarriers = memoryBarriers.data();
+        dependencyInfo.bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size());
+        dependencyInfo.pBufferMemoryBarriers = bufferBarriers.data();
+        dependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());
+        dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+        device->vkCmdPipelineBarrier2(handle, &dependencyInfo);
+
+        memoryBarriers.clear();
+        imageBarriers.clear();
+        bufferBarriers.clear();
+    }
+
+    numBarriersToCommit = 0;
+}
+
+GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
 {
     VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
-    backendSurface->swapChainAcquireSemaphoreIndex = (backendSurface->swapChainAcquireSemaphoreIndex + 1) % backendSurface->swapchainAcquireSemaphores.size();
-
+    size_t swapChainAcquireSemaphoreIndex = backendSurface->swapChainAcquireSemaphoreIndex;
+   
     backendSurface->locker.lock();
     VkResult result = queue->device->vkAcquireNextImageKHR(
         queue->device->handle,
         backendSurface->swapchain,
         UINT64_MAX,
-        backendSurface->swapchainAcquireSemaphores[backendSurface->swapChainAcquireSemaphoreIndex],
+        backendSurface->swapchainAcquireSemaphores[swapChainAcquireSemaphoreIndex],
         VK_NULL_HANDLE,
         &backendSurface->backBufferIndex
     );
@@ -1303,6 +1649,13 @@ GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface su
         }
     }
 
+    VulkanTexture* currentTexture = backendSurface->backbufferTextures[backendSurface->backBufferIndex];
+    *surfaceTexture = currentTexture;
+
+    // Barrier
+    backendSurface->AddRef();
+    presentSurfaces.push_back(backendSurface);
+
     return GPUAcquireSurfaceResult_SuccessOptimal;
 }
 
@@ -1319,7 +1672,7 @@ void VulkanCommandBuffer::PushDebugGroup(const char* groupLabel) const
     label.color[1] = 0.0f;
     label.color[2] = 0.0f;
     label.color[3] = 1.0f;
-    vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label);
+    vkCmdBeginDebugUtilsLabelEXT(handle, &label);
 }
 
 void VulkanCommandBuffer::PopDebugGroup() const
@@ -1327,7 +1680,7 @@ void VulkanCommandBuffer::PopDebugGroup() const
     if (!queue->device->adapter->debugUtils)
         return;
 
-    vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+    vkCmdEndDebugUtilsLabelEXT(handle);
 }
 
 void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
@@ -1343,24 +1696,37 @@ void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
     label.color[1] = 0.0f;
     label.color[2] = 0.0f;
     label.color[3] = 1.0f;
-    vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &label);
+    vkCmdInsertDebugUtilsLabelEXT(handle, &label);
 }
 
-GPURenderCommandEncoder* VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
+GPURenderCommandEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
 {
+    if (encoderActive)
+    {
+        alimerLogError(LogCategory_GPU, "CommandEncoder already active");
+        return nullptr;
+    }
+
+    renderPassEncoder->Begin(desc);
+    encoderActive = true;
+    return renderPassEncoder;
+
     return nullptr;
 }
 
 /* VulkanQueue */
-GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+GPUCommandBuffer VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
     if (index >= commandBuffers.size())
     {
         VulkanCommandBuffer* commandBuffer = new VulkanCommandBuffer();
+        commandBuffer->device = device;
         commandBuffer->queue = this;
         commandBuffer->index = index;
+        commandBuffer->renderPassEncoder = new VulkanRenderCommandEncoder();
+        commandBuffer->renderPassEncoder->commandBuffer = commandBuffer;
 
         for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
         {
@@ -1386,22 +1752,39 @@ GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* 
     return commandBuffers[index];
 }
 
-void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* commandBuffers)
+void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers)
 {
+    VkFence fence = VK_NULL_HANDLE;
     std::vector<VkSemaphoreSubmitInfo> submitWaitSemaphoreInfos;
     std::vector<VkSemaphoreSubmitInfo> submitSignalSemaphoreInfos;
     std::vector<VkCommandBufferSubmitInfo> submitCommandBufferInfos;
+    bool submitPresent = false;
 
     for (uint32_t i = 0; i < numCommandBuffers; i++)
     {
-        const VulkanCommandBuffer* commandBuffer = static_cast<const VulkanCommandBuffer*>(commandBuffers[i]);
+        VulkanCommandBuffer* commandBuffer = static_cast<VulkanCommandBuffer*>(commandBuffers[i]);
 
         VkCommandBufferSubmitInfo& commandBufferSubmitInfo = submitCommandBufferInfos.emplace_back();
         commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
         commandBufferSubmitInfo.commandBuffer = commandBuffer->End();
+
+        for (auto& surface : commandBuffer->presentSurfaces)
+        {
+            VkSemaphoreSubmitInfo& waitSemaphore = submitWaitSemaphoreInfos.emplace_back();
+            waitSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+            waitSemaphore.semaphore = surface->swapchainAcquireSemaphores[surface->swapChainAcquireSemaphoreIndex];
+            waitSemaphore.value = 0; // not a timeline semaphore
+            waitSemaphore.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+            VkSemaphoreSubmitInfo& signalSemaphore = submitSignalSemaphoreInfos.emplace_back();
+            signalSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+            signalSemaphore.semaphore = surface->swapchainReleaseSemaphore;
+            signalSemaphore.value = 0; // not a timeline semaphore
+
+            submitPresent = true;
+        }
     }
 
-    VkFence fence = VK_NULL_HANDLE;
     VkSubmitInfo2 submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
     submitInfo.waitSemaphoreInfoCount = (uint32_t)submitWaitSemaphoreInfos.size();
@@ -1411,6 +1794,53 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* const* co
     submitInfo.signalSemaphoreInfoCount = (uint32_t)submitSignalSemaphoreInfos.size();
     submitInfo.pSignalSemaphoreInfos = submitSignalSemaphoreInfos.data();
     VK_CHECK(device->vkQueueSubmit2(handle, 1, &submitInfo, fence));
+
+    if (!submitPresent)
+        return;
+
+    // Present surfaces
+    std::vector<VkSwapchainKHR> submitSwapchains;
+    std::vector<uint32_t> submitSwapchainImageIndices;
+    std::vector<VkSemaphore> submitSignalSemaphores;
+    for (uint32_t i = 0; i < numCommandBuffers; i++)
+    {
+        VulkanCommandBuffer* commandBuffer = static_cast<VulkanCommandBuffer*>(commandBuffers[i]);
+
+        for (auto& surface : commandBuffer->presentSurfaces)
+        {
+            submitSwapchains.push_back(surface->swapchain);
+            submitSwapchainImageIndices.push_back(surface->backBufferIndex);
+            submitSignalSemaphores.push_back(surface->swapchainReleaseSemaphore);
+
+            // Advance surface frame index
+            surface->swapChainAcquireSemaphoreIndex = (surface->swapChainAcquireSemaphoreIndex + 1) % surface->swapchainAcquireSemaphores.size();
+            surface->Release();
+        }
+
+        commandBuffer->presentSurfaces.clear();
+    }
+
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = (uint32_t)submitSignalSemaphores.size();
+    presentInfo.pWaitSemaphores = submitSignalSemaphores.data();
+    presentInfo.swapchainCount = (uint32_t)submitSwapchains.size();
+    presentInfo.pSwapchains = submitSwapchains.data();
+    presentInfo.pImageIndices = submitSwapchainImageIndices.data();
+
+    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUQueueType_Graphics].handle, &presentInfo);
+    if (result != VK_SUCCESS)
+    {
+        // Handle outdated error in present
+        if (result == VK_SUBOPTIMAL_KHR
+            || result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+        }
+        else
+        {
+            ALIMER_UNREACHABLE();
+        }
+    }
 }
 
 void VulkanQueue::Submit(VkFence fence)
@@ -1774,7 +2204,7 @@ VulkanDevice::~VulkanDevice()
     SAFE_RELEASE(adapter);
 }
 
-GPUQueue* VulkanDevice::GetQueue(GPUQueueType type)
+GPUQueue VulkanDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
@@ -1854,7 +2284,7 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
     buffer->device = this;
@@ -2087,7 +2517,7 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIn
     return buffer;
 }
 
-GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
@@ -2357,7 +2787,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTex
 
             std::swap(barrier.srcStageMask, barrier.dstStageMask);
             barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            barrier.newLayout = mappingAfter.imageLayout;
+            barrier.newLayout = mappingAfter.layout;
             barrier.srcAccessMask = mappingBefore.accessMask;
             barrier.dstAccessMask = mappingAfter.accessMask;
 
@@ -2379,7 +2809,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTex
         barrier.dstStageMask = mappingAfter.stageFlags;
         barrier.dstAccessMask = mappingAfter.accessMask;
         barrier.oldLayout = createInfo.initialLayout;
-        barrier.newLayout = mappingAfter.imageLayout;
+        barrier.newLayout = mappingAfter.layout;
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = texture->handle;
@@ -2507,7 +2937,7 @@ VulkanSurface::~VulkanSurface()
     SAFE_RELEASE(device);
 }
 
-GPUResult VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
+GPUResult VulkanSurface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
 {
     VulkanAdapter* backendAdapter = static_cast<VulkanAdapter*>(adapter);
 
@@ -2568,8 +2998,7 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
 
     // Determine the number of images
     uint32_t maximumFrameLatency = config.desiredMaximumFrameLatency;
-    uint32_t imageCount = std::min(maximumFrameLatency, MinImageCountForPresentMode(vkPresentMode));
-    imageCount = std::max(imageCount, surfaceCaps.minImageCount);
+    uint32_t imageCount = std::max(maximumFrameLatency, MinImageCountForPresentMode(vkPresentMode));
     if (surfaceCaps.maxImageCount != 0
         && imageCount > surfaceCaps.maxImageCount)
     {
@@ -2583,7 +3012,7 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
 
     // Format and color space
     VkSurfaceFormatKHR surfaceFormat = {};
-    surfaceFormat.format = ToVkFormat(config.format);
+    surfaceFormat.format = ToVkFormat(_ALIMER_DEF(config.format, PixelFormat_BGRA8UnormSrgb));
     surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
     bool valid = false;
@@ -2637,7 +3066,17 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     }
 
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.preTransform = surfaceCaps.currentTransform;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
+    if (surfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+    {
+        createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    }
+    else
+    {
+        createInfo.preTransform = surfaceCaps.currentTransform;
+    }
+
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = vkPresentMode;
     createInfo.clipped = VK_TRUE;
@@ -2715,31 +3154,6 @@ void VulkanSurface::Unconfigure()
     SAFE_RELEASE(device);
 }
 
-void VulkanSurface::Present()
-{
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &swapchainReleaseSemaphore;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapchain;
-    presentInfo.pImageIndices = &backBufferIndex;
-
-    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUQueueType_Graphics].handle, &presentInfo);
-    if (result != VK_SUCCESS)
-    {
-        // Handle outdated error in present
-        if (result == VK_SUBOPTIMAL_KHR
-            || result == VK_ERROR_OUT_OF_DATE_KHR)
-        {
-        }
-        else
-        {
-            ALIMER_UNREACHABLE();
-        }
-    }
-}
-
 /* VulkanAdapter */
 GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
 {
@@ -2773,7 +3187,7 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     return GPUResult_Success;
 }
 
-GPUDevice* VulkanAdapter::CreateDevice()
+GPUDevice VulkanAdapter::CreateDevice()
 {
     VulkanDevice* device = new VulkanDevice();
     device->adapter = this;
@@ -3007,12 +3421,11 @@ GPUDevice* VulkanAdapter::CreateDevice()
 #define VULKAN_DEVICE_FUNCTION(func) device->func = (PFN_##func) vkGetDeviceProcAddr(device->handle, #func);
 #include "alimer_gpu_vulkan_funcs.h"
 
-    if (features13.synchronization2 == VK_FALSE &&
-        synchronization2Features.synchronization2 == VK_TRUE)
+    if (features13.dynamicRendering == VK_FALSE &&
+        dynamicRenderingFeatures.dynamicRendering == VK_TRUE)
     {
-        device->vkCmdPipelineBarrier2 = (PFN_vkCmdPipelineBarrier2)vkGetDeviceProcAddr(device->handle, "vkCmdPipelineBarrier2KHR");
-        device->vkCmdWriteTimestamp2 = (PFN_vkCmdWriteTimestamp2)vkGetDeviceProcAddr(device->handle, "vkCmdWriteTimestamp2KHR");
-        device->vkQueueSubmit2 = (PFN_vkQueueSubmit2)vkGetDeviceProcAddr(device->handle, "vkQueueSubmit2KHR");
+        device->vkCmdBeginRendering = (PFN_vkCmdBeginRendering)vkGetDeviceProcAddr(device->handle, "vkCmdBeginRenderingKHR");
+        device->vkCmdEndRendering = (PFN_vkCmdEndRendering)vkGetDeviceProcAddr(device->handle, "vkCmdEndRenderingKHR");
     }
 
     if (features13.synchronization2 == VK_FALSE &&
@@ -3228,7 +3641,7 @@ GPUSurface VulkanInstance::CreateSurface(Window* window)
     return surface;
 }
 
-GPUAdapter* VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* options)
+GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* options)
 {
     // Enumerate physical device and detect best one.
     uint32_t physicalDeviceCount = 0;
