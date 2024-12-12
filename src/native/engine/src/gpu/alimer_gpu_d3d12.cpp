@@ -39,6 +39,8 @@
   } \
 } while(0)
 
+#define D3D12_LOG_ERROR(hr, message) alimerLogError(LogCategory_GPU, "%s, result: 0x%08X", message, hr);
+
 #include <wrl/client.h>
 
 #include <dxgi1_6.h>
@@ -64,6 +66,7 @@ static constexpr IID DXGI_DEBUG_DXGI = { 0x25cddaa4, 0xb1c6, 0x47e1, {0xac, 0x3e
 #endif
 
 #include <inttypes.h>
+#include <sstream>
 #include <mutex>
 #include <vector>
 #include <deque>
@@ -582,6 +585,19 @@ struct D3D12_State {
 #define d3d12_D3D12SerializeVersionedRootSignature D3D12SerializeVersionedRootSignature
 #endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */
 
+static_assert(sizeof(GPUViewport) == sizeof(D3D12_VIEWPORT), "Viewport mismatch");
+static_assert(offsetof(GPUViewport, x) == offsetof(D3D12_VIEWPORT, TopLeftX), "Layout mismatch");
+static_assert(offsetof(GPUViewport, y) == offsetof(D3D12_VIEWPORT, TopLeftY), "Layout mismatch");
+static_assert(offsetof(GPUViewport, width) == offsetof(D3D12_VIEWPORT, Width), "Layout mismatch");
+static_assert(offsetof(GPUViewport, height) == offsetof(D3D12_VIEWPORT, Height), "Layout mismatch");
+static_assert(offsetof(GPUViewport, minDepth) == offsetof(D3D12_VIEWPORT, MinDepth), "Layout mismatch");
+static_assert(offsetof(GPUViewport, maxDepth) == offsetof(D3D12_VIEWPORT, MaxDepth), "Layout mismatch");
+
+static_assert(sizeof(GPUDispatchIndirectCommand) == sizeof(D3D12_DISPATCH_ARGUMENTS), "DispatchIndirectCommand mismatch");
+static_assert(offsetof(GPUDispatchIndirectCommand, groupCountX) == offsetof(D3D12_DISPATCH_ARGUMENTS, ThreadGroupCountX), "Layout mismatch");
+static_assert(offsetof(GPUDispatchIndirectCommand, groupCountY) == offsetof(D3D12_DISPATCH_ARGUMENTS, ThreadGroupCountY), "Layout mismatch");
+static_assert(offsetof(GPUDispatchIndirectCommand, groupCountZ) == offsetof(D3D12_DISPATCH_ARGUMENTS, ThreadGroupCountZ), "Layout mismatch");
+
 struct D3D12CommandBuffer;
 struct D3D12Queue;
 struct D3D12Device;
@@ -633,7 +649,23 @@ struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
     D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(DXGI_FORMAT rtvFormat, uint32_t mipLevel) const;
 };
 
-struct D3D12RenderCommandEncoder final : public GPURenderCommandEncoderImpl
+struct D3D12ComputePassEncoder final : public GPUComputePassEncoderImpl
+{
+    D3D12CommandBuffer* commandBuffer = nullptr;
+    bool hasLabel = false;
+
+    void Begin(const GPUComputePassDesc& desc);
+    void EndEncoding() override;
+    void PushDebugGroup(const char* groupLabel) const override;
+    void PopDebugGroup() const override;
+    void InsertDebugMarker(const char* markerLabel) const override;
+
+    void PrepareDispatch();
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+};
+
+struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
 {
     D3D12CommandBuffer* commandBuffer = nullptr;
     D3D12_RENDER_PASS_RENDER_TARGET_DESC RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
@@ -641,12 +673,11 @@ struct D3D12RenderCommandEncoder final : public GPURenderCommandEncoderImpl
     D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
     bool hasLabel = false;
 
+    void Begin(const GPURenderPassDesc& desc);
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
-
-    void Begin(const GPURenderPassDesc* desc);
 };
 
 struct D3D12CommandBuffer final : public GPUCommandBufferImpl
@@ -657,7 +688,8 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     uint32_t index = 0;
     bool hasLabel = false;
     bool encoderActive = false;
-    D3D12RenderCommandEncoder* renderPassEncoder = nullptr;
+    D3D12ComputePassEncoder* computePassEncoder = nullptr;
+    D3D12RenderPassEncoder* renderPassEncoder = nullptr;
 
     ID3D12CommandAllocator* commandAllocators[GPU_MAX_INFLIGHT_FRAMES] = {};
     ID3D12GraphicsCommandList6* commandList = nullptr;
@@ -685,7 +717,8 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPURenderCommandEncoder BeginRenderPass(const GPURenderPassDesc* desc) override;
+    GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
+    GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
 struct D3D12Queue final : public GPUQueueImpl
@@ -964,6 +997,9 @@ struct D3D12Device final : public GPUDeviceImpl
     D3D12DescriptorAllocator shaderResourceViewHeap;
     D3D12DescriptorAllocator samplerHeap;
 
+    ID3D12CommandSignature* dispatchCommandSignature = nullptr;
+
+    uint32_t maxFramesInFlight = 0;
     uint64_t frameCount = 0;
     uint32_t frameIndex = 0;
     // Deletion queue objects
@@ -977,9 +1013,12 @@ struct D3D12Device final : public GPUDeviceImpl
 
     ~D3D12Device() override;
     void OnDeviceRemoved();
+    void SetLabel(const char* label) override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
+
+    ID3D12CommandSignature* CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE type, uint32_t stride);
     void DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation = nullptr);
     void ProcessDeletionQueue(bool force);
 
@@ -1016,10 +1055,17 @@ struct D3D12Adapter final : public GPUAdapterImpl
 {
     D3D12Instance* instance = nullptr;
     ComPtr<IDXGIAdapter1> dxgiAdapter1;
+    char* deviceName = nullptr;
+    uint16_t driverVersion[4];
+    std::string driverDescription;
+    GPUAdapterType adapterType = GPUAdapterType_Unknown;
+    uint32_t vendorID;
+    uint32_t deviceID;
 
     ~D3D12Adapter() override;
+    GPUResult GetInfo(GPUAdapterInfo* info) const override;
     GPUResult GetLimits(GPULimits* limits) const override;
-    GPUDevice CreateDevice() override;
+    GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
 struct D3D12Instance final : public GPUInstance
@@ -1179,11 +1225,18 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
     return device->renderTargetViewHeap.GetCpuHandle(it->second);
 }
 
-/* D3D12RenderCommandEncoder */
-void D3D12RenderCommandEncoder::EndEncoding()
+/* D3D12ComputePassEncoder */
+void D3D12ComputePassEncoder::Begin(const GPUComputePassDesc& desc)
 {
-    commandBuffer->commandList->EndRenderPass();
+    if (desc.label)
+    {
+        PushDebugGroup(desc.label);
+        hasLabel = true;
+    }
+}
 
+void D3D12ComputePassEncoder::EndEncoding()
+{
     if (hasLabel)
     {
         PopDebugGroup();
@@ -1193,26 +1246,44 @@ void D3D12RenderCommandEncoder::EndEncoding()
     hasLabel = false;
 }
 
-void D3D12RenderCommandEncoder::PushDebugGroup(const char* groupLabel) const
+void D3D12ComputePassEncoder::PushDebugGroup(const char* groupLabel) const
 {
     commandBuffer->PushDebugGroup(groupLabel);
 }
 
-void D3D12RenderCommandEncoder::PopDebugGroup() const
+void D3D12ComputePassEncoder::PopDebugGroup() const
 {
     commandBuffer->PopDebugGroup();
 }
 
-void D3D12RenderCommandEncoder::InsertDebugMarker(const char* markerLabel) const
+void D3D12ComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
 {
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
+void D3D12ComputePassEncoder::PrepareDispatch()
 {
-    if (desc && desc->label)
+
+}
+
+void D3D12ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+    PrepareDispatch();
+
+    commandBuffer->commandList->Dispatch(groupCountX, groupCountY, groupCountZ);
+}
+
+void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+
+}
+
+/* D3D12RenderPassEncoder */
+void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
+{
+    if (desc.label)
     {
-        PushDebugGroup(desc->label);
+        PushDebugGroup(desc.label);
         hasLabel = true;
     }
 
@@ -1220,9 +1291,9 @@ void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
     uint32_t width = UINT32_MAX;
     uint32_t height = UINT32_MAX;
 
-    for (uint32_t i = 0; i < desc->colorAttachmentCount; ++i)
+    for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
-        const GPURenderPassColorAttachment& attachment = desc->colorAttachments[i];
+        const GPURenderPassColorAttachment& attachment = desc.colorAttachments[i];
         if (!attachment.texture)
             continue;
 
@@ -1273,8 +1344,8 @@ void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
     }
 
     const bool hasDepthOrStencil =
-        desc->depthStencilAttachment != nullptr
-        && desc->depthStencilAttachment->texture != nullptr;
+        desc.depthStencilAttachment != nullptr
+        && desc.depthStencilAttachment->texture != nullptr;
 
     if (hasDepthOrStencil)
     {
@@ -1282,7 +1353,7 @@ void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
 
     commandBuffer->CommitBarriers();
     commandBuffer->commandList->BeginRenderPass(
-        desc->colorAttachmentCount,
+        desc.colorAttachmentCount,
         RTVs,
         hasDepthOrStencil ? &DSV : nullptr,
         renderPassFlags
@@ -1294,12 +1365,40 @@ void D3D12RenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
     commandBuffer->commandList->RSSetScissorRects(1, &scissorRect);
 }
 
+void D3D12RenderPassEncoder::EndEncoding()
+{
+    commandBuffer->commandList->EndRenderPass();
+
+    if (hasLabel)
+    {
+        PopDebugGroup();
+    }
+
+    commandBuffer->encoderActive = false;
+    hasLabel = false;
+}
+
+void D3D12RenderPassEncoder::PushDebugGroup(const char* groupLabel) const
+{
+    commandBuffer->PushDebugGroup(groupLabel);
+}
+
+void D3D12RenderPassEncoder::PopDebugGroup() const
+{
+    commandBuffer->PopDebugGroup();
+}
+
+void D3D12RenderPassEncoder::InsertDebugMarker(const char* markerLabel) const
+{
+    commandBuffer->InsertDebugMarker(markerLabel);
+}
+
 /* D3D12CommandBuffer */
 D3D12CommandBuffer::~D3D12CommandBuffer()
 {
     Clear();
 
-    for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+    for (uint32_t i = 0; i < queue->device->maxFramesInFlight; ++i)
     {
         SAFE_RELEASE(commandAllocators[i]);
     }
@@ -1307,6 +1406,7 @@ D3D12CommandBuffer::~D3D12CommandBuffer()
     SAFE_RELEASE(commandList7);
     SAFE_RELEASE(commandList);
 
+    delete computePassEncoder;
     delete renderPassEncoder;
 }
 
@@ -1640,7 +1740,20 @@ void D3D12CommandBuffer::InsertDebugMarker(const char* markerLabel) const
     }
 }
 
-GPURenderCommandEncoder D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
+GPUComputePassEncoder D3D12CommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
+{
+    if (encoderActive)
+    {
+        alimerLogError(LogCategory_GPU, "CommandEncoder already active");
+        return nullptr;
+    }
+
+    computePassEncoder->Begin(desc);
+    encoderActive = true;
+    return computePassEncoder;
+}
+
+GPURenderPassEncoder D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
 {
     if (encoderActive)
     {
@@ -1663,12 +1776,14 @@ GPUCommandBuffer D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* de
         D3D12CommandBuffer* commandBuffer = new D3D12CommandBuffer();
         commandBuffer->queue = this;
         commandBuffer->index = index;
-        commandBuffer->renderPassEncoder = new D3D12RenderCommandEncoder();
+        commandBuffer->computePassEncoder = new D3D12ComputePassEncoder();
+        commandBuffer->computePassEncoder->commandBuffer = commandBuffer;
+        commandBuffer->renderPassEncoder = new D3D12RenderPassEncoder();
         commandBuffer->renderPassEncoder->commandBuffer = commandBuffer;
 
         D3D12_COMMAND_LIST_TYPE d3dCommandListType = ToD3D12(queueType);
 
-        for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+        for (uint32_t i = 0; i < device->maxFramesInFlight; ++i)
         {
             VHR(device->handle->CreateCommandAllocator(d3dCommandListType, PPV_ARGS(commandBuffer->commandAllocators[i])));
         }
@@ -1893,6 +2008,9 @@ D3D12Device::~D3D12Device()
     shaderResourceViewHeap.Shutdown();
     samplerHeap.Shutdown();
 
+    // Destroy indirect command signatures
+    SAFE_RELEASE(dispatchCommandSignature);
+
     // Destory pending objects.
     ProcessDeletionQueue(true);
     frameCount = 0;
@@ -1906,7 +2024,7 @@ D3D12Device::~D3D12Device()
         SAFE_RELEASE(queue.handle);
         SAFE_RELEASE(queue.fence);
 
-        for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
+        for (uint32_t frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex)
         {
             SAFE_RELEASE(queue.frameFences[frameIndex]);
         }
@@ -1973,6 +2091,16 @@ void D3D12Device::OnDeviceRemoved()
 
 }
 
+void D3D12Device::SetLabel(const char* label)
+{
+    WCHAR* wideLabel = Win32_CreateWideStringFromUTF8(label);
+    if (wideLabel)
+    {
+        handle->SetName(wideLabel);
+        alimerFree(wideLabel);
+    }
+}
+
 GPUQueue D3D12Device::GetQueue(GPUQueueType type)
 {
     return &queues[type];
@@ -2007,7 +2135,7 @@ uint64_t D3D12Device::CommitFrame()
 
     // Begin new frame
     frameCount++;
-    frameIndex = frameCount % GPU_MAX_INFLIGHT_FRAMES;
+    frameIndex = frameCount % maxFramesInFlight;
 
     // Initiate stalling CPU when GPU is not yet finished with next frame
     for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
@@ -2017,7 +2145,7 @@ uint64_t D3D12Device::CommitFrame()
         if (queue.handle == nullptr)
             continue;
 
-        if (frameCount >= GPU_MAX_INFLIGHT_FRAMES
+        if (frameCount >= maxFramesInFlight
             && queue.frameFences[frameIndex]->GetCompletedValue() < 1)
         {
             // NULL event handle will simply wait immediately:
@@ -2031,6 +2159,27 @@ uint64_t D3D12Device::CommitFrame()
     ProcessDeletionQueue(false);
 
     return frameCount;
+}
+
+ID3D12CommandSignature* D3D12Device::CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE type, uint32_t stride)
+{
+    D3D12_INDIRECT_ARGUMENT_DESC argumentDesc{};
+    argumentDesc.Type = type;
+
+    D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
+    commandSignatureDesc.ByteStride = stride;
+    commandSignatureDesc.NumArgumentDescs = 1;
+    commandSignatureDesc.pArgumentDescs = &argumentDesc;
+
+    ID3D12CommandSignature* commandSignature = nullptr;
+    HRESULT hr = handle->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(&commandSignature));
+    if (FAILED(hr))
+    {
+        D3D12_LOG_ERROR(hr, "ID3D12Device::CreateCommandSignature() failed");
+        return nullptr;
+    }
+
+    return commandSignature;
 }
 
 void D3D12Device::DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation)
@@ -2062,7 +2211,7 @@ void D3D12Device::ProcessDeletionQueue(bool force)
     while (!deferredAllocations.empty())
     {
         if (force
-            || (deferredAllocations.front().second + GPU_MAX_INFLIGHT_FRAMES < frameCount))
+            || (deferredAllocations.front().second + maxFramesInFlight < frameCount))
         {
             auto& item = deferredAllocations.front();
             deferredAllocations.pop_front();
@@ -2077,7 +2226,7 @@ void D3D12Device::ProcessDeletionQueue(bool force)
     while (!deferredReleases.empty())
     {
         if (force
-            || (deferredReleases.front().second + GPU_MAX_INFLIGHT_FRAMES < frameCount))
+            || (deferredReleases.front().second + maxFramesInFlight < frameCount))
         {
             auto& item = deferredReleases.front();
             deferredReleases.pop_front();
@@ -2462,13 +2611,13 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
 
     // The range for `SetMaximumFrameLatency` is 1-16 so the maximum latency requested should be 15 because we add 1.
     // https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgidevice1-setmaximumframelatency
-    ALIMER_ASSERT(config_->desiredMaximumFrameLatency <= 15);
+    //ALIMER_ASSERT(config_->desiredMaximumFrameLatency <= 15);
 
     config = *config_;
     device = static_cast<D3D12Device*>(config.device);
     device->AddRef();
 
-    uint32_t maximumFrameLatency = config.desiredMaximumFrameLatency;
+    uint32_t maximumFrameLatency = device->maxFramesInFlight;
 
     // Nvidia recommends to use 1-2 more buffers than the maximum latency
     // https://developer.nvidia.com/blog/advanced-api-performance-swap-chains/
@@ -2644,7 +2793,22 @@ void D3D12Surface::Present()
 /* D3D12Adapter */
 D3D12Adapter::~D3D12Adapter()
 {
+    alimerFree(deviceName);
+}
 
+GPUResult D3D12Adapter::GetInfo(GPUAdapterInfo* info) const
+{
+    memset(info, 0, sizeof(GPUAdapterInfo));
+
+    info->deviceName = deviceName;
+    memcpy(info->driverVersion, driverVersion, sizeof(uint16_t) * 4);
+    info->driverDescription = driverDescription.c_str();
+    info->adapterType = adapterType;
+    info->vendor = agpuGPUAdapterVendorFromID(vendorID);
+    info->vendorID = vendorID;
+    info->deviceID = deviceID;
+
+    return GPUResult_Success;
 }
 
 GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
@@ -2661,6 +2825,9 @@ GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
     limits->minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
     limits->maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
     limits->maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
+    limits->maxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+    limits->viewportBoundsMin = D3D12_VIEWPORT_BOUNDS_MIN;
+    limits->viewportBoundsMax = D3D12_VIEWPORT_BOUNDS_MAX;
 
     // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
     // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
@@ -2686,10 +2853,11 @@ inline void HandleDeviceRemoved(PVOID context, BOOLEAN)
 }
 #endif
 
-GPUDevice D3D12Adapter::CreateDevice()
+GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 {
     D3D12Device* device = new D3D12Device();
     device->adapter = this;
+    device->maxFramesInFlight = desc.maxFramesInFlight;
 
     HRESULT hr = E_FAIL;
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -2707,6 +2875,11 @@ GPUDevice D3D12Adapter::CreateDevice()
     {
         VHR(hr);
         return nullptr;
+    }
+
+    if (desc.label)
+    {
+        device->SetLabel(desc.label);
     }
 
     if (SUCCEEDED(device->handle->QueryInterface(device->videoDevice.ReleaseAndGetAddressOf())))
@@ -2835,7 +3008,7 @@ GPUDevice D3D12Adapter::CreateDevice()
         }
 
         // Create frame-resident resources:
-        for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
+        for (uint32_t frameIndex = 0; frameIndex < device->maxFramesInFlight; ++frameIndex)
         {
             VHR(
                 device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&device->queues[queue].frameFences[frameIndex]))
@@ -2880,6 +3053,9 @@ GPUDevice D3D12Adapter::CreateDevice()
     {
         return nullptr;
     }
+
+    // Create indirect command signatures
+    device->dispatchCommandSignature = device->CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH, sizeof(D3D12_DISPATCH_ARGUMENTS));
 
     // Init copy/upload allocatr
     device->copyAllocator.Init(device);
@@ -2948,6 +3124,7 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
         };
 
     ComPtr<IDXGIAdapter1> dxgiAdapter1;
+    ComPtr<ID3D12Device> tempDevice;
     for (uint32_t i = 0; NextAdapter(i, dxgiAdapter1.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND; ++i)
     {
         DXGI_ADAPTER_DESC1 adapterDesc;
@@ -2962,7 +3139,7 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         if (d3d12_state.deviceFactory != nullptr)
         {
-            if (SUCCEEDED(d3d12_state.deviceFactory->CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+            if (SUCCEEDED(d3d12_state.deviceFactory->CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(tempDevice.ReleaseAndGetAddressOf()))))
             {
                 break;
             }
@@ -2970,7 +3147,7 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
         else
 #endif
         {
-            if (SUCCEEDED(d3d12_D3D12CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
+            if (SUCCEEDED(d3d12_D3D12CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(tempDevice.ReleaseAndGetAddressOf()))))
             {
                 break;
             }
@@ -2984,9 +3161,49 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
         return nullptr;
     }
 
+    CD3DX12FeatureSupport features;
+    VHR(features.Init(tempDevice.Get()));
+
     D3D12Adapter* adapter = new D3D12Adapter();
     adapter->instance = this;
     adapter->dxgiAdapter1 = dxgiAdapter1;
+
+    DXGI_ADAPTER_DESC1 adapterDesc;
+    VHR(dxgiAdapter1->GetDesc1(&adapterDesc));
+
+    adapter->deviceName = Win32_CreateUTF8FromWideString(adapterDesc.Description);
+    // Convert the adapter's D3D12 driver version to a readable string like "24.21.13.9793".
+    LARGE_INTEGER umdVersion;
+    if (dxgiAdapter1->CheckInterfaceSupport(__uuidof(IDXGIDevice), &umdVersion) != DXGI_ERROR_UNSUPPORTED)
+    {
+        uint64_t encodedVersion = umdVersion.QuadPart;
+        uint16_t mask = 0xFFFF;
+
+        std::ostringstream o;
+        o << "D3D12 driver version ";
+
+        for (size_t i = 0; i < 4; ++i)
+        {
+            adapter->driverVersion[i] = (encodedVersion >> (48 - 16 * i)) & mask;
+            o << adapter->driverVersion[i] << ".";
+        }
+
+        adapter->driverDescription = o.str();
+    }
+
+    adapter->vendorID = adapterDesc.VendorId;
+    adapter->deviceID = adapterDesc.DeviceId;
+
+    // Detect adapter type.
+    if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+    {
+        adapter->adapterType = GPUAdapterType_CPU;
+    }
+    else
+    {
+        adapter->adapterType = features.UMA() ? GPUAdapterType_IntegratedGPU : GPUAdapterType_DiscreteGPU;
+    }
+
     return adapter;
 }
 

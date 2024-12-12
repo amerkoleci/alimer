@@ -114,7 +114,13 @@ struct GPUCommandEncoder : public GPUResource
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 };
 
-struct GPURenderCommandEncoderImpl : public GPUCommandEncoder
+struct GPUComputePassEncoderImpl : public GPUCommandEncoder
+{
+    virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+    virtual void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+};
+
+struct GPURenderPassEncoderImpl : public GPUCommandEncoder
 {
 
 };
@@ -126,7 +132,8 @@ struct GPUCommandBufferImpl : public GPUResource
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
     virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) = 0;
-    virtual GPURenderCommandEncoder BeginRenderPass(const GPURenderPassDesc* desc) = 0;
+    virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
+    virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
 
 struct GPUQueueImpl : public GPUResource
@@ -158,8 +165,9 @@ struct GPUSurfaceImpl : public GPUResource
 
 struct GPUAdapterImpl : public GPUResource
 {
+    virtual GPUResult GetInfo(GPUAdapterInfo* info) const = 0;
     virtual GPUResult GetLimits(GPULimits* limits) const = 0;
-    virtual GPUDevice CreateDevice() = 0;
+    virtual GPUDevice CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
 
 struct GPUInstance 

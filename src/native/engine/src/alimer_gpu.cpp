@@ -160,7 +160,6 @@ static GPUSurfaceConfig _GPUSurfaceConfig_Defaults(const GPUSurfaceConfig* confi
     def.width = _ALIMER_DEF(def.width, 1u);
     def.height = _ALIMER_DEF(def.height, 1u);
     def.presentMode = _ALIMER_DEF(def.presentMode, GPUPresentMode_Fifo);
-    def.desiredMaximumFrameLatency = _ALIMER_DEF(def.desiredMaximumFrameLatency, 2u);
     return def;
 }
 
@@ -189,6 +188,14 @@ uint32_t agpuSurfaceRelease(GPUSurface surface)
 }
 
 /* Adapter */
+GPUResult agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
+{
+    if (!info)
+        return GPUResult_InvalidOperation;
+
+    return adapter->GetInfo(info);
+}
+
 GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits)
 {
     if (!limits)
@@ -197,9 +204,21 @@ GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits)
     return adapter->GetLimits(limits);
 }
 
-GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter)
+static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
 {
-    return adapter->CreateDevice();
+    GPUDeviceDesc def = {};
+    if (desc != nullptr)
+        def = *desc;
+
+    // 2 or 3
+    def.maxFramesInFlight = std::min(_ALIMER_DEF(def.maxFramesInFlight, 2u), 3u);
+    return def;
+}
+
+GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
+{
+    GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
+    return adapter->CreateDevice(descDef);
 }
 
 /* Device */
@@ -270,7 +289,16 @@ GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer 
     return commandBuffer->AcquireSurfaceTexture(surface, surfaceTexture);
 }
 
-GPURenderCommandEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc)
+GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc)
+{
+    GPUComputePassDesc descDef = {};
+    if (desc)
+        descDef = *desc;
+
+    return commandBuffer->BeginComputePass(descDef);
+}
+
+GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc)
 {
     if (!desc)
     {
@@ -278,28 +306,59 @@ GPURenderCommandEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer comman
         return nullptr;
     }
 
-    return commandBuffer->BeginRenderPass(desc);
+    return commandBuffer->BeginRenderPass(*desc);
+}
+
+/* ComputePassEncoder */
+void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+    computePassEncoder->Dispatch(groupCountX, groupCountY, groupCountZ);
+}
+
+void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+    computePassEncoder->DispatchIndirect(indirectBuffer, indirectBufferOffset);
+}
+
+void agpuComputePassEncoderEnd(GPUComputePassEncoder computePassEncoder)
+{
+    computePassEncoder->EndEncoding();
+}
+
+void agpuComputePassEncoderPushDebugGroup(GPUComputePassEncoder computePassEncoder, const char* groupLabel)
+{
+    computePassEncoder->PushDebugGroup(groupLabel);
+}
+
+void agpuComputePassEncoderPopDebugGroup(GPUComputePassEncoder computePassEncoder)
+{
+    computePassEncoder->PopDebugGroup();
+}
+
+void agpuComputePassEncoderInsertDebugMarker(GPUComputePassEncoder computePassEncoder, const char* markerLabel)
+{
+    computePassEncoder->InsertDebugMarker(markerLabel);
 }
 
 /* RenderCommandEncoder */
-void agpuRenderCommandEncoderPushDebugGroup(GPURenderCommandEncoder encoder, const char* groupLabel)
+void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder)
 {
-    encoder->PushDebugGroup(groupLabel);
+    renderPassEncoder->EndEncoding();
 }
 
-void agpuRenderCommandEncoderPopDebugGroup(GPURenderCommandEncoder encoder)
+void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel)
 {
-    encoder->PopDebugGroup();
+    renderPassEncoder->PushDebugGroup(groupLabel);
 }
 
-void agpuRenderCommandEncoderInsertDebugMarker(GPURenderCommandEncoder encoder, const char* markerLabel)
+void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder)
 {
-    encoder->InsertDebugMarker(markerLabel);
+    renderPassEncoder->PopDebugGroup();
 }
 
-void agpuRenderPassEncoderEnd(GPURenderCommandEncoder encoder)
+void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncoder, const char* markerLabel)
 {
-    encoder->EndEncoding();
+    renderPassEncoder->InsertDebugMarker(markerLabel);
 }
 
 /* Buffer */
@@ -438,6 +497,81 @@ uint32_t agpuTextureAddRef(GPUTexture texture)
 uint32_t agpuTextureRelease(GPUTexture texture)
 {
     return texture->Release();
+}
+
+/* Other */
+enum class KnownGPUAdapterVendor
+{
+    AMD = 0x01002,
+    NVIDIA = 0x010DE,
+    INTEL = 0x08086,
+    ARM = 0x013B5,
+    QUALCOMM = 0x05143,
+    IMGTECH = 0x01010,
+    MSFT = 0x01414,
+    APPLE = 0x0106B,
+    MESA = 0x10005,
+    BROADCOM = 0x014e4
+};
+
+GPUAdapterVendor agpuGPUAdapterVendorFromID(uint32_t vendorId)
+{
+    switch (vendorId)
+    {
+        case (uint32_t)KnownGPUAdapterVendor::AMD:
+            return GPUAdapterVendor_AMD;
+        case (uint32_t)KnownGPUAdapterVendor::NVIDIA:
+            return GPUAdapterVendor_NVIDIA;
+        case (uint32_t)KnownGPUAdapterVendor::INTEL:
+            return GPUAdapterVendor_Intel;
+        case (uint32_t)KnownGPUAdapterVendor::ARM:
+            return GPUAdapterVendor_ARM;
+        case (uint32_t)KnownGPUAdapterVendor::QUALCOMM:
+            return GPUAdapterVendor_Qualcomm;
+        case (uint32_t)KnownGPUAdapterVendor::IMGTECH:
+            return GPUAdapterVendor_ImgTech;
+        case (uint32_t)KnownGPUAdapterVendor::MSFT:
+            return GPUAdapterVendor_MSFT;
+        case (uint32_t)KnownGPUAdapterVendor::APPLE:
+            return GPUAdapterVendor_Apple;
+        case (uint32_t)KnownGPUAdapterVendor::MESA:
+            return GPUAdapterVendor_Mesa;
+        case (uint32_t)KnownGPUAdapterVendor::BROADCOM:
+            return GPUAdapterVendor_Broadcom;
+
+        default:
+            return GPUAdapterVendor_Unknown;
+    }
+}
+
+uint32_t agpuGPUAdapterVendorToID(GPUAdapterVendor vendor)
+{
+    switch (vendor)
+    {
+        case GPUAdapterVendor_AMD:
+            return (uint32_t)KnownGPUAdapterVendor::AMD;
+        case GPUAdapterVendor_NVIDIA:
+            return (uint32_t)KnownGPUAdapterVendor::NVIDIA;
+        case GPUAdapterVendor_Intel:
+            return (uint32_t)KnownGPUAdapterVendor::INTEL;
+        case GPUAdapterVendor_ARM:
+            return (uint32_t)KnownGPUAdapterVendor::ARM;
+        case GPUAdapterVendor_Qualcomm:
+            return (uint32_t)KnownGPUAdapterVendor::QUALCOMM;
+        case GPUAdapterVendor_ImgTech:
+            return (uint32_t)KnownGPUAdapterVendor::IMGTECH;
+        case GPUAdapterVendor_MSFT:
+            return (uint32_t)KnownGPUAdapterVendor::MSFT;
+        case GPUAdapterVendor_Apple:
+            return (uint32_t)KnownGPUAdapterVendor::APPLE;
+        case GPUAdapterVendor_Mesa:
+            return (uint32_t)KnownGPUAdapterVendor::MESA;
+        case GPUAdapterVendor_Broadcom:
+            return (uint32_t)KnownGPUAdapterVendor::BROADCOM;
+
+        default:
+            return 0;
+    }
 }
 
 #endif /* defined(ALIMER_GPU) */

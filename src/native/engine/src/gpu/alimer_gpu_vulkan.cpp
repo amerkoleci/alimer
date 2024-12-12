@@ -68,6 +68,25 @@ ALIMER_ENABLE_WARNINGS()
 
 namespace
 {
+    static_assert(sizeof(GPUViewport) == sizeof(VkViewport), "Viewport mismatch");
+    static_assert(offsetof(GPUViewport, x) == offsetof(VkViewport, x), "Viewport layout mismatch");
+    static_assert(offsetof(GPUViewport, y) == offsetof(VkViewport, y), "Viewport layout mismatch");
+    static_assert(offsetof(GPUViewport, width) == offsetof(VkViewport, width), "Viewport layout mismatch");
+    static_assert(offsetof(GPUViewport, height) == offsetof(VkViewport, height), "Viewport layout mismatch");
+    static_assert(offsetof(GPUViewport, minDepth) == offsetof(VkViewport, minDepth), "Viewport layout mismatch");
+    static_assert(offsetof(GPUViewport, maxDepth) == offsetof(VkViewport, maxDepth), "Viewport layout mismatch");
+
+    static_assert(sizeof(GPUScissorRect) == sizeof(VkRect2D), "ScissorRect mismatch");
+    static_assert(offsetof(GPUScissorRect, x) == offsetof(VkRect2D, offset.x), "GPUScissorRect layout mismatch");
+    static_assert(offsetof(GPUScissorRect, y) == offsetof(VkRect2D, offset.y), "GPUScissorRect layout mismatch");
+    static_assert(offsetof(GPUScissorRect, width) == offsetof(VkRect2D, extent.width), "GPUScissorRect layout mismatch");
+    static_assert(offsetof(GPUScissorRect, height) == offsetof(VkRect2D, extent.height), "GPUScissorRect layout mismatch");
+
+    static_assert(sizeof(GPUDispatchIndirectCommand) == sizeof(VkDispatchIndirectCommand), "DispatchIndirectCommand mismatch");
+    static_assert(offsetof(GPUDispatchIndirectCommand, groupCountX) == offsetof(VkDispatchIndirectCommand, x), "DispatchIndirectCommand layout mismatch");
+    static_assert(offsetof(GPUDispatchIndirectCommand, groupCountY) == offsetof(VkDispatchIndirectCommand, y), "DispatchIndirectCommand layout mismatch");
+    static_assert(offsetof(GPUDispatchIndirectCommand, groupCountZ) == offsetof(VkDispatchIndirectCommand, z), "DispatchIndirectCommand layout mismatch");
+
     inline const char* VkResultToString(VkResult result)
     {
         switch (result)
@@ -922,17 +941,32 @@ struct VulkanTexture final : public GPUTextureImpl
     VkImageView GetView(uint32_t mipLevel) const;
 };
 
-struct VulkanRenderCommandEncoder final : public GPURenderCommandEncoderImpl
+struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
 
+    void Begin(const GPUComputePassDesc& desc);
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    void Begin(const GPURenderPassDesc* desc);
+    void PrepareDispatch();
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+};
+
+struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
+{
+    VulkanCommandBuffer* commandBuffer = nullptr;
+    bool hasLabel = false;
+
+    void Begin(const GPURenderPassDesc& desc);
+    void EndEncoding() override;
+    void PushDebugGroup(const char* groupLabel) const override;
+    void PopDebugGroup() const override;
+    void InsertDebugMarker(const char* markerLabel) const override;
 };
 
 struct VulkanCommandBuffer final : public GPUCommandBufferImpl
@@ -944,7 +978,8 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     uint32_t index = 0;
     bool hasLabel = false;
     bool encoderActive = false;
-    VulkanRenderCommandEncoder* renderPassEncoder = nullptr;
+    VulkanComputePassEncoder* computePassEncoder = nullptr;
+    VulkanRenderPassEncoder* renderPassEncoder = nullptr;
 
     VkCommandPool commandPools[GPU_MAX_INFLIGHT_FRAMES] = {};
     VkCommandBuffer commandBuffers[GPU_MAX_INFLIGHT_FRAMES] = {};
@@ -968,7 +1003,8 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPURenderCommandEncoder BeginRenderPass(const GPURenderPassDesc* desc) override;
+    GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
+    GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
 struct VulkanQueue final : public GPUQueueImpl
@@ -1029,6 +1065,7 @@ struct VulkanDevice final : public GPUDeviceImpl
     std::vector<VkDynamicState> psoDynamicStates;
     VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
 
+    uint32_t maxFramesInFlight = 0;
     uint64_t frameCount = 0;
     uint32_t frameIndex = 0;
 
@@ -1052,6 +1089,7 @@ struct VulkanDevice final : public GPUDeviceImpl
 #include "alimer_gpu_vulkan_funcs.h"
 
     ~VulkanDevice() override;
+    void SetLabel(const char* label) override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
@@ -1097,6 +1135,7 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceProperties properties;
     bool synchronization2;
     bool dynamicRendering;
+    std::string driverDescription;
 
     // Features
     VkPhysicalDeviceFeatures2 features2 = {};
@@ -1138,8 +1177,9 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = {};
     VkPhysicalDeviceMemoryProperties2 memoryProperties2;
 
+    GPUResult GetInfo(GPUAdapterInfo* info) const override;
     GPUResult GetLimits(GPULimits* limits) const override;
-    GPUDevice CreateDevice() override;
+    GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
 struct VulkanInstance final : public GPUInstance
@@ -1280,11 +1320,18 @@ VkImageView VulkanTexture::GetView(uint32_t mipLevel) const
     return it->second;
 }
 
-/* VulkanRenderCommandEncoder */
-void VulkanRenderCommandEncoder::EndEncoding()
+/* VulkanComputePassEncoder */
+void VulkanComputePassEncoder::Begin(const GPUComputePassDesc& desc)
 {
-    commandBuffer->device->vkCmdEndRendering(commandBuffer->handle);
+    if (desc.label)
+    {
+        PushDebugGroup(desc.label);
+        hasLabel = true;
+    }
+}
 
+void VulkanComputePassEncoder::EndEncoding()
+{
     if (hasLabel)
     {
         PopDebugGroup();
@@ -1294,26 +1341,47 @@ void VulkanRenderCommandEncoder::EndEncoding()
     hasLabel = false;
 }
 
-void VulkanRenderCommandEncoder::PushDebugGroup(const char* groupLabel) const
+void VulkanComputePassEncoder::PushDebugGroup(const char* groupLabel) const
 {
     commandBuffer->PushDebugGroup(groupLabel);
 }
 
-void VulkanRenderCommandEncoder::PopDebugGroup() const
+void VulkanComputePassEncoder::PopDebugGroup() const
 {
     commandBuffer->PopDebugGroup();
 }
 
-void VulkanRenderCommandEncoder::InsertDebugMarker(const char* markerLabel) const
+void VulkanComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
 {
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-void VulkanRenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
+void VulkanComputePassEncoder::PrepareDispatch()
 {
-    if (desc && desc->label)
+
+}
+
+void VulkanComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+    PrepareDispatch();
+
+    commandBuffer->device->vkCmdDispatch(commandBuffer->handle, groupCountX, groupCountY, groupCountZ);
+}
+
+void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+    PrepareDispatch();
+
+    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+    commandBuffer->device->vkCmdDispatchIndirect(commandBuffer->handle, backendBuffer->handle, indirectBufferOffset);
+}
+
+/* VulkanRenderPassEncoder */
+void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
+{
+    if (desc.label)
     {
-        PushDebugGroup(desc->label);
+        PushDebugGroup(desc.label);
         hasLabel = true;
     }
 
@@ -1327,9 +1395,9 @@ void VulkanRenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
     VkRenderingAttachmentInfo depthAttachment = {};
     VkRenderingAttachmentInfo stencilAttachment = {};
 
-    for (uint32_t i = 0; i < desc->colorAttachmentCount; ++i)
+    for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
-        const GPURenderPassColorAttachment& attachment = desc->colorAttachments[i];
+        const GPURenderPassColorAttachment& attachment = desc.colorAttachments[i];
         if (!attachment.texture)
             continue;
 
@@ -1355,12 +1423,12 @@ void VulkanRenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
     }
 
     const bool hasDepthOrStencil =
-        desc->depthStencilAttachment != nullptr
-        && desc->depthStencilAttachment->texture != nullptr;
+        desc.depthStencilAttachment != nullptr
+        && desc.depthStencilAttachment->texture != nullptr;
 
     if (hasDepthOrStencil)
     {
-        const GPURenderPassDepthStencilAttachment& attachment = *desc->depthStencilAttachment;
+        const GPURenderPassDepthStencilAttachment& attachment = *desc.depthStencilAttachment;
 
         VulkanTexture* texture = static_cast<VulkanTexture*>(attachment.texture);
 
@@ -1413,18 +1481,47 @@ void VulkanRenderCommandEncoder::Begin(const GPURenderPassDesc* desc)
     commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, 1, &scissorRect);
 }
 
+void VulkanRenderPassEncoder::EndEncoding()
+{
+    commandBuffer->device->vkCmdEndRendering(commandBuffer->handle);
+
+    if (hasLabel)
+    {
+        PopDebugGroup();
+    }
+
+    commandBuffer->encoderActive = false;
+    hasLabel = false;
+}
+
+void VulkanRenderPassEncoder::PushDebugGroup(const char* groupLabel) const
+{
+    commandBuffer->PushDebugGroup(groupLabel);
+}
+
+void VulkanRenderPassEncoder::PopDebugGroup() const
+{
+    commandBuffer->PopDebugGroup();
+}
+
+void VulkanRenderPassEncoder::InsertDebugMarker(const char* markerLabel) const
+{
+    commandBuffer->InsertDebugMarker(markerLabel);
+}
+
 /* VulkanCommandBuffer */
 VulkanCommandBuffer::~VulkanCommandBuffer()
 {
     Clear();
 
-    for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+    for (uint32_t i = 0; i < queue->device->maxFramesInFlight; ++i)
     {
         queue->device->vkDestroyCommandPool(queue->device->handle, commandPools[i], nullptr);
     }
 
     //vkDestroySemaphore(device->device, semaphore, nullptr);
 
+    delete computePassEncoder;
     delete renderPassEncoder;
 }
 
@@ -1614,7 +1711,7 @@ GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface su
 {
     VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
     size_t swapChainAcquireSemaphoreIndex = backendSurface->swapChainAcquireSemaphoreIndex;
-   
+
     backendSurface->locker.lock();
     VkResult result = queue->device->vkAcquireNextImageKHR(
         queue->device->handle,
@@ -1699,7 +1796,20 @@ void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
     vkCmdInsertDebugUtilsLabelEXT(handle, &label);
 }
 
-GPURenderCommandEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc* desc)
+GPUComputePassEncoder VulkanCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
+{
+    if (encoderActive)
+    {
+        alimerLogError(LogCategory_GPU, "CommandEncoder already active");
+        return nullptr;
+    }
+
+    computePassEncoder->Begin(desc);
+    encoderActive = true;
+    return computePassEncoder;
+}
+
+GPURenderPassEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
 {
     if (encoderActive)
     {
@@ -1710,8 +1820,6 @@ GPURenderCommandEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPass
     renderPassEncoder->Begin(desc);
     encoderActive = true;
     return renderPassEncoder;
-
-    return nullptr;
 }
 
 /* VulkanQueue */
@@ -1725,10 +1833,12 @@ GPUCommandBuffer VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
         commandBuffer->device = device;
         commandBuffer->queue = this;
         commandBuffer->index = index;
-        commandBuffer->renderPassEncoder = new VulkanRenderCommandEncoder();
+        commandBuffer->computePassEncoder = new VulkanComputePassEncoder();
+        commandBuffer->computePassEncoder->commandBuffer = commandBuffer;
+        commandBuffer->renderPassEncoder = new VulkanRenderPassEncoder();
         commandBuffer->renderPassEncoder->commandBuffer = commandBuffer;
 
-        for (uint32_t i = 0; i < GPU_MAX_INFLIGHT_FRAMES; ++i)
+        for (uint32_t i = 0; i < device->maxFramesInFlight; ++i)
         {
             VkCommandPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -2138,7 +2248,7 @@ VulkanDevice::~VulkanDevice()
         if (queues[queueIndex].handle == VK_NULL_HANDLE)
             continue;
 
-        for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
+        for (uint32_t frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex)
         {
             vkDestroyFence(handle, queues[queueIndex].frameFences[frameIndex], nullptr);
         }
@@ -2204,6 +2314,11 @@ VulkanDevice::~VulkanDevice()
     SAFE_RELEASE(adapter);
 }
 
+void VulkanDevice::SetLabel(const char* label)
+{
+    SetObjectName(VK_OBJECT_TYPE_DEVICE, reinterpret_cast<uint64_t>(handle), label);
+}
+
 GPUQueue VulkanDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
@@ -2230,10 +2345,10 @@ uint64_t VulkanDevice::CommitFrame()
 
     // Begin new frame
     frameCount++;
-    frameIndex = frameCount % GPU_MAX_INFLIGHT_FRAMES;
+    frameIndex = frameCount % maxFramesInFlight;
 
     // Initiate stalling CPU when GPU is not yet finished with next frame
-    if (frameCount >= GPU_MAX_INFLIGHT_FRAMES)
+    if (frameCount >= maxFramesInFlight)
     {
         for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
         {
@@ -2254,7 +2369,7 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
 {
     const auto Destroy = [&](auto&& queue, auto&& handler) {
         while (!queue.empty()) {
-            if (force || (queue.front().second + GPU_MAX_INFLIGHT_FRAMES < frameCount))
+            if (force || (queue.front().second + maxFramesInFlight < frameCount))
             {
                 auto item = queue.front();
                 queue.pop_front();
@@ -2997,8 +3112,7 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     VkPresentModeKHR vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
     // Determine the number of images
-    uint32_t maximumFrameLatency = config.desiredMaximumFrameLatency;
-    uint32_t imageCount = std::max(maximumFrameLatency, MinImageCountForPresentMode(vkPresentMode));
+    uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
     if (surfaceCaps.maxImageCount != 0
         && imageCount > surfaceCaps.maxImageCount)
     {
@@ -3008,6 +3122,11 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     if (imageCount < surfaceCaps.minImageCount)
     {
         imageCount = surfaceCaps.minImageCount;
+    }
+
+    if (imageCount > device->maxFramesInFlight)
+    {
+        imageCount = device->maxFramesInFlight;
     }
 
     // Format and color space
@@ -3155,6 +3274,65 @@ void VulkanSurface::Unconfigure()
 }
 
 /* VulkanAdapter */
+GPUResult VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
+{
+    memset(info, 0, sizeof(GPUAdapterInfo));
+
+    info->deviceName = properties2.properties.deviceName;
+    info->vendor = agpuGPUAdapterVendorFromID(properties2.properties.vendorID);
+    info->vendorID = properties2.properties.vendorID;
+    info->deviceID = properties2.properties.deviceID;
+
+    uint32_t versionRaw = properties2.properties.driverVersion;
+
+    switch (info->vendor)
+    {
+        case GPUAdapterVendor_NVIDIA:
+            info->driverVersion[0] = static_cast<uint16_t>((versionRaw >> 22) & 0x3FF);
+            info->driverVersion[1] = static_cast<uint16_t>((versionRaw >> 14) & 0x0FF);
+            info->driverVersion[2] = static_cast<uint16_t>((versionRaw >> 6) & 0x0FF);
+            info->driverVersion[3] = static_cast<uint16_t>(versionRaw & 0x003F);
+            break;
+
+        case GPUAdapterVendor_Intel:
+#if ALIMER_PLATFORM_WINDOWS
+            // Windows Vulkan driver releases together with D3D driver, so they share the same
+            // version. But only CCC.DDDD is encoded in 32-bit driverVersion.
+            info->driverVersion[0] = static_cast<uint16_t>(versionRaw >> 14);
+            info->driverVersion[1] = static_cast<uint16_t>(versionRaw & 0x3FFF);
+            break;
+#endif
+
+        default:
+            // Use Vulkan driver conversions for other vendors
+            info->driverVersion[0] = static_cast<uint16_t>(versionRaw >> 22);
+            info->driverVersion[1] = static_cast<uint16_t>((versionRaw >> 12) & 0x3FF);
+            info->driverVersion[2] = static_cast<uint16_t>(versionRaw & 0xFFF);
+            break;
+    }
+
+    info->driverDescription = driverDescription.c_str();
+
+    switch (properties2.properties.deviceType)
+    {
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+            info->adapterType = GPUAdapterType_IntegratedGPU;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+            info->adapterType = GPUAdapterType_DiscreteGPU;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_CPU:
+            info->adapterType = GPUAdapterType_CPU;
+            break;
+
+        default:
+            info->adapterType = GPUAdapterType_Unknown;
+            break;
+    }
+
+    return GPUResult_Success;
+}
+
 GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
 {
     limits->maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
@@ -3168,6 +3346,9 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     limits->minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
     limits->maxBufferSize = properties13.maxBufferSize;
     limits->maxColorAttachments = properties2.properties.limits.maxColorAttachments;
+    limits->maxViewports = properties2.properties.limits.maxViewports;
+    limits->viewportBoundsMin = properties2.properties.limits.viewportBoundsRange[0];
+    limits->viewportBoundsMax = properties2.properties.limits.viewportBoundsRange[1];
 
     /* Compute */
     limits->maxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize;
@@ -3187,11 +3368,12 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     return GPUResult_Success;
 }
 
-GPUDevice VulkanAdapter::CreateDevice()
+GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 {
     VulkanDevice* device = new VulkanDevice();
     device->adapter = this;
     device->adapter->AddRef();
+    device->maxFramesInFlight = desc.maxFramesInFlight;
 
     std::vector<const char*> enabledDeviceExtensions;
     enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -3450,7 +3632,7 @@ GPUDevice VulkanAdapter::CreateDevice()
             device->vkGetDeviceQueue(device->handle, queueFamilyIndices.familyIndices[i], queueFamilyIndices.queueIndices[i], &device->queues[i].handle);
             queueFamilyIndices.counts[i] = queueFamilyIndices.queueOffsets[queueFamilyIndices.familyIndices[i]];
 
-            for (uint32_t frameIndex = 0; frameIndex < GPU_MAX_INFLIGHT_FRAMES; ++frameIndex)
+            for (uint32_t frameIndex = 0; frameIndex < device->maxFramesInFlight; ++frameIndex)
             {
                 VK_CHECK(device->vkCreateFence(device->handle, &fenceInfo, nullptr, &device->queues[i].frameFences[frameIndex]));
             }
@@ -3468,6 +3650,11 @@ GPUDevice VulkanAdapter::CreateDevice()
         alimerLogInfo(LogCategory_GPU, "	\t%s", createInfo.ppEnabledExtensionNames[i]);
     }
 #endif
+
+    if (desc.label)
+    {
+        device->SetLabel(desc.label);
+    }
 
     // Create memory allocator
     VmaAllocatorCreateInfo allocatorInfo{};
@@ -3924,6 +4111,13 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
     adapter->memoryProperties2 = {};
     adapter->memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
     vkGetPhysicalDeviceMemoryProperties2(adapter->handle, &adapter->memoryProperties2);
+
+    adapter->driverDescription = adapter->properties12.driverName;
+    if (adapter->properties12.driverInfo[0] != '\0')
+    {
+        adapter->driverDescription += std::string(": ") + adapter->properties12.driverInfo;
+    }
+
     return adapter;
 }
 

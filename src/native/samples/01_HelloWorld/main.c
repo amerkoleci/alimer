@@ -44,7 +44,7 @@ void Render()
             .colorAttachments = &colorAttachment
         };
 
-        GPURenderCommandEncoder encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
+        GPURenderPassEncoder encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
         agpuRenderPassEncoderEnd(encoder);
     }
 
@@ -99,13 +99,18 @@ int main()
     };
     GPUAdapter adapter = agpuRequestAdapter(&adapterOptions);
 
-    GPULimits limits;
-    agpuAdapterGetLimits(adapter, &limits);
+    GPUAdapterInfo adapterInfo;
+    GPULimits adapterLimits;
+    agpuAdapterGetInfo(adapter, &adapterInfo);
+    agpuAdapterGetLimits(adapter, &adapterLimits);
 
     //GPUSurfaceCapabilities surfaceCaps;
     //agpuSurfaceGetCapabilities(surface, adapter, &surfaceCaps);
 
-    device = agpuAdapterCreateDevice(adapter);
+    GPUDeviceDesc deviceDesc = {
+        .label = "Test Device"
+    };
+    device = agpuAdapterCreateDevice(adapter, &deviceDesc);
 
     GPUSurfaceConfig surfaceConfig = {
         .device = device,
