@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> // memset
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 #endif
@@ -19,6 +20,38 @@ Window* window = NULL;
 GPUSurface surface = NULL;
 GPUDevice device = NULL;
 GPUQueue graphicsQueue = NULL;
+GPUBuffer vertexBuffer = NULL;
+GPURenderPipeline renderPipeline = NULL;
+
+GPUShaderModule LoadShader(const char* shaderFileName)
+{
+    //const char* shaderExt = ".spv";
+    //if (vgpuDeviceGetBackend(device) == VGPUBackend_D3D12)
+    //{
+    //    shaderExt = ".cso";
+    //}
+
+    FILE* handle = fopen(shaderFileName, "rb");
+    if (!handle)
+    {
+        return NULL;
+    }
+
+    // Get file size
+    fseek(handle, 0, SEEK_END);
+    size_t length = ftell(handle);
+    fseek(handle, 0, SEEK_SET);
+
+    GPUShaderModuleDesc desc = {
+        .bytecodeSize = length,
+        .bytecode = malloc(length)
+    };
+    fread((void*)desc.bytecode, length, 1, handle);
+    GPUShaderModule result = agpuDeviceCreateShaderModule(device, &desc);
+    free((void*)desc.bytecode);
+    fclose(handle);
+    return result;
+}
 
 void Render()
 {
@@ -59,7 +92,7 @@ int main()
     }
 
     GPUConfig config = {
-        //.preferredBackend = GPUBackendType_Vulkan,
+        .preferredBackend = GPUBackendType_Vulkan,
 #if defined(_DEBUG)
         .validationMode = GPUValidationMode_Enabled
 #else
@@ -126,11 +159,46 @@ int main()
          0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
         -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
     };
-    GPUBuffer vertexBuffer = agpuDeviceCreateBuffer(device, &(GPUBufferDesc) {
+    vertexBuffer = agpuDeviceCreateBuffer(device, &(GPUBufferDesc) {
         .usage = GPUBufferUsage_Vertex,
         .size = sizeof(vertices)
     }, vertices);
-    agpuBufferRelease(vertexBuffer);
+
+    GPUShaderModule vertexShader = LoadShader("shaders/triangleVertex.spv");
+    //GPUShaderModule fragmentShader = LoadShader("shaders/triangleFragment.spv");
+    //shaders[1].entryPointName = "fragmentMain";
+
+    GPUPipelineLayout pipelineLayout = agpuDeviceCreatePipelineLayout(device, &(GPUPipelineLayoutDesc) {
+        .label = "PipelineLayout"
+    });
+
+    GPUVertexAttribute vertexAttributes[2];
+    vertexAttributes[0].format = GPUVertexFormat_Float3;
+    vertexAttributes[0].offset = 0;
+    vertexAttributes[0].shaderLocation = 0;
+    vertexAttributes[1].format = GPUVertexFormat_Float4;
+    vertexAttributes[1].offset = 12;
+    vertexAttributes[1].shaderLocation = 1;
+
+    GPUVertexBufferLayout vertexBufferLayout = {
+        .stepMode = GPUVertexStepMode_Vertex,
+        .stride = 0,
+        .attributeCount = 2,
+        .attributes = vertexAttributes
+    };
+
+    renderPipeline = agpuDeviceCreateRenderPipeline(device, &(GPURenderPipelineDesc) {
+        .label = "RenderPipeline",
+        .layout = pipelineLayout,
+        .vertex = {
+            .module = vertexShader,
+            .entryPoint = "vertexMain",
+            .bufferCount = 1,
+            .buffers = &vertexBufferLayout
+        }
+    });
+    agpuShaderModuleRelease(vertexShader);
+    agpuPipelineLayoutRelease(pipelineLayout);
 
     graphicsQueue = agpuDeviceGetQueue(device, GPUQueueType_Graphics);
 
@@ -159,6 +227,8 @@ int main()
     }
 #endif
 
+    agpuRenderPipelineRelease(renderPipeline);
+    agpuBufferRelease(vertexBuffer);
     agpuSurfaceRelease(surface);
     agpuDeviceRelease(device);
     alimerWindowDestroy(window);

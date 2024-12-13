@@ -204,6 +204,11 @@ GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits)
     return adapter->GetLimits(limits);
 }
 
+bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature)
+{
+    return adapter->HasFeature(feature);
+}
+
 static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc def = {};
@@ -235,6 +240,11 @@ uint32_t agpuDeviceAddRef(GPUDevice device)
 uint32_t agpuDeviceRelease(GPUDevice device)
 {
     return device->Release();
+}
+
+bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
+{
+    return device->HasFeature(feature);
 }
 
 GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type)
@@ -341,6 +351,41 @@ void agpuComputePassEncoderInsertDebugMarker(GPUComputePassEncoder computePassEn
 }
 
 /* RenderCommandEncoder */
+void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder renderPassEncoder, const GPUViewport* viewport)
+{
+    ALIMER_ASSERT(viewport != nullptr);
+
+    renderPassEncoder->SetViewport(viewport);
+}
+
+void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports)
+{
+    ALIMER_ASSERT(viewportCount > 0);
+    ALIMER_ASSERT(viewports != nullptr);
+
+    renderPassEncoder->SetViewports(viewportCount, viewports);
+}
+
+void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder renderPassEncoder, const GPUScissorRect* scissorRect)
+{
+    ALIMER_ASSERT(scissorRect != nullptr);
+
+    renderPassEncoder->SetScissorRect(scissorRect);
+}
+
+void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects)
+{
+    ALIMER_ASSERT(scissorCount > 0);
+    ALIMER_ASSERT(scissorRects != nullptr);
+
+    renderPassEncoder->SetScissorRects(scissorCount, scissorRects);
+}
+
+void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder renderPassEncoder, uint32_t reference)
+{
+    renderPassEncoder->SetStencilReference(reference);
+}
+
 void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder)
 {
     renderPassEncoder->EndEncoding();
@@ -499,7 +544,198 @@ uint32_t agpuTextureRelease(GPUTexture texture)
     return texture->Release();
 }
 
+/* Sampler */
+void agpuSamplerSetLabel(GPUSampler sampler, const char* label)
+{
+    sampler->SetLabel(label);
+}
+
+uint32_t agpuSamplerAddRef(GPUSampler sampler)
+{
+    return sampler->AddRef();
+}
+
+uint32_t agpuSamplerRelease(GPUSampler sampler)
+{
+    return sampler->Release();
+}
+
+/* PipelineLayout */
+static GPUPipelineLayoutDesc _GPUPipelineLayoutDesc_Defaults(const GPUPipelineLayoutDesc* desc) {
+    GPUPipelineLayoutDesc def = *desc;
+    return def;
+}
+
+GPUPipelineLayout agpuDeviceCreatePipelineLayout(GPUDevice device, const GPUPipelineLayoutDesc* desc)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUPipelineLayoutDesc descDef = _GPUPipelineLayoutDesc_Defaults(desc);
+    return device->CreatePipelineLayout(descDef);
+}
+
+void agpuPipelineLayoutSetLabel(GPUPipelineLayout pipelineLayout, const char* label)
+{
+    pipelineLayout->SetLabel(label);
+}
+
+uint32_t agpuPipelineLayoutAddRef(GPUPipelineLayout pipelineLayout)
+{
+    return pipelineLayout->AddRef();
+}
+
+uint32_t agpuPipelineLayoutRelease(GPUPipelineLayout pipelineLayout)
+{
+    return pipelineLayout->Release();
+}
+
+/* ShaderModule */
+GPUShaderModule agpuDeviceCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc)
+{
+    return device->CreateShaderModule(desc);
+}
+
+void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label)
+{
+    shaderModule->SetLabel(label);
+}
+
+uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule)
+{
+    return shaderModule->AddRef();
+}
+
+uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule)
+{
+    return shaderModule->Release();
+}
+
+/* ComputePipeline */
+static GPUComputePipelineDesc _GPUComputePipelineDesc_Defaults(const GPUComputePipelineDesc* desc) {
+    GPUComputePipelineDesc def = *desc;
+    return def;
+}
+
+GPUComputePipeline agpuDeviceCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUComputePipelineDesc descDef = _GPUComputePipelineDesc_Defaults(desc);
+    return device->CreateComputePipeline(descDef);
+}
+
+void agpuComputePipelineSetLabel(GPUComputePipeline computePipeline, const char* label)
+{
+    computePipeline->SetLabel(label);
+}
+
+uint32_t agpuComputePipelineAddRef(GPUComputePipeline computePipeline)
+{
+    return computePipeline->AddRef();
+}
+
+uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline)
+{
+    return computePipeline->Release();
+}
+
+/* RenderPipeline */
+static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipelineDesc* desc) {
+    GPURenderPipelineDesc def = *desc;
+    return def;
+}
+
+GPURenderPipeline agpuDeviceCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc)
+{
+    if (!desc)
+        return nullptr;
+
+    GPURenderPipelineDesc descDef = _GPURenderPipelineDesc_Defaults(desc);
+    return device->CreateRenderPipeline(descDef);
+}
+
+void agpuRenderPipelineSetLabel(GPURenderPipeline renderPipeline, const char* label)
+{
+    renderPipeline->SetLabel(label);
+}
+
+uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline)
+{
+    return renderPipeline->AddRef();
+}
+
+uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline)
+{
+    return renderPipeline->Release();
+}
+
 /* Other */
+struct VertexFormatInfo
+{
+    GPUVertexFormat format;
+    uint32_t byteSize;
+    uint32_t componentCount;
+};
+
+static const VertexFormatInfo kVertexFormatTable[] = {
+    { GPUVertexFormat_Undefined,           0, 0 },
+    { GPUVertexFormat_UByte,               1, 1 },
+    { GPUVertexFormat_UByte2,              2, 2 },
+    { GPUVertexFormat_UByte4,              4, 4 },
+    { GPUVertexFormat_Byte,                1, 1 },
+    { GPUVertexFormat_Byte2,               2, 2 },
+    { GPUVertexFormat_Byte4,               4, 4 },
+    { GPUVertexFormat_UByteNormalized,     1, 1 },
+    { GPUVertexFormat_UByte2Normalized,    2, 2 },
+    { GPUVertexFormat_UByte4Normalized,    4, 4 },
+    { GPUVertexFormat_ByteNormalized,      2, 2 },
+    { GPUVertexFormat_Byte2Normalized,     2, 2 },
+    { GPUVertexFormat_Byte4Normalized,     4, 4 },
+
+    { GPUVertexFormat_UShort,              2, 1 },
+    { GPUVertexFormat_UShort2,             4, 2 },
+    { GPUVertexFormat_UShort4,             8, 4 },
+    { GPUVertexFormat_Short,               4, 1 },
+    { GPUVertexFormat_Short2,              4, 2 },
+    { GPUVertexFormat_Short4,              8, 4 },
+    { GPUVertexFormat_UShortNormalized,    2, 1 },
+    { GPUVertexFormat_UShort2Normalized,   4, 2 },
+    { GPUVertexFormat_UShort4Normalized,   8, 4 },
+    { GPUVertexFormat_ShortNormalized,     2, 1 },
+    { GPUVertexFormat_Short2Normalized,    4, 2 },
+    { GPUVertexFormat_Short4Normalized,    8, 4 },
+
+    { GPUVertexFormat_Half,                2, 1 },
+    { GPUVertexFormat_Half2,               4, 2 },
+    { GPUVertexFormat_Half4,               8, 4 },
+    { GPUVertexFormat_Float,               4, 1 },
+    { GPUVertexFormat_Float2,              8, 2 },
+    { GPUVertexFormat_Float3,              12, 3 },
+    { GPUVertexFormat_Float4,              16, 4 },
+
+    { GPUVertexFormat_UInt,                4, 1 },
+    { GPUVertexFormat_UInt2,               8, 2 },
+    { GPUVertexFormat_UInt3,               12, 3 },
+    { GPUVertexFormat_UInt4,               16, 4 },
+
+    { GPUVertexFormat_Int,                 4, 1 },
+    { GPUVertexFormat_Int2,                8, 2 },
+    { GPUVertexFormat_Int3,                12, 3 },
+    { GPUVertexFormat_Int4,                16, 4 },
+
+    { GPUVertexFormat_Unorm10_10_10_2, 4, 4 },
+    { GPUVertexFormat_Unorm8x4BGRA, 4, 4 }
+    //{VertexFormat::RG11B10Float,   32, 4,  VertexFormatKind::Float},
+    //{VertexFormat::RGB9E5Float,   32, 4, VertexFormatKind::Float},
+};
+
+static_assert(
+    sizeof(kVertexFormatTable) / sizeof(VertexFormatInfo) == size_t(_GPUVertexFormat_Count),
+    "The format info table doesn't have the right number of elements"
+    );
+
 enum class KnownGPUAdapterVendor
 {
     AMD = 0x01002,
@@ -513,6 +749,16 @@ enum class KnownGPUAdapterVendor
     MESA = 0x10005,
     BROADCOM = 0x014e4
 };
+
+uint32_t agpuVertexFormatGetByteSize(GPUVertexFormat format)
+{
+    if (format >= _GPUVertexFormat_Count)
+        return 0;
+
+    const VertexFormatInfo& info = kVertexFormatTable[format];
+    ALIMER_ASSERT(info.format == format);
+    return info.byteSize;
+}
 
 GPUAdapterVendor agpuGPUAdapterVendorFromID(uint32_t vendorId)
 {

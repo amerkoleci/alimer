@@ -247,6 +247,7 @@ namespace
             case GPUVertexFormat_ShortNormalized:     return DXGI_FORMAT_R16_SNORM;
             case GPUVertexFormat_Short2Normalized:    return DXGI_FORMAT_R16G16_SNORM;
             case GPUVertexFormat_Short4Normalized:    return DXGI_FORMAT_R16G16B16A16_SNORM;
+
             case GPUVertexFormat_Half:                return DXGI_FORMAT_R16_FLOAT;
             case GPUVertexFormat_Half2:               return DXGI_FORMAT_R16G16_FLOAT;
             case GPUVertexFormat_Half4:               return DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -678,6 +679,12 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
+
+    void SetViewport(const GPUViewport* viewport) override;
+    void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) override;
+    void SetScissorRect(const GPUScissorRect* scissorRect) override;
+    void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) override;
+    void SetStencilReference(uint32_t reference) override;
 };
 
 struct D3D12CommandBuffer final : public GPUCommandBufferImpl
@@ -1014,6 +1021,7 @@ struct D3D12Device final : public GPUDeviceImpl
     ~D3D12Device() override;
     void OnDeviceRemoved();
     void SetLabel(const char* label) override;
+    bool HasFeature(GPUFeature feature) const override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
@@ -1025,6 +1033,12 @@ struct D3D12Device final : public GPUDeviceImpl
     /* Resource creation */
     GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
+    GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
+    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
+    GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
 };
 
 struct D3D12Surface final : public GPUSurfaceImpl
@@ -1061,10 +1075,17 @@ struct D3D12Adapter final : public GPUAdapterImpl
     GPUAdapterType adapterType = GPUAdapterType_Unknown;
     uint32_t vendorID;
     uint32_t deviceID;
+    bool shaderFloat16 = false;
+    bool GPUUploadHeapSupported = false;
+    bool copyQueueTimestampQueriesSupported = false;
+    bool cacheCoherentUMA = false;
+    bool shaderOutputViewportIndex = false;
+    GPUConservativeRasterizationTier conservativeRasterizationTier = GPUConservativeRasterizationTier_NotSupported;
 
     ~D3D12Adapter() override;
     GPUResult GetInfo(GPUAdapterInfo* info) const override;
     GPUResult GetLimits(GPULimits* limits) const override;
+    bool HasFeature(GPUFeature feature) const override;
     GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
@@ -1391,6 +1412,52 @@ void D3D12RenderPassEncoder::PopDebugGroup() const
 void D3D12RenderPassEncoder::InsertDebugMarker(const char* markerLabel) const
 {
     commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+void D3D12RenderPassEncoder::SetViewport(const GPUViewport* viewport)
+{
+    commandBuffer->commandList->RSSetViewports(1, (const D3D12_VIEWPORT*)viewport);
+}
+
+void D3D12RenderPassEncoder::SetViewports(uint32_t viewportCount, const GPUViewport* viewports)
+{
+    ALIMER_ASSERT(viewports != nullptr);
+    ALIMER_ASSERT(viewportCount < D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
+
+    commandBuffer->commandList->RSSetViewports(viewportCount, (const D3D12_VIEWPORT*)viewports);
+}
+
+void D3D12RenderPassEncoder::SetScissorRect(const GPUScissorRect* scissorRect)
+{
+    D3D12_RECT d3dScissorRect;
+    d3dScissorRect.left = LONG(scissorRect->x);
+    d3dScissorRect.top = LONG(scissorRect->y);
+    d3dScissorRect.right = LONG(scissorRect->x + scissorRect->width);
+    d3dScissorRect.bottom = LONG(scissorRect->y + scissorRect->height);
+
+    commandBuffer->commandList->RSSetScissorRects(1, &d3dScissorRect);
+}
+
+void D3D12RenderPassEncoder::SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects)
+{
+    ALIMER_ASSERT(scissorRects != nullptr);
+    ALIMER_ASSERT(scissorCount < D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
+
+    D3D12_RECT d3dScissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+    for (uint32_t i = 0; i < scissorCount; ++i)
+    {
+        d3dScissorRects[i].left = LONG(scissorRects[i].x);
+        d3dScissorRects[i].top = LONG(scissorRects[i].y);
+        d3dScissorRects[i].right = LONG(scissorRects[i].x + scissorRects[i].width);
+        d3dScissorRects[i].bottom = LONG(scissorRects[i].y + scissorRects[i].height);
+    }
+
+    commandBuffer->commandList->RSSetScissorRects(scissorCount, d3dScissorRects);
+}
+
+void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
+{
+    commandBuffer->commandList->OMSetStencilRef(reference);
 }
 
 /* D3D12CommandBuffer */
@@ -2101,6 +2168,11 @@ void D3D12Device::SetLabel(const char* label)
     }
 }
 
+bool D3D12Device::HasFeature(GPUFeature feature) const
+{
+    return adapter->HasFeature(feature);
+}
+
 GPUQueue D3D12Device::GetQueue(GPUQueueType type)
 {
     return &queues[type];
@@ -2582,6 +2654,36 @@ GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
     return texture;
 }
 
+GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
+{
+    return nullptr;
+}
+
+GPUBindGroupLayout D3D12Device::CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc)
+{
+    return nullptr;
+}
+
+GPUPipelineLayout D3D12Device::CreatePipelineLayout(const GPUPipelineLayoutDesc& desc)
+{
+    return nullptr;
+}
+
+GPUShaderModule D3D12Device::CreateShaderModule(const GPUShaderModuleDesc* desc)
+{
+    return nullptr;
+}
+
+GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
+{
+    return nullptr;
+}
+
+GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc& desc)
+{
+    return nullptr;
+}
+
 /* D3D12Surface */
 D3D12Surface::~D3D12Surface()
 {
@@ -2842,7 +2944,53 @@ GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
     // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
     limits->maxComputeWorkgroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
 
+    //
+    limits->conservativeRasterizationTier = conservativeRasterizationTier;
+
     return GPUResult_Success;
+}
+
+bool D3D12Adapter::HasFeature(GPUFeature feature) const
+{
+    switch (feature)
+    {
+        // Always supported features
+        case GPUFeature_DepthClipControl:
+        case GPUFeature_Depth32FloatStencil8:
+        case GPUFeature_TimestampQuery:
+        case GPUFeature_PipelineStatisticsQuery:
+        case GPUFeature_TextureCompressionBC:
+        case GPUFeature_IndirectFirstInstance:
+        case GPUFeature_DualSourceBlending:
+            return true;
+
+            // Never supported features
+        case GPUFeature_TextureCompressionETC2:
+        case GPUFeature_TextureCompressionASTC:
+        case GPUFeature_TextureCompressionASTC_HDR:
+            return false;
+
+        case GPUFeature_ShaderFloat16:
+            return shaderFloat16;
+
+        case GPUFeature_GPUUploadHeapSupported:
+            return GPUUploadHeapSupported;
+
+        case GPUFeature_CopyQueueTimestampQueriesSupported:
+            return copyQueueTimestampQueriesSupported;
+
+        case GPUFeature_CacheCoherentUMA:
+            return cacheCoherentUMA;
+
+        case GPUFeature_ShaderOutputViewportIndex:
+            return shaderOutputViewportIndex;
+
+        case GPUFeature_ConservativeRasterization:
+            return conservativeRasterizationTier != GPUConservativeRasterizationTier_NotSupported;
+
+        default:
+            return false;
+    }
 }
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -3203,6 +3351,14 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
     {
         adapter->adapterType = features.UMA() ? GPUAdapterType_IntegratedGPU : GPUAdapterType_DiscreteGPU;
     }
+
+    //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
+    adapter->shaderFloat16 = features.HighestShaderModel() >= D3D_SHADER_MODEL_6_2 && features.Native16BitShaderOpsSupported();
+    adapter->GPUUploadHeapSupported = features.GPUUploadHeapSupported() == TRUE;
+    adapter->copyQueueTimestampQueriesSupported = features.CopyQueueTimestampQueriesSupported() == TRUE;
+    adapter->cacheCoherentUMA = features.CacheCoherentUMA() == TRUE;
+    adapter->shaderOutputViewportIndex = features.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation() == TRUE;
+    adapter->conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
 
     return adapter;
 }

@@ -101,7 +101,12 @@ struct GPUPipelineLayoutImpl : public GPUResource
 
 };
 
-struct GPUPipelineImpl : public GPUResource
+struct GPUComputePipelineImpl : public GPUResource
+{
+
+};
+
+struct GPURenderPipelineImpl : public GPUResource
 {
 
 };
@@ -122,7 +127,11 @@ struct GPUComputePassEncoderImpl : public GPUCommandEncoder
 
 struct GPURenderPassEncoderImpl : public GPUCommandEncoder
 {
-
+    virtual void SetViewport(const GPUViewport* viewport) = 0;
+    virtual void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) = 0;
+    virtual void SetScissorRect(const GPUScissorRect* scissorRect) = 0;
+    virtual void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) = 0;
+    virtual void SetStencilReference(uint32_t reference) = 0;
 };
 
 struct GPUCommandBufferImpl : public GPUResource
@@ -145,6 +154,7 @@ struct GPUQueueImpl : public GPUResource
 
 struct GPUDeviceImpl : public GPUResource
 {
+    virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUQueue GetQueue(GPUQueueType type) = 0;
     virtual bool WaitIdle() = 0;
     virtual uint64_t CommitFrame() = 0;
@@ -152,6 +162,12 @@ struct GPUDeviceImpl : public GPUResource
     /* Resource creation */
     virtual GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
     virtual GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
+    virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
+    virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
+    virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
+    virtual GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
+    virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
+    virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
 };
 
 struct GPUSurfaceImpl : public GPUResource
@@ -167,6 +183,7 @@ struct GPUAdapterImpl : public GPUResource
 {
     virtual GPUResult GetInfo(GPUAdapterInfo* info) const = 0;
     virtual GPUResult GetLimits(GPULimits* limits) const = 0;
+    virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUDevice CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
 

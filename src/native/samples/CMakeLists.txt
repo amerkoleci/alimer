@@ -35,7 +35,7 @@ function(add_sample SAMPLE_NAME)
     #endif ()
 
     set_target_properties(${SAMPLE_NAME} PROPERTIES
-        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         FOLDER "Samples"
     )
 endfunction()

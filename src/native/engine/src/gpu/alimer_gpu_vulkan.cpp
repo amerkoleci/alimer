@@ -204,24 +204,7 @@ namespace
 #endif
     }
 
-    VkFormat ToVkFormat(PixelFormat format)
-    {
-        //if (format == PixelFormat_Stencil8 && !supportsS8)
-        //{
-        //    return VK_FORMAT_D24_UNORM_S8_UINT;
-        //}
-        //
-        //if (format == PixelFormat_Depth24UnormStencil8 && !supportsD24S8)
-        //{
-        //    return VK_FORMAT_D32_SFLOAT_S8_UINT;
-        //}
-
-        // https://github.com/doitsujin/dxvk/blob/master/src/dxgi/dxgi_format.cpp
-        VkFormat vkFormat = static_cast<VkFormat>(alimerPixelFormatToVkFormat(format));
-        return vkFormat;
-    }
-
-    [[maybe_unused]] constexpr VkFormat ToVkVertexFormat(GPUVertexFormat format)
+    constexpr VkFormat ToVkVertexFormat(GPUVertexFormat format)
     {
         switch (format)
         {
@@ -250,6 +233,7 @@ namespace
             case GPUVertexFormat_ShortNormalized:     return VK_FORMAT_R16_SNORM;
             case GPUVertexFormat_Short2Normalized:    return VK_FORMAT_R16G16_SNORM;
             case GPUVertexFormat_Short4Normalized:    return VK_FORMAT_R16G16B16A16_SNORM;
+
             case GPUVertexFormat_Half:                return VK_FORMAT_R16_SFLOAT;
             case GPUVertexFormat_Half2:               return VK_FORMAT_R16G16_SFLOAT;
             case GPUVertexFormat_Half4:               return VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -273,6 +257,20 @@ namespace
             case GPUVertexFormat_Unorm8x4BGRA:   return VK_FORMAT_B8G8R8A8_UNORM;
                 //case VertexFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
                 //case VertexFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+
+            default:
+                ALIMER_UNREACHABLE();
+        }
+    }
+
+    constexpr VkVertexInputRate ToVk(GPUVertexStepMode mode)
+    {
+        switch (mode)
+        {
+            case GPUVertexStepMode_Vertex:
+                return VK_VERTEX_INPUT_RATE_VERTEX;
+            case GPUVertexStepMode_Instance:
+                return VK_VERTEX_INPUT_RATE_INSTANCE;
 
             default:
                 ALIMER_UNREACHABLE();
@@ -351,6 +349,54 @@ namespace
             default:
                 ALIMER_UNREACHABLE();
                 return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+    }
+
+    [[nodiscard]] constexpr VkSampleCountFlagBits ToVkSampleCount(uint32_t sampleCount)
+    {
+        switch (sampleCount)
+        {
+            case 1:
+                return VK_SAMPLE_COUNT_1_BIT;
+            case 2:
+                return VK_SAMPLE_COUNT_2_BIT;
+            case 4:
+                return VK_SAMPLE_COUNT_4_BIT;
+            case 8:
+                return VK_SAMPLE_COUNT_8_BIT;
+            case 16:
+                return VK_SAMPLE_COUNT_16_BIT;
+            case 32:
+                return VK_SAMPLE_COUNT_32_BIT;
+            default:
+                return VK_SAMPLE_COUNT_1_BIT;
+        }
+    }
+
+    [[nodiscard]] constexpr VkShaderStageFlags ToVkShaderStageFlags(GPUShaderStage stage)
+    {
+        switch (stage)
+        {
+            case GPUShaderStage_Vertex:
+                return VK_SHADER_STAGE_VERTEX_BIT;
+                //case GPUShaderStage_Hull:
+                //    return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+                //case GPUShaderStage_Domain:
+                //    return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+                //case GPUShaderStage_Geometry:
+                //    return VK_SHADER_STAGE_GEOMETRY_BIT;
+            case GPUShaderStage_Fragment:
+                return VK_SHADER_STAGE_FRAGMENT_BIT;
+            case GPUShaderStage_Compute:
+                return VK_SHADER_STAGE_COMPUTE_BIT;
+
+            case GPUShaderStage_Amplification:
+                return VK_SHADER_STAGE_TASK_BIT_EXT;
+            case GPUShaderStage_Mesh:
+                return VK_SHADER_STAGE_MESH_BIT_EXT;
+
+            default:
+                return 0;
         }
     }
 
@@ -941,6 +987,62 @@ struct VulkanTexture final : public GPUTextureImpl
     VkImageView GetView(uint32_t mipLevel) const;
 };
 
+struct VulkanSampler final : public GPUSamplerImpl
+{
+    VulkanDevice* device = nullptr;
+    VkSampler handle = VK_NULL_HANDLE;
+
+    ~VulkanSampler() override;
+    void SetLabel(const char* label) override;
+};
+
+struct VulkanBindGroupLayout final : public GPUBindGroupLayoutImpl
+{
+    VulkanDevice* device = nullptr;
+    VkDescriptorSetLayout handle = VK_NULL_HANDLE;
+
+    ~VulkanBindGroupLayout() override;
+    void SetLabel(const char* label) override;
+};
+
+struct VulkanPipelineLayout final : public GPUPipelineLayoutImpl
+{
+    VulkanDevice* device = nullptr;
+    VkPipelineLayout handle = VK_NULL_HANDLE;
+
+    ~VulkanPipelineLayout() override;
+    void SetLabel(const char* label) override;
+};
+
+struct VulkanShaderModule final : public GPUShaderModuleImpl
+{
+    VulkanDevice* device = nullptr;
+    VkShaderModule handle = VK_NULL_HANDLE;
+
+    ~VulkanShaderModule() override;
+    void SetLabel(const char* label) override;
+};
+
+struct VulkanComputePipeline final : public GPUComputePipelineImpl
+{
+    VulkanDevice* device = nullptr;
+    VulkanPipelineLayout* layout = nullptr;
+    VkPipeline handle = VK_NULL_HANDLE;
+
+    ~VulkanComputePipeline() override;
+    void SetLabel(const char* label) override;
+};
+
+struct VulkanRenderPipeline final : public GPURenderPipelineImpl
+{
+    VulkanDevice* device = nullptr;
+    VulkanPipelineLayout* layout = nullptr;
+    VkPipeline handle = VK_NULL_HANDLE;
+
+    ~VulkanRenderPipeline() override;
+    void SetLabel(const char* label) override;
+};
+
 struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
@@ -967,6 +1069,12 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
+
+    void SetViewport(const GPUViewport* viewport) override;
+    void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) override;
+    void SetScissorRect(const GPUScissorRect* scissorRect) override;
+    void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) override;
+    void SetStencilReference(uint32_t reference) override;
 };
 
 struct VulkanCommandBuffer final : public GPUCommandBufferImpl
@@ -1075,14 +1183,15 @@ struct VulkanDevice final : public GPUDeviceImpl
     std::deque<std::pair<std::pair<VkImage, VmaAllocation>, uint64_t>> destroyedImages;
     std::deque<std::pair<VkImageView, uint64_t>> destroyedImageViews;
     std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> destroyedBuffers;
-    //std::deque<std::pair<VkBufferView, uint64_t>> destroyedBufferViews;
-    //std::deque<std::pair<VkDescriptorSetLayout, uint64_t>> destroyedDescriptorSetLayouts;
-    //std::deque<std::pair<VkPipelineLayout, uint64_t>> destroyedPipelineLayouts;
-    //std::deque<std::pair<VkPipeline, uint64_t>> destroyedPipelines;
-    //std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
+    std::deque<std::pair<VkBufferView, uint64_t>> destroyedBufferViews;
+    std::deque<std::pair<VkSampler, uint64_t>> destroyedSamplers;
+    std::deque<std::pair<VkDescriptorSetLayout, uint64_t>> destroyedDescriptorSetLayouts;
+    std::deque<std::pair<VkPipelineLayout, uint64_t>> destroyedPipelineLayouts;
+    std::deque<std::pair<VkShaderModule, uint64_t>> destroyedShaderModules;
+    std::deque<std::pair<VkPipeline, uint64_t>> destroyedPipelines;
+    std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
     std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
     std::deque<std::pair<VkSwapchainKHR, uint64_t>> destroyedSwapchains;
-    //std::deque<std::pair<std::pair<VkDescriptorPool, VkDescriptorSet>, uint64_t>> destroyedDescriptorSets;
     std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
 
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
@@ -1090,6 +1199,7 @@ struct VulkanDevice final : public GPUDeviceImpl
 
     ~VulkanDevice() override;
     void SetLabel(const char* label) override;
+    bool HasFeature(GPUFeature feature) const override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
     uint64_t CommitFrame() override;
@@ -1098,6 +1208,12 @@ struct VulkanDevice final : public GPUDeviceImpl
     /* Resource creation */
     GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
+    GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
+    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
+    GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
@@ -1132,10 +1248,13 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDevice handle = nullptr;
     VulkanPhysicalDeviceExtensions extensions;
     VulkanQueueFamilyIndices queueFamilyIndices;
-    VkPhysicalDeviceProperties properties;
+    //VkPhysicalDeviceProperties properties;
     bool synchronization2;
     bool dynamicRendering;
     std::string driverDescription;
+    bool supportsDepth32Stencil8 = false;
+    bool supportsDepth24Stencil8 = false;
+    bool supportsStencil8 = false;
 
     // Features
     VkPhysicalDeviceFeatures2 features2 = {};
@@ -1171,6 +1290,7 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = {};
     VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = {};
     VkPhysicalDeviceMultiviewProperties multiviewProperties = {};
+    VkPhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProps = {};
     VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = {};
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = {};
     VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = {};
@@ -1179,6 +1299,9 @@ struct VulkanAdapter final : public GPUAdapterImpl
 
     GPUResult GetInfo(GPUAdapterInfo* info) const override;
     GPUResult GetLimits(GPULimits* limits) const override;
+    bool HasFeature(GPUFeature feature) const override;
+    bool IsDepthStencilFormatSupported(VkFormat format) const;
+    VkFormat ToVkFormat(PixelFormat format) const;
     GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
@@ -1318,6 +1441,118 @@ VkImageView VulkanTexture::GetView(uint32_t mipLevel) const
     }
 
     return it->second;
+}
+
+/* VulkanSampler */
+VulkanSampler::~VulkanSampler()
+{
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedSamplers.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+    device->destroyMutex.unlock();
+}
+
+void VulkanSampler::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>(handle), label);
+}
+
+/* VulkanBindGroupLayout */
+VulkanBindGroupLayout::~VulkanBindGroupLayout()
+{
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedDescriptorSetLayouts.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+    device->destroyMutex.unlock();
+}
+
+void VulkanBindGroupLayout::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(handle), label);
+}
+
+/* VulkanPipelineLayout */
+VulkanPipelineLayout::~VulkanPipelineLayout()
+{
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedPipelineLayouts.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+    device->destroyMutex.unlock();
+}
+
+void VulkanPipelineLayout::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_PIPELINE_LAYOUT, reinterpret_cast<uint64_t>(handle), label);
+}
+
+/* VulkanShaderModule */
+VulkanShaderModule::~VulkanShaderModule()
+{
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedShaderModules.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+    device->destroyMutex.unlock();
+}
+
+void VulkanShaderModule::SetLabel(const char* label)
+{
+
+}
+
+/* VulkanComputePipeline */
+VulkanComputePipeline::~VulkanComputePipeline()
+{
+    SAFE_RELEASE(layout);
+
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedPipelines.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+    device->destroyMutex.unlock();
+}
+
+void VulkanComputePipeline::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
+}
+
+/* VulkanRenderPipeline */
+VulkanRenderPipeline::~VulkanRenderPipeline()
+{
+    SAFE_RELEASE(layout);
+
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+    if (handle != VK_NULL_HANDLE)
+    {
+        device->destroyedPipelines.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+    device->destroyMutex.unlock();
+}
+
+void VulkanRenderPipeline::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
 }
 
 /* VulkanComputePassEncoder */
@@ -1507,6 +1742,56 @@ void VulkanRenderPassEncoder::PopDebugGroup() const
 void VulkanRenderPassEncoder::InsertDebugMarker(const char* markerLabel) const
 {
     commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+void VulkanRenderPassEncoder::SetViewport(const GPUViewport* viewport)
+{
+    // Flip viewport to match DirectX coordinate system
+    VkViewport vkViewport{};
+    vkViewport.x = viewport->x;
+    vkViewport.y = viewport->height - viewport->y;
+    vkViewport.width = viewport->width;
+    vkViewport.height = -viewport->height;
+    vkViewport.minDepth = viewport->minDepth;
+    vkViewport.maxDepth = viewport->maxDepth;
+    commandBuffer->device->vkCmdSetViewport(commandBuffer->handle, 0, 1, &vkViewport);
+}
+
+void VulkanRenderPassEncoder::SetViewports(uint32_t viewportCount, const GPUViewport* viewports)
+{
+    ALIMER_ASSERT(viewportCount < commandBuffer->device->adapter->properties2.properties.limits.maxViewports);
+
+    VkViewport vkViewports[16] = {};
+    for (uint32_t i = 0; i < viewportCount; ++i)
+    {
+        // Flip viewport to match DirectX coordinate system
+        vkViewports[i].x = viewports[i].x;
+        vkViewports[i].y = viewports[i].height - viewports[i].y;
+        vkViewports[i].width = viewports[i].width;
+        vkViewports[i].height = -viewports[i].height;
+        vkViewports[i].minDepth = viewports[i].minDepth;
+        vkViewports[i].maxDepth = viewports[i].maxDepth;
+    }
+
+    commandBuffer->device->vkCmdSetViewport(commandBuffer->handle, 0, viewportCount, vkViewports);
+}
+
+void VulkanRenderPassEncoder::SetScissorRect(const GPUScissorRect* scissorRect)
+{
+    commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, 1, (const VkRect2D*)scissorRect);
+}
+
+void VulkanRenderPassEncoder::SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects)
+{
+    ALIMER_ASSERT(scissorRects != nullptr);
+    ALIMER_ASSERT(scissorCount < commandBuffer->device->adapter->properties2.properties.limits.maxViewports);
+
+    commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, scissorCount, (const VkRect2D*)scissorRects);
+}
+
+void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
+{
+    commandBuffer->device->vkCmdSetStencilReference(commandBuffer->handle, VK_STENCIL_FRONT_AND_BACK, reference);
 }
 
 /* VulkanCommandBuffer */
@@ -2319,6 +2604,11 @@ void VulkanDevice::SetLabel(const char* label)
     SetObjectName(VK_OBJECT_TYPE_DEVICE, reinterpret_cast<uint64_t>(handle), label);
 }
 
+bool VulkanDevice::HasFeature(GPUFeature feature) const
+{
+    return adapter->HasFeature(feature);
+}
+
 GPUQueue VulkanDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
@@ -2387,15 +2677,16 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     Destroy(destroyedImages, [&](auto& item) { vmaDestroyImage(allocator, item.first, item.second); });
     Destroy(destroyedImageViews, [&](auto& item) { vkDestroyImageView(handle, item, nullptr); });
     Destroy(destroyedBuffers, [&](auto& item) { vmaDestroyBuffer(allocator, item.first, item.second); });
-    //Destroy(destroyedBufferViews, [&](auto& item) { vkDestroyBufferView(handle, item, nullptr); });
-    //Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(handle, item, nullptr); });
-    //Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
-    //Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
-    //Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
+    Destroy(destroyedBufferViews, [&](auto& item) { vkDestroyBufferView(handle, item, nullptr); });
+    Destroy(destroyedSamplers, [&](auto& item) { vkDestroySampler(handle, item, nullptr); });
+    Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(handle, item, nullptr); });
+    Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
+    Destroy(destroyedShaderModules, [&](auto& item) { vkDestroyShaderModule(handle, item, nullptr); });
+    Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
+    Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
     Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
     Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(handle, item, nullptr); });
     Destroy(destroyedSurfaces, [&](auto& item) { vkDestroySurfaceKHR(adapter->instance->handle, item, nullptr); });
-    //Destroy(destroyedDescriptorSets, [&](auto& item) { vkFreeDescriptorSets(handle, item.first, 1u, &item.second); });
     destroyMutex.unlock();
 }
 
@@ -2639,7 +2930,7 @@ GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUText
     VulkanTexture* texture = new VulkanTexture();
     texture->device = this;
     texture->desc = desc;
-    texture->vkFormat = ToVkFormat(desc.format);
+    texture->vkFormat = adapter->ToVkFormat(desc.format);
 
     VkImageCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -2942,6 +3233,283 @@ GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUText
     return texture;
 }
 
+GPUSampler VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
+{
+    VulkanSampler* sampler = new VulkanSampler();
+    sampler->device = this;
+
+    VkSamplerCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+
+    VkResult result = vkCreateSampler(handle, &createInfo, nullptr, &sampler->handle);
+    if (result != VK_SUCCESS)
+    {
+        delete sampler;
+        VK_LOG_ERROR(result, "Failed to create Sampler");
+        return nullptr;
+    }
+
+    return sampler;
+}
+
+GPUBindGroupLayout VulkanDevice::CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc)
+{
+    // https://developer.arm.com/documentation/101897/0303/CPU-overheads/Optimizing-descriptor-sets-and-layouts-for-Vulkan
+    // For ease of programming, VkDescriptorSetLayoutBinding::stageFlags can always be set to VK_SHADER_STAGE_ALL with no performance loss.
+    VulkanBindGroupLayout* layout = new VulkanBindGroupLayout();
+    layout->device = this;
+
+    VkDescriptorSetLayoutCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    createInfo.bindingCount = 0;
+    createInfo.pBindings = nullptr;
+
+    VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &layout->handle);
+    if (result != VK_SUCCESS)
+    {
+        delete layout;
+        VK_LOG_ERROR(result, "Failed to create BindGroupLayout");
+        return nullptr;
+    }
+
+    if (desc.label)
+    {
+        layout->SetLabel(desc.label);
+    }
+
+    return layout;
+}
+
+GPUPipelineLayout VulkanDevice::CreatePipelineLayout(const GPUPipelineLayoutDesc& desc)
+{
+    VulkanPipelineLayout* layout = new VulkanPipelineLayout();
+    layout->device = this;
+
+    VkPushConstantRange range = {};
+    range = {};
+    range.stageFlags = VK_SHADER_STAGE_ALL;
+    range.offset = 0;
+    range.size = 32;
+
+    VkPipelineLayoutCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    createInfo.setLayoutCount = 0;
+    createInfo.pSetLayouts = nullptr;
+    createInfo.pushConstantRangeCount = 1u;
+    createInfo.pPushConstantRanges = &range;
+
+    VkResult result = vkCreatePipelineLayout(handle, &createInfo, nullptr, &layout->handle);
+    if (result != VK_SUCCESS)
+    {
+        delete layout;
+        VK_LOG_ERROR(result, "Failed to create PipelineLayout");
+        return nullptr;
+    }
+
+    if (desc.label)
+    {
+        layout->SetLabel(desc.label);
+    }
+
+    return layout;
+}
+
+GPUShaderModule VulkanDevice::CreateShaderModule(const GPUShaderModuleDesc* desc)
+{
+    VkShaderModuleCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = desc->bytecodeSize;
+    createInfo.pCode = (const uint32_t*)desc->bytecode;
+
+    VkShaderModule vk_handle;
+    VkResult result = vkCreateShaderModule(handle, &createInfo, nullptr, &vk_handle);
+
+    if (result != VK_SUCCESS)
+    {
+        VK_LOG_ERROR(result, "Failed to create a compute shader module");
+        return nullptr;
+    }
+
+    VulkanShaderModule* shaderModule = new VulkanShaderModule();
+    shaderModule->device = this;
+    shaderModule->handle = vk_handle;
+    return shaderModule;
+}
+
+GPUComputePipeline VulkanDevice::CreateComputePipeline(const GPUComputePipelineDesc& desc)
+{
+    // Create shader module first.
+    VkPipelineShaderStageCreateInfo computeStage{};
+    computeStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    computeStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    computeStage.module = static_cast<VulkanShaderModule*>(desc.compute.module)->handle;
+    computeStage.pName = desc.compute.entryPoint ? desc.compute.entryPoint : "main";
+
+    VulkanComputePipeline* pipeline = new VulkanComputePipeline();
+    pipeline->device = this;
+    pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
+    pipeline->layout->AddRef();
+
+    VkComputePipelineCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    createInfo.stage = computeStage;
+    createInfo.layout = pipeline->layout->handle;
+    VkResult result = vkCreateComputePipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
+
+    if (result != VK_SUCCESS)
+    {
+        delete pipeline;
+        VK_LOG_ERROR(result, "Failed to create Compute Pipeline");
+        return nullptr;
+    }
+
+    if (desc.label)
+    {
+        pipeline->SetLabel(desc.label);
+    }
+
+    return pipeline;
+}
+
+GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc& desc)
+{
+    VulkanRenderPipeline* pipeline = new VulkanRenderPipeline();
+    pipeline->device = this;
+    pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
+    pipeline->layout->AddRef();
+
+    // ShaderStages
+    std::vector<VkPipelineShaderStageCreateInfo> stages;
+    VkPipelineShaderStageCreateInfo& vertexShaderStage = stages.emplace_back();
+    vertexShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertexShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertexShaderStage.module = static_cast<VulkanShaderModule*>(desc.vertex.module)->handle;
+    vertexShaderStage.pName = desc.vertex.entryPoint ? desc.vertex.entryPoint : "main";
+
+    // VertexInputState (need always be specified when using VertexShader)
+    VkPipelineVertexInputStateCreateInfo vertexInputState{};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    std::vector<VkVertexInputBindingDescription> vertexBindings;
+    std::vector<VkVertexInputAttributeDescription> vertexAttributes;
+    if (desc.vertex.bufferCount > 0)
+    {
+        vertexBindings.resize(desc.vertex.bufferCount);
+
+        for (uint32_t bufferIndex = 0; bufferIndex < desc.vertex.bufferCount; ++bufferIndex)
+        {
+            const GPUVertexBufferLayout& layout = desc.vertex.buffers[bufferIndex];
+            vertexBindings[bufferIndex].binding = bufferIndex;
+            vertexBindings[bufferIndex].stride = layout.stride;
+            vertexBindings[bufferIndex].inputRate = ToVk(layout.stepMode);
+
+            // Compute stride from attributes
+            if (vertexBindings[bufferIndex].stride == 0)
+            {
+                for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
+                {
+                    const GPUVertexAttribute& attribute = layout.attributes[attributeIndex];
+                    vertexBindings[bufferIndex].stride += agpuVertexFormatGetByteSize(attribute.format);
+                }
+            }
+
+            for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
+            {
+                const GPUVertexAttribute& attribute = layout.attributes[attributeIndex];
+
+                VkVertexInputAttributeDescription& vertexAttribute = vertexAttributes.emplace_back();
+                vertexAttribute.location = attribute.shaderLocation;
+                vertexAttribute.binding = bufferIndex;
+                vertexAttribute.format = ToVkVertexFormat(attribute.format);
+                vertexAttribute.offset = attribute.offset;
+            }
+        }
+
+        vertexInputState.vertexBindingDescriptionCount = (uint32_t)vertexBindings.size();
+        vertexInputState.pVertexBindingDescriptions = vertexBindings.data();
+        vertexInputState.vertexAttributeDescriptionCount = (uint32_t)vertexAttributes.size();
+        vertexInputState.pVertexAttributeDescriptions = vertexAttributes.data();
+    }
+
+    // InputAssemblyState
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
+    inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+
+    // TessellationState
+    VkPipelineTessellationStateCreateInfo tessellationState{};
+    tessellationState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    tessellationState.patchControlPoints = 0;
+
+    // ViewportState
+    VkPipelineViewportStateCreateInfo viewportState = {};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    // RasterizationState
+    VkPipelineRasterizationStateCreateInfo rasterizationState{};
+    rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+
+    // MultisampleState
+    // VkPipelineSampleLocationsStateCreateInfoEXT sampleLocationsState = {VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT};
+    //sampleLocationsState.sampleLocationsInfo.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT;
+
+    VkPipelineMultisampleStateCreateInfo multisampleState = {};
+    multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleState.rasterizationSamples = desc.multisample ? ToVkSampleCount(desc.multisample->count) : VK_SAMPLE_COUNT_1_BIT;
+
+    ALIMER_ASSERT(multisampleState.rasterizationSamples <= 32);
+    if (desc.multisample)
+    {
+        multisampleState.sampleShadingEnable = VK_FALSE;
+        multisampleState.minSampleShading = 0.0f;
+        multisampleState.alphaToCoverageEnable = desc.multisample->alphaToCoverageEnabled ? VK_TRUE : VK_FALSE;
+        multisampleState.alphaToOneEnable = VK_FALSE;
+        multisampleState.pSampleMask = desc.multisample->mask != 0 ? &desc.multisample->mask : nullptr;
+    }
+
+    // DepthStencilState
+    VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+    VkGraphicsPipelineCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    //createInfo.pNext = &renderingInfo;
+    createInfo.stageCount = (uint32_t)stages.size();
+    createInfo.pStages = stages.data();
+    createInfo.pVertexInputState = &vertexInputState;
+    createInfo.pInputAssemblyState = &inputAssemblyState;
+    createInfo.pTessellationState = nullptr;
+    createInfo.pViewportState = &viewportState;
+    createInfo.pRasterizationState = &rasterizationState;
+    createInfo.pMultisampleState = &multisampleState;
+    createInfo.pDepthStencilState = nullptr;
+    //createInfo.pColorBlendState = &blendState;
+    createInfo.pDynamicState = &dynamicStateInfo;
+    createInfo.layout = pipeline->layout->handle;
+    createInfo.renderPass = VK_NULL_HANDLE;
+    createInfo.subpass = 0;
+    createInfo.basePipelineHandle = VK_NULL_HANDLE;
+    createInfo.basePipelineIndex = -1;
+
+    VkResult result = vkCreateGraphicsPipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
+
+    if (result != VK_SUCCESS)
+    {
+        delete pipeline;
+        VK_LOG_ERROR(result, "Failed to create Render Pipeline");
+        return nullptr;
+    }
+
+    if (desc.label)
+    {
+        pipeline->SetLabel(desc.label);
+    }
+
+    return pipeline;
+}
+
 static void AddUniqueFamily(uint32_t* sharing_indices, uint32_t& count, uint32_t family)
 {
     if (family == VK_QUEUE_FAMILY_IGNORED)
@@ -3131,7 +3699,7 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
 
     // Format and color space
     VkSurfaceFormatKHR surfaceFormat = {};
-    surfaceFormat.format = ToVkFormat(_ALIMER_DEF(config.format, PixelFormat_BGRA8UnormSrgb));
+    surfaceFormat.format = device->adapter->ToVkFormat(_ALIMER_DEF(config.format, PixelFormat_BGRA8UnormSrgb));
     surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
     bool valid = false;
@@ -3365,7 +3933,113 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
         }
         );
 
+    if (HasFeature(GPUFeature_ConservativeRasterization))
+    {
+        limits->conservativeRasterizationTier = GPUConservativeRasterizationTier_1;
+
+        if (conservativeRasterizationProps.primitiveOverestimationSize < 1.0f / 2.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
+            limits->conservativeRasterizationTier = GPUConservativeRasterizationTier_2;
+        if (conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
+            limits->conservativeRasterizationTier = GPUConservativeRasterizationTier_3;
+    }
+
     return GPUResult_Success;
+}
+
+bool VulkanAdapter::HasFeature(GPUFeature feature) const
+{
+    switch (feature)
+    {
+        case GPUFeature_DepthClipControl:
+            return features2.features.depthClamp == VK_TRUE;
+
+        case GPUFeature_Depth32FloatStencil8:
+            return IsDepthStencilFormatSupported(VK_FORMAT_D32_SFLOAT_S8_UINT);
+
+        case GPUFeature_TimestampQuery:
+            return properties2.properties.limits.timestampComputeAndGraphics == VK_TRUE;
+
+        case GPUFeature_PipelineStatisticsQuery:
+            return features2.features.pipelineStatisticsQuery == VK_TRUE;
+
+        case GPUFeature_TextureCompressionBC:
+            return features2.features.textureCompressionBC == VK_TRUE;
+
+        case GPUFeature_TextureCompressionETC2:
+            return features2.features.textureCompressionETC2 == VK_TRUE;
+
+        case GPUFeature_TextureCompressionASTC:
+            return features2.features.textureCompressionASTC_LDR == VK_TRUE;
+
+        case GPUFeature_TextureCompressionASTC_HDR:
+            return astcHdrFeatures.textureCompressionASTC_HDR == VK_TRUE;
+
+        case GPUFeature_IndirectFirstInstance:
+            return features2.features.drawIndirectFirstInstance == VK_TRUE;
+
+        case GPUFeature_DualSourceBlending:
+            return features2.features.dualSrcBlend == VK_TRUE;
+
+        case GPUFeature_ShaderFloat16:
+            // VK_KHR_16bit_storage core in 1.1
+            // VK_KHR_shader_float16_int8 core in 1.2
+            return true;
+
+        case GPUFeature_GPUUploadHeapSupported:
+            // https://github.com/KhronosGroup/Vulkan-Docs/issues/2096
+                // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+            return true;
+
+        case GPUFeature_CopyQueueTimestampQueriesSupported:
+            return true;
+
+        case GPUFeature_CacheCoherentUMA:
+            if (memoryProperties2.memoryProperties.memoryHeapCount == 1 &&
+                memoryProperties2.memoryProperties.memoryHeaps[0].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+            {
+                return true;
+            }
+
+            return false;
+
+        case GPUFeature_ShaderOutputViewportIndex:
+            return features12.shaderOutputLayer == VK_TRUE && features12.shaderOutputViewportIndex == VK_TRUE;
+
+        case GPUFeature_ConservativeRasterization:
+            return extensions.conservativeRasterization;
+
+        default:
+            return false;
+    }
+}
+
+bool VulkanAdapter::IsDepthStencilFormatSupported(VkFormat format) const
+{
+    ALIMER_ASSERT(format == VK_FORMAT_D16_UNORM_S8_UINT
+        || format == VK_FORMAT_D24_UNORM_S8_UINT
+        || format == VK_FORMAT_D32_SFLOAT_S8_UINT
+        || format == VK_FORMAT_S8_UINT);
+
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(handle, format, &properties);
+    return properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+}
+
+VkFormat VulkanAdapter::ToVkFormat(PixelFormat format) const
+{
+    //if (format == PixelFormat_Stencil8 && !supportsS8)
+    //{
+    //    return VK_FORMAT_D24_UNORM_S8_UINT;
+    //}
+
+    if (format == PixelFormat_Depth24UnormStencil8 && !supportsDepth24Stencil8)
+    {
+        return VK_FORMAT_D32_SFLOAT_S8_UINT;
+    }
+
+    // https://github.com/doitsujin/dxvk/blob/master/src/dxgi/dxgi_format.cpp
+    VkFormat vkFormat = static_cast<VkFormat>(alimerPixelFormatToVkFormat(format));
+    return vkFormat;
 }
 
 GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
@@ -3379,7 +4053,7 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
     // Core in 1.3
-    if (properties.apiVersion < VK_API_VERSION_1_3)
+    if (properties2.properties.apiVersion < VK_API_VERSION_1_3)
     {
         if (extensions.maintenance4)
         {
@@ -3709,7 +4383,9 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 
     if (result != VK_SUCCESS)
     {
+        delete device;
         VK_LOG_ERROR(result, "Cannot create allocator");
+        return nullptr;
     }
 
     if (extensions.externalMemory)
@@ -3725,8 +4401,25 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
         result = vmaCreateAllocator(&allocatorInfo, &device->externalAllocator);
         if (result != VK_SUCCESS)
         {
+            delete device;
             VK_LOG_ERROR(result, "Failed to create Vulkan external memory allocator");
+            return nullptr;
         }
+    }
+
+    // Create pipeline cache 
+    VkPipelineCacheCreateInfo pipelineCacheInfo;
+    pipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+    pipelineCacheInfo.pNext = nullptr;
+    pipelineCacheInfo.flags = 0;
+    pipelineCacheInfo.initialDataSize = 0;
+    pipelineCacheInfo.pInitialData = nullptr;
+    result = device->vkCreatePipelineCache(device->handle, &pipelineCacheInfo, nullptr, &device->pipelineCache);
+    if (result != VK_SUCCESS)
+    {
+        delete device;
+        VK_LOG_ERROR(result, "Failed to create Vulkan external memory allocator");
+        return nullptr;
     }
 
     // Init copy allocator
@@ -3862,7 +4555,6 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
 
         if (physicalDeviceFeatures.robustBufferAccess != VK_TRUE
             || physicalDeviceFeatures.fullDrawIndexUint32 != VK_TRUE
-            || physicalDeviceFeatures.depthClamp != VK_TRUE
             || physicalDeviceFeatures.depthBiasClamp != VK_TRUE
             || physicalDeviceFeatures.fragmentStoresAndAtomics != VK_TRUE
             || physicalDeviceFeatures.imageCubeArray != VK_TRUE
@@ -3951,6 +4643,7 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
         addToPropertiesChain(&adapter->properties13);
 
         adapter->multiviewProperties = {};
+        adapter->conservativeRasterizationProps = {};
         adapter->accelerationStructureProperties = {};
         adapter->rayTracingPipelineProperties = {};
         adapter->fragmentShadingRateProperties = {};
@@ -4000,6 +4693,12 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
         {
             adapter->multiviewProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES;
             addToPropertiesChain(&adapter->multiviewProperties);
+        }
+
+        if (adapter->extensions.conservativeRasterization)
+        {
+            adapter->conservativeRasterizationProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT;
+            addToPropertiesChain(&adapter->conservativeRasterizationProps);
         }
 
         if (adapter->extensions.depthClipEnable)
@@ -4107,7 +4806,6 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
     ALIMER_ASSERT(adapter->dynamicRendering == true);
     //ALIMER_ASSERT(adapter->properties2.properties.limits.maxPushConstantsSize >= kMaxPushConstantSize);
 
-    vkGetPhysicalDeviceProperties(adapter->handle, &adapter->properties);
     adapter->memoryProperties2 = {};
     adapter->memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
     vkGetPhysicalDeviceMemoryProperties2(adapter->handle, &adapter->memoryProperties2);
@@ -4117,6 +4815,14 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
     {
         adapter->driverDescription += std::string(": ") + adapter->properties12.driverInfo;
     }
+
+    // The environment can request to various options for depth-stencil formats that could be
+    // unavailable. Override the decision if it is not applicable.
+    adapter->supportsDepth32Stencil8 = adapter->IsDepthStencilFormatSupported(VK_FORMAT_D32_SFLOAT_S8_UINT);
+    adapter->supportsDepth24Stencil8 = adapter->IsDepthStencilFormatSupported(VK_FORMAT_D24_UNORM_S8_UINT);
+    adapter->supportsStencil8 = adapter->IsDepthStencilFormatSupported(VK_FORMAT_S8_UINT);
+
+    ALIMER_ASSERT(adapter->supportsDepth32Stencil8 || adapter->supportsDepth24Stencil8);
 
     return adapter;
 }
