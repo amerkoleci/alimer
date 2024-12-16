@@ -320,7 +320,7 @@ namespace
         }
     }
 
-    constexpr VkAttachmentLoadOp ToVk(GPULoadAction value)
+    [[nodiscard]] constexpr VkAttachmentLoadOp ToVk(GPULoadAction value)
     {
         switch (value)
         {
@@ -337,7 +337,7 @@ namespace
         }
     }
 
-    constexpr VkAttachmentStoreOp ToVk(GPUStoreAction value)
+    [[nodiscard]] constexpr VkAttachmentStoreOp ToVk(GPUStoreAction value)
     {
         switch (value)
         {
@@ -370,6 +370,72 @@ namespace
                 return VK_SAMPLE_COUNT_32_BIT;
             default:
                 return VK_SAMPLE_COUNT_1_BIT;
+        }
+    }
+
+    [[nodiscard]] constexpr VkCompareOp ToVk(GPUCompareFunction value)
+    {
+        switch (value)
+        {
+            case GPUCompareFunction_Never:        return VK_COMPARE_OP_NEVER;
+            case GPUCompareFunction_Less:         return VK_COMPARE_OP_LESS;
+            case GPUCompareFunction_Equal:        return VK_COMPARE_OP_EQUAL;
+            case GPUCompareFunction_LessEqual:    return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case GPUCompareFunction_Greater:      return VK_COMPARE_OP_GREATER;
+            case GPUCompareFunction_NotEqual:     return VK_COMPARE_OP_NOT_EQUAL;
+            case GPUCompareFunction_GreaterEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case GPUCompareFunction_Always:       return VK_COMPARE_OP_ALWAYS;
+            default:
+                ALIMER_UNREACHABLE();
+                return VK_COMPARE_OP_MAX_ENUM;
+        }
+    }
+
+    [[nodiscard]] constexpr VkFilter ToVk(GPUSamplerMinMagFilter value)
+    {
+        switch (value)
+        {
+            default:
+            case GPUSamplerMinMagFilter_Nearest:
+                return VK_FILTER_NEAREST;
+
+            case GPUSamplerMinMagFilter_Linear:
+                return VK_FILTER_LINEAR;
+        }
+    }
+
+    [[nodiscard]] constexpr VkSamplerMipmapMode ToVk(GPUSamplerMipFilter value)
+    {
+        switch (value)
+        {
+            default:
+            case GPUSamplerMipFilter_Nearest:
+                return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+            case GPUSamplerMipFilter_Linear:
+                return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        }
+    }
+
+    [[nodiscard]] constexpr VkSamplerAddressMode ToVk(GPUSamplerAddressMode value, VkBool32 samplerMirrorClampToEdge)
+    {
+        switch (value)
+        {
+            default:
+            case GPUSamplerAddressMode_ClampToEdge:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+            case GPUSamplerAddressMode_MirrorClampToEdge:
+                if (samplerMirrorClampToEdge == VK_TRUE)
+                    return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+
+            case GPUSamplerAddressMode_Repeat:
+                return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+            case GPUSamplerAddressMode_MirrorRepeat:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
         }
     }
 
@@ -1074,7 +1140,15 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) override;
     void SetScissorRect(const GPUScissorRect* scissorRect) override;
     void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) override;
+    void SetBlendColor(const float blendColor[4]) override;
     void SetStencilReference(uint32_t reference) override;
+
+    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset) override;
+    void SetPipeline(GPURenderPipeline pipeline) override;
+
+    void PrepareDraw();
+    void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
 };
 
 struct VulkanCommandBuffer final : public GPUCommandBufferImpl
@@ -1789,9 +1863,49 @@ void VulkanRenderPassEncoder::SetScissorRects(uint32_t scissorCount, const GPUSc
     commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, scissorCount, (const VkRect2D*)scissorRects);
 }
 
+void VulkanRenderPassEncoder::SetBlendColor(const float blendColor[4])
+{
+    commandBuffer->device->vkCmdSetBlendConstants(commandBuffer->handle, blendColor);
+}
+
 void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
 {
     commandBuffer->device->vkCmdSetStencilReference(commandBuffer->handle, VK_STENCIL_FRONT_AND_BACK, reference);
+}
+
+void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
+{
+    // TODO: Batch with 1 call
+    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
+
+    commandBuffer->device->vkCmdBindVertexBuffers(commandBuffer->handle, slot, 1, &backendBuffer->handle, &offset);
+}
+
+void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset)
+{
+    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
+    VkIndexType vkIndexType = (format == GPUIndexFormat_Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+
+    commandBuffer->device->vkCmdBindIndexBuffer(commandBuffer->handle, backendBuffer->handle, offset, vkIndexType);
+}
+
+void VulkanRenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
+{
+    VulkanRenderPipeline* backendPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
+
+    commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS, backendPipeline->handle);
+}
+
+void VulkanRenderPassEncoder::PrepareDraw()
+{
+
+}
+
+void VulkanRenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+    PrepareDraw();
+
+    commandBuffer->device->vkCmdDraw(commandBuffer->handle, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 /* VulkanCommandBuffer */
@@ -3240,6 +3354,40 @@ GPUSampler VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
 
     VkSamplerCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    createInfo.pNext = nullptr;
+    createInfo.flags = 0;
+    createInfo.magFilter = ToVk(desc.magFilter);
+    createInfo.minFilter = ToVk(desc.minFilter);
+    createInfo.mipmapMode = ToVk(desc.mipFilter);
+    createInfo.addressModeU = ToVk(desc.addressModeU, adapter->features12.samplerMirrorClampToEdge);
+    createInfo.addressModeV = ToVk(desc.addressModeV, adapter->features12.samplerMirrorClampToEdge);
+    createInfo.addressModeW = ToVk(desc.addressModeW, adapter->features12.samplerMirrorClampToEdge);
+    createInfo.mipLodBias = 0.0f;
+    uint16_t maxAnisotropy = desc.maxAnisotropy;
+    if (adapter->features2.features.samplerAnisotropy == VK_TRUE && maxAnisotropy > 1)
+    {
+        createInfo.anisotropyEnable = VK_TRUE;
+        createInfo.maxAnisotropy = std::clamp(maxAnisotropy * 1.f, 1.f, adapter->properties2.properties.limits.maxSamplerAnisotropy);
+    }
+    else
+    {
+        createInfo.anisotropyEnable = VK_FALSE;
+        createInfo.maxAnisotropy = 1;
+    }
+    if (desc.compareFunction != GPUCompareFunction_Never)
+    {
+        createInfo.compareEnable = VK_TRUE;
+        createInfo.compareOp = ToVk(desc.compareFunction);
+    }
+    else
+    {
+        createInfo.compareEnable = VK_FALSE;
+        createInfo.compareOp = VK_COMPARE_OP_NEVER;
+    }
+    createInfo.minLod = desc.lodMinClamp;
+    createInfo.maxLod = desc.lodMaxClamp == GPU_LOD_CLAMP_NONE ? VK_LOD_CLAMP_NONE : desc.lodMaxClamp;
+    createInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+    createInfo.unnormalizedCoordinates = VK_FALSE;
 
     VkResult result = vkCreateSampler(handle, &createInfo, nullptr, &sampler->handle);
     if (result != VK_SUCCESS)
@@ -3457,25 +3605,73 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
 
     VkPipelineMultisampleStateCreateInfo multisampleState = {};
     multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleState.rasterizationSamples = desc.multisample ? ToVkSampleCount(desc.multisample->count) : VK_SAMPLE_COUNT_1_BIT;
+    multisampleState.rasterizationSamples = ToVkSampleCount(desc.rasterSampleCount);
 
     ALIMER_ASSERT(multisampleState.rasterizationSamples <= 32);
-    if (desc.multisample)
+    if (multisampleState.rasterizationSamples > VK_SAMPLE_COUNT_1_BIT)
     {
         multisampleState.sampleShadingEnable = VK_FALSE;
         multisampleState.minSampleShading = 0.0f;
-        multisampleState.alphaToCoverageEnable = desc.multisample->alphaToCoverageEnabled ? VK_TRUE : VK_FALSE;
+        multisampleState.alphaToCoverageEnable = desc.alphaToCoverageEnabled ? VK_TRUE : VK_FALSE;
         multisampleState.alphaToOneEnable = VK_FALSE;
-        multisampleState.pSampleMask = desc.multisample->mask != 0 ? &desc.multisample->mask : nullptr;
+        multisampleState.pSampleMask = nullptr;
     }
 
     // DepthStencilState
     VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
     depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 
+    // BlendState
+    uint32_t colorAttachmentCount = 0;
+    VkPipelineColorBlendAttachmentState blendAttachmentStates[GPU_MAX_COLOR_ATTACHMENTS] = {};
+
+    for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+    {
+        if (desc.colorAttachmentFormats[i] == PixelFormat_Undefined)
+            continue;
+
+        blendAttachmentStates[colorAttachmentCount].blendEnable = VK_FALSE;
+        blendAttachmentStates[colorAttachmentCount].colorWriteMask = 0xf;
+        colorAttachmentCount++;
+    }
+    VkPipelineColorBlendStateCreateInfo blendState = {};
+    blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    blendState.logicOpEnable = VK_FALSE;
+    blendState.logicOp = VK_LOGIC_OP_CLEAR;
+    blendState.attachmentCount = colorAttachmentCount;
+    blendState.pAttachments = blendAttachmentStates;
+    blendState.blendConstants[0] = 0.0f;
+    blendState.blendConstants[1] = 0.0f;
+    blendState.blendConstants[2] = 0.0f;
+    blendState.blendConstants[3] = 0.0f;
+
+    // RenderingInfo/ RenderPass
+    VkPipelineRenderingCreateInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    VkFormat colorAttachmentFormats[GPU_MAX_COLOR_ATTACHMENTS];
+    for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+    {
+        if (desc.colorAttachmentFormats[i] == PixelFormat_Undefined)
+            continue;
+
+        colorAttachmentFormats[renderingInfo.colorAttachmentCount] = adapter->ToVkFormat(desc.colorAttachmentFormats[i]);
+        renderingInfo.colorAttachmentCount++;
+    }
+    renderingInfo.pColorAttachmentFormats = colorAttachmentFormats;
+    renderingInfo.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+    if (desc.depthStencilAttachmentFormat != PixelFormat_Undefined)
+    {
+        renderingInfo.depthAttachmentFormat = adapter->ToVkFormat(desc.depthStencilAttachmentFormat);
+        if (!alimerPixelFormatIsDepthOnly(desc.depthStencilAttachmentFormat))
+        {
+            renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
+        }
+    }
+
     VkGraphicsPipelineCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    //createInfo.pNext = &renderingInfo;
+    createInfo.pNext = &renderingInfo;
     createInfo.stageCount = (uint32_t)stages.size();
     createInfo.pStages = stages.data();
     createInfo.pVertexInputState = &vertexInputState;
@@ -3485,7 +3681,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     createInfo.pRasterizationState = &rasterizationState;
     createInfo.pMultisampleState = &multisampleState;
     createInfo.pDepthStencilState = nullptr;
-    //createInfo.pColorBlendState = &blendState;
+    createInfo.pColorBlendState = &blendState;
     createInfo.pDynamicState = &dynamicStateInfo;
     createInfo.layout = pipeline->layout->handle;
     createInfo.renderPass = VK_NULL_HANDLE;

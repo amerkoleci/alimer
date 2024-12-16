@@ -33,6 +33,8 @@ typedef uint64_t GPUDeviceAddress;
 #define GPU_MAX_INFLIGHT_FRAMES (3u)
 #define GPU_MAX_COLOR_ATTACHMENTS (8u)
 #define GPU_MAX_VERTEX_BUFFER_BINDINGS (8u)
+#define GPU_WHOLE_SIZE (UINT64_MAX)
+#define GPU_LOD_CLAMP_NONE (1000.0F)
 
 /* Enums */
 typedef enum GPUResult {
@@ -151,9 +153,16 @@ typedef enum GPUVertexFormat {
     _GPUVertexFormat_Force32 = 0x7FFFFFFF
 } GPUVertexFormat;
 
+typedef enum GPUIndexFormat {
+    GPUIndexFormat_Undefined = 0,
+    GPUIndexFormat_Uint16 = 2,
+    GPUIndexFormat_Uint32 = 2,
+
+    _GPUIndexFormat_Force32 = 0x7FFFFFFF
+} GPUIndexFormat;
+
 typedef enum GPUCompareFunction {
-    GPUCompareFunction_Undefined = 0,
-    GPUCompareFunction_Never,
+    GPUCompareFunction_Never = 0,
     GPUCompareFunction_Less,
     GPUCompareFunction_Equal,
     GPUCompareFunction_LessEqual,
@@ -215,6 +224,29 @@ typedef enum GPUVertexStepMode {
 
     _GPUVertexStepMode_Force32 = 0x7FFFFFFF
 } GPUVertexStepMode;
+
+typedef enum GPUSamplerMinMagFilter {
+    GPUSamplerMinMagFilter_Nearest = 0,
+    GPUSamplerMinMagFilter_Linear = 1,
+
+    _GPUSamplerMinMagFilter_Force32 = 0x7FFFFFFF
+} GPUSamplerMinMagFilter;
+
+typedef enum GPUSamplerMipFilter {
+    GPUSamplerMipFilter_Nearest = 0,
+    GPUSamplerMipFilter_Linear = 1,
+
+    _GPUSamplerMipFilter_Force32 = 0x7FFFFFFF
+} GPUSamplerMipFilter;
+
+typedef enum GPUSamplerAddressMode {
+    GPUSamplerAddressMode_ClampToEdge = 0,
+    GPUSamplerAddressMode_MirrorClampToEdge = 1,
+    GPUSamplerAddressMode_Repeat = 2,
+    GPUSamplerAddressMode_MirrorRepeat = 3,
+
+    _GPUSamplerAddressMode_Force32 = 0x7FFFFFFF
+} GPUSamplerAddressMode;
 
 typedef enum GPUAcquireSurfaceResult {
     /// Everything is good and we can render this frame
@@ -394,7 +426,17 @@ typedef struct GPUTextureData {
 } GPUTextureData;
 
 typedef struct GPUSamplerDesc {
-    const char* label DEFAULT_INITIALIZER(nullptr);
+    const char*             label DEFAULT_INITIALIZER(nullptr);
+    GPUSamplerMinMagFilter  minFilter DEFAULT_INITIALIZER(GPUSamplerMinMagFilter_Nearest);
+    GPUSamplerMinMagFilter  magFilter DEFAULT_INITIALIZER(GPUSamplerMinMagFilter_Nearest);
+    GPUSamplerMipFilter     mipFilter DEFAULT_INITIALIZER(GPUSamplerMipFilter_Nearest);
+    GPUSamplerAddressMode   addressModeU DEFAULT_INITIALIZER(GPUSamplerAddressMode_ClampToEdge);
+    GPUSamplerAddressMode   addressModeV DEFAULT_INITIALIZER(GPUSamplerAddressMode_ClampToEdge);
+    GPUSamplerAddressMode   addressModeW DEFAULT_INITIALIZER(GPUSamplerAddressMode_ClampToEdge);
+    uint16_t                maxAnisotropy DEFAULT_INITIALIZER(1);
+    GPUCompareFunction      compareFunction DEFAULT_INITIALIZER(GPUCompareFunction_Never);
+    float                   lodMinClamp DEFAULT_INITIALIZER(0.0f);
+    float                   lodMaxClamp DEFAULT_INITIALIZER(GPU_LOD_CLAMP_NONE);
 } GPUSamplerDesc;
 
 typedef struct GPUBindGroupLayoutDesc {
@@ -441,17 +483,15 @@ typedef struct GPUVertexState {
     const GPUVertexBufferLayout* buffers DEFAULT_INITIALIZER(nullptr);
 } GPUVertexState;
 
-typedef struct GPUMultisampleState {
-    uint32_t count;
-    uint32_t mask;
-    GPUBool alphaToCoverageEnabled;
-} GPUMultisampleState;
-
 typedef struct GPURenderPipelineDesc {
-    const char* label DEFAULT_INITIALIZER(nullptr);
-    GPUPipelineLayout layout;
-    GPUVertexState vertex;
-    const GPUMultisampleState* multisample DEFAULT_INITIALIZER(nullptr);
+    const char*             label DEFAULT_INITIALIZER(nullptr);
+    GPUPipelineLayout       layout;
+    GPUVertexState          vertex;
+    uint32_t                rasterSampleCount DEFAULT_INITIALIZER(1);
+    GPUBool                 alphaToCoverageEnabled DEFAULT_INITIALIZER(false);
+    uint32_t                colorAttachmentCount DEFAULT_INITIALIZER(0);
+    PixelFormat             colorAttachmentFormats[GPU_MAX_COLOR_ATTACHMENTS];
+    PixelFormat             depthStencilAttachmentFormat DEFAULT_INITIALIZER(PixelFormat_Undefined);
 } GPURenderPipelineDesc;
 
 typedef struct GPURenderPassColorAttachment {
@@ -566,7 +606,7 @@ ALIMER_API void agpuShutdown(void);
 ALIMER_API GPUAdapter agpuRequestAdapter(const GPURequestAdapterOptions* options);
 
 /* Surface */
-ALIMER_API GPUSurface agpuSurfaceCreate(Window* window);
+ALIMER_API GPUSurface agpuCreateSurface(Window* window);
 ALIMER_API GPUResult agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities);
 ALIMER_API bool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config);
 ALIMER_API void agpuSurfaceUnconfigure(GPUSurface surface);
@@ -577,9 +617,9 @@ ALIMER_API uint32_t agpuSurfaceRelease(GPUSurface surface);
 ALIMER_API GPUResult agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info);
 ALIMER_API GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits);
 ALIMER_API bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature);
-ALIMER_API GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc);
 
 /* Device */
+ALIMER_API GPUDevice agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc);
 ALIMER_API void agpuDeviceSetLabel(GPUDevice device, const char* label);
 ALIMER_API uint32_t agpuDeviceAddRef(GPUDevice device);
 ALIMER_API uint32_t agpuDeviceRelease(GPUDevice device);
@@ -589,13 +629,6 @@ ALIMER_API bool agpuDeviceWaitIdle(GPUDevice device);
 
 /// Commit the current frame and advance to next frame
 ALIMER_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
-
-ALIMER_API GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
-ALIMER_API GPUTexture agpuDeviceCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
-ALIMER_API GPUPipelineLayout agpuDeviceCreatePipelineLayout(GPUDevice device, const GPUPipelineLayoutDesc* desc);
-ALIMER_API GPUShaderModule agpuDeviceCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc);
-ALIMER_API GPUComputePipeline agpuDeviceCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc);
-ALIMER_API GPURenderPipeline agpuDeviceCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc);
 
 /* Queue */
 ALIMER_API GPUQueueType agpuQueueGetType(GPUQueue queue);
@@ -623,13 +656,19 @@ ALIMER_API void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder renderPass
 ALIMER_API void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports);
 ALIMER_API void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder renderPassEncoder, const GPUScissorRect* scissorRect);
 ALIMER_API void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects);
+ALIMER_API void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder renderPassEncoder, const float blendColor[4]);
 ALIMER_API void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder renderPassEncoder, uint32_t reference);
+ALIMER_API void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer buffer, uint64_t offset);
+ALIMER_API void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer buffer, GPUIndexFormat format, uint64_t offset);
+ALIMER_API void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GPURenderPipeline pipeline);
+ALIMER_API void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 ALIMER_API void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder);
 ALIMER_API void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel);
 ALIMER_API void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder);
 ALIMER_API void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncoder, const char* markerLabel);
 
 /* Buffer */
+ALIMER_API GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
 ALIMER_API void agpuBufferSetLabel(GPUBuffer buffer, const char* label);
 ALIMER_API uint32_t agpuBufferAddRef(GPUBuffer buffer);
 ALIMER_API uint32_t agpuBufferRelease(GPUBuffer buffer);
@@ -637,6 +676,7 @@ ALIMER_API uint64_t agpuBufferGetSize(GPUBuffer buffer);
 ALIMER_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer);
 
 /* Texture */
+ALIMER_API GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
 ALIMER_API void agpuTextureSetLabel(GPUTexture texture, const char* label);
 ALIMER_API TextureDimension agpuTextureGetDimension(GPUTexture texture);
 ALIMER_API PixelFormat agpuTextureGetFormat(GPUTexture texture);
@@ -651,27 +691,32 @@ ALIMER_API uint32_t agpuTextureGetLevelHeight(GPUTexture texture, uint32_t mipLe
 ALIMER_API uint32_t agpuTextureAddRef(GPUTexture texture);
 ALIMER_API uint32_t agpuTextureRelease(GPUTexture texture);
 
+/* ShaderModule */
+ALIMER_API GPUShaderModule agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc);
+ALIMER_API void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label);
+ALIMER_API uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule);
+ALIMER_API uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule);
+
 /* Sampler */
+ALIMER_API GPUSampler agpuCreateSampler(GPUDevice device, const GPUSamplerDesc* desc);
 ALIMER_API void agpuSamplerSetLabel(GPUSampler sampler, const char* label);
 ALIMER_API uint32_t agpuSamplerAddRef(GPUSampler sampler);
 ALIMER_API uint32_t agpuSamplerRelease(GPUSampler sampler);
 
 /* PipelineLayout */
+ALIMER_API GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice device, const GPUPipelineLayoutDesc* desc);
 ALIMER_API void agpuPipelineLayoutSetLabel(GPUPipelineLayout pipelineLayout, const char* label);
 ALIMER_API uint32_t agpuPipelineLayoutAddRef(GPUPipelineLayout pipelineLayout);
 ALIMER_API uint32_t agpuPipelineLayoutRelease(GPUPipelineLayout pipelineLayout);
 
-/* ShaderModule */
-ALIMER_API void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label);
-ALIMER_API uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule);
-ALIMER_API uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule);
-
 /* ComputePipeline */
+ALIMER_API GPUComputePipeline agpuCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc);
 ALIMER_API void agpuComputePipelineSetLabel(GPUComputePipeline computePipeline, const char* label);
 ALIMER_API uint32_t agpuComputePipelineAddRef(GPUComputePipeline computePipeline);
 ALIMER_API uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline);
 
 /* RenderPipeline */
+ALIMER_API GPURenderPipeline agpuCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc);
 ALIMER_API void agpuRenderPipelineSetLabel(GPURenderPipeline renderPipeline, const char* label);
 ALIMER_API uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline);
 ALIMER_API uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline);

@@ -131,7 +131,13 @@ struct GPURenderPassEncoderImpl : public GPUCommandEncoder
     virtual void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) = 0;
     virtual void SetScissorRect(const GPUScissorRect* scissorRect) = 0;
     virtual void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) = 0;
+    virtual void SetBlendColor(const float blendColor[4]) = 0;
     virtual void SetStencilReference(uint32_t reference) = 0;
+
+    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) = 0;
+    virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset) = 0;
+    virtual void SetPipeline(GPURenderPipeline pipeline) = 0;
+    virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 };
 
 struct GPUCommandBufferImpl : public GPUResource

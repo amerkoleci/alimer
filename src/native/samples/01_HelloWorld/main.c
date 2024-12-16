@@ -47,7 +47,7 @@ GPUShaderModule LoadShader(const char* shaderFileName)
         .bytecode = malloc(length)
     };
     fread((void*)desc.bytecode, length, 1, handle);
-    GPUShaderModule result = agpuDeviceCreateShaderModule(device, &desc);
+    GPUShaderModule result = agpuCreateShaderModule(device, &desc);
     free((void*)desc.bytecode);
     fclose(handle);
     return result;
@@ -78,6 +78,9 @@ void Render()
         };
 
         GPURenderPassEncoder encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
+        agpuRenderPassEncoderSetVertexBuffer(encoder, 0, vertexBuffer, 0);
+        agpuRenderPassEncoderSetPipeline(encoder, renderPipeline);
+        agpuRenderPassEncoderDraw(encoder, 3, 1, 0, 0);
         agpuRenderPassEncoderEnd(encoder);
     }
 
@@ -125,7 +128,7 @@ int main()
     window = alimerWindowCreate(&windowDesc);
     alimerWindowSetCentered(window);
 
-    surface = agpuSurfaceCreate(window);
+    surface = agpuCreateSurface(window);
 
     GPURequestAdapterOptions adapterOptions = {
         .compatibleSurface = surface
@@ -143,7 +146,7 @@ int main()
     GPUDeviceDesc deviceDesc = {
         .label = "Test Device"
     };
-    device = agpuAdapterCreateDevice(adapter, &deviceDesc);
+    device = agpuCreateDevice(adapter, &deviceDesc);
 
     GPUSurfaceConfig surfaceConfig = {
         .device = device,
@@ -159,7 +162,7 @@ int main()
          0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
         -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
     };
-    vertexBuffer = agpuDeviceCreateBuffer(device, &(GPUBufferDesc) {
+    vertexBuffer = agpuCreateBuffer(device, &(GPUBufferDesc) {
         .usage = GPUBufferUsage_Vertex,
         .size = sizeof(vertices)
     }, vertices);
@@ -168,7 +171,7 @@ int main()
     //GPUShaderModule fragmentShader = LoadShader("shaders/triangleFragment.spv");
     //shaders[1].entryPointName = "fragmentMain";
 
-    GPUPipelineLayout pipelineLayout = agpuDeviceCreatePipelineLayout(device, &(GPUPipelineLayoutDesc) {
+    GPUPipelineLayout pipelineLayout = agpuCreatePipelineLayout(device, &(GPUPipelineLayoutDesc) {
         .label = "PipelineLayout"
     });
 
@@ -187,7 +190,10 @@ int main()
         .attributes = vertexAttributes
     };
 
-    renderPipeline = agpuDeviceCreateRenderPipeline(device, &(GPURenderPipelineDesc) {
+    int s = sizeof(GPURenderPipelineDesc);
+    (void)s;
+
+    renderPipeline = agpuCreateRenderPipeline(device, &(GPURenderPipelineDesc) {
         .label = "RenderPipeline",
         .layout = pipelineLayout,
         .vertex = {
@@ -195,7 +201,9 @@ int main()
             .entryPoint = "vertexMain",
             .bufferCount = 1,
             .buffers = &vertexBufferLayout
-        }
+        },
+        .colorAttachmentCount = 1,
+        .colorAttachmentFormats[0] = PixelFormat_BGRA8UnormSrgb
     });
     agpuShaderModuleRelease(vertexShader);
     agpuPipelineLayoutRelease(pipelineLayout);
@@ -222,7 +230,6 @@ int main()
         }
 
         Render();
-        //surface.Present();
         agpuDeviceCommitFrame(device);
     }
 #endif

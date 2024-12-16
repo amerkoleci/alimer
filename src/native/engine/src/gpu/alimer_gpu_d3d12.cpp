@@ -684,7 +684,15 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) override;
     void SetScissorRect(const GPUScissorRect* scissorRect) override;
     void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) override;
+    void SetBlendColor(const float blendColor[4]) override;
     void SetStencilReference(uint32_t reference) override;
+
+    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset) override;
+    void SetPipeline(GPURenderPipeline pipeline) override;
+
+    void PrepareDraw();
+    void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
 };
 
 struct D3D12CommandBuffer final : public GPUCommandBufferImpl
@@ -1455,9 +1463,49 @@ void D3D12RenderPassEncoder::SetScissorRects(uint32_t scissorCount, const GPUSci
     commandBuffer->commandList->RSSetScissorRects(scissorCount, d3dScissorRects);
 }
 
+void D3D12RenderPassEncoder::SetBlendColor(const float blendColor[4])
+{
+    commandBuffer->commandList->OMSetBlendFactor(blendColor);
+}
+
 void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
 {
     commandBuffer->commandList->OMSetStencilRef(reference);
+}
+
+void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
+{
+}
+
+void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset)
+{
+    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
+
+    D3D12_INDEX_BUFFER_VIEW view;
+    view.BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
+    view.SizeInBytes = (UINT)(backendBuffer->desc.size - offset);
+    view.Format = (format == GPUIndexFormat_Uint16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
+    commandBuffer->commandList->IASetIndexBuffer(&view);
+}
+
+void D3D12RenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
+{
+    //D3D12RenderPipeline* backendPipeline = static_cast<D3D12RenderPipeline*>(pipeline);
+
+    //commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
+    //commandBuffer->commandList->IASetPrimitiveTopology(backendPipeline->primitiveTopology);
+}
+
+void D3D12RenderPassEncoder::PrepareDraw()
+{
+
+}
+
+void D3D12RenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+    PrepareDraw();
+
+    commandBuffer->commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 /* D3D12CommandBuffer */
