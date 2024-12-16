@@ -81,11 +81,6 @@ struct GPUQuerySetImpl : public GPUResource
 
 };
 
-struct GPUShaderModuleImpl : public GPUResource
-{
-
-};
-
 struct GPUBindGroupLayoutImpl : public GPUResource
 {
 
@@ -160,6 +155,7 @@ struct GPUQueueImpl : public GPUResource
 
 struct GPUDeviceImpl : public GPUResource
 {
+    virtual GPUBackendType GetBackend() const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUQueue GetQueue(GPUQueueType type) = 0;
     virtual bool WaitIdle() = 0;
@@ -171,7 +167,6 @@ struct GPUDeviceImpl : public GPUResource
     virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
     virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
     virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
-    virtual GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
     virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
 };

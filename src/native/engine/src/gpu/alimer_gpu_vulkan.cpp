@@ -204,57 +204,78 @@ namespace
 #endif
     }
 
-    constexpr VkFormat ToVkVertexFormat(GPUVertexFormat format)
+    [[nodiscard]] constexpr PixelFormat ToGPUSwapChainFormat(VkFormat format)
     {
         switch (format)
         {
-            case GPUVertexFormat_UByte:               return VK_FORMAT_R8_UINT;
-            case GPUVertexFormat_UByte2:              return VK_FORMAT_R8G8_UINT;
-            case GPUVertexFormat_UByte4:              return VK_FORMAT_R8G8B8A8_UINT;
-            case GPUVertexFormat_Byte:                return VK_FORMAT_R8_SINT;
-            case GPUVertexFormat_Byte2:               return VK_FORMAT_R8G8_SINT;
-            case GPUVertexFormat_Byte4:               return VK_FORMAT_R8G8B8A8_SINT;
-            case GPUVertexFormat_UByteNormalized:     return VK_FORMAT_R8_UNORM;
-            case GPUVertexFormat_UByte2Normalized:    return VK_FORMAT_R8G8_UNORM;
-            case GPUVertexFormat_UByte4Normalized:    return VK_FORMAT_R8G8B8A8_UNORM;
-            case GPUVertexFormat_ByteNormalized:      return VK_FORMAT_R8_SNORM;
-            case GPUVertexFormat_Byte2Normalized:     return VK_FORMAT_R8G8_SNORM;
-            case GPUVertexFormat_Byte4Normalized:     return VK_FORMAT_R8G8B8A8_SNORM;
+            case VK_FORMAT_R8G8B8A8_UNORM:
+                return PixelFormat_RGBA8Unorm;
+            case VK_FORMAT_R8G8B8A8_SRGB:
+                return PixelFormat_RGBA8UnormSrgb;
+            case VK_FORMAT_B8G8R8A8_UNORM:
+                return PixelFormat_BGRA8Unorm;
+            case VK_FORMAT_B8G8R8A8_SRGB:
+                return PixelFormat_BGRA8UnormSrgb;
+            case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+                return PixelFormat_RGB10A2Unorm;
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return PixelFormat_RGBA16Float;
+            default:
+                return PixelFormat_Undefined;
+        }
+    };
 
-            case GPUVertexFormat_UShort:              return VK_FORMAT_R16_UINT;
-            case GPUVertexFormat_UShort2:             return VK_FORMAT_R16G16_UINT;
-            case GPUVertexFormat_UShort4:             return VK_FORMAT_R16G16B16A16_UINT;
-            case GPUVertexFormat_Short:               return VK_FORMAT_R16_SINT;
-            case GPUVertexFormat_Short2:              return VK_FORMAT_R16G16_SINT;
-            case GPUVertexFormat_Short4:              return VK_FORMAT_R16G16B16A16_SINT;
-            case GPUVertexFormat_UShortNormalized:    return VK_FORMAT_R16_UNORM;
-            case GPUVertexFormat_UShort2Normalized:   return VK_FORMAT_R16G16_UNORM;
-            case GPUVertexFormat_UShort4Normalized:   return VK_FORMAT_R16G16B16A16_UNORM;
-            case GPUVertexFormat_ShortNormalized:     return VK_FORMAT_R16_SNORM;
-            case GPUVertexFormat_Short2Normalized:    return VK_FORMAT_R16G16_SNORM;
-            case GPUVertexFormat_Short4Normalized:    return VK_FORMAT_R16G16B16A16_SNORM;
+    [[nodiscard]] constexpr VkFormat ToVkVertexFormat(GPUVertexFormat format)
+    {
+        switch (format)
+        {
+            case GPUVertexFormat_UByte:                 return VK_FORMAT_R8_UINT;
+            case GPUVertexFormat_UByte2:                return VK_FORMAT_R8G8_UINT;
+            case GPUVertexFormat_UByte4:                return VK_FORMAT_R8G8B8A8_UINT;
+            case GPUVertexFormat_Byte:                  return VK_FORMAT_R8_SINT;
+            case GPUVertexFormat_Byte2:                 return VK_FORMAT_R8G8_SINT;
+            case GPUVertexFormat_Byte4:                 return VK_FORMAT_R8G8B8A8_SINT;
+            case GPUVertexFormat_UByteNormalized:       return VK_FORMAT_R8_UNORM;
+            case GPUVertexFormat_UByte2Normalized:      return VK_FORMAT_R8G8_UNORM;
+            case GPUVertexFormat_UByte4Normalized:      return VK_FORMAT_R8G8B8A8_UNORM;
+            case GPUVertexFormat_ByteNormalized:        return VK_FORMAT_R8_SNORM;
+            case GPUVertexFormat_Byte2Normalized:       return VK_FORMAT_R8G8_SNORM;
+            case GPUVertexFormat_Byte4Normalized:       return VK_FORMAT_R8G8B8A8_SNORM;
 
-            case GPUVertexFormat_Half:                return VK_FORMAT_R16_SFLOAT;
-            case GPUVertexFormat_Half2:               return VK_FORMAT_R16G16_SFLOAT;
-            case GPUVertexFormat_Half4:               return VK_FORMAT_R16G16B16A16_SFLOAT;
+            case GPUVertexFormat_UShort:                return VK_FORMAT_R16_UINT;
+            case GPUVertexFormat_UShort2:               return VK_FORMAT_R16G16_UINT;
+            case GPUVertexFormat_UShort4:               return VK_FORMAT_R16G16B16A16_UINT;
+            case GPUVertexFormat_Short:                 return VK_FORMAT_R16_SINT;
+            case GPUVertexFormat_Short2:                return VK_FORMAT_R16G16_SINT;
+            case GPUVertexFormat_Short4:                return VK_FORMAT_R16G16B16A16_SINT;
+            case GPUVertexFormat_UShortNormalized:      return VK_FORMAT_R16_UNORM;
+            case GPUVertexFormat_UShort2Normalized:     return VK_FORMAT_R16G16_UNORM;
+            case GPUVertexFormat_UShort4Normalized:     return VK_FORMAT_R16G16B16A16_UNORM;
+            case GPUVertexFormat_ShortNormalized:       return VK_FORMAT_R16_SNORM;
+            case GPUVertexFormat_Short2Normalized:      return VK_FORMAT_R16G16_SNORM;
+            case GPUVertexFormat_Short4Normalized:      return VK_FORMAT_R16G16B16A16_SNORM;
 
-            case GPUVertexFormat_Float:               return VK_FORMAT_R32_SFLOAT;
-            case GPUVertexFormat_Float2:              return VK_FORMAT_R32G32_SFLOAT;
-            case GPUVertexFormat_Float3:              return VK_FORMAT_R32G32B32_SFLOAT;
-            case GPUVertexFormat_Float4:              return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case GPUVertexFormat_Half:                  return VK_FORMAT_R16_SFLOAT;
+            case GPUVertexFormat_Half2:                 return VK_FORMAT_R16G16_SFLOAT;
+            case GPUVertexFormat_Half4:                 return VK_FORMAT_R16G16B16A16_SFLOAT;
 
-            case GPUVertexFormat_UInt:                return VK_FORMAT_R32_UINT;
-            case GPUVertexFormat_UInt2:               return VK_FORMAT_R32G32_UINT;
-            case GPUVertexFormat_UInt3:               return VK_FORMAT_R32G32B32_UINT;
-            case GPUVertexFormat_UInt4:               return VK_FORMAT_R32G32B32A32_UINT;
+            case GPUVertexFormat_Float:                 return VK_FORMAT_R32_SFLOAT;
+            case GPUVertexFormat_Float2:                return VK_FORMAT_R32G32_SFLOAT;
+            case GPUVertexFormat_Float3:                return VK_FORMAT_R32G32B32_SFLOAT;
+            case GPUVertexFormat_Float4:                return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-            case GPUVertexFormat_Int:                 return VK_FORMAT_R32_SINT;
-            case GPUVertexFormat_Int2:                return VK_FORMAT_R32G32_SINT;
-            case GPUVertexFormat_Int3:                return VK_FORMAT_R32G32B32_SINT;
-            case GPUVertexFormat_Int4:                return VK_FORMAT_R32G32B32A32_SINT;
+            case GPUVertexFormat_UInt:                  return VK_FORMAT_R32_UINT;
+            case GPUVertexFormat_UInt2:                 return VK_FORMAT_R32G32_UINT;
+            case GPUVertexFormat_UInt3:                 return VK_FORMAT_R32G32B32_UINT;
+            case GPUVertexFormat_UInt4:                 return VK_FORMAT_R32G32B32A32_UINT;
 
-            case GPUVertexFormat_Unorm10_10_10_2:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-            case GPUVertexFormat_Unorm8x4BGRA:   return VK_FORMAT_B8G8R8A8_UNORM;
+            case GPUVertexFormat_Int:                   return VK_FORMAT_R32_SINT;
+            case GPUVertexFormat_Int2:                  return VK_FORMAT_R32G32_SINT;
+            case GPUVertexFormat_Int3:                  return VK_FORMAT_R32G32B32_SINT;
+            case GPUVertexFormat_Int4:                  return VK_FORMAT_R32G32B32A32_SINT;
+
+            case GPUVertexFormat_Unorm10_10_10_2:       return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case GPUVertexFormat_Unorm8x4BGRA:          return VK_FORMAT_B8G8R8A8_UNORM;
                 //case VertexFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
                 //case VertexFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
@@ -263,7 +284,7 @@ namespace
         }
     }
 
-    constexpr VkVertexInputRate ToVk(GPUVertexStepMode mode)
+    [[nodiscard]] constexpr VkVertexInputRate ToVk(GPUVertexStepMode mode)
     {
         switch (mode)
         {
@@ -277,7 +298,7 @@ namespace
         }
     }
 
-    constexpr VkImageAspectFlags GetImageAspectFlags(VkFormat format, GPUTextureAspect aspect)
+    [[nodiscard]] constexpr VkImageAspectFlags GetImageAspectFlags(VkFormat format, GPUTextureAspect aspect)
     {
         switch (aspect)
         {
@@ -306,7 +327,7 @@ namespace
         }
     }
 
-    constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
+    [[nodiscard]] constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
     {
         switch (mode)
         {
@@ -1080,15 +1101,6 @@ struct VulkanPipelineLayout final : public GPUPipelineLayoutImpl
     void SetLabel(const char* label) override;
 };
 
-struct VulkanShaderModule final : public GPUShaderModuleImpl
-{
-    VulkanDevice* device = nullptr;
-    VkShaderModule handle = VK_NULL_HANDLE;
-
-    ~VulkanShaderModule() override;
-    void SetLabel(const char* label) override;
-};
-
 struct VulkanComputePipeline final : public GPUComputePipelineImpl
 {
     VulkanDevice* device = nullptr;
@@ -1129,7 +1141,9 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
+    VulkanRenderPipeline* currentPipeline = nullptr;
 
+    void Clear();
     void Begin(const GPURenderPassDesc& desc);
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -1261,7 +1275,6 @@ struct VulkanDevice final : public GPUDeviceImpl
     std::deque<std::pair<VkSampler, uint64_t>> destroyedSamplers;
     std::deque<std::pair<VkDescriptorSetLayout, uint64_t>> destroyedDescriptorSetLayouts;
     std::deque<std::pair<VkPipelineLayout, uint64_t>> destroyedPipelineLayouts;
-    std::deque<std::pair<VkShaderModule, uint64_t>> destroyedShaderModules;
     std::deque<std::pair<VkPipeline, uint64_t>> destroyedPipelines;
     std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
     std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
@@ -1273,6 +1286,8 @@ struct VulkanDevice final : public GPUDeviceImpl
 
     ~VulkanDevice() override;
     void SetLabel(const char* label) override;
+
+    GPUBackendType GetBackend() const override { return GPUBackendType_Vulkan; }
     bool HasFeature(GPUFeature feature) const override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
@@ -1285,7 +1300,7 @@ struct VulkanDevice final : public GPUDeviceImpl
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    bool SetupShaderStage(const GPUShaderDesc& desc, VkPipelineShaderStageCreateInfo& pipelineStage);
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
 
@@ -1308,6 +1323,7 @@ struct VulkanSurface final : public GPUSurfaceImpl
     std::vector<VkSemaphore> swapchainAcquireSemaphores;
     VkSemaphore swapchainReleaseSemaphore = VK_NULL_HANDLE;
     mutable std::vector<PixelFormat> supportedFormats;
+    mutable std::vector<GPUPresentMode> supportedPresentModes;
 
     ~VulkanSurface() override;
     GPUResult GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
@@ -1571,24 +1587,6 @@ void VulkanPipelineLayout::SetLabel(const char* label)
     device->SetObjectName(VK_OBJECT_TYPE_PIPELINE_LAYOUT, reinterpret_cast<uint64_t>(handle), label);
 }
 
-/* VulkanShaderModule */
-VulkanShaderModule::~VulkanShaderModule()
-{
-    const uint64_t frameCount = device->frameCount;
-    device->destroyMutex.lock();
-    if (handle != VK_NULL_HANDLE)
-    {
-        device->destroyedShaderModules.push_back(std::make_pair(handle, frameCount));
-        handle = VK_NULL_HANDLE;
-    }
-    device->destroyMutex.unlock();
-}
-
-void VulkanShaderModule::SetLabel(const char* label)
-{
-
-}
-
 /* VulkanComputePipeline */
 VulkanComputePipeline::~VulkanComputePipeline()
 {
@@ -1686,6 +1684,11 @@ void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64
 }
 
 /* VulkanRenderPassEncoder */
+void VulkanRenderPassEncoder::Clear()
+{
+    SAFE_RELEASE(currentPipeline);
+}
+
 void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
 {
     if (desc.label)
@@ -1801,6 +1804,7 @@ void VulkanRenderPassEncoder::EndEncoding()
 
     commandBuffer->encoderActive = false;
     hasLabel = false;
+    Clear();
 }
 
 void VulkanRenderPassEncoder::PushDebugGroup(const char* groupLabel) const
@@ -1891,9 +1895,14 @@ void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat fo
 
 void VulkanRenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
 {
+    if (currentPipeline == pipeline)
+        return;
+
     VulkanRenderPipeline* backendPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
 
     commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS, backendPipeline->handle);
+    currentPipeline = backendPipeline;
+    currentPipeline->AddRef();
 }
 
 void VulkanRenderPassEncoder::PrepareDraw()
@@ -1941,8 +1950,8 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
     //GraphicsContext::Reset(frameIndex);
     //waits.clear();
     //hasPendingWaits.store(false);
-    //currentPipeline.Reset();
-    //currentPipelineLayout.Reset();
+    //frameAllocators[frameIndex].Reset();
+    renderPassEncoder->Clear();
     Clear();
 
     VK_CHECK(queue->device->vkResetCommandPool(queue->device->handle, commandPools[frameIndex], 0));
@@ -2795,7 +2804,6 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     Destroy(destroyedSamplers, [&](auto& item) { vkDestroySampler(handle, item, nullptr); });
     Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(handle, item, nullptr); });
     Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
-    Destroy(destroyedShaderModules, [&](auto& item) { vkDestroyShaderModule(handle, item, nullptr); });
     Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
     Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
     Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
@@ -3462,36 +3470,40 @@ GPUPipelineLayout VulkanDevice::CreatePipelineLayout(const GPUPipelineLayoutDesc
     return layout;
 }
 
-GPUShaderModule VulkanDevice::CreateShaderModule(const GPUShaderModuleDesc* desc)
+bool VulkanDevice::SetupShaderStage(const GPUShaderDesc& desc, VkPipelineShaderStageCreateInfo& pipelineStage)
 {
-    VkShaderModuleCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = desc->bytecodeSize;
-    createInfo.pCode = (const uint32_t*)desc->bytecode;
+    VkShaderModuleCreateInfo moduleInfo = {};
+    moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    moduleInfo.codeSize = desc.bytecodeSize;
+    moduleInfo.pCode = (const uint32_t*)desc.bytecode;
 
-    VkShaderModule vk_handle;
-    VkResult result = vkCreateShaderModule(handle, &createInfo, nullptr, &vk_handle);
+    const VkResult result = vkCreateShaderModule(handle, &moduleInfo, nullptr, &pipelineStage.module);
 
     if (result != VK_SUCCESS)
     {
-        VK_LOG_ERROR(result, "Failed to create a compute shader module");
-        return nullptr;
+        VK_LOG_ERROR(result, "Failed to create a pipeline shader module");
+        return false;
     }
 
-    VulkanShaderModule* shaderModule = new VulkanShaderModule();
-    shaderModule->device = this;
-    shaderModule->handle = vk_handle;
-    return shaderModule;
+    pipelineStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    pipelineStage.pNext = nullptr;
+    pipelineStage.flags = 0;
+    pipelineStage.stage = (VkShaderStageFlagBits)ToVkShaderStageFlags(desc.stage);
+    pipelineStage.pName = nullptr;
+    pipelineStage.pSpecializationInfo = nullptr;
+    return true;
 }
 
 GPUComputePipeline VulkanDevice::CreateComputePipeline(const GPUComputePipelineDesc& desc)
 {
-    // Create shader module first.
     VkPipelineShaderStageCreateInfo computeStage{};
-    computeStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    if (!SetupShaderStage(desc.shader, computeStage))
+    {
+        return nullptr;
+    }
+
     computeStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    computeStage.module = static_cast<VulkanShaderModule*>(desc.compute.module)->handle;
-    computeStage.pName = desc.compute.entryPoint ? desc.compute.entryPoint : "main";
+    computeStage.pName = desc.shader.entryPoint ? desc.shader.entryPoint : "main";
 
     VulkanComputePipeline* pipeline = new VulkanComputePipeline();
     pipeline->device = this;
@@ -3502,8 +3514,8 @@ GPUComputePipeline VulkanDevice::CreateComputePipeline(const GPUComputePipelineD
     createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     createInfo.stage = computeStage;
     createInfo.layout = pipeline->layout->handle;
-    VkResult result = vkCreateComputePipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
 
+    VkResult result = vkCreateComputePipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
     if (result != VK_SUCCESS)
     {
         delete pipeline;
@@ -3527,12 +3539,17 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     pipeline->layout->AddRef();
 
     // ShaderStages
-    std::vector<VkPipelineShaderStageCreateInfo> stages;
-    VkPipelineShaderStageCreateInfo& vertexShaderStage = stages.emplace_back();
-    vertexShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertexShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexShaderStage.module = static_cast<VulkanShaderModule*>(desc.vertex.module)->handle;
-    vertexShaderStage.pName = desc.vertex.entryPoint ? desc.vertex.entryPoint : "main";
+    std::vector<VkPipelineShaderStageCreateInfo> stages(desc.shaderCount);
+    for (uint32_t i = 0; i < desc.shaderCount; i++)
+    {
+        const GPUShaderDesc& shaderDesc = desc.shaders[i];
+        if (!SetupShaderStage(shaderDesc, stages[i]))
+        {
+            return nullptr;
+        }
+
+        stages[i].pName = shaderDesc.entryPoint ? shaderDesc.entryPoint : "main";
+    }
 
     // VertexInputState (need always be specified when using VertexShader)
     VkPipelineVertexInputStateCreateInfo vertexInputState{};
@@ -3556,7 +3573,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
                 for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
                 {
                     const GPUVertexAttribute& attribute = layout.attributes[attributeIndex];
-                    vertexBindings[bufferIndex].stride += agpuVertexFormatGetByteSize(attribute.format);
+                    vertexBindings[bufferIndex].stride += agpuGetVertexFormatByteSize(attribute.format);
                 }
             }
 
@@ -3598,7 +3615,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     // RasterizationState
     VkPipelineRasterizationStateCreateInfo rasterizationState{};
     rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-
+    rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
     // MultisampleState
     // VkPipelineSampleLocationsStateCreateInfoEXT sampleLocationsState = {VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT};
     //sampleLocationsState.sampleLocationsInfo.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT;
@@ -3690,6 +3707,11 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     createInfo.basePipelineIndex = -1;
 
     VkResult result = vkCreateGraphicsPipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
+
+    for (size_t i = 0; i < stages.size(); i++)
+    {
+        vkDestroyShaderModule(handle, stages[i].module, nullptr);
+    }
 
     if (result != VK_SUCCESS)
     {
@@ -3820,8 +3842,8 @@ GPUResult VulkanSurface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilit
 {
     VulkanAdapter* backendAdapter = static_cast<VulkanAdapter*>(adapter);
 
-    VkSurfaceCapabilitiesKHR caps;
-    VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backendAdapter->handle, handle, &caps);
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+    VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backendAdapter->handle, handle, &surfaceCaps);
     if (result != VK_SUCCESS)
         return GPUResult_InvalidOperation;
 
@@ -3832,22 +3854,58 @@ GPUResult VulkanSurface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilit
 
     uint32_t presentModeCount;
     VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(backendAdapter->handle, handle, &presentModeCount, nullptr));
-    std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(backendAdapter->handle, handle, &presentModeCount, swapchainPresentModes.data()));
+    std::vector<VkPresentModeKHR> vkPresentModes(presentModeCount);
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(backendAdapter->handle, handle, &presentModeCount, vkPresentModes.data()));
+
+    capabilities->preferredFormat = PixelFormat_BGRA8UnormSrgb;
+    capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
+
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_SAMPLED_BIT)
+    {
+        capabilities->supportedUsage |= GPUTextureUsage_ShaderRead;
+    }
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT)
+    {
+        capabilities->supportedUsage |= GPUTextureUsage_ShaderWrite;
+    }
 
     // TODO: Add ColorSpace
     supportedFormats.clear();
     supportedFormats.reserve(formatCount);
     for (const auto& surfaceFormat : vkFormats)
     {
-        PixelFormat format = alimerPixelFormatFromVkFormat(static_cast<uint32_t>(surfaceFormat.format));
+        PixelFormat format = ToGPUSwapChainFormat(surfaceFormat.format);
         supportedFormats.push_back(format);
     }
 
-    capabilities->preferredFormat = PixelFormat_BGRA8UnormSrgb;
-    capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
     capabilities->formatCount = (uint32_t)supportedFormats.size();
     capabilities->formats = supportedFormats.data();
+
+    supportedPresentModes.clear();
+    for (const auto& vkPresentFormat : vkPresentModes)
+    {
+        switch (vkPresentFormat)
+        {
+            case VK_PRESENT_MODE_FIFO_KHR:
+                supportedPresentModes.push_back(GPUPresentMode_Fifo);
+                break;
+            case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+                supportedPresentModes.push_back(GPUPresentMode_FifoRelaxed);
+                break;
+            case VK_PRESENT_MODE_MAILBOX_KHR:
+                supportedPresentModes.push_back(GPUPresentMode_Mailbox);
+                break;
+            case VK_PRESENT_MODE_IMMEDIATE_KHR:
+                supportedPresentModes.push_back(GPUPresentMode_Immediate);
+                break;
+            default:
+                ALIMER_UNREACHABLE();
+                break;
+        }
+    }
+    capabilities->presentModeCount = (uint32_t)supportedPresentModes.size();
+    capabilities->presentModes = supportedPresentModes.data();
+
     return GPUResult_Success;
 }
 
@@ -3938,15 +3996,16 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = { swapchainExtent.width, swapchainExtent.height };
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VkFormatProperties formatProps;
-    vkGetPhysicalDeviceFormatProperties(device->adapter->handle, createInfo.imageFormat, &formatProps);
-
-    if ((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR) || (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
-    {
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
         createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    }
+
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)
+        createInfo.imageUsage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.queueFamilyIndexCount = 0;

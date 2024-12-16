@@ -242,6 +242,11 @@ uint32_t agpuDeviceRelease(GPUDevice device)
     return device->Release();
 }
 
+GPUBackendType agpuDeviceGetBackend(GPUDevice device)
+{
+    return device->GetBackend();
+}
+
 bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
 {
     return device->HasFeature(feature);
@@ -569,27 +574,6 @@ uint32_t agpuTextureRelease(GPUTexture texture)
     return texture->Release();
 }
 
-/* ShaderModule */
-GPUShaderModule agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc)
-{
-    return device->CreateShaderModule(desc);
-}
-
-void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label)
-{
-    shaderModule->SetLabel(label);
-}
-
-uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule)
-{
-    return shaderModule->AddRef();
-}
-
-uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule)
-{
-    return shaderModule->Release();
-}
-
 /* Sampler */
 static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc) {
     GPUSamplerDesc def = {};
@@ -791,14 +775,26 @@ enum class KnownGPUAdapterVendor
     BROADCOM = 0x014e4
 };
 
-uint32_t agpuVertexFormatGetByteSize(GPUVertexFormat format)
+static const VertexFormatInfo& GetVertexFormatInfo(GPUVertexFormat format)
 {
-    if (format >= _GPUVertexFormat_Count)
-        return 0;
+    if (format >= _PixelFormat_Count)
+        return kVertexFormatTable[0]; // Undefined
 
     const VertexFormatInfo& info = kVertexFormatTable[format];
     ALIMER_ASSERT(info.format == format);
-    return info.byteSize;
+    return info;
+}
+
+uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format)
+{
+    const VertexFormatInfo& formatInfo = GetVertexFormatInfo(format);
+    return formatInfo.byteSize;
+}
+
+uint32_t agpuGetVertexFormatComponentCount(GPUVertexFormat format)
+{
+    const VertexFormatInfo& formatInfo = GetVertexFormatInfo(format);
+    return formatInfo.componentCount;
 }
 
 GPUAdapterVendor agpuGPUAdapterVendorFromID(uint32_t vendorId)

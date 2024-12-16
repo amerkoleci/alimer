@@ -23,18 +23,25 @@ GPUQueue graphicsQueue = NULL;
 GPUBuffer vertexBuffer = NULL;
 GPURenderPipeline renderPipeline = NULL;
 
-GPUShaderModule LoadShader(const char* shaderFileName)
+GPUShaderDesc LoadShader(const char* shaderFileName, GPUShaderStage stage)
 {
-    //const char* shaderExt = ".spv";
-    //if (vgpuDeviceGetBackend(device) == VGPUBackend_D3D12)
-    //{
-    //    shaderExt = ".cso";
-    //}
+    const char* shaderExt = "spv";
+    if (agpuDeviceGetBackend(device) == GPUBackendType_D3D12)
+    {
+        shaderExt = "cso";
+    }
+    char fileNameBuffer[64];
+    sprintf(fileNameBuffer, "%s.%s", shaderFileName, shaderExt);
 
-    FILE* handle = fopen(shaderFileName, "rb");
+    GPUShaderDesc desc = {
+        .entryPoint = stage == GPUShaderStage_Vertex ? "vertexMain" : "fragmentMain",
+        .stage = stage
+    };
+
+    FILE* handle = fopen(fileNameBuffer, "rb");
     if (!handle)
     {
-        return NULL;
+        return desc;
     }
 
     // Get file size
@@ -42,15 +49,12 @@ GPUShaderModule LoadShader(const char* shaderFileName)
     size_t length = ftell(handle);
     fseek(handle, 0, SEEK_SET);
 
-    GPUShaderModuleDesc desc = {
-        .bytecodeSize = length,
-        .bytecode = malloc(length)
-    };
+    desc.bytecodeSize = length;
+    desc.bytecode = malloc(length);
+
     fread((void*)desc.bytecode, length, 1, handle);
-    GPUShaderModule result = agpuCreateShaderModule(device, &desc);
-    free((void*)desc.bytecode);
     fclose(handle);
-    return result;
+    return desc;
 }
 
 void Render()
@@ -95,7 +99,7 @@ int main()
     }
 
     GPUConfig config = {
-        .preferredBackend = GPUBackendType_Vulkan,
+        //.preferredBackend = GPUBackendType_Vulkan,
 #if defined(_DEBUG)
         .validationMode = GPUValidationMode_Enabled
 #else
@@ -140,17 +144,18 @@ int main()
     agpuAdapterGetInfo(adapter, &adapterInfo);
     agpuAdapterGetLimits(adapter, &adapterLimits);
 
-    //GPUSurfaceCapabilities surfaceCaps;
-    //agpuSurfaceGetCapabilities(surface, adapter, &surfaceCaps);
+    GPUSurfaceCapabilities surfaceCaps;
+    agpuSurfaceGetCapabilities(surface, adapter, &surfaceCaps);
 
     GPUDeviceDesc deviceDesc = {
         .label = "Test Device"
     };
     device = agpuCreateDevice(adapter, &deviceDesc);
+    graphicsQueue = agpuDeviceGetQueue(device, GPUQueueType_Graphics);
 
     GPUSurfaceConfig surfaceConfig = {
         .device = device,
-        //.format = surfaceCaps.preferredFormat,
+        .format = surfaceCaps.preferredFormat,
         .width = windowDesc.width,
         .height = windowDesc.height
     };
@@ -167,9 +172,10 @@ int main()
         .size = sizeof(vertices)
     }, vertices);
 
-    GPUShaderModule vertexShader = LoadShader("shaders/triangleVertex.spv");
-    //GPUShaderModule fragmentShader = LoadShader("shaders/triangleFragment.spv");
-    //shaders[1].entryPointName = "fragmentMain";
+    GPUShaderDesc shaders[2];
+
+    shaders[0] = LoadShader("shaders/triangleVertex", GPUShaderStage_Vertex);
+    shaders[1] = LoadShader("shaders/triangleFragment", GPUShaderStage_Fragment);
 
     GPUPipelineLayout pipelineLayout = agpuCreatePipelineLayout(device, &(GPUPipelineLayoutDesc) {
         .label = "PipelineLayout"
@@ -190,25 +196,21 @@ int main()
         .attributes = vertexAttributes
     };
 
-    int s = sizeof(GPURenderPipelineDesc);
-    (void)s;
-
     renderPipeline = agpuCreateRenderPipeline(device, &(GPURenderPipelineDesc) {
         .label = "RenderPipeline",
         .layout = pipelineLayout,
+        .shaderCount = 2u,
+        .shaders = shaders,
         .vertex = {
-            .module = vertexShader,
-            .entryPoint = "vertexMain",
             .bufferCount = 1,
             .buffers = &vertexBufferLayout
         },
         .colorAttachmentCount = 1,
         .colorAttachmentFormats[0] = PixelFormat_BGRA8UnormSrgb
     });
-    agpuShaderModuleRelease(vertexShader);
+    free((void*)shaders[0].bytecode);
+    free((void*)shaders[1].bytecode);
     agpuPipelineLayoutRelease(pipelineLayout);
-
-    graphicsQueue = agpuDeviceGetQueue(device, GPUQueueType_Graphics);
 
     // GPU setup ready, show window
     alimerWindowShow(window);

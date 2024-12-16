@@ -156,7 +156,7 @@ namespace
         }
     }
 
-    constexpr D3D12_COMMAND_LIST_TYPE ToD3D12(GPUQueueType type)
+    [[nodiscard]] constexpr D3D12_COMMAND_LIST_TYPE ToD3D12(GPUQueueType type)
     {
         switch (type)
         {
@@ -175,6 +175,11 @@ namespace
             default:
                 ALIMER_UNREACHABLE();
         }
+    }
+
+    inline DXGI_FORMAT ToDxgiFormat(PixelFormat format)
+    {
+        return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
     }
 
     inline DXGI_FORMAT ToDxgiRTVFormat(PixelFormat format)
@@ -218,7 +223,7 @@ namespace
         return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
     }
 
-    [[maybe_unused]] constexpr DXGI_FORMAT ToDxgiFormat(GPUVertexFormat format)
+    [[nodiscard]] constexpr DXGI_FORMAT ToDxgiFormat(GPUVertexFormat format)
     {
         switch (format)
         {
@@ -275,7 +280,82 @@ namespace
         }
     }
 
-    constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(PixelFormat format)
+    [[nodiscard]] constexpr D3D12_COMPARISON_FUNC ToD3D12(GPUCompareFunction value)
+    {
+        switch (value)
+        {
+            case GPUCompareFunction_Never:        return D3D12_COMPARISON_FUNC_NEVER;
+            case GPUCompareFunction_Less:         return D3D12_COMPARISON_FUNC_LESS;
+            case GPUCompareFunction_Equal:        return D3D12_COMPARISON_FUNC_EQUAL;
+            case GPUCompareFunction_LessEqual:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            case GPUCompareFunction_Greater:      return D3D12_COMPARISON_FUNC_GREATER;
+            case GPUCompareFunction_NotEqual:     return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+            case GPUCompareFunction_GreaterEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+            case GPUCompareFunction_Always:       return D3D12_COMPARISON_FUNC_ALWAYS;
+
+            default:
+                return static_cast<D3D12_COMPARISON_FUNC>(0);
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_INPUT_CLASSIFICATION ToD3D12(GPUVertexStepMode value)
+    {
+        switch (value)
+        {
+            case GPUVertexStepMode_Vertex:
+                return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+            case GPUVertexStepMode_Instance:
+                return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+            default:
+                ALIMER_UNREACHABLE();
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_FILTER_TYPE ToD3D12(GPUSamplerMinMagFilter value)
+    {
+        switch (value)
+        {
+            case GPUSamplerMinMagFilter_Nearest:
+                return D3D12_FILTER_TYPE_POINT;
+            case GPUSamplerMinMagFilter_Linear:
+                return D3D12_FILTER_TYPE_LINEAR;
+            default:
+                ALIMER_UNREACHABLE();
+                return D3D12_FILTER_TYPE_POINT;
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_FILTER_TYPE ToD3D12(GPUSamplerMipFilter value)
+    {
+        switch (value)
+        {
+            case GPUSamplerMipFilter_Nearest:
+                return D3D12_FILTER_TYPE_POINT;
+            case GPUSamplerMipFilter_Linear:
+                return D3D12_FILTER_TYPE_LINEAR;
+            default:
+                ALIMER_UNREACHABLE();
+                return D3D12_FILTER_TYPE_POINT;
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_TEXTURE_ADDRESS_MODE ToD3D12(GPUSamplerAddressMode value)
+    {
+        switch (value)
+        {
+            case GPUSamplerAddressMode_ClampToEdge:         return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            case GPUSamplerAddressMode_MirrorClampToEdge:   return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
+            case GPUSamplerAddressMode_Repeat:              return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            case GPUSamplerAddressMode_MirrorRepeat:        return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+                //case GPUSamplerAddressMode_ClampToBorder:     return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            default:
+                ALIMER_UNREACHABLE();
+                return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        }
+    }
+
+
+    [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(PixelFormat format)
     {
         bool UsePackedDepth24UnormStencil8Format = true;
 
@@ -300,7 +380,7 @@ namespace
         }
     }
 
-    constexpr DXGI_FORMAT ToDxgiSwapChainFormat(PixelFormat format)
+    [[nodiscard]] constexpr DXGI_FORMAT ToDxgiSwapChainFormat(PixelFormat format)
     {
         // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
         switch (format)
@@ -650,6 +730,52 @@ struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
     D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(DXGI_FORMAT rtvFormat, uint32_t mipLevel) const;
 };
 
+struct D3D12Sampler final : public GPUSamplerImpl
+{
+    D3D12_SAMPLER_DESC samplerDesc{};
+};
+
+struct D3D12BindGroupLayout final : public GPUBindGroupLayoutImpl
+{
+    D3D12Device* device = nullptr;
+
+    ~D3D12BindGroupLayout() override;
+};
+
+struct D3D12PipelineLayout final : public GPUPipelineLayoutImpl
+{
+    D3D12Device* device = nullptr;
+    ID3D12RootSignature* handle = nullptr;
+
+    ~D3D12PipelineLayout() override;
+    void SetLabel(const char* label) override;
+};
+
+struct D3D12ComputePipeline final : public GPUComputePipelineImpl
+{
+    D3D12Device* device = nullptr;
+    D3D12PipelineLayout* layout = nullptr;
+    ID3D12PipelineState* handle = nullptr;
+
+    ~D3D12ComputePipeline() override;
+    void SetLabel(const char* label) override;
+};
+
+struct D3D12RenderPipeline final : public GPURenderPipelineImpl
+{
+    D3D12Device* device = nullptr;
+    D3D12PipelineLayout* layout = nullptr;
+    ID3D12PipelineState* handle = nullptr;
+
+    // Render Pipeline Only
+    D3D_PRIMITIVE_TOPOLOGY primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    uint32_t numVertexBindings = 0;
+    uint32_t strides[GPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
+
+    ~D3D12RenderPipeline() override;
+    void SetLabel(const char* label) override;
+};
+
 struct D3D12ComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     D3D12CommandBuffer* commandBuffer = nullptr;
@@ -673,7 +799,10 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = {};
     D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
     bool hasLabel = false;
+    D3D12RenderPipeline* currentPipeline = nullptr;
+    D3D12_VERTEX_BUFFER_VIEW vboViews[GPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
 
+    void Clear();
     void Begin(const GPURenderPassDesc& desc);
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -716,7 +845,6 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     // Legacy barriers
     D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
     std::vector<D3D12Surface*> presentSurfaces;
-    D3D12_VERTEX_BUFFER_VIEW vboViews[GPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
 
     ~D3D12CommandBuffer() override;
     void Clear();
@@ -734,6 +862,7 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
 
     GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
     GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
+    void FlushBindGroups(bool graphics);
 };
 
 struct D3D12Queue final : public GPUQueueImpl
@@ -992,7 +1121,7 @@ struct D3D12Device final : public GPUDeviceImpl
 {
     D3D12Adapter* adapter = nullptr;
     ID3D12Device5* handle = nullptr;
-    ComPtr<ID3D12VideoDevice> videoDevice;
+    ID3D12VideoDevice* videoDevice = nullptr;
     CD3DX12FeatureSupport features;
     DWORD callbackCookie = 0;
     bool shuttingDown = false;
@@ -1001,6 +1130,8 @@ struct D3D12Device final : public GPUDeviceImpl
     //ComPtr<D3D12MA::Pool> umaPool;
     ComPtr<ID3D12Fence> deviceRemovedFence;
     HANDLE deviceRemovedWaitHandle = nullptr;
+
+    ID3D12DeviceConfiguration* deviceConfiguration = nullptr;
 #endif
 
     D3D12Queue queues[GPUQueueType_Count];
@@ -1029,6 +1160,7 @@ struct D3D12Device final : public GPUDeviceImpl
     ~D3D12Device() override;
     void OnDeviceRemoved();
     void SetLabel(const char* label) override;
+    GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
     bool HasFeature(GPUFeature feature) const override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
@@ -1044,7 +1176,6 @@ struct D3D12Device final : public GPUDeviceImpl
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
 };
@@ -1254,6 +1385,67 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
     return device->renderTargetViewHeap.GetCpuHandle(it->second);
 }
 
+/* D3D12BindGroupLayout */
+D3D12BindGroupLayout::~D3D12BindGroupLayout()
+{
+
+}
+
+/* D3D12PipelineLayout */
+D3D12PipelineLayout::~D3D12PipelineLayout()
+{
+    device->DeferDestroy(handle);
+    handle = nullptr;
+}
+
+void D3D12PipelineLayout::SetLabel(const char* label)
+{
+    WCHAR* wideLabel = Win32_CreateWideStringFromUTF8(label);
+    if (wideLabel)
+    {
+        handle->SetName(wideLabel);
+        alimerFree(wideLabel);
+    }
+}
+
+/* D3D12ComputePipeline */
+D3D12ComputePipeline::~D3D12ComputePipeline()
+{
+    SAFE_RELEASE(layout);
+
+    device->DeferDestroy(handle);
+    handle = nullptr;
+}
+
+void D3D12ComputePipeline::SetLabel(const char* label)
+{
+    WCHAR* wideLabel = Win32_CreateWideStringFromUTF8(label);
+    if (wideLabel)
+    {
+        handle->SetName(wideLabel);
+        alimerFree(wideLabel);
+    }
+}
+
+/* D3D12RenderPipeline */
+D3D12RenderPipeline::~D3D12RenderPipeline()
+{
+    SAFE_RELEASE(layout);
+
+    device->DeferDestroy(handle);
+    handle = nullptr;
+}
+
+void D3D12RenderPipeline::SetLabel(const char* label)
+{
+    WCHAR* wideLabel = Win32_CreateWideStringFromUTF8(label);
+    if (wideLabel)
+    {
+        handle->SetName(wideLabel);
+        alimerFree(wideLabel);
+    }
+}
+
 /* D3D12ComputePassEncoder */
 void D3D12ComputePassEncoder::Begin(const GPUComputePassDesc& desc)
 {
@@ -1308,6 +1500,17 @@ void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_
 }
 
 /* D3D12RenderPassEncoder */
+void D3D12RenderPassEncoder::Clear()
+{
+    // Release stuff we don't need anymore
+    for (uint32_t i = 0; i < GPU_MAX_VERTEX_BUFFER_BINDINGS; ++i)
+    {
+        vboViews[i] = {};
+    }
+
+    SAFE_RELEASE(currentPipeline);
+}
+
 void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
 {
     if (desc.label)
@@ -1405,6 +1608,8 @@ void D3D12RenderPassEncoder::EndEncoding()
 
     commandBuffer->encoderActive = false;
     hasLabel = false;
+
+    Clear();
 }
 
 void D3D12RenderPassEncoder::PushDebugGroup(const char* groupLabel) const
@@ -1475,6 +1680,11 @@ void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
 
 void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
 {
+    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
+
+    vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
+    vboViews[slot].SizeInBytes = (UINT)(backendBuffer->desc.size - offset);
+    vboViews[slot].StrideInBytes = 0;
 }
 
 void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset)
@@ -1490,15 +1700,31 @@ void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat for
 
 void D3D12RenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
 {
-    //D3D12RenderPipeline* backendPipeline = static_cast<D3D12RenderPipeline*>(pipeline);
+    if (currentPipeline == pipeline)
+        return;
 
-    //commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
-    //commandBuffer->commandList->IASetPrimitiveTopology(backendPipeline->primitiveTopology);
+    D3D12RenderPipeline* backendPipeline = static_cast<D3D12RenderPipeline*>(pipeline);
+
+    commandBuffer->commandList->SetGraphicsRootSignature(backendPipeline->layout->handle);
+    commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
+    commandBuffer->commandList->IASetPrimitiveTopology(backendPipeline->primitiveTopology);
+    currentPipeline = backendPipeline;
+    currentPipeline->AddRef();
 }
 
 void D3D12RenderPassEncoder::PrepareDraw()
 {
+    if (currentPipeline->numVertexBindings > 0)
+    {
+        for (uint32_t i = 0; i < currentPipeline->numVertexBindings; ++i)
+        {
+            vboViews[i].StrideInBytes = currentPipeline->strides[i];
+        }
 
+        commandBuffer->commandList->IASetVertexBuffers(0, currentPipeline->numVertexBindings, vboViews);
+    }
+
+    commandBuffer->FlushBindGroups(true);
 }
 
 void D3D12RenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -1548,9 +1774,8 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
     //GraphicsContext::Reset(frameIndex);
     //waits.clear();
     //hasPendingWaits.store(false);
-    //currentPipeline.Reset();
-    //currentPipelineLayout.Reset();
     //frameAllocators[frameIndex].Reset();
+    renderPassEncoder->Clear();
     Clear();
 
     // Start the command list in a default state:
@@ -1584,11 +1809,6 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
 
     if (queue->queueType == GPUQueueType_Graphics)
     {
-        for (uint32_t i = 0; i < GPU_MAX_VERTEX_BUFFER_BINDINGS; ++i)
-        {
-            vboViews[i] = {};
-        }
-
         D3D12_RECT scissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
         for (size_t i = 0; i < std::size(scissorRects); ++i)
         {
@@ -1879,6 +2099,11 @@ GPURenderPassEncoder D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc
     renderPassEncoder->Begin(desc);
     encoderActive = true;
     return renderPassEncoder;
+}
+
+void D3D12CommandBuffer::FlushBindGroups(bool graphics)
+{
+
 }
 
 /* D3D12Queue */
@@ -2179,7 +2404,12 @@ D3D12Device::~D3D12Device()
         callbackCookie = 0;
     }
 
-    videoDevice.Reset();
+    SAFE_RELEASE(videoDevice);
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    SAFE_RELEASE(deviceConfiguration);
+#endif
+
     //deviceConfiguration.Reset();
     const ULONG refCount = handle->Release();
 #if defined(_DEBUG)
@@ -2704,32 +2934,383 @@ GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
 
 GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
 {
-    return nullptr;
+    D3D12Sampler* sampler = new D3D12Sampler();
+
+    const D3D12_FILTER_TYPE minFilter = ToD3D12(desc.minFilter);
+    const D3D12_FILTER_TYPE magFilter = ToD3D12(desc.magFilter);
+    const D3D12_FILTER_TYPE mipFilter = ToD3D12(desc.mipFilter);
+    const D3D12_FILTER_REDUCTION_TYPE reductionType = D3D12_FILTER_REDUCTION_TYPE_STANDARD;// ToD3D12(desc.reductionType);
+
+    sampler->samplerDesc = {};
+    if (desc.maxAnisotropy > 1)
+    {
+        sampler->samplerDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
+    }
+    else
+    {
+        sampler->samplerDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipFilter, reductionType);
+    }
+
+    sampler->samplerDesc.AddressU = ToD3D12(desc.addressModeU);
+    sampler->samplerDesc.AddressV = ToD3D12(desc.addressModeV);
+    sampler->samplerDesc.AddressW = ToD3D12(desc.addressModeW);
+    sampler->samplerDesc.MipLODBias = 0.0f;
+    sampler->samplerDesc.MaxAnisotropy = std::min<uint16_t>(std::max((UINT)desc.maxAnisotropy, 1U), 16u);
+    sampler->samplerDesc.ComparisonFunc = ToD3D12(desc.compareFunction);
+    sampler->samplerDesc.BorderColor[0] = 0.0f;
+    sampler->samplerDesc.BorderColor[1] = 0.0f;
+    sampler->samplerDesc.BorderColor[2] = 0.0f;
+    sampler->samplerDesc.BorderColor[3] = 0.0f;
+    sampler->samplerDesc.MinLOD = desc.lodMinClamp;
+    sampler->samplerDesc.MaxLOD = (desc.lodMaxClamp == GPU_LOD_CLAMP_NONE) ? D3D12_FLOAT32_MAX : desc.lodMaxClamp;
+
+    return sampler;
 }
 
 GPUBindGroupLayout D3D12Device::CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc)
 {
-    return nullptr;
+    D3D12BindGroupLayout* layout = new D3D12BindGroupLayout();
+    layout->device = this;
+
+    return layout;
 }
 
 GPUPipelineLayout D3D12Device::CreatePipelineLayout(const GPUPipelineLayoutDesc& desc)
 {
-    return nullptr;
+    D3D12PipelineLayout* layout = new D3D12PipelineLayout();
+    layout->device = this;
+
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+    rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    rootSignatureDesc.Desc_1_1.NumParameters = 0;
+    rootSignatureDesc.Desc_1_1.pParameters = nullptr;
+    rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+    rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+    rootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+    ComPtr<ID3DBlob> signature;
+    ComPtr<ID3DBlob> error;
+    HRESULT hr;
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    if (d3d12_state.deviceFactory)
+    {
+        hr = deviceConfiguration->SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
+    }
+    else
+#endif
+    {
+        hr = d3d12_D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
+    }
+
+    if (FAILED(hr))
+    {
+        delete layout;
+
+        const char* errString = error ? reinterpret_cast<const char*>(error->GetBufferPointer()) : "";
+        alimerLogError(LogCategory_GPU, "%s, Failed to serialize root signature: %s - result: 0x%08X", errString, hr);
+        return nullptr;
+    }
+
+    hr = handle->CreateRootSignature(0,
+        signature->GetBufferPointer(),
+        signature->GetBufferSize(),
+        IID_PPV_ARGS(&layout->handle)
+    );
+
+    if (FAILED(hr))
+    {
+        delete layout;
+        alimerLogError(LogCategory_GPU, "%s, Failed to create root signature, result: 0x%08X", hr);
+        return nullptr;
+    }
+
+    return layout;
 }
 
-GPUShaderModule D3D12Device::CreateShaderModule(const GPUShaderModuleDesc* desc)
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4324)
+#endif
+template <typename InnerStructType, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE subobjectType>
+struct alignas(void*) PipelineDescComponent final
 {
-    return nullptr;
-}
+    D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type = subobjectType;
+    InnerStructType desc = {};
+
+    PipelineDescComponent() = default;
+
+    inline void operator=(const InnerStructType& rhs)
+    {
+        desc = rhs;
+    }
+};
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+using PipelineRootSignature = PipelineDescComponent<ID3D12RootSignature*, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE>;
+using PipelineComputeShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS>;
 
 GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
 {
-    return nullptr;
+    D3D12ComputePipeline* pipeline = new D3D12ComputePipeline();
+    pipeline->device = this;
+    pipeline->layout = static_cast<D3D12PipelineLayout*>(desc.layout);
+    pipeline->layout->AddRef();
+
+    struct PSO_STREAM
+    {
+        PipelineRootSignature pRootSignature;
+        PipelineComputeShader CS;
+    } stream;
+
+    stream.pRootSignature = pipeline->layout->handle;
+    stream.CS = { desc.shader.bytecode, desc.shader.bytecodeSize };
+
+    D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
+    streamDesc.pPipelineStateSubobjectStream = &stream;
+    streamDesc.SizeInBytes = sizeof(stream);
+
+    const HRESULT hr = handle->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&pipeline->handle));
+    if (FAILED(hr))
+    {
+        delete pipeline;
+        return nullptr;
+    }
+
+    if (desc.label)
+    {
+        pipeline->SetLabel(desc.label);
+    }
+
+    return pipeline;
 }
+
+using PipelineInputLayout = PipelineDescComponent<D3D12_INPUT_LAYOUT_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>;
+using PipelineIndexBufferStripCutValue = PipelineDescComponent<D3D12_INDEX_BUFFER_STRIP_CUT_VALUE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE>;
+using PipelinePrimitiveTopology = PipelineDescComponent<D3D12_PRIMITIVE_TOPOLOGY_TYPE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY>;
+using PipelineVertexShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>;
+using PipelinePixelShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>;
+using PipelineBlend = PipelineDescComponent<D3D12_BLEND_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>;
+using PipelineDepthStencil = PipelineDescComponent<D3D12_DEPTH_STENCIL_DESC1, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1>;
+using PipelineRasterizer = PipelineDescComponent<D3D12_RASTERIZER_DESC1, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER>;
+using PipelineRenderTargetFormats = PipelineDescComponent<D3D12_RT_FORMAT_ARRAY, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS>;
+using PipelineDepthStencilFormat = PipelineDescComponent<DXGI_FORMAT, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT>;
+using PipelineSampleDesc = PipelineDescComponent<DXGI_SAMPLE_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC>;
+using PipelineSampleMask = PipelineDescComponent<UINT, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK>;
 
 GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc& desc)
 {
-    return nullptr;
+    D3D12RenderPipeline* pipeline = new D3D12RenderPipeline();
+    pipeline->device = this;
+    pipeline->layout = static_cast<D3D12PipelineLayout*>(desc.layout);
+    pipeline->layout->AddRef();
+
+    // PipelineStream
+    struct PSO_STREAM
+    {
+        struct PSO_STREAM1
+        {
+            PipelineRootSignature               rootSignature;
+            PipelineInputLayout                 inputLayout;
+            PipelineIndexBufferStripCutValue    IBStripCutValue;
+            PipelinePrimitiveTopology           PrimitiveTopologyType;
+            PipelineVertexShader                VS;
+            //CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
+            //CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
+            //CD3DX12_PIPELINE_STATE_STREAM_GS                    GS;
+            PipelinePixelShader                 PS;
+            PipelineBlend                       BlendState;
+            PipelineDepthStencil                DepthStencilState;
+            PipelineDepthStencilFormat          DSVFormat;
+            PipelineRasterizer                  RasterizerState;
+            PipelineRenderTargetFormats         RTVFormats;
+            PipelineSampleDesc                  SampleDesc;
+            PipelineSampleMask                  SampleMask;
+        } stream1 = {};
+
+        //struct PSO_STREAM2
+        //{
+        //    CD3DX12_PIPELINE_STATE_STREAM_AS AS;
+        //    CD3DX12_PIPELINE_STATE_STREAM_MS MS;
+        //} stream2 = {};
+    } stream = {};
+
+    stream.stream1.rootSignature = pipeline->layout->handle;
+
+    std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
+    D3D12_INPUT_LAYOUT_DESC inputLayout = {};
+    if (desc.vertex.bufferCount > 0)
+    {
+        for (uint32_t bufferIndex = 0; bufferIndex < desc.vertex.bufferCount; ++bufferIndex)
+        {
+            const GPUVertexBufferLayout& layout = desc.vertex.buffers[bufferIndex];
+
+            for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
+            {
+                const GPUVertexAttribute& attribute = layout.attributes[attributeIndex];
+
+                auto& element = inputElements.emplace_back();
+                element.SemanticName = "ATTRIBUTE";
+                element.SemanticIndex = attribute.shaderLocation;
+                element.Format = ToDxgiFormat(attribute.format);
+                element.InputSlot = bufferIndex;
+                element.AlignedByteOffset = attribute.offset;
+
+                pipeline->numVertexBindings = std::max(bufferIndex + 1, pipeline->numVertexBindings);
+                pipeline->strides[bufferIndex] = layout.stride;
+
+                if (layout.stepMode == GPUVertexStepMode_Vertex)
+                {
+                    element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                    element.InstanceDataStepRate = 0;
+                }
+                else
+                {
+                    element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+                    element.InstanceDataStepRate = 1;
+                }
+
+                inputLayout.NumElements++;
+            }
+
+            // Compute stride from attributes
+            if (pipeline->strides[bufferIndex] == 0)
+            {
+                for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
+                {
+                    const GPUVertexAttribute& attribute = layout.attributes[attributeIndex];
+                    pipeline->strides[bufferIndex] += agpuGetVertexFormatByteSize(attribute.format);
+                }
+            }
+        }
+
+        inputLayout.pInputElementDescs = inputElements.data();
+        stream.stream1.inputLayout = inputLayout;
+    }
+
+    stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+    stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    for (uint32_t i = 0; i < desc.shaderCount; i++)
+    {
+        const GPUShaderDesc& shaderDesc = desc.shaders[i];
+        if (shaderDesc.stage == GPUShaderStage_Vertex)
+        {
+            stream.stream1.VS = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+        }
+        else if (shaderDesc.stage == GPUShaderStage_Fragment)
+        {
+            stream.stream1.PS = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+        }
+        //else if (shaderDesc.stage == GPUShaderStage_Amplification)
+        //{
+        //    stream.stream2.AS = { shader.pCode, shader.codeSize };
+        //}
+        //else if (shaderDesc.stage == GPUShaderStage_Mesh)
+        //{
+        //    stream.stream2.MS = { shader.pCode, shader.codeSize };
+        //}
+    }
+
+    // Color Attachments + RTV
+    D3D12_RT_FORMAT_ARRAY RTVFormats = {};
+    RTVFormats.NumRenderTargets = 0;
+
+    D3D12_BLEND_DESC blendState = {};
+    blendState.AlphaToCoverageEnable = desc.alphaToCoverageEnabled ? TRUE : FALSE;
+    blendState.IndependentBlendEnable = TRUE;
+    for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+    {
+        if (desc.colorAttachmentFormats[i] == PixelFormat_Undefined)
+            break;
+
+        blendState.RenderTarget[i].BlendEnable = FALSE;
+        blendState.RenderTarget[i].LogicOpEnable = FALSE;
+        blendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
+        blendState.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO;
+        blendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
+        blendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
+        blendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
+        blendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
+        blendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+        // RTV
+        RTVFormats.RTFormats[RTVFormats.NumRenderTargets] = (DXGI_FORMAT)ToDxgiFormat(desc.colorAttachmentFormats[i]);
+        RTVFormats.NumRenderTargets++;
+    }
+    stream.stream1.RTVFormats = RTVFormats;
+    stream.stream1.BlendState = blendState;
+
+    // DepthStencilState + DSVFormat
+    D3D12_DEPTH_STENCIL_DESC1 depthStencilState{};
+    const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
+    if (desc.depthStencilAttachmentFormat != PixelFormat_Undefined)
+    {
+        // TODO
+    }
+    else
+    {
+        depthStencilState.DepthEnable = FALSE;
+        depthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        depthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        depthStencilState.StencilEnable = FALSE;
+        depthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+        depthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+        depthStencilState.FrontFace = defaultStencilOp;
+        depthStencilState.BackFace = defaultStencilOp;
+        depthStencilState.DepthBoundsTestEnable = FALSE;
+    }
+    stream.stream1.DepthStencilState = depthStencilState;
+    stream.stream1.DSVFormat = (DXGI_FORMAT)ToDxgiFormat(desc.depthStencilAttachmentFormat);
+
+    // RasterizerState
+    D3D12_RASTERIZER_DESC1 rasterizerState{};
+    rasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+    rasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    rasterizerState.FrontCounterClockwise = FALSE;
+    rasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+    rasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+    rasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    rasterizerState.DepthClipEnable = TRUE;
+    rasterizerState.MultisampleEnable = FALSE;
+    rasterizerState.AntialiasedLineEnable = FALSE;
+    rasterizerState.ForcedSampleCount = 0;
+    rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+    //if (desc.rasterizerState.conservativeRaster &&
+    //    d3dFeatures.ConservativeRasterizationTier() != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED)
+    //{
+    //    rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
+    //}
+    stream.stream1.RasterizerState = rasterizerState;
+
+    // SampleDesc and SampleMask
+    DXGI_SAMPLE_DESC sampleDesc = {};
+    sampleDesc.Count = desc.rasterSampleCount;
+    sampleDesc.Quality = 0;
+    stream.stream1.SampleDesc = sampleDesc;
+    stream.stream1.SampleMask = UINT_MAX;
+
+    D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
+    streamDesc.pPipelineStateSubobjectStream = &stream;
+    streamDesc.SizeInBytes = sizeof(stream.stream1);
+
+    const HRESULT hr = handle->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&pipeline->handle));
+    if (FAILED(hr))
+    {
+        delete pipeline;
+        return nullptr;
+    }
+
+    if (desc.label)
+    {
+        pipeline->SetLabel(desc.label);
+    }
+
+    pipeline->primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    return pipeline;
 }
 
 /* D3D12Surface */
@@ -3078,9 +3659,16 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
         device->SetLabel(desc.label);
     }
 
-    if (SUCCEEDED(device->handle->QueryInterface(device->videoDevice.ReleaseAndGetAddressOf())))
+    if (SUCCEEDED(device->handle->QueryInterface(&device->videoDevice)))
     {
     }
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    if (d3d12_state.deviceFactory != nullptr)
+    {
+        VHR(device->handle->QueryInterface(&device->deviceConfiguration));
+    }
+#endif
 
     // Init feature check (https://devblogs.microsoft.com/directx/introducing-a-new-api-for-checking-feature-support-in-direct3d-12/)
     VHR(device->features.Init(device->handle));

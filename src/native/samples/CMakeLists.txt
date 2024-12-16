@@ -30,9 +30,10 @@ function(add_sample SAMPLE_NAME)
         set_target_properties(${SAMPLE_NAME} PROPERTIES SUFFIX ".html")
     endif ()
 
-    #if (WIN32)
+    if (WIN32)
+        target_compile_definitions(${SAMPLE_NAME} PRIVATE _UNICODE UNICODE _CRT_SECURE_NO_WARNINGS)
     #    set_target_properties(${SAMPLE_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
-    #endif ()
+    endif ()
 
     set_target_properties(${SAMPLE_NAME} PROPERTIES
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

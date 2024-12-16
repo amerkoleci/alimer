@@ -18,7 +18,6 @@ typedef struct GPUBufferImpl*               GPUBuffer;
 typedef struct GPUTextureImpl*              GPUTexture;
 typedef struct GPUSamplerImpl*              GPUSampler;
 typedef struct GPUQuerySetImpl*             GPUQuerySet;
-typedef struct GPUShaderModuleImpl*         GPUShaderModule;
 typedef struct GPUBindGroupLayoutImpl*      GPUBindGroupLayout;
 typedef struct GPUBindGroupImpl*            GPUBindGroup;
 typedef struct GPUPipelineLayoutImpl*       GPUPipelineLayout;
@@ -218,9 +217,8 @@ typedef enum GPUShaderStage {
 } GPUShaderStage;
 
 typedef enum GPUVertexStepMode {
-    GPUVertexStepMode_Undefined = 0,
-    GPUVertexStepMode_Vertex = 1,
-    GPUVertexStepMode_Instance = 2,
+    GPUVertexStepMode_Vertex = 0,
+    GPUVertexStepMode_Instance = 1,
 
     _GPUVertexStepMode_Force32 = 0x7FFFFFFF
 } GPUVertexStepMode;
@@ -447,20 +445,17 @@ typedef struct GPUPipelineLayoutDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
 } GPUPipelineLayoutDesc;
 
-typedef struct GPUShaderModuleDesc {
+typedef struct GPUShaderDesc {
+    GPUShaderStage stage;
     size_t bytecodeSize;
     const void* bytecode;
-} GPUShaderModuleDesc;
-
-typedef struct GPUComputeState {
-    GPUShaderModule module;
     const char* entryPoint DEFAULT_INITIALIZER("main");
-} GPUComputeState;
+} GPUShaderDesc;
 
 typedef struct GPUComputePipelineDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
     GPUPipelineLayout layout;
-    GPUComputeState compute;
+    GPUShaderDesc shader;
 } GPUComputePipelineDesc;
 
 typedef struct GPUVertexAttribute {
@@ -477,8 +472,6 @@ typedef struct GPUVertexBufferLayout {
 } GPUVertexBufferLayout;
 
 typedef struct GPUVertexState {
-    GPUShaderModule module;
-    const char* entryPoint DEFAULT_INITIALIZER("main");
     uint32_t bufferCount DEFAULT_INITIALIZER(0);
     const GPUVertexBufferLayout* buffers DEFAULT_INITIALIZER(nullptr);
 } GPUVertexState;
@@ -486,6 +479,10 @@ typedef struct GPUVertexState {
 typedef struct GPURenderPipelineDesc {
     const char*             label DEFAULT_INITIALIZER(nullptr);
     GPUPipelineLayout       layout;
+
+    uint32_t                shaderCount;
+    const GPUShaderDesc*    shaders;
+
     GPUVertexState          vertex;
     uint32_t                rasterSampleCount DEFAULT_INITIALIZER(1);
     GPUBool                 alphaToCoverageEnabled DEFAULT_INITIALIZER(false);
@@ -577,6 +574,8 @@ typedef struct GPUSurfaceCapabilities {
     GPUTextureUsage supportedUsage;
     uint32_t formatCount;
     const PixelFormat* formats;
+    uint32_t presentModeCount;
+    const GPUPresentMode* presentModes;
 } GPUSurfaceCapabilities;
 
 typedef struct GPUSurfaceConfig {
@@ -623,6 +622,7 @@ ALIMER_API GPUDevice agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* d
 ALIMER_API void agpuDeviceSetLabel(GPUDevice device, const char* label);
 ALIMER_API uint32_t agpuDeviceAddRef(GPUDevice device);
 ALIMER_API uint32_t agpuDeviceRelease(GPUDevice device);
+ALIMER_API GPUBackendType agpuDeviceGetBackend(GPUDevice device);
 ALIMER_API bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature);
 ALIMER_API GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type);
 ALIMER_API bool agpuDeviceWaitIdle(GPUDevice device);
@@ -691,12 +691,6 @@ ALIMER_API uint32_t agpuTextureGetLevelHeight(GPUTexture texture, uint32_t mipLe
 ALIMER_API uint32_t agpuTextureAddRef(GPUTexture texture);
 ALIMER_API uint32_t agpuTextureRelease(GPUTexture texture);
 
-/* ShaderModule */
-ALIMER_API GPUShaderModule agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc);
-ALIMER_API void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label);
-ALIMER_API uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule);
-ALIMER_API uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule);
-
 /* Sampler */
 ALIMER_API GPUSampler agpuCreateSampler(GPUDevice device, const GPUSamplerDesc* desc);
 ALIMER_API void agpuSamplerSetLabel(GPUSampler sampler, const char* label);
@@ -722,7 +716,8 @@ ALIMER_API uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline);
 ALIMER_API uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline);
 
 /* Other */
-ALIMER_API uint32_t agpuVertexFormatGetByteSize(GPUVertexFormat format);
+ALIMER_API uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format);
+ALIMER_API uint32_t agpuGetVertexFormatComponentCount(GPUVertexFormat format);
 ALIMER_API GPUAdapterVendor agpuGPUAdapterVendorFromID(uint32_t vendorId);
 ALIMER_API uint32_t agpuGPUAdapterVendorToID(GPUAdapterVendor vendor);
 
