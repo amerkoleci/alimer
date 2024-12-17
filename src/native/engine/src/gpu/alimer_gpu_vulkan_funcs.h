@@ -122,6 +122,7 @@ VULKAN_DEVICE_FUNCTION(vkCmdSetBlendConstants)
 VULKAN_DEVICE_FUNCTION(vkCmdSetDepthBias)
 VULKAN_DEVICE_FUNCTION(vkCmdSetScissor)
 VULKAN_DEVICE_FUNCTION(vkCmdSetStencilReference)
+VULKAN_DEVICE_FUNCTION(vkCmdSetDepthBounds)
 VULKAN_DEVICE_FUNCTION(vkCmdSetViewport)
 VULKAN_DEVICE_FUNCTION(vkCreateBuffer)
 VULKAN_DEVICE_FUNCTION(vkCreateCommandPool)
@@ -191,6 +192,11 @@ VULKAN_DEVICE_FUNCTION(vkGetMemoryFdKHR)
 #if defined(VK_VERSION_1_2) 
 VULKAN_DEVICE_FUNCTION(vkGetBufferDeviceAddress)
 #endif /* defined(VK_VERSION_1_2) */
+
+#if defined(VK_VERSION_1_2) || defined(VK_KHR_draw_indirect_count)
+VULKAN_DEVICE_FUNCTION(vkCmdDrawIndirectCount)
+VULKAN_DEVICE_FUNCTION(vkCmdDrawIndexedIndirectCount)
+#endif /* defined(VK_VERSION_1_2) || defined(VK_KHR_draw_indirect_count) */
 
 // Functions that require a device with 1.3 or VK_KHR_dynamic_rendering
 #if defined(VK_VERSION_1_3) || defined(VK_KHR_dynamic_rendering)

@@ -340,7 +340,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
+    constexpr uint32_t MinImageCountForPresentMode(VkPresentModeKHR mode)
     {
         switch (mode)
         {
@@ -354,7 +354,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr VkAttachmentLoadOp ToVk(GPULoadAction value)
+    constexpr VkAttachmentLoadOp ToVk(GPULoadAction value)
     {
         switch (value)
         {
@@ -371,7 +371,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr VkAttachmentStoreOp ToVk(GPUStoreAction value)
+    constexpr VkAttachmentStoreOp ToVk(GPUStoreAction value)
     {
         switch (value)
         {
@@ -386,7 +386,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr VkPrimitiveTopology ToVk(GPUPrimitiveTopology value)
+    constexpr VkPrimitiveTopology ToVk(GPUPrimitiveTopology value)
     {
         switch (value)
         {
@@ -402,7 +402,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr VkSampleCountFlagBits ToVkSampleCount(uint32_t sampleCount)
+    constexpr VkSampleCountFlagBits ToVkSampleCount(uint32_t sampleCount)
     {
         switch (sampleCount)
         {
@@ -423,7 +423,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr VkCompareOp ToVk(GPUCompareFunction value)
+    constexpr VkCompareOp ToVk(GPUCompareFunction value)
     {
         switch (value)
         {
@@ -481,6 +481,15 @@ namespace
         }
     }
 
+    constexpr VkColorComponentFlags ToVk(GPUColorWriteMask value)
+    {
+        static_assert(static_cast<VkColorComponentFlagBits>(GPUColorWriteMask_Red) == VK_COLOR_COMPONENT_R_BIT, "ColorWriteMask mismatch");
+        static_assert(static_cast<VkColorComponentFlagBits>(GPUColorWriteMask_Green) == VK_COLOR_COMPONENT_G_BIT, "ColorWriteMask mismatch");
+        static_assert(static_cast<VkColorComponentFlagBits>(GPUColorWriteMask_Blue) == VK_COLOR_COMPONENT_B_BIT, "ColorWriteMask mismatch");
+        static_assert(static_cast<VkColorComponentFlagBits>(GPUColorWriteMask_Alpha) == VK_COLOR_COMPONENT_A_BIT, "ColorWriteMask mismatch");
+        return static_cast<VkColorComponentFlags>(value);
+    }
+
     constexpr VkStencilOp ToVk(GPUStencilOperation op)
     {
         switch (op)
@@ -495,6 +504,51 @@ namespace
             case GPUStencilOperation_DecrementWrap:   return VK_STENCIL_OP_DECREMENT_AND_WRAP;
             default:
                 ALIMER_UNREACHABLE();
+        }
+    }
+
+    constexpr VkPolygonMode ToVk(GPUFillMode value, bool fillModeNonSolid)
+    {
+        switch (value)
+        {
+            default:
+            case GPUFillMode_Solid:
+                return VK_POLYGON_MODE_FILL;
+
+            case GPUFillMode_Wireframe:
+                if (!fillModeNonSolid)
+                {
+                    alimerLogWarn(LogCategory_GPU, "Vulkan: Wireframe fill mode is being used but it's not supported on this device");
+                    return VK_POLYGON_MODE_FILL;
+                }
+
+                return VK_POLYGON_MODE_LINE;
+        }
+    }
+
+    constexpr VkCullModeFlags ToVk(GPUCullMode value)
+    {
+        switch (value)
+        {
+            default:
+            case GPUCullMode_Back:
+                return VK_CULL_MODE_BACK_BIT;
+            case GPUCullMode_None:
+                return VK_CULL_MODE_NONE;
+            case GPUCullMode_Front:
+                return VK_CULL_MODE_FRONT_BIT;
+        }
+    }
+
+    constexpr VkFrontFace ToVk(GPUFrontFace value)
+    {
+        switch (value)
+        {
+            default:
+            case GPUFrontFace_Clockwise:
+                return VK_FRONT_FACE_CLOCKWISE;
+            case GPUFrontFace_CounterClockwise:
+                return VK_FRONT_FACE_COUNTER_CLOCKWISE;
         }
     }
 
@@ -1840,16 +1894,19 @@ void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
         renderArea.extent.height = std::min(renderArea.extent.height, std::max(texture->desc.height >> attachment.mipLevel, 1u));
         layerCount = std::min(layerCount, texture->desc.depthOrArrayLayers);
 
+        const GPULoadAction loadAction = _ALIMER_DEF(attachment.depthLoadAction, GPULoadAction_Clear);
+        const GPUStoreAction storeAction = _ALIMER_DEF(attachment.depthStoreAction, GPUStoreAction_Discard);
+
         depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depthAttachment.imageView = texture->GetView(attachment.mipLevel);
         depthAttachment.imageLayout = attachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
         depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-        depthAttachment.loadOp = ToVk(attachment.depthLoadAction);
-        depthAttachment.storeOp = ToVk(attachment.depthStoreAction);
+        depthAttachment.loadOp = ToVk(loadAction);
+        depthAttachment.storeOp = ToVk(storeAction);
         depthAttachment.clearValue.depthStencil.depth = attachment.depthClearValue;
 
         // Barrier
-        //commandBuffer->TextureBarrier(texture, depthAttachment.imageLayout, attachment.mipLevel, 1u, 0u, 1u);
+        commandBuffer->TextureBarrier(texture, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite, attachment.mipLevel, 1u, 0u, 1u);
     }
     commandBuffer->CommitBarriers();
 
@@ -2020,10 +2077,11 @@ void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t in
 {
     PrepareDraw();
 
-    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+    VulkanBuffer* backendIndirectBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
     commandBuffer->device->vkCmdDrawIndirect(
         commandBuffer->handle,
-        backendBuffer->handle, indirectBufferOffset,
+        backendIndirectBuffer->handle,
+        indirectBufferOffset,
         1,
         sizeof(VkDrawIndirectCommand)
     );
@@ -2033,22 +2091,77 @@ void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint
 {
     PrepareDraw();
 
-    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
-    commandBuffer->device->vkCmdDrawIndexedIndirect(commandBuffer->handle, backendBuffer->handle, indirectBufferOffset, 1, sizeof(VkDrawIndexedIndirectCommand));
+    VulkanBuffer* backendIndirectBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+    commandBuffer->device->vkCmdDrawIndexedIndirect(
+        commandBuffer->handle,
+        backendIndirectBuffer->handle,
+        indirectBufferOffset,
+        1,
+        sizeof(VkDrawIndexedIndirectCommand)
+    );
 }
 
 void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
-    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+    VulkanBuffer* backendIndirectBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+
+    if (drawCountBuffer == nullptr)
+    {
+        commandBuffer->device->vkCmdDrawIndirect(
+            commandBuffer->handle,
+            backendIndirectBuffer->handle,
+            indirectBufferOffset,
+            maxDrawCount,
+            sizeof(VkDrawIndirectCommand)
+        );
+    }
+    else
+    {
+        VulkanBuffer* backendDrawCountBuffer = static_cast<VulkanBuffer*>(drawCountBuffer);
+
+        commandBuffer->device->vkCmdDrawIndirectCount(
+            commandBuffer->handle,
+            backendIndirectBuffer->handle,
+            indirectBufferOffset,
+            backendDrawCountBuffer->handle,
+            drawCountBufferOffset,
+            maxDrawCount,
+            sizeof(VkDrawIndirectCommand)
+        );
+    }
 }
 
 void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
-    VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+    VulkanBuffer* backendIndirectBuffer = static_cast<VulkanBuffer*>(indirectBuffer);
+
+    if (drawCountBuffer == nullptr)
+    {
+        commandBuffer->device->vkCmdDrawIndexedIndirect(
+            commandBuffer->handle,
+            backendIndirectBuffer->handle,
+            indirectBufferOffset,
+            maxDrawCount,
+            sizeof(VkDrawIndexedIndirectCommand)
+        );
+    }
+    else
+    {
+        VulkanBuffer* backendDrawCountBuffer = static_cast<VulkanBuffer*>(drawCountBuffer);
+
+        commandBuffer->device->vkCmdDrawIndexedIndirectCount(
+            commandBuffer->handle,
+            backendIndirectBuffer->handle,
+            indirectBufferOffset,
+            backendDrawCountBuffer->handle,
+            drawCountBufferOffset,
+            maxDrawCount,
+            sizeof(VkDrawIndexedIndirectCommand));
+    }
 }
 
 /* VulkanCommandBuffer */
@@ -2132,12 +2245,12 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
         queue->device->vkCmdSetBlendConstants(handle, blendConstants);
         queue->device->vkCmdSetStencilReference(handle, VK_STENCIL_FRONT_AND_BACK, ~0u);
 
-#if TODO
-        if (device->physicalDeviceFeatures2.features.depthBounds == VK_TRUE)
+        if (device->adapter->features2.features.depthBounds == VK_TRUE)
         {
-            vkCmdSetDepthBounds(handle, 0.0f, 1.0f);
+            queue->device->vkCmdSetDepthBounds(handle, 0.0f, 1.0f);
         }
 
+#if TODO
         if (device->QueryFeatureSupport(RHIFeature::VariableRateShading))
         {
             VkExtent2D fragmentSize = {};
@@ -3765,21 +3878,47 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     // RasterizationState
     VkPipelineRasterizationStateCreateInfo rasterizationState{};
     rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+
+    // DepthClip
+    VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = {};
+    depthClipStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT;
+
+    const void** tail = &rasterizationState.pNext;
+    if (adapter->depthClipEnableFeatures.depthClipEnable == VK_TRUE)
+    {
+        depthClipStateInfo.depthClipEnable = (desc.rasterizerState.depthClipMode == GPUDepthClipMode_Clip) ? VK_TRUE : VK_FALSE;
+
+        rasterizationState.depthClampEnable = VK_TRUE;
+        rasterizationState.pNext = &depthClipStateInfo;
+
+        *tail = &depthClipStateInfo;
+        tail = &depthClipStateInfo.pNext;
+    }
+
+    rasterizationState.rasterizerDiscardEnable = VK_FALSE;
+    rasterizationState.polygonMode = ToVk(desc.rasterizerState.fillMode, adapter->features2.features.fillModeNonSolid);
+    rasterizationState.cullMode = ToVk(desc.rasterizerState.cullMode);
+    rasterizationState.frontFace = ToVk(desc.rasterizerState.frontFace);
+    // Can be managed by command buffer
+    rasterizationState.depthBiasEnable = desc.rasterizerState.depthBias != 0.0f || desc.rasterizerState.depthBiasSlopeScale != 0.0f;
+    rasterizationState.depthBiasConstantFactor = desc.rasterizerState.depthBias;
+    rasterizationState.depthBiasClamp = desc.rasterizerState.depthBiasClamp;
+    rasterizationState.depthBiasSlopeFactor = desc.rasterizerState.depthBiasSlopeScale;
+    rasterizationState.lineWidth = 1.0f;
+
     // MultisampleState
     // VkPipelineSampleLocationsStateCreateInfoEXT sampleLocationsState = {VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT};
     //sampleLocationsState.sampleLocationsInfo.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT;
-
     VkPipelineMultisampleStateCreateInfo multisampleState = {};
     multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleState.rasterizationSamples = ToVkSampleCount(desc.rasterSampleCount);
+    multisampleState.rasterizationSamples = ToVkSampleCount(desc.multisample.count);
 
     ALIMER_ASSERT(multisampleState.rasterizationSamples <= 32);
     if (multisampleState.rasterizationSamples > VK_SAMPLE_COUNT_1_BIT)
     {
         multisampleState.sampleShadingEnable = VK_FALSE;
         multisampleState.minSampleShading = 0.0f;
-        multisampleState.alphaToCoverageEnable = desc.alphaToCoverageEnabled ? VK_TRUE : VK_FALSE;
+        multisampleState.alphaToCoverageEnable = desc.multisample.alphaToCoverageEnabled ? VK_TRUE : VK_FALSE;
         multisampleState.alphaToOneEnable = VK_FALSE;
         multisampleState.pSampleMask = nullptr;
     }
@@ -3787,6 +3926,40 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     // DepthStencilState
     VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
     depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    if (desc.depthStencilAttachmentFormat != PixelFormat_Undefined)
+    {
+        depthStencilState.depthTestEnable = (desc.depthStencilState.depthCompareFunction != GPUCompareFunction_Always || desc.depthStencilState.depthWriteEnabled) ? VK_TRUE : VK_FALSE;
+        depthStencilState.depthWriteEnable = desc.depthStencilState.depthWriteEnabled ? VK_TRUE : VK_FALSE;
+        depthStencilState.depthCompareOp = ToVk(desc.depthStencilState.depthCompareFunction);
+        if (adapter->features2.features.depthBounds == VK_TRUE)
+        {
+            depthStencilState.depthBoundsTestEnable = desc.depthStencilState.depthBoundsTestEnable ? VK_TRUE : VK_FALSE;
+        }
+        else
+        {
+            depthStencilState.depthBoundsTestEnable = false;
+        }
+
+        depthStencilState.stencilTestEnable = StencilTestEnabled(desc.depthStencilState) ? VK_TRUE : VK_FALSE;
+        depthStencilState.front.failOp = ToVk(desc.depthStencilState.frontFace.failOperation);
+        depthStencilState.front.passOp = ToVk(desc.depthStencilState.frontFace.passOperation);
+        depthStencilState.front.depthFailOp = ToVk(desc.depthStencilState.frontFace.depthFailOperation);
+        depthStencilState.front.compareOp = ToVk(desc.depthStencilState.frontFace.compareFunction);
+        depthStencilState.front.compareMask = desc.depthStencilState.stencilReadMask;
+        depthStencilState.front.writeMask = desc.depthStencilState.stencilWriteMask;
+        depthStencilState.front.reference = 0;
+
+        depthStencilState.back.failOp = ToVk(desc.depthStencilState.backFace.failOperation);
+        depthStencilState.back.passOp = ToVk(desc.depthStencilState.backFace.passOperation);
+        depthStencilState.back.depthFailOp = ToVk(desc.depthStencilState.backFace.depthFailOperation);
+        depthStencilState.back.compareOp = ToVk(desc.depthStencilState.backFace.compareFunction);
+        depthStencilState.back.compareMask = desc.depthStencilState.stencilReadMask;
+        depthStencilState.back.writeMask = desc.depthStencilState.stencilWriteMask;
+        depthStencilState.back.reference = 0;
+
+        depthStencilState.minDepthBounds = 0.0f;
+        depthStencilState.maxDepthBounds = 1.0f;
+    }
 
     // RenderingInfo/ RenderPass
     VkPipelineRenderingCreateInfo renderingInfo{};
@@ -3794,7 +3967,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     VkFormat colorAttachmentFormats[GPU_MAX_COLOR_ATTACHMENTS];
 
     // BlendState
-    VkPipelineColorBlendStateCreateInfo blendState {};
+    VkPipelineColorBlendStateCreateInfo blendState{};
     blendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     blendState.logicOpEnable = VK_FALSE;
     blendState.logicOp = VK_LOGIC_OP_CLEAR;
@@ -3818,12 +3991,12 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
         blendAttachmentStates[renderingInfo.colorAttachmentCount].srcAlphaBlendFactor = ToVk(attachment.srcAlphaBlendFactor);
         blendAttachmentStates[renderingInfo.colorAttachmentCount].dstAlphaBlendFactor = ToVk(attachment.destAlphaBlendFactor);
         blendAttachmentStates[renderingInfo.colorAttachmentCount].alphaBlendOp = ToVk(attachment.alphaBlendOperation);
-        blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = ToVk(attachment.colorWriteMask);
 
         colorAttachmentFormats[renderingInfo.colorAttachmentCount] = adapter->ToVkFormat(attachment.format);
         renderingInfo.colorAttachmentCount++;
     }
-    
+
     blendState.attachmentCount = renderingInfo.colorAttachmentCount;
     blendState.pAttachments = blendAttachmentStates;
 
@@ -3850,7 +4023,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     createInfo.pViewportState = &viewportState;
     createInfo.pRasterizationState = &rasterizationState;
     createInfo.pMultisampleState = &multisampleState;
-    createInfo.pDepthStencilState = nullptr;
+    createInfo.pDepthStencilState = (desc.depthStencilAttachmentFormat != PixelFormat_Undefined) ? &depthStencilState : nullptr;
     createInfo.pColorBlendState = &blendState;
     createInfo.pDynamicState = &dynamicStateInfo;
     createInfo.layout = pipeline->layout->handle;
@@ -4400,9 +4573,12 @@ bool VulkanAdapter::HasFeature(GPUFeature feature) const
             // VK_KHR_draw_indirect_count is core in 1.2
             return features2.features.multiDrawIndirect == VK_TRUE;
 
+        case GPUFeature_DepthBoundsTest:
+            return features2.features.depthBounds == VK_TRUE;
+
         case GPUFeature_GPUUploadHeapSupported:
             // https://github.com/KhronosGroup/Vulkan-Docs/issues/2096
-                // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+            // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
             return true;
 
         case GPUFeature_CopyQueueTimestampQueriesSupported:

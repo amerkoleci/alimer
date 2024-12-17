@@ -256,8 +256,19 @@ namespace
             || state->srcColorBlendFactor != GPUBlendFactor_One
             || state->alphaBlendOperation != GPUBlendOperation_Add
             || state->destAlphaBlendFactor != GPUBlendFactor_Zero
-            || state->srcAlphaBlendFactor != GPUBlendFactor_One
-            ;
+            || state->srcAlphaBlendFactor != GPUBlendFactor_One;
+    }
+
+    inline bool StencilTestEnabled(const GPUDepthStencilState& depthStencil)
+    {
+        return depthStencil.backFace.compareFunction != GPUCompareFunction_Always
+            || depthStencil.backFace.failOperation != GPUStencilOperation_Keep
+            || depthStencil.backFace.depthFailOperation != GPUStencilOperation_Keep
+            || depthStencil.backFace.passOperation != GPUStencilOperation_Keep
+            || depthStencil.frontFace.compareFunction != GPUCompareFunction_Always
+            || depthStencil.frontFace.failOperation != GPUStencilOperation_Keep
+            || depthStencil.frontFace.depthFailOperation != GPUStencilOperation_Keep
+            || depthStencil.frontFace.passOperation != GPUStencilOperation_Keep;
     }
 }
 

@@ -20,6 +20,7 @@ Window* window = NULL;
 GPUSurface surface = NULL;
 GPUDevice device = NULL;
 GPUQueue graphicsQueue = NULL;
+GPUTexture depthTexture = NULL;
 GPUBuffer vertexBuffer = NULL;
 GPUBuffer indexBuffer = NULL;
 GPURenderPipeline renderPipeline = NULL;
@@ -76,10 +77,16 @@ void Render()
             .clearColor = {0.3f, 0.3f, 0.3f, 1.0}
         };
 
+        GPURenderPassDepthStencilAttachment depthStencilAttachment = {
+            .texture = depthTexture,
+            .depthClearValue = 1.0f,
+        };
+
         GPURenderPassDesc renderPass = {
             .label = "RenderPass",
             .colorAttachmentCount = 1,
-            .colorAttachments = &colorAttachment
+            .colorAttachments = &colorAttachment,
+            .depthStencilAttachment = &depthStencilAttachment
         };
 
         GPURenderPassEncoder encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
@@ -163,6 +170,17 @@ int main()
     };
     agpuSurfaceConfigure(surface, &surfaceConfig);
 
+    // Create depth texture
+    depthTexture = agpuCreateTexture(device, &(GPUTextureDesc) {
+        .label = "DepthTexture",
+        .dimension = TextureDimension_2D,
+        .format = PixelFormat_Depth32Float,
+        .usage = GPUTextureUsage_RenderTarget,
+        .width = windowDesc.width,
+        .height = windowDesc.width,
+        .mipLevelCount = 1u
+    }, NULL);
+
     const float vertices[] = {
         // positions            colors
         -0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
@@ -184,7 +202,6 @@ int main()
     }, indices);
 
     GPUShaderDesc shaders[2];
-
     shaders[0] = LoadShader("shaders/triangleVertex", GPUShaderStage_Vertex);
     shaders[1] = LoadShader("shaders/triangleFragment", GPUShaderStage_Fragment);
 
@@ -218,8 +235,10 @@ int main()
         },
         .colorAttachmentCount = 1,
         .colorAttachments[0] = {
-            .format = PixelFormat_BGRA8UnormSrgb
-        }
+            .format = PixelFormat_BGRA8UnormSrgb,
+            .colorWriteMask = GPUColorWriteMask_All
+        },
+        .depthStencilAttachmentFormat = PixelFormat_Depth32Float
     });
     free((void*)shaders[0].bytecode);
     free((void*)shaders[1].bytecode);
@@ -250,6 +269,7 @@ int main()
 #endif
 
     agpuRenderPipelineRelease(renderPipeline);
+    agpuTextureRelease(depthTexture);
     agpuBufferRelease(indexBuffer);
     agpuBufferRelease(vertexBuffer);
     agpuSurfaceRelease(surface);

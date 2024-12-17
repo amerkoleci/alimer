@@ -187,7 +187,7 @@ namespace
         return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
     }
 
-    [[maybe_unused]] inline DXGI_FORMAT ToDxgiDSVFormat(PixelFormat format)
+    inline DXGI_FORMAT ToDxgiDSVFormat(PixelFormat format)
     {
         return static_cast<DXGI_FORMAT>(alimerPixelFormatToDxgiFormat(format));
     }
@@ -461,7 +461,89 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(PixelFormat format)
+    [[nodiscard]] constexpr uint8_t ToD3D12(GPUColorWriteMask writeMask)
+    {
+        static_assert(static_cast<UINT>(GPUColorWriteMask_Red) == D3D12_COLOR_WRITE_ENABLE_RED);
+        static_assert(static_cast<UINT>(GPUColorWriteMask_Green) == D3D12_COLOR_WRITE_ENABLE_GREEN);
+        static_assert(static_cast<UINT>(GPUColorWriteMask_Blue) == D3D12_COLOR_WRITE_ENABLE_BLUE);
+        static_assert(static_cast<UINT>(GPUColorWriteMask_Alpha) == D3D12_COLOR_WRITE_ENABLE_ALPHA);
+
+        return static_cast<uint8_t>(writeMask);
+    }
+
+    [[nodiscard]] constexpr D3D12_FILL_MODE ToD3D12(GPUFillMode value)
+    {
+        switch (value)
+        {
+            default:
+            case GPUFillMode_Solid:
+                return D3D12_FILL_MODE_SOLID;
+
+            case GPUFillMode_Wireframe:
+                return D3D12_FILL_MODE_WIREFRAME;
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_CULL_MODE ToD3D12(GPUCullMode value)
+    {
+        switch (value)
+        {
+            default:
+            case GPUCullMode_Back:
+                return D3D12_CULL_MODE_BACK;
+
+            case GPUCullMode_None:
+                return D3D12_CULL_MODE_NONE;
+            case GPUCullMode_Front:
+                return D3D12_CULL_MODE_FRONT;
+        }
+    }
+
+    [[nodiscard]] D3D12_DEPTH_STENCILOP_DESC ToD3D12StencilOpDesc(const GPUStencilFaceState& state)
+    {
+        D3D12_DEPTH_STENCILOP_DESC desc = {};
+        desc.StencilFailOp = ToD3D12(state.failOperation);
+        desc.StencilDepthFailOp = ToD3D12(state.depthFailOperation);
+        desc.StencilPassOp = ToD3D12(state.passOperation);
+        desc.StencilFunc = ToD3D12(state.compareFunction);
+        return desc;
+    }
+
+    [[nodiscard]] D3D12_SAMPLER_DESC ToD3D12SamplerDesc(const GPUSamplerDesc& desc)
+    {
+        const D3D12_FILTER_TYPE minFilter = ToD3D12(desc.minFilter);
+        const D3D12_FILTER_TYPE magFilter = ToD3D12(desc.magFilter);
+        const D3D12_FILTER_TYPE mipFilter = ToD3D12(desc.mipFilter);
+        const D3D12_FILTER_REDUCTION_TYPE reductionType =
+            desc.compareFunction == GPUCompareFunction_Undefined ?
+            D3D12_FILTER_REDUCTION_TYPE_STANDARD : D3D12_FILTER_REDUCTION_TYPE_COMPARISON;
+
+        D3D12_SAMPLER_DESC d3d12Desc{};
+        if (desc.maxAnisotropy > 1)
+        {
+            d3d12Desc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
+        }
+        else
+        {
+            d3d12Desc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipFilter, reductionType);
+        }
+
+        d3d12Desc.AddressU = ToD3D12(desc.addressModeU);
+        d3d12Desc.AddressV = ToD3D12(desc.addressModeV);
+        d3d12Desc.AddressW = ToD3D12(desc.addressModeW);
+        d3d12Desc.MipLODBias = 0.0f;
+        d3d12Desc.MaxAnisotropy = std::min<uint16_t>(std::max((UINT)desc.maxAnisotropy, 1U), 16u);
+        d3d12Desc.ComparisonFunc = ToD3D12(desc.compareFunction);
+        d3d12Desc.BorderColor[0] = 0.0f;
+        d3d12Desc.BorderColor[1] = 0.0f;
+        d3d12Desc.BorderColor[2] = 0.0f;
+        d3d12Desc.BorderColor[3] = 0.0f;
+        d3d12Desc.MinLOD = desc.lodMinClamp;
+        d3d12Desc.MaxLOD = (desc.lodMaxClamp == GPU_LOD_CLAMP_NONE) ? D3D12_FLOAT32_MAX : desc.lodMaxClamp;
+        return d3d12Desc;
+    }
+
+    constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(PixelFormat format)
     {
         bool UsePackedDepth24UnormStencil8Format = true;
 
@@ -847,6 +929,7 @@ struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
     ~D3D12Texture() override;
     void SetLabel(const char* label) override;
     D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(DXGI_FORMAT rtvFormat, uint32_t mipLevel) const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(DXGI_FORMAT dsvFormat, uint32_t mipLevel, bool readOnly) const;
 };
 
 struct D3D12Sampler final : public GPUSamplerImpl
@@ -1342,6 +1425,7 @@ struct D3D12Adapter final : public GPUAdapterImpl
     uint32_t vendorID;
     uint32_t deviceID;
     bool shaderFloat16 = false;
+    bool depthBoundsTestSupported = false;
     bool GPUUploadHeapSupported = false;
     bool copyQueueTimestampQueriesSupported = false;
     bool cacheCoherentUMA = false;
@@ -1430,86 +1514,183 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
     HashCombine(hash, mipLevel);
 
     auto it = RTVs.find(hash);
-    if (it == RTVs.end())
+    if (it != RTVs.end())
+        return device->renderTargetViewHeap.GetCpuHandle(it->second);
+
+    D3D12_RESOURCE_DESC resourceDesc = handle->GetDesc();
+
+    const bool isArray = resourceDesc.DepthOrArraySize > 1;
+    const bool isMultiSample = resourceDesc.SampleDesc.Count > 1;
+
+    D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
+    viewDesc.Format = rtvFormat;
+    switch (desc.dimension)
     {
-        D3D12_RESOURCE_DESC resourceDesc = handle->GetDesc();
-
-        const bool isArray = resourceDesc.DepthOrArraySize > 1;
-        const bool isMultiSample = resourceDesc.SampleDesc.Count > 1;
-
-        D3D12_RENDER_TARGET_VIEW_DESC viewDesc = {};
-        viewDesc.Format = rtvFormat;
-        switch (desc.dimension)
-        {
-            case TextureDimension_1D:
+        case TextureDimension_1D:
+            if (isArray)
+            {
+                viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+                viewDesc.Texture1DArray.MipSlice = mipLevel;
+                viewDesc.Texture1DArray.FirstArraySlice = 0;
+                viewDesc.Texture1DArray.ArraySize = -1;
+            }
+            else
+            {
+                viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+                viewDesc.Texture1D.MipSlice = mipLevel;
+            }
+            break;
+        case TextureDimension_2D:
+            if (isMultiSample)
+            {
+                viewDesc.ViewDimension = isArray ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY : D3D12_RTV_DIMENSION_TEXTURE2DMS;
                 if (isArray)
                 {
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-                    viewDesc.Texture1DArray.MipSlice = mipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = 0;
-                    viewDesc.Texture1DArray.ArraySize = -1;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = 0;
+                    viewDesc.Texture2DMSArray.ArraySize = -1;
+                }
+            }
+            else
+            {
+                viewDesc.ViewDimension = isArray ? D3D12_RTV_DIMENSION_TEXTURE2DARRAY : D3D12_RTV_DIMENSION_TEXTURE2D;
+                if (isArray)
+                {
+                    viewDesc.Texture2DArray.MipSlice = mipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = 0;
+                    viewDesc.Texture2DArray.ArraySize = -1;
+                    viewDesc.Texture2DArray.PlaneSlice = 0;
                 }
                 else
                 {
-                    viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-                    viewDesc.Texture1D.MipSlice = mipLevel;
+                    viewDesc.Texture2D.MipSlice = mipLevel;
+                    viewDesc.Texture2D.PlaneSlice = 0;
                 }
-                break;
-            case TextureDimension_2D:
-                if (isMultiSample)
-                {
-                    viewDesc.ViewDimension = isArray ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY : D3D12_RTV_DIMENSION_TEXTURE2DMS;
-                    if (isArray)
-                    {
-                        viewDesc.Texture2DMSArray.FirstArraySlice = 0;
-                        viewDesc.Texture2DMSArray.ArraySize = -1;
-                    }
-                }
-                else
-                {
-                    viewDesc.ViewDimension = isArray ? D3D12_RTV_DIMENSION_TEXTURE2DARRAY : D3D12_RTV_DIMENSION_TEXTURE2D;
-                    if (isArray)
-                    {
-                        viewDesc.Texture2DArray.MipSlice = mipLevel;
-                        viewDesc.Texture2DArray.FirstArraySlice = 0;
-                        viewDesc.Texture2DArray.ArraySize = -1;
-                        viewDesc.Texture2DArray.PlaneSlice = 0;
-                    }
-                    else
-                    {
-                        viewDesc.Texture2D.MipSlice = mipLevel;
-                        viewDesc.Texture2D.PlaneSlice = 0;
-                    }
-                }
-                break;
-            case TextureDimension_3D:
-                viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
-                viewDesc.Texture3D.MipSlice = mipLevel;
-                viewDesc.Texture3D.FirstWSlice = 0;
-                viewDesc.Texture3D.WSize = resourceDesc.DepthOrArraySize;
-                break;
-            case TextureDimension_Cube:
-                viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-                viewDesc.Texture2DArray.MipSlice = mipLevel;
-                viewDesc.Texture2DArray.FirstArraySlice = 0;
-                viewDesc.Texture2DArray.ArraySize = resourceDesc.DepthOrArraySize;
-                viewDesc.Texture2DArray.PlaneSlice = 0;
-                break;
+            }
+            break;
+        case TextureDimension_3D:
+            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+            viewDesc.Texture3D.MipSlice = mipLevel;
+            viewDesc.Texture3D.FirstWSlice = 0;
+            viewDesc.Texture3D.WSize = resourceDesc.DepthOrArraySize;
+            break;
+        case TextureDimension_Cube:
+            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+            viewDesc.Texture2DArray.MipSlice = mipLevel;
+            viewDesc.Texture2DArray.FirstArraySlice = 0;
+            viewDesc.Texture2DArray.ArraySize = resourceDesc.DepthOrArraySize;
+            viewDesc.Texture2DArray.PlaneSlice = 0;
+            break;
 
-            default:
-                alimerLogError(LogCategory_GPU, "Invalid TextureView type");
-                return {};
-        }
-
-        DescriptorIndex descriptorIndex = device->renderTargetViewHeap.AllocateDescriptors();
-        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->renderTargetViewHeap.GetCpuHandle(descriptorIndex);
-        device->handle->CreateRenderTargetView(handle, &viewDesc, cpuHandle);
-
-        RTVs[hash] = descriptorIndex;
-        return cpuHandle;
+        default:
+            alimerLogError(LogCategory_GPU, "Invalid TextureView type");
+            return {};
     }
 
-    return device->renderTargetViewHeap.GetCpuHandle(it->second);
+    DescriptorIndex descriptorIndex = device->renderTargetViewHeap.AllocateDescriptors();
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->renderTargetViewHeap.GetCpuHandle(descriptorIndex);
+    device->handle->CreateRenderTargetView(handle, &viewDesc, cpuHandle);
+
+    RTVs[hash] = descriptorIndex;
+    return cpuHandle;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetDSV(DXGI_FORMAT dsvFormat, uint32_t mipLevel, bool readOnly) const
+{
+    size_t hash = 0;
+
+    HashCombine(hash, (uint32_t)dsvFormat);
+    HashCombine(hash, mipLevel);
+    HashCombine(hash, desc.mipLevelCount);
+    HashCombine(hash, readOnly);
+
+    auto it = DSVs.find(hash);
+    if (it != DSVs.end())
+        return device->depthStencilViewHeap.GetCpuHandle(it->second);
+
+    D3D12_RESOURCE_DESC resourceDesc = handle->GetDesc();
+    const bool isArray = resourceDesc.DepthOrArraySize > 1;
+    const bool isMultiSample = resourceDesc.SampleDesc.Count > 1;
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
+    viewDesc.Format = dsvFormat;
+    viewDesc.Flags = D3D12_DSV_FLAG_NONE;
+    if (readOnly)
+    {
+        viewDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+
+        if (viewDesc.Format == DXGI_FORMAT_D24_UNORM_S8_UINT || viewDesc.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+            viewDesc.Flags |= D3D12_DSV_FLAG_READ_ONLY_STENCIL;
+    }
+
+    switch (desc.dimension)
+    {
+        case TextureDimension_1D:
+            if (isArray)
+            {
+                viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+                viewDesc.Texture1DArray.MipSlice = mipLevel;
+                viewDesc.Texture1DArray.FirstArraySlice = 0;
+                viewDesc.Texture1DArray.ArraySize = -1;
+            }
+            else
+            {
+                viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+                viewDesc.Texture1D.MipSlice = mipLevel;
+            }
+            break;
+        case TextureDimension_2D:
+            if (isMultiSample)
+            {
+                if (isArray)
+                {
+                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = 0;
+                    viewDesc.Texture2DMSArray.ArraySize = -1;
+                }
+                else
+                {
+                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+                }
+            }
+            else
+            {
+                if (isArray)
+                {
+                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+                    viewDesc.Texture2DArray.MipSlice = mipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = 0;
+                    viewDesc.Texture2DArray.ArraySize = -1;
+                }
+                else
+                {
+                    viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+                    viewDesc.Texture2D.MipSlice = mipLevel;
+                }
+            }
+            break;
+
+        case TextureDimension_Cube:
+            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+            viewDesc.Texture2DArray.MipSlice = mipLevel;
+            viewDesc.Texture2DArray.FirstArraySlice = 0;
+            viewDesc.Texture2DArray.ArraySize = -1;
+            break;
+
+        case TextureDimension_3D:
+            alimerLogError(LogCategory_GPU, "Invalid TextureView type");
+            return {};
+
+        default:
+            alimerLogError(LogCategory_GPU, "Invalid TextureView type");
+            return {};
+    }
+
+    DescriptorIndex descriptorIndex = device->depthStencilViewHeap.AllocateDescriptors();
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->depthStencilViewHeap.GetCpuHandle(descriptorIndex);
+    device->handle->CreateDepthStencilView(handle, &viewDesc, cpuHandle);
+
+    DSVs[hash] = descriptorIndex;
+    return cpuHandle;
 }
 
 /* D3D12BindGroupLayout */
@@ -1715,6 +1896,83 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
 
     if (hasDepthOrStencil)
     {
+        const GPURenderPassDepthStencilAttachment& attachment = *desc.depthStencilAttachment;
+
+        D3D12Texture* texture = static_cast<D3D12Texture*>(attachment.texture);
+
+        const DXGI_FORMAT dsvFormat = ToDxgiDSVFormat(texture->desc.format);
+
+        width = std::min(width, std::max(texture->desc.width >> attachment.mipLevel, 1u));
+        height = std::min(height, std::max(texture->desc.height >> attachment.mipLevel, 1u));
+
+        DSV.cpuDescriptor = texture->GetDSV(dsvFormat, attachment.mipLevel, attachment.depthReadOnly || attachment.stencilReadOnly);
+        DSV.DepthBeginningAccess.Clear.ClearValue.Format = dsvFormat;
+        DSV.StencilBeginningAccess.Clear.ClearValue.Format = dsvFormat;
+
+        const GPULoadAction loadAction = _ALIMER_DEF(attachment.depthLoadAction, GPULoadAction_Clear);
+        const GPUStoreAction storeAction = _ALIMER_DEF(attachment.depthStoreAction, GPUStoreAction_Discard);
+
+        switch (attachment.depthLoadAction)
+        {
+            default:
+            case GPULoadAction_Load:
+                DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                break;
+
+            case GPULoadAction_Clear:
+                DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.depthClearValue;
+                break;
+            case GPULoadAction_Discard:
+                DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                break;
+        }
+
+        switch (attachment.depthStoreAction)
+        {
+            default:
+            case GPUStoreAction_Store:
+                DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                break;
+            case GPUStoreAction_Discard:
+                DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                break;
+        }
+
+        if (alimerPixelFormatIsStencil(texture->desc.format))
+        {
+            const GPULoadAction stencilLoadAction = _ALIMER_DEF(attachment.stencilLoadAction, GPULoadAction_Clear);
+            const GPUStoreAction stencilStoreAction = _ALIMER_DEF(attachment.stencilStoreAction, GPUStoreAction_Discard);
+
+            switch (stencilLoadAction)
+            {
+                default:
+                case GPULoadAction_Load:
+                    DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case GPULoadAction_Clear:
+                    DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = static_cast<UINT8>(attachment.stencilClearValue);
+                    break;
+                case GPULoadAction_Discard:
+                    DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            switch (attachment.stencilStoreAction)
+            {
+                default:
+                case GPUStoreAction_Store:
+                    DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+                case GPUStoreAction_Discard:
+                    DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+        }
+
+        commandBuffer->TextureBarrier(texture, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite);
     }
 
     commandBuffer->CommitBarriers();
@@ -1879,11 +2137,11 @@ void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t ind
 {
     PrepareDraw();
 
-    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
+    D3D12Buffer* backendIndirectBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
     commandBuffer->commandList->ExecuteIndirect(
         commandBuffer->queue->device->drawIndirectCommandSignature,
         1,
-        backendBuffer->handle,
+        backendIndirectBuffer->handle,
         indirectBufferOffset,
         nullptr,
         0);
@@ -1893,11 +2151,11 @@ void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint6
 {
     PrepareDraw();
 
-    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
+    D3D12Buffer* backendIndirectBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
     commandBuffer->commandList->ExecuteIndirect(
         commandBuffer->queue->device->drawIndexedIndirectCommandSignature,
         1,
-        backendBuffer->handle,
+        backendIndirectBuffer->handle,
         indirectBufferOffset,
         nullptr,
         0);
@@ -1907,21 +2165,36 @@ void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_
 {
     PrepareDraw();
 
-    D3D12Buffer* backendIndirectBufferr = static_cast<D3D12Buffer*>(indirectBuffer);
+    D3D12Buffer* backendIndirectBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
     D3D12Buffer* backendDrawCountBuffer = drawCountBuffer != nullptr ? static_cast<D3D12Buffer*>(drawCountBuffer) : nullptr;
 
+    // There is no distinction between DrawIndirect and MultiDrawIndirect in D3D12.
     commandBuffer->commandList->ExecuteIndirect(
         commandBuffer->queue->device->drawIndirectCommandSignature,
         maxDrawCount,
-        backendIndirectBufferr->handle,
+        backendIndirectBuffer->handle,
         indirectBufferOffset,
         backendDrawCountBuffer != nullptr ? backendDrawCountBuffer->handle : nullptr,
-        backendDrawCountBuffer != nullptr ? drawCountBufferOffset : 0);
+        backendDrawCountBuffer != nullptr ? drawCountBufferOffset : 0
+    );
 }
 
 void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
+    PrepareDraw();
 
+    D3D12Buffer* backendIndirectBufferr = static_cast<D3D12Buffer*>(indirectBuffer);
+    D3D12Buffer* backendDrawCountBuffer = drawCountBuffer != nullptr ? static_cast<D3D12Buffer*>(drawCountBuffer) : nullptr;
+
+    // There is no distinction between DrawIndexedIndirect and MultiDrawIndexedIndirect
+    commandBuffer->commandList->ExecuteIndirect(
+        commandBuffer->queue->device->drawIndexedIndirectCommandSignature,
+        maxDrawCount,
+        backendIndirectBufferr->handle,
+        indirectBufferOffset,
+        backendDrawCountBuffer != nullptr ? backendDrawCountBuffer->handle : nullptr,
+        backendDrawCountBuffer != nullptr ? drawCountBufferOffset : 0
+    );
 }
 
 /* D3D12CommandBuffer */
@@ -2036,11 +2309,13 @@ ID3D12CommandList* D3D12CommandBuffer::End()
 void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* resource, TextureLayout newLayout, uint32_t subresource, bool commit)
 {
     const uint32_t index = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;
-    const TextureLayout oldLayout = resource->subResourcesStates[index];
+    const TextureLayout currentLayout = resource->subResourcesStates[index];
+    if (currentLayout == newLayout)
+        return;
 
     if (queue->device->features.EnhancedBarriersSupported())
     {
-        D3D12TextureLayoutMapping mappingBefore = ConvertTextureLayout(oldLayout);
+        D3D12TextureLayoutMapping mappingBefore = ConvertTextureLayout(currentLayout);
         D3D12TextureLayoutMapping mappingAfter = ConvertTextureLayout(newLayout);
 
         D3D12_TEXTURE_BARRIER& barrier = textureBarriers.emplace_back();
@@ -2072,7 +2347,7 @@ void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* resource, TextureLay
     }
     else
     {
-        const D3D12_RESOURCE_STATES oldState = ConvertTextureLayoutLegacy(oldLayout);
+        const D3D12_RESOURCE_STATES oldState = ConvertTextureLayoutLegacy(currentLayout);
         const D3D12_RESOURCE_STATES newState = ConvertTextureLayoutLegacy(newLayout);
 
         if (queue->queueType == GPUQueueType_Compute)
@@ -3127,37 +3402,7 @@ GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
 GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
 {
     D3D12Sampler* sampler = new D3D12Sampler();
-
-    const D3D12_FILTER_TYPE minFilter = ToD3D12(desc.minFilter);
-    const D3D12_FILTER_TYPE magFilter = ToD3D12(desc.magFilter);
-    const D3D12_FILTER_TYPE mipFilter = ToD3D12(desc.mipFilter);
-    const D3D12_FILTER_REDUCTION_TYPE reductionType =
-        desc.compareFunction == GPUCompareFunction_Undefined ?
-        D3D12_FILTER_REDUCTION_TYPE_STANDARD : D3D12_FILTER_REDUCTION_TYPE_COMPARISON;
-
-    sampler->samplerDesc = {};
-    if (desc.maxAnisotropy > 1)
-    {
-        sampler->samplerDesc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
-    }
-    else
-    {
-        sampler->samplerDesc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipFilter, reductionType);
-    }
-
-    sampler->samplerDesc.AddressU = ToD3D12(desc.addressModeU);
-    sampler->samplerDesc.AddressV = ToD3D12(desc.addressModeV);
-    sampler->samplerDesc.AddressW = ToD3D12(desc.addressModeW);
-    sampler->samplerDesc.MipLODBias = 0.0f;
-    sampler->samplerDesc.MaxAnisotropy = std::min<uint16_t>(std::max((UINT)desc.maxAnisotropy, 1U), 16u);
-    sampler->samplerDesc.ComparisonFunc = ToD3D12(desc.compareFunction);
-    sampler->samplerDesc.BorderColor[0] = 0.0f;
-    sampler->samplerDesc.BorderColor[1] = 0.0f;
-    sampler->samplerDesc.BorderColor[2] = 0.0f;
-    sampler->samplerDesc.BorderColor[3] = 0.0f;
-    sampler->samplerDesc.MinLOD = desc.lodMinClamp;
-    sampler->samplerDesc.MaxLOD = (desc.lodMaxClamp == GPU_LOD_CLAMP_NONE) ? D3D12_FLOAT32_MAX : desc.lodMaxClamp;
-
+    sampler->samplerDesc = ToD3D12SamplerDesc(desc);
     return sampler;
 }
 
@@ -3317,7 +3562,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
             //CD3DX12_PIPELINE_STATE_STREAM_GS  geometryShader;
             PipelinePixelShader                 pixelShader;
             PipelineBlend                       BlendState;
-            PipelineDepthStencil                DepthStencilState;
+            PipelineDepthStencil                depthStencilState;
             PipelineDepthStencilFormat          DSVFormat;
             PipelineRasterizer                  RasterizerState;
             PipelineRenderTargetFormats         RTVFormats;
@@ -3448,7 +3693,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     RTVFormats.NumRenderTargets = 0;
 
     D3D12_BLEND_DESC blendState = {};
-    blendState.AlphaToCoverageEnable = desc.alphaToCoverageEnabled ? TRUE : FALSE;
+    blendState.AlphaToCoverageEnable = desc.multisample.alphaToCoverageEnabled ? TRUE : FALSE;
     blendState.IndependentBlendEnable = TRUE;
     for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
@@ -3466,7 +3711,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         blendState.RenderTarget[i].DestBlendAlpha = ToD3D12AlphaBlend(attachment.destAlphaBlendFactor);
         blendState.RenderTarget[i].BlendOpAlpha = ToD3D12(attachment.alphaBlendOperation);
         blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-        blendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        blendState.RenderTarget[i].RenderTargetWriteMask = ToD3D12(attachment.colorWriteMask);
 
         // RTV
         RTVFormats.RTFormats[RTVFormats.NumRenderTargets] = (DXGI_FORMAT)ToDxgiFormat(attachment.format);
@@ -3480,7 +3725,27 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
     if (desc.depthStencilAttachmentFormat != PixelFormat_Undefined)
     {
-        // TODO
+        // Depth
+        depthStencilState.DepthEnable =
+            (desc.depthStencilState.depthCompareFunction == GPUCompareFunction_Always && !desc.depthStencilState.depthWriteEnabled) ? FALSE : TRUE;
+        depthStencilState.DepthWriteMask = desc.depthStencilState.depthWriteEnabled ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+        depthStencilState.DepthFunc = ToD3D12(desc.depthStencilState.depthCompareFunction);
+
+        depthStencilState.StencilEnable = StencilTestEnabled(desc.depthStencilState) ? TRUE : FALSE;
+        depthStencilState.StencilReadMask = static_cast<UINT8>(desc.depthStencilState.stencilReadMask);
+        depthStencilState.StencilWriteMask = static_cast<UINT8>(desc.depthStencilState.stencilWriteMask);
+
+        depthStencilState.FrontFace = ToD3D12StencilOpDesc(desc.depthStencilState.frontFace);
+        depthStencilState.BackFace = ToD3D12StencilOpDesc(desc.depthStencilState.backFace);
+
+        if (features.DepthBoundsTestSupported() == TRUE)
+        {
+            depthStencilState.DepthBoundsTestEnable = desc.depthStencilState.depthBoundsTestEnable ? TRUE : FALSE;
+        }
+        else
+        {
+            depthStencilState.DepthBoundsTestEnable = FALSE;
+        }
     }
     else
     {
@@ -3494,34 +3759,31 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         depthStencilState.BackFace = defaultStencilOp;
         depthStencilState.DepthBoundsTestEnable = FALSE;
     }
-    stream.stream1.DepthStencilState = depthStencilState;
+    stream.stream1.depthStencilState = depthStencilState;
     stream.stream1.DSVFormat = (DXGI_FORMAT)ToDxgiFormat(desc.depthStencilAttachmentFormat);
 
     // RasterizerState
     D3D12_RASTERIZER_DESC1 rasterizerState{};
-    rasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-    rasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-    rasterizerState.FrontCounterClockwise = FALSE;
-    rasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-    rasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-    rasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-    rasterizerState.DepthClipEnable = TRUE;
-    rasterizerState.MultisampleEnable = FALSE;
+    rasterizerState.FillMode = ToD3D12(desc.rasterizerState.fillMode);
+    rasterizerState.CullMode = ToD3D12(desc.rasterizerState.cullMode);
+    rasterizerState.FrontCounterClockwise = (desc.rasterizerState.frontFace == GPUFrontFace_CounterClockwise) ? TRUE : FALSE;
+    rasterizerState.DepthBias = desc.rasterizerState.depthBias;
+    rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
+    rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.depthBiasSlopeScale;
+    rasterizerState.DepthClipEnable = (desc.rasterizerState.depthClipMode == GPUDepthClipMode_Clip) ? TRUE : FALSE;
+    rasterizerState.MultisampleEnable = (desc.multisample.count > 1) ? TRUE : FALSE;
     rasterizerState.AntialiasedLineEnable = FALSE;
     rasterizerState.ForcedSampleCount = 0;
     rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-    //if (desc.rasterizerState.conservativeRaster &&
-    //    d3dFeatures.ConservativeRasterizationTier() != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED)
-    //{
-    //    rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
-    //}
+    if (desc.rasterizerState.conservativeRaster &&
+        features.ConservativeRasterizationTier() != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED)
+    {
+        rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
+    }
     stream.stream1.RasterizerState = rasterizerState;
 
     // SampleDesc and SampleMask
-    DXGI_SAMPLE_DESC sampleDesc = {};
-    sampleDesc.Count = desc.rasterSampleCount;
-    sampleDesc.Quality = 0;
-    stream.stream1.SampleDesc = sampleDesc;
+    stream.stream1.SampleDesc = { desc.multisample.count, 0 };
     stream.stream1.SampleMask = UINT_MAX;
 
     D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
@@ -3835,6 +4097,9 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
 
         case GPUFeature_ShaderFloat16:
             return shaderFloat16;
+
+        case GPUFeature_DepthBoundsTest:
+            return depthBoundsTestSupported;
 
         case GPUFeature_GPUUploadHeapSupported:
             return GPUUploadHeapSupported;
@@ -4226,6 +4491,7 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
 
     //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
     adapter->shaderFloat16 = features.HighestShaderModel() >= D3D_SHADER_MODEL_6_2 && features.Native16BitShaderOpsSupported();
+    adapter->depthBoundsTestSupported = features.DepthBoundsTestSupported() == TRUE;
     adapter->GPUUploadHeapSupported = features.GPUUploadHeapSupported() == TRUE;
     adapter->copyQueueTimestampQueriesSupported = features.CopyQueueTimestampQueriesSupported() == TRUE;
     adapter->cacheCoherentUMA = features.CacheCoherentUMA() == TRUE;

@@ -25,7 +25,6 @@ typedef struct GPUComputePipelineImpl*      GPUComputePipeline;
 typedef struct GPURenderPipelineImpl*       GPURenderPipeline;
 
 /* Types */
-typedef uint32_t GPUBool;
 typedef uint64_t GPUDeviceAddress;
 
 /* Constants */
@@ -158,7 +157,7 @@ typedef enum GPUIndexType {
 
     _GPUIndexType_Count,
     _GPUIndexType_Force32 = 0x7FFFFFFF
-} GPUIndexType;
+} GPUIndexType ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUCompareFunction {
     GPUCompareFunction_Undefined = 0,
@@ -173,10 +172,10 @@ typedef enum GPUCompareFunction {
 
     _GPUCompareFunction_Count,
     _GPUCompareFunction_Force32 = 0x7FFFFFFF
-} GPUCompareFunction;
+} GPUCompareFunction ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUBlendFactor {
-    _GPUBlendFactor_Default = 0,
+    GPUBlendFactor_Undefined = 0,
     GPUBlendFactor_Zero,
     GPUBlendFactor_One,
     GPUBlendFactor_SourceColor,
@@ -199,10 +198,10 @@ typedef enum GPUBlendFactor {
 
     _GPUBlendFactor_Count,
     _GPUBlendFactor_Force32 = 0x7FFFFFFF
-} GPUBlendFactor;
+} GPUBlendFactor ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUBlendOperation {
-    _GPUBlendOperation_Default = 0,
+    GPUBlendOperation_Undefined = 0,
     GPUBlendOperation_Add,
     GPUBlendOperation_Subtract,
     GPUBlendOperation_ReverseSubtract,
@@ -211,7 +210,7 @@ typedef enum GPUBlendOperation {
 
     _GPUBlendOperation_Count,
     _GPUBlendOperation_Force32 = 0x7FFFFFFF
-} GPUBlendOperation;
+} GPUBlendOperation ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUStencilOperation {
     GPUStencilOperation_Undefined = 0,
@@ -226,7 +225,7 @@ typedef enum GPUStencilOperation {
 
     _GPUStencilOperation_Count,
     _GPUStencilOperation_Force32 = 0x7FFFFFFF
-} GPUStencilOperation;
+} GPUStencilOperation ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPULoadAction {
     GPULoadAction_Undefined = 0,
@@ -236,7 +235,7 @@ typedef enum GPULoadAction {
 
     _GPULoadAction_Count,
     _GPULoadAction_Force32 = 0x7FFFFFFF
-} GPULoadAction;
+} GPULoadAction ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUStoreAction {
     GPUStoreAction_Undefined = 0,
@@ -245,7 +244,7 @@ typedef enum GPUStoreAction {
 
     _GPUStoreAction_Count,
     _GPUStoreAction_Force32 = 0x7FFFFFFF
-} GPUStoreAction;
+} GPUStoreAction ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUPresentMode {
     GPUPresentMode_Undefined = 0,
@@ -256,7 +255,7 @@ typedef enum GPUPresentMode {
 
     _GPUPresentMode_Count,
     _GPUPresentMode_Force32 = 0x7FFFFFFF
-} GPUPresentMode;
+} GPUPresentMode ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUShaderStage {
     GPUShaderStage_Undefined,
@@ -270,14 +269,47 @@ typedef enum GPUShaderStage {
 
     _GPUShaderStage_Count,
     _GPUShaderStage_Force32 = 0x7FFFFFFF
-} GPUShaderStage;
+} GPUShaderStage ALIMER_ENUM_ATTRIBUTE;
 
 typedef enum GPUVertexStepMode {
     GPUVertexStepMode_Vertex = 0,
     GPUVertexStepMode_Instance = 1,
 
     _GPUVertexStepMode_Force32 = 0x7FFFFFFF
-} GPUVertexStepMode;
+} GPUVertexStepMode ALIMER_ENUM_ATTRIBUTE;
+
+typedef enum GPUFillMode {
+    _GPUFillMode_Default = 0,
+    GPUFillMode_Solid,
+    GPUFillMode_Wireframe,
+
+    _GPUFillMode_Force32 = 0x7FFFFFFF
+} GPUFillMode ALIMER_ENUM_ATTRIBUTE;
+
+typedef enum GPUCullMode {
+    _GPUCullMode_Default = 0,
+    GPUCullMode_None,
+    GPUCullMode_Front,
+    GPUCullMode_Back,
+
+    _GPUCullMode_Force32 = 0x7FFFFFFF
+} GPUCullMode ALIMER_ENUM_ATTRIBUTE;
+
+typedef enum GPUFrontFace {
+    _GPUFrontFace_Default = 0,
+    GPUFrontFace_Clockwise,
+    GPUFrontFace_CounterClockwise,
+
+    _GPUFrontFace_Force32 = 0x7FFFFFFF
+} GPUFrontFace ALIMER_ENUM_ATTRIBUTE;
+
+typedef enum GPUDepthClipMode {
+    _GPUDepthClipMode_Default = 0,
+    GPUDepthClipMode_Clip,
+    GPUDepthClipMode_Clamp,
+
+    _GPUDepthClipMode_Force32 = 0x7FFFFFFF
+} GPUDepthClipMode;
 
 typedef enum GPUSamplerMinMagFilter {
     GPUSamplerMinMagFilter_Nearest = 0,
@@ -405,6 +437,7 @@ typedef enum GPUFeature {
     GPUFeature_MultiDrawIndirect,
 
     GPUFeature_Tessellation,
+    GPUFeature_DepthBoundsTest,
     GPUFeature_GPUUploadHeapSupported,
     GPUFeature_CopyQueueTimestampQueriesSupported,
     GPUFeature_CacheCoherentUMA,
@@ -415,7 +448,7 @@ typedef enum GPUFeature {
 } GPUFeature;
 
 /* Flags/Bitmask Enums */
-typedef uint64_t GPUBufferUsage;
+typedef uint32_t GPUBufferUsage;
 static const GPUBufferUsage GPUBufferUsage_None = 0;
 static const GPUBufferUsage GPUBufferUsage_Vertex = (1 << 0);
 static const GPUBufferUsage GPUBufferUsage_Index = (1 << 1);
@@ -430,7 +463,7 @@ static const GPUBufferUsage GPUBufferUsage_Predication = (1 << 6);
 /// Supports ray tracing acceleration structure usage.
 static const GPUBufferUsage GPUBufferUsage_RayTracing = (1 << 7);
 
-typedef uint64_t GPUTextureUsage;
+typedef uint32_t GPUTextureUsage;
 static const GPUTextureUsage GPUTextureUsage_None = 0;
 static const GPUTextureUsage GPUTextureUsage_ShaderRead = (1 << 0);
 static const GPUTextureUsage GPUTextureUsage_ShaderWrite = (1 << 1);
@@ -439,6 +472,14 @@ static const GPUTextureUsage GPUTextureUsage_Transient = (1 << 3);
 static const GPUTextureUsage GPUTextureUsage_ShadingRate = (1 << 4);
 /// Supports shared handle usage.
 static const GPUTextureUsage GPUTextureUsage_Shared = (1 << 5);
+
+typedef uint32_t GPUColorWriteMask;
+static const GPUColorWriteMask GPUColorWriteMask_None = 0x0000000000000000;
+static const GPUColorWriteMask GPUColorWriteMask_Red = 0x0000000000000001;
+static const GPUColorWriteMask GPUColorWriteMask_Green = 0x0000000000000002;
+static const GPUColorWriteMask GPUColorWriteMask_Blue = 0x0000000000000004;
+static const GPUColorWriteMask GPUColorWriteMask_Alpha = 0x0000000000000008;
+static const GPUColorWriteMask GPUColorWriteMask_All = 0x000000000000000F /* Red | Green | Blue | Alpha */;
 
 /* Structs */
 typedef struct GPUScissorRect {
@@ -539,12 +580,46 @@ typedef struct GPUVertexBufferLayout {
     GPUVertexStepMode stepMode;
     uint32_t attributeCount;
     const GPUVertexAttribute* attributes;
-} GPUVertexBufferLayout;
+} GPUVertexBufferLayout ALIMER_STRUCT_ATTRIBUTE;
 
 typedef struct GPUVertexLayout {
     uint32_t bufferCount DEFAULT_INITIALIZER(0);
     const GPUVertexBufferLayout* buffers DEFAULT_INITIALIZER(nullptr);
-} GPUVertexLayout;
+} GPUVertexLayout ALIMER_STRUCT_ATTRIBUTE;
+
+typedef struct GPURasterizerState {
+    GPUFillMode fillMode DEFAULT_INITIALIZER(GPUFillMode_Solid);
+    GPUCullMode cullMode DEFAULT_INITIALIZER(GPUCullMode_Back);
+    GPUFrontFace frontFace DEFAULT_INITIALIZER(GPUFrontFace_Clockwise);
+    float depthBias DEFAULT_INITIALIZER(0.0f);
+    float depthBiasSlopeScale DEFAULT_INITIALIZER(0.0f);
+    float depthBiasClamp DEFAULT_INITIALIZER(0.0f);
+    GPUDepthClipMode depthClipMode DEFAULT_INITIALIZER(GPUDepthClipMode_Clip);
+    Bool32 conservativeRaster DEFAULT_INITIALIZER(false);
+} GPURasterizerState ALIMER_STRUCT_ATTRIBUTE;
+
+typedef struct GPUStencilFaceState {
+    GPUCompareFunction compareFunction DEFAULT_INITIALIZER(GPUCompareFunction_Always);
+    GPUStencilOperation failOperation DEFAULT_INITIALIZER(GPUStencilOperation_Keep);
+    GPUStencilOperation depthFailOperation DEFAULT_INITIALIZER(GPUStencilOperation_Keep);
+    GPUStencilOperation passOperation DEFAULT_INITIALIZER(GPUStencilOperation_Keep);
+} GPUStencilFaceState ALIMER_STRUCT_ATTRIBUTE;
+
+typedef struct GPUDepthStencilState {
+    Bool32 depthWriteEnabled DEFAULT_INITIALIZER(false);
+    GPUCompareFunction depthCompareFunction DEFAULT_INITIALIZER(GPUCompareFunction_Always);
+    uint8_t stencilReadMask DEFAULT_INITIALIZER(0xFF);
+    uint8_t stencilWriteMask DEFAULT_INITIALIZER(0xFF);
+    GPUStencilFaceState frontFace;
+    GPUStencilFaceState backFace;
+    Bool32 depthBoundsTestEnable DEFAULT_INITIALIZER(false);  /* Only if GPUFeature_DepthBoundsTest is supported */
+} GPUDepthStencilState ALIMER_STRUCT_ATTRIBUTE;
+
+typedef struct GPUMultisampleState {
+    uint32_t count;
+    uint32_t mask;
+    Bool32 alphaToCoverageEnabled;
+} GPUMultisampleState ALIMER_STRUCT_ATTRIBUTE;
 
 typedef struct GPURenderPipelineColorAttachmentDesc {
     PixelFormat         format DEFAULT_INITIALIZER(PixelFormat_Undefined);
@@ -554,7 +629,7 @@ typedef struct GPURenderPipelineColorAttachmentDesc {
     GPUBlendFactor      srcAlphaBlendFactor DEFAULT_INITIALIZER(GPUBlendFactor_One);
     GPUBlendFactor      destAlphaBlendFactor DEFAULT_INITIALIZER(GPUBlendFactor_Zero);
     GPUBlendOperation   alphaBlendOperation DEFAULT_INITIALIZER(GPUBlendOperation_Add);
-    //GPUColorWriteMask colorWriteMask = ColorWriteMask::All;
+    GPUColorWriteMask   colorWriteMask DEFAULT_INITIALIZER(GPUColorWriteMask_All);
 } GPURenderPipelineColorAttachmentDesc;
 
 typedef struct GPURenderPipelineDesc {
@@ -564,11 +639,12 @@ typedef struct GPURenderPipelineDesc {
     uint32_t                                shaderCount;
     const GPUShaderDesc*                    shaders;
 
+    GPURasterizerState                      rasterizerState;
+    GPUDepthStencilState                    depthStencilState;
     const GPUVertexLayout*                  vertexLayout DEFAULT_INITIALIZER(nullptr);
     GPUPrimitiveTopology                    primitiveTopology DEFAULT_INITIALIZER(GPUPrimitiveTopology_TriangleList);
     uint32_t                                patchControlPoints DEFAULT_INITIALIZER(1);
-    uint32_t                                rasterSampleCount DEFAULT_INITIALIZER(1);
-    GPUBool                                 alphaToCoverageEnabled DEFAULT_INITIALIZER(false);
+    GPUMultisampleState                     multisample;
     uint32_t                                colorAttachmentCount DEFAULT_INITIALIZER(0);
     GPURenderPipelineColorAttachmentDesc    colorAttachments[GPU_MAX_COLOR_ATTACHMENTS];
     PixelFormat                             depthStencilAttachmentFormat DEFAULT_INITIALIZER(PixelFormat_Undefined);
@@ -578,21 +654,21 @@ typedef struct GPURenderPassColorAttachment {
     GPUTexture texture DEFAULT_INITIALIZER(nullptr);
     uint32_t mipLevel DEFAULT_INITIALIZER(0);
     GPULoadAction loadAction DEFAULT_INITIALIZER(GPULoadAction_Discard);
-    GPUStoreAction storeAction;
+    GPUStoreAction storeAction DEFAULT_INITIALIZER(GPUStoreAction_Store);
     GPUColor clearColor;
 } GPURenderPassColorAttachment;
 
 typedef struct GPURenderPassDepthStencilAttachment {
-    GPUTexture texture;
-    uint32_t mipLevel;
-    GPULoadAction depthLoadAction;
-    GPUStoreAction depthStoreAction;
-    float depthClearValue;
-    bool depthReadOnly;
-    GPULoadAction stencilLoadActin;
-    GPUStoreAction stencilStoreAction;
-    uint32_t stencilClearValue;
-    bool stencilReadOnly;
+    GPUTexture texture DEFAULT_INITIALIZER(nullptr);
+    uint32_t mipLevel DEFAULT_INITIALIZER(0);
+    GPULoadAction depthLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
+    GPUStoreAction depthStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
+    float depthClearValue DEFAULT_INITIALIZER(1.0f);
+    bool depthReadOnly DEFAULT_INITIALIZER(false);
+    GPULoadAction stencilLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
+    GPUStoreAction stencilStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
+    uint32_t stencilClearValue DEFAULT_INITIALIZER(0);
+    bool stencilReadOnly DEFAULT_INITIALIZER(false);
 } GPURenderPassDepthStencilAttachment;
 
 typedef struct GPUComputePassDesc {
@@ -762,8 +838,8 @@ ALIMER_API void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder
 ALIMER_API void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance);
 ALIMER_API void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset);
 ALIMER_API void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset);
-ALIMER_API void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, /*GPU_NULLABLE*/ GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset);
-ALIMER_API void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, /*GPU_NULLABLE*/ GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset);
+ALIMER_API void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset);
+ALIMER_API void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset);
 ALIMER_API void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder);
 ALIMER_API void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel);
 ALIMER_API void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder);

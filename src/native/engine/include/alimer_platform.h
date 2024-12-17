@@ -30,11 +30,28 @@
 
 #define ALIMER_API _ALIMER_EXTERN _ALIMER_EXPORT
 
+#if !defined(ALIMER_OBJECT_ATTRIBUTE)
+#define ALIMER_OBJECT_ATTRIBUTE
+#endif
+#if !defined(ALIMER_ENUM_ATTRIBUTE)
+#define ALIMER_ENUM_ATTRIBUTE
+#endif
+#if !defined(ALIMER_STRUCT_ATTRIBUTE)
+#define ALIMER_STRUCT_ATTRIBUTE
+#endif
+#if !defined(ALIMER_FUNC_ATTRIBUTE)
+#define ALIMER_FUNC_ATTRIBUTE
+#endif
+#if !defined(ALIMER_NULLABLE)
+#define ALIMER_NULLABLE
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 /* Types */
-typedef uint64_t Flags;
+typedef uint32_t Flags;
+typedef uint32_t Bool32;
 
 #endif /* ALIMER_PLATFORM_H_ */

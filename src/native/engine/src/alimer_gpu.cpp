@@ -431,14 +431,14 @@ void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEnc
     renderPassEncoder->DrawIndexedIndirect(indirectBuffer, indirectBufferOffset);
 }
 
-void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, /*GPU_NULLABLE*/ GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
-
+    renderPassEncoder->MultiDrawIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
 }
 
-void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, /*GPU_NULLABLE*/ GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
-
+    renderPassEncoder->MultiDrawIndexedIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
 }
 
 void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder)
@@ -693,10 +693,31 @@ uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline)
 /* RenderPipeline */
 static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipelineDesc* desc) {
     GPURenderPipelineDesc def = *desc;
+
+    // RasterizerState
+    def.rasterizerState.fillMode = _ALIMER_DEF(def.rasterizerState.fillMode, GPUFillMode_Solid);
+    def.rasterizerState.cullMode = _ALIMER_DEF(def.rasterizerState.cullMode, GPUCullMode_Back);
+    def.rasterizerState.frontFace = _ALIMER_DEF(def.rasterizerState.frontFace, GPUFrontFace_Clockwise);
+    def.rasterizerState.depthClipMode = _ALIMER_DEF(def.rasterizerState.depthClipMode, GPUDepthClipMode_Clip);
+
+    // DepthStencilState
+    def.depthStencilState.depthCompareFunction = _ALIMER_DEF(def.depthStencilState.depthCompareFunction, GPUCompareFunction_Always);
+    def.depthStencilState.stencilReadMask = _ALIMER_DEF(def.depthStencilState.stencilReadMask, 0xFF);
+    def.depthStencilState.stencilWriteMask = _ALIMER_DEF(def.depthStencilState.stencilReadMask, 0xFF);
+    def.depthStencilState.frontFace.compareFunction = _ALIMER_DEF(def.depthStencilState.frontFace.compareFunction, GPUCompareFunction_Always);
+    def.depthStencilState.frontFace.failOperation = _ALIMER_DEF(def.depthStencilState.frontFace.failOperation, GPUStencilOperation_Keep);
+    def.depthStencilState.frontFace.depthFailOperation = _ALIMER_DEF(def.depthStencilState.frontFace.depthFailOperation, GPUStencilOperation_Keep);
+    def.depthStencilState.frontFace.passOperation = _ALIMER_DEF(def.depthStencilState.frontFace.passOperation, GPUStencilOperation_Keep);
+    def.depthStencilState.backFace.compareFunction = _ALIMER_DEF(def.depthStencilState.backFace.compareFunction, GPUCompareFunction_Always);
+    def.depthStencilState.backFace.failOperation = _ALIMER_DEF(def.depthStencilState.backFace.failOperation, GPUStencilOperation_Keep);
+    def.depthStencilState.backFace.depthFailOperation = _ALIMER_DEF(def.depthStencilState.backFace.depthFailOperation, GPUStencilOperation_Keep);
+    def.depthStencilState.backFace.passOperation = _ALIMER_DEF(def.depthStencilState.backFace.passOperation, GPUStencilOperation_Keep);
+
     def.primitiveTopology = _ALIMER_DEF(def.primitiveTopology, GPUPrimitiveTopology_TriangleList);
     def.patchControlPoints = _ALIMER_DEF(def.patchControlPoints, 1u);
-    def.rasterSampleCount = _ALIMER_DEF(def.rasterSampleCount, 1u);
-
+    def.multisample.count = _ALIMER_DEF(def.multisample.count, 1u);
+    def.multisample.mask = _ALIMER_DEF(def.multisample.mask, UINT32_MAX);
+    
     for (uint32_t i = 0; i < def.colorAttachmentCount; ++i)
     {
         if (def.colorAttachments[i].format == PixelFormat_Undefined)
