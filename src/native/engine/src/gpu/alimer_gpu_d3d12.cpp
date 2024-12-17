@@ -294,7 +294,24 @@ namespace
             case GPUCompareFunction_Always:       return D3D12_COMPARISON_FUNC_ALWAYS;
 
             default:
-                return static_cast<D3D12_COMPARISON_FUNC>(0);
+                return D3D12_COMPARISON_FUNC_NONE;
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_STENCIL_OP ToD3D12(GPUStencilOperation value)
+    {
+        switch (value)
+        {
+            case GPUStencilOperation_Keep:            return D3D12_STENCIL_OP_KEEP;
+            case GPUStencilOperation_Zero:            return D3D12_STENCIL_OP_ZERO;
+            case GPUStencilOperation_Replace:         return D3D12_STENCIL_OP_REPLACE;
+            case GPUStencilOperation_Invert:          return D3D12_STENCIL_OP_INVERT;
+            case GPUStencilOperation_IncrementClamp:  return D3D12_STENCIL_OP_INCR_SAT;
+            case GPUStencilOperation_DecrementClamp:  return D3D12_STENCIL_OP_DECR_SAT;
+            case GPUStencilOperation_IncrementWrap:   return D3D12_STENCIL_OP_INCR;
+            case GPUStencilOperation_DecrementWrap:   return D3D12_STENCIL_OP_DECR;
+            default:
+                ALIMER_UNREACHABLE();
         }
     }
 
@@ -308,6 +325,33 @@ namespace
                 return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
             default:
                 ALIMER_UNREACHABLE();
+        }
+    }
+
+    [[nodiscard]] constexpr D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(GPUPrimitiveTopology type, uint32_t patchControlPoints = 1u)
+    {
+        switch (type)
+        {
+            case GPUPrimitiveTopology_PointList:
+                return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+            case GPUPrimitiveTopology_LineList:
+                return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+            case GPUPrimitiveTopology_LineStrip:
+                return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+            case GPUPrimitiveTopology_TriangleList:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+            case GPUPrimitiveTopology_TriangleStrip:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+            case GPUPrimitiveTopology_PatchList:
+                if (patchControlPoints == 0 || patchControlPoints > 32)
+                {
+                    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+                }
+
+                return D3D_PRIMITIVE_TOPOLOGY(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (patchControlPoints - 1));
+
+            default:
+                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
         }
     }
 
@@ -354,6 +398,68 @@ namespace
         }
     }
 
+    [[nodiscard]] constexpr D3D12_BLEND ToD3D12(GPUBlendFactor value)
+    {
+        switch (value)
+        {
+            case GPUBlendFactor_Zero:                      return D3D12_BLEND_ZERO;
+            case GPUBlendFactor_One:                       return D3D12_BLEND_ONE;
+            case GPUBlendFactor_SourceColor:               return D3D12_BLEND_SRC_COLOR;
+            case GPUBlendFactor_OneMinusSourceColor:       return D3D12_BLEND_INV_SRC_COLOR;
+            case GPUBlendFactor_SourceAlpha:               return D3D12_BLEND_SRC_ALPHA;
+            case GPUBlendFactor_OneMinusSourceAlpha:       return D3D12_BLEND_INV_SRC_ALPHA;
+            case GPUBlendFactor_DestinationColor:          return D3D12_BLEND_DEST_COLOR;
+            case GPUBlendFactor_OneMinusDestinationColor:  return D3D12_BLEND_INV_DEST_COLOR;
+            case GPUBlendFactor_DestinationAlpha:          return D3D12_BLEND_DEST_ALPHA;
+            case GPUBlendFactor_OneMinusDestinationAlpha:  return D3D12_BLEND_INV_DEST_ALPHA;
+            case GPUBlendFactor_SourceAlphaSaturated:      return D3D12_BLEND_SRC_ALPHA_SAT;
+            case GPUBlendFactor_BlendColor:                return D3D12_BLEND_BLEND_FACTOR;
+            case GPUBlendFactor_OneMinusBlendColor:        return D3D12_BLEND_INV_BLEND_FACTOR;
+            case GPUBlendFactor_BlendAlpha:                return D3D12_BLEND_ALPHA_FACTOR;
+            case GPUBlendFactor_OneMinusBlendAlpha:        return D3D12_BLEND_INV_ALPHA_FACTOR;
+            case GPUBlendFactor_Source1Color:              return D3D12_BLEND_SRC1_COLOR;
+            case GPUBlendFactor_OneMinusSource1Color:      return D3D12_BLEND_INV_SRC1_COLOR;
+            case GPUBlendFactor_Source1Alpha:              return D3D12_BLEND_SRC1_ALPHA;
+            case GPUBlendFactor_OneMinusSource1Alpha:      return D3D12_BLEND_INV_SRC1_ALPHA;
+            default:
+                return D3D12_BLEND_ZERO;
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_BLEND ToD3D12AlphaBlend(GPUBlendFactor value)
+    {
+        switch (value)
+        {
+            case GPUBlendFactor_SourceColor:
+                return D3D12_BLEND_SRC_ALPHA;
+            case GPUBlendFactor_OneMinusSourceColor:
+                return D3D12_BLEND_INV_SRC_ALPHA;
+            case GPUBlendFactor_DestinationColor:
+                return D3D12_BLEND_DEST_ALPHA;
+            case GPUBlendFactor_OneMinusDestinationColor:
+                return D3D12_BLEND_INV_DEST_ALPHA;
+            case GPUBlendFactor_Source1Color:
+                return D3D12_BLEND_SRC1_ALPHA;
+            case GPUBlendFactor_OneMinusSource1Color:
+                return D3D12_BLEND_INV_SRC1_ALPHA;
+                // Other blend factors translate to the same D3D12 enum as the color blend factors.
+            default:
+                return ToD3D12(value);
+        }
+    }
+
+    [[nodiscard]] constexpr D3D12_BLEND_OP ToD3D12(GPUBlendOperation value)
+    {
+        switch (value)
+        {
+            case GPUBlendOperation_Add:                 return D3D12_BLEND_OP_ADD;
+            case GPUBlendOperation_Subtract:            return D3D12_BLEND_OP_SUBTRACT;
+            case GPUBlendOperation_ReverseSubtract:     return D3D12_BLEND_OP_REV_SUBTRACT;
+            case GPUBlendOperation_Min:                 return D3D12_BLEND_OP_MIN;
+            case GPUBlendOperation_Max:                 return D3D12_BLEND_OP_MAX;
+            default:                                    return D3D12_BLEND_OP_ADD;
+        }
+    }
 
     [[nodiscard]] constexpr DXGI_FORMAT GetTypelessFormatFromDepthFormat(PixelFormat format)
     {
@@ -679,6 +785,19 @@ static_assert(offsetof(GPUDispatchIndirectCommand, groupCountX) == offsetof(D3D1
 static_assert(offsetof(GPUDispatchIndirectCommand, groupCountY) == offsetof(D3D12_DISPATCH_ARGUMENTS, ThreadGroupCountY), "Layout mismatch");
 static_assert(offsetof(GPUDispatchIndirectCommand, groupCountZ) == offsetof(D3D12_DISPATCH_ARGUMENTS, ThreadGroupCountZ), "Layout mismatch");
 
+static_assert(sizeof(GPUDrawIndexedIndirectCommand) == sizeof(D3D12_DRAW_INDEXED_ARGUMENTS), "DrawIndexedIndirectCommand mismatch");
+static_assert(offsetof(GPUDrawIndexedIndirectCommand, indexCount) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, IndexCountPerInstance), "DrawIndexedIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndexedIndirectCommand, instanceCount) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, InstanceCount), "DrawIndexedIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndexedIndirectCommand, firstIndex) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, StartIndexLocation), "DrawIndexedIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndexedIndirectCommand, baseVertex) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, BaseVertexLocation), "DrawIndexedIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndexedIndirectCommand, firstInstance) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, StartInstanceLocation), "DrawIndexedIndirectCommand layout mismatch");
+
+static_assert(sizeof(GPUDrawIndirectCommand) == sizeof(D3D12_DRAW_ARGUMENTS), "DrawIndirectCommand mismatch");
+static_assert(offsetof(GPUDrawIndirectCommand, vertexCount) == offsetof(D3D12_DRAW_ARGUMENTS, VertexCountPerInstance), "DrawIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndirectCommand, instanceCount) == offsetof(D3D12_DRAW_ARGUMENTS, InstanceCount), "DrawIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndirectCommand, firstVertex) == offsetof(D3D12_DRAW_ARGUMENTS, StartVertexLocation), "DrawIndirectCommand layout mismatch");
+static_assert(offsetof(GPUDrawIndirectCommand, firstInstance) == offsetof(D3D12_DRAW_ARGUMENTS, StartInstanceLocation), "DrawIndirectCommand layout mismatch");
+
 struct D3D12CommandBuffer;
 struct D3D12Queue;
 struct D3D12Device;
@@ -817,11 +936,17 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetStencilReference(uint32_t reference) override;
 
     void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+    void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
+    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+
+    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 };
 
 struct D3D12CommandBuffer final : public GPUCommandBufferImpl
@@ -1144,6 +1269,8 @@ struct D3D12Device final : public GPUDeviceImpl
     D3D12DescriptorAllocator samplerHeap;
 
     ID3D12CommandSignature* dispatchCommandSignature = nullptr;
+    ID3D12CommandSignature* drawIndirectCommandSignature = nullptr;
+    ID3D12CommandSignature* drawIndexedIndirectCommandSignature = nullptr;
 
     uint32_t maxFramesInFlight = 0;
     uint64_t frameCount = 0;
@@ -1496,7 +1623,14 @@ void D3D12ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCount
 
 void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
+    PrepareDispatch();
 
+    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
+    commandBuffer->commandList->ExecuteIndirect(
+        commandBuffer->queue->device->dispatchCommandSignature,
+        1,
+        backendBuffer->handle, indirectBufferOffset,
+        nullptr, 0);
 }
 
 /* D3D12RenderPassEncoder */
@@ -1687,14 +1821,14 @@ void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, ui
     vboViews[slot].StrideInBytes = 0;
 }
 
-void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset)
+void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
 {
     D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
 
     D3D12_INDEX_BUFFER_VIEW view;
     view.BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
     view.SizeInBytes = (UINT)(backendBuffer->desc.size - offset);
-    view.Format = (format == GPUIndexFormat_Uint16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
+    view.Format = (type == GPUIndexType_Uint16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
     commandBuffer->commandList->IASetIndexBuffer(&view);
 }
 
@@ -1732,6 +1866,62 @@ void D3D12RenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, 
     PrepareDraw();
 
     commandBuffer->commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void D3D12RenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+{
+    PrepareDraw();
+
+    commandBuffer->commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+}
+
+void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+    PrepareDraw();
+
+    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
+    commandBuffer->commandList->ExecuteIndirect(
+        commandBuffer->queue->device->drawIndirectCommandSignature,
+        1,
+        backendBuffer->handle,
+        indirectBufferOffset,
+        nullptr,
+        0);
+}
+
+void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+    PrepareDraw();
+
+    D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(indirectBuffer);
+    commandBuffer->commandList->ExecuteIndirect(
+        commandBuffer->queue->device->drawIndexedIndirectCommandSignature,
+        1,
+        backendBuffer->handle,
+        indirectBufferOffset,
+        nullptr,
+        0);
+}
+
+void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+{
+    PrepareDraw();
+
+    D3D12Buffer* backendIndirectBufferr = static_cast<D3D12Buffer*>(indirectBuffer);
+    D3D12Buffer* backendDrawCountBuffer = drawCountBuffer != nullptr ? static_cast<D3D12Buffer*>(drawCountBuffer) : nullptr;
+
+    commandBuffer->commandList->ExecuteIndirect(
+        commandBuffer->queue->device->drawIndirectCommandSignature,
+        maxDrawCount,
+        backendIndirectBufferr->handle,
+        indirectBufferOffset,
+        backendDrawCountBuffer != nullptr ? backendDrawCountBuffer->handle : nullptr,
+        backendDrawCountBuffer != nullptr ? drawCountBufferOffset : 0);
+}
+
+void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+{
+
 }
 
 /* D3D12CommandBuffer */
@@ -2350,6 +2540,8 @@ D3D12Device::~D3D12Device()
 
     // Destroy indirect command signatures
     SAFE_RELEASE(dispatchCommandSignature);
+    SAFE_RELEASE(drawIndirectCommandSignature);
+    SAFE_RELEASE(drawIndexedIndirectCommandSignature);
 
     // Destory pending objects.
     ProcessDeletionQueue(true);
@@ -2939,7 +3131,9 @@ GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
     const D3D12_FILTER_TYPE minFilter = ToD3D12(desc.minFilter);
     const D3D12_FILTER_TYPE magFilter = ToD3D12(desc.magFilter);
     const D3D12_FILTER_TYPE mipFilter = ToD3D12(desc.mipFilter);
-    const D3D12_FILTER_REDUCTION_TYPE reductionType = D3D12_FILTER_REDUCTION_TYPE_STANDARD;// ToD3D12(desc.reductionType);
+    const D3D12_FILTER_REDUCTION_TYPE reductionType =
+        desc.compareFunction == GPUCompareFunction_Undefined ?
+        D3D12_FILTER_REDUCTION_TYPE_STANDARD : D3D12_FILTER_REDUCTION_TYPE_COMPARISON;
 
     sampler->samplerDesc = {};
     if (desc.maxAnisotropy > 1)
@@ -3090,6 +3284,8 @@ using PipelineInputLayout = PipelineDescComponent<D3D12_INPUT_LAYOUT_DESC, D3D12
 using PipelineIndexBufferStripCutValue = PipelineDescComponent<D3D12_INDEX_BUFFER_STRIP_CUT_VALUE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE>;
 using PipelinePrimitiveTopology = PipelineDescComponent<D3D12_PRIMITIVE_TOPOLOGY_TYPE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY>;
 using PipelineVertexShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>;
+using PipelineHullShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>;
+using PipelineDomainShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>;
 using PipelinePixelShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>;
 using PipelineBlend = PipelineDescComponent<D3D12_BLEND_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>;
 using PipelineDepthStencil = PipelineDescComponent<D3D12_DEPTH_STENCIL_DESC1, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1>;
@@ -3115,11 +3311,11 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
             PipelineInputLayout                 inputLayout;
             PipelineIndexBufferStripCutValue    IBStripCutValue;
             PipelinePrimitiveTopology           PrimitiveTopologyType;
-            PipelineVertexShader                VS;
-            //CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
-            //CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
-            //CD3DX12_PIPELINE_STATE_STREAM_GS                    GS;
-            PipelinePixelShader                 PS;
+            PipelineVertexShader                vertexShader;
+            PipelineHullShader                  hullShader;
+            PipelineDomainShader                domainShader;
+            //CD3DX12_PIPELINE_STATE_STREAM_GS  geometryShader;
+            PipelinePixelShader                 pixelShader;
             PipelineBlend                       BlendState;
             PipelineDepthStencil                DepthStencilState;
             PipelineDepthStencilFormat          DSVFormat;
@@ -3140,11 +3336,11 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
     D3D12_INPUT_LAYOUT_DESC inputLayout = {};
-    if (desc.vertex.bufferCount > 0)
+    if (desc.vertexLayout != nullptr && desc.vertexLayout->bufferCount > 0)
     {
-        for (uint32_t bufferIndex = 0; bufferIndex < desc.vertex.bufferCount; ++bufferIndex)
+        for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexLayout->bufferCount; ++bufferIndex)
         {
-            const GPUVertexBufferLayout& layout = desc.vertex.buffers[bufferIndex];
+            const GPUVertexBufferLayout& layout = desc.vertexLayout->buffers[bufferIndex];
 
             for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
             {
@@ -3189,19 +3385,53 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         stream.stream1.inputLayout = inputLayout;
     }
 
-    stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-    stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    // Handle index strip
+    if (desc.primitiveTopology != GPUPrimitiveTopology_TriangleStrip
+        && desc.primitiveTopology != GPUPrimitiveTopology_LineStrip)
+    {
+        stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+    }
+    else
+    {
+        stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+    }
+
+    switch (desc.primitiveTopology)
+    {
+        case GPUPrimitiveTopology_PointList:
+            stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+            break;
+        case GPUPrimitiveTopology_LineList:
+        case GPUPrimitiveTopology_LineStrip:
+            stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+            break;
+        case GPUPrimitiveTopology_TriangleList:
+        case GPUPrimitiveTopology_TriangleStrip:
+            stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+            break;
+        case GPUPrimitiveTopology_PatchList:
+            stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+            break;
+    }
 
     for (uint32_t i = 0; i < desc.shaderCount; i++)
     {
         const GPUShaderDesc& shaderDesc = desc.shaders[i];
         if (shaderDesc.stage == GPUShaderStage_Vertex)
         {
-            stream.stream1.VS = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+            stream.stream1.vertexShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+        }
+        else if (shaderDesc.stage == GPUShaderStage_Hull)
+        {
+            stream.stream1.hullShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+        }
+        else if (shaderDesc.stage == GPUShaderStage_Domain)
+        {
+            stream.stream1.domainShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
         }
         else if (shaderDesc.stage == GPUShaderStage_Fragment)
         {
-            stream.stream1.PS = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+            stream.stream1.pixelShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
         }
         //else if (shaderDesc.stage == GPUShaderStage_Amplification)
         //{
@@ -3222,22 +3452,24 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     blendState.IndependentBlendEnable = TRUE;
     for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
-        if (desc.colorAttachmentFormats[i] == PixelFormat_Undefined)
+        if (desc.colorAttachments[i].format == PixelFormat_Undefined)
             break;
 
-        blendState.RenderTarget[i].BlendEnable = FALSE;
+        const GPURenderPipelineColorAttachmentDesc& attachment = desc.colorAttachments[i];
+
+        blendState.RenderTarget[i].BlendEnable = BlendEnabled(&attachment) ? TRUE : FALSE;
         blendState.RenderTarget[i].LogicOpEnable = FALSE;
-        blendState.RenderTarget[i].SrcBlend = D3D12_BLEND_ONE;
-        blendState.RenderTarget[i].DestBlend = D3D12_BLEND_ZERO;
-        blendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
-        blendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
-        blendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
-        blendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        blendState.RenderTarget[i].SrcBlend = ToD3D12(attachment.srcColorBlendFactor);
+        blendState.RenderTarget[i].DestBlend = ToD3D12(attachment.destColorBlendFactor);
+        blendState.RenderTarget[i].BlendOp = ToD3D12(attachment.colorBlendOperation);
+        blendState.RenderTarget[i].SrcBlendAlpha = ToD3D12AlphaBlend(attachment.srcAlphaBlendFactor);
+        blendState.RenderTarget[i].DestBlendAlpha = ToD3D12AlphaBlend(attachment.destAlphaBlendFactor);
+        blendState.RenderTarget[i].BlendOpAlpha = ToD3D12(attachment.alphaBlendOperation);
         blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
         blendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
         // RTV
-        RTVFormats.RTFormats[RTVFormats.NumRenderTargets] = (DXGI_FORMAT)ToDxgiFormat(desc.colorAttachmentFormats[i]);
+        RTVFormats.RTFormats[RTVFormats.NumRenderTargets] = (DXGI_FORMAT)ToDxgiFormat(attachment.format);
         RTVFormats.NumRenderTargets++;
     }
     stream.stream1.RTVFormats = RTVFormats;
@@ -3308,7 +3540,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         pipeline->SetLabel(desc.label);
     }
 
-    pipeline->primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    pipeline->primitiveTopology = ToD3DPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
 
     return pipeline;
 }
@@ -3591,6 +3823,8 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
         case GPUFeature_TextureCompressionBC:
         case GPUFeature_IndirectFirstInstance:
         case GPUFeature_DualSourceBlending:
+        case GPUFeature_Tessellation:
+        case GPUFeature_MultiDrawIndirect:
             return true;
 
             // Never supported features
@@ -3840,6 +4074,8 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 
     // Create indirect command signatures
     device->dispatchCommandSignature = device->CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH, sizeof(D3D12_DISPATCH_ARGUMENTS));
+    device->drawIndirectCommandSignature = device->CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW, sizeof(D3D12_DRAW_ARGUMENTS));
+    device->drawIndexedIndirectCommandSignature = device->CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED, sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
 
     // Init copy/upload allocatr
     device->copyAllocator.Init(device);

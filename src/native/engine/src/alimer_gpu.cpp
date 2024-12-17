@@ -401,9 +401,9 @@ void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder
     renderPassEncoder->SetVertexBuffer(slot, buffer, offset);
 }
 
-void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer buffer, GPUIndexFormat format, uint64_t offset)
+void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer buffer, GPUIndexType type, uint64_t offset)
 {
-    renderPassEncoder->SetIndexBuffer(buffer, format, offset);
+    renderPassEncoder->SetIndexBuffer(buffer, type, offset);
 }
 
 void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GPURenderPipeline pipeline)
@@ -414,6 +414,31 @@ void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GP
 void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
     renderPassEncoder->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+{
+    renderPassEncoder->DrawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+}
+
+void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+    renderPassEncoder->DrawIndirect(indirectBuffer, indirectBufferOffset);
+}
+
+void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+{
+    renderPassEncoder->DrawIndexedIndirect(indirectBuffer, indirectBufferOffset);
+}
+
+void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, /*GPU_NULLABLE*/ GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+{
+
+}
+
+void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, /*GPU_NULLABLE*/ GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+{
+
 }
 
 void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder)
@@ -668,7 +693,24 @@ uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline)
 /* RenderPipeline */
 static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipelineDesc* desc) {
     GPURenderPipelineDesc def = *desc;
+    def.primitiveTopology = _ALIMER_DEF(def.primitiveTopology, GPUPrimitiveTopology_TriangleList);
+    def.patchControlPoints = _ALIMER_DEF(def.patchControlPoints, 1u);
     def.rasterSampleCount = _ALIMER_DEF(def.rasterSampleCount, 1u);
+
+    for (uint32_t i = 0; i < def.colorAttachmentCount; ++i)
+    {
+        if (def.colorAttachments[i].format == PixelFormat_Undefined)
+            break;
+
+        GPURenderPipelineColorAttachmentDesc& attachment = def.colorAttachments[i];
+        attachment.srcColorBlendFactor = _ALIMER_DEF(attachment.srcColorBlendFactor, GPUBlendFactor_One);
+        attachment.destColorBlendFactor = _ALIMER_DEF(attachment.destColorBlendFactor, GPUBlendFactor_Zero);
+        attachment.colorBlendOperation = _ALIMER_DEF(attachment.colorBlendOperation, GPUBlendOperation_Add);
+        attachment.srcAlphaBlendFactor = _ALIMER_DEF(attachment.srcAlphaBlendFactor, GPUBlendFactor_One);
+        attachment.destAlphaBlendFactor = _ALIMER_DEF(attachment.destAlphaBlendFactor, GPUBlendFactor_Zero);
+        attachment.alphaBlendOperation = _ALIMER_DEF(attachment.alphaBlendOperation, GPUBlendOperation_Add);
+    }
+
     return def;
 }
 

@@ -130,9 +130,15 @@ struct GPURenderPassEncoderImpl : public GPUCommandEncoder
     virtual void SetStencilReference(uint32_t reference) = 0;
 
     virtual void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) = 0;
-    virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexFormat format, uint64_t offset) = 0;
+    virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) = 0;
     virtual void SetPipeline(GPURenderPipeline pipeline) = 0;
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
+    virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;
+    virtual void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+
+    virtual void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
 };
 
 struct GPUCommandBufferImpl : public GPUResource
@@ -240,6 +246,18 @@ namespace
             mips++;
         }
         return mips;
+    }
+
+    inline bool BlendEnabled(const GPURenderPipelineColorAttachmentDesc* state)
+    {
+        return
+            state->colorBlendOperation != GPUBlendOperation_Add
+            || state->destColorBlendFactor != GPUBlendFactor_Zero
+            || state->srcColorBlendFactor != GPUBlendFactor_One
+            || state->alphaBlendOperation != GPUBlendOperation_Add
+            || state->destAlphaBlendFactor != GPUBlendFactor_Zero
+            || state->srcAlphaBlendFactor != GPUBlendFactor_One
+            ;
     }
 }
 

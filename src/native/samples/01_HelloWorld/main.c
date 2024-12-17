@@ -21,6 +21,7 @@ GPUSurface surface = NULL;
 GPUDevice device = NULL;
 GPUQueue graphicsQueue = NULL;
 GPUBuffer vertexBuffer = NULL;
+GPUBuffer indexBuffer = NULL;
 GPURenderPipeline renderPipeline = NULL;
 
 GPUShaderDesc LoadShader(const char* shaderFileName, GPUShaderStage stage)
@@ -83,8 +84,9 @@ void Render()
 
         GPURenderPassEncoder encoder = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPass);
         agpuRenderPassEncoderSetVertexBuffer(encoder, 0, vertexBuffer, 0);
+        agpuRenderPassEncoderSetIndexBuffer(encoder, indexBuffer, GPUIndexType_Uint16, 0);
         agpuRenderPassEncoderSetPipeline(encoder, renderPipeline);
-        agpuRenderPassEncoderDraw(encoder, 3, 1, 0, 0);
+        agpuRenderPassEncoderDrawIndexed(encoder, 6, 1, 0, 0, 0);
         agpuRenderPassEncoderEnd(encoder);
     }
 
@@ -163,14 +165,23 @@ int main()
 
     const float vertices[] = {
         // positions            colors
-         0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
+        -0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
+         0.5f,  0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+         0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f,     1.0f, 1.0f, 0.0f, 1.0f,
     };
     vertexBuffer = agpuCreateBuffer(device, &(GPUBufferDesc) {
+        .label = "VertexBuffer",
         .usage = GPUBufferUsage_Vertex,
         .size = sizeof(vertices)
     }, vertices);
+
+    const uint16_t indices[] = { 0, 1, 2,  0, 2, 3 };
+    indexBuffer = agpuCreateBuffer(device, &(GPUBufferDesc) {
+        .label = "IndexBuffer",
+        .usage = GPUBufferUsage_Index,
+        .size = sizeof(indices)
+    }, indices);
 
     GPUShaderDesc shaders[2];
 
@@ -201,12 +212,14 @@ int main()
         .layout = pipelineLayout,
         .shaderCount = 2u,
         .shaders = shaders,
-        .vertex = {
+        .vertexLayout = &(GPUVertexLayout) {
             .bufferCount = 1,
             .buffers = &vertexBufferLayout
         },
         .colorAttachmentCount = 1,
-        .colorAttachmentFormats[0] = PixelFormat_BGRA8UnormSrgb
+        .colorAttachments[0] = {
+            .format = PixelFormat_BGRA8UnormSrgb
+        }
     });
     free((void*)shaders[0].bytecode);
     free((void*)shaders[1].bytecode);
@@ -237,6 +250,7 @@ int main()
 #endif
 
     agpuRenderPipelineRelease(renderPipeline);
+    agpuBufferRelease(indexBuffer);
     agpuBufferRelease(vertexBuffer);
     agpuSurfaceRelease(surface);
     agpuDeviceRelease(device);
