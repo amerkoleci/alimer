@@ -16,7 +16,7 @@ struct PushData {
 };
 
 //ConstantBuffer<PushData> data : register(b0, space0);
-//PUSH_CONSTANT(PushData, data, 0);
+PUSH_CONSTANT(PushData, data, 0);
 
 struct VertexInput {
     float3 Position     : ATTRIBUTE0;
@@ -38,5 +38,5 @@ VertexOutput vertexMain(in VertexInput input)
 
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
-    return input.Color/* * data.color*/;
+    return input.Color * data.color;
 }

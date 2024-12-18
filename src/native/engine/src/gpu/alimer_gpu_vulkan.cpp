@@ -32,7 +32,7 @@ ALIMER_DISABLE_WARNINGS()
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include "vk_mem_alloc.h"
-//#include <spirv_reflect.h>
+#include "spirv_reflect.h"
 ALIMER_ENABLE_WARNINGS()
 
 #if !defined(_WIN32)
@@ -647,29 +647,61 @@ namespace
         {
             case TextureLayout::Undefined:
                 //case VK_IMAGE_LAYOUT_PREINITIALIZED:
-                return { VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_2_NONE };
+                return {
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_2_NONE
+                };
 
             case TextureLayout::CopySource:
-                return { VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_ACCESS_2_TRANSFER_READ_BIT
+                };
 
             case TextureLayout::CopyDest:
-                return { VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT
+                };
 
             case TextureLayout::ResolveSource:
-                return { VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_READ_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_ACCESS_2_TRANSFER_READ_BIT
+                };
 
             case TextureLayout::ResolveDest:
-                return { VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,VK_ACCESS_2_TRANSFER_WRITE_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT
+                };
 
             case TextureLayout::ShaderResource:
                 //return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
-                return { VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_ACCESS_2_SHADER_READ_BIT
+                };
 
             case TextureLayout::UnorderedAccess:
-                return { VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_GENERAL,
+                    VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
+                };
 
             case TextureLayout::RenderTarget:
-                return { VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                };
 
             case TextureLayout::DepthWrite:
                 return {
@@ -686,10 +718,18 @@ namespace
                 };
 
             case TextureLayout::Present:
-                return { VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,VK_ACCESS_2_MEMORY_READ_BIT };
+                return {
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    VK_ACCESS_2_MEMORY_READ_BIT
+                };
 
             case TextureLayout::ShadingRateSurface:
-                return { VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR, VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR };
+                return {
+                    VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR,
+                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
+                    VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR
+                };
 
 #if TODO
                 // TODO: Understand this
@@ -1236,6 +1276,7 @@ struct VulkanPipelineLayout final : public GPUPipelineLayoutImpl
 {
     VulkanDevice* device = nullptr;
     VkPipelineLayout handle = VK_NULL_HANDLE;
+    std::vector<VkPushConstantRange> pushConstantRanges;
 
     ~VulkanPipelineLayout() override;
     void SetLabel(const char* label) override;
@@ -1265,13 +1306,17 @@ struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
+    VulkanComputePipeline* currentPipeline = nullptr;
 
+    void Clear();
     void Begin(const GPUComputePassDesc& desc);
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
+    void SetPipeline(GPUComputePipeline pipeline) override;
+    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
     void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
@@ -1282,6 +1327,7 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
     VulkanRenderPipeline* currentPipeline = nullptr;
+    GPUShadingRate currentShadingRate = _GPUShadingRate_Count;
 
     void Clear();
     void Begin(const GPURenderPassDesc& desc);
@@ -1300,6 +1346,7 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
     void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
+    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
@@ -1309,6 +1356,8 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
 
     void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
     void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+
+    void SetShadingRate(GPUShadingRate rate) override;
 };
 
 struct VulkanCommandBuffer final : public GPUCommandBufferImpl
@@ -1330,6 +1379,7 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     std::vector<VkMemoryBarrier2> memoryBarriers;
     std::vector<VkImageMemoryBarrier2> imageBarriers;
     std::vector<VkBufferMemoryBarrier2> bufferBarriers;
+    VulkanPipelineLayout* currentPipelineLayout = nullptr;
     std::vector<VulkanSurface*> presentSurfaces;
 
     ~VulkanCommandBuffer() override;
@@ -1339,6 +1389,8 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
 
     void TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, GPUTextureAspect aspect = GPUTextureAspect_All);
     void CommitBarriers();
+    void SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout);
+    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
     GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -1501,10 +1553,16 @@ struct VulkanAdapter final : public GPUAdapterImpl
 
     // Core 1.3
     VkPhysicalDeviceMaintenance4Features maintenance4Features = {};
+    VkPhysicalDeviceMaintenance4Properties maintenance4Properties = {};
     VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {};
     VkPhysicalDeviceSynchronization2Features synchronization2Features = {};
     VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures = {};
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = {};
+
+    // Core 1.4
+    VkPhysicalDeviceMaintenance6Features maintenance6Features = {};
+    VkPhysicalDeviceMaintenance6Properties maintenance6Properties = {};
+    VkPhysicalDevicePushDescriptorProperties pushDescriptorProps = {};
 
     // Extensions
     VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures{};
@@ -1523,6 +1581,7 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceVulkan11Properties properties11 = {};
     VkPhysicalDeviceVulkan12Properties properties12 = {};
     VkPhysicalDeviceVulkan13Properties properties13 = {};
+    VkPhysicalDeviceVulkan14Properties properties14 = {};
     VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = {};
     VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = {};
     VkPhysicalDeviceMultiviewProperties multiviewProperties = {};
@@ -1774,6 +1833,11 @@ void VulkanRenderPipeline::SetLabel(const char* label)
 }
 
 /* VulkanComputePassEncoder */
+void VulkanComputePassEncoder::Clear()
+{
+    SAFE_RELEASE(currentPipeline);
+}
+
 void VulkanComputePassEncoder::Begin(const GPUComputePassDesc& desc)
 {
     if (desc.label)
@@ -1792,6 +1856,7 @@ void VulkanComputePassEncoder::EndEncoding()
 
     commandBuffer->encoderActive = false;
     hasLabel = false;
+    Clear();
 }
 
 void VulkanComputePassEncoder::PushDebugGroup(const char* groupLabel) const
@@ -1807,6 +1872,24 @@ void VulkanComputePassEncoder::PopDebugGroup() const
 void VulkanComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
 {
     commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+void VulkanComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
+{
+    if (currentPipeline == pipeline)
+        return;
+
+    VulkanComputePipeline* backendPipeline = static_cast<VulkanComputePipeline*>(pipeline);
+    commandBuffer->SetPipelineLayout(backendPipeline->layout);
+
+    commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_COMPUTE, backendPipeline->handle);
+    currentPipeline = backendPipeline;
+    currentPipeline->AddRef();
+}
+
+void VulkanComputePassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    commandBuffer->SetPushConstants(pushConstantIndex, data, size);
 }
 
 void VulkanComputePassEncoder::PrepareDispatch()
@@ -1832,6 +1915,7 @@ void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64
 /* VulkanRenderPassEncoder */
 void VulkanRenderPassEncoder::Clear()
 {
+    currentShadingRate = _GPUShadingRate_Count;
     SAFE_RELEASE(currentPipeline);
 }
 
@@ -1908,11 +1992,31 @@ void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
         // Barrier
         commandBuffer->TextureBarrier(texture, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite, attachment.mipLevel, 1u, 0u, 1u);
     }
+
+    // ShadingRate
+    const bool hasShadingRateAttachment = desc.shadingRateTexture != nullptr;
+    // Shading rate
+    VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRateAttachmentInfo = {};
+    if (hasShadingRateAttachment)
+    {
+        const auto& tileExtent = commandBuffer->device->adapter->fragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+        const uint32_t tileSize = std::max(tileExtent.width, tileExtent.height);
+
+        VulkanTexture* texture = static_cast<VulkanTexture*>(desc.shadingRateTexture);
+
+        shadingRateAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR;
+        shadingRateAttachmentInfo.imageView = texture->GetView(0);
+        shadingRateAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+        shadingRateAttachmentInfo.shadingRateAttachmentTexelSize = { tileSize, tileSize };
+
+        commandBuffer->TextureBarrier(texture, TextureLayout::ShadingRateSurface, 0, 1u, 0u, 1u);
+    }
+
     commandBuffer->CommitBarriers();
 
     VkRenderingInfo renderingInfo = {};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.pNext = nullptr;
+    renderingInfo.pNext = hasShadingRateAttachment ? &shadingRateAttachmentInfo : nullptr;
     renderingInfo.flags = 0;
     renderingInfo.renderArea = renderArea;
     renderingInfo.layerCount = layerCount;
@@ -1921,7 +2025,6 @@ void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
     renderingInfo.pColorAttachments = colorAttachmentCount > 0 ? colorAttachments : nullptr;
     renderingInfo.pDepthAttachment = hasDepthOrStencil ? &depthAttachment : nullptr;
     renderingInfo.pStencilAttachment = nullptr; // hasDepthOrStencil && !alimerPixelFormatIsDepthOnly(depthStencilFormat) ? &depthAttachment : nullptr;
-
     commandBuffer->device->vkCmdBeginRendering(commandBuffer->handle, &renderingInfo);
 
     // The viewport and scissor default to cover all of the attachments
@@ -1940,6 +2043,8 @@ void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
     scissorRect.extent.width = renderArea.extent.width;
     scissorRect.extent.height = renderArea.extent.height;
     commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, 1, &scissorRect);
+
+    currentShadingRate = _GPUShadingRate_Count;
 }
 
 void VulkanRenderPassEncoder::EndEncoding()
@@ -2048,10 +2153,16 @@ void VulkanRenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
         return;
 
     VulkanRenderPipeline* backendPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
+    commandBuffer->SetPipelineLayout(backendPipeline->layout);
 
     commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS, backendPipeline->handle);
     currentPipeline = backendPipeline;
     currentPipeline->AddRef();
+}
+
+void VulkanRenderPassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    commandBuffer->SetPushConstants(pushConstantIndex, data, size);
 }
 
 void VulkanRenderPassEncoder::PrepareDraw()
@@ -2164,6 +2275,85 @@ void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer,
     }
 }
 
+void VulkanRenderPassEncoder::SetShadingRate(GPUShadingRate rate)
+{
+    VulkanAdapter* adapter = commandBuffer->device->adapter;
+    if (adapter->HasFeature(GPUFeature_VariableRateShading)
+        && currentShadingRate != rate)
+    {
+        currentShadingRate = rate;
+
+        VkExtent2D fragmentSize;
+        switch (rate)
+        {
+            case GPUShadingRate_1X1:
+                fragmentSize.width = 1;
+                fragmentSize.height = 1;
+                break;
+            case GPUShadingRate_1X2:
+                fragmentSize.width = 1;
+                fragmentSize.height = 2;
+                break;
+            case GPUShadingRate_2X1:
+                fragmentSize.width = 2;
+                fragmentSize.height = 1;
+                break;
+            case GPUShadingRate_2X2:
+                fragmentSize.width = 2;
+                fragmentSize.height = 2;
+                break;
+            case GPUShadingRate_2X4:
+                fragmentSize.width = 2;
+                fragmentSize.height = 4;
+                break;
+            case GPUShadingRate_4X2:
+                fragmentSize.width = 4;
+                fragmentSize.height = 2;
+                break;
+            case GPUShadingRate_4X4:
+                fragmentSize.width = 4;
+                fragmentSize.height = 4;
+                break;
+            default:
+                break;
+        }
+
+        VkFragmentShadingRateCombinerOpKHR combiner[] = {
+            VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+            VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
+        };
+
+        if (adapter->fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps == VK_TRUE)
+        {
+            if (adapter->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
+            {
+                combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
+            }
+            if (adapter->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+            {
+                combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
+            }
+        }
+        else
+        {
+            if (adapter->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
+            {
+                combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+            }
+            if (adapter->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+            {
+                combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+            }
+        }
+
+        commandBuffer->device->vkCmdSetFragmentShadingRateKHR(
+            commandBuffer->handle,
+            &fragmentSize,
+            combiner
+        );
+    }
+}
+
 /* VulkanCommandBuffer */
 VulkanCommandBuffer::~VulkanCommandBuffer()
 {
@@ -2186,6 +2376,7 @@ void VulkanCommandBuffer::Clear()
     {
         surface->Release();
     }
+    SAFE_RELEASE(currentPipelineLayout);
     presentSurfaces.clear();
     memoryBarriers.clear();
     imageBarriers.clear();
@@ -2198,6 +2389,7 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
     //waits.clear();
     //hasPendingWaits.store(false);
     //frameAllocators[frameIndex].Reset();
+    computePassEncoder->Clear();
     renderPassEncoder->Clear();
     Clear();
 
@@ -2245,26 +2437,22 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
         queue->device->vkCmdSetBlendConstants(handle, blendConstants);
         queue->device->vkCmdSetStencilReference(handle, VK_STENCIL_FRONT_AND_BACK, ~0u);
 
-        if (device->adapter->features2.features.depthBounds == VK_TRUE)
+        if (device->HasFeature(GPUFeature_DepthBoundsTest))
         {
             queue->device->vkCmdSetDepthBounds(handle, 0.0f, 1.0f);
         }
 
-#if TODO
-        if (device->QueryFeatureSupport(RHIFeature::VariableRateShading))
+        if (device->HasFeature(GPUFeature_VariableRateShading))
         {
-            VkExtent2D fragmentSize = {};
-            fragmentSize.width = 1;
-            fragmentSize.height = 1;
+            const VkExtent2D fragmentSize = { 1, 1 };
 
-            VkFragmentShadingRateCombinerOpKHR combiner[] = {
+            const VkFragmentShadingRateCombinerOpKHR combiner[] = {
                 VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
                 VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
             };
 
-            vkCmdSetFragmentShadingRateKHR(handle, &fragmentSize, combiner);
+            queue->device->vkCmdSetFragmentShadingRateKHR(handle, &fragmentSize, combiner);
         }
-#endif // TODO
     }
 }
 
@@ -2360,6 +2548,31 @@ void VulkanCommandBuffer::CommitBarriers()
     }
 
     numBarriersToCommit = 0;
+}
+
+void VulkanCommandBuffer::SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout)
+{
+    if (currentPipelineLayout == newPipelineLayout)
+        return;
+
+    currentPipelineLayout = newPipelineLayout;
+    currentPipelineLayout->AddRef();
+}
+
+void VulkanCommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    ALIMER_ASSERT(currentPipelineLayout);
+
+    const VkPushConstantRange& pushConstantRange = currentPipelineLayout->pushConstantRanges[pushConstantIndex];
+
+    device->vkCmdPushConstants(
+        handle,
+        currentPipelineLayout->handle,
+        pushConstantRange.stageFlags,
+        pushConstantRange.offset,
+        size,
+        data
+    );
 }
 
 GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
@@ -3688,18 +3901,28 @@ GPUPipelineLayout VulkanDevice::CreatePipelineLayout(const GPUPipelineLayoutDesc
     VulkanPipelineLayout* layout = new VulkanPipelineLayout();
     layout->device = this;
 
-    VkPushConstantRange range = {};
-    range = {};
-    range.stageFlags = VK_SHADER_STAGE_ALL;
-    range.offset = 0;
-    range.size = 32;
+    layout->pushConstantRanges.resize(desc.pushConstantRangeCount);
+
+    uint32_t offset = 0;
+    for (uint32_t i = 0; i < desc.pushConstantRangeCount; i++)
+    {
+        const GPUPushConstantRange& pushConstantRange = desc.pushConstantRanges[i];
+
+        VkPushConstantRange& range = layout->pushConstantRanges[i];
+        range = {};
+        range.stageFlags = VK_SHADER_STAGE_ALL;
+        range.offset = offset;
+        range.size = pushConstantRange.size;
+
+        offset += pushConstantRange.size;
+    }
 
     VkPipelineLayoutCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     createInfo.setLayoutCount = 0;
     createInfo.pSetLayouts = nullptr;
-    createInfo.pushConstantRangeCount = 1u;
-    createInfo.pPushConstantRanges = &range;
+    createInfo.pushConstantRangeCount = desc.pushConstantRangeCount;
+    createInfo.pPushConstantRanges = layout->pushConstantRanges.data();
 
     VkResult result = vkCreatePipelineLayout(handle, &createInfo, nullptr, &layout->handle);
     if (result != VK_SUCCESS)
@@ -4489,10 +4712,13 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     limits->maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
     limits->maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
     limits->maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
+    limits->maxBindGroups = properties2.properties.limits.maxBoundDescriptorSets;
     limits->maxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange;
     limits->maxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange;
     limits->minConstantBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
     limits->minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
+    limits->maxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize;
+    const uint32_t maxPushDescriptors = pushDescriptorProps.maxPushDescriptors;
     limits->maxBufferSize = properties13.maxBufferSize;
     limits->maxColorAttachments = properties2.properties.limits.maxColorAttachments;
     limits->maxViewports = properties2.properties.limits.maxViewports;
@@ -4522,6 +4748,23 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
             limits->conservativeRasterizationTier = GPUConservativeRasterizationTier_2;
         if (conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
             limits->conservativeRasterizationTier = GPUConservativeRasterizationTier_3;
+    }
+
+    if (HasFeature(GPUFeature_VariableRateShading))
+    {
+        if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+        {
+            limits->variableShadingRateTier = GPUVariableRateShadingTier_1;
+        }
+
+        if (fragmentShadingRateFeatures.primitiveFragmentShadingRate && fragmentShadingRateFeatures.attachmentFragmentShadingRate)
+        {
+            limits->variableShadingRateTier = GPUVariableRateShadingTier_2;
+        }
+
+        const auto& tileExtent = fragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+        limits->variableShadingRateImageTileSize = std::max(tileExtent.width, tileExtent.height);
+        limits->isAdditionalVariableShadingRatesSupported = fragmentShadingRateProperties.maxFragmentSize.height > 2 || fragmentShadingRateProperties.maxFragmentSize.width > 2;
     }
 
     return GPUResult_Success;
@@ -4599,6 +4842,13 @@ bool VulkanAdapter::HasFeature(GPUFeature feature) const
         case GPUFeature_ConservativeRasterization:
             return extensions.conservativeRasterization;
 
+        case GPUFeature_VariableRateShading:
+            if (!extensions.fragmentShadingRate)
+                return false;
+
+            return (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+                || fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE;
+
         default:
             return false;
     }
@@ -4611,9 +4861,10 @@ bool VulkanAdapter::IsDepthStencilFormatSupported(VkFormat format) const
         || format == VK_FORMAT_D32_SFLOAT_S8_UINT
         || format == VK_FORMAT_S8_UINT);
 
-    VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(handle, format, &properties);
-    return properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    VkFormatProperties2 props = {};
+    props.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
+    vkGetPhysicalDeviceFormatProperties2(handle, format, &props);
+    return props.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 }
 
 VkFormat VulkanAdapter::ToVkFormat(PixelFormat format) const
@@ -4671,6 +4922,22 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
             enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
         }
     }
+    else
+    {
+        // Core in 1.4
+        if (properties2.properties.apiVersion < VK_API_VERSION_1_4)
+        {
+            if (extensions.maintenance6)
+            {
+                enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
+            }
+
+            if (extensions.pushDescriptor)
+            {
+                enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+            }
+        }
+    }
 
     if (extensions.memoryBudget)
     {
@@ -4705,6 +4972,11 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     if (extensions.depthClipEnable)
     {
         enabledDeviceExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+    }
+
+    if (extensions.maintenance5)
+    {
+        enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
     }
 
     // For performance queries, we also use host query reset since queryPool resets cannot live in the same command buffer as beginQuery
@@ -4868,6 +5140,7 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 #define VULKAN_DEVICE_FUNCTION(func) device->func = (PFN_##func) vkGetDeviceProcAddr(device->handle, #func);
 #include "alimer_gpu_vulkan_funcs.h"
 
+    // VK_KHR_dynamic_rendering
     if (features13.dynamicRendering == VK_FALSE &&
         dynamicRenderingFeatures.dynamicRendering == VK_TRUE)
     {
@@ -4875,12 +5148,20 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
         device->vkCmdEndRendering = (PFN_vkCmdEndRendering)vkGetDeviceProcAddr(device->handle, "vkCmdEndRenderingKHR");
     }
 
+    // VK_KHR_synchronization2
     if (features13.synchronization2 == VK_FALSE &&
         synchronization2Features.synchronization2 == VK_TRUE)
     {
         device->vkCmdPipelineBarrier2 = (PFN_vkCmdPipelineBarrier2)vkGetDeviceProcAddr(device->handle, "vkCmdPipelineBarrier2KHR");
         device->vkCmdWriteTimestamp2 = (PFN_vkCmdWriteTimestamp2)vkGetDeviceProcAddr(device->handle, "vkCmdWriteTimestamp2KHR");
         device->vkQueueSubmit2 = (PFN_vkQueueSubmit2)vkGetDeviceProcAddr(device->handle, "vkQueueSubmit2KHR");
+    }
+
+    // VK_KHR_push_descriptor
+    if (features14.pushDescriptor == VK_FALSE &&
+        extensions.pushDescriptor == true)
+    {
+        device->vkCmdPushDescriptorSet = (PFN_vkCmdPushDescriptorSet)vkGetDeviceProcAddr(device->handle, "vkCmdPushDescriptorSetKHR");
     }
 
     // Queues
@@ -5021,11 +5302,11 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     device->psoDynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
     device->psoDynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
     device->psoDynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
-    if (features2.features.depthBounds == VK_TRUE)
+    if (HasFeature(GPUFeature_DepthBoundsTest))
     {
         device->psoDynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BOUNDS);
     }
-    if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+    if (HasFeature(GPUFeature_VariableRateShading))
     {
         device->psoDynamicStates.push_back(VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR);
     }
@@ -5233,7 +5514,14 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
         adapter->properties13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
         addToPropertiesChain(&adapter->properties13);
 
+        if (physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_4)
+        {
+            adapter->properties14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES;
+            addToPropertiesChain(&adapter->properties14);
+        }
+
         adapter->multiviewProperties = {};
+        adapter->pushDescriptorProps = {};
         adapter->conservativeRasterizationProps = {};
         adapter->accelerationStructureProperties = {};
         adapter->rayTracingPipelineProperties = {};
@@ -5252,7 +5540,10 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
             if (adapter->extensions.maintenance4)
             {
                 adapter->maintenance4Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES;
+                adapter->maintenance4Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES;
+
                 addToFeatureChain(&adapter->maintenance4Features);
+                addToPropertiesChain(&adapter->maintenance4Properties);
             }
 
             if (adapter->extensions.dynamicRendering)
@@ -5277,6 +5568,27 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
             {
                 adapter->extendedDynamicState2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
                 addToFeatureChain(&adapter->extendedDynamicState2Features);
+            }
+        }
+        else
+        {
+            // Core in 1.4
+            if (physicalDeviceProperties.apiVersion < VK_API_VERSION_1_4)
+            {
+                if (adapter->extensions.maintenance6)
+                {
+                    adapter->maintenance6Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES;
+                    adapter->maintenance6Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_PROPERTIES;
+                
+                    //addToFeatureChain(&adapter->maintenance6Features);
+                    //addToPropertiesChain(&adapter->maintenance6Properties);
+                }
+
+                if (adapter->extensions.pushDescriptor)
+                {
+                    adapter->pushDescriptorProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES;
+                    addToPropertiesChain(&adapter->pushDescriptorProps);
+                }
             }
         }
 

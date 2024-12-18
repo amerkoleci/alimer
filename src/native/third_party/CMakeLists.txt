@@ -32,6 +32,16 @@ if (ALIMER_GPU_VULKAN)
     target_sources(vma INTERFACE ${VMA_DIR}/vk_mem_alloc.h)
     target_include_directories(vma INTERFACE  ${VMA_DIR})
     target_link_libraries(vma INTERFACE vulkan)
+
+    # spirv_reflect
+    set(SPIRV_REFLECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect")
+    add_library(spirv_reflect STATIC 
+        "${SPIRV_REFLECT_DIR}/spirv_reflect.c"
+        "${SPIRV_REFLECT_DIR}/spirv_reflect.h"
+    )
+    set_target_properties(spirv_reflect PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(spirv_reflect SYSTEM PUBLIC ${SPIRV_REFLECT_DIR})
+    set_target_properties(spirv_reflect PROPERTIES FOLDER "ThirdParty")
 endif()
 
 if (ALIMER_GPU_D3D12)

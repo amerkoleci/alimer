@@ -325,6 +325,16 @@ GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBu
 }
 
 /* ComputePassEncoder */
+void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline pipeline)
+{
+    computePassEncoder->SetPipeline(pipeline);
+}
+
+void agpuComputePassEncoderSetPushConstants(GPUComputePassEncoder computePassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    computePassEncoder->SetPushConstants(pushConstantIndex, data, size);
+}
+
 void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
     computePassEncoder->Dispatch(groupCountX, groupCountY, groupCountZ);
@@ -411,6 +421,11 @@ void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GP
     renderPassEncoder->SetPipeline(pipeline);
 }
 
+void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder renderPassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    renderPassEncoder->SetPushConstants(pushConstantIndex, data, size);
+}
+
 void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
     renderPassEncoder->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
@@ -439,6 +454,11 @@ void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncod
 void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     renderPassEncoder->MultiDrawIndexedIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
+}
+
+void agpuRenderPassEncoderSetShadingRate(GPURenderPassEncoder renderPassEncoder, GPUShadingRate rate)
+{
+    renderPassEncoder->SetShadingRate(rate);
 }
 
 void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder)
@@ -525,12 +545,41 @@ static GPUTextureDesc _GPUTextureDesc_Defaults(const GPUTextureDesc* desc) {
     return def;
 }
 
+static bool ValidateTextureDesc(const GPUTextureDesc& desc)
+{
+    if (desc.width < 1 || desc.height < 1 || desc.depthOrArrayLayers < 1)
+    {
+        alimerLogError(LogCategory_GPU, "Texture width, height and depthOrArrayLayers must be non-zero.");
+        return false;
+    }
+
+    if (desc.format == PixelFormat_Undefined)
+    {
+        alimerLogError(LogCategory_GPU, "Texture format must be different than Undefined.");
+        return false;
+    }
+
+    if ((desc.dimension == TextureDimension_1D || desc.dimension == TextureDimension_3D)
+        && desc.sampleCount != 1)
+    {
+        alimerLogError(LogCategory_GPU, "1D and 3D Textures must use TextureSampleCount.Count1.");
+        return false;
+    }
+
+    return true;
+}
+
 GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
 {
     if (!desc)
         return nullptr;
 
     GPUTextureDesc descDef = _GPUTextureDesc_Defaults(desc);
+    if (!ValidateTextureDesc(descDef))
+    {
+        return nullptr;
+    }
+
     return device->CreateTexture(descDef, pInitialData);
 }
 

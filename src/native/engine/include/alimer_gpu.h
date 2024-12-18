@@ -346,6 +346,19 @@ typedef enum GPUPrimitiveTopology {
     _GPUPrimitiveTopology_Force32 = 0x7FFFFFFF
 } GPUPrimitiveTopology;
 
+typedef enum GPUShadingRate {
+    GPUShadingRate_1X1,	// Default/full shading rate
+    GPUShadingRate_1X2,
+    GPUShadingRate_2X1,
+    GPUShadingRate_2X2,
+    GPUShadingRate_2X4,
+    GPUShadingRate_4X2,
+    GPUShadingRate_4X4,
+
+    _GPUShadingRate_Count,
+    _GPUShadingRate_Force32 = 0x7FFFFFFF
+} GPUShadingRate;
+
 typedef enum GPUAcquireSurfaceResult {
     /// Everything is good and we can render this frame
     GPUAcquireSurfaceResult_SuccessOptimal = 0,
@@ -422,6 +435,14 @@ typedef enum GPUConservativeRasterizationTier
     _GPUConservativeRasterizationTier_Force32 = 0x7FFFFFFF
 } GPUConservativeRasterizationTier;
 
+typedef enum GPUVariableRateShadingTier {
+    GPUVariableRateShadingTier_NotSupported = 0,
+    GPUVariableRateShadingTier_1 = 1,
+    GPUVariableRateShadingTier_2 = 2,
+
+    _GPUVariableRateShadingTier_Force32 = 0x7FFFFFFF
+} GPUVariableRateShadingTier;
+
 typedef enum GPUFeature {
     GPUFeature_DepthClipControl,
     GPUFeature_Depth32FloatStencil8,
@@ -443,6 +464,7 @@ typedef enum GPUFeature {
     GPUFeature_CacheCoherentUMA,
     GPUFeature_ShaderOutputViewportIndex,
     GPUFeature_ConservativeRasterization,
+    GPUFeature_VariableRateShading,
 
     _GPUFeature_Force32 = 0x7FFFFFFF
 } GPUFeature;
@@ -552,8 +574,15 @@ typedef struct GPUBindGroupLayoutDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
 } GPUBindGroupLayoutDesc;
 
+typedef struct GPUPushConstantRange {
+    uint32_t binding;
+    uint32_t size;
+} GPUPushConstantRange;
+
 typedef struct GPUPipelineLayoutDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
+    uint32_t pushConstantRangeCount DEFAULT_INITIALIZER(0);
+    const GPUPushConstantRange* pushConstantRanges DEFAULT_INITIALIZER(nullptr);
 } GPUPipelineLayoutDesc;
 
 typedef struct GPUShaderDesc {
@@ -650,36 +679,37 @@ typedef struct GPURenderPipelineDesc {
     PixelFormat                             depthStencilAttachmentFormat DEFAULT_INITIALIZER(PixelFormat_Undefined);
 } GPURenderPipelineDesc;
 
-typedef struct GPURenderPassColorAttachment {
-    GPUTexture texture DEFAULT_INITIALIZER(nullptr);
-    uint32_t mipLevel DEFAULT_INITIALIZER(0);
-    GPULoadAction loadAction DEFAULT_INITIALIZER(GPULoadAction_Discard);
-    GPUStoreAction storeAction DEFAULT_INITIALIZER(GPUStoreAction_Store);
-    GPUColor clearColor;
-} GPURenderPassColorAttachment;
-
-typedef struct GPURenderPassDepthStencilAttachment {
-    GPUTexture texture DEFAULT_INITIALIZER(nullptr);
-    uint32_t mipLevel DEFAULT_INITIALIZER(0);
-    GPULoadAction depthLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
-    GPUStoreAction depthStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
-    float depthClearValue DEFAULT_INITIALIZER(1.0f);
-    bool depthReadOnly DEFAULT_INITIALIZER(false);
-    GPULoadAction stencilLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
-    GPUStoreAction stencilStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
-    uint32_t stencilClearValue DEFAULT_INITIALIZER(0);
-    bool stencilReadOnly DEFAULT_INITIALIZER(false);
-} GPURenderPassDepthStencilAttachment;
-
 typedef struct GPUComputePassDesc {
     const char* label;
 } GPUComputePassDesc;
 
+typedef struct GPURenderPassColorAttachment {
+    GPUTexture      texture DEFAULT_INITIALIZER(nullptr);
+    uint32_t        mipLevel DEFAULT_INITIALIZER(0);
+    GPULoadAction   loadAction DEFAULT_INITIALIZER(GPULoadAction_Discard);
+    GPUStoreAction  storeAction DEFAULT_INITIALIZER(GPUStoreAction_Store);
+    GPUColor        clearColor;
+} GPURenderPassColorAttachment;
+
+typedef struct GPURenderPassDepthStencilAttachment {
+    GPUTexture      texture DEFAULT_INITIALIZER(nullptr);
+    uint32_t        mipLevel DEFAULT_INITIALIZER(0);
+    GPULoadAction   depthLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
+    GPUStoreAction  depthStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
+    float           depthClearValue DEFAULT_INITIALIZER(1.0f);
+    bool            depthReadOnly DEFAULT_INITIALIZER(false);
+    GPULoadAction   stencilLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
+    GPUStoreAction  stencilStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
+    uint32_t        stencilClearValue DEFAULT_INITIALIZER(0);
+    bool            stencilReadOnly DEFAULT_INITIALIZER(false);
+} GPURenderPassDepthStencilAttachment;
+
 typedef struct GPURenderPassDesc {
-    const char* label;
-    uint32_t colorAttachmentCount;
-    const GPURenderPassColorAttachment* colorAttachments;
-    const GPURenderPassDepthStencilAttachment* depthStencilAttachment;
+    const char*                                 label DEFAULT_INITIALIZER(nullptr);
+    uint32_t                                    colorAttachmentCount DEFAULT_INITIALIZER(0);
+    const GPURenderPassColorAttachment*         colorAttachments DEFAULT_INITIALIZER(nullptr);
+    const GPURenderPassDepthStencilAttachment*  depthStencilAttachment DEFAULT_INITIALIZER(nullptr);
+    GPUTexture                                  shadingRateTexture DEFAULT_INITIALIZER(nullptr);
 } GPURenderPassDesc;
 
 typedef struct GPURequestAdapterOptions {
@@ -708,10 +738,12 @@ typedef struct GPULimits {
     uint32_t maxTextureDimension3D;
     uint32_t maxTextureDimensionCube;
     uint32_t maxTextureArrayLayers;
+    uint32_t maxBindGroups;
     uint32_t maxConstantBufferBindingSize;
     uint32_t maxStorageBufferBindingSize;
     uint32_t minConstantBufferOffsetAlignment;
     uint32_t minStorageBufferOffsetAlignment;
+    uint32_t maxPushConstantsSize;
     uint64_t maxBufferSize;
     uint32_t maxColorAttachments;
     uint32_t maxViewports;
@@ -725,7 +757,13 @@ typedef struct GPULimits {
     uint32_t maxComputeWorkgroupSizeZ;
     uint32_t maxComputeWorkgroupsPerDimension;
 
+    /* Only if GPUFeature_ConservativeRasterization is supported */
     GPUConservativeRasterizationTier conservativeRasterizationTier;
+
+    /* Only if GPUFeature_VariableRateShading is supported */
+    GPUVariableRateShadingTier variableShadingRateTier;
+    uint32_t variableShadingRateImageTileSize;
+    Bool32 isAdditionalVariableShadingRatesSupported;
 } GPULimits;
 
 typedef struct GPUSurfaceCapabilities {
@@ -817,6 +855,8 @@ ALIMER_API GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuf
 ALIMER_API GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc);
 
 /* ComputePassEncoder */
+ALIMER_API void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline pipeline);
+ALIMER_API void agpuComputePassEncoderSetPushConstants(GPUComputePassEncoder computePassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size);
 ALIMER_API void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 ALIMER_API void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset);
 ALIMER_API void agpuComputePassEncoderEnd(GPUComputePassEncoder computePassEncoder);
@@ -834,12 +874,14 @@ ALIMER_API void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder re
 ALIMER_API void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer buffer, uint64_t offset);
 ALIMER_API void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer buffer, GPUIndexType type, uint64_t offset);
 ALIMER_API void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GPURenderPipeline pipeline);
+ALIMER_API void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder renderPassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size);
 ALIMER_API void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 ALIMER_API void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance);
 ALIMER_API void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset);
 ALIMER_API void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset);
 ALIMER_API void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset);
 ALIMER_API void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, ALIMER_NULLABLE GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset);
+ALIMER_API void agpuRenderPassEncoderSetShadingRate(GPURenderPassEncoder renderPassEncoder, GPUShadingRate rate);
 ALIMER_API void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder);
 ALIMER_API void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel);
 ALIMER_API void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder);

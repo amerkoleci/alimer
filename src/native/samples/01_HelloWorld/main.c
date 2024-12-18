@@ -59,6 +59,10 @@ GPUShaderDesc LoadShader(const char* shaderFileName, GPUShaderStage stage)
     return desc;
 }
 
+typedef struct PushData {
+    GPUColor color;
+} PushData;
+
 void Render()
 {
     if (alimerWindowIsMinimized(window))
@@ -93,6 +97,10 @@ void Render()
         agpuRenderPassEncoderSetVertexBuffer(encoder, 0, vertexBuffer, 0);
         agpuRenderPassEncoderSetIndexBuffer(encoder, indexBuffer, GPUIndexType_Uint16, 0);
         agpuRenderPassEncoderSetPipeline(encoder, renderPipeline);
+        PushData pushData = {
+            .color = { 1.0f, 0.0f, 0.0f, 1.0f }
+        };
+        agpuRenderPassEncoderSetPushConstants(encoder, 0, &pushData, sizeof(pushData));
         agpuRenderPassEncoderDrawIndexed(encoder, 6, 1, 0, 0, 0);
         agpuRenderPassEncoderEnd(encoder);
     }
@@ -205,8 +213,15 @@ int main()
     shaders[0] = LoadShader("shaders/triangleVertex", GPUShaderStage_Vertex);
     shaders[1] = LoadShader("shaders/triangleFragment", GPUShaderStage_Fragment);
 
+    GPUPushConstantRange pushConstantRange = {
+        .binding = 0,
+        .size = sizeof(PushData)
+    };
+
     GPUPipelineLayout pipelineLayout = agpuCreatePipelineLayout(device, &(GPUPipelineLayoutDesc) {
-        .label = "PipelineLayout"
+        .label = "PipelineLayout",
+        .pushConstantRangeCount = 1u,
+        .pushConstantRanges = &pushConstantRange
     });
 
     GPUVertexAttribute vertexAttributes[2];

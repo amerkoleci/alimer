@@ -101,7 +101,7 @@ if (ALIMER_GPU)
             src/gpu/alimer_gpu_vulkan.cpp
         )
 
-        target_link_libraries(${TARGET_NAME} PRIVATE vma)
+        target_link_libraries(${TARGET_NAME} PRIVATE vma spirv_reflect)
         
         target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_VULKAN)
     endif()

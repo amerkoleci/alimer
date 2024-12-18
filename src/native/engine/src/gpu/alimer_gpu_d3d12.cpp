@@ -499,6 +499,29 @@ namespace
         }
     }
 
+    [[nodiscard]] constexpr D3D12_SHADING_RATE ToD3D12(GPUShadingRate value)
+    {
+        switch (value)
+        {
+            case GPUShadingRate_1X1:
+                return D3D12_SHADING_RATE_1X1;
+            case GPUShadingRate_1X2:
+                return D3D12_SHADING_RATE_1X2;
+            case GPUShadingRate_2X1:
+                return D3D12_SHADING_RATE_2X1;
+            case GPUShadingRate_2X2:
+                return D3D12_SHADING_RATE_2X2;
+            case GPUShadingRate_2X4:
+                return D3D12_SHADING_RATE_2X4;
+            case GPUShadingRate_4X2:
+                return D3D12_SHADING_RATE_4X2;
+            case GPUShadingRate_4X4:
+                return D3D12_SHADING_RATE_4X4;
+            default:
+                return D3D12_SHADING_RATE_1X1;
+        }
+    }
+
     [[nodiscard]] D3D12_DEPTH_STENCILOP_DESC ToD3D12StencilOpDesc(const GPUStencilFaceState& state)
     {
         D3D12_DEPTH_STENCILOP_DESC desc = {};
@@ -948,6 +971,7 @@ struct D3D12PipelineLayout final : public GPUPipelineLayoutImpl
 {
     D3D12Device* device = nullptr;
     ID3D12RootSignature* handle = nullptr;
+    RootParameterIndex pushConstantsBaseIndex = ~0u;
 
     ~D3D12PipelineLayout() override;
     void SetLabel(const char* label) override;
@@ -982,13 +1006,17 @@ struct D3D12ComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     D3D12CommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
+    D3D12ComputePipeline* currentPipeline = nullptr;
 
+    void Clear();
     void Begin(const GPUComputePassDesc& desc);
     void EndEncoding() override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
+    void SetPipeline(GPUComputePipeline pipeline) override;
+    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
     void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
@@ -1003,6 +1031,8 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     bool hasLabel = false;
     D3D12RenderPipeline* currentPipeline = nullptr;
     D3D12_VERTEX_BUFFER_VIEW vboViews[GPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
+    bool hasShadingRateAttachment = false;
+    GPUShadingRate currentShadingRate = _GPUShadingRate_Count;
 
     void Clear();
     void Begin(const GPURenderPassDesc& desc);
@@ -1021,6 +1051,7 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
     void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
+    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
@@ -1030,12 +1061,15 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
 
     void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
     void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+
+    void SetShadingRate(GPUShadingRate rate) override;
 };
 
 struct D3D12CommandBuffer final : public GPUCommandBufferImpl
 {
     static constexpr uint32_t kMaxBarrierCount = 16;
 
+    D3D12Device* device = nullptr;
     D3D12Queue* queue = nullptr;
     uint32_t index = 0;
     bool hasLabel = false;
@@ -1052,6 +1086,8 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     std::vector<D3D12_BUFFER_BARRIER> bufferBarriers;
     // Legacy barriers
     D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
+    D3D12PipelineLayout* currentPipelineLayout = nullptr;
+    bool currentPipelineLayoutIsGraphics = false;
     std::vector<D3D12Surface*> presentSurfaces;
 
     ~D3D12CommandBuffer() override;
@@ -1062,6 +1098,9 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void TextureBarrier(const D3D12Texture* resource, TextureLayout newLayout, uint32_t subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false);
     void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
     void CommitBarriers();
+
+    void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
+    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
     GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -1377,6 +1416,7 @@ struct D3D12Device final : public GPUDeviceImpl
     uint64_t CommitFrame() override;
 
     ID3D12CommandSignature* CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE type, uint32_t stride);
+    void WriteShadingRateValue(GPUShadingRate rate, void* dest) const;
     void DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation = nullptr);
     void ProcessDeletionQueue(bool force);
 
@@ -1431,6 +1471,9 @@ struct D3D12Adapter final : public GPUAdapterImpl
     bool cacheCoherentUMA = false;
     bool shaderOutputViewportIndex = false;
     GPUConservativeRasterizationTier conservativeRasterizationTier = GPUConservativeRasterizationTier_NotSupported;
+    GPUVariableRateShadingTier variableShadingRateTier = GPUVariableRateShadingTier_NotSupported;
+    uint32_t variableShadingRateImageTileSize = 0;
+    bool isAdditionalVariableShadingRatesSupported = false;
 
     ~D3D12Adapter() override;
     GPUResult GetInfo(GPUAdapterInfo* info) const override;
@@ -1755,6 +1798,11 @@ void D3D12RenderPipeline::SetLabel(const char* label)
 }
 
 /* D3D12ComputePassEncoder */
+void D3D12ComputePassEncoder::Clear()
+{
+    SAFE_RELEASE(currentPipeline);
+}
+
 void D3D12ComputePassEncoder::Begin(const GPUComputePassDesc& desc)
 {
     if (desc.label)
@@ -1773,6 +1821,7 @@ void D3D12ComputePassEncoder::EndEncoding()
 
     commandBuffer->encoderActive = false;
     hasLabel = false;
+    Clear();
 }
 
 void D3D12ComputePassEncoder::PushDebugGroup(const char* groupLabel) const
@@ -1788,6 +1837,33 @@ void D3D12ComputePassEncoder::PopDebugGroup() const
 void D3D12ComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
 {
     commandBuffer->InsertDebugMarker(markerLabel);
+}
+
+void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
+{
+    if (currentPipeline == pipeline)
+        return;
+
+    D3D12ComputePipeline* backendPipeline = static_cast<D3D12ComputePipeline*>(pipeline);
+    commandBuffer->SetPipelineLayout(backendPipeline->layout, false);
+    
+    commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
+    currentPipeline = backendPipeline;
+    currentPipeline->AddRef();
+}
+
+void D3D12ComputePassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    D3D12PipelineLayout* pipelineLayout = currentPipeline->layout;
+    uint32_t rootParameterIndex = pipelineLayout->pushConstantsBaseIndex + pushConstantIndex;
+    uint32_t rootConstantNum = size / 4;
+
+    commandBuffer->commandList->SetComputeRoot32BitConstants(
+        rootParameterIndex,
+        rootConstantNum,
+        data,
+        0
+    );
 }
 
 void D3D12ComputePassEncoder::PrepareDispatch()
@@ -1824,6 +1900,8 @@ void D3D12RenderPassEncoder::Clear()
     }
 
     SAFE_RELEASE(currentPipeline);
+    hasShadingRateAttachment = false;
+    currentShadingRate = _GPUShadingRate_Count;
 }
 
 void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
@@ -1975,6 +2053,14 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
         commandBuffer->TextureBarrier(texture, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite);
     }
 
+    // ShadingRate
+    hasShadingRateAttachment = desc.shadingRateTexture != nullptr;
+    if (hasShadingRateAttachment)
+    {
+        D3D12Texture* texture = static_cast<D3D12Texture*>(desc.shadingRateTexture);
+        commandBuffer->TextureBarrier(texture, TextureLayout::ShadingRateSurface);
+    }
+
     commandBuffer->CommitBarriers();
     commandBuffer->commandList->BeginRenderPass(
         desc.colorAttachmentCount,
@@ -1983,15 +2069,27 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
         renderPassFlags
     );
 
+    if (hasShadingRateAttachment)
+    {
+        D3D12Texture* texture = static_cast<D3D12Texture*>(desc.shadingRateTexture);
+        commandBuffer->commandList->RSSetShadingRateImage(texture->handle);
+    }
+
     D3D12_VIEWPORT viewport = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
     D3D12_RECT scissorRect = { 0, 0, LONG(width), LONG(height) };
     commandBuffer->commandList->RSSetViewports(1, &viewport);
     commandBuffer->commandList->RSSetScissorRects(1, &scissorRect);
+    currentShadingRate = _GPUShadingRate_Count;
 }
 
 void D3D12RenderPassEncoder::EndEncoding()
 {
     commandBuffer->commandList->EndRenderPass();
+
+    if (hasShadingRateAttachment)
+    {
+        commandBuffer->commandList->RSSetShadingRateImage(nullptr);
+    }
 
     if (hasLabel)
     {
@@ -2096,12 +2194,26 @@ void D3D12RenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
         return;
 
     D3D12RenderPipeline* backendPipeline = static_cast<D3D12RenderPipeline*>(pipeline);
+    commandBuffer->SetPipelineLayout(backendPipeline->layout, true);
 
-    commandBuffer->commandList->SetGraphicsRootSignature(backendPipeline->layout->handle);
     commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
     commandBuffer->commandList->IASetPrimitiveTopology(backendPipeline->primitiveTopology);
     currentPipeline = backendPipeline;
     currentPipeline->AddRef();
+}
+
+void D3D12RenderPassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    D3D12PipelineLayout* pipelineLayout = currentPipeline->layout;
+    uint32_t rootParameterIndex = pipelineLayout->pushConstantsBaseIndex + pushConstantIndex;
+    uint32_t rootConstantNum = size / 4;
+
+    commandBuffer->commandList->SetGraphicsRoot32BitConstants(
+        rootParameterIndex,
+        rootConstantNum,
+        data,
+        0
+    );
 }
 
 void D3D12RenderPassEncoder::PrepareDraw()
@@ -2197,6 +2309,26 @@ void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, 
     );
 }
 
+void D3D12RenderPassEncoder::SetShadingRate(GPUShadingRate rate)
+{
+    D3D12Adapter* adapter = commandBuffer->device->adapter;
+    if (adapter->HasFeature(GPUFeature_VariableRateShading)
+        && currentShadingRate != rate)
+    {
+        currentShadingRate = rate;
+
+        D3D12_SHADING_RATE d3dRate = D3D12_SHADING_RATE_1X1;
+        commandBuffer->device->WriteShadingRateValue(rate, &d3dRate);
+
+        D3D12_SHADING_RATE_COMBINER combiners[] =
+        {
+            D3D12_SHADING_RATE_COMBINER_MAX,
+            D3D12_SHADING_RATE_COMBINER_MAX,
+        };
+        commandBuffer->commandList->RSSetShadingRate(d3dRate, combiners);
+    }
+}
+
 /* D3D12CommandBuffer */
 D3D12CommandBuffer::~D3D12CommandBuffer()
 {
@@ -2220,6 +2352,8 @@ void D3D12CommandBuffer::Clear()
     {
         surface->Release();
     }
+    SAFE_RELEASE(currentPipelineLayout);
+    currentPipelineLayoutIsGraphics = false;
     presentSurfaces.clear();
     globalBarriers.clear();
     textureBarriers.clear();
@@ -2238,6 +2372,7 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
     //waits.clear();
     //hasPendingWaits.store(false);
     //frameAllocators[frameIndex].Reset();
+    computePassEncoder->Clear();
     renderPassEncoder->Clear();
     Clear();
 
@@ -2450,6 +2585,30 @@ void D3D12CommandBuffer::CommitBarriers()
     numBarriersToCommit = 0;
 }
 
+void D3D12CommandBuffer::SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout)
+{
+    if (currentPipelineLayout == newPipelineLayout)
+        return;
+
+    currentPipelineLayout = newPipelineLayout;
+    currentPipelineLayoutIsGraphics = isGraphicsPipelineLayout;
+    currentPipelineLayout->AddRef();
+
+    if (isGraphicsPipelineLayout)
+    {
+        commandList->SetGraphicsRootSignature(currentPipelineLayout->handle);
+    }
+    else
+    {
+        commandList->SetComputeRootSignature(currentPipelineLayout->handle);
+    }
+}
+
+void D3D12CommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+{
+    ALIMER_ASSERT(currentPipelineLayout);
+}
+
 GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
@@ -2579,6 +2738,7 @@ GPUCommandBuffer D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* de
     if (index >= commandBuffers.size())
     {
         D3D12CommandBuffer* commandBuffer = new D3D12CommandBuffer();
+        commandBuffer->device = device;
         commandBuffer->queue = this;
         commandBuffer->index = index;
         commandBuffer->computePassEncoder = new D3D12ComputePassEncoder();
@@ -2997,6 +3157,16 @@ ID3D12CommandSignature* D3D12Device::CreateCommandSignature(D3D12_INDIRECT_ARGUM
     }
 
     return commandSignature;
+}
+
+void D3D12Device::WriteShadingRateValue(GPUShadingRate rate, void* dest) const
+{
+    D3D12_SHADING_RATE d3dRate = ToD3D12(rate);
+    if (!adapter->isAdditionalVariableShadingRatesSupported)
+    {
+        d3dRate = std::min(d3dRate, D3D12_SHADING_RATE_2X2);
+    }
+    *(uint8_t*)dest = d3dRate;
 }
 
 void D3D12Device::DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation* allocation)
@@ -3419,12 +3589,36 @@ GPUPipelineLayout D3D12Device::CreatePipelineLayout(const GPUPipelineLayoutDesc&
     D3D12PipelineLayout* layout = new D3D12PipelineLayout();
     layout->device = this;
 
+    // TODO: Handle dynamic constant buffers
+    std::vector<D3D12_ROOT_PARAMETER1> rootParameters;
+    std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers;
+
+    // PushConstants
+    if (desc.pushConstantRangeCount > 0)
+    {
+        layout->pushConstantsBaseIndex = RootParameterIndex(rootParameters.size());
+
+        for (uint32_t i = 0; i < desc.pushConstantRangeCount; i++)
+        {
+            const GPUPushConstantRange& pushConstantRange = desc.pushConstantRanges[i];
+
+            D3D12_ROOT_PARAMETER1 rootParameter = {};
+            rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+            rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // ToD3D12(pushConstantRange.visibility);
+            rootParameter.Constants.ShaderRegister = pushConstantRange.binding;
+            rootParameter.Constants.RegisterSpace = 0;
+            rootParameter.Constants.Num32BitValues = pushConstantRange.size / 4;
+
+            rootParameters.push_back(rootParameter);
+        }
+    }
+
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
     rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-    rootSignatureDesc.Desc_1_1.NumParameters = 0;
-    rootSignatureDesc.Desc_1_1.pParameters = nullptr;
-    rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-    rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+    rootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(rootParameters.size());
+    rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
+    rootSignatureDesc.Desc_1_1.NumStaticSamplers = static_cast<UINT>(staticSamplers.size());
+    rootSignatureDesc.Desc_1_1.pStaticSamplers = staticSamplers.data();
     rootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
     ComPtr<ID3DBlob> signature;
@@ -4038,16 +4232,24 @@ GPUResult D3D12Adapter::GetInfo(GPUAdapterInfo* info) const
 
 GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
 {
+    // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
+    // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
+    static constexpr uint32_t kMaxRootSignatureSize = 64u;
+
     limits->maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
     limits->maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
     limits->maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
     limits->maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
     limits->maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
+    limits->maxBindGroups = kMaxRootSignatureSize;
     // Max number of "constants" where each constant is a 16-byte float4
     limits->maxConstantBufferBindingSize = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
     limits->maxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1;
     limits->minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
     limits->minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
+    limits->maxPushConstantsSize = sizeof(uint32_t) * kMaxRootSignatureSize / 1;
+    const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
+
     limits->maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
     limits->maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
     limits->maxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
@@ -4067,8 +4269,13 @@ GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
     // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
     limits->maxComputeWorkgroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
 
-    //
+    // ConservativeRasterization
     limits->conservativeRasterizationTier = conservativeRasterizationTier;
+
+    // VariableRateShading
+    limits->variableShadingRateTier = variableShadingRateTier;
+    limits->variableShadingRateImageTileSize = variableShadingRateImageTileSize;
+    limits->isAdditionalVariableShadingRatesSupported = isAdditionalVariableShadingRatesSupported;
 
     return GPUResult_Success;
 }
@@ -4115,6 +4322,9 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
 
         case GPUFeature_ConservativeRasterization:
             return conservativeRasterizationTier != GPUConservativeRasterizationTier_NotSupported;
+
+        case GPUFeature_VariableRateShading:
+            return variableShadingRateTier != GPUVariableRateShadingTier_NotSupported;
 
         default:
             return false;
@@ -4497,6 +4707,12 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
     adapter->cacheCoherentUMA = features.CacheCoherentUMA() == TRUE;
     adapter->shaderOutputViewportIndex = features.VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation() == TRUE;
     adapter->conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
+    adapter->variableShadingRateTier = static_cast<GPUVariableRateShadingTier>(features.VariableShadingRateTier());
+    if (features.VariableShadingRateTier() != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
+    {
+        adapter->variableShadingRateImageTileSize = features.ShadingRateImageTileSize();
+        adapter->isAdditionalVariableShadingRatesSupported = features.AdditionalShadingRatesSupported() == TRUE;
+    }
 
     return adapter;
 }

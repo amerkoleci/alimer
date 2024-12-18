@@ -116,6 +116,9 @@ struct GPUCommandEncoder : public GPUResource
 
 struct GPUComputePassEncoderImpl : public GPUCommandEncoder
 {
+    virtual void SetPipeline(GPUComputePipeline pipeline) = 0;
+    virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
+
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
     virtual void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
 };
@@ -132,6 +135,8 @@ struct GPURenderPassEncoderImpl : public GPUCommandEncoder
     virtual void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) = 0;
     virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) = 0;
     virtual void SetPipeline(GPURenderPipeline pipeline) = 0;
+    virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
+
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;
     virtual void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
@@ -139,6 +144,8 @@ struct GPURenderPassEncoderImpl : public GPUCommandEncoder
 
     virtual void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
     virtual void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+
+    virtual void SetShadingRate(GPUShadingRate rate) = 0;
 };
 
 struct GPUCommandBufferImpl : public GPUResource
