@@ -1,22 +1,12 @@
-#define CONCAT_X(a, b) a##b
-#define CONCAT(a, b) CONCAT_X(a, b)
-
-#if defined(VULKAN)
-#   define VERTEX_ATTRIBUTE(type, name, loc) [[vk::location(loc)]] type name : CONCAT(ATTRIBUTE, loc)
-#   define PUSH_CONSTANT(type, name, slot) [[vk::push_constant]] type name
-#elif defined(HLSL5)
-#   define PUSH_CONSTANT(type, name, slot) cbuffer name : register(CONCAT(b, slot)) { type name; }
-#else
-#   define VERTEX_ATTRIBUTE(type, name, loc) type name : CONCAT(ATTRIBUTE, loc)
-#   define PUSH_CONSTANT(type, name, slot) ConstantBuffer<type> name : register(CONCAT(b, slot))
-#endif
+#include "Alimer.hlsli"
 
 struct PushData {
     float4 color;
+    uint textureIndex;
 };
 
 //ConstantBuffer<PushData> data : register(b0, space0);
-PUSH_CONSTANT(PushData, data, 0);
+ALIMER_PUSH_CONSTANTS(PushData, data, 0);
 
 struct VertexInput {
     float3 Position     : ATTRIBUTE0;
@@ -38,5 +28,12 @@ VertexOutput vertexMain(in VertexInput input)
 
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
+#if TEST_BINDLESS
+    Texture2D baseColorTexture = bindlessTexture2D[data.textureIndex];
+    SamplerState baseColorSampler = SamplerPointClamp; // bindlessSamplers[data.textureIndex];
+    float4 baseColor = baseColorTexture.Sample(baseColorSampler, float2(0.0, 0.0f));
+    return input.Color * data.color * baseColor;
+#else
     return input.Color * data.color;
+#endif
 }

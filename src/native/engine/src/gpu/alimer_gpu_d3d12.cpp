@@ -649,6 +649,26 @@ namespace
         }
     }
 
+    GPUShaderModel ToGPUShaderModel(D3D_SHADER_MODEL value)
+    {
+        switch (value)
+        {
+            case D3D_SHADER_MODEL_6_1:  return GPUShaderModel_6_1;
+            case D3D_SHADER_MODEL_6_2:  return GPUShaderModel_6_2;
+            case D3D_SHADER_MODEL_6_3:  return GPUShaderModel_6_3;
+            case D3D_SHADER_MODEL_6_4:  return GPUShaderModel_6_4;
+            case D3D_SHADER_MODEL_6_5:  return GPUShaderModel_6_5;
+            case D3D_SHADER_MODEL_6_6:  return GPUShaderModel_6_6;
+            case D3D_SHADER_MODEL_6_7:  return GPUShaderModel_6_7;
+            case D3D_SHADER_MODEL_6_8:  return GPUShaderModel_6_8;
+            case D3D_SHADER_MODEL_6_9:  return GPUShaderModel_6_9;
+
+            default:
+            case D3D_SHADER_MODEL_6_0:
+                return GPUShaderModel_6_0;
+        }
+    }
+
     struct D3D12TextureLayoutMapping final
     {
         D3D12_BARRIER_LAYOUT layout;
@@ -1464,6 +1484,8 @@ struct D3D12Adapter final : public GPUAdapterImpl
     GPUAdapterType adapterType = GPUAdapterType_Unknown;
     uint32_t vendorID;
     uint32_t deviceID;
+    D3D_SHADER_MODEL shaderModel = D3D_SHADER_MODEL_NONE;
+    bool samplerMinMax = false;
     bool shaderFloat16 = false;
     bool depthBoundsTestSupported = false;
     bool GPUUploadHeapSupported = false;
@@ -1474,6 +1496,9 @@ struct D3D12Adapter final : public GPUAdapterImpl
     GPUVariableRateShadingTier variableShadingRateTier = GPUVariableRateShadingTier_NotSupported;
     uint32_t variableShadingRateImageTileSize = 0;
     bool isAdditionalVariableShadingRatesSupported = false;
+
+    D3D12_RAYTRACING_TIER raytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
+    D3D12_MESH_SHADER_TIER meshShaderTier = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
 
     ~D3D12Adapter() override;
     GPUResult GetInfo(GPUAdapterInfo* info) const override;
@@ -1846,7 +1871,7 @@ void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
 
     D3D12ComputePipeline* backendPipeline = static_cast<D3D12ComputePipeline*>(pipeline);
     commandBuffer->SetPipelineLayout(backendPipeline->layout, false);
-    
+
     commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
     currentPipeline = backendPipeline;
     currentPipeline->AddRef();
@@ -2842,7 +2867,7 @@ void D3D12CopyAllocator::Init(D3D12Device* device_)
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-    queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+    queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queueDesc.NodeMask = 0;
     VHR(device->handle->CreateCommandQueue(&queueDesc, PPV_ARGS(queue)));
@@ -4269,6 +4294,8 @@ GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
     // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
     limits->maxComputeWorkgroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
 
+    limits->shaderModel = ToGPUShaderModel(shaderModel);
+
     // ConservativeRasterization
     limits->conservativeRasterizationTier = conservativeRasterizationTier;
 
@@ -4294,7 +4321,12 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
         case GPUFeature_DualSourceBlending:
         case GPUFeature_Tessellation:
         case GPUFeature_MultiDrawIndirect:
+        case GPUFeature_SamplerMirrorClampToEdge:
+        case GPUFeature_SamplerClampToBorder:
             return true;
+
+        case GPUFeature_SamplerMinMax:
+            return samplerMinMax;
 
             // Never supported features
         case GPUFeature_TextureCompressionETC2:
@@ -4325,6 +4357,16 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
 
         case GPUFeature_VariableRateShading:
             return variableShadingRateTier != GPUVariableRateShadingTier_NotSupported;
+
+        case GPUFeature_RayTracing:
+            return raytracingTier >= D3D12_RAYTRACING_TIER_1_0;
+
+        case GPUFeature_MeshShader:
+            return (d3dFeatures.MeshShaderTier() >= D3D12_MESH_SHADER_TIER_1);
+
+
+        case GPUFeature_Predication:
+            return true;
 
         default:
             return false;
@@ -4700,6 +4742,27 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
     }
 
     //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
+    adapter->shaderModel = features.HighestShaderModel();
+
+    if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_1)
+    {
+        //capabilities |= GraphicsDeviceCapability::SPARSE_BUFFER;
+        //capabilities |= GraphicsDeviceCapability::SPARSE_TEXTURE2D;
+
+        if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_2)
+        {
+            //capabilities |= GraphicsDeviceCapability::SPARSE_NULL_MAPPING;
+
+            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/tiled-resources-texture-sampling-features
+            adapter->samplerMinMax = true;
+
+            if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_3)
+            {
+                //capabilities |= GraphicsDeviceCapability::SPARSE_TEXTURE3D;
+            }
+        }
+    }
+
     adapter->shaderFloat16 = features.HighestShaderModel() >= D3D_SHADER_MODEL_6_2 && features.Native16BitShaderOpsSupported();
     adapter->depthBoundsTestSupported = features.DepthBoundsTestSupported() == TRUE;
     adapter->GPUUploadHeapSupported = features.GPUUploadHeapSupported() == TRUE;
@@ -4713,6 +4776,9 @@ GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options
         adapter->variableShadingRateImageTileSize = features.ShadingRateImageTileSize();
         adapter->isAdditionalVariableShadingRatesSupported = features.AdditionalShadingRatesSupported() == TRUE;
     }
+
+    adapter->raytracingTier = features.RaytracingTier();
+    adapter->meshShaderTier = features.MeshShaderTier();
 
     return adapter;
 }

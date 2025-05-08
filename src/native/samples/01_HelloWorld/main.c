@@ -61,6 +61,7 @@ GPUShaderDesc LoadShader(const char* shaderFileName, GPUShaderStage stage)
 
 typedef struct PushData {
     GPUColor color;
+    uint32_t textureIndex;
 } PushData;
 
 void Render()
@@ -116,7 +117,7 @@ int main()
     }
 
     GPUConfig config = {
-        //.preferredBackend = GPUBackendType_Vulkan,
+        .preferredBackend = GPUBackendType_Vulkan,
 #if defined(_DEBUG)
         .validationMode = GPUValidationMode_Enabled
 #else

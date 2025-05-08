@@ -425,8 +425,23 @@ typedef enum GPUAdapterType {
     _GPUAdapterType_Force32 = 0x7FFFFFFF
 } GPUAdapterType;
 
-typedef enum GPUConservativeRasterizationTier
-{
+typedef enum GPUShaderModel {
+    GPUShaderModel_6_0,
+    GPUShaderModel_6_1,
+    GPUShaderModel_6_2,
+    GPUShaderModel_6_3,
+    GPUShaderModel_6_4,
+    GPUShaderModel_6_5,
+    GPUShaderModel_6_6,
+    GPUShaderModel_6_7,
+    GPUShaderModel_6_8,
+    GPUShaderModel_6_9,
+    GPUShaderModel_Highest = GPUShaderModel_6_9,
+
+    _GPUShaderModel_Force32 = 0x7FFFFFFF    
+} GPUShaderModel;
+
+typedef enum GPUConservativeRasterizationTier {
     GPUConservativeRasterizationTier_NotSupported = 0,
     GPUConservativeRasterizationTier_1 = 1,
     GPUConservativeRasterizationTier_2 = 2,
@@ -457,6 +472,10 @@ typedef enum GPUFeature {
     GPUFeature_ShaderFloat16,
     GPUFeature_MultiDrawIndirect,
 
+    GPUFeature_SamplerMirrorClampToEdge,
+    GPUFeature_SamplerClampToBorder,
+    GPUFeature_SamplerMinMax,
+
     GPUFeature_Tessellation,
     GPUFeature_DepthBoundsTest,
     GPUFeature_GPUUploadHeapSupported,
@@ -465,6 +484,9 @@ typedef enum GPUFeature {
     GPUFeature_ShaderOutputViewportIndex,
     GPUFeature_ConservativeRasterization,
     GPUFeature_VariableRateShading,
+    GPUFeature_RayTracing,
+    GPUFeature_MeshShader,
+    GPUFeature_Predication,
 
     _GPUFeature_Force32 = 0x7FFFFFFF
 } GPUFeature;
@@ -756,6 +778,9 @@ typedef struct GPULimits {
     uint32_t maxComputeWorkgroupSizeY;
     uint32_t maxComputeWorkgroupSizeZ;
     uint32_t maxComputeWorkgroupsPerDimension;
+
+    /* Highest supported shader model */
+    GPUShaderModel shaderModel;
 
     /* Only if GPUFeature_ConservativeRasterization is supported */
     GPUConservativeRasterizationTier conservativeRasterizationTier;

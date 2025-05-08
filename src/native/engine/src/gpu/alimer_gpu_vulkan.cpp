@@ -800,7 +800,6 @@ struct VulkanPhysicalDeviceExtensions final
     bool performanceQuery;
     bool hostQueryReset;
     bool deferredHostOperations;
-    bool multiview;
     bool portabilitySubset;
     bool depthClipEnable;
     bool textureCompressionAstcHdr;
@@ -933,10 +932,6 @@ static VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDe
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0)
         {
             extensions.deferredHostOperations = true;
-        }
-        else if (strcmp(vk_extensions[i].extensionName, VK_KHR_MULTIVIEW_EXTENSION_NAME) == 0)
-        {
-            extensions.multiview = true;
         }
         else if (strcmp(vk_extensions[i].extensionName, "VK_KHR_portability_subset") == 0) // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
         {
@@ -1584,7 +1579,6 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceVulkan14Properties properties14 = {};
     VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = {};
     VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = {};
-    VkPhysicalDeviceMultiviewProperties multiviewProperties = {};
     VkPhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProps = {};
     VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = {};
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = {};
@@ -4767,6 +4761,23 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
         limits->isAdditionalVariableShadingRatesSupported = fragmentShadingRateProperties.maxFragmentSize.height > 2 || fragmentShadingRateProperties.maxFragmentSize.width > 2;
     }
 
+    // Based on https://docs.vulkan.org/guide/latest/hlsl.html#_shader_model_coverage
+    limits->shaderModel = GPUShaderModel_6_0;
+    if (features11.multiview)
+        limits->shaderModel = GPUShaderModel_6_1;
+    if (features12.shaderFloat16 || features2.features.shaderInt16)
+        limits->shaderModel = GPUShaderModel_6_2;
+    if (extensions.accelerationStructure)
+        limits->shaderModel = GPUShaderModel_6_3;
+    if (limits->variableShadingRateTier >= GPUVariableRateShadingTier_2)
+        limits->shaderModel = GPUShaderModel_6_4;
+    if (m_Desc.isMeshShaderSupported || m_Desc.rayTracingTier >= 2)
+        m_Desc.shaderModel = 65;
+    if (m_Desc.isShaderAtomicsI64Supported)
+        m_Desc.shaderModel = 66;
+    if (features.features.shaderStorageImageMultisample)
+        m_Desc.shaderModel = 67;
+
     return GPUResult_Success;
 }
 
@@ -4815,6 +4826,15 @@ bool VulkanAdapter::HasFeature(GPUFeature feature) const
         case GPUFeature_MultiDrawIndirect:
             // VK_KHR_draw_indirect_count is core in 1.2
             return features2.features.multiDrawIndirect == VK_TRUE;
+
+        case GPUFeature_SamplerMirrorClampToEdge:
+            return features12.samplerMirrorClampToEdge == VK_TRUE;
+
+        case GPUFeature_SamplerClampToBorder:
+            return true;
+
+        case GPUFeature_SamplerMinMax:
+            return features12.samplerFilterMinmax == VK_TRUE;
 
         case GPUFeature_DepthBoundsTest:
             return features2.features.depthBounds == VK_TRUE;
@@ -4959,11 +4979,6 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
         enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
     }
 
-    if (extensions.multiview)
-    {
-        enabledDeviceExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
-    }
-
     if (extensions.portabilitySubset)
     {
         enabledDeviceExtensions.push_back("VK_KHR_portability_subset");
@@ -4994,6 +5009,11 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     if (extensions.shaderViewportIndexLayer)
     {
         enabledDeviceExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+    }
+
+    if (extensions.conservativeRasterization)
+    {
+	    enabledDeviceExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
     }
 
     if (extensions.externalMemory)
@@ -5279,7 +5299,7 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
         }
     }
 
-    // Create pipeline cache 
+    // Create pipeline cache
     VkPipelineCacheCreateInfo pipelineCacheInfo;
     pipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
     pipelineCacheInfo.pNext = nullptr;
@@ -5520,7 +5540,6 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
             addToPropertiesChain(&adapter->properties14);
         }
 
-        adapter->multiviewProperties = {};
         adapter->pushDescriptorProps = {};
         adapter->conservativeRasterizationProps = {};
         adapter->accelerationStructureProperties = {};
@@ -5579,7 +5598,7 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
                 {
                     adapter->maintenance6Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES;
                     adapter->maintenance6Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_PROPERTIES;
-                
+
                     //addToFeatureChain(&adapter->maintenance6Features);
                     //addToPropertiesChain(&adapter->maintenance6Properties);
                 }
@@ -5590,12 +5609,6 @@ GPUAdapter VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* option
                     addToPropertiesChain(&adapter->pushDescriptorProps);
                 }
             }
-        }
-
-        if (adapter->extensions.multiview)
-        {
-            adapter->multiviewProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES;
-            addToPropertiesChain(&adapter->multiviewProperties);
         }
 
         if (adapter->extensions.conservativeRasterization)
@@ -5782,7 +5795,7 @@ bool Vulkan_IsSupported(void)
     if (name == NULL) { \
         alimerLogWarn(LogCategory_GPU,"vkGetInstanceProcAddr(VK_NULL_HANDLE, \"" #name "\") failed"); \
         return false; \
-    } 
+    }
 #include "alimer_gpu_vulkan_funcs.h"
 
     // We require vulkan 1.2
