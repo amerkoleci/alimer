@@ -30,7 +30,7 @@ jobs:
         global-json-file: ./global.json
 
     - name: Install Workloads
-      run: dotnet workload install android ios maccatalyst wasm-tools wasm-experimental
+      run: dotnet workload install android wasm-tools wasm-experimental
 
     - name: Build/Pack
       run: dotnet pack Alimer.sln --configuration Release -p:Packing=true
