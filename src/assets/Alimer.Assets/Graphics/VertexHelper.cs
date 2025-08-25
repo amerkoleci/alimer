@@ -2,18 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using Vortice.Mathematics;
 using MeshOptimizer;
+using Alimer.Numerics;
 
 namespace Alimer.Assets.Graphics;
 
 public static unsafe class VertexHelper
 {
-    public static BoundingBox CalculateBounds(Span<Vector3> positions)
-    {
-        return BoundingBox.CreateFromPoints(positions);
-    }
-
     public static Span<Vector3> GenerateNormals(
         Span<Vector3> positions,
         Span<uint> indices)

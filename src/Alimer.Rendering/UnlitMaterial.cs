@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using Vortice.Mathematics;
+using Alimer.Numerics;
 
 namespace Alimer.Rendering;
 
@@ -28,7 +28,7 @@ public class UnlitMaterial : Material
         }
     }
 
-    public Color4 BaseColorFactor { get; set; } = new (1.0f, 1.0f, 1.0f, 1.0f);
+    public Color BaseColorFactor { get; set; } = new (1.0f, 1.0f, 1.0f, 1.0f);
     public Texture? BaseColorTexture { get; set; }
 
     public bool Unlit { get; set; }

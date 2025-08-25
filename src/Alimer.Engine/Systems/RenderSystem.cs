@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using Vortice.Mathematics;
+using Alimer.Numerics;
 
 namespace Alimer.Engine;
 
@@ -25,7 +25,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
         _blackTexture = CreateTextureFromColor(Colors.Transparent);
         _whiteTexture = CreateTextureFromColor(Colors.White);
-        _defaultNormalTexture = CreateTextureFromColor(new Color4(0.5f, 0.5f, 1.0f, 0f));
+        _defaultNormalTexture = CreateTextureFromColor(new Color(0.5f, 0.5f, 1.0f, 0f));
         _defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
 
         ColorFormat = MainWindow.SwapChain!.ColorFormat;
@@ -34,7 +34,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         ResolutionMultiplier = 1;
 
         MainWindow.SizeChanged += OnCanvasSizeChanged;
-        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
+        Resize((int)MainWindow.ClientSize.Width, (int)MainWindow.ClientSize.Height);
     }
 
     public IServiceRegistry Services { get; }
@@ -136,14 +136,14 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
     private void OnCanvasSizeChanged(object? sender, EventArgs e)
     {
-        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
+        Resize((int)MainWindow.ClientSize.Width, (int)MainWindow.ClientSize.Height);
     }
 
     private void UpdateCamera(CameraComponent camera)
     {
     }
 
-    private Texture CreateTextureFromColor(in Color4 color)
+    private Texture CreateTextureFromColor(in Color color)
     {
         ReadOnlySpan<uint> pixels = [color.ToRgba()];
         return GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);

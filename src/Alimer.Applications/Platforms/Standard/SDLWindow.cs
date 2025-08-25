@@ -1,19 +1,19 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Mathematics;
 using Alimer.Graphics;
 using System.Runtime.InteropServices;
 using static SDL3.SDL3;
 using static SDL3.SDL_EventType;
 using SDL3;
+using System.Drawing;
 
 namespace Alimer;
 
 internal unsafe class SDLWindow : Window
 {
     private readonly SDLPlatform _platform;
-    private SizeI _clientSize;
+    private SizeF _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
 
@@ -121,21 +121,21 @@ internal unsafe class SDLWindow : Window
     }
 
     /// <inheritdoc />
-    public override Int2 Position
+    public override PointF Position
     {
         get
         {
             _ = SDL_GetWindowPosition(SDLWindowHandle, out int x, out int y);
-            return new Int2(x, y);
+            return new(x, y);
         }
         set
         {
-            _ = SDL_SetWindowPosition(SDLWindowHandle, value.X, value.Y);
+            _ = SDL_SetWindowPosition(SDLWindowHandle, (int)value.X, (int)value.Y);
         }
     }
 
     /// <inheritdoc />
-    public override SizeI ClientSize => _clientSize;
+    public override SizeF ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

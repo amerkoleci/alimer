@@ -3,7 +3,7 @@
 
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
-using Vortice.Mathematics;
+using System.Drawing;
 
 namespace Alimer;
 
@@ -50,7 +50,7 @@ public abstract class Window : ISwapChainSurface
     public abstract nint Handle { get; }
 
     /// <inheritdoc />
-    SizeI ISwapChainSurface.Size => ClientSize;
+    SizeF ISwapChainSurface.Size => ClientSize;
     #endregion ISwapChainSurface Members
 
     public abstract bool IsMinimized { get; }
@@ -59,8 +59,8 @@ public abstract class Window : ISwapChainSurface
     /// Gets or Sets whether the Window is in Fullscreen Mode
     /// </summary>
     public abstract bool IsFullscreen { get; set; }
-    public abstract Int2 Position { get; set; }
-    public abstract SizeI ClientSize { get; }
+    public abstract PointF Position { get; set; }
+    public abstract SizeF ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
@@ -74,10 +74,10 @@ public abstract class Window : ISwapChainSurface
     {
         get
         {
-            SizeI size = ClientSize;
+            SizeF size = ClientSize;
             if (size.Width != 0 && size.Height != 0)
             {
-                return (float)size.Width / size.Height;
+                return size.Width / size.Height;
             }
 
             return 0.0f;

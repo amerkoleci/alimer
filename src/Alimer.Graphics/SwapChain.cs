@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Mathematics;
+using System.Drawing;
 
 namespace Alimer.Graphics;
 
@@ -24,7 +24,7 @@ public abstract class SwapChain : GraphicsObject
     public bool IsFullscreen { get; protected set; }
 
     public bool AutoResizeDrawable { get; set; } = true;
-    public SizeI DrawableSize => Surface.Size;
+    public SizeF DrawableSize => Surface.Size;
 
     protected abstract void ResizeBackBuffer();
 

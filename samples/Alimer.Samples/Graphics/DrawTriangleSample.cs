@@ -49,7 +49,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
 
     public override void Draw(RenderContext context, Texture swapChainTexture)
     {
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color4(0.3f, 0.3f, 0.3f));
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {

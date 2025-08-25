@@ -11,7 +11,7 @@ public sealed class ImGuiSystem : GameSystem
 {
     private ImGuiContextPtr _context;
 
-    public ImGuiSystem(IServiceRegistry services,
+    public unsafe ImGuiSystem(IServiceRegistry services,
         ImGuiConfigFlags flags = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad | ImGuiConfigFlags.DockingEnable/* | ImGuiConfigFlags.ViewportsEnable*/)
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));

@@ -1,8 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Numerics;
 using CommunityToolkit.Diagnostics;
-using Vortice.Mathematics;
 
 namespace Alimer.Graphics;
 
@@ -15,7 +15,7 @@ public readonly record struct RenderPassColorAttachment
         Texture = texture;
     }
 
-    public RenderPassColorAttachment(Texture texture, in Color4 clearColor)
+    public RenderPassColorAttachment(Texture texture, in Color clearColor)
         : this(texture)
     {
         LoadAction = LoadAction.Clear;
@@ -51,7 +51,7 @@ public readonly record struct RenderPassColorAttachment
     /// <summary>
     /// The color to use when clearing the color attachment.
     /// </summary>
-    public Color4 ClearColor { get; init; } = new(0.0f, 0.0f, 0.0f, 1.0f);
+    public Color ClearColor { get; init; } = new(0.0f, 0.0f, 0.0f, 1.0f);
 
     /// <summary>
     /// The destination <see cref="Graphics.Texture"/> used when resolving multisampled texture data into single sample values.

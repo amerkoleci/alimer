@@ -5,12 +5,11 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
-//using static Alimer.Utilities.UnsafeUtilities;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Vortice.Mathematics;
 using System.Runtime.InteropServices;
+using Alimer.Numerics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -330,7 +329,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                     imageLayout = VkImageLayout.ColorAttachmentOptimal,
                     loadOp = attachment.LoadAction.ToVk(),
                     storeOp = attachment.StoreAction.ToVk(),
-                    clearValue = new VkClearValue(attachment.ClearColor.R, attachment.ClearColor.G, attachment.ClearColor.B, attachment.ClearColor.A)
+                    clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
                 };
 
                 TextureBarrier(texture, ResourceStates.RenderTarget);
@@ -464,7 +463,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdSetViewport(_commandBuffer, firstViewport: 0, 1, vkViewports);
     }
 
-    public override void SetScissorRect(in RectI rect)
+    public override void SetScissorRect(in System.Drawing.Rectangle rect)
     {
         VkRect2D vkRect = new(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height);
         vkCmdSetScissor(_commandBuffer, 0, 1, &vkRect);
@@ -475,9 +474,10 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, reference);
     }
 
-    public override void SetBlendColor(Color4 color)
+    public override void SetBlendColor(in Color color)
     {
-        vkCmdSetBlendConstants(_commandBuffer, (float*)&color);
+        fixed (Color* colorPtr = &color)
+            vkCmdSetBlendConstants(_commandBuffer, (float*)colorPtr);
     }
 
     public override void SetShadingRate(ShadingRate rate)

@@ -1,12 +1,12 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Mathematics;
 using Alimer.Graphics;
 using Microsoft.UI.Xaml.Controls;
 using Windows.UI.ViewManagement;
 using WinRT;
 using PlatformWindow = Microsoft.UI.Xaml.Window;
+using System.Drawing;
 
 namespace Alimer;
 
@@ -14,7 +14,7 @@ internal unsafe class SwapChainPanelView : Window
 {
     private readonly WindowsPlatform _platform;
     private readonly SwapChainPanel _swapChainPanel;
-    private SizeI _clientSize;
+    private SizeF _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
 
@@ -50,19 +50,16 @@ internal unsafe class SwapChainPanelView : Window
     }
 
     /// <inheritdoc />
-    public override Int2 Position
+    public override PointF Position
     {
-        get
-        {
-            return Int2.Zero;
-        }
+        get => PointF.Empty;
         set
         {
         }
     }
 
     /// <inheritdoc />
-    public override SizeI ClientSize => _clientSize;
+    public override SizeF ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

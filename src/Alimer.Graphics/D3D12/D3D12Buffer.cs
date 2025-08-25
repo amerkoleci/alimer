@@ -4,12 +4,12 @@
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using Vortice.Mathematics;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
+using Alimer.Numerics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -28,7 +28,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         ulong alignedSize = description.Size;
         if ((description.Usage & BufferUsage.Constant) != 0)
         {
-            alignedSize = MathHelper.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+            alignedSize = MathUtilities.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;

@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
@@ -30,7 +30,7 @@ jobs:
         global-json-file: ./global.json
 
     - name: Install Workloads
-      run: dotnet workload install android wasm-tools wasm-experimental
+      run: dotnet workload install android
 
     - name: Build/Pack
       run: dotnet pack Alimer.sln --configuration Release -p:Packing=true

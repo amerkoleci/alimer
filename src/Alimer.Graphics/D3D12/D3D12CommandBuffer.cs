@@ -19,7 +19,7 @@ using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
 using Alimer.Graphics.D3D;
 using System.Diagnostics;
-using Vortice.Mathematics;
+using Alimer.Numerics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -341,7 +341,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             PushDebugGroup(renderPass.Label);
         }
 
-        SizeI renderArea = new(int.MaxValue, int.MaxValue);
+        System.Drawing.Size renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
         D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
@@ -374,10 +374,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
                 case LoadAction.Clear:
                     RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[0] = attachment.ClearColor.R;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[1] = attachment.ClearColor.G;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[2] = attachment.ClearColor.B;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[3] = attachment.ClearColor.A;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[0] = attachment.ClearColor.Red;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[1] = attachment.ClearColor.Green;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[2] = attachment.ClearColor.Blue;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[3] = attachment.ClearColor.Alpha;
                     break;
                 case LoadAction.Discard:
                     RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
@@ -541,7 +541,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->RSSetViewports((uint)count, d3d12Viewports);
     }
 
-    public override void SetScissorRect(in RectI rect)
+    public override void SetScissorRect(in System.Drawing.Rectangle rect)
     {
         RECT scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
         _commandList.Get()->RSSetScissorRects(1, &scissorRect);
@@ -552,9 +552,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->OMSetStencilRef(reference);
     }
 
-    public override void SetBlendColor(Color4 color)
+    public override void SetBlendColor(in Color color)
     {
-        _commandList.Get()->OMSetBlendFactor((float*)&color);
+        fixed (Color* colorPtr = &color)
+            _commandList.Get()->OMSetBlendFactor((float*)colorPtr);
     }
 
     public override void SetShadingRate(ShadingRate rate)

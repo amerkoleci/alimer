@@ -1,38 +1,68 @@
-###############################################################################
-# Set default behavior to:
-#   treat as text and
-#   normalize to Unix-style line endings
-###############################################################################
-*           text        eol=lf
+# Set default behavior to automatically normalize line endings.
+* text=auto
 
-###############################################################################
-# Set explicit file behavior to:
-#   treat as text and
-#   normalize to Unix-style line endings
-###############################################################################
-*.cmd       text        eol=lf
-*.config    text        eol=lf
-*.cs        text        eol=lf
-*.csproj    text        eol=lf
-*.hlsl      text        eol=lf
-*.json      text        eol=lf
-*.md        text        eol=lf
-*.props     text        eol=lf
-*.ps1       text        eol=lf
-*.resx      text        eol=lf
-*.sh        text        eol=lf
-*.sln       text        eol=lf
-*.targets   text        eol=lf
-*.yml       text        eol=lf
-*.cmd       text        eol=crlf
-*.bat       text        eol=crlf
+*.doc  diff=astextplain
+*.DOC	diff=astextplain
+*.docx	diff=astextplain
+*.DOCX	diff=astextplain
+*.dot	diff=astextplain
+*.DOT	diff=astextplain
+*.pdf	diff=astextplain
+*.PDF	diff=astextplain
+*.rtf	diff=astextplain
+*.RTF	diff=astextplain
 
-###############################################################################
-# Set explicit file behavior to:
-#   treat as text and
-#   normalize to Windows-style line endings
-###############################################################################
-*.sln       text        eol=crlf
+*.lss 	text
+
+# Force bash scripts to always use lf line endings so that if a repo is accessed
+# in Unix via a file share from Windows, the scripts will work.
+*.in text eol=lf
+*.sh text eol=lf
+
+# Likewise, force cmd and batch scripts to always use crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.cs text diff=csharp
+*.vb text
+*.resx text
+*.c text
+*.cpp text
+*.cxx text
+*.h text
+*.hxx text
+*.py text
+*.rb text
+*.java text
+*.html text
+*.htm text
+*.css text
+*.scss text
+*.sass text
+*.less text
+*.js text
+*.lisp text
+*.clj text
+*.sql text
+*.php text
+*.lua text
+*.m text
+*.asm text
+*.erl text
+*.fs text
+*.fsx text
+*.hs text
+
+*.csproj text
+*.vbproj text
+*.fsproj text
+*.dbproj text
+*.sln text eol=crlf
+
+# Set linguist language for .h files explicitly based on
+# https://github.com/github/linguist/issues/1626#issuecomment-401442069
+# this only affects the repo's language statistics
+*.h linguist-language=C
 
 ###############################################################################
 # Set explicit file behavior to:

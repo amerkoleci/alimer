@@ -27,11 +27,6 @@
       <Pack>True</Pack>
       <Visible>False</Visible>
     </None>
-    <None Include="$(AlimerNativeDirectory)win-x64\openal.dll">
-      <PackagePath>runtimes\win-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
     <None Include="$(AlimerNativeDirectory)win-arm64\alimer_native.dll">
       <PackagePath>runtimes\win-arm64\native</PackagePath>
       <Pack>True</Pack>
@@ -42,17 +37,7 @@
       <Pack>True</Pack>
       <Visible>False</Visible>
     </None>
-    <None Include="$(AlimerNativeDirectory)linux-x64\libopenal.so">
-      <PackagePath>runtimes\linux-x64\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
     <None Include="$(AlimerNativeDirectory)osx\libalimer_native.dylib">
-      <PackagePath>runtimes\osx\native</PackagePath>
-      <Pack>True</Pack>
-      <Visible>False</Visible>
-    </None>
-    <None Include="$(AlimerNativeDirectory)osx\libopenal.dylib">
       <PackagePath>runtimes\osx\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>

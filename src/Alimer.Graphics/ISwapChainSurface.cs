@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Mathematics;
+using System.Drawing;
 
 namespace Alimer.Graphics;
 
@@ -29,7 +29,7 @@ public interface ISwapChainSurface
     /// <summary>
     /// Gets the size, in pixels, of the surface.
     /// </summary>
-    SizeI Size { get; }
+    SizeF Size { get; }
 
     /// <summary>
     /// Gets the width, in pixels, of the surface.

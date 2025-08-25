@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
+using Alimer.Numerics;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
@@ -133,9 +134,9 @@ public readonly record struct ImageDescription
             width = Math.Max(minDimension, width >> 1);
             height = Math.Max(minDimension, height >> 1);
             depth = Math.Max(minDimension, depth >> 1);
-            if (MathHelper.AlignUp(width, requiredAlignment) != width
-                || MathHelper.AlignUp(height, requiredAlignment) != height
-                || MathHelper.AlignUp(depth, requiredAlignment) != depth)
+            if (MathUtilities.AlignUp(width, requiredAlignment) != width
+                || MathUtilities.AlignUp(height, requiredAlignment) != height
+                || MathUtilities.AlignUp(depth, requiredAlignment) != depth)
             {
                 break;
             }

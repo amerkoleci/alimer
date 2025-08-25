@@ -22,7 +22,7 @@
   <Import Project="$(AlimerRootDirectory)Alimer.Native.targets" />
 
   <ItemGroup>
-    <Using Include="Vortice.Mathematics" />
+    <Using Include="Alimer.Numerics" />
   </ItemGroup>
 
   <!-- Assets-->

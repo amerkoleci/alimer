@@ -25,7 +25,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
 
         ShaderStageDescription computeShader = TestUtilities.CompileShader("ComputeTexture.hlsl", "computeMain", GraphicsDevice.Backend, ShaderStages.Compute);
 
-        ComputePipelineDescription pipelineDescription = new ComputePipelineDescription(pipelineLayout, computeShader);
+        ComputePipelineDescription pipelineDescription = new(pipelineLayout, computeShader);
         using Pipeline pipeline = GraphicsDevice.CreateComputePipeline(pipelineDescription);
         Assert.NotNull(pipeline);
     }

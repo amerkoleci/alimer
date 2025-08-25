@@ -2,9 +2,9 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using static Alimer.Graphics.Constants;
+using Alimer.Numerics;
 using CommunityToolkit.Diagnostics;
-using Vortice.Mathematics;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
 
@@ -55,7 +55,7 @@ public abstract class ComputeContext : CopyContext
     public void Dispatch1D(uint threadCountX, uint groupSizeX = 64u)
     {
         Dispatch(
-            MathHelper.DivideByMultiple(threadCountX, groupSizeX),
+            MathUtilities.DivideByMultiple(threadCountX, groupSizeX),
             1u,
             1u);
     }
@@ -63,8 +63,8 @@ public abstract class ComputeContext : CopyContext
     public void Dispatch2D(uint threadCountX, uint threadCountY, uint groupSizeX = 8u, uint groupSizeY = 8u)
     {
         Dispatch(
-            MathHelper.DivideByMultiple(threadCountX, groupSizeX),
-            MathHelper.DivideByMultiple(threadCountY, groupSizeX),
+            MathUtilities.DivideByMultiple(threadCountX, groupSizeX),
+            MathUtilities.DivideByMultiple(threadCountY, groupSizeX),
             1u
         );
     }
@@ -72,9 +72,9 @@ public abstract class ComputeContext : CopyContext
     public void Dispatch3D(uint threadCountX, uint threadCountY, uint threadCountZ, uint groupSizeX, uint groupSizeY, uint groupSizeZ)
     {
         Dispatch(
-            MathHelper.DivideByMultiple(threadCountX, groupSizeX),
-            MathHelper.DivideByMultiple(threadCountY, groupSizeY),
-            MathHelper.DivideByMultiple(threadCountZ, groupSizeZ)
+            MathUtilities.DivideByMultiple(threadCountX, groupSizeX),
+            MathUtilities.DivideByMultiple(threadCountY, groupSizeY),
+            MathUtilities.DivideByMultiple(threadCountZ, groupSizeZ)
         );
     }
 

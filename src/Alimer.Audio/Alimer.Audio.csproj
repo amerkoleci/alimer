@@ -15,6 +15,7 @@
 
     <Compile Remove="OpenAL/**/*" Condition="'$(ExcludeOpenAL)' == 'true'" />
     <Compile Remove="XAudio2/**/*" Condition="'$(ExcludeXAudio2)' == 'true'" />
+    <PackageReference Include="MonoGame.Library.OpenAL" Condition="'$(ExcludeOpenAL)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>
