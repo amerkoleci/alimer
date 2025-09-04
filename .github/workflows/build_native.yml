@@ -60,3 +60,21 @@ jobs:
       with:
         name: linux-x64-sdk
         path: linux-x64-sdk
+
+  macos:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Get CMake
+      uses: lukka/get-cmake@v4.0.2
+
+    - name: CMake Configure (osx-universal)
+      run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_INSTALL_PREFIX="osx-sdk"
+    - name: Build osx-universal
+      run: cmake --build build_osx --target install --config Distribution --verbose --parallel 
+     
+    - uses: actions/upload-artifact@v4
+      with:
+        name: osx-sdk
+        path: osx-sdk
