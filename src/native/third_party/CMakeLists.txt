@@ -2,19 +2,39 @@
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb")
 
-if (ALIMER_USE_GLFW AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
+if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     CPMAddPackage(
-        NAME glfw
-        GITHUB_REPOSITORY glfw/glfw
-        GIT_TAG 21fea01161e0d6b70c0c5c1f52dc8e7a7df14a50
+        NAME SDL
+        GITHUB_REPOSITORY libsdl-org/SDL
+        GIT_TAG release-3.2.18
         OPTIONS
-            "GLFW_BUILD_DOCS OFF"
-            "GLFW_BUILD_TESTS OFF"
-            "GLFW_BUILD_EXAMPLES OFF"
-            "GLFW_INSTALL OFF"
+            "SDL_SHARED OFF"
+            "SDL_STATIC ON"
+            "SDL_LIBC ON"
+            "SDL_TIMERS ON"
+            "SDL_TEST_LIBRARY OFF"
+            "SDL_DISABLE_INSTALL ON"
+            "SDL_DISABLE_INSTALL_DOCS ON"
+            # Disable everything we don't care about.
+            "SDL_ATOMIC OFF"
+            "SDL_AUDIO OFF"
+            "SDL_RENDER OFF"
+            "SDL_HAPTIC OFF"
+            "SDL_POWER OFF"
+            "SDL_FILE OFF"
+            "SDL_CPUINFO OFF"
+            "SDL_FILESYSTEM OFF"
+            "SDL_SENSOR OFF"
+            "SDL_LOCALE OFF"
+            "SDL_MISC OFF"
+            "SDL_CAMERA OFF"
+            "SDL_DIALOG OFF"
+            "SDL_GPU OFF"
         EXCLUDE_FROM_ALL YES
     )
-    set_property(TARGET glfw PROPERTY FOLDER "ThirdParty")
+
+    set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
+    set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
 if (ALIMER_GPU_VULKAN)
@@ -70,10 +90,10 @@ if(ALIMER_PHYSICS)
     CPMAddPackage(
         NAME JoltPhysics
         GITHUB_REPOSITORY jrouwe/JoltPhysics
-        GIT_TAG aff23a03eab85da85ff42968e6765b9988986960
+        GIT_TAG v5.3.0
         SOURCE_SUBDIR Build
         OPTIONS
-            "OBJECT_LAYER_BITS 16"
+            "OBJECT_LAYER_BITS 32"
             "DOUBLE_PRECISION OFF"
             "GENERATE_DEBUG_SYMBOLS OFF"
             "CROSS_PLATFORM_DETERMINISTIC OFF"

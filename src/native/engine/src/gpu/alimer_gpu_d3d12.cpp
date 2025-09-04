@@ -315,19 +315,6 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr D3D12_INPUT_CLASSIFICATION ToD3D12(GPUVertexStepMode value)
-    {
-        switch (value)
-        {
-            case GPUVertexStepMode_Vertex:
-                return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-            case GPUVertexStepMode_Instance:
-                return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
-            default:
-                ALIMER_UNREACHABLE();
-        }
-    }
-
     [[nodiscard]] constexpr D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(GPUPrimitiveTopology type, uint32_t patchControlPoints = 1u)
     {
         switch (type)
@@ -2012,10 +1999,10 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
         DSV.DepthBeginningAccess.Clear.ClearValue.Format = dsvFormat;
         DSV.StencilBeginningAccess.Clear.ClearValue.Format = dsvFormat;
 
-        const GPULoadAction loadAction = _ALIMER_DEF(attachment.depthLoadAction, GPULoadAction_Clear);
-        const GPUStoreAction storeAction = _ALIMER_DEF(attachment.depthStoreAction, GPUStoreAction_Discard);
+        const GPULoadAction depthLoadAction = _ALIMER_DEF(attachment.depthLoadAction, GPULoadAction_Clear);
+        const GPUStoreAction depthStoreAction = _ALIMER_DEF(attachment.depthStoreAction, GPUStoreAction_Discard);
 
-        switch (attachment.depthLoadAction)
+        switch (depthLoadAction)
         {
             default:
             case GPULoadAction_Load:
@@ -2031,7 +2018,7 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
                 break;
         }
 
-        switch (attachment.depthStoreAction)
+        switch (depthStoreAction)
         {
             default:
             case GPUStoreAction_Store:
@@ -2063,7 +2050,7 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
                     break;
             }
 
-            switch (attachment.stencilStoreAction)
+            switch (stencilStoreAction)
             {
                 default:
                 case GPUStoreAction_Store:
@@ -3419,6 +3406,7 @@ GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
             resourceDesc.DepthOrArraySize = (UINT16)desc.depthOrArrayLayers;
             break;
 
+        default:
         case TextureDimension_2D:
         case TextureDimension_Cube:
             resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -3876,6 +3864,10 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         case GPUPrimitiveTopology_PatchList:
             stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
             break;
+
+        default:
+            stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+            break;
     }
 
     for (uint32_t i = 0; i < desc.shaderCount; i++)
@@ -4273,7 +4265,7 @@ GPUResult D3D12Adapter::GetLimits(GPULimits* limits) const
     limits->minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
     limits->minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
     limits->maxPushConstantsSize = sizeof(uint32_t) * kMaxRootSignatureSize / 1;
-    const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
+    //const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
 
     limits->maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
     limits->maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
@@ -4362,7 +4354,7 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
             return raytracingTier >= D3D12_RAYTRACING_TIER_1_0;
 
         case GPUFeature_MeshShader:
-            return (d3dFeatures.MeshShaderTier() >= D3D12_MESH_SHADER_TIER_1);
+            return meshShaderTier >= D3D12_MESH_SHADER_TIER_1;
 
 
         case GPUFeature_Predication:

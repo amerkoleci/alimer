@@ -1703,6 +1703,9 @@ VkImageView VulkanTexture::GetView(uint32_t mipLevel) const
             case TextureDimension_Cube:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
                 break;
+            default:
+                createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                break;
         }
 
         createInfo.format = vkFormat; // device->ToVkFormat(desc.format);
@@ -1929,7 +1932,7 @@ void VulkanRenderPassEncoder::Begin(const GPURenderPassDesc& desc)
     uint32_t colorAttachmentCount = 0;
     VkRenderingAttachmentInfo colorAttachments[GPU_MAX_COLOR_ATTACHMENTS] = {};
     VkRenderingAttachmentInfo depthAttachment = {};
-    VkRenderingAttachmentInfo stencilAttachment = {};
+    //VkRenderingAttachmentInfo stencilAttachment = {};
 
     for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
@@ -4712,7 +4715,7 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     limits->minConstantBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
     limits->minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
     limits->maxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize;
-    const uint32_t maxPushDescriptors = pushDescriptorProps.maxPushDescriptors;
+    [[maybe_unused]] const uint32_t maxPushDescriptors = pushDescriptorProps.maxPushDescriptors;
     limits->maxBufferSize = properties13.maxBufferSize;
     limits->maxColorAttachments = properties2.properties.limits.maxColorAttachments;
     limits->maxViewports = properties2.properties.limits.maxViewports;
@@ -4771,12 +4774,12 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
         limits->shaderModel = GPUShaderModel_6_3;
     if (limits->variableShadingRateTier >= GPUVariableRateShadingTier_2)
         limits->shaderModel = GPUShaderModel_6_4;
-    if (m_Desc.isMeshShaderSupported || m_Desc.rayTracingTier >= 2)
-        m_Desc.shaderModel = 65;
-    if (m_Desc.isShaderAtomicsI64Supported)
-        m_Desc.shaderModel = 66;
-    if (features.features.shaderStorageImageMultisample)
-        m_Desc.shaderModel = 67;
+    //if (m_Desc.isMeshShaderSupported || m_Desc.rayTracingTier >= 2)
+    //    m_Desc.shaderModel = 65;
+    //if (m_Desc.isShaderAtomicsI64Supported)
+    //    m_Desc.shaderModel = 66;
+    //if (features.features.shaderStorageImageMultisample)
+    //    m_Desc.shaderModel = 67;
 
     return GPUResult_Success;
 }

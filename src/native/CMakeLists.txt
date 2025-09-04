@@ -46,7 +46,7 @@ set(ALIMER_VERSION_PATCH 0)
 set(ALIMER_VERSION ${ALIMER_VERSION_MAJOR}.${ALIMER_VERSION_MINOR}.${ALIMER_VERSION_PATCH})
 
 # Project declaration
-project(Alimer
+project(Alimer.Native
     VERSION ${ALIMER_VERSION}
     DESCRIPTION "Cross platform game engine"
     HOMEPAGE_URL "https://github.com/amerkoleci/alimer"
@@ -175,7 +175,7 @@ option(ALIMER_ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ALIMER_INSTALL "Generate the install target" ${ALIMER_MASTER_PROJECT})
 option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
 
-option(ALIMER_USE_GLFW "Use GLFW for desktop windows" ON)
+option(ALIMER_USE_SDL "Use SDL for desktop windows" ON)
 
 option(ALIMER_AUDIO "Enable Audio support" ON)
 option(ALIMER_GPU "Enable GPU support" ON)

@@ -889,7 +889,7 @@ enum class KnownGPUAdapterVendor
 
 static const VertexFormatInfo& GetVertexFormatInfo(GPUVertexFormat format)
 {
-    if (format >= _PixelFormat_Count)
+    if (format >= _GPUVertexFormat_Count)
         return kVertexFormatTable[0]; // Undefined
 
     const VertexFormatInfo& info = kVertexFormatTable[format];

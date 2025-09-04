@@ -17,10 +17,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Get CMake
-      uses: lukka/get-cmake@v3.29.4
+      uses: lukka/get-cmake@v4.0.2
       
     - name: Configure win-x64
       run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
@@ -31,3 +31,32 @@ jobs:
       with:
         name: win-x64-sdk
         path: win-x64-sdk
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Get CMake
+      uses: lukka/get-cmake@v4.0.2
+
+    - name: Install dependencies on Ubuntu
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential git make \
+            pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+            libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+            libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+    - name: CMake Configure (linux-x64)
+      run: cmake -S "src/native" -B "build_linux_x64" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="linux-x64-sdk"
+    - name: Build linux-x64
+      run: cmake --build build_linux_x64 --target install --config Distribution --verbose --parallel 
+     
+    - uses: actions/upload-artifact@v4
+      with:
+        name: linux-x64-sdk
+        path: linux-x64-sdk

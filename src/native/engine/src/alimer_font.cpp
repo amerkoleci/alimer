@@ -24,7 +24,7 @@ Font* alimerFontCreateFromMemory(const uint8_t* data, size_t size)
     int offset = stbtt_GetFontOffsetForIndex(data, 0);
     if (offset == -1)
     {
-        alimerLogError(LogCategory_Application, "Unable to parse Font File");
+        alimerLogError(LogCategory_System, "Unable to parse Font File");
         return nullptr;
     }
 
@@ -33,7 +33,7 @@ Font* alimerFontCreateFromMemory(const uint8_t* data, size_t size)
 
     if (!stbtt_InitFont(&font->info, data, offset))
     {
-        alimerLogError(LogCategory_Application, "Unable to parse Font File");
+        alimerLogError(LogCategory_System, "Unable to parse Font File");
         alimerFree(font);
         return nullptr;
     }

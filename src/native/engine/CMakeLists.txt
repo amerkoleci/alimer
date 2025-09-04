@@ -63,14 +63,13 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 
 if (EMSCRIPTEN)
     target_sources(${TARGET_NAME} PRIVATE
-        src/platforms/alimer_glfw.cpp
+        src/alimer_platform_sdl.cpp
     )
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_PLATFORM_GLFW)
 
     set_target_properties(${TARGET_NAME} PROPERTIES ENABLE_EXPORTS ON)
     target_link_options(${TARGET_NAME} PUBLIC
         "-Os"
-        "-sUSE_GLFW=3"
+        "-sUSE_SDL=3"
         "-sFORCE_FILESYSTEM=1"
     )
 
@@ -79,13 +78,12 @@ if (EMSCRIPTEN)
 
     # Enable the use of emscripten_sleep()
 	target_link_options(${TARGET_NAME} PUBLIC -sASYNCIFY)
-elseif (ALIMER_USE_GLFW)
+elseif (ALIMER_USE_SDL)
     target_sources(${TARGET_NAME} PRIVATE
-        src/platforms/alimer_glfw.cpp
+        src/alimer_platform_sdl.cpp
     )
 
-    target_link_libraries(${TARGET_NAME} PRIVATE glfw)
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_PLATFORM_GLFW)
+    target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
 endif()
 
 if (ALIMER_GPU)
