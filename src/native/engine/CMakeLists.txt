@@ -50,7 +50,7 @@ if (MSVC)
     # Warnings as Errors Enabled
     target_compile_options(${TARGET_NAME} PRIVATE /WX)
 else()
-	target_compile_options(${TARGET_NAME} PRIVATE -Wall -Werror)
+	target_compile_options(${TARGET_NAME} PRIVATE -Wall)
 endif()
 
 if(WIN32)

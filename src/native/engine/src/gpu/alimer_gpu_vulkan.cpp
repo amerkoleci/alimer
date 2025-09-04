@@ -5389,13 +5389,13 @@ GPUSurface VulkanInstance::CreateSurface(Window* window)
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.window = (ANativeWindow*)alimerWindowGetNativeHandle(window);
 
-    result = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &vk_surface);
+    result = vkCreateAndroidSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #elif defined(__APPLE__)
     VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     //surfaceCreateInfo.pLayer = surface->GetMetalLayer();
 
-    result = vkCreateMetalSurfaceEXT(instance, &surfaceCreateInfo, nullptr, &vk_surface);
+    result = vkCreateMetalSurfaceEXT(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #else
 #endif
 

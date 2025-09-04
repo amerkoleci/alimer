@@ -31,8 +31,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
+set(CMAKE_DEBUG_POSTFIX "_d")
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version")
+# Set default symbol visibility to hidden. This prevents all Jolt's symbols to be exported on macOS. This can cause crashes if a program loads multiple shared libraries with different versions of Jolt.
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for OS X")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
@@ -205,25 +209,26 @@ cmake_dependent_option(ALIMER_GPU_D3D12 "Enable D3D12 GPU backend" ON "ALIMER_GP
 cmake_dependent_option(ALIMER_GPU_WEBGPU "Enable WebGPU GPU backend" ON "ALIMER_GPU_HAS_WEBGPU" OFF)
 
 # Set general compiler flags
-if(EMSCRIPTEN)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
-    #if(ALIMER_ENABLE_THREAD)
-    #    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-    #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    #endif()
-elseif (MSVC)
+if (MSVC)
     # Multiprocessor compiler
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /JMC- /Zc:__cplusplus  /Zc:inline")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Gm- /nologo /diagnostics:classic /FC /fp:except-")
 
+    # Set compiler flag for disabling RTTI
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+
+    # Disable exceptions
+	# Remove any existing compiler flag that enables exceptions
+	string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+
+	# Disable warning about STL and compiler-generated types using noexcept when exceptions are disabled
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4577")
+
     if(CMAKE_INTERPROCEDURAL_OPTIMIZATION)
       # Enable function-level linking
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Gy /Gw")
     endif()
-
-    set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
 
     if (ALIMER_ENABLE_ASAN_UBSAN)
        set(EXTRA_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined,implicit-conversion,float-divide-by-zero,local-bounds -fno-sanitize-recover=all")
@@ -244,7 +249,11 @@ elseif (MSVC)
 		#set(CMAKE_EXE_LINKER_FLAGS_RELEASEUBSAN "${CMAKE_SHARED_LINKER_FLAGS_RELEASEUBSAN}")
     endif ()
 else()
-    set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
+    # Set compiler flag for disabling RTTI
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+
+	# Set compiler flag for disabling exception-handling
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
     if (ALIMER_ENABLE_ASAN_UBSAN)
        set(EXTRA_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined,implicit-conversion,float-divide-by-zero,local-bounds -fno-sanitize-recover=all")
@@ -253,9 +262,19 @@ else()
        set(EXTRA_SANITIZE_OPTIONS "-fsanitize=thread")
     endif()
 
+    if (EMSCRIPTEN)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+        #if(ALIMER_ENABLE_THREAD)
+        #    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+        #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+        #endif()
+    endif()
+
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${EXTRA_SANITIZE_OPTIONS}")
 endif ()
 
+set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
 set(CMAKE_SHARED_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
 set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
 
