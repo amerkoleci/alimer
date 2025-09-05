@@ -6,7 +6,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.2.18
+        GIT_TAG release-3.2.22
         OPTIONS
             "SDL_SHARED OFF"
             "SDL_STATIC ON"
@@ -37,7 +37,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
-if (ALIMER_GPU_VULKAN)
+if (NOT APPLE AND (WIN32 OR UNIX OR ANDROID))
     # vulkan
     add_library(vulkan INTERFACE)
     set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
@@ -64,7 +64,7 @@ if (ALIMER_GPU_VULKAN)
     set_target_properties(spirv_reflect PROPERTIES FOLDER "ThirdParty")
 endif()
 
-if (ALIMER_GPU_D3D12)
+if (WIN32 OR WINDOWS_STORE)
     add_library(DirectX-Headers INTERFACE)
     set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
     target_sources(DirectX-Headers INTERFACE 
