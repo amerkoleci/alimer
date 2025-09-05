@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFrameworks>net9.0</TargetFrameworks>
-    <RootNamespace>Alimer.Bindings.OpenAL</RootNamespace>
-    <CopyContentFiles>True</CopyContentFiles>
-  </PropertyGroup>
-
-</Project>

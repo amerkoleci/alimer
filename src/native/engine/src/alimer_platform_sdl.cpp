@@ -257,7 +257,7 @@ namespace
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP:
                 ev.type = (e.type == SDL_EVENT_KEY_DOWN) ? EventType_KeyDown : EventType_KeyUp;
-                ev.key.windowId = e.key.windowID;
+                ev.key.windowID = e.key.windowID;
                 ev.key.key = FromSDLKeyboardKey(e.key.scancode);
                 ev.key.alt = (e.key.mod & SDL_KMOD_ALT) != 0;
                 ev.key.ctrl = (e.key.mod & SDL_KMOD_CTRL) != 0;
@@ -266,12 +266,12 @@ namespace
                 break;
             case SDL_EVENT_TEXT_INPUT:
                 ev.type = EventType_TextInput;
-                ev.text.windowId = e.text.windowID;
+                ev.text.windowID = e.text.windowID;
                 ev.text.text = e.text.text;
                 break;
             case SDL_EVENT_MOUSE_MOTION:
                 ev.type = EventType_MouseMotion;
-                ev.motion.windowId = e.motion.windowID;
+                ev.motion.windowID = e.motion.windowID;
 
                 ev.motion.x = e.motion.x;
                 ev.motion.y = e.motion.y;
@@ -283,14 +283,14 @@ namespace
                 break;
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 ev.type = (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? EventType_MouseButtonDown : EventType_MouseButtonUp;
-                ev.button.windowId = e.button.windowID;
+                ev.button.windowID = e.button.windowID;
                 ev.button.button = FromSDLMouseButton(e.button.button);
                 ev.button.x = e.button.x;
                 ev.button.y = e.button.y;
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
                 ev.type = EventType_MouseWheel;
-                ev.wheel.windowId = e.wheel.windowID;
+                ev.wheel.windowID = e.wheel.windowID;
                 //ev.wheel.which = e.wheel.which;
                 ev.wheel.x = e.wheel.x;
                 ev.wheel.y = e.wheel.y;
@@ -308,7 +308,7 @@ namespace
                 if (e.type >= SDL_EVENT_WINDOW_FIRST && e.type <= SDL_EVENT_WINDOW_LAST)
                 {
                     ev.type = EventType_Window;
-                    ev.window.windowId = e.window.windowID;
+                    ev.window.windowID = e.window.windowID;
                     ev.window.type = ToWindowEventType(e.type);
                     ev.window.data1 = e.window.data1;
                     ev.window.data2 = e.window.data2;

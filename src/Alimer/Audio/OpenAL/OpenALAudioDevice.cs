@@ -1,8 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Bindings.OpenAL;
-using static Alimer.Bindings.OpenAL.OpenAL;
+using static Alimer.Audio.OpenAL.ALApi;
 
 namespace Alimer.Audio.OpenAL;
 
@@ -14,18 +13,13 @@ internal unsafe sealed class OpenALAudioDevice : AudioDevice
     public OpenALAudioDevice(in AudioDeviceOptions options)
         : base(in options)
     {
-        if (alcIsExtensionPresent("ALC_enumeration_EXT"))
+        if (alcIsExtensionPresent(ALCdevice.Null, "ALC_ENUMERATION_EXT"u8))
         {
-            string name;
-            if (!alcIsExtensionPresent("ALC_enumerate_all_EXT") )
-                name = alcGetString(AlcGetString.DeviceSpecifier);
-            else
-                name = alcGetString(AlcGetString.AllDevicesSpecifier);
-
-            name = alcGetString(AlcGetString.CaptureDeviceSpecifier);
+            string devices = alcGetString(ALCdevice.Null, AlcGetString.DeviceSpecifier)!;
+            string defaultDeviceName = alcGetString(ALCdevice.Null, AlcGetString.DefaultDeviceSpecifier)!;
         }
 
-        _device = alcOpenDevice(null);
+        _device = alcOpenDevice((string?)null);
         CheckAlcError();
         
         bool SupportsHrtf = alcIsExtensionPresent(_device, "ALC_SOFT_HRTF");
@@ -36,7 +30,7 @@ internal unsafe sealed class OpenALAudioDevice : AudioDevice
         int MonoSources = alcGetInteger(_device, AlcGetInteger.MonoSources);
         int StereoSources = alcGetInteger(_device, AlcGetInteger.StereoSources);
 
-        string extensions = alcGetString(_device, AlcGetString.Extensions);
+        string extensions = alcGetString(_device, AlcGetString.Extensions)!;
 
         //int[] arguments = [ALC_FREQUENCY, options.SampleRate];
         _context = alcCreateContext(_device, (int*)null/* argument*/);
@@ -49,10 +43,10 @@ internal unsafe sealed class OpenALAudioDevice : AudioDevice
         string contextExtensions = alGetString(AlGetString.Extensions);
         alDistanceModel(AlDistanceModel.InverseDistanceClamped);
         CheckAlcError();
-        bool SupportsIma4 = alIsExtensionPresent("AL_EXT_IMA4");
-        bool SupportsAdpcm = alIsExtensionPresent("AL_SOFT_MSADPCM");
-        bool SupportsEfx = alIsExtensionPresent("AL_EXT_EFX");
-        bool SupportsIeee = alIsExtensionPresent("AL_EXT_float32");
+        bool SupportsIma4 = alIsExtensionPresent("AL_EXT_IMA4"u8);
+        bool SupportsAdpcm = alIsExtensionPresent("AL_SOFT_MSADPCM"u8);
+        bool SupportsEfx = alIsExtensionPresent("AL_EXT_EFX"u8);
+        bool SupportsIeee = alIsExtensionPresent("AL_EXT_float32"u8);
     }
 
     /// <summary>
@@ -82,7 +76,7 @@ internal unsafe sealed class OpenALAudioDevice : AudioDevice
         AlcError error = alcGetError(_device);
         if (error != AlcError.NoError)
         {
-            string formatErrMsg = string.Format("OpenALc Error: {0} - {1}", alcGetString(_device, error), alcGetCurrentContext().ToString());
+            string formatErrMsg = $"OpenAL Error: {alcGetString(_device, (int)error)} - {alcGetCurrentContext()}";
             throw new AudioException(formatErrMsg);
         }
     }

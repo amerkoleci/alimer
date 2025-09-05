@@ -51,11 +51,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Physics", "src\Alime
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.UI", "src\Alimer.UI\Alimer.UI.csproj", "{18D54D83-0AA5-4916-87CF-48B69E9F66EA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Audio", "src\Alimer.Audio\Alimer.Audio.csproj", "{F46E6E40-194E-4E8F-8695-154E53B329AB}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Navigation", "src\Alimer.Navigation\Alimer.Navigation.csproj", "{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Bindings.OpenAL", "src\Alimer.Bindings.OpenAL\Alimer.Bindings.OpenAL.csproj", "{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.EditorFramework", "src\editor\Alimer.EditorFramework\Alimer.EditorFramework.csproj", "{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}"
 EndProject
@@ -121,18 +117,10 @@ Global
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F46E6E40-194E-4E8F-8695-154E53B329AB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78E4C77E-9DA7-4314-B7A2-E8797036CFFF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8ACFDEAE-EEFA-4096-8329-E7D2C5836C5B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -1,22 +1,22 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static SDL3.SDL3;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Input;
 
 partial class ClipboardImplementation : IClipboard
 {
-    public bool HasText => SDL_HasClipboardText();
+    public bool HasText => alimerHasClipboardText();
 
     public Task<string?> GetTextAsync()
     {
-        return Task.FromResult(SDL_GetClipboardText());
+        return Task.FromResult(alimerClipboardGetText());
     }
 
     public Task SetTextAsync(string? text)
     {
-        SDL_SetClipboardText(text ?? string.Empty);
+        alimerClipboardSetText(text);
         return Task.CompletedTask;
     }
 }

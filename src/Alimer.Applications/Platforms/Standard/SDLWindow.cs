@@ -3,10 +3,9 @@
 
 using Alimer.Graphics;
 using System.Runtime.InteropServices;
-using static SDL3.SDL3;
-using static SDL3.SDL_EventType;
-using SDL3;
+using static Alimer.AlimerApi;
 using System.Drawing;
+using Alimer.Utilities;
 
 namespace Alimer;
 
@@ -16,44 +15,31 @@ internal unsafe class SDLWindow : Window
     private SizeF _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
-
-    public readonly SDL_Window SDLWindowHandle;
-    public readonly SDL_WindowID Id;
+    private readonly nint _window;
+    public readonly uint Id;
 
     public SDLWindow(SDLPlatform platform, WindowFlags flags)
     {
         _platform = platform;
-
-        SDL_WindowFlags sdlWindowFlags = SDL_WindowFlags.HighPixelDensity | SDL_WindowFlags.Hidden | SDL_WindowFlags.Vulkan;
-
-        if ((flags & WindowFlags.Borderless) != 0)
-            sdlWindowFlags |= SDL_WindowFlags.Borderless;
-
-        if ((flags & WindowFlags.Resizable) != 0)
-            sdlWindowFlags |= SDL_WindowFlags.Resizable;
-
-        if ((flags & WindowFlags.Fullscreen) != 0)
-        {
-            sdlWindowFlags |= SDL_WindowFlags.Fullscreen;
-            _isFullscreen = true;
-        }
-
-        if ((flags & WindowFlags.Maximized) != 0)
-        {
-            sdlWindowFlags |= SDL_WindowFlags.Maximized;
-        }
-
         _title = "Alimer";
-        SDLWindowHandle = SDL_CreateWindow(_title, 1200, 800, sdlWindowFlags);
-        if (SDLWindowHandle.IsNull)
+
+        WindowDesc desc = new()
         {
-            Log.Error($"SDL_CreateWindow Failed: {SDL_GetError()}");
-            return;
+            title = Utf8CustomMarshaller.ConvertToUnmanaged(_title),
+            width = 1200,
+            height = 800,
+            flags = flags
+        };
+
+        _window = alimerWindowCreate(in desc);
+        if (_window == 0)
+        {
+            throw new InvalidOperationException("Failed to create window");
         }
 
-        Id = SDL_GetWindowID(SDLWindowHandle);
-        SDL_SetWindowPosition(SDLWindowHandle, (int)SDL_WINDOWPOS_CENTERED, (int)SDL_WINDOWPOS_CENTERED);
-        SDL_GetWindowSizeInPixels(SDLWindowHandle, out int width, out int height);
+        Id = alimerWindowGetID(_window);
+        alimerWindowSetCentered(_window);
+        alimerWindowGetSizeInPixels(_window, out int width, out int height);
         _clientSize = new(width, height);
 
         // Native handle
@@ -61,8 +47,9 @@ internal unsafe class SDLWindow : Window
         {
             Kind = SwapChainSurfaceType.Win32;
             ContextHandle = GetModuleHandleW(null);
-            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WIN32_HWND_POINTER, IntPtr.Zero);
+            Handle = alimerWindowGetNativeHandle(_window);
         }
+#if TODO
         else if (OperatingSystem.IsAndroid())
         {
             Kind = SwapChainSurfaceType.Android;
@@ -100,7 +87,8 @@ internal unsafe class SDLWindow : Window
                 Handle = new IntPtr(SDL_GetNumberProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0));
             }
 
-        }
+        } 
+#endif
     }
 
     /// <inheritdoc />
@@ -115,7 +103,7 @@ internal unsafe class SDLWindow : Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                SDL_SetWindowFullscreen(SDLWindowHandle, value);
+                alimerWindowSetFullscreen(_window, value);
             }
         }
     }
@@ -125,12 +113,12 @@ internal unsafe class SDLWindow : Window
     {
         get
         {
-            _ = SDL_GetWindowPosition(SDLWindowHandle, out int x, out int y);
+            alimerWindowGetPosition(_window, out int x, out int y);
             return new(x, y);
         }
         set
         {
-            _ = SDL_SetWindowPosition(SDLWindowHandle, (int)value.X, (int)value.Y);
+            alimerWindowSetPosition(_window, (int)value.X, (int)value.Y);
         }
     }
 
@@ -148,49 +136,49 @@ internal unsafe class SDLWindow : Window
 
     public void Show()
     {
-        _ = SDL_ShowWindow(SDLWindowHandle);
+        alimerWindowShow(_window);
     }
 
     protected override void SetTitle(string title)
     {
-        _ = SDL_SetWindowTitle(SDLWindowHandle, title);
+        alimerWindowSetTitle(_window, title);
     }
 
-    public void HandleEvent(in SDL_WindowEvent evt)
+    public void HandleEvent(in WindowEvent evt)
     {
         switch (evt.type)
         {
-            case SDL_EVENT_WINDOW_MINIMIZED:
+            case WindowEventType.Minimized:
                 _minimized = true;
                 _clientSize = new(evt.data1, evt.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_MAXIMIZED:
-            case SDL_EVENT_WINDOW_RESTORED:
+            case WindowEventType.Maximized:
+            case WindowEventType.Restored:
                 _minimized = false;
                 _clientSize = new(evt.data1, evt.data2);
                 OnSizeChanged();
                 break;
 
-            case SDL_EVENT_WINDOW_RESIZED:
+            case WindowEventType.Resized:
                 _minimized = false;
                 HandleResize(evt);
                 break;
 
-            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            case WindowEventType.SizeChanged:
                 _minimized = false;
                 HandleResize(evt);
                 break;
 
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            case WindowEventType.CloseRequested:
                 Destroy();
                 _platform.WindowClosed(evt.windowID);
                 break;
         }
     }
 
-    private void HandleResize(in SDL_WindowEvent evt)
+    private void HandleResize(in WindowEvent evt)
     {
         if (_clientSize.Width != evt.data1 ||
             _clientSize.Height != evt.data2)

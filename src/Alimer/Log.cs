@@ -5,7 +5,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
+using Alimer.Utilities;
 
 namespace Alimer;
 
@@ -46,6 +48,8 @@ public static class Log
             s_colorEnabled = false;
         }
 
+        //alimerSetLogLevel(Verbosity);
+        //alimerSetLogCallback(&OnNativeLogCallback, IntPtr.Zero);
         Info($"Logging Enabled ({Level})");
     }
 
@@ -253,6 +257,14 @@ public static class Log
 
         File.WriteAllText(file, s_log.ToString());
     }
+
+    //[UnmanagedCallersOnly]
+    //private static unsafe void OnNativeLogCallback(LogCategory category, LogLevel level, byte* messagePtr, nint userData)
+    //{
+    //    string message = Utf8CustomMarshaller.ConvertToManaged(messagePtr)!;
+
+    //    LogInternal(level, message);
+    //}
 
     public enum LogLevel
     {

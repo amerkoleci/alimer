@@ -13,8 +13,16 @@
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
   <ItemGroup>
+    <Compile Remove="Audio/OpenAL/**/*" Condition="'$(ExcludeOpenAL)' == 'true'" />
+    <!--<Compile Remove="Audio/XAudio2/**/*" Condition="'$(ExcludeXAudio2)' == 'true'" />-->
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="CommunityToolkit.Diagnostics" />
+
+    <!-- Audio -->
+    <PackageReference Include="MonoGame.Library.OpenAL" Condition="'$(ExcludeOpenAL)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>

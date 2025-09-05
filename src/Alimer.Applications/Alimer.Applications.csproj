@@ -15,12 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer.Audio\Alimer.Audio.csproj" />
     <ProjectReference Include="..\Alimer.Graphics\Alimer.Graphics.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
-    <PackageReference Include="Alimer.Bindings.SDL" />
   </ItemGroup>
 
 </Project>

@@ -546,13 +546,13 @@ typedef struct WindowDesc {
 
 typedef struct WindowEvent {
     WindowEventType type;
-    uint32_t windowId;
+    uint32_t windowID;
     int32_t data1;
     int32_t data2;
 } WindowEvent;
 
 typedef struct KeyEvent {
-    uint32_t windowId;
+    uint32_t windowID;
     KeyboardKey key;
     bool alt;
     bool ctrl;
@@ -561,12 +561,12 @@ typedef struct KeyEvent {
 } KeyEvent;
 
 typedef struct TextInputEvent {
-    uint32_t windowId;
+    uint32_t windowID;
     const char* text;
 } TextInputEvent;
 
 typedef struct MouseMotionEvent {
-    uint32_t windowId;
+    uint32_t windowID;
     float x;
     float y;
     float xRelative;
@@ -574,14 +574,14 @@ typedef struct MouseMotionEvent {
 } MouseMotionEvent;
 
 typedef struct MouseButtonEvent {
-    uint32_t windowId;
+    uint32_t windowID;
     float x;
     float y;
     MouseButton button;
 } MouseButtonEvent;
 
 typedef struct MouseWheelEvent {
-    uint32_t windowId;
+    uint32_t windowID;
     float x;
     float y;
 } MouseWheelEvent;
