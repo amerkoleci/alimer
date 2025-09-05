@@ -226,6 +226,33 @@ namespace
         return (val + alignment - 1) & ~(alignment - 1);
     }
 
+
+    // Returns smallest power of 2 greater or equal to v.
+    static inline uint32_t NextPow2(uint32_t v)
+    {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+
+    static inline uint64_t NextPow2(uint64_t v)
+    {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v |= v >> 32;
+        v++;
+        return v;
+    }
+
     constexpr uint32_t CalculateSubresource(uint32_t mipLevel, uint32_t arrayLayer, uint32_t mipLevelCount) noexcept
     {
         return mipLevel + arrayLayer * mipLevelCount;

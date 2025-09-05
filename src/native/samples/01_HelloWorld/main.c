@@ -64,8 +64,7 @@ typedef struct PushData {
     uint32_t textureIndex;
 } PushData;
 
-void Render()
-{
+static void Render(void) {
     if (alimerWindowIsMinimized(window))
         return;
 
@@ -109,7 +108,7 @@ void Render()
     agpuQueueSubmit(graphicsQueue, 1u, &commandBuffer);
 }
 
-int main()
+int main(void)
 {
     if (!alimerPlatformInit())
     {

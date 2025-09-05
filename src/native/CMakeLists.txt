@@ -269,6 +269,7 @@ else()
         #    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
         #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
         #endif()
+    elseif(ANDROID)
     endif()
 
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${EXTRA_SANITIZE_OPTIONS}")

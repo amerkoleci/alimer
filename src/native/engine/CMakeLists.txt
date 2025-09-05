@@ -51,10 +51,16 @@ if (MSVC)
     target_compile_options(${TARGET_NAME} PRIVATE /WX)
 else()
 	target_compile_options(${TARGET_NAME} PRIVATE -Wall)
+
+    # Use fast floating point model
+    #target_compile_options(${TARGET_NAME} PRIVATE -ffast-math -fno-finite-math-only -ffp-contract=fast)
 endif()
 
 if(WIN32)
     target_compile_definitions(${TARGET_NAME} PRIVATE _UNICODE UNICODE _CRT_SECURE_NO_WARNINGS)
+elseif(ANDROID)
+    # Android specific 16 KB page sizes
+    target_link_options(${TARGET_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
 endif ()
 
 target_link_libraries(${TARGET_NAME} PRIVATE
@@ -84,6 +90,19 @@ elseif (ALIMER_USE_SDL)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
+endif()
+
+if(EMSCRIPTEN)
+elseif (WIN32)
+    target_sources(${TARGET_NAME} PRIVATE
+        src/alimer_vma_exports.cpp
+        src/alimer_d3d12ma_exports.cpp
+    )
+elseif(APPLE)
+elseif(UNIX OR ANDROID)
+    target_sources(${TARGET_NAME} PRIVATE
+        src/alimer_vma_exports.cpp
+    )
 endif()
 
 if (ALIMER_GPU)

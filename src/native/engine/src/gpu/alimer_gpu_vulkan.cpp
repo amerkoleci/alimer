@@ -27,10 +27,6 @@ struct wl_surface;
 #endif
 
 ALIMER_DISABLE_WARNINGS()
-#define VMA_IMPLEMENTATION
-#define VMA_STATS_STRING_ENABLED 0
-#define VMA_STATIC_VULKAN_FUNCTIONS 0
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include "vk_mem_alloc.h"
 #include "spirv_reflect.h"
 ALIMER_ENABLE_WARNINGS()
@@ -40,8 +36,10 @@ ALIMER_ENABLE_WARNINGS()
 #endif
 
 #include <inttypes.h>
+#include <algorithm>
 #include <vector>
 #include <deque>
+#include <mutex>
 
 #if defined(_DEBUG)
 /// Helper macro to test the result of Vulkan calls which can return an error.
@@ -2961,8 +2959,8 @@ VulkanUploadContext VulkanCopyAllocator::Allocate(uint64_t size)
         VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[1]));
         VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[2]));
 
-        context.uploadBufferSize = VmaNextPow2(size);
-        context.uploadBufferSize = VMA_MAX(context.uploadBufferSize, uint64_t(65536));
+        context.uploadBufferSize = NextPow2(size);
+        context.uploadBufferSize = std::max<uint64_t>(context.uploadBufferSize, uint64_t(65536));
 
         GPUBufferDesc uploadBufferDesc;
         uploadBufferDesc.label = "CopyAllocator::UploadBuffer";
@@ -3295,7 +3293,7 @@ GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIni
 
     if (desc.usage & GPUBufferUsage_Constant)
     {
-        createInfo.size = VmaAlignUp(createInfo.size, adapter->properties2.properties.limits.minUniformBufferOffsetAlignment);
+        createInfo.size = AlignUp(createInfo.size, adapter->properties2.properties.limits.minUniformBufferOffsetAlignment);
         createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
 
