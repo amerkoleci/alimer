@@ -4,6 +4,8 @@
     <TargetFrameworks>net9.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <ExcludeWebGPU>true</ExcludeWebGPU>
+    <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,17 +14,56 @@
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
 
+  <PropertyGroup Condition=" $(TargetFramework.Contains('-android')) ">
+    <ExcludeD3D12>true</ExcludeD3D12>
+    <ExcludeWebGPU>true</ExcludeWebGPU>
+    <ExcludeMetal>true</ExcludeMetal>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
+    <ExcludeVulkan>true</ExcludeVulkan>
+    <ExcludeWebGPU>true</ExcludeWebGPU>
+    <ExcludeMetal>true</ExcludeMetal>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Audio -->
+    <DefineConstants Condition="'$(ExcludeOpenAL)' == 'true'">$(DefineConstants);EXCLUDE_OPENAL_BACKEND</DefineConstants>
+
+    <!-- Graphics -->
+    <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeWebGPU)' == 'true'">$(DefineConstants);EXCLUDE_WEBGPU_BACKEND</DefineConstants>
+    <DefineConstants Condition="'$(ExcludeMetal)' == 'true'">$(DefineConstants);EXCLUDE_METAL_BACKEND</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
+    <!-- Audio -->
     <Compile Remove="Audio/OpenAL/**/*" Condition="'$(ExcludeOpenAL)' == 'true'" />
     <!--<Compile Remove="Audio/XAudio2/**/*" Condition="'$(ExcludeXAudio2)' == 'true'" />-->
+
+    <!-- Graphics -->
+    <Compile Remove="Graphics/D3D/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="Graphics/D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
+    <Compile Remove="Graphics/Vulkan/**/*" Condition="'$(ExcludeVulkan)' == 'true'" />
+    <Compile Remove="Graphics/WebGPU/**/*" Condition="'$(ExcludeWebGPU)' == 'true'" />
+    <Compile Remove="Graphics/Metal/**/*" Condition="'$(ExcludeMetal)' == 'true'" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="CommunityToolkit.Diagnostics" />
-
+    <PackageReference Include="XenoAtom.Collections" />
+    
     <!-- Audio -->
     <PackageReference Include="MonoGame.Library.OpenAL" Condition="'$(ExcludeOpenAL)' != 'true'" />
+
+    <!-- Graphics -->
+    <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Vortice.VulkanMemoryAllocator" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" PrivateAssets="compile" />
   </ItemGroup>
 
   <ItemGroup>

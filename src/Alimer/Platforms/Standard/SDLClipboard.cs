@@ -5,16 +5,19 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Input;
 
-partial class ClipboardImplementation : IClipboard
+partial class Clipboard
 {
-    public bool HasText => alimerHasClipboardText();
+    public static bool PlatformHasText()
+    {
+        return alimerHasClipboardText();
+    }
 
-    public Task<string?> GetTextAsync()
+    public static Task<string?> PlatformGetTextAsync()
     {
         return Task.FromResult(alimerClipboardGetText());
     }
 
-    public Task SetTextAsync(string? text)
+    public static Task PlatformSetTextAsync(string? text)
     {
         alimerClipboardSetText(text);
         return Task.CompletedTask;

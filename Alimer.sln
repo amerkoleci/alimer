@@ -33,10 +33,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Tests", "tests\Alime
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Samples", "samples\Alimer.Samples\Alimer.Samples.csproj", "{351AA2B8-1343-49BF-9E34-DECB218C8505}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics", "src\Alimer.Graphics\Alimer.Graphics.csproj", "{B0BBF1BC-DED3-42A6-964A-72636D850222}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Applications", "src\Alimer.Applications\Alimer.Applications.csproj", "{7AD7628A-C7EB-4F84-9883-4140857F6C70}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Rendering", "src\Alimer.Rendering\Alimer.Rendering.csproj", "{D6768171-F29C-4E7A-A99D-E19C71EE0D83}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Engine", "src\Alimer.Engine\Alimer.Engine.csproj", "{17287A65-E7C9-4615-82F1-0B67B5D69AE8}"
@@ -81,14 +77,6 @@ Global
 		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B0BBF1BC-DED3-42A6-964A-72636D850222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B0BBF1BC-DED3-42A6-964A-72636D850222}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B0BBF1BC-DED3-42A6-964A-72636D850222}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B0BBF1BC-DED3-42A6-964A-72636D850222}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7AD7628A-C7EB-4F84-9883-4140857F6C70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7AD7628A-C7EB-4F84-9883-4140857F6C70}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7AD7628A-C7EB-4F84-9883-4140857F6C70}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7AD7628A-C7EB-4F84-9883-4140857F6C70}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D6768171-F29C-4E7A-A99D-E19C71EE0D83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D6768171-F29C-4E7A-A99D-E19C71EE0D83}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6768171-F29C-4E7A-A99D-E19C71EE0D83}.Release|Any CPU.ActiveCfg = Release|Any CPU

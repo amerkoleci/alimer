@@ -12,8 +12,10 @@ internal unsafe class VulkanSwapChain : SwapChain
     private readonly VulkanGraphicsDevice _device;
     private readonly VkSurfaceKHR _surface;
     private VkSwapchainKHR _handle;
-    private VkSemaphore _acquireSemaphore = VkSemaphore.Null;
-    private VkSemaphore _releaseSemaphore = VkSemaphore.Null;
+    private uint _acquireSemaphoreIndex;
+    private uint _imageIndex;
+    private VkSemaphore[]? _acquireSemaphores;
+    private VkSemaphore[]? _releaseSemaphores;
     private VulkanTexture[]? _backbufferTextures;
     public readonly object LockObject = new();
 
@@ -32,68 +34,68 @@ internal unsafe class VulkanSwapChain : SwapChain
             switch (surfaceSource.Kind)
             {
                 case SwapChainSurfaceType.Win32:
+                {
+                    VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = new()
-                        {
-                            hinstance = surfaceSource.ContextHandle,
-                            hwnd = surfaceSource.Handle
-                        };
-                        vkCreateWin32SurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                        break;
-                    }
+                        hinstance = surfaceSource.ContextHandle,
+                        hwnd = surfaceSource.Handle
+                    };
+                    vkCreateWin32SurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    break;
+                }
 
                 case SwapChainSurfaceType.Android:
+                {
+                    VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = new()
-                        {
-                            window = surfaceSource.Handle,
-                        };
-                        vkCreateAndroidSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                        break;
-                    }
+                        window = surfaceSource.Handle,
+                    };
+                    vkCreateAndroidSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    break;
+                }
 
                 case SwapChainSurfaceType.Wayland:
+                {
+                    VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = new()
-                        {
-                            display = surfaceSource.ContextHandle,
-                            surface = surfaceSource.Handle,
-                        };
-                        vkCreateWaylandSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                        break;
-                    }
+                        display = surfaceSource.ContextHandle,
+                        surface = surfaceSource.Handle,
+                    };
+                    vkCreateWaylandSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    break;
+                }
 
                 case SwapChainSurfaceType.Xcb:
+                {
+                    VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = new()
-                        {
-                            connection = surfaceSource.ContextHandle,
-                            window = (uint)(nuint)surfaceSource.Handle,
-                        };
-                        vkCreateXcbSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                        break;
-                    }
+                        connection = surfaceSource.ContextHandle,
+                        window = (uint)(nuint)surfaceSource.Handle,
+                    };
+                    vkCreateXcbSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    break;
+                }
 
                 case SwapChainSurfaceType.Xlib:
+                {
+                    VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = new()
-                        {
-                            dpy = surfaceSource.ContextHandle,
-                            window = (nuint)surfaceSource.Handle,
-                        };
-                        vkCreateXlibSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                        break;
-                    }
+                        dpy = surfaceSource.ContextHandle,
+                        window = (nuint)surfaceSource.Handle,
+                    };
+                    vkCreateXlibSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    break;
+                }
 
                 case SwapChainSurfaceType.MetalLayer:
+                {
+                    VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = new()
                     {
-                        VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = new()
-                        {
-                            pLayer = surfaceSource.Handle,
-                        };
-                        vkCreateMetalSurfaceEXT(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                        break;
-                    }
+                        pLayer = surfaceSource.Handle,
+                    };
+                    vkCreateMetalSurfaceEXT(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    break;
+                }
 
                 default:
                     throw new GraphicsException($"Vulkan: Invalid kind for surface: {surfaceSource.Kind}");
@@ -120,11 +122,12 @@ internal unsafe class VulkanSwapChain : SwapChain
     public override GraphicsDevice Device => _device;
     public VkFormat VkFormat { get; }
     public VkSwapchainKHR Handle => _handle;
-    public VkSemaphore AcquireSemaphore => _acquireSemaphore;
-    public VkSemaphore ReleaseSemaphore => _releaseSemaphore;
-    public uint AcquiredImageIndex { get; set; }
-    public bool NeedAcquire { get; set; }   
-    public VulkanTexture CurrentTexture => _backbufferTextures![AcquiredImageIndex];
+    public uint AcquireSemaphoreIndex => _acquireSemaphoreIndex;
+    public VkSemaphore AcquireSemaphore => _acquireSemaphores[_acquireSemaphoreIndex]!;
+    public VkSemaphore ReleaseSemaphore => _releaseSemaphores[_imageIndex];
+    public uint ImageIndex => _imageIndex;
+    public bool NeedAcquire { get; set; }
+    public VulkanTexture CurrentTexture => _backbufferTextures![_imageIndex];
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanSwapChain" /> class.
@@ -139,9 +142,11 @@ internal unsafe class VulkanSwapChain : SwapChain
         ReadOnlySpan<VkSurfaceFormatKHR> swapchainFormats = vkGetPhysicalDeviceSurfaceFormatsKHR(_device.PhysicalDevice, _surface);
         ReadOnlySpan<VkPresentModeKHR> swapchainPresentModes = vkGetPhysicalDeviceSurfacePresentModesKHR(_device.PhysicalDevice, _surface);
 
-        VkSurfaceFormatKHR surfaceFormat = new();
-        surfaceFormat.format = ((VulkanGraphicsDevice)Device).ToVkFormat(ColorFormat);
-        surfaceFormat.colorSpace = VkColorSpaceKHR.SrgbNonLinear;
+        VkSurfaceFormatKHR surfaceFormat = new()
+        {
+            format = ((VulkanGraphicsDevice)Device).ToVkFormat(ColorFormat),
+            colorSpace = VkColorSpaceKHR.SrgbNonLinear
+        };
         bool valid = false;
 
         bool allowHDR = true;
@@ -212,7 +217,8 @@ internal unsafe class VulkanSwapChain : SwapChain
                 }
 
                 return false;
-            };
+            }
+            ;
 
         }
 
@@ -265,6 +271,8 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         NeedAcquire = true;
         ReadOnlySpan<VkImage> swapChainImages = vkGetSwapchainImagesKHR(_device.Handle, _handle);
+        _acquireSemaphores = new VkSemaphore[swapChainImages.Length];
+        _releaseSemaphores = new VkSemaphore[swapChainImages.Length];
         _backbufferTextures = new VulkanTexture[swapChainImages.Length];
 
         for (int i = 0; i < swapChainImages.Length; i++)
@@ -279,16 +287,8 @@ internal unsafe class VulkanSwapChain : SwapChain
             );
 
             _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in descriptor);
-        }
-
-        if (_acquireSemaphore.IsNull)
-        {
-            vkCreateSemaphore(_device.Handle, out _acquireSemaphore).CheckResult();
-        }
-
-        if (_releaseSemaphore.IsNull)
-        {
-            vkCreateSemaphore(_device.Handle, out _releaseSemaphore).CheckResult();
+            vkCreateSemaphore(_device.Handle, out _acquireSemaphores[i]).CheckResult();
+            vkCreateSemaphore(_device.Handle, out _releaseSemaphores[i]).CheckResult();
         }
     }
 
@@ -308,14 +308,10 @@ internal unsafe class VulkanSwapChain : SwapChain
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        if (_acquireSemaphore.IsNotNull)
+        for (uint i = 0; i < _backbufferTextures!.Length; ++i)
         {
-            vkDestroySemaphore(_device.Handle, _acquireSemaphore);
-        }
-
-        if (_releaseSemaphore.IsNotNull)
-        {
-            vkDestroySemaphore(_device.Handle, _releaseSemaphore);
+            vkDestroySemaphore(_device.Handle, _acquireSemaphores[i]);
+            vkDestroySemaphore(_device.Handle, _releaseSemaphores[i]);
         }
 
         vkDestroySwapchainKHR(_device.Handle, _handle, null);
@@ -339,19 +335,20 @@ internal unsafe class VulkanSwapChain : SwapChain
     public override Texture? GetCurrentTexture()
     {
         if (!NeedAcquire)
-            return _backbufferTextures![AcquiredImageIndex];
+        {
+            return _backbufferTextures![ImageIndex];
+        }
 
         VkResult result = VkResult.Success;
-        uint imageIndex = 0;
         lock (LockObject)
         {
             result = vkAcquireNextImageKHR(
                 _device.Handle,
                 Handle,
                 ulong.MaxValue,
-                _acquireSemaphore,
+                _acquireSemaphores![_acquireSemaphoreIndex],
                 VkFence.Null,
-                out imageIndex);
+                out _imageIndex);
         }
 
         if (result != VkResult.Success)
@@ -365,8 +362,12 @@ internal unsafe class VulkanSwapChain : SwapChain
             }
         }
 
-        AcquiredImageIndex = imageIndex;
         NeedAcquire = false;
         return CurrentTexture;
+    }
+
+    public void AdvanceFrame()
+    {
+        _acquireSemaphoreIndex = (_acquireSemaphoreIndex + 1) % (uint)_acquireSemaphores!.Length;
     }
 }

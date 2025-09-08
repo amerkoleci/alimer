@@ -135,6 +135,9 @@ internal unsafe class VulkanCommandQueue : IDisposable
                         semaphore = _presentSwapChains[i].ReleaseSemaphore,
                         value = 0, // not a timeline semaphore
                     };
+
+                    // Advance surface frame index
+                    _presentSwapChains[i].AdvanceFrame();
                 }
 
                 uint commandBufferInfoCount = (uint)_submitCommandBuffers.Count;
@@ -174,7 +177,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
                 {
                     pWaitSemaphores[i] = _submitSignalSemaphores[i];
                     pSwapchains[i] = _presentSwapChains[i].Handle;
-                    pImageIndices[i] = _presentSwapChains[i].AcquiredImageIndex;
+                    pImageIndices[i] = _presentSwapChains[i].ImageIndex;
                 }
 
                 VkPresentInfoKHR presentInfo = new()

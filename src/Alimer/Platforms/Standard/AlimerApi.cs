@@ -8,10 +8,8 @@ using Alimer.Input;
 
 namespace Alimer;
 
-internal unsafe static partial class AlimerApi
+partial class AlimerApi
 {
-    private const string LibraryName = "alimer_native";
-
     #region Enums
     public enum EventType
     {
@@ -70,12 +68,12 @@ internal unsafe static partial class AlimerApi
     {
         public uint width;
         public uint height;
-        public byte* data;
+        public unsafe byte* data;
     }
 
     public struct WindowDesc
     {
-        public byte* title;
+        public unsafe byte* title;
         public uint width;
         public uint height;
         public WindowFlags flags;
@@ -103,7 +101,7 @@ internal unsafe static partial class AlimerApi
     public struct TextInputEvent
     {
         public uint windowID;
-        public byte* text;
+        public unsafe byte* text;
     }
 
     public struct MouseMotionEvent

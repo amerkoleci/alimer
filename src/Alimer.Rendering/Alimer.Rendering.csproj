@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer.Graphics\Alimer.Graphics.csproj" />
+    <ProjectReference Include="..\Alimer\Alimer.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,21 +6,24 @@ using WindowsClipboard = Windows.ApplicationModel.DataTransfer.Clipboard;
 
 namespace Alimer.Input;
 
-partial class ClipboardImplementation : IClipboard
+partial class Clipboard
 {
-    public bool HasText => WindowsClipboard.GetContent().Contains(StandardDataFormats.Text);
-
-    public Task<string?> GetTextAsync()
+    public static bool PlatformHasText()
     {
-        var clipboardContent = WindowsClipboard.GetContent();
+        return WindowsClipboard.GetContent().Contains(StandardDataFormats.Text);
+    }
+
+    public static Task<string?> PlatformGetTextAsync()
+    {
+        DataPackageView clipboardContent = WindowsClipboard.GetContent();
         return clipboardContent.Contains(StandardDataFormats.Text)
             ? clipboardContent.GetTextAsync().AsTask()
             : Task.FromResult<string?>(null);
     }
 
-    public Task SetTextAsync(string? text)
+    public static Task PlatformSetTextAsync(string? text)
     {
-        var dataPackage = new DataPackage();
+        DataPackage dataPackage = new();
         dataPackage.SetText(text);
         WindowsClipboard.SetContent(dataPackage);
         return Task.CompletedTask;
