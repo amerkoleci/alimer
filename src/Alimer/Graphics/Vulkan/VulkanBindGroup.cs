@@ -19,10 +19,10 @@ internal unsafe class VulkanBindGroup : BindGroup
         _device = device;
         _layout = (VulkanBindGroupLayout)layout;
 
-        ReadOnlySpan<VkDescriptorPoolSize> poolSizes = _layout.PoolSizes;
+        Span<VkDescriptorPoolSize> poolSizes = _layout.PoolSizes;
         uint maxSets = 1u;
 
-        VkResult result = vkCreateDescriptorPool(device.Handle, poolSizes, maxSets, out _descriptorPool);
+        VkResult result = _device.DeviceApi.vkCreateDescriptorPool(device.Handle, poolSizes, maxSets, out _descriptorPool);
         if (result != VkResult.Success)
         {
             Log.Error($"Vulkan: Failed to create {nameof(BindGroup)}.");
@@ -39,7 +39,7 @@ internal unsafe class VulkanBindGroup : BindGroup
         };
 
         VkDescriptorSet descriptorSet;
-        result = vkAllocateDescriptorSets(device.Handle, &allocInfo, &descriptorSet);
+        result = _device.DeviceApi.vkAllocateDescriptorSets(device.Handle, &allocInfo, &descriptorSet);
         if (result != VkResult.Success)
         {
             Log.Error($"Vulkan: Failed to allocate DescriptorSet.");
@@ -184,7 +184,7 @@ internal unsafe class VulkanBindGroup : BindGroup
             }
         }
 
-        vkUpdateDescriptorSets(
+        _device.DeviceApi.vkUpdateDescriptorSets(
             device.Handle,
             (uint)descriptorWriteCount,
             descriptorWrites,
@@ -215,6 +215,6 @@ internal unsafe class VulkanBindGroup : BindGroup
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        vkDestroyDescriptorPool(_device.Handle, _descriptorPool);
+        _device.DeviceApi.vkDestroyDescriptorPool(_device.Handle, _descriptorPool);
     }
 }

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.Vulkan;
-using static Vortice.Vulkan.Vma;
+using static Alimer.Graphics.Vulkan.Vma;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -179,7 +179,7 @@ internal unsafe class VulkanTexture : Texture
             usage = VmaMemoryUsage.Auto,
         };
         VmaAllocationInfo allocationInfo;
-        VkResult result = vmaCreateImage(_device.Allocator, in imageInfo, in memoryInfo, out _handle, out _allocation, &allocationInfo);
+        VkResult result = vmaCreateImage(_device.Allocator, &imageInfo, &memoryInfo, out _handle, out _allocation, &allocationInfo);
         if (result != VkResult.Success)
         {
             Log.Error("Vulkan: Failed to create image.");
@@ -302,14 +302,14 @@ internal unsafe class VulkanTexture : Texture
                         pImageMemoryBarriers = &barrier
                     };
 
-                    vkCmdPipelineBarrier2(context.TransferCommandBuffer, &dependencyInfo);
+                    _device.DeviceApi.vkCmdPipelineBarrier2(context.TransferCommandBuffer, &dependencyInfo);
 
-                    vkCmdCopyBufferToImage(
+                    _device.DeviceApi.vkCmdCopyBufferToImage(
                         context.TransferCommandBuffer,
                         context.UploadBuffer!.Handle,
                         Handle,
                         VkImageLayout.TransferDstOptimal,
-                        copyRegions
+                        copyRegions.ToArray()
                     );
 
                     ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
@@ -320,7 +320,7 @@ internal unsafe class VulkanTexture : Texture
                     barrier.dstAccessMask = mappingAfter.AccessMask;
                     barrier.oldLayout = VkImageLayout.TransferDstOptimal;
                     barrier.newLayout = mappingAfter.ImageLayout;
-                    vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+                    _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
                 }
                 else
                 {
@@ -336,7 +336,7 @@ internal unsafe class VulkanTexture : Texture
                         subresourceRange = subresourceRange
                     };
 
-                    vkCmdPipelineBarrier(context.TransferCommandBuffer,
+                    _device.DeviceApi.vkCmdPipelineBarrier(context.TransferCommandBuffer,
                         VkPipelineStageFlags.AllCommands,
                         VkPipelineStageFlags.Transfer,
                         0,
@@ -345,12 +345,12 @@ internal unsafe class VulkanTexture : Texture
                         1, &barrier
                     );
 
-                    vkCmdCopyBufferToImage(
+                    _device.DeviceApi.vkCmdCopyBufferToImage(
                         context.TransferCommandBuffer,
                         context.UploadBuffer!.Handle,
                         Handle,
                         VkImageLayout.TransferDstOptimal,
-                        copyRegions
+                        copyRegions.ToArray()
                     );
 
                     ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(descriptor.InitialLayout);
@@ -361,7 +361,7 @@ internal unsafe class VulkanTexture : Texture
                     barrier.oldLayout = VkImageLayout.TransferDstOptimal;
                     barrier.newLayout = mappingAfter.ImageLayout;
 
-                    vkCmdPipelineBarrier(context.TransitionCommandBuffer,
+                    _device.DeviceApi.vkCmdPipelineBarrier(context.TransitionCommandBuffer,
                         VkPipelineStageFlags.Transfer,
                         VkPipelineStageFlags.AllCommands,
                         0,
@@ -402,7 +402,7 @@ internal unsafe class VulkanTexture : Texture
                     pImageMemoryBarriers = &barrier
                 };
 
-                vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+                _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
             }
             else
             {
@@ -421,7 +421,7 @@ internal unsafe class VulkanTexture : Texture
                     subresourceRange = subresourceRange
                 };
 
-                vkCmdPipelineBarrier(context.TransitionCommandBuffer,
+                _device.DeviceApi.vkCmdPipelineBarrier(context.TransitionCommandBuffer,
                     VkPipelineStageFlags.Transfer,
                     mappingAfter.StageFlags,
                     0,
@@ -465,7 +465,7 @@ internal unsafe class VulkanTexture : Texture
     {
         foreach (VkImageView view in _views.Values)
         {
-            vkDestroyImageView(_device.Handle, view);
+            _device.DeviceApi.vkDestroyImageView(_device.Handle, view);
         }
         _views.Clear();
 
@@ -502,7 +502,7 @@ internal unsafe class VulkanTexture : Texture
                 subresourceRange = new VkImageSubresourceRange(aspectFlags, (uint)baseMipLevel, mipLevelCount, (uint)baseArrayLayer, arrayLayerCount)
             };
 
-            VkResult result = vkCreateImageView(_device.Handle, &createInfo, null, &view);
+            VkResult result = _device.DeviceApi.vkCreateImageView(_device.Handle, &createInfo, null, &view);
             if (result != VkResult.Success)
             {
                 Log.Error($"Vulkan: Failed to create ImageView, error: {result}");

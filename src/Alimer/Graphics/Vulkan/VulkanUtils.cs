@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Alimer.Utilities;
 using Vortice.Vulkan;
 using XenoAtom.Collections;
 using static Vortice.Vulkan.Vulkan;
@@ -20,7 +21,7 @@ internal static unsafe class VulkanUtils
 
     #region Layers Methods
     public static void GetOptimalValidationLayers(
-        ref UnsafeList<VkUtf8String> instanceLayers,
+        ref UnsafeList<Utf8String> instanceLayers,
         Span<VkLayerProperties> availableLayers)
     {
         // The preferred validation layer is "VK_LAYER_KHRONOS_validation"

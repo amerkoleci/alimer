@@ -4,8 +4,7 @@
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using System.Runtime.CompilerServices;
-using static Vortice.Vulkan.Vma;
-using Alimer.Numerics;
+using static Alimer.Graphics.Vulkan.Vma;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -109,7 +108,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             usage = VmaMemoryUsage.Auto,
         };
         VmaAllocationInfo allocationInfo;
-        VkResult result = vmaCreateBuffer(device.Allocator, in createInfo, in memoryInfo, out _handle, out _allocation, &allocationInfo);
+        VkResult result = vmaCreateBuffer(device.Allocator, &createInfo, &memoryInfo, out _handle, out _allocation, &allocationInfo);
 
         if (result != VkResult.Success)
         {
@@ -134,7 +133,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             {
                 buffer = _handle
             };
-            _gpuAddress = vkGetBufferDeviceAddress(device.Handle, &info);
+            _gpuAddress = _device.DeviceApi.vkGetBufferDeviceAddress(device.Handle, &info);
         }
 
         // Issue data copy on request
@@ -164,7 +163,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                     dstOffset = 0
                 };
 
-                vkCmdCopyBuffer(
+                _device.DeviceApi.vkCmdCopyBuffer(
                     context.TransferCommandBuffer,
                     context.UploadBuffer!.Handle,
                     _handle,
@@ -231,7 +230,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                         pBufferMemoryBarriers = &barrier
                     };
 
-                    vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
+                    _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
                 }
                 else
                 {
@@ -246,7 +245,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                         size = VK_WHOLE_SIZE
                     };
 
-                    vkCmdPipelineBarrier(context.TransitionCommandBuffer,
+                    _device.DeviceApi.vkCmdPipelineBarrier(context.TransitionCommandBuffer,
                         VkPipelineStageFlags.Transfer,
                         VkPipelineStageFlags.AllCommands,
                         0,
@@ -299,7 +298,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         }
         else
         {
-            vkDestroyBuffer(_device.Handle, _handle, null);
+            _device.DeviceApi.vkDestroyBuffer(_device.Handle, _handle, null);
         }
 
         _handle = VkBuffer.Null;

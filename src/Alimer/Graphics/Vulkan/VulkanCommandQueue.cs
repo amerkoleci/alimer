@@ -31,7 +31,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
         uint queueFamilyIndex = device.GetQueueFamily(queueType);
         uint queueIndex = device.GetQueueIndex(queueType);
-        vkGetDeviceQueue(device.Handle, queueFamilyIndex, queueIndex, out Handle);
+        Device.DeviceApi.vkGetDeviceQueue(device.Handle, queueFamilyIndex, queueIndex, out Handle);
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo = new()
         {
@@ -46,12 +46,12 @@ internal unsafe class VulkanCommandQueue : IDisposable
             flags = 0
         };
 
-        vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
+        Device.DeviceApi.vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
 
         _frameFences = new VkFence[MaxFramesInFlight];
         for (int frameIndex = 0; frameIndex < MaxFramesInFlight; ++frameIndex)
         {
-            vkCreateFence(device.Handle, out _frameFences[frameIndex]);
+            Device.DeviceApi.vkCreateFence(device.Handle, out _frameFences[frameIndex]);
         }
     }
 
@@ -60,11 +60,11 @@ internal unsafe class VulkanCommandQueue : IDisposable
     public void Dispose()
     {
         WaitIdle();
-        vkDestroySemaphore(Device.Handle, _semaphore);
+        Device.DeviceApi.vkDestroySemaphore(Device.Handle, _semaphore);
 
         for (int frameIndex = 0; frameIndex < _frameFences.Length; ++frameIndex)
         {
-            vkDestroyFence(Device.Handle, _frameFences[frameIndex]);
+            Device.DeviceApi.vkDestroyFence(Device.Handle, _frameFences[frameIndex]);
         }
 
         foreach (VulkanCommandBuffer commandBuffer in _commandBuffers)
@@ -83,12 +83,12 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
     public void WaitIdle()
     {
-        vkQueueWaitIdle(Handle);
+        Device.DeviceApi.vkQueueWaitIdle(Handle);
     }
 
     public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
     {
-        vkEndCommandBuffer(commandBuffer).CheckResult();
+        Device.DeviceApi.vkEndCommandBuffer(commandBuffer).CheckResult();
 
         _submitCommandBuffers.Add(commandBuffer);
     }
@@ -160,7 +160,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
                     pSignalSemaphoreInfos = signalSemaphoreInfos
                 };
 
-                vkQueueSubmit2(Handle, 1, &submitInfo, fence).CheckResult();
+                Device.DeviceApi.vkQueueSubmit2(Handle, 1, &submitInfo, fence).CheckResult();
             }
             else
             {
@@ -189,7 +189,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
                     pImageIndices = pImageIndices
                 };
 
-                VkResult result = vkQueuePresentKHR(Handle, &presentInfo);
+                VkResult result = Device.DeviceApi.vkQueuePresentKHR(Handle, &presentInfo);
                 if (result != VkResult.Success)
                 {
                     // Handle outdated error in present

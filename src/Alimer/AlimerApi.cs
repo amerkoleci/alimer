@@ -10,7 +10,7 @@ namespace Alimer;
 
 internal unsafe static partial class AlimerApi
 {
-    private const string LibraryName = "alimer_native";
+    public const string LibraryName = "alimer_native";
 
 #if ALIMER_OWN_LIBRARY_LOADING
     static AlimerApi()

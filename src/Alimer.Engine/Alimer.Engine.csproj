@@ -6,11 +6,14 @@
 
   <ItemGroup>
     <Using Remove="System.Linq" />
-    <ProjectReference Include="..\Alimer.Rendering\Alimer.Rendering.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer\Alimer.csproj" />
   </ItemGroup>
 
 </Project>

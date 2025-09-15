@@ -50,7 +50,7 @@ internal unsafe class VulkanPipeline : Pipeline
                 pName = pName,
             };
 
-            result = vkCreateShaderModule(device.Handle, shaderDesc.ByteCode, null, out shaderStages[i].module);
+            result = _device.DeviceApi.vkCreateShaderModule(device.Handle, shaderDesc.ByteCode, null, out shaderStages[i].module);
             if (result != VkResult.Success)
             {
                 Log.Error("Failed to create a pipeline shader module");
@@ -317,11 +317,11 @@ internal unsafe class VulkanPipeline : Pipeline
         }
 
         VkPipeline pipeline;
-        result = vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        result = _device.DeviceApi.vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
 
         for (int i = 0; i < shaderStageCount; i++)
         {
-            vkDestroyShaderModule(device.Handle, shaderStages[i].module, null);
+            _device.DeviceApi.vkDestroyShaderModule(device.Handle, shaderStages[i].module, null);
         }
 
         if (result != VkResult.Success)
@@ -353,7 +353,7 @@ internal unsafe class VulkanPipeline : Pipeline
             pName = entryPoint
         };
 
-        VkResult result = vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out stage.module);
+        VkResult result = _device.DeviceApi.vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out stage.module);
         if (result != VkResult.Success)
         {
             Log.Error("Failed to create a pipeline shader module");
@@ -369,10 +369,10 @@ internal unsafe class VulkanPipeline : Pipeline
         };
 
         VkPipeline pipeline;
-        result = vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        result = _device.DeviceApi.vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
 
         // Delete shader module.
-        vkDestroyShaderModule(device.Handle, stage.module);
+        _device.DeviceApi.vkDestroyShaderModule(device.Handle, stage.module);
 
         if (result != VkResult.Success)
         {
@@ -411,6 +411,6 @@ internal unsafe class VulkanPipeline : Pipeline
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        vkDestroyPipeline(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyPipeline(_device.Handle, _handle);
     }
 }

@@ -51,7 +51,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             pPushConstantRanges = _pushConstantRanges
         };
 
-        VkResult result = vkCreatePipelineLayout(device.Handle, &createInfo, null, out _handle);
+        VkResult result = _device.DeviceApi.vkCreatePipelineLayout(device.Handle, &createInfo, null, out _handle);
         if (result != VkResult.Success)
         {
             Log.Error($"Vulkan: Failed to create {nameof(PipelineLayout)}.");
@@ -86,6 +86,6 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     protected internal override void Destroy()
     {
         Free(_pushConstantRanges);
-        vkDestroyPipelineLayout(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyPipelineLayout(_device.Handle, _handle);
     }
 }
