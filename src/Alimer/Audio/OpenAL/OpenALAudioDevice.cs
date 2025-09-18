@@ -37,10 +37,10 @@ internal unsafe sealed class OpenALAudioDevice : AudioDevice
         CheckAlcError();
         alcMakeContextCurrent(_context);
         CheckAlcError();
-        string vendor = alGetString(AlGetString.Vendor);
-        string version = alGetString(AlGetString.Version);
-        string renderer = alGetString(AlGetString.Renderer);
-        string contextExtensions = alGetString(AlGetString.Extensions);
+        string vendor = alGetString(AlGetString.Vendor)!;
+        string version = alGetString(AlGetString.Version)!;
+        string renderer = alGetString(AlGetString.Renderer)!;
+        string contextExtensions = alGetString(AlGetString.Extensions)!;
         alDistanceModel(AlDistanceModel.InverseDistanceClamped);
         CheckAlcError();
         bool SupportsIma4 = alIsExtensionPresent("AL_EXT_IMA4"u8);

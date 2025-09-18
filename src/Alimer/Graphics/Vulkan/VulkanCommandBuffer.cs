@@ -260,7 +260,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     protected override void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
     {
-        Debug.Assert(size <= _queue.Device.Limits.MaxPushConstantsSize);
+        Debug.Assert(size <= _queue.Device.Adapter.Limits.MaxPushConstantsSize);
         Debug.Assert(_currentPipelineLayout != null);
 
         ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);
@@ -296,13 +296,18 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             PushDebugGroup(renderPass.Label);
         }
 
-        VkRect2D renderArea = new(0, 0, _queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferWidth, _queue.Device.PhysicalDeviceProperties.properties.limits.maxFramebufferHeight);
+        VkRect2D renderArea = new(0, 0,
+            _queue.Device.VkAdapter.Properties2.properties.limits.maxFramebufferWidth,
+            _queue.Device.VkAdapter.Properties2.properties.limits.maxFramebufferHeight
+            );
 
         if (_queue.Device.DynamicRendering)
         {
-            VkRenderingInfo renderingInfo = new();
-            renderingInfo.layerCount = 1;
-            renderingInfo.viewMask = 0;
+            VkRenderingInfo renderingInfo = new()
+            {
+                layerCount = 1,
+                viewMask = 0
+            };
 
             VkRenderingAttachmentInfo* colorAttachments = stackalloc VkRenderingAttachmentInfo[MaxColorAttachments];
             VkRenderingAttachmentInfo depthAttachment = new();
@@ -484,6 +489,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     public override void SetShadingRate(ShadingRate rate)
     {
+#if TODO
         if (_queue.Device.QueryFeatureSupport(Feature.VariableRateShading) && _currentShadingRate != rate)
         {
             _currentShadingRate = rate;
@@ -553,7 +559,8 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             }
 
             _api.vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
-        }
+        } 
+#endif
     }
 
     public override void SetDepthBounds(float minBounds, float maxBounds)

@@ -167,12 +167,9 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     }
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
-        fixed (char* pName = newLabel)
-        {
-            _ = _handle.Get()->SetName(pName);
-        }
+         _handle.Get()->SetName(newLabel);
     }
 
     /// <inheitdoc />

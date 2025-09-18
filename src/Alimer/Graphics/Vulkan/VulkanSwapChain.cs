@@ -23,7 +23,11 @@ internal unsafe class VulkanSwapChain : SwapChain
         : base(surfaceSource, descriptor)
     {
         _device = device;
+
+
         // Create VkSurface first.
+        VkInstance instance = device.VkAdapter.VkGraphicsManager.Instance;
+        VkInstanceApi instanceApi = device.VkAdapter.VkGraphicsManager.InstanceApi;
         _surface = CreateVkSurface();
 
         AfterReset();
@@ -40,7 +44,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                         hinstance = surfaceSource.ContextHandle,
                         hwnd = surfaceSource.Handle
                     };
-                    device.InstanceApi.vkCreateWin32SurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
@@ -50,7 +54,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                     {
                         window = surfaceSource.Handle,
                     };
-                    device.InstanceApi.vkCreateAndroidSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
@@ -61,7 +65,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                         display = surfaceSource.ContextHandle,
                         surface = surfaceSource.Handle,
                     };
-                    device.InstanceApi.vkCreateWaylandSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
@@ -72,7 +76,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                         connection = surfaceSource.ContextHandle,
                         window = (uint)(nuint)surfaceSource.Handle,
                     };
-                    device.InstanceApi.vkCreateXcbSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
@@ -83,7 +87,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                         dpy = surfaceSource.ContextHandle,
                         window = (nuint)surfaceSource.Handle,
                     };
-                    device.InstanceApi.vkCreateXlibSurfaceKHR(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
@@ -93,7 +97,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                     {
                         pLayer = surfaceSource.Handle,
                     };
-                    device.InstanceApi.vkCreateMetalSurfaceEXT(device.Instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateMetalSurfaceEXT(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
@@ -102,7 +106,7 @@ internal unsafe class VulkanSwapChain : SwapChain
             }
 
             VkBool32 presentSupport = false;
-            VkResult result = device.InstanceApi.vkGetPhysicalDeviceSurfaceSupportKHR(
+            VkResult result = instanceApi.vkGetPhysicalDeviceSurfaceSupportKHR(
                 device.PhysicalDevice,
                 device.GraphicsFamily,
                 surface,
@@ -136,15 +140,16 @@ internal unsafe class VulkanSwapChain : SwapChain
 
     private void AfterReset()
     {
-        _device.InstanceApi.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_device.PhysicalDevice, _surface, out VkSurfaceCapabilitiesKHR caps).CheckResult();
+        VkInstanceApi instanceApi = _device.VkAdapter.VkGraphicsManager.InstanceApi;
+        instanceApi.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_device.PhysicalDevice, _surface, out VkSurfaceCapabilitiesKHR caps).CheckResult();
 
-        _device.InstanceApi.vkGetPhysicalDeviceSurfaceFormatsKHR(_device.PhysicalDevice, _surface, out uint surfaceFormatCount).CheckResult();
+        instanceApi.vkGetPhysicalDeviceSurfaceFormatsKHR(_device.PhysicalDevice, _surface, out uint surfaceFormatCount).CheckResult();
         Span<VkSurfaceFormatKHR> swapchainFormats = stackalloc VkSurfaceFormatKHR[(int)surfaceFormatCount];
-        _device.InstanceApi.vkGetPhysicalDeviceSurfaceFormatsKHR(_device.PhysicalDevice, _surface, swapchainFormats).CheckResult();
+        instanceApi.vkGetPhysicalDeviceSurfaceFormatsKHR(_device.PhysicalDevice, _surface, swapchainFormats).CheckResult();
 
-        _device.InstanceApi.vkGetPhysicalDeviceSurfacePresentModesKHR(_device.PhysicalDevice, _surface, out uint presentModeCount).CheckResult();
+        instanceApi.vkGetPhysicalDeviceSurfacePresentModesKHR(_device.PhysicalDevice, _surface, out uint presentModeCount).CheckResult();
         Span<VkPresentModeKHR> swapchainPresentModes = stackalloc VkPresentModeKHR[(int)presentModeCount];
-        _device.InstanceApi.vkGetPhysicalDeviceSurfacePresentModesKHR(_device.PhysicalDevice, _surface, swapchainPresentModes).CheckResult();
+        instanceApi.vkGetPhysicalDeviceSurfacePresentModesKHR(_device.PhysicalDevice, _surface, swapchainPresentModes).CheckResult();
 
         VkSurfaceFormatKHR surfaceFormat = new()
         {
@@ -237,7 +242,7 @@ internal unsafe class VulkanSwapChain : SwapChain
         VkImageUsageFlags imageUsage = VkImageUsageFlags.ColorAttachment | VkImageUsageFlags.InputAttachment | VkImageUsageFlags.TransferDst;
 
         VkFormatProperties formatProps;
-        _device.InstanceApi.vkGetPhysicalDeviceFormatProperties(_device.PhysicalDevice, surfaceFormat.format, &formatProps);
+        instanceApi.vkGetPhysicalDeviceFormatProperties(_device.PhysicalDevice, surfaceFormat.format, &formatProps);
         if (((formatProps.optimalTilingFeatures & VkFormatFeatureFlags.TransferSrc) != 0) ||
             ((formatProps.optimalTilingFeatures & VkFormatFeatureFlags.BlitSrc) != 0))
         {
@@ -321,7 +326,10 @@ internal unsafe class VulkanSwapChain : SwapChain
         }
 
         _device.DeviceApi.vkDestroySwapchainKHR(_device.Handle, _handle, null);
-        _device.InstanceApi.vkDestroySurfaceKHR(_device.Instance, _surface, null);
+        _device.VkAdapter.VkGraphicsManager.InstanceApi.vkDestroySurfaceKHR(
+            _device.VkAdapter.VkGraphicsManager.Instance,
+            _surface,
+            null);
     }
 
     /// <inheritdoc />

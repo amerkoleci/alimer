@@ -5,6 +5,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
+#pragma warning disable CS0660
+#pragma warning disable CS0661
+
 namespace Alimer.Utilities;
 
 public readonly ref struct Utf8ReadOnlyString(ReadOnlySpan<byte> span)

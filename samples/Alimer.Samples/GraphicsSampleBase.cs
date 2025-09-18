@@ -13,14 +13,17 @@ public abstract class GraphicsSampleBase : SampleBase
         : base(name)
     {
         Services = services;
+        GraphicsManager = services.GetService<GraphicsManager>();
         GraphicsDevice = services.GetService<GraphicsDevice>();
         MainWindow = mainWindow;
     }
 
     public IServiceRegistry Services { get; }
+
+    public GraphicsManager GraphicsManager { get; }
     public GraphicsDevice GraphicsDevice { get; }
     public Window MainWindow { get; }
-    public PixelFormat[] ColorFormats => new[] { MainWindow.ColorFormat };
+    public PixelFormat[] ColorFormats => [MainWindow.ColorFormat];
     public PixelFormat DepthStencilFormat => MainWindow.DepthStencilFormat;
     public Texture? DepthStencilTexture => MainWindow.DepthStencilTexture;
     public float AspectRatio => MainWindow.AspectRatio;
@@ -49,7 +52,7 @@ public abstract class GraphicsSampleBase : SampleBase
 
     protected ShaderStageDescription LoadShader(string name, ShaderStages stage, string entryPoint)
     {
-        string shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? "spirv" : "dxil";
+        string shaderFormat = GraphicsManager.BackendType == GraphicsBackendType.Vulkan ? "spirv" : "dxil";
 
         string entryName = $"{name}_{entryPoint}_{shaderFormat}.bin";
         byte[] bytecode = ReadEmbeddedAssetBytes(entryName);
@@ -62,7 +65,7 @@ public abstract class GraphicsSampleBase : SampleBase
         ShaderStages stage,
         Dictionary<string, string>? defines = default)
     {
-        ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
+        ShaderFormat shaderFormat = GraphicsManager.BackendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".hlsl");

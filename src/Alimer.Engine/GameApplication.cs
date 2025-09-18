@@ -10,7 +10,7 @@ namespace Alimer.Engine;
 /// </summary>
 public class GameApplication : Application
 {
-    public GameApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
+    public GameApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
         : base(default, preferredGraphicsBackend)
     {
         SceneSystem = new SceneSystem(Services);

@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public enum ValidationMode
+public enum GraphicsValidationMode
 {
     /// <summary>
     /// No validation is enabled.
@@ -17,6 +17,6 @@ public enum ValidationMode
     /// Print all warnings, errors and info messages.
     /// </summary>
     Verbose,
-    /// Enable GPU-based validation
-    GPU
+    /// Enable Gpu-based validation
+    Gpu
 }

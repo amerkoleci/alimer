@@ -13,16 +13,6 @@ public record struct GraphicsDeviceDescription
     }
 
     /// <summary>
-    /// Gets or sets the preferred backend to creates.
-    /// </summary>
-    public GraphicsBackendType PreferredBackend { get; set; } = GraphicsBackendType.Count;
-
-    /// <summary>
-    /// Gets the <see cref="GraphicsDevice"/> validation mode.
-    /// </summary>
-    public ValidationMode ValidationMode { get; set; } = ValidationMode.Disabled;
-
-    /// <summary>
     /// Gets the GPU adapter selection power preference.
     /// </summary>
     public GpuPowerPreference PowerPreference { get; set; } = GpuPowerPreference.Undefined;

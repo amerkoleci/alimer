@@ -14,32 +14,15 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected readonly ConcurrentQueue<Tuple<GraphicsObject, ulong>> _deferredDestroyObjects = new();
     protected bool _shuttingDown;
 
-    public GraphicsDevice(GraphicsBackendType backend, in GraphicsDeviceDescription description)
+    public GraphicsDevice(in GraphicsDeviceDescription description)
         : base(description.Label)
     {
-        Backend = backend;
-        ValidationMode = description.ValidationMode;
     }
 
     /// <summary>
-    /// Get the device backend type.
+    /// Get the <see cref="GraphicsAdapter"/> object that created this object.
     /// </summary>
-    public GraphicsBackendType Backend { get; }
-
-    /// <summary>
-    /// Gets the device validation mode.
-    /// </summary>
-    public ValidationMode ValidationMode { get; }
-
-    /// <summary>
-    /// Get the adapter info.
-    /// </summary>
-    public abstract GraphicsAdapterProperties AdapterInfo { get; }
-
-    /// <summary>
-    /// Get the device limits.
-    /// </summary>
-    public abstract GraphicsDeviceLimits Limits { get; }
+    public abstract GraphicsAdapter Adapter { get; }
 
     /// <summary>
     /// Get the timestamp frequency.
@@ -55,103 +38,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// Gets the current frame index.
     /// </summary>
     public uint FrameIndex => _frameIndex;
-
-    public static bool IsBackendSupport(GraphicsBackendType backend)
-    {
-        Guard.IsTrue(backend != GraphicsBackendType.Count, nameof(backend), "Invalid backend");
-
-        switch (backend)
-        {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                return Vulkan.VulkanGraphicsDevice.IsSupported();
-#endif
-
-#if !EXCLUDE_D3D12_BACKEND
-            case GraphicsBackendType.D3D12:
-                return D3D12.D3D12GraphicsDevice.IsSupported();
-#endif
-
-#if !EXCLUDE_METAL_BACKEND
-            case GraphicsBackendType.Metal:
-                return false;
-#endif
-
-#if !EXCLUDE_WEBGPU_BACKEND
-            case GraphicsBackendType.WebGPU:
-                return WebGPU.WebGPUGraphicsDevice.IsSupported();
-#endif
-
-            default:
-                return false;
-        }
-    }
-
-    public static GraphicsDevice CreateDefault(in GraphicsDeviceDescription description)
-    {
-        GraphicsBackendType backend = description.PreferredBackend;
-        if (backend == GraphicsBackendType.Count)
-        {
-            if (IsBackendSupport(GraphicsBackendType.D3D12))
-            {
-                backend = GraphicsBackendType.D3D12;
-            }
-            else if (IsBackendSupport(GraphicsBackendType.Metal))
-            {
-                backend = GraphicsBackendType.Metal;
-            }
-            else if (IsBackendSupport(GraphicsBackendType.Vulkan))
-            {
-                backend = GraphicsBackendType.Vulkan;
-            }
-        }
-
-        GraphicsDevice? device = default;
-        switch (backend)
-        {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                if (Vulkan.VulkanGraphicsDevice.IsSupported())
-                {
-                    device = new Vulkan.VulkanGraphicsDevice(in description);
-                }
-                break;
-#endif
-
-#if !EXCLUDE_D3D12_BACKEND 
-            case GraphicsBackendType.D3D12:
-                if (D3D12.D3D12GraphicsDevice.IsSupported())
-                {
-                    device = new D3D12.D3D12GraphicsDevice(in description);
-                }
-                break;
-#endif
-
-#if !EXCLUDE_METAL_BACKEND
-            case GraphicsBackendType.Metal:
-                break;
-#endif
-
-#if !EXCLUDE_WEBGPU_BACKEND
-            case GraphicsBackendType.WebGPU:
-                if (WebGPU.WebGPUGraphicsDevice.IsSupported())
-                {
-                    device = new WebGPU.WebGPUGraphicsDevice(in description);
-                }
-                break;
-#endif
-
-            default:
-                break;
-        }
-
-        if (device == null)
-        {
-            throw new GraphicsException($"{backend} is not supported");
-        }
-
-        return device!;
-    }
 
     /// <summary>
     /// Wait for device to finish pending GPU operations.

@@ -172,7 +172,7 @@ internal unsafe class D3D12SwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _handle.Get()->SetDxgiName(newLabel);
     }

@@ -4,6 +4,7 @@
     <TargetFrameworks>net9.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <ExcludeD3D12>true</ExcludeD3D12>
     <ExcludeWebGPU>true</ExcludeWebGPU>
   </PropertyGroup>
 
@@ -12,6 +13,11 @@
   </ItemGroup>
 
   <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+
+  <PropertyGroup>
+    <!-- Ignore platform compatibility warnings -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
 
   <PropertyGroup Condition=" $(TargetFramework.Contains('-android')) ">
     <ExcludeD3D12>true</ExcludeD3D12>

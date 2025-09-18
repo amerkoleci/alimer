@@ -5,8 +5,9 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vortice.Vulkan;
-using XenoAtom.Collections;
 using static Vortice.Vulkan.Vulkan;
+
+#pragma warning disable CS0649
 
 namespace Alimer.Graphics.Vulkan;
 

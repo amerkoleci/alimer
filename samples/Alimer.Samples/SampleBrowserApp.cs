@@ -12,7 +12,7 @@ public sealed class SampleBrowserApp : GameApplication
 {
     private SampleBase _runningSample = null!;
 
-    public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count)
+    public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
         : base(preferredGraphicsBackend)
     {
         GameSystems.Add(new ImGuiSystem(Services));
@@ -36,7 +36,7 @@ public sealed class SampleBrowserApp : GameApplication
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
 
-        MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
+        MainWindow.Title = $"{_runningSample.Name} - {GraphicsManager.BackendType}";
     }
 
     protected override void Dispose(bool disposing)
@@ -58,7 +58,7 @@ public sealed class SampleBrowserApp : GameApplication
 
     public static void Main()
     {
-        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count;
+        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default;
 
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;

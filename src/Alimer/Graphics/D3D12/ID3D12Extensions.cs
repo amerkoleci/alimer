@@ -13,21 +13,35 @@ namespace Alimer.Graphics.D3D12;
 
 internal static unsafe partial class ID3D12Extensions
 {
-    public static void SetName<TD3D12Object>(ref this TD3D12Object self, string name)
+    public static void SetName<TD3D12Object>(ref this TD3D12Object self, ReadOnlySpan<char> name)
         where TD3D12Object : unmanaged, ID3D12Object.Interface
     {
-        fixed (char* pName = name)
+        if (name.IsEmpty)
         {
-            _ = self.SetName(pName);
+            _ = self.SetName(null);
+        }
+        else
+        {
+            fixed (char* pName = name)
+            {
+                _ = self.SetName(pName);
+            }
         }
     }
 
-    public static void SetDxgiName<TDXGIObject>(ref this TDXGIObject self, string name)
+    public static void SetDxgiName<TDXGIObject>(ref this TDXGIObject self, ReadOnlySpan<char> name)
         where TDXGIObject : unmanaged, IDXGIObject.Interface
     {
-        fixed (char* pName = name)
+        if (name.IsEmpty)
         {
-            _ = self.SetPrivateData(AsPointer(in WKPDID_D3DDebugObjectName), (uint)name.Length, (ushort*)pName);
+            _ = self.SetPrivateData(AsPointer(in WKPDID_D3DDebugObjectName), 0u, null);
+        }
+        else
+        {
+            fixed (char* pName = name)
+            {
+                _ = self.SetPrivateData(AsPointer(in WKPDID_D3DDebugObjectName), (uint)name.Length, (ushort*)pName);
+            }
         }
     }
 

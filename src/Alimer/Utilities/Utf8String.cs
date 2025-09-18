@@ -53,9 +53,10 @@ public readonly unsafe struct Utf8String : IEquatable<Utf8String>
     /// </summary>
     public ReadOnlySpan<byte> Span => new(Buffer, Length);
 
+    /// <inheritdoc />
     public override int GetHashCode()
     {
-        var hash = new HashCode();
+        HashCode hash = new();
         hash.AddBytes(Span);
         return hash.ToHashCode();
     }
@@ -82,10 +83,7 @@ public readonly unsafe struct Utf8String : IEquatable<Utf8String>
         return Span.SequenceEqual(other.Span);
     }
 
-    public override bool Equals([NotNullWhen(true)] object? obj)
-    {
-        return obj is Utf8String other && Equals(other);
-    }
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is Utf8String other && Equals(other);
 
     public static bool operator ==(Utf8String left, Utf8String right) => left.Equals(right);
 

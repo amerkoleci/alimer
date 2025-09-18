@@ -284,12 +284,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     }
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
-        fixed (char* pName = newLabel)
-        {
-            _ = _handle.Get()->SetName(pName);
-        }
+        _handle.Get()->SetName(newLabel);
     }
 
     public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(int mipSlice, int arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)

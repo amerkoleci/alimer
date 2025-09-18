@@ -5,10 +5,10 @@ namespace Alimer.Graphics;
 
 public enum GraphicsBackendType
 {
+    Default = 0,
+    Null,
     Vulkan,
     D3D12,
     Metal,
     WebGPU,
-
-    Count,
 }

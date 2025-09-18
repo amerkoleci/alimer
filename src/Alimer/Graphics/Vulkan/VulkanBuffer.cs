@@ -42,7 +42,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
         if ((description.Usage & BufferUsage.Constant) != 0)
         {
-            createInfo.size = MathUtilities.AlignUp(description.Size, device.PhysicalDeviceProperties.properties.limits.minUniformBufferOffsetAlignment);
+            createInfo.size = MathUtilities.AlignUp(description.Size, device.VkAdapter.Properties2.properties.limits.minUniformBufferOffsetAlignment);
             createInfo.usage |= VkBufferUsageFlags.UniformBuffer;
         }
 

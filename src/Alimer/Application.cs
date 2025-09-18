@@ -26,7 +26,7 @@ public abstract class Application : DisposableObject, IApplication
     /// </summary>
     /// <param name="name">The optional name of the application.</param>
     protected Application(AppPlatform? platform = default,
-        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Count,
+        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default,
         string? name = default)
     {
         Platform = platform ?? AppPlatform.CreateDefault();
@@ -38,16 +38,22 @@ public abstract class Application : DisposableObject, IApplication
         _content = new ContentManager(_services);
         ConfigureServices(_services);
 
-        GraphicsDeviceDescription deviceDescription = new()
+        GraphicsManagerOptions graphicsManagerOptions = new()
         {
             PreferredBackend = preferredGraphicsBackend,
             //PowerPreference = GpuPowerPreference.LowPower,
 #if DEBUG
-            ValidationMode = ValidationMode.Enabled
+            ValidationMode = GraphicsValidationMode.Enabled
 #endif
         };
 
-        GraphicsDevice = GraphicsDevice.CreateDefault(in deviceDescription);
+        GraphicsManager = GraphicsManager.Create(in graphicsManagerOptions);
+        GraphicsAdapter = GraphicsManager.GetBestAdapter();
+        GraphicsDeviceDescription deviceDescription = new()
+        {
+        };
+
+        GraphicsDevice = GraphicsAdapter.CreateDevice(in deviceDescription);
 
         AudioDeviceOptions audioOptions = new();
         AudioDevice = AudioDevice.Create(in audioOptions);
@@ -90,7 +96,17 @@ public abstract class Application : DisposableObject, IApplication
     public InputManager Input => Platform.Input;
 
     /// <summary>
-    /// Gets the <see cref="Graphics.GraphicsDevice"/> Module
+    /// Gets the <see cref="Graphics.GraphicsManager"/> created by the application.
+    /// </summary>
+    public GraphicsManager GraphicsManager { get; }
+
+    /// <summary>
+    /// Gets the <see cref="Graphics.GraphicsAdapter"/> used to create the <see cref="GraphicsDevice"/>.
+    /// </summary>
+    public GraphicsAdapter GraphicsAdapter { get; }
+
+    /// <summary>
+    /// Gets the <see cref="Graphics.GraphicsDevice"/> created by the application.
     /// </summary>
     public GraphicsDevice GraphicsDevice { get; }
 

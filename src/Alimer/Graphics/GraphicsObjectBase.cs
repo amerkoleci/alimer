@@ -27,12 +27,15 @@ public abstract class GraphicsObjectBase : DisposableObject
         get => _label;
         set
         {
+            if (_label == value)
+                return;
+
             _label = value;
-            OnLabelChanged(_label ?? string.Empty);
+            OnLabelChanged(value);
         }
     }
 
-    protected virtual void OnLabelChanged(string newLabel)
+    protected virtual void OnLabelChanged(string? newLabel)
     {
     }
 
