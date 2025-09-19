@@ -252,7 +252,7 @@ public abstract class RenderContext : ComputeContext
     {
         PreDrawValidation();
 
-        if (!Device.QueryFeatureSupport(Feature.MeshShader))
+        if (!Device.Adapter.QueryFeatureSupport(Feature.MeshShader))
         {
             throw new GraphicsException($"Device doesn't support Feature.MeshShader.");
         }

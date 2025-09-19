@@ -136,7 +136,7 @@ internal unsafe class VulkanPipeline : Pipeline
 
         VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = new();
         void** tail = &rasterizationState.pNext;
-        if (device.DepthClipEnable)
+        if (device.VkAdapter.DepthClipEnableFeatures.depthClipEnable)
         {
             rasterizationState.depthClampEnable = true;
             depthClipStateInfo.depthClipEnable = description.RasterizerState.DepthClipMode == DepthClipMode.Clip;
@@ -192,7 +192,7 @@ internal unsafe class VulkanPipeline : Pipeline
             minDepthBounds = 0.0f,
             maxDepthBounds = 1.0f
         };
-        if (_device.PhysicalDeviceFeatures2.features.depthBounds)
+        if (_device.VkAdapter.Features2.features.depthBounds)
         {
             depthStencilState.depthBoundsTestEnable = description.DepthStencilState.DepthBoundsTestEnable;
         }
@@ -239,7 +239,7 @@ internal unsafe class VulkanPipeline : Pipeline
             blendAttachmentStates[renderingInfo.colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
             blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
 
-            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.ToVkFormat(description.ColorFormats[i]);
+            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.VkAdapter.ToVkFormat(description.ColorFormats[i]);
             renderingInfo.colorAttachmentCount++;
         }
 
@@ -256,7 +256,7 @@ internal unsafe class VulkanPipeline : Pipeline
         blendState.blendConstants[3] = 0.0f;
 
         renderingInfo.pColorAttachmentFormats = pColorAttachmentFormats;
-        renderingInfo.depthAttachmentFormat = _device.ToVkFormat(description.DepthStencilFormat);
+        renderingInfo.depthAttachmentFormat = _device.VkAdapter.ToVkFormat(description.DepthStencilFormat);
         if (!description.DepthStencilFormat.IsDepthOnlyFormat())
         {
             renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
@@ -272,7 +272,7 @@ internal unsafe class VulkanPipeline : Pipeline
             VkDynamicState.DepthBounds,
             VkDynamicState.FragmentShadingRateKHR
         };
-        if (_device.PhysicalDeviceFeatures2.features.depthBounds)
+        if (_device.VkAdapter.Features2.features.depthBounds)
         {
             dynamicStateCount++;
         }
@@ -291,6 +291,7 @@ internal unsafe class VulkanPipeline : Pipeline
 
         VkGraphicsPipelineCreateInfo createInfo = new()
         {
+            pNext = &renderingInfo,
             stageCount = (uint)shaderStageCount,
             pStages = shaderStages,
             pVertexInputState = &vertexInputState,
@@ -306,15 +307,6 @@ internal unsafe class VulkanPipeline : Pipeline
             basePipelineHandle = VkPipeline.Null,
             basePipelineIndex = 0
         };
-
-        if (_device.PhysicalDeviceFeatures1_3.dynamicRendering)
-        {
-            createInfo.pNext = &renderingInfo;
-        }
-        else
-        {
-
-        }
 
         VkPipeline pipeline;
         result = _device.DeviceApi.vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);

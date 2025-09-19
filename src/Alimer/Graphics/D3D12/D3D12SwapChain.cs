@@ -45,7 +45,7 @@ internal unsafe class D3D12SwapChain : SwapChain
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
-            Flags = device.TearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+            Flags = device.DxAdapter.DxManager.TearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
         };
 
         using ComPtr<IDXGISwapChain1> tempSwapChain = default;
@@ -57,7 +57,7 @@ internal unsafe class D3D12SwapChain : SwapChain
                     Windowed = !description.IsFullscreen
                 };
 
-                ThrowIfFailed(device.Factory->CreateSwapChainForHwnd(
+                ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForHwnd(
                     (IUnknown*)device.D3D12GraphicsQueue,
                     (HWND)surface.Handle,
                     &swapChainDesc,
@@ -67,13 +67,13 @@ internal unsafe class D3D12SwapChain : SwapChain
                     );
 
                 // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                ThrowIfFailed(device.Factory->MakeWindowAssociation((HWND)surface.Handle, DXGI_MWA_NO_ALT_ENTER));
+                ThrowIfFailed(device.DxAdapter.DxManager.Handle->MakeWindowAssociation((HWND)surface.Handle, DXGI_MWA_NO_ALT_ENTER));
                 ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
                 break;
 
             case SwapChainSurfaceType.SwapChainPanel:
                 {
-                    ThrowIfFailed(device.Factory->CreateSwapChainForComposition(
+                    ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
                         (IUnknown*)device.D3D12GraphicsQueue,
                         &swapChainDesc,
                         null,

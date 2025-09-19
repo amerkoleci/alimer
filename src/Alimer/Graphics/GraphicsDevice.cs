@@ -83,10 +83,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         _deferredDestroyObjects.Enqueue(Tuple.Create(@object, _frameCount));
     }
 
-    public abstract bool QueryFeatureSupport(Feature feature);
-    public abstract /*PixelFormatSupport*/bool QueryPixelFormatSupport(PixelFormat format);
-    //public abstract bool QueryVertexFormatSupport(VertexFormat format);
-
     public virtual void WriteShadingRateValue(ShadingRate rate, void* dest)
     {
 
@@ -113,6 +109,20 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public GraphicsBuffer CreateBuffer(in BufferDescription description, void* initialData)
     {
         Guard.IsGreaterThanOrEqualTo(description.Size, 4, nameof(BufferDescription.Size));
+
+#if VALIDATE_USAGE
+        if ((description.Usage & BufferUsage.Predication) != 0 &&
+            !Adapter.QueryFeatureSupport(Feature.Predication))
+        {
+            throw new GraphicsException($"Buffer cannot be created with {BufferUsage.Predication} usage as adapter doesn't support it");
+        }
+
+        if ((description.Usage & BufferUsage.RayTracing) != 0 &&
+            !Adapter.QueryFeatureSupport(Feature.RayTracing))
+        {
+            throw new GraphicsException($"Buffer cannot be created with {BufferUsage.RayTracing} usage as adapter doesn't support it");
+        }
+#endif
 
         return CreateBufferCore(description, initialData);
     }
@@ -192,7 +202,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         if (descriptor.ReductionType == SamplerReductionType.Minimum ||
             descriptor.ReductionType == SamplerReductionType.Maximum)
         {
-            if (QueryFeatureSupport(Feature.SamplerMinMax))
+            if (Adapter.QueryFeatureSupport(Feature.SamplerMinMax))
             {
                 throw new GraphicsException($"{nameof(Feature.SamplerMinMax)} feature is not supported");
             }

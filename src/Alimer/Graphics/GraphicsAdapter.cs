@@ -16,24 +16,33 @@ public abstract class GraphicsAdapter
     public GraphicsManager Manager { get; }
 
     /// <summary>
-    /// Get the adapter info.
+    /// Gets the name of the device.
     /// </summary>
-    public abstract GraphicsAdapterProperties AdapterInfo { get; }
+    public abstract string DeviceName { get; }
+
+    /// <summary>
+    /// Gets the vendor id of the adapter.
+    /// </summary>
+    public abstract uint VendorId { get; }
+
+    /// <summary>
+    /// Gets the device id of the adapter.
+    /// </summary>
+    public abstract uint DeviceId { get; }
+
+    /// <summary>
+    /// Gets the type of the adapter.
+    /// </summary>
+    public abstract GraphicsAdapterType Type { get; }
 
     /// <summary>
     /// Get the device limits.
     /// </summary>
     public abstract GraphicsDeviceLimits Limits { get; }
 
-    /// <summary>
-    /// Gets the name of the device.
-    /// </summary>
-    public abstract string DeviceName { get; }
-
-    /// <summary>
-    /// Gets the type of the adapter.
-    /// </summary>
-    public abstract GraphicsAdapterType Type { get; }
+    public abstract bool QueryFeatureSupport(Feature feature);
+    public abstract /*PixelFormatSupport*/bool QueryPixelFormatSupport(PixelFormat format);
+    //public abstract bool QueryVertexFormatSupport(VertexFormat format);
 
     /// <summary>
     /// Creates a new <see cref="GraphicsDevice"/> with the default options.

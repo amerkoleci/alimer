@@ -4,8 +4,8 @@
     <TargetFrameworks>net9.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <ExcludeD3D12>true</ExcludeD3D12>
     <ExcludeWebGPU>true</ExcludeWebGPU>
+    <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -68,6 +68,10 @@
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
     <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" PrivateAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.SourceGenerators\Alimer.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

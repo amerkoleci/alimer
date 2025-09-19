@@ -17,7 +17,6 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 {
     private readonly VulkanCommandQueue _queue;
     private readonly VkDeviceApi _api;
-    private readonly bool _synchronization2;
     private readonly VkCommandPool[] _commandPools = new VkCommandPool[MaxFramesInFlight];
     private readonly VkCommandBuffer[] _commandBuffers = new VkCommandBuffer[MaxFramesInFlight];
     private VkCommandBuffer _commandBuffer; // recording command buffer
@@ -34,7 +33,6 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     {
         _queue = queue;
         _api = queue.Device.DeviceApi;
-        _synchronization2 = queue.Device.PhysicalDeviceFeatures1_3.synchronization2;
 
         for (uint i = 0; i < MaxFramesInFlight; ++i)
         {
@@ -116,7 +114,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             _api.vkCmdSetBlendConstants(_commandBuffer, 1.0f, 1.0f, 1.0f, 1.0f);
             _api.vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, ~0u);
 
-            if (_queue.Device.PhysicalDeviceFeatures2.features.depthBounds == true)
+            if (_queue.Device.VkAdapter.Features2.features.depthBounds == true)
             {
                 _api.vkCmdSetDepthBounds(_commandBuffer, 0.0f, 1.0f);
             }
@@ -197,41 +195,35 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     public void ImageMemoryBarrier(VkImage image, ResourceStates before, ResourceStates after, VkImageSubresourceRange range)
     {
-        if (_synchronization2)
+        ResourceStateMapping mappingBefore = ConvertResourceState(before);
+        ResourceStateMapping mappingAfter = ConvertResourceState(after);
+
+        Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+        VkImageMemoryBarrier2 barrier = new()
         {
-            ResourceStateMapping mappingBefore = ConvertResourceState(before);
-            ResourceStateMapping mappingAfter = ConvertResourceState(after);
+            srcStageMask = mappingBefore.StageFlags,
+            srcAccessMask = mappingBefore.AccessMask,
+            oldLayout = mappingBefore.ImageLayout,
 
-            Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+            dstStageMask = mappingAfter.StageFlags,
+            dstAccessMask = mappingAfter.AccessMask,
+            newLayout = mappingAfter.ImageLayout,
 
-            VkImageMemoryBarrier2 barrier = new()
-            {
-                srcStageMask = mappingBefore.StageFlags,
-                srcAccessMask = mappingBefore.AccessMask,
-                oldLayout = mappingBefore.ImageLayout,
+            srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            image = image,
+            subresourceRange = range
+        };
 
-                dstStageMask = mappingAfter.StageFlags,
-                dstAccessMask = mappingAfter.AccessMask,
-                newLayout = mappingAfter.ImageLayout,
-
-                srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                image = image,
-                subresourceRange = range
-            };
-
-            VkDependencyInfo dependencyInfo = new()
-            {
-                imageMemoryBarrierCount = 1,
-                pImageMemoryBarriers = &barrier
-            };
-
-            _api.vkCmdPipelineBarrier2(_commandBuffer, &dependencyInfo);
-        }
-        else
+        VkDependencyInfo dependencyInfo = new()
         {
+            imageMemoryBarrierCount = 1,
+            pImageMemoryBarriers = &barrier
+        };
 
-        }
+        _api.vkCmdPipelineBarrier2(_commandBuffer, &dependencyInfo);
+
     }
 
     #region ComputeContext Methods
@@ -301,111 +293,104 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             _queue.Device.VkAdapter.Properties2.properties.limits.maxFramebufferHeight
             );
 
-        if (_queue.Device.DynamicRendering)
+        VkRenderingInfo renderingInfo = new()
         {
-            VkRenderingInfo renderingInfo = new()
+            layerCount = 1,
+            viewMask = 0
+        };
+
+        VkRenderingAttachmentInfo* colorAttachments = stackalloc VkRenderingAttachmentInfo[MaxColorAttachments];
+        VkRenderingAttachmentInfo depthAttachment = new();
+        VkRenderingAttachmentInfo stencilAttachment = new();
+
+        PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+        bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
+
+        for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
+        {
+            ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
+            Guard.IsTrue(attachment.Texture is not null);
+
+            VulkanTexture texture = (VulkanTexture)attachment.Texture;
+            int mipLevel = attachment.MipLevel;
+            int slice = attachment.Slice;
+            VkImageView imageView = texture.GetView(mipLevel, slice);
+
+            renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
+            renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
+
+            ref VkRenderingAttachmentInfo attachmentInfo = ref colorAttachments[renderingInfo.colorAttachmentCount++];
+            attachmentInfo = new()
             {
-                layerCount = 1,
-                viewMask = 0
+                imageView = imageView,
+                imageLayout = VkImageLayout.ColorAttachmentOptimal,
+                loadOp = attachment.LoadAction.ToVk(),
+                storeOp = attachment.StoreAction.ToVk(),
+                clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
             };
 
-            VkRenderingAttachmentInfo* colorAttachments = stackalloc VkRenderingAttachmentInfo[MaxColorAttachments];
-            VkRenderingAttachmentInfo depthAttachment = new();
-            VkRenderingAttachmentInfo stencilAttachment = new();
-
-            PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
-            bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
-
-            for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
-            {
-                ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
-                Guard.IsTrue(attachment.Texture is not null);
-
-                VulkanTexture texture = (VulkanTexture)attachment.Texture;
-                int mipLevel = attachment.MipLevel;
-                int slice = attachment.Slice;
-                VkImageView imageView = texture.GetView(mipLevel, slice);
-
-                renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
-                renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
-
-                ref VkRenderingAttachmentInfo attachmentInfo = ref colorAttachments[renderingInfo.colorAttachmentCount++];
-                attachmentInfo = new()
-                {
-                    imageView = imageView,
-                    imageLayout = VkImageLayout.ColorAttachmentOptimal,
-                    loadOp = attachment.LoadAction.ToVk(),
-                    storeOp = attachment.StoreAction.ToVk(),
-                    clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
-                };
-
-                TextureBarrier(texture, ResourceStates.RenderTarget);
-            }
-
-            if (hasDepthOrStencil)
-            {
-                RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
-
-                VulkanTexture texture = (VulkanTexture)attachment.Texture!;
-                int mipLevel = attachment.MipLevel;
-                int slice = attachment.Slice;
-
-                renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
-                renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
-
-                depthAttachment.imageView = texture.GetView(mipLevel, slice);
-                depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                depthAttachment.resolveMode = VkResolveModeFlags.None;
-                depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
-                depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
-                depthAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
-                renderingInfo.pDepthAttachment = &depthAttachment;
-
-                if (depthStencilFormat.IsStencilFormat())
-                {
-                    stencilAttachment.imageView = depthAttachment.imageView;
-                    stencilAttachment.imageLayout = VkImageLayout.StencilAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                    stencilAttachment.resolveMode = VkResolveModeFlags.None;
-                    stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
-                    stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
-                    stencilAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
-                    renderingInfo.pStencilAttachment = &stencilAttachment;
-                }
-
-                TextureBarrier(texture, ResourceStates.DepthWrite);
-            }
-
-            renderingInfo.renderArea = renderArea;
-            renderingInfo.pColorAttachments = renderingInfo.colorAttachmentCount > 0 ? colorAttachments : null;
-
-            _api.vkCmdBeginRendering(_commandBuffer, &renderingInfo);
-
-            // The viewport and scissor default to cover all of the attachments
-            VkViewport viewport = new()
-            {
-                x = 0.0f,
-                y = renderArea.extent.height,
-                width = renderArea.extent.width,
-                height = -(float)(renderArea.extent.height),
-                minDepth = 0.0f,
-                maxDepth = 1.0f
-            };
-            _api.vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
-
-            VkRect2D scissorRect = new(0, 0, renderArea.extent.width, renderArea.extent.height);
-            _api.vkCmdSetScissor(_commandBuffer, 0, 1, &scissorRect);
+            TextureBarrier(texture, ResourceStates.RenderTarget);
         }
+
+        if (hasDepthOrStencil)
+        {
+            RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
+
+            VulkanTexture texture = (VulkanTexture)attachment.Texture!;
+            int mipLevel = attachment.MipLevel;
+            int slice = attachment.Slice;
+
+            renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
+            renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
+
+            depthAttachment.imageView = texture.GetView(mipLevel, slice);
+            depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            depthAttachment.resolveMode = VkResolveModeFlags.None;
+            depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
+            depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
+            depthAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
+            renderingInfo.pDepthAttachment = &depthAttachment;
+
+            if (depthStencilFormat.IsStencilFormat())
+            {
+                stencilAttachment.imageView = depthAttachment.imageView;
+                stencilAttachment.imageLayout = VkImageLayout.StencilAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                stencilAttachment.resolveMode = VkResolveModeFlags.None;
+                stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
+                stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
+                stencilAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
+                renderingInfo.pStencilAttachment = &stencilAttachment;
+            }
+
+            TextureBarrier(texture, ResourceStates.DepthWrite);
+        }
+
+        renderingInfo.renderArea = renderArea;
+        renderingInfo.pColorAttachments = renderingInfo.colorAttachmentCount > 0 ? colorAttachments : null;
+
+        _api.vkCmdBeginRendering(_commandBuffer, &renderingInfo);
+
+        // The viewport and scissor default to cover all of the attachments
+        VkViewport viewport = new()
+        {
+            x = 0.0f,
+            y = renderArea.extent.height,
+            width = renderArea.extent.width,
+            height = -(float)(renderArea.extent.height),
+            minDepth = 0.0f,
+            maxDepth = 1.0f
+        };
+        _api.vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissorRect = new(0, 0, renderArea.extent.width, renderArea.extent.height);
+        _api.vkCmdSetScissor(_commandBuffer, 0, 1, &scissorRect);
 
         _currentRenderPass = renderPass;
     }
 
     protected override void EndRenderPassCore()
     {
-        if (_queue.Device.PhysicalDeviceFeatures1_3.dynamicRendering)
-        {
-            _api.vkCmdEndRendering(_commandBuffer);
-        }
-
+        _api.vkCmdEndRendering(_commandBuffer);
 
         if (!string.IsNullOrEmpty(_currentRenderPass.Label))
         {
@@ -565,7 +550,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     public override void SetDepthBounds(float minBounds, float maxBounds)
     {
-        if (_queue.Device.PhysicalDeviceFeatures2.features.depthBounds)
+        if (_queue.Device.VkAdapter.Features2.features.depthBounds)
         {
             _api.vkCmdSetDepthBounds(_commandBuffer, minBounds, maxBounds);
         }

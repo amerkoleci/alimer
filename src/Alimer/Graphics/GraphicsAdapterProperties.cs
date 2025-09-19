@@ -7,7 +7,6 @@ public readonly struct GraphicsAdapterProperties
 {
     public readonly uint VendorId { get; init; }
     public readonly uint DeviceId { get; init; }
-    public readonly string AdapterName { get; init; }
     public readonly string DriverDescription { get; init; }
     public readonly GraphicsAdapterType AdapterType { get; init; }
 }

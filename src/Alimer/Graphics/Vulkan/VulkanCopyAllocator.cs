@@ -101,7 +101,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         _device.DeviceApi.vkEndCommandBuffer(context.TransferCommandBuffer).CheckResult();
         _device.DeviceApi.vkEndCommandBuffer(context.TransitionCommandBuffer).CheckResult();
 
-        if (_device.PhysicalDeviceFeatures1_3.synchronization2 == true)
+        if (_device.VkAdapter.Features13.synchronization2 == true)
         {
             SubmitSynchronization2(in context);
         }

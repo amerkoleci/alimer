@@ -16,17 +16,17 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
     public void ComputeTest1()
     {
         BindGroupLayoutDescription bindGroupLayoutDescription = new();
-        using BindGroupLayout bindGroupLayout = GraphicsDevice.CreateBindGroupLayout(bindGroupLayoutDescription);
+        using BindGroupLayout bindGroupLayout = Device.CreateBindGroupLayout(bindGroupLayoutDescription);
         Assert.NotNull(bindGroupLayout);
 
         PipelineLayoutDescription pipelineLayoutDescription = new(new[] { bindGroupLayout });
-        using PipelineLayout pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription);
+        using PipelineLayout pipelineLayout = Device.CreatePipelineLayout(pipelineLayoutDescription);
         Assert.NotNull(pipelineLayout);
 
-        ShaderStageDescription computeShader = TestUtilities.CompileShader("ComputeTexture.hlsl", "computeMain", GraphicsDevice.Backend, ShaderStages.Compute);
+        ShaderStageDescription computeShader = TestUtilities.CompileShader("ComputeTexture.hlsl", "computeMain", Manager.BackendType, ShaderStages.Compute);
 
         ComputePipelineDescription pipelineDescription = new(pipelineLayout, computeShader);
-        using Pipeline pipeline = GraphicsDevice.CreateComputePipeline(pipelineDescription);
+        using Pipeline pipeline = Device.CreateComputePipeline(pipelineDescription);
         Assert.NotNull(pipeline);
     }
 }

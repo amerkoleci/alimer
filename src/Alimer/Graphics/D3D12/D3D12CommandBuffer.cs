@@ -560,7 +560,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public override void SetShadingRate(ShadingRate rate)
     {
-        if (_queue.Device.QueryFeatureSupport(Feature.VariableRateShading) && _currentShadingRate != rate)
+        if (_queue.Device.Adapter.QueryFeatureSupport(Feature.VariableRateShading)
+            && _currentShadingRate != rate)
         {
             _currentShadingRate = rate;
 
@@ -578,7 +579,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     public override void SetDepthBounds(float minBounds, float maxBounds)
     {
-        if (_queue.Device.QueryFeatureSupport(Feature.DepthBoundsTest))
+        if (_queue.Device.Adapter.QueryFeatureSupport(Feature.DepthBoundsTest))
         {
             _commandList.Get()->OMSetDepthBounds(minBounds, maxBounds);
         }

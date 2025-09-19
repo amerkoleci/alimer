@@ -2,14 +2,12 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using Vortice.Vulkan;
-using static Vortice.Vulkan.Vulkan;
-using static Alimer.Graphics.Vulkan.VulkanUtils;
-using static Alimer.Graphics.Vulkan.Vma;
-using CommunityToolkit.Diagnostics;
-using XenoAtom.Collections;
 using Alimer.Utilities;
+using CommunityToolkit.Diagnostics;
+using Vortice.Vulkan;
+using XenoAtom.Collections;
+using static Alimer.Graphics.Vulkan.Vma;
+using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -63,441 +61,422 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _queueFamilyIndices[i] = VK_QUEUE_FAMILY_IGNORED;
         }
 
-        VkResult result = VkResult.Success;
+        VkInstanceApi instanceApi = _adapter.VkGraphicsManager.InstanceApi;
 
-        // Enumerate physical enabledDeviceExtensionsdevice and create logical device.
+        instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, out uint count);
+
+        VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[(int)count];
+        VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[(int)count];
+        for (int i = 0; i < count; ++i)
         {
-            UnsafeList<Utf8String> enabledDeviceExtensions = [];
-            VkInstanceApi instanceApi = _adapter.VkGraphicsManager.InstanceApi;
+            queueProps[i] = new();
 
-            instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, out uint count);
-
-            VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[(int)count];
-            VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[(int)count];
-            for (int i = 0; i < count; ++i)
+            if (_adapter.Extensions.Video.Queue)
             {
-                queueProps[i] = new();
-
-                if (PhysicalDeviceExtensions.Video.Queue)
-                {
-                    queueProps[i].pNext = &queueFamiliesVideo[i];
-                    queueFamiliesVideo[i] = new();
-                }
+                queueProps[i].pNext = &queueFamiliesVideo[i];
+                queueFamiliesVideo[i] = new();
             }
+        }
 
-            instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(
-                _physicalDevice,
-                &count,
-                queueProps
-                );
-            int queueFamilyCount = (int)count;
+        instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(
+            _physicalDevice,
+            &count,
+            queueProps
+            );
+        int queueFamilyCount = (int)count;
 
-            VkSurfaceKHR surface = VkSurfaceKHR.Null;
+        VkSurfaceKHR surface = VkSurfaceKHR.Null;
 
-            uint* offsets = stackalloc uint[queueFamilyCount];
-            float* priorities = stackalloc float[queueFamilyCount * (int)QueueType.Count];
-            bool FindVacantQueue(VkQueueFlags required, VkQueueFlags ignored, float priority, ref uint family, ref uint index)
-            {
-                for (uint i = 0; i < queueFamilyCount; i++)
-                {
-                    // Skip queues with undesired flags
-                    if ((queueProps[i].queueFamilyProperties.queueFlags & ignored) != 0)
-                        continue;
-
-                    // Check for present on graphics queues
-                    if ((required & VkQueueFlags.Graphics) != 0 && surface != VkSurfaceKHR.Null)
-                    {
-                        VkBool32 presentSupport = false;
-                        if (surface != VkSurfaceKHR.Null)
-                        {
-                            if (instanceApi.vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &presentSupport) != VkResult.Success)
-                                continue;
-                        }
-                        else
-                        {
-                            if (OperatingSystem.IsWindows())
-                            {
-                                presentSupport = instanceApi.vkGetPhysicalDeviceWin32PresentationSupportKHR(_physicalDevice, i);
-                            }
-                            else if (OperatingSystem.IsAndroid())
-                            {
-                                // All Android queues surfaces support present.
-                                presentSupport = true;
-                            }
-                        }
-
-                        if (!presentSupport)
-                            continue;
-                    }
-
-                    if ((required & VkQueueFlags.VideoDecodeKHR) != 0)
-                    {
-                        VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
-
-                        if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH264) == 0 &&
-                            (videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH265) == 0)
-                        {
-                            continue;
-                        }
-                    }
-
-                    if ((required & VkQueueFlags.VideoEncodeKHR) != 0)
-                    {
-                        VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
-
-                        if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH264) == 0 &&
-                            (videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH265) == 0)
-                        {
-                            continue;
-                        }
-                    }
-
-
-                    if (queueProps[i].queueFamilyProperties.queueCount > 0 &&
-                        (queueProps[i].queueFamilyProperties.queueFlags & required) == required)
-                    {
-                        family = i;
-                        queueProps[i].queueFamilyProperties.queueCount--;
-                        index = offsets[i]++;
-                        priorities[i * (int)QueueType.Count + index] = priority;
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            // Find graphics queue
-            if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute,
-                VkQueueFlags.None, 0.5f,
-                ref _queueFamilyIndices[(int)QueueType.Graphics],
-                ref _queueIndices[(int)QueueType.Graphics]))
-            {
-                throw new GraphicsException("Vulkan: Could not find graphics queue with compute and present");
-            }
-
-            // Prefer another graphics queue since we can do async graphics that way.
-            // The compute queue is to be treated as high priority since we also do async graphics on it.
-            if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]) &&
-                !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]))
-            {
-                _queueFamilyIndices[(int)QueueType.Compute] = _queueFamilyIndices[(int)QueueType.Graphics];
-                _queueIndices[(int)QueueType.Compute] = _queueIndices[(int)QueueType.Graphics];
-            }
-
-            // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
-            // If not, fallback to a dedicated compute queue.
-            // Finally, fallback to same queue as compute.
-            if (!FindVacantQueue(VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]) &&
-                !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]))
-            {
-                _queueFamilyIndices[(int)QueueType.Copy] = _queueFamilyIndices[(int)QueueType.Compute];
-                _queueIndices[(int)QueueType.Copy] = _queueIndices[(int)QueueType.Compute];
-            }
-
-            if (PhysicalDeviceExtensions.Video.Queue)
-            {
-                if (!FindVacantQueue(VkQueueFlags.VideoDecodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoDecode], ref _queueIndices[(int)QueueType.VideoDecode]))
-                {
-                    _queueFamilyIndices[(int)QueueType.VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
-                    _queueIndices[(int)QueueType.VideoDecode] = uint.MaxValue;
-                }
-
-                if (!FindVacantQueue(VkQueueFlags.VideoEncodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoEncode], ref _queueIndices[(int)QueueType.VideoEncode]))
-                {
-                    _queueFamilyIndices[(int)QueueType.VideoEncode] = VK_QUEUE_FAMILY_IGNORED;
-                    _queueIndices[(int)QueueType.VideoEncode] = uint.MaxValue;
-                }
-            }
-
-            uint queueCreateInfosCount = 0u;
-            VkDeviceQueueCreateInfo* queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[queueFamilyCount];
+        uint* offsets = stackalloc uint[queueFamilyCount];
+        float* priorities = stackalloc float[queueFamilyCount * (int)QueueType.Count];
+        bool FindVacantQueue(VkQueueFlags required, VkQueueFlags ignored, float priority, ref uint family, ref uint index)
+        {
             for (uint i = 0; i < queueFamilyCount; i++)
             {
-                if (offsets[i] == 0)
+                // Skip queues with undesired flags
+                if ((queueProps[i].queueFamilyProperties.queueFlags & ignored) != 0)
                     continue;
 
-                VkDeviceQueueCreateInfo queueCreateInfo = new()
+                // Check for present on graphics queues
+                if ((required & VkQueueFlags.Graphics) != 0 && surface != VkSurfaceKHR.Null)
                 {
-                    queueFamilyIndex = i,
-                    queueCount = offsets[i],
-                    pQueuePriorities = &priorities[i * (int)QueueType.Count]
-                };
-                queueCreateInfos[queueCreateInfosCount] = queueCreateInfo;
-                queueCreateInfosCount++;
-
-                _queueCounts[i] = offsets[_queueFamilyIndices[i]];
-            }
-
-
-            using Utf8StringArray deviceExtensionNames = new(enabledDeviceExtensions);
-            VkPhysicalDeviceFeatures2 features2 = _adapter.Features2;
-
-            VkDeviceCreateInfo createInfo = new()
-            {
-                pNext = &features2,
-                queueCreateInfoCount = queueCreateInfosCount,
-                pQueueCreateInfos = queueCreateInfos,
-                enabledExtensionCount = deviceExtensionNames.Length,
-                ppEnabledExtensionNames = deviceExtensionNames,
-                pEnabledFeatures = null,
-            };
-
-            result = _adapter.VkGraphicsManager.InstanceApi.vkCreateDevice(
-                PhysicalDevice,
-                &createInfo,
-                null,
-                out _handle
-                );
-            if (result != VkResult.Success)
-            {
-                throw new GraphicsException($"Failed to create Vulkan Logical Device, {result}");
-            }
-
-            _deviceApi = GetApi(_adapter.VkGraphicsManager.Instance, _handle);
-
-#if DEBUG
-            Log.Info($"Enabled {createInfo.enabledExtensionCount} Device Extensions:");
-            for (uint i = 0; i < createInfo.enabledExtensionCount; ++i)
-            {
-                string extensionName = VkStringInterop.ConvertToManaged(createInfo.ppEnabledExtensionNames[i])!;
-                Log.Info($"\t{extensionName}");
-            }
-#endif
-
-            // Core in 1.1
-            VmaAllocatorCreateFlags allocatorFlags =
-                VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
-
-            if (PhysicalDeviceExtensions.MemoryBudget)
-            {
-                allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryBudget;
-            }
-
-            if (PhysicalDeviceExtensions.AMD_DeviceCoherentMemory)
-            {
-                allocatorFlags |= VmaAllocatorCreateFlags.AMDDeviceCoherentMemory;
-            }
-
-            if (PhysicalDeviceFeatures1_2.bufferDeviceAddress)
-            {
-                allocatorFlags |= VmaAllocatorCreateFlags.BufferDeviceAddress;
-            }
-
-            if (PhysicalDeviceExtensions.MemoryPriority)
-            {
-                allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryPriority;
-            }
-
-            //if (PhysicalDeviceProperties.properties.apiVersion < VkVersion.Version_1_3)
-            //{
-            //    if (maintenance4Features.maintenance4)
-            //    {
-            //        allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance4;
-            //    }
-            //}
-
-            if (PhysicalDeviceExtensions.Maintenance5)
-            {
-                allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance5;
-            }
-
-            VmaAllocatorCreateInfo allocatorCreateInfo = new()
-            {
-                physicalDevice = PhysicalDevice,
-                device = _handle,
-                instance = _adapter.VkGraphicsManager.Instance,
-                vulkanApiVersion = VkVersion.Version_1_3,
-                flags = allocatorFlags,
-            };
-            vmaCreateAllocator(in allocatorCreateInfo, out _allocator).CheckResult();
-
-            // Queues
-            for (int i = 0; i < (int)QueueType.Count; i++)
-            {
-                if (_queueFamilyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
-                {
-                    _queues[i] = new VulkanCommandQueue(this, (QueueType)i);
-                }
-            }
-
-            _copyAllocator = new(this);
-
-            // Create default null descriptors
-            {
-                VkBufferCreateInfo bufferInfo = new()
-                {
-                    flags = 0,
-                    size = 4,
-                    usage = VkBufferUsageFlags.UniformBuffer | VkBufferUsageFlags.UniformTexelBuffer | VkBufferUsageFlags.StorageTexelBuffer | VkBufferUsageFlags.StorageBuffer | VkBufferUsageFlags.VertexBuffer,
-                };
-
-                VmaAllocationCreateInfo allocInfo = new()
-                {
-                    preferredFlags = VkMemoryPropertyFlags.DeviceLocal
-                };
-                vmaCreateBuffer(_allocator, &bufferInfo, &allocInfo, out _nullBuffer, out _nullBufferAllocation).CheckResult();
-
-                VkBufferViewCreateInfo viewInfo = new()
-                {
-                    format = VkFormat.R32G32B32A32Sfloat,
-                    range = VK_WHOLE_SIZE,
-                    buffer = _nullBuffer
-                };
-                _deviceApi.vkCreateBufferView(_handle, &viewInfo, null, out _nullBufferView).CheckResult();
-
-                VkImageCreateInfo imageInfo = new();
-                imageInfo.extent.width = 1;
-                imageInfo.extent.height = 1;
-                imageInfo.extent.depth = 1;
-                imageInfo.format = VkFormat.R8G8B8A8Unorm;
-                imageInfo.arrayLayers = 1;
-                imageInfo.mipLevels = 1;
-                imageInfo.samples = VkSampleCountFlags.Count1;
-                imageInfo.initialLayout = VkImageLayout.Undefined;
-                imageInfo.tiling = VkImageTiling.Optimal;
-                imageInfo.usage = VkImageUsageFlags.Sampled | VkImageUsageFlags.Storage;
-                imageInfo.flags = 0;
-
-                allocInfo.usage = VmaMemoryUsage.GpuOnly;
-
-                imageInfo.imageType = VkImageType.Image1D;
-                vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage1D, out _nullImageAllocation1D).CheckResult();
-
-                imageInfo.imageType = VkImageType.Image2D;
-                imageInfo.flags = VkImageCreateFlags.CubeCompatible;
-                imageInfo.arrayLayers = 6;
-                vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage2D, out _nullImageAllocation2D).CheckResult();
-
-                imageInfo.imageType = VkImageType.Image3D;
-                imageInfo.flags = 0;
-                imageInfo.arrayLayers = 1;
-                vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage3D, out _nullImageAllocation3D).CheckResult();
-
-                // Transitions:
-                {
-                    VulkanUploadContext uploadContext = Allocate(0);
-
-                    if (Synchronization2)
+                    VkBool32 presentSupport = false;
+                    if (surface != VkSurfaceKHR.Null)
                     {
-                        VkImageMemoryBarrier2 barrier = new()
-                        {
-                            oldLayout = imageInfo.initialLayout,
-                            newLayout = VkImageLayout.General,
-                            srcStageMask = VkPipelineStageFlags2.Transfer,
-                            srcAccessMask = 0,
-                            dstStageMask = VkPipelineStageFlags2.AllCommands,
-                            dstAccessMask = VkAccessFlags2.ShaderRead | VkAccessFlags2.ShaderWrite,
-                            subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1),
-                            srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                            dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                            image = _nullImage1D,
-                        };
-
-                        VkDependencyInfo dependencyInfo = new()
-                        {
-                            imageMemoryBarrierCount = 1,
-                            pImageMemoryBarriers = &barrier
-                        };
-                        _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
-
-                        barrier.image = _nullImage2D;
-                        barrier.subresourceRange.layerCount = 6;
-                        _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
-
-                        barrier.image = _nullImage3D;
-                        barrier.subresourceRange.layerCount = 1;
-                        _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+                        if (instanceApi.vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &presentSupport) != VkResult.Success)
+                            continue;
                     }
                     else
                     {
-                        VkImageMemoryBarrier barrier = new()
+                        if (OperatingSystem.IsWindows())
                         {
-                            oldLayout = imageInfo.initialLayout,
-                            newLayout = VkImageLayout.General,
-                            srcAccessMask = 0,
-                            dstAccessMask = VkAccessFlags.ShaderRead | VkAccessFlags.ShaderWrite,
-                            srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                            dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                            image = _nullImage1D,
-                            subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1),
-                        };
-
-                        _deviceApi.vkCmdPipelineBarrier(uploadContext.TransitionCommandBuffer,
-                            VkPipelineStageFlags.Transfer, VkPipelineStageFlags.AllCommands,
-                            0,
-                            0, null,
-                            0, null,
-                            1, &barrier);
-
-                        barrier.image = _nullImage2D;
-                        barrier.subresourceRange.layerCount = 6;
-                        _deviceApi.vkCmdPipelineBarrier(uploadContext.TransitionCommandBuffer,
-                            VkPipelineStageFlags.Transfer, VkPipelineStageFlags.AllCommands,
-                            0,
-                            0, null,
-                            0, null,
-                            1, &barrier);
-
-                        barrier.image = _nullImage3D;
-                        barrier.subresourceRange.layerCount = 1;
-                        _deviceApi.vkCmdPipelineBarrier(uploadContext.TransitionCommandBuffer,
-                            VkPipelineStageFlags.Transfer, VkPipelineStageFlags.AllCommands,
-                            0,
-                            0, null,
-                            0, null,
-                            1, &barrier);
+                            presentSupport = instanceApi.vkGetPhysicalDeviceWin32PresentationSupportKHR(_physicalDevice, i);
+                        }
+                        else if (OperatingSystem.IsAndroid())
+                        {
+                            // All Android queues surfaces support present.
+                            presentSupport = true;
+                        }
                     }
 
-                    Submit(in uploadContext);
+                    if (!presentSupport)
+                        continue;
                 }
 
-                VkImageViewCreateInfo imageViewInfo = new();
-                imageViewInfo.subresourceRange.aspectMask = VkImageAspectFlags.Color;
-                imageViewInfo.subresourceRange.baseArrayLayer = 0;
-                imageViewInfo.subresourceRange.layerCount = 1;
-                imageViewInfo.subresourceRange.baseMipLevel = 0;
-                imageViewInfo.subresourceRange.levelCount = 1;
-                imageViewInfo.format = VkFormat.R8G8B8A8Unorm;
-                imageViewInfo.image = _nullImage1D;
-                imageViewInfo.viewType = VkImageViewType.Image1D;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1D).CheckResult();
+                if ((required & VkQueueFlags.VideoDecodeKHR) != 0)
+                {
+                    VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
 
-                imageViewInfo.image = _nullImage1D;
-                imageViewInfo.viewType = VkImageViewType.Image1DArray;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1DArray).CheckResult();
+                    if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH264) == 0 &&
+                        (videoCodecOperations & VkVideoCodecOperationFlagsKHR.DecodeH265) == 0)
+                    {
+                        continue;
+                    }
+                }
 
-                imageViewInfo.image = _nullImage2D;
-                imageViewInfo.viewType = VkImageViewType.Image2D;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2D).CheckResult();
+                if ((required & VkQueueFlags.VideoEncodeKHR) != 0)
+                {
+                    VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[i].videoCodecOperations;
 
-                imageViewInfo.image = _nullImage2D;
-                imageViewInfo.viewType = VkImageViewType.Image2DArray;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2DArray).CheckResult();
+                    if ((videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH264) == 0 &&
+                        (videoCodecOperations & VkVideoCodecOperationFlagsKHR.EncodeH265) == 0)
+                    {
+                        continue;
+                    }
+                }
 
-                imageViewInfo.image = _nullImage2D;
-                imageViewInfo.viewType = VkImageViewType.ImageCube;
-                imageViewInfo.subresourceRange.layerCount = 6;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCube).CheckResult();
 
-                imageViewInfo.image = _nullImage2D;
-                imageViewInfo.viewType = VkImageViewType.ImageCubeArray;
-                imageViewInfo.subresourceRange.layerCount = 6;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCubeArray).CheckResult();
+                if (queueProps[i].queueFamilyProperties.queueCount > 0 &&
+                    (queueProps[i].queueFamilyProperties.queueFlags & required) == required)
+                {
+                    family = i;
+                    queueProps[i].queueFamilyProperties.queueCount--;
+                    index = offsets[i]++;
+                    priorities[i * (int)QueueType.Count + index] = priority;
+                    return true;
+                }
+            }
+            return false;
+        }
 
-                imageViewInfo.image = _nullImage3D;
-                imageViewInfo.subresourceRange.layerCount = 1;
-                imageViewInfo.viewType = VkImageViewType.Image3D;
-                _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).CheckResult();
+        // Find graphics queue
+        if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute,
+            VkQueueFlags.None, 0.5f,
+            ref _queueFamilyIndices[(int)QueueType.Graphics],
+            ref _queueIndices[(int)QueueType.Graphics]))
+        {
+            throw new GraphicsException("Vulkan: Could not find graphics queue with compute and present");
+        }
 
-                _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
+        // Prefer another graphics queue since we can do async graphics that way.
+        // The compute queue is to be treated as high priority since we also do async graphics on it.
+        if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]) &&
+            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]))
+        {
+            _queueFamilyIndices[(int)QueueType.Compute] = _queueFamilyIndices[(int)QueueType.Graphics];
+            _queueIndices[(int)QueueType.Compute] = _queueIndices[(int)QueueType.Graphics];
+        }
+
+        // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
+        // If not, fallback to a dedicated compute queue.
+        // Finally, fallback to same queue as compute.
+        if (!FindVacantQueue(VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]) &&
+            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]))
+        {
+            _queueFamilyIndices[(int)QueueType.Copy] = _queueFamilyIndices[(int)QueueType.Compute];
+            _queueIndices[(int)QueueType.Copy] = _queueIndices[(int)QueueType.Compute];
+        }
+
+        if (_adapter.Extensions.Video.Queue)
+        {
+            if (!FindVacantQueue(VkQueueFlags.VideoDecodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoDecode], ref _queueIndices[(int)QueueType.VideoDecode]))
+            {
+                _queueFamilyIndices[(int)QueueType.VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
+                _queueIndices[(int)QueueType.VideoDecode] = uint.MaxValue;
             }
 
-            SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
-            SupportsD32S8 = IsDepthStencilFormatSupported(VkFormat.D32SfloatS8Uint);
+            if (!FindVacantQueue(VkQueueFlags.VideoEncodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoEncode], ref _queueIndices[(int)QueueType.VideoEncode]))
+            {
+                _queueFamilyIndices[(int)QueueType.VideoEncode] = VK_QUEUE_FAMILY_IGNORED;
+                _queueIndices[(int)QueueType.VideoEncode] = uint.MaxValue;
+            }
+        }
 
-            Debug.Assert(SupportsD24S8 || SupportsD32S8);
+        uint queueCreateInfosCount = 0u;
+        VkDeviceQueueCreateInfo* queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[queueFamilyCount];
+        for (uint i = 0; i < queueFamilyCount; i++)
+        {
+            if (offsets[i] == 0)
+                continue;
 
-            //TimestampFrequency = (ulong)(1.0 / _properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
+            VkDeviceQueueCreateInfo queueCreateInfo = new()
+            {
+                queueFamilyIndex = i,
+                queueCount = offsets[i],
+                pQueuePriorities = &priorities[i * (int)QueueType.Count]
+            };
+            queueCreateInfos[queueCreateInfosCount] = queueCreateInfo;
+            queueCreateInfosCount++;
+
+            _queueCounts[i] = offsets[_queueFamilyIndices[i]];
+        }
+
+        UnsafeList<Utf8String> enabledDeviceExtensions = [];
+        enabledDeviceExtensions.Add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+        VkPhysicalDeviceFeatures2 features2 = _adapter.Features2;
+        VkPhysicalDeviceVulkan11Features features11 = _adapter.Features11;
+        VkPhysicalDeviceVulkan12Features features12 = _adapter.Features12;
+        VkPhysicalDeviceVulkan13Features features13 = _adapter.Features13;
+        VkPhysicalDeviceVulkan14Features features14 = _adapter.Features14;
+
+        VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
+        AddToFeatureChain(&features11);
+        AddToFeatureChain(&features12);
+        if (_adapter.ApiVersion >= VkVersion.Version_1_3)
+        {
+            AddToFeatureChain(&features13);
+        }
+
+        if (_adapter.ApiVersion >= VkVersion.Version_1_4)
+        {
+            AddToFeatureChain(&features14);
+        }
+
+        if (_adapter.Extensions.DepthClipEnable)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+
+            VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = _adapter.DepthClipEnableFeatures;
+            AddToFeatureChain(&depthClipEnableFeatures);
+        }
+
+        using Utf8StringArray deviceExtensionNames = new(enabledDeviceExtensions);
+        VkDeviceCreateInfo createInfo = new()
+        {
+            pNext = &features2,
+            queueCreateInfoCount = queueCreateInfosCount,
+            pQueueCreateInfos = queueCreateInfos,
+            enabledExtensionCount = deviceExtensionNames.Length,
+            ppEnabledExtensionNames = deviceExtensionNames,
+            pEnabledFeatures = null,
+        };
+
+        VkResult result = _adapter.VkGraphicsManager.InstanceApi.vkCreateDevice(
+            PhysicalDevice,
+            &createInfo,
+            null,
+            out _handle
+            );
+        if (result != VkResult.Success)
+        {
+            throw new GraphicsException($"Failed to create Vulkan Logical Device, {result}");
+        }
+
+        _deviceApi = GetApi(_adapter.VkGraphicsManager.Instance, _handle);
+
+#if DEBUG
+        Log.Info($"Enabled {createInfo.enabledExtensionCount} Device Extensions:");
+        for (uint i = 0; i < createInfo.enabledExtensionCount; ++i)
+        {
+            string extensionName = VkStringInterop.ConvertToManaged(createInfo.ppEnabledExtensionNames[i])!;
+            Log.Info($"\t{extensionName}");
+        }
+#endif
+
+        // Core in 1.1
+        VmaAllocatorCreateFlags allocatorFlags =
+            VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
+
+        if (_adapter.Extensions.MemoryBudget)
+        {
+            allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryBudget;
+        }
+
+        if (_adapter.Extensions.AMD_DeviceCoherentMemory)
+        {
+            allocatorFlags |= VmaAllocatorCreateFlags.AMDDeviceCoherentMemory;
+        }
+
+        if (_adapter.Features12.bufferDeviceAddress)
+        {
+            allocatorFlags |= VmaAllocatorCreateFlags.BufferDeviceAddress;
+        }
+
+        if (_adapter.Extensions.MemoryPriority)
+        {
+            allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryPriority;
+        }
+
+        if (_adapter.ApiVersion < VkVersion.Version_1_3)
+        {
+            if (_adapter.Maintenance4Features.maintenance4)
+            {
+                allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance4;
+            }
+        }
+
+        if (_adapter.Extensions.Maintenance5)
+        {
+            allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance5;
+        }
+
+        VmaAllocatorCreateInfo allocatorCreateInfo = new()
+        {
+            physicalDevice = PhysicalDevice,
+            device = _handle,
+            instance = _adapter.VkGraphicsManager.Instance,
+            vulkanApiVersion = VkVersion.Version_1_3,
+            flags = allocatorFlags,
+        };
+        vmaCreateAllocator(in allocatorCreateInfo, out _allocator).CheckResult();
+
+        // Queues
+        for (int i = 0; i < (int)QueueType.Count; i++)
+        {
+            if (_queueFamilyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
+            {
+                _queues[i] = new VulkanCommandQueue(this, (QueueType)i);
+            }
+        }
+
+        _copyAllocator = new(this);
+
+        // Create default null descriptors
+        {
+            VkBufferCreateInfo bufferInfo = new()
+            {
+                flags = 0,
+                size = 4,
+                usage = VkBufferUsageFlags.UniformBuffer | VkBufferUsageFlags.UniformTexelBuffer | VkBufferUsageFlags.StorageTexelBuffer | VkBufferUsageFlags.StorageBuffer | VkBufferUsageFlags.VertexBuffer,
+            };
+
+            VmaAllocationCreateInfo allocInfo = new()
+            {
+                preferredFlags = VkMemoryPropertyFlags.DeviceLocal
+            };
+            vmaCreateBuffer(_allocator, &bufferInfo, &allocInfo, out _nullBuffer, out _nullBufferAllocation).CheckResult();
+
+            VkBufferViewCreateInfo viewInfo = new()
+            {
+                format = VkFormat.R32G32B32A32Sfloat,
+                range = VK_WHOLE_SIZE,
+                buffer = _nullBuffer
+            };
+            _deviceApi.vkCreateBufferView(_handle, &viewInfo, null, out _nullBufferView).CheckResult();
+
+            VkImageCreateInfo imageInfo = new();
+            imageInfo.extent.width = 1;
+            imageInfo.extent.height = 1;
+            imageInfo.extent.depth = 1;
+            imageInfo.format = VkFormat.R8G8B8A8Unorm;
+            imageInfo.arrayLayers = 1;
+            imageInfo.mipLevels = 1;
+            imageInfo.samples = VkSampleCountFlags.Count1;
+            imageInfo.initialLayout = VkImageLayout.Undefined;
+            imageInfo.tiling = VkImageTiling.Optimal;
+            imageInfo.usage = VkImageUsageFlags.Sampled | VkImageUsageFlags.Storage;
+            imageInfo.flags = 0;
+
+            allocInfo.usage = VmaMemoryUsage.GpuOnly;
+
+            imageInfo.imageType = VkImageType.Image1D;
+            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage1D, out _nullImageAllocation1D).CheckResult();
+
+            imageInfo.imageType = VkImageType.Image2D;
+            imageInfo.flags = VkImageCreateFlags.CubeCompatible;
+            imageInfo.arrayLayers = 6;
+            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage2D, out _nullImageAllocation2D).CheckResult();
+
+            imageInfo.imageType = VkImageType.Image3D;
+            imageInfo.flags = 0;
+            imageInfo.arrayLayers = 1;
+            vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage3D, out _nullImageAllocation3D).CheckResult();
+
+            // Transitions:
+            {
+                VulkanUploadContext uploadContext = Allocate(0);
+
+                VkImageMemoryBarrier2 barrier = new()
+                {
+                    oldLayout = imageInfo.initialLayout,
+                    newLayout = VkImageLayout.General,
+                    srcStageMask = VkPipelineStageFlags2.Transfer,
+                    srcAccessMask = 0,
+                    dstStageMask = VkPipelineStageFlags2.AllCommands,
+                    dstAccessMask = VkAccessFlags2.ShaderRead | VkAccessFlags2.ShaderWrite,
+                    subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1),
+                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    image = _nullImage1D,
+                };
+
+                VkDependencyInfo dependencyInfo = new()
+                {
+                    imageMemoryBarrierCount = 1,
+                    pImageMemoryBarriers = &barrier
+                };
+                _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+
+                barrier.image = _nullImage2D;
+                barrier.subresourceRange.layerCount = 6;
+                _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+
+                barrier.image = _nullImage3D;
+                barrier.subresourceRange.layerCount = 1;
+                _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
+
+                Submit(in uploadContext);
+            }
+
+            VkImageViewCreateInfo imageViewInfo = new();
+            imageViewInfo.subresourceRange.aspectMask = VkImageAspectFlags.Color;
+            imageViewInfo.subresourceRange.baseArrayLayer = 0;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            imageViewInfo.subresourceRange.baseMipLevel = 0;
+            imageViewInfo.subresourceRange.levelCount = 1;
+            imageViewInfo.format = VkFormat.R8G8B8A8Unorm;
+            imageViewInfo.image = _nullImage1D;
+            imageViewInfo.viewType = VkImageViewType.Image1D;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1D).CheckResult();
+
+            imageViewInfo.image = _nullImage1D;
+            imageViewInfo.viewType = VkImageViewType.Image1DArray;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1DArray).CheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.Image2D;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2D).CheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.Image2DArray;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2DArray).CheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.ImageCube;
+            imageViewInfo.subresourceRange.layerCount = 6;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCube).CheckResult();
+
+            imageViewInfo.image = _nullImage2D;
+            imageViewInfo.viewType = VkImageViewType.ImageCubeArray;
+            imageViewInfo.subresourceRange.layerCount = 6;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCubeArray).CheckResult();
+
+            imageViewInfo.image = _nullImage3D;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            imageViewInfo.viewType = VkImageViewType.Image3D;
+            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).CheckResult();
+
+            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
+        }
+
+        TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
+
+        void AddToFeatureChain(void* next)
+        {
+            VkBaseOutStructure* n = (VkBaseOutStructure*)next;
+            featureChainCurrent->pNext = n;
+            featureChainCurrent = n;
         }
     }
 
@@ -508,25 +487,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public override ulong TimestampFrequency { get; }
 
     public VulkanGraphicsAdapter VkAdapter => _adapter;
-
-    public bool SupportsD24S8 { get; }
-    public bool SupportsD32S8 { get; }
-
-    public VulkanPhysicalDeviceExtensions PhysicalDeviceExtensions { get; }
-
-    public VkPhysicalDeviceFeatures2 PhysicalDeviceFeatures2 { get; }
-
-    public VkPhysicalDeviceVulkan12Features PhysicalDeviceFeatures1_2 { get; }
-    public VkPhysicalDeviceVulkan13Features PhysicalDeviceFeatures1_3 { get; }
-    //public VkPhysicalDeviceProperties2 PhysicalDeviceProperties => _properties2;
-    //public VkPhysicalDeviceFragmentShadingRateFeaturesKHR FragmentShadingRateFeatures => _fragmentShadingRateFeatures;
-    //public VkPhysicalDeviceFragmentShadingRatePropertiesKHR FragmentShadingRateProperties => _fragmentShadingRateProperties;
-
-    public bool DepthClipEnable { get; }
-    public bool DepthResolveMinMax { get; }
-    public bool StencilResolveMinMax { get; }
-    public bool DynamicRendering { get; }
-    public bool Synchronization2 { get; }
 
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
     public uint GraphicsFamily => _queueFamilyIndices[(int)QueueType.Graphics];
@@ -625,143 +585,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
     }
-
-    /// <inheritdoc />
-    public override bool QueryFeatureSupport(Feature feature)
-    {
-        switch (feature)
-        {
-            case Feature.Depth32FloatStencil8:
-                return SupportsD32S8;
-#if TODO
-            case Feature.TimestampQuery:
-                return PhysicalDeviceProperties.properties.limits.timestampComputeAndGraphics == true;
-
-            case Feature.PipelineStatisticsQuery:
-                return PhysicalDeviceFeatures2.features.pipelineStatisticsQuery == true;
-
-            case Feature.TextureCompressionBC:
-                return PhysicalDeviceFeatures2.features.textureCompressionBC == true;
-
-            case Feature.TextureCompressionETC2:
-                return PhysicalDeviceFeatures2.features.textureCompressionETC2 == true;
-
-            case Feature.TextureCompressionASTC:
-                return PhysicalDeviceFeatures2.features.textureCompressionASTC_LDR == true;
-
-            case Feature.TextureCompressionASTC_HDR:
-                return _textureCompressionASTC_HDR;
-
-            case Feature.IndirectFirstInstance:
-                return PhysicalDeviceFeatures2.features.drawIndirectFirstInstance == true;
-
-            case Feature.ShaderFloat16:
-                // VK_KHR_16bit_storage core in 1.1
-                // VK_KHR_shader_float16_int8 core in 1.2
-                return true;
-
-            case Feature.RG11B10UfloatRenderable:
-                _instanceApi.vkGetPhysicalDeviceFormatProperties(PhysicalDevice, VkFormat.B10G11R11UfloatPack32, out VkFormatProperties rg11b10Properties);
-                if ((rg11b10Properties.optimalTilingFeatures & (VkFormatFeatureFlags.ColorAttachment | VkFormatFeatureFlags.ColorAttachmentBlend)) != 0u)
-                {
-                    return true;
-                }
-
-                return false;
-
-            case Feature.BGRA8UnormStorage:
-                VkFormatProperties bgra8unormProperties;
-                _instanceApi.vkGetPhysicalDeviceFormatProperties(PhysicalDevice, VkFormat.B8G8R8A8Unorm, &bgra8unormProperties);
-                if ((bgra8unormProperties.optimalTilingFeatures & VkFormatFeatureFlags.StorageImage) != 0)
-                {
-                    return true;
-                }
-                return false;
-
-            case Feature.TessellationShader:
-                return PhysicalDeviceFeatures2.features.tessellationShader == true;
-
-            case Feature.DepthBoundsTest:
-                return PhysicalDeviceFeatures2.features.depthBounds == true;
-
-            case Feature.SamplerClampToBorder:
-                return true;
-
-            case Feature.SamplerMirrorClampToEdge:
-                return PhysicalDeviceFeatures1_2.samplerMirrorClampToEdge == true;
-
-            case Feature.SamplerMinMax:
-                return PhysicalDeviceFeatures1_2.samplerFilterMinmax == true;
-
-            case Feature.DepthResolveMinMax:
-                return DepthResolveMinMax;
-
-            case Feature.StencilResolveMinMax:
-                return StencilResolveMinMax;
-
-            case Feature.CacheCoherentUMA:
-                if (_memoryProperties2.memoryProperties.memoryHeapCount == 1u &&
-                    _memoryProperties2.memoryProperties.memoryHeaps[0].flags.HasFlag(VkMemoryHeapFlags.DeviceLocal))
-                {
-                    return true;
-                }
-
-                return false;
-
-            case Feature.Predication:
-                return _conditionalRenderingFeatures.conditionalRendering;
-
-            case Feature.DescriptorIndexing:
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.runtimeDescriptorArray);
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.descriptorBindingPartiallyBound);
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.descriptorBindingVariableDescriptorCount);
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.shaderSampledImageArrayNonUniformIndexing);
-                return PhysicalDeviceFeatures1_2.descriptorIndexing;
-
-            case Feature.VariableRateShading:
-                return _fragmentShadingRateFeatures.pipelineFragmentShadingRate;
-
-            case Feature.VariableRateShadingTier2:
-                return _fragmentShadingRateFeatures.attachmentFragmentShadingRate;
-
-            case Feature.RayTracing:
-                return PhysicalDeviceFeatures1_2.bufferDeviceAddress &&
-                    _accelerationStructureFeatures.accelerationStructure &&
-                    _rayTracingPipelineFeatures.rayTracingPipeline;
-
-            case Feature.RayTracingTier2:
-                return _raytracingQueryFeatures.rayQuery && QueryFeatureSupport(Feature.RayTracing);
-
-            case Feature.MeshShader:
-                return (_meshShaderFeatures.meshShader && _meshShaderFeatures.taskShader); 
-#endif
-        }
-
-        return false;
-    }
-
-    /// <inheritdoc />
-    public override bool QueryPixelFormatSupport(PixelFormat format)
-    {
-        // TODO:
-        return false;
-    }
-
-#if TODO
-    /// <inheritdoc />
-    public override bool QueryVertexFormatSupport(VertexFormat format)
-    {
-        VkFormat vkFormat = format.ToVk();
-        if (vkFormat == VkFormat.Undefined)
-            return false;
-
-        VkFormatProperties2 props = new();
-        vkGetPhysicalDeviceFormatProperties2(PhysicalDevice, vkFormat, &props);
-
-        // TODO:
-        return false;
-    } 
-#endif
 
     /// <inheritdoc />
     public override void WaitIdle()
@@ -921,7 +744,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     {
         if (!_samplerCache.TryGetValue(description, out VkSampler sampler))
         {
-            bool samplerMirrorClampToEdge = PhysicalDeviceFeatures1_2.samplerMirrorClampToEdge;
+            bool samplerMirrorClampToEdge = _adapter.Features12.samplerMirrorClampToEdge;
 
             // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSamplerCreateInfo.html
             VkSamplerCreateInfo createInfo = new()
@@ -938,10 +761,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             };
 
             ushort maxAnisotropy = description.MaxAnisotropy;
-            if (maxAnisotropy > 1 && PhysicalDeviceFeatures2.features.samplerAnisotropy == VkBool32.True)
+            if (maxAnisotropy > 1 && _adapter.Features2.features.samplerAnisotropy == VkBool32.True)
             {
                 createInfo.anisotropyEnable = true;
-                //createInfo.maxAnisotropy = Math.Min(maxAnisotropy, _properties2.properties.limits.maxSamplerAnisotropy);
+                createInfo.maxAnisotropy = Math.Min(maxAnisotropy, _adapter.Properties2.properties.limits.maxSamplerAnisotropy);
             }
             else
             {
@@ -1043,33 +866,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public override RenderContext BeginRenderContext(string? label = null)
     {
         return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
-    }
-
-    public bool IsDepthStencilFormatSupported(VkFormat format)
-    {
-        Debug.Assert(format == VkFormat.D16UnormS8Uint || format == VkFormat.D24UnormS8Uint || format == VkFormat.D32SfloatS8Uint || format == VkFormat.S8Uint);
-        _adapter.VkGraphicsManager.InstanceApi.vkGetPhysicalDeviceFormatProperties(
-            PhysicalDevice,
-            format,
-            out VkFormatProperties properties
-            );
-        return (properties.optimalTilingFeatures & VkFormatFeatureFlags.DepthStencilAttachment) != 0;
-    }
-
-    public VkFormat ToVkFormat(PixelFormat format)
-    {
-        //if (format == PixelFormat.Stencil8 && !SupportsS8)
-        //{
-        //    return VkFormat.D24UnormS8Uint;
-        //}
-
-        if (format == PixelFormat.Depth24UnormStencil8 && !SupportsD24S8)
-        {
-            return VkFormat.D32SfloatS8Uint;
-        }
-
-        VkFormat vkFormat = VulkanUtils.ToVkFormat(format);
-        return vkFormat;
     }
 
     public void SetObjectName(VkObjectType objectType, ulong objectHandle, string? name = default)

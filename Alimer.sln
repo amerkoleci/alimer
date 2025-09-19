@@ -35,8 +35,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Samples", "samples\A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Engine", "src\Alimer.Engine\Alimer.Engine.csproj", "{17287A65-E7C9-4615-82F1-0B67B5D69AE8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Graphics.Tests", "tests\Alimer.Graphics.Tests\Alimer.Graphics.Tests.csproj", "{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Shaders", "src\assets\Alimer.Shaders\Alimer.Shaders.csproj", "{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Assets", "src\assets\Alimer.Assets\Alimer.Assets.csproj", "{A80A537D-096C-4916-9222-0F65FBFD64A8}"
@@ -56,6 +54,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.ShaderCompiler", "src\assets\Alimer.ShaderCompiler\Alimer.ShaderCompiler.csproj", "{40A434AE-8653-4F40-B096-3B620DD092A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alimer.Native", "src\Alimer.Native\Alimer.Native.csproj", "{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alimer.SourceGenerators", "src\Alimer.SourceGenerators\Alimer.SourceGenerators.csproj", "{204EAB07-3C47-CB59-C39E-32C6D5BDEAB9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -79,10 +79,6 @@ Global
 		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -123,6 +119,10 @@ Global
 		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9A73BF6-EBAB-4585-AD73-B3B6A496C3BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{204EAB07-3C47-CB59-C39E-32C6D5BDEAB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{204EAB07-3C47-CB59-C39E-32C6D5BDEAB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{204EAB07-3C47-CB59-C39E-32C6D5BDEAB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{204EAB07-3C47-CB59-C39E-32C6D5BDEAB9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -130,7 +130,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{F797B201-801E-4786-9C7E-C5B9929BCD57} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
 		{351AA2B8-1343-49BF-9E34-DECB218C8505} = {446FAFB5-D0FC-4A98-BEDF-7967B7C200E0}
-		{326EA4B1-635A-492B-B9DA-B8D37DD3B63B} = {3A53E2F8-A5FB-401A-AAA4-0845842B3614}
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08} = {6E75A307-8EA0-441A-9882-967B5048E707}
 		{A80A537D-096C-4916-9222-0F65FBFD64A8} = {6E75A307-8EA0-441A-9882-967B5048E707}
 		{23D2739E-5B8A-406B-A6D7-B1DB939B12E7} = {922968E0-A70B-4E09-BF72-5DB37F5936AE}

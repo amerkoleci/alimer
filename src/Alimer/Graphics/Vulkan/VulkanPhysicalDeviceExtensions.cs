@@ -20,6 +20,11 @@ internal struct VulkanPhysicalDeviceVideoExtensions
 
 internal struct VulkanPhysicalDeviceExtensions
 {
+    // Core in 1.4
+    public bool Maintenance5;
+    public bool Maintenance6;
+    public bool PushDescriptor;
+
     // Core in 1.3
     public bool Maintenance4;
     public bool DynamicRendering;
@@ -37,7 +42,6 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool AMD_DeviceCoherentMemory;
     public bool MemoryPriority;
 
-    public bool Maintenance5;
     public bool ExternalMemory;
     public bool ExternalSemaphore;
     public bool ExternalFence;
@@ -241,11 +245,19 @@ internal struct VulkanPhysicalDeviceExtensions
             }
         }
 
-        VkPhysicalDeviceProperties gpuProps;
-        api.vkGetPhysicalDeviceProperties(physicalDevice, &gpuProps);
+        VkPhysicalDeviceProperties2 properties2 = new();
+        api.vkGetPhysicalDeviceProperties2(physicalDevice, &properties2);
+
+        // Core 1.4
+        if (properties2.properties.apiVersion >= VkVersion.Version_1_4)
+        {
+            extensions.Maintenance5 = true;
+            extensions.Maintenance6 = true;
+            extensions.PushDescriptor = true;
+        }
 
         // Core 1.3
-        if (gpuProps.apiVersion >= VkVersion.Version_1_3)
+        if (properties2.properties.apiVersion >= VkVersion.Version_1_3)
         {
             extensions.Maintenance4 = true;
             extensions.DynamicRendering = true;

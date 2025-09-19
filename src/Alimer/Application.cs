@@ -58,6 +58,8 @@ public abstract class Application : DisposableObject, IApplication
         AudioDeviceOptions audioOptions = new();
         AudioDevice = AudioDevice.Create(in audioOptions);
 
+        _services.AddService(GraphicsManager);
+        _services.AddService(GraphicsAdapter);
         _services.AddService(GraphicsDevice);
         _services.AddService(AudioDevice);
         _services.AddService(MainWindow);

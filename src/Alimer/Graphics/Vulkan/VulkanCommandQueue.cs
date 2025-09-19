@@ -97,14 +97,6 @@ internal unsafe class VulkanCommandQueue : IDisposable
     {
         _presentSwapChains.Add(swapChain);
         _submitSignalSemaphores.Add(swapChain.ReleaseSemaphore);
-
-        if (Device.PhysicalDeviceFeatures1_3.synchronization2 == true)
-        {
-        }
-        else
-        {
-
-        }
     }
 
     public void Submit(VkFence fence)
@@ -114,7 +106,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
         lock (LockObject)
         {
-            if (Device.PhysicalDeviceFeatures1_3.synchronization2 == true)
+            if (Device.VkAdapter.Features13.synchronization2 == true)
             {
                 uint waitSemaphoreInfoCount = (uint)_presentSwapChains.Count;
                 uint signalSemaphoreInfoCount = (uint)_presentSwapChains.Count;

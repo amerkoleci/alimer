@@ -707,19 +707,5 @@ internal static unsafe class VulkanUtils
         return new ResourceStateMapping(resultState, resultStageFlags, resultAccessMask, resultImageLayout);
     }
 
-    public static ResourceStateMappingLegacy ConvertResourceStateLegacy(ResourceStates state)
-    {
-        ResourceStateMapping mapping = ConvertResourceState(state);
-
-        // It's safe to cast vk::AccessFlags2 -> vk::AccessFlags and vk::PipelineStageFlags2 -> vk::PipelineStageFlags (as long as the enum exist in both versions!),
-        // synchronization2 spec says: "The new flags are identical to the old values within the 32-bit range, with new stages and bits beyond that."
-        // The below stages are exclustive to synchronization2
-        Debug.Assert((mapping.StageFlags & VkPipelineStageFlags2.MicromapBuildEXT) != VkPipelineStageFlags2.MicromapBuildEXT);
-        Debug.Assert((mapping.AccessMask & VkAccessFlags2.MicromapWriteEXT) != VkAccessFlags2.MicromapWriteEXT);
-
-        return new ResourceStateMappingLegacy(mapping.State, (VkPipelineStageFlags)mapping.StageFlags, (VkAccessFlags)mapping.AccessMask, mapping.ImageLayout);
-    }
-
     public readonly record struct ResourceStateMapping(ResourceStates State, VkPipelineStageFlags2 StageFlags, VkAccessFlags2 AccessMask, VkImageLayout ImageLayout);
-    public readonly record struct ResourceStateMappingLegacy(ResourceStates State, VkPipelineStageFlags StageFlags, VkAccessFlags AccessMask, VkImageLayout ImageLayout);
 }

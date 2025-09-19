@@ -7,25 +7,30 @@ public abstract class GraphicsDeviceTestBase : IDisposable
 {
     public  GraphicsBackendType BackendType { get; }
 
-    public GraphicsDevice GraphicsDevice { get; }
+    public GraphicsManager Manager { get; }
+    public GraphicsAdapter Adapter { get; }
+    public GraphicsDevice Device { get; }
 
     protected GraphicsDeviceTestBase(GraphicsBackendType backendType)
     {
         BackendType = backendType;
-        GraphicsDeviceDescription description = new()
+
+        Manager = GraphicsManager.Create(new GraphicsManagerOptions
         {
             PreferredBackend = BackendType,
 #if DEBUG
-            ValidationMode = ValidationMode.Enabled
+            ValidationMode = GraphicsValidationMode.Enabled
 #endif
-        };
+        });
+        Adapter = Manager.GetBestAdapter();
 
-        GraphicsDevice = GraphicsDevice.CreateDefault(in description);
+        Device = Adapter.CreateDevice();
     }
 
     public void Dispose()
     {
-        GraphicsDevice.WaitIdle();
-        GraphicsDevice.Dispose();
+        Device.WaitIdle();
+        Device.Dispose();
+        Manager.Dispose();
     }
 }

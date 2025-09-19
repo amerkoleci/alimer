@@ -143,7 +143,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
 
             HRESULT hr = D3DX12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
-                device.D3D12Features.RootSignatureHighestVersion,
+                device.DxAdapter.Features.RootSignatureHighestVersion,
                 rootSignatureBlob.GetAddressOf(),
                 rootSignatureErrorBlob.GetAddressOf());
             if (hr.FAILED)

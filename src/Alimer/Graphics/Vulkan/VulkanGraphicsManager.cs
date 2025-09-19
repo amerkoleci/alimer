@@ -255,12 +255,23 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         List<VulkanGraphicsAdapter> adapters = [];
         for (int i = 0; i < adapterCount; i++)
         {
-            VulkanGraphicsAdapter adapter = new(this, physicalDevices[i]);
-            if (!adapter.IsSuitable)
+            VkPhysicalDevice physicalDevice = physicalDevices[i];
+
+            // We require minimum 1.2
+            VkPhysicalDeviceProperties2 properties = new();
+            _instanceApi.vkGetPhysicalDeviceProperties2(physicalDevice, &properties);
+            if (properties.properties.apiVersion < VkVersion.Version_1_2)
             {
                 continue;
             }
 
+            VulkanPhysicalDeviceExtensions extensions = VulkanPhysicalDeviceExtensions.Query(_instanceApi, physicalDevice);
+            if (!extensions.Swapchain)
+            {
+                continue;
+            }
+
+            VulkanGraphicsAdapter adapter = new(this, in physicalDevice, in extensions);
             adapters.Add(adapter);
         }
 

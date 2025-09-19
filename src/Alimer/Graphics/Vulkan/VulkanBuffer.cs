@@ -23,6 +23,8 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     {
         _device = device;
 
+        bool needBufferDeviceAddress = false;
+
         VkBufferCreateInfo createInfo = new()
         {
             flags = 0,
@@ -33,11 +35,13 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         if ((description.Usage & BufferUsage.Vertex) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.VertexBuffer;
+            needBufferDeviceAddress = true;
         }
 
         if ((description.Usage & BufferUsage.Index) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.IndexBuffer;
+            needBufferDeviceAddress = true;
         }
 
         if ((description.Usage & BufferUsage.Constant) != 0)
@@ -59,26 +63,27 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         if ((description.Usage & BufferUsage.Indirect) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.IndirectBuffer;
+            needBufferDeviceAddress = true;
         }
 
-        if ((description.Usage & BufferUsage.Predication) != 0 &&
-            device.QueryFeatureSupport(Feature.Predication))
+        if ((description.Usage & BufferUsage.Predication) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.ConditionalRenderingEXT;
         }
 
-        if ((description.Usage & BufferUsage.RayTracing) != 0 &&
-            device.QueryFeatureSupport(Feature.RayTracing))
+        if ((description.Usage & BufferUsage.RayTracing) != 0)
         {
             createInfo.usage |= VkBufferUsageFlags.AccelerationStructureStorageKHR;
             createInfo.usage |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyKHR;
             createInfo.usage |= VkBufferUsageFlags.ShaderBindingTableKHR;
+            needBufferDeviceAddress = true;
         }
 
         // VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT require bufferDeviceAddress enabled.
-        if (device.PhysicalDeviceFeatures1_2.bufferDeviceAddress == true)
+        if (needBufferDeviceAddress
+            && device.VkAdapter.Features12.bufferDeviceAddress)
         {
-            createInfo.usage |= VkBufferUsageFlags.ShaderDeviceAddress;
+            createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
 
         uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
@@ -171,89 +176,64 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                     &copyRegion
                 );
 
-                if (device.PhysicalDeviceFeatures1_3.synchronization2)
+                VkBufferMemoryBarrier2 barrier = new()
                 {
-                    VkBufferMemoryBarrier2 barrier = new()
-                    {
-                        buffer = _handle,
-                        srcStageMask = VkPipelineStageFlags2.Transfer,
-                        dstStageMask = VkPipelineStageFlags2.AllCommands,
-                        srcAccessMask = VkAccessFlags2.TransferWrite,
-                        dstAccessMask = VkAccessFlags2.MemoryRead | VkAccessFlags2.MemoryWrite,
-                        size = VK_WHOLE_SIZE,
-                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
-                    };
+                    buffer = _handle,
+                    srcStageMask = VkPipelineStageFlags2.Transfer,
+                    dstStageMask = VkPipelineStageFlags2.AllCommands,
+                    srcAccessMask = VkAccessFlags2.TransferWrite,
+                    dstAccessMask = VkAccessFlags2.MemoryRead | VkAccessFlags2.MemoryWrite,
+                    size = VK_WHOLE_SIZE,
+                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
+                };
 
-                    if ((description.Usage & BufferUsage.Vertex) != 0)
-                    {
-                        barrier.dstStageMask |= VkPipelineStageFlags2.VertexAttributeInput;
-                        barrier.dstAccessMask |= VkAccessFlags2.VertexAttributeRead;
-                    }
-
-                    if ((description.Usage & BufferUsage.Index) != 0)
-                    {
-                        barrier.dstStageMask |= VkPipelineStageFlags2.IndexInput;
-                        barrier.dstAccessMask |= VkAccessFlags2.IndexRead;
-                    }
-
-                    if ((description.Usage & BufferUsage.Constant) != 0)
-                    {
-                        barrier.dstAccessMask |= VkAccessFlags2.UniformRead;
-                    }
-
-                    if ((description.Usage & BufferUsage.ShaderRead) != 0)
-                    {
-                        barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
-                    }
-                    if ((description.Usage & BufferUsage.ShaderWrite) != 0)
-                    {
-                        barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
-                        barrier.dstAccessMask |= VkAccessFlags2.ShaderWrite;
-                    }
-                    if ((description.Usage & BufferUsage.Indirect) != 0)
-                    {
-                        barrier.dstAccessMask |= VkAccessFlags2.IndirectCommandRead;
-                    }
-                    if ((description.Usage & BufferUsage.RayTracing) != 0)
-                    {
-                        barrier.dstAccessMask |= VkAccessFlags2.AccelerationStructureReadKHR;
-                    }
-                    //if ((description.Usage & BufferUsage.VideoDecode) != 0)
-                    //{
-                    //    barrier.dstAccessMask |= VkAccessFlags2.VideoDecodeReadKHR;
-                    //}
-
-                    VkDependencyInfo dependencyInfo = new()
-                    {
-                        bufferMemoryBarrierCount = 1,
-                        pBufferMemoryBarriers = &barrier
-                    };
-
-                    _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
-                }
-                else
+                if ((description.Usage & BufferUsage.Vertex) != 0)
                 {
-                    VkBufferMemoryBarrier barrier = new()
-                    {
-                        srcAccessMask = VkAccessFlags.TransferWrite,
-                        dstAccessMask = VkAccessFlags.MemoryRead | VkAccessFlags.MemoryWrite,
-                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        buffer = _handle,
-                        offset = 0,
-                        size = VK_WHOLE_SIZE
-                    };
-
-                    _device.DeviceApi.vkCmdPipelineBarrier(context.TransitionCommandBuffer,
-                        VkPipelineStageFlags.Transfer,
-                        VkPipelineStageFlags.AllCommands,
-                        0,
-                        0, null,
-                        1, &barrier,
-                        0, null
-                    );
+                    barrier.dstStageMask |= VkPipelineStageFlags2.VertexAttributeInput;
+                    barrier.dstAccessMask |= VkAccessFlags2.VertexAttributeRead;
                 }
+
+                if ((description.Usage & BufferUsage.Index) != 0)
+                {
+                    barrier.dstStageMask |= VkPipelineStageFlags2.IndexInput;
+                    barrier.dstAccessMask |= VkAccessFlags2.IndexRead;
+                }
+
+                if ((description.Usage & BufferUsage.Constant) != 0)
+                {
+                    barrier.dstAccessMask |= VkAccessFlags2.UniformRead;
+                }
+
+                if ((description.Usage & BufferUsage.ShaderRead) != 0)
+                {
+                    barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
+                }
+                if ((description.Usage & BufferUsage.ShaderWrite) != 0)
+                {
+                    barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
+                    barrier.dstAccessMask |= VkAccessFlags2.ShaderWrite;
+                }
+                if ((description.Usage & BufferUsage.Indirect) != 0)
+                {
+                    barrier.dstAccessMask |= VkAccessFlags2.IndirectCommandRead;
+                }
+                if ((description.Usage & BufferUsage.RayTracing) != 0)
+                {
+                    barrier.dstAccessMask |= VkAccessFlags2.AccelerationStructureReadKHR;
+                }
+                //if ((description.Usage & BufferUsage.VideoDecode) != 0)
+                //{
+                //    barrier.dstAccessMask |= VkAccessFlags2.VideoDecodeReadKHR;
+                //}
+
+                VkDependencyInfo dependencyInfo = new()
+                {
+                    bufferMemoryBarrierCount = 1,
+                    pBufferMemoryBarriers = &barrier
+                };
+
+                _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
 
                 device.Submit(in context);
             }

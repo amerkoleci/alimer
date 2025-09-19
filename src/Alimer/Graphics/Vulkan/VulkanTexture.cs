@@ -21,7 +21,7 @@ internal unsafe class VulkanTexture : Texture
         : base(descriptor)
     {
         _device = device;
-        VkFormat = device.ToVkFormat(descriptor.Format);
+        VkFormat = device.VkAdapter.ToVkFormat(descriptor.Format);
         bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
         VkImageCreateFlags flags = VkImageCreateFlags.None;
         VkImageType imageType = descriptor.Dimension.ToVk();
@@ -280,120 +280,18 @@ internal unsafe class VulkanTexture : Texture
 
             if (context.IsValid)
             {
-                if (_device.Synchronization2)
-                {
-                    VkImageMemoryBarrier2 barrier = new()
-                    {
-                        srcStageMask = VkPipelineStageFlags2.AllCommands,
-                        srcAccessMask = 0,
-                        dstStageMask = VkPipelineStageFlags2.Transfer,
-                        dstAccessMask = VkAccessFlags2.TransferWrite,
-                        oldLayout = imageInfo.initialLayout,
-                        newLayout = VkImageLayout.TransferDstOptimal,
-                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        image = Handle,
-                        subresourceRange = subresourceRange,
-                    };
-
-                    VkDependencyInfo dependencyInfo = new()
-                    {
-                        imageMemoryBarrierCount = 1,
-                        pImageMemoryBarriers = &barrier
-                    };
-
-                    _device.DeviceApi.vkCmdPipelineBarrier2(context.TransferCommandBuffer, &dependencyInfo);
-
-                    _device.DeviceApi.vkCmdCopyBufferToImage(
-                        context.TransferCommandBuffer,
-                        context.UploadBuffer!.Handle,
-                        Handle,
-                        VkImageLayout.TransferDstOptimal,
-                        copyRegions.ToArray()
-                    );
-
-                    ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
-                    Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
-
-                    GraphicsUtilities.Swap(ref barrier.srcStageMask, ref barrier.dstStageMask);
-                    barrier.srcAccessMask = VkAccessFlags2.TransferWrite;
-                    barrier.dstAccessMask = mappingAfter.AccessMask;
-                    barrier.oldLayout = VkImageLayout.TransferDstOptimal;
-                    barrier.newLayout = mappingAfter.ImageLayout;
-                    _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
-                }
-                else
-                {
-                    VkImageMemoryBarrier barrier = new()
-                    {
-                        srcAccessMask = 0,
-                        dstAccessMask = VkAccessFlags.TransferWrite,
-                        oldLayout = imageInfo.initialLayout,
-                        newLayout = VkImageLayout.TransferDstOptimal,
-                        srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        image = Handle,
-                        subresourceRange = subresourceRange
-                    };
-
-                    _device.DeviceApi.vkCmdPipelineBarrier(context.TransferCommandBuffer,
-                        VkPipelineStageFlags.AllCommands,
-                        VkPipelineStageFlags.Transfer,
-                        0,
-                        0, null,
-                        0, null,
-                        1, &barrier
-                    );
-
-                    _device.DeviceApi.vkCmdCopyBufferToImage(
-                        context.TransferCommandBuffer,
-                        context.UploadBuffer!.Handle,
-                        Handle,
-                        VkImageLayout.TransferDstOptimal,
-                        copyRegions.ToArray()
-                    );
-
-                    ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(descriptor.InitialLayout);
-                    Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
-
-                    barrier.srcAccessMask = VkAccessFlags.TransferWrite;
-                    barrier.dstAccessMask = mappingAfter.AccessMask;
-                    barrier.oldLayout = VkImageLayout.TransferDstOptimal;
-                    barrier.newLayout = mappingAfter.ImageLayout;
-
-                    _device.DeviceApi.vkCmdPipelineBarrier(context.TransitionCommandBuffer,
-                        VkPipelineStageFlags.Transfer,
-                        VkPipelineStageFlags.AllCommands,
-                        0,
-                        0, null,
-                        0, null,
-                        1, &barrier
-                    );
-                }
-
-                device.Submit(in context);
-            }
-        }
-        else if (descriptor.InitialLayout != ResourceStates.Unknown && Handle.IsNotNull)
-        {
-            VulkanUploadContext context = _device.Allocate(0);
-            if (_device.Synchronization2)
-            {
-                ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
-                Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
-
                 VkImageMemoryBarrier2 barrier = new()
                 {
-                    srcStageMask = VkPipelineStageFlags2.Transfer,
+                    srcStageMask = VkPipelineStageFlags2.AllCommands,
                     srcAccessMask = 0,
-                    dstStageMask = VkPipelineStageFlags2.AllCommands,
-                    dstAccessMask = mappingAfter.AccessMask,
+                    dstStageMask = VkPipelineStageFlags2.Transfer,
+                    dstAccessMask = VkAccessFlags2.TransferWrite,
                     oldLayout = imageInfo.initialLayout,
-                    newLayout = mappingAfter.ImageLayout,
+                    newLayout = VkImageLayout.TransferDstOptimal,
                     srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     image = Handle,
-                    subresourceRange = subresourceRange
+                    subresourceRange = subresourceRange,
                 };
 
                 VkDependencyInfo dependencyInfo = new()
@@ -402,33 +300,56 @@ internal unsafe class VulkanTexture : Texture
                     pImageMemoryBarriers = &barrier
                 };
 
-                _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
-            }
-            else
-            {
-                ResourceStateMappingLegacy mappingAfter = ConvertResourceStateLegacy(descriptor.InitialLayout);
+                _device.DeviceApi.vkCmdPipelineBarrier2(context.TransferCommandBuffer, &dependencyInfo);
+
+                _device.DeviceApi.vkCmdCopyBufferToImage(
+                    context.TransferCommandBuffer,
+                    context.UploadBuffer!.Handle,
+                    Handle,
+                    VkImageLayout.TransferDstOptimal,
+                    copyRegions.ToArray()
+                );
+
+                ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
                 Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
 
-                VkImageMemoryBarrier barrier = new()
-                {
-                    srcAccessMask = 0u,
-                    dstAccessMask = mappingAfter.AccessMask,
-                    oldLayout = imageInfo.initialLayout,
-                    newLayout = mappingAfter.ImageLayout,
-                    srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    image = Handle,
-                    subresourceRange = subresourceRange
-                };
+                GraphicsUtilities.Swap(ref barrier.srcStageMask, ref barrier.dstStageMask);
+                barrier.srcAccessMask = VkAccessFlags2.TransferWrite;
+                barrier.dstAccessMask = mappingAfter.AccessMask;
+                barrier.oldLayout = VkImageLayout.TransferDstOptimal;
+                barrier.newLayout = mappingAfter.ImageLayout;
+                _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
 
-                _device.DeviceApi.vkCmdPipelineBarrier(context.TransitionCommandBuffer,
-                    VkPipelineStageFlags.Transfer,
-                    mappingAfter.StageFlags,
-                    0,
-                    0, null,
-                    0, null,
-                    1, &barrier);
+                device.Submit(in context);
             }
+        }
+        else if (descriptor.InitialLayout != ResourceStates.Unknown && Handle.IsNotNull)
+        {
+            VulkanUploadContext context = _device.Allocate(0);
+            ResourceStateMapping mappingAfter = ConvertResourceState(descriptor.InitialLayout);
+            Debug.Assert(mappingAfter.ImageLayout != VkImageLayout.Undefined);
+
+            VkImageMemoryBarrier2 barrier = new()
+            {
+                srcStageMask = VkPipelineStageFlags2.Transfer,
+                srcAccessMask = 0,
+                dstStageMask = VkPipelineStageFlags2.AllCommands,
+                dstAccessMask = mappingAfter.AccessMask,
+                oldLayout = imageInfo.initialLayout,
+                newLayout = mappingAfter.ImageLayout,
+                srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                image = Handle,
+                subresourceRange = subresourceRange
+            };
+
+            VkDependencyInfo dependencyInfo = new()
+            {
+                imageMemoryBarrierCount = 1,
+                pImageMemoryBarriers = &barrier
+            };
+
+            _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
 
             _device.Submit(in context);
         }
@@ -441,7 +362,7 @@ internal unsafe class VulkanTexture : Texture
     {
         _device = device;
         _handle = existingTexture;
-        VkFormat = device.ToVkFormat(descriptor.Format);
+        VkFormat = device.VkAdapter.ToVkFormat(descriptor.Format);
 
         if (!string.IsNullOrEmpty(descriptor.Label))
         {
