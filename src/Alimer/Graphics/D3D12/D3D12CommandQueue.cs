@@ -9,9 +9,9 @@ using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12CommandQueue : IDisposable
+internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
 {
-    private readonly D3D12GraphicsDevice _device;
+    private readonly QueueType _queueType;
     private readonly ComPtr<ID3D12CommandQueue> _handle;
     private readonly ComPtr<ID3D12Fence> _fence;
     private ulong _nextFenceValue;
@@ -20,14 +20,14 @@ internal unsafe class D3D12CommandQueue : IDisposable
     private readonly object _eventMutex = new();
 
     private uint _commandBufferCount = 0;
-    private readonly List<D3D12CommandBuffer> _commandBuffers = new();
-    private readonly List<D3D12SwapChain> _presentSwapChains = new();
+    private readonly List<D3D12CommandBuffer> _commandBuffers = [];
+    private readonly List<D3D12SwapChain> _presentSwapChains = [];
 
-    public D3D12CommandQueue(D3D12GraphicsDevice device, QueueType type)
+    public D3D12CommandQueue(D3D12GraphicsDevice device, QueueType queueType)
     {
-        _device = device;
-        QueueType = type;
-        CommandListType = type.ToD3D12();
+        D3DDevice = device;
+        _queueType = queueType;
+        CommandListType = queueType.ToD3D12();
 
         _nextFenceValue = (ulong)CommandListType << 56 | 1;
         _lastCompletedFenceValue = (ulong)CommandListType << 56;
@@ -48,12 +48,18 @@ internal unsafe class D3D12CommandQueue : IDisposable
         _fence = device.Handle->CreateFence(true);
         _fence.Get()->Signal(_lastCompletedFenceValue);
 
-        _handle.Get()->SetName($"{type}Queue");
-        _fence.Get()->SetName($"{type}Queue - Fence");
+        _handle.Get()->SetName($"{queueType}Queue");
+        _fence.Get()->SetName($"{queueType}Queue - Fence");
     }
 
-    public D3D12GraphicsDevice Device => _device;
-    public QueueType QueueType { get; }
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => D3DDevice;
+
+    /// <inheritdoc />
+    public override QueueType QueueType => _queueType;
+
+    public D3D12GraphicsDevice D3DDevice { get; }
     public D3D12_COMMAND_LIST_TYPE CommandListType { get; }
     public ID3D12CommandQueue* Handle => _handle;
 
@@ -84,7 +90,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
             commandBuffer = _commandBuffers[_commandBuffers.Count - 1];
         }
 
-        commandBuffer.Begin(_device.FrameIndex, label);
+        commandBuffer.Begin(D3DDevice.FrameIndex, label);
         return commandBuffer;
     }
 
@@ -111,7 +117,7 @@ internal unsafe class D3D12CommandQueue : IDisposable
 #endif
 
                     // Handle device lost
-                    _device.OnDeviceRemoved();
+                    D3DDevice.OnDeviceRemoved();
                 }
             }
         }

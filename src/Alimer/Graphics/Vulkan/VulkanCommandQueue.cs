@@ -8,30 +8,29 @@ using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanCommandQueue : IDisposable
+internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 {
-    public readonly VulkanGraphicsDevice Device;
-    public readonly QueueType QueueType;
+    private readonly QueueType _queueType;
     public readonly VkQueue Handle;
     public readonly object LockObject = new();
     private readonly VkSemaphore _semaphore = VkSemaphore.Null;
     private readonly VkFence[] _frameFences;
 
     private uint _commandBufferCount = 0;
-    private readonly List<VulkanCommandBuffer> _commandBuffers = new();
-    private readonly List<VkCommandBuffer> _submitCommandBuffers = new();
+    private readonly List<VulkanCommandBuffer> _commandBuffers = [];
+    private readonly List<VkCommandBuffer> _submitCommandBuffers = [];
 
-    private readonly List<VulkanSwapChain> _presentSwapChains = new();
-    private readonly List<VkSemaphore> _submitSignalSemaphores = new();
+    private readonly List<VulkanSwapChain> _presentSwapChains = [];
+    private readonly List<VkSemaphore> _submitSignalSemaphores = [];
 
     public VulkanCommandQueue(VulkanGraphicsDevice device, QueueType queueType)
     {
-        Device = device;
-        QueueType = queueType;
+        VkDevice = device;
+        _queueType = queueType;
 
         uint queueFamilyIndex = device.GetQueueFamily(queueType);
         uint queueIndex = device.GetQueueIndex(queueType);
-        Device.DeviceApi.vkGetDeviceQueue(device.Handle, queueFamilyIndex, queueIndex, out Handle);
+        device.DeviceApi.vkGetDeviceQueue(device.Handle, queueFamilyIndex, queueIndex, out Handle);
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo = new()
         {
@@ -46,25 +45,32 @@ internal unsafe class VulkanCommandQueue : IDisposable
             flags = 0
         };
 
-        Device.DeviceApi.vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
+        device.DeviceApi.vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
 
         _frameFences = new VkFence[MaxFramesInFlight];
         for (int frameIndex = 0; frameIndex < MaxFramesInFlight; ++frameIndex)
         {
-            Device.DeviceApi.vkCreateFence(device.Handle, out _frameFences[frameIndex]);
+            device.DeviceApi.vkCreateFence(device.Handle, out _frameFences[frameIndex]);
         }
     }
 
+    /// <inheritdoc />
+    public override GraphicsDevice Device => VkDevice;
+
+    /// <inheritdoc />
+    public override QueueType QueueType => _queueType;
+
+    public VulkanGraphicsDevice VkDevice { get; }
     public VkFence FrameFence => _frameFences[Device.FrameIndex];
 
     public void Dispose()
     {
         WaitIdle();
-        Device.DeviceApi.vkDestroySemaphore(Device.Handle, _semaphore);
+        VkDevice.DeviceApi.vkDestroySemaphore(VkDevice.Handle, _semaphore);
 
         for (int frameIndex = 0; frameIndex < _frameFences.Length; ++frameIndex)
         {
-            Device.DeviceApi.vkDestroyFence(Device.Handle, _frameFences[frameIndex]);
+            VkDevice.DeviceApi.vkDestroyFence(VkDevice.Handle, _frameFences[frameIndex]);
         }
 
         foreach (VulkanCommandBuffer commandBuffer in _commandBuffers)
@@ -83,12 +89,13 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
     public void WaitIdle()
     {
-        Device.DeviceApi.vkQueueWaitIdle(Handle);
+        VkDevice.DeviceApi.vkQueueWaitIdle(Handle);
     }
 
     public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
     {
-        Device.DeviceApi.vkEndCommandBuffer(commandBuffer).CheckResult();
+        vulkanCommandBuffer.CommitBarriers();
+        VkDevice.DeviceApi.vkEndCommandBuffer(commandBuffer).CheckResult();
 
         _submitCommandBuffers.Add(commandBuffer);
     }
@@ -106,58 +113,51 @@ internal unsafe class VulkanCommandQueue : IDisposable
 
         lock (LockObject)
         {
-            if (Device.VkAdapter.Features13.synchronization2 == true)
+            uint waitSemaphoreInfoCount = (uint)_presentSwapChains.Count;
+            uint signalSemaphoreInfoCount = (uint)_presentSwapChains.Count;
+            VkSemaphoreSubmitInfo* waitSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[_presentSwapChains.Count];
+            VkSemaphoreSubmitInfo* signalSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[_presentSwapChains.Count];
+
+            for (int i = 0; i < _presentSwapChains.Count; i++)
             {
-                uint waitSemaphoreInfoCount = (uint)_presentSwapChains.Count;
-                uint signalSemaphoreInfoCount = (uint)_presentSwapChains.Count;
-                VkSemaphoreSubmitInfo* waitSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[_presentSwapChains.Count];
-                VkSemaphoreSubmitInfo* signalSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[_presentSwapChains.Count];
-
-                for (int i = 0; i < _presentSwapChains.Count; i++)
+                waitSemaphoreInfos[i] = new()
                 {
-                    waitSemaphoreInfos[i] = new()
-                    {
-                        semaphore = _presentSwapChains[i].AcquireSemaphore,
-                        value = 0, // not a timeline semaphore
-                        stageMask = VkPipelineStageFlags2.ColorAttachmentOutput
-                    };
-
-                    signalSemaphoreInfos[i] = new()
-                    {
-                        semaphore = _presentSwapChains[i].ReleaseSemaphore,
-                        value = 0, // not a timeline semaphore
-                    };
-
-                    // Advance surface frame index
-                    _presentSwapChains[i].AdvanceFrame();
-                }
-
-                uint commandBufferInfoCount = (uint)_submitCommandBuffers.Count;
-                VkCommandBufferSubmitInfo* commandBufferInfos = stackalloc VkCommandBufferSubmitInfo[_submitCommandBuffers.Count];
-                for (int i = 0; i < _submitCommandBuffers.Count; i++)
-                {
-                    commandBufferInfos[i] = new()
-                    {
-                        commandBuffer = _submitCommandBuffers[i]
-                    };
-                }
-
-                VkSubmitInfo2 submitInfo = new()
-                {
-                    waitSemaphoreInfoCount = waitSemaphoreInfoCount,
-                    pWaitSemaphoreInfos = waitSemaphoreInfos,
-                    commandBufferInfoCount = commandBufferInfoCount,
-                    pCommandBufferInfos = commandBufferInfos,
-                    signalSemaphoreInfoCount = signalSemaphoreInfoCount,
-                    pSignalSemaphoreInfos = signalSemaphoreInfos
+                    semaphore = _presentSwapChains[i].AcquireSemaphore,
+                    value = 0, // not a timeline semaphore
+                    stageMask = VkPipelineStageFlags2.ColorAttachmentOutput
                 };
 
-                Device.DeviceApi.vkQueueSubmit2(Handle, 1, &submitInfo, fence).CheckResult();
-            }
-            else
-            {
+                signalSemaphoreInfos[i] = new()
+                {
+                    semaphore = _presentSwapChains[i].ReleaseSemaphore,
+                    value = 0, // not a timeline semaphore
+                };
 
+                // Advance surface frame index
+                _presentSwapChains[i].AdvanceFrame();
             }
+
+            uint commandBufferInfoCount = (uint)_submitCommandBuffers.Count;
+            VkCommandBufferSubmitInfo* commandBufferInfos = stackalloc VkCommandBufferSubmitInfo[_submitCommandBuffers.Count];
+            for (int i = 0; i < _submitCommandBuffers.Count; i++)
+            {
+                commandBufferInfos[i] = new()
+                {
+                    commandBuffer = _submitCommandBuffers[i]
+                };
+            }
+
+            VkSubmitInfo2 submitInfo = new()
+            {
+                waitSemaphoreInfoCount = waitSemaphoreInfoCount,
+                pWaitSemaphoreInfos = waitSemaphoreInfos,
+                commandBufferInfoCount = commandBufferInfoCount,
+                pCommandBufferInfos = commandBufferInfos,
+                signalSemaphoreInfoCount = signalSemaphoreInfoCount,
+                pSignalSemaphoreInfos = signalSemaphoreInfos
+            };
+
+            VkDevice.DeviceApi.vkQueueSubmit2(Handle, 1, &submitInfo, fence).CheckResult();
 
             if (_presentSwapChains.Count > 0)
             {
@@ -181,7 +181,7 @@ internal unsafe class VulkanCommandQueue : IDisposable
                     pImageIndices = pImageIndices
                 };
 
-                VkResult result = Device.DeviceApi.vkQueuePresentKHR(Handle, &presentInfo);
+                VkResult result = VkDevice.DeviceApi.vkQueuePresentKHR(Handle, &presentInfo);
                 if (result != VkResult.Success)
                 {
                     // Handle outdated error in present

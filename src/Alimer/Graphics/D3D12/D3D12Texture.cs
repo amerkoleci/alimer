@@ -33,27 +33,27 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
-        : base(descriptor)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
+        : base(description)
     {
         _device = device;
-        DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
-        bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
+        DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
+        bool isDepthStencil = description.Format.IsDepthStencilFormat();
 
         // If ShaderRead or ShaderWrite and depth format, set to typeless.
-        if (isDepthStencil && (descriptor.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
         {
-            DxgiFormat = descriptor.Format.GetTypelessFormatFromDepthFormat();
+            DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
-        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
+        if ((description.Usage & TextureUsage.RenderTarget) != 0)
         {
             if (isDepthStencil)
             {
                 resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-                if ((descriptor.Usage & TextureUsage.ShaderRead) == 0)
+                if ((description.Usage & TextureUsage.ShaderRead) == 0)
                 {
                     resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
                 }
@@ -64,14 +64,14 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             }
         }
 
-        if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
+        if ((description.Usage & TextureUsage.ShaderWrite) != 0)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
         D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
         bool isShared = false;
-        if ((descriptor.Usage & TextureUsage.Shared) != 0)
+        if ((description.Usage & TextureUsage.Shared) != 0)
         {
             heapFlags |= D3D12_HEAP_FLAG_SHARED;
             isShared = true;
@@ -79,21 +79,21 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             // TODO: What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
         }
 
-        D3D12_RESOURCE_STATES initialState = descriptor.InitialLayout.ToD3D12();
+        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON; // description.InitialLayout.ToD3D12();
         if (initialData != null)
         {
             initialState = D3D12_RESOURCE_STATE_COMMON;
         }
 
         D3D12_RESOURCE_DESC resourceDesc = new();
-        resourceDesc.Dimension = descriptor.Dimension.ToD3D12();
+        resourceDesc.Dimension = description.Dimension.ToD3D12();
         resourceDesc.Alignment = 0;
-        resourceDesc.Width = descriptor.Width;
-        resourceDesc.Height = descriptor.Height;
-        resourceDesc.DepthOrArraySize = (ushort)descriptor.DepthOrArrayLayers;
-        resourceDesc.MipLevels = (ushort)descriptor.MipLevelCount;
+        resourceDesc.Width = description.Width;
+        resourceDesc.Height = description.Height;
+        resourceDesc.DepthOrArraySize = (ushort)description.DepthOrArrayLayers;
+        resourceDesc.MipLevels = (ushort)description.MipLevelCount;
         resourceDesc.Format = DxgiFormat;
-        resourceDesc.SampleDesc = new(descriptor.SampleCount.ToSampleCount(), 0);
+        resourceDesc.SampleDesc = new(description.SampleCount.ToSampleCount(), 0);
         resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         resourceDesc.Flags = resourceFlags;
 
@@ -117,7 +117,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         D3D12_CLEAR_VALUE clearValue = default;
         D3D12_CLEAR_VALUE* pClearValue = null;
 
-        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
+        if ((description.Usage & TextureUsage.RenderTarget) != 0)
         {
             clearValue.Format = resourceDesc.Format;
             if (isDepthStencil)
@@ -128,7 +128,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         }
 
         // If shader read/write and depth format, set to typeless
-        if (isDepthStencil && (descriptor.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
         {
             pClearValue = null;
         }
@@ -163,9 +163,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _sharedHandle = sharedHandle;
         }
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!string.IsNullOrEmpty(description.Label))
         {
-            OnLabelChanged(descriptor.Label!);
+            OnLabelChanged(description.Label!);
         }
 
         // Issue data copy on request
@@ -183,7 +183,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
             D3D12UploadContext uploadContext = default;
             void* mappedData = null;
-            if (descriptor.CpuAccess == CpuAccessMode.Write)
+            if (description.CpuAccess == CpuAccessMode.Write)
             {
                 mappedData = pMappedData;
             }
@@ -225,7 +225,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             }
         }
 
-        State = descriptor.InitialLayout;
+        //State = description.InitialLayout;
     }
 
     public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description)
@@ -234,7 +234,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         _device = device;
         DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
         _handle = existingTexture;
-        State = description.InitialLayout;
+        //State = description.InitialLayout;
 
         if (!string.IsNullOrEmpty(description.Label))
         {
@@ -289,7 +289,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         _handle.Get()->SetName(newLabel);
     }
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(int mipSlice, int arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
     {
         int hash = HashCode.Combine(mipSlice, arraySlice, format);
 
@@ -311,7 +311,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         return _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
     }
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(int mipSlice, int arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
     {
         int hash = HashCode.Combine(mipSlice, arraySlice, format);
 

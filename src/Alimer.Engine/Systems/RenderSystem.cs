@@ -116,7 +116,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         {
             MultisampleColorTexture?.Dispose();
 
-            TextureDescriptor desc = TextureDescriptor.Texture2D(ColorFormat, (uint)Width, (uint)Height, 1, 1, TextureUsage.RenderTarget, SampleCount, initialLayout: ResourceStates.DepthWrite);
+            TextureDescriptor desc = TextureDescriptor.Texture2D(ColorFormat, (uint)Width, (uint)Height, 1, 1, TextureUsage.RenderTarget, SampleCount);
             MultisampleColorTexture = GraphicsDevice.CreateTexture(in desc);
         }
 
@@ -127,7 +127,6 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
             TextureDescriptor desc = TextureDescriptor.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1, 
                 usage: TextureUsage.RenderTarget, 
-                initialLayout: ResourceStates.DepthWrite,
                 sampleCount: SampleCount
                 );
             DepthStencilTexture = GraphicsDevice.CreateTexture(in desc);

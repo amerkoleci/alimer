@@ -22,7 +22,6 @@ public record struct TextureDescriptor
         TextureUsage usage = TextureUsage.ShaderRead,
         TextureSampleCount sampleCount = TextureSampleCount.Count1,
         CpuAccessMode access = CpuAccessMode.None,
-        ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
         Guard.IsTrue(format != PixelFormat.Undefined);
@@ -39,7 +38,6 @@ public record struct TextureDescriptor
         SampleCount = sampleCount;
         Usage = usage;
         CpuAccess = access;
-        InitialLayout = initialLayout;
         Label = label;
     }
 
@@ -50,7 +48,6 @@ public record struct TextureDescriptor
         uint arrayLayers = 1u,
         TextureUsage usage = TextureUsage.ShaderRead,
         CpuAccessMode access = CpuAccessMode.None,
-        ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
         return new(
@@ -63,7 +60,6 @@ public record struct TextureDescriptor
             usage,
             TextureSampleCount.Count1,
             access,
-            initialLayout,
             label);
     }
 
@@ -76,7 +72,6 @@ public record struct TextureDescriptor
         TextureUsage usage = TextureUsage.ShaderRead,
         TextureSampleCount sampleCount = TextureSampleCount.Count1,
         CpuAccessMode access = CpuAccessMode.None,
-        ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
         return new(
@@ -89,7 +84,6 @@ public record struct TextureDescriptor
             usage,
             sampleCount,
             access,
-            initialLayout,
             label);
     }
 
@@ -101,7 +95,6 @@ public record struct TextureDescriptor
         uint mipLevels = 1u,
         TextureUsage usage = TextureUsage.ShaderRead,
         CpuAccessMode access = CpuAccessMode.None,
-        ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
         return new(
@@ -114,7 +107,6 @@ public record struct TextureDescriptor
             usage,
             TextureSampleCount.Count1,
             access,
-            initialLayout,
             label);
     }
 
@@ -125,7 +117,6 @@ public record struct TextureDescriptor
         uint arrayLayers = 1u,
         TextureUsage usage = TextureUsage.ShaderRead,
         CpuAccessMode access = CpuAccessMode.None,
-        ResourceStates initialLayout = ResourceStates.ShaderResource,
         string? label = default)
     {
         return new(
@@ -138,7 +129,6 @@ public record struct TextureDescriptor
             usage,
             TextureSampleCount.Count1,
             access,
-            initialLayout,
             label);
     }
 
@@ -186,11 +176,6 @@ public record struct TextureDescriptor
     /// CPU access of the <see cref="Texture"/>.
     /// </summary>
     public CpuAccessMode CpuAccess { get; init; } = CpuAccessMode.None;
-
-    /// <summary>
-    /// Initial layout of <see cref="Texture"/>.
-    /// </summary>
-    public ResourceStates InitialLayout { get; set; } = ResourceStates.ShaderResource;
 
     /// <summary>
     /// Gets or sets the label of <see cref="Texture"/>.

@@ -42,7 +42,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <summary>
     /// Wait for device to finish pending GPU operations.
     /// </summary>
-    public abstract void WaitIdle();
+    /// <returns>True if succeed, false otherwise</returns>
+    public abstract bool WaitIdle();
 
     public abstract void FinishFrame();
 
@@ -53,12 +54,12 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         _frameIndex = (uint)(_frameCount % Constants.MaxFramesInFlight);
     }
 
-    protected void ProcessDeletionQueue()
+    protected void ProcessDeletionQueue(bool force)
     {
         while (!_deferredDestroyObjects.IsEmpty)
         {
-            if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item) &&
-                item.Item2 + Constants.MaxFramesInFlight < _frameCount)
+            if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item)
+                && (force || item.Item2 + Constants.MaxFramesInFlight < _frameCount))
             {
                 if (_deferredDestroyObjects.TryDequeue(out item))
                 {
@@ -169,8 +170,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         uint height,
         uint mipLevels = 1,
         uint arrayLayers = 1,
-        TextureUsage usage = TextureUsage.ShaderRead,
-        ResourceStates initialLayout = ResourceStates.ShaderResource
+        TextureUsage usage = TextureUsage.ShaderRead
         )
         where T : unmanaged
     {
@@ -184,7 +184,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
             TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
 
-            return CreateTextureCore(TextureDescriptor.Texture2D(format, width, height, mipLevels, arrayLayers, usage, initialLayout: initialLayout), &initData);
+            return CreateTextureCore(TextureDescriptor.Texture2D(format, width, height, mipLevels, arrayLayers, usage), &initData);
         }
     }
 

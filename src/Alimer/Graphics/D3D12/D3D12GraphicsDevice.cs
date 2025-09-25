@@ -290,8 +290,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             _copyAllocator.Dispose();
 
-            _frameCount = ulong.MaxValue;
-            ProcessDeletionQueue();
+            ProcessDeletionQueue(true);
             _frameCount = 0;
             _frameIndex = 0;
 
@@ -390,7 +389,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
 
     /// <inheritdoc />
-    public override void WaitIdle()
+    public override bool WaitIdle()
     {
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
@@ -399,6 +398,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             _queues[i].WaitIdle();
         }
+
+        ProcessDeletionQueue(true);
+        return true;
     }
 
     /// <inheritdoc />
@@ -434,7 +436,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _queues[i].FinishFrame();
         }
 
-        ProcessDeletionQueue();
+        ProcessDeletionQueue(false);
     }
 
     public override void WriteShadingRateValue(ShadingRate rate, void* dest)

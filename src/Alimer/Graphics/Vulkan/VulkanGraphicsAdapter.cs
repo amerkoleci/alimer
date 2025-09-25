@@ -25,6 +25,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceVulkan13Features Features13 = default;
     public readonly VkPhysicalDeviceVulkan14Features Features14 = default;
 
+#if TODO
     // Core 1.4
     public readonly VkPhysicalDeviceMaintenance6Features Maintenance6Features = default;
     public readonly VkPhysicalDeviceMaintenance6Properties Maintenance6Properties = default;
@@ -39,12 +40,16 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceExtendedDynamicState2FeaturesEXT ExtendedDynamicState2Features = default;
     public readonly VkPhysicalDevicePipelineCreationCacheControlFeatures PipelineCreationCacheControlFeatures = default;
 
-
+#endif
+    // Extensions
     public readonly VkPhysicalDeviceDepthClipEnableFeaturesEXT DepthClipEnableFeatures = default;
 
     // Properties
     public readonly VkPhysicalDeviceProperties2 Properties2 = default;
-
+    public readonly VkPhysicalDeviceVulkan11Properties Properties11 = default;
+    public readonly VkPhysicalDeviceVulkan12Properties Properties12 = default;
+    public readonly VkPhysicalDeviceVulkan13Properties Properties13 = default;
+    public readonly VkPhysicalDeviceVulkan14Properties Properties14 = default;
 
     public VulkanGraphicsAdapter(VulkanGraphicsManager manager, in VkPhysicalDevice handle, in VulkanPhysicalDeviceExtensions extensions)
         : base(manager)
@@ -61,30 +66,18 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceVulkan12Features features12 = new();
         VkPhysicalDeviceVulkan13Features features13 = default;
         VkPhysicalDeviceVulkan14Features features14 = default;
-        // Core 1.4
-        VkPhysicalDeviceMaintenance6Features maintenance6Features = new();
-        VkPhysicalDeviceMaintenance6Properties maintenance6Properties = new();
-        VkPhysicalDevicePushDescriptorProperties pushDescriptorProps = new();
-        // Core in 1.3
-        VkPhysicalDeviceMaintenance4Features maintenance4Features = new();
-        VkPhysicalDeviceMaintenance4Properties maintenance4Properties = new();
-        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = new();
-        VkPhysicalDeviceSynchronization2Features synchronization2Features = new();
-        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures = new(); ;
-        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = new();
-        VkPhysicalDevicePipelineCreationCacheControlFeatures pipelineCreationCacheControlFeatures = new();
 
-        VkPhysicalDeviceMaintenance5Features maintenance5Features = new();
+        // Core in 1.3
+        VkPhysicalDeviceMaintenance4Features maintenance4Features = default;
+        VkPhysicalDeviceMaintenance4Properties maintenance4Properties = default;
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = default;
+        VkPhysicalDeviceSynchronization2Features synchronization2Features = default;
+        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures = default;
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = default;
+        VkPhysicalDevicePipelineCreationCacheControlFeatures pipelineCreationCacheControlFeatures = default;
+
+        // Extensions
         VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
-        VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = new();
-        VkPhysicalDeviceHostQueryResetFeatures hostQueryResetFeatures = new();
-        VkPhysicalDeviceTextureCompressionASTCHDRFeatures astcHdrFeatures = new();
-        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = new();
-        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = new();
-        VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = new();
-        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures = new();
-        VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures = new();
-        VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures = new();
 
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
         AddToFeatureChain(&features11);
@@ -105,6 +98,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         {
             depthClipEnableFeatures = new();
             AddToFeatureChain(&depthClipEnableFeatures);
+        }
+
+        // Core in 1.3
+        if (properties2.properties.apiVersion < VkVersion.Version_1_3)
+        {
+           // TODO:
         }
 
         manager.InstanceApi.vkGetPhysicalDeviceFeatures2(handle, &features2);
@@ -172,6 +171,10 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         manager.InstanceApi.vkGetPhysicalDeviceProperties2(handle, &properties2);
         ApiVersion = properties2.properties.apiVersion;
         Properties2 = properties2;
+        Properties11 = properties11;
+        Properties12 = properties12;
+        Properties13 = properties13;
+        Properties14 = properties14;
 
         DeviceName = Encoding.UTF8.GetString(properties2.properties.deviceName, (int)VK_MAX_PHYSICAL_DEVICE_NAME_SIZE).TrimEnd('\0');
         VendorId = properties2.properties.vendorID;

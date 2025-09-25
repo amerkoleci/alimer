@@ -75,9 +75,9 @@ public abstract class Texture : GraphicsResource
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetWidth(int mipLevel = 0)
+    public uint GetWidth(uint mipLevel = 0)
     {
-        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> mipLevel) : 0;
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> (int)mipLevel) : 0;
     }
 
     /// <summary>
@@ -85,9 +85,9 @@ public abstract class Texture : GraphicsResource
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetHeight(int mipLevel = 0)
+    public uint GetHeight(uint mipLevel = 0)
     {
-        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> mipLevel) : 0;
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> (int)mipLevel) : 0;
     }
 
     /// <summary>
@@ -95,9 +95,9 @@ public abstract class Texture : GraphicsResource
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetDepth(int mipLevel = 0)
+    public uint GetDepth(uint mipLevel = 0)
     {
-        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> mipLevel) : 0;
+        return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> (int)mipLevel) : 0;
     }
 
     public uint CalculateSubresource(uint mipLevel, uint arrayLayer, uint planeSlice = 0)

@@ -293,7 +293,6 @@ internal unsafe class VulkanSwapChain : SwapChain
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,
                 usage: TextureUsage.RenderTarget,
-                initialLayout: ResourceStates.RenderTarget,
                 label: $"BackBuffer texture {i}"
             );
 

@@ -243,6 +243,31 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             AddToFeatureChain(&features14);
         }
 
+        if (_adapter.Extensions.MemoryBudget)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+        }
+
+        if (_adapter.Extensions.AMD_DeviceCoherentMemory)
+        {
+            enabledDeviceExtensions.Add(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME);
+        }
+
+        if (_adapter.Extensions.MemoryPriority)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+        }
+
+        if (_adapter.Extensions.DeferredHostOperations)
+        {
+            enabledDeviceExtensions.Add(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        }
+
+        if (_adapter.Extensions.PortabilitySubset)
+        {
+            enabledDeviceExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+        }
+
         if (_adapter.Extensions.DepthClipEnable)
         {
             enabledDeviceExtensions.Add(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
@@ -310,10 +335,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         if (_adapter.ApiVersion < VkVersion.Version_1_3)
         {
-            if (_adapter.Maintenance4Features.maintenance4)
-            {
-                allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance4;
-            }
+            //if (_adapter.Maintenance4Features.maintenance4)
+            //{
+            //    allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance4;
+            //}
         }
 
         if (_adapter.Extensions.Maintenance5)
@@ -486,7 +511,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }
 
+    public VkInstanceApi InstanceApi => _adapter.VkGraphicsManager.InstanceApi;
     public VulkanGraphicsAdapter VkAdapter => _adapter;
+    public bool DebugUtils => _adapter.VkGraphicsManager.DebugUtils;
 
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
     public uint GraphicsFamily => _queueFamilyIndices[(int)QueueType.Graphics];
@@ -497,8 +524,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VkDevice Handle => _handle;
     public VkDeviceApi DeviceApi => _deviceApi;
-    public VkInstanceApi InstanceApi => _adapter.VkGraphicsManager.InstanceApi;
-    public bool DebugUtils => _adapter.VkGraphicsManager.DebugUtils;
     public VulkanCommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
     public VulkanCommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
     public VulkanCommandQueue CopyQueue => _queues[(int)QueueType.Copy];
@@ -558,8 +583,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _deviceApi.vkDestroyImageView(_handle, _nullImageViewCubeArray);
             _deviceApi.vkDestroyImageView(_handle, _nullImageView3D);
 
-            _frameCount = ulong.MaxValue;
-            ProcessDeletionQueue();
+            ProcessDeletionQueue(true);
             _frameCount = 0;
             _frameIndex = 0;
 
@@ -587,9 +611,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override void WaitIdle()
+    public override bool WaitIdle()
     {
-        ThrowIfFailed(_deviceApi.vkDeviceWaitIdle(Handle));
+        VkResult result = _deviceApi.vkDeviceWaitIdle(Handle);
+        if (result != VK_SUCCESS)
+            return false;
+
+        ProcessDeletionQueue(true);
+        return true;
     }
 
     /// <inheritdoc />
@@ -627,7 +656,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _queues[i].FinishFrame();
         }
 
-        ProcessDeletionQueue();
+        ProcessDeletionQueue(false);
     }
 
     public override void WriteShadingRateValue(ShadingRate rate, void* dest)

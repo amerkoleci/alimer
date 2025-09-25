@@ -64,13 +64,13 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         for (uint i = 0; i < MaxFramesInFlight; ++i)
         {
             ThrowIfFailed(
-                queue.Device.Handle->CreateCommandAllocator(queue.CommandListType,
+                queue.D3DDevice.Handle->CreateCommandAllocator(queue.CommandListType,
                 __uuidof<ID3D12CommandAllocator>(), _commandAllocators[i].GetVoidAddressOf())
             );
         }
 
         ThrowIfFailed(
-           queue.Device.Handle->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
+           queue.D3DDevice.Handle->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
             __uuidof<ID3D12GraphicsCommandList6>(), _commandList.GetVoidAddressOf()
         ));
     }
@@ -124,8 +124,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             ID3D12DescriptorHeap** descriptorHeaps = stackalloc ID3D12DescriptorHeap*[2]
             {
-                _queue.Device.ShaderResourceViewHeap.ShaderVisibleHeap,
-                _queue.Device.SamplerHeap.ShaderVisibleHeap,
+                _queue.D3DDevice.ShaderResourceViewHeap.ShaderVisibleHeap,
+                _queue.D3DDevice.SamplerHeap.ShaderVisibleHeap,
             };
             _commandList.Get()->SetDescriptorHeaps(2, descriptorHeaps);
         }
@@ -329,7 +329,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         PrepareDispatch();
 
         D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
     #endregion ComputeContext Methods
 
@@ -356,8 +356,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             Guard.IsTrue(attachment.Texture is not null);
 
             D3D12Texture texture = (D3D12Texture)attachment.Texture;
-            int mipLevel = attachment.MipLevel;
-            int slice = attachment.Slice;
+            uint mipLevel = attachment.MipLevel;
+            uint slice = attachment.Slice;
 
             renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
             renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
@@ -406,8 +406,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
             var texture = (D3D12Texture)attachment.Texture!;
-            int mipLevel = attachment.MipLevel;
-            int slice = attachment.Slice;
+            uint mipLevel = attachment.MipLevel;
+            uint slice = attachment.Slice;
 
             renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
             renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
@@ -604,7 +604,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         PrepareDraw();
 
         D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
 
     protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
@@ -614,7 +614,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
         D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
 
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndirectCommandSignature, maxCount,
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndirectCommandSignature, maxCount,
             backendIndirectBuffer.Handle, indirectBufferOffset,
             backendCountBuffer.Handle, countBufferOffset);
     }
@@ -624,7 +624,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         PrepareDraw();
 
         D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndexedIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndexedIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
 
     protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
@@ -634,7 +634,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
         D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
 
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DrawIndexedIndirectCommandSignature, maxCount,
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndexedIndirectCommandSignature, maxCount,
             backendIndirectBuffer.Handle, indirectBufferOffset,
             backendCountBuffer.Handle, countBufferOffset);
     }
@@ -651,7 +651,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         PrepareDraw();
 
         D3D12Buffer backendBuffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchMeshIndirectCommandSignature, 1, backendBuffer.Handle, indirectBufferOffset, null, 0);
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchMeshIndirectCommandSignature, 1, backendBuffer.Handle, indirectBufferOffset, null, 0);
     }
 
     protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
@@ -661,7 +661,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
         D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
 
-        _commandList.Get()->ExecuteIndirect(_queue.Device.DispatchMeshIndirectCommandSignature,
+        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchMeshIndirectCommandSignature,
             maxCount,
             backendIndirectBuffer.Handle, indirectBufferOffset,
             backendCountBuffer.Handle, countBufferOffset);
@@ -702,7 +702,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             if (_currentPipelineLayout.DescriptorTableValidCbvUavSrv(groupIndex))
             {
                 uint rootParameterIndex = _currentPipelineLayout.GetCbvUavSrvRootParameterIndex(groupIndex);
-                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.Device.ShaderResourceViewHeap.GetGpuHandle(bindGroup.DescriptorTableCbvUavSrv);
+                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.D3DDevice.ShaderResourceViewHeap.GetGpuHandle(bindGroup.DescriptorTableCbvUavSrv);
 
                 if (graphics)
                 {
@@ -717,7 +717,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             if (_currentPipelineLayout.DescriptorTableValidSamplers(groupIndex))
             {
                 uint rootParameterIndex = _currentPipelineLayout.GetSamplerRootParameterIndex(groupIndex);
-                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.Device.SamplerHeap.GetGpuHandle(bindGroup.DescriptorTableSamplers);
+                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.D3DDevice.SamplerHeap.GetGpuHandle(bindGroup.DescriptorTableSamplers);
 
                 if (graphics)
                 {

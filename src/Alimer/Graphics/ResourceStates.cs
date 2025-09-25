@@ -31,4 +31,4 @@ public enum ResourceStates : uint
     ShadingRateSurface = 0x00100000,
     OpacityMicromapWrite = 0x00200000,
     OpacityMicromapBuildInput = 0x00400000,
-};
+}

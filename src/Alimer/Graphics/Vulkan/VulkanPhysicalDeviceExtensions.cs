@@ -58,6 +58,7 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool FragmentShadingRate;
     public bool MeshShader;
     public bool ConditionalRendering;
+    public bool UnifiedImageLayouts;
     public bool Win32FullScreenExclusive;
 
     public VulkanPhysicalDeviceVideoExtensions Video;
@@ -174,6 +175,10 @@ internal struct VulkanPhysicalDeviceExtensions
                 else if (extensionName == VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME)
                 {
                     extensions.ConditionalRendering = true;
+                }
+                else if (extensionName == VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME)
+                {
+                    extensions.UnifiedImageLayouts = true;
                 }
                 else if (extensionName == VK_KHR_VIDEO_QUEUE_EXTENSION_NAME)
                 {

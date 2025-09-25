@@ -28,10 +28,10 @@
     <!-- Graphics -->
     <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="2.0.1.5" />
-    <PackageVersion Include="Vortice.Vulkan" Version="3.0.1" />
+    <PackageVersion Include="Vortice.Vulkan" Version="3.0.2" />
 
     <!-- Others -->
-    <PackageVersion Include="JoltPhysicsSharp" Version="2.18.0" />
+    <PackageVersion Include="JoltPhysicsSharp" Version="2.18.4" />
     <PackageVersion Include="DotRecast.Recast" Version="2025.2.1" />
     
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />
