@@ -304,7 +304,7 @@ internal unsafe partial class Vma
         }
 
         // Local P/Invoke
-        [DllImport("alimer_native", EntryPoint = "vmaCreateAllocator", ExactSpelling = true)]
+        [DllImport(LibraryName, EntryPoint = "vmaCreateAllocator", ExactSpelling = true)]
         static extern VkResult __PInvoke(VmaAllocatorCreateInfo* createInfo, VmaAllocator* pAllocator);
     }
 

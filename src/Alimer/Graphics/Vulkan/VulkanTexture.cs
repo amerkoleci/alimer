@@ -16,9 +16,8 @@ internal unsafe class VulkanTexture : Texture
     private readonly Dictionary<int, VkImageView> _views = [];
     private VkImage _handle = VkImage.Null;
     private VmaAllocation _allocation;
-    private readonly TextureLayout[] _imageLayouts;
 
-    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
+    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescription description, TextureData* initialData)
         : base(description)
     {
         _device = device;
@@ -201,11 +200,6 @@ internal unsafe class VulkanTexture : Texture
 
         bool depthOnlyFormat = Format.IsDepthOnlyFormat();
         uint numSubResources = MipLevelCount * description.DepthOrArrayLayers;
-        _imageLayouts = new TextureLayout[numSubResources];
-        for (uint i = 0; i < numSubResources; i++)
-        {
-            _imageLayouts[i] = initialLayout;
-        }
 
         // Issue data copy on request
         VkImageSubresourceRange subresourceRange = new(
@@ -378,22 +372,18 @@ internal unsafe class VulkanTexture : Texture
             _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
 
             _device.Submit(in context);
+
+            SetTextureLayout(initialLayout);
         }
     }
 
-    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescriptor description)
+    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescription description)
         : base(description)
     {
         _device = device;
         _handle = existingTexture;
         VkFormat = device.VkAdapter.ToVkFormat(description.Format);
 
-        uint numSubResources = MipLevelCount * description.DepthOrArrayLayers;
-        _imageLayouts = new TextureLayout[numSubResources];
-        for (uint i = 0; i < numSubResources; i++)
-        {
-            _imageLayouts[i] = TextureLayout.Undefined;
-        }
 
         if (!string.IsNullOrEmpty(description.Label))
         {
@@ -405,7 +395,6 @@ internal unsafe class VulkanTexture : Texture
     public override GraphicsDevice Device => _device;
     public VkImage Handle => _handle;
     public VkFormat VkFormat { get; }
-    public TextureLayout[] ImageLayouts => _imageLayouts;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanTexture" /> class.
@@ -434,40 +423,6 @@ internal unsafe class VulkanTexture : Texture
     protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.Image, Handle.Handle, newLabel);
-    }
-
-    public TextureLayout GetImageLayout(uint mipLevel, uint arrayLayer, uint placeSlice = 0)
-    {
-        Debug.Assert(mipLevel < MipLevelCount);
-        Debug.Assert(arrayLayer < Depth * ArrayLayers);
-
-        uint subresource = CalculateSubresource(mipLevel, arrayLayer, placeSlice);
-        return _imageLayouts[subresource];
-    }
-
-    public void SetImageLayout(TextureLayout newLayout, uint mipLevel, uint arrayLayer, uint placeSlice = 0)
-    {
-        Debug.Assert(mipLevel < MipLevelCount);
-        Debug.Assert(arrayLayer < Depth * ArrayLayers);
-
-        uint subresource = CalculateSubresource(mipLevel, arrayLayer, placeSlice);
-        _imageLayouts[subresource] = newLayout;
-    }
-
-    public void SetImageLayout(TextureLayout newLayout,
-        uint baseMiplevel,
-        uint levelCount,
-        uint baseArrayLayer,
-        uint layerCount)
-    {
-        for (uint arrayLayer = baseArrayLayer; arrayLayer < (baseArrayLayer + layerCount); arrayLayer++)
-        {
-            for (uint mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
-            {
-                uint iterSubresource = CalculateSubresource(mipLevel, arrayLayer);
-                _imageLayouts[iterSubresource] = newLayout;
-            }
-        }
     }
 
     public VkImageView GetView(uint baseMipLevel,

@@ -263,7 +263,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     ~VulkanBuffer() => Dispose(disposing: false);
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.Buffer, _handle, newLabel);
     }

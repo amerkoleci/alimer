@@ -4,17 +4,18 @@
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static Alimer.Graphics.D3D.D3DUtils;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.D3D12_TEXTURE_LAYOUT;
+using static Alimer.Graphics.D3D12.D3D12Utils;
+using static Alimer.Utilities.MemoryUtilities;
 using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.Windows.Windows;
-using static Alimer.Utilities.MemoryUtilities;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_TEXTURE_LAYOUT;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.Windows.E;
+using static TerraFX.Interop.Windows.Windows;
 using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
@@ -23,8 +24,8 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly ComPtr<D3D12MA_Allocation> _allocation;
-    private HANDLE _sharedHandle = HANDLE.NULL;
+    private readonly nint _allocation;
+    private readonly HANDLE _sharedHandle = HANDLE.NULL;
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
     private readonly uint* _numRows;
@@ -33,7 +34,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, TextureData* initialData)
         : base(description)
     {
         _device = device;
@@ -79,39 +80,76 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             // TODO: What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
         }
 
-        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON; // description.InitialLayout.ToD3D12();
-        if (initialData != null)
+        TextureLayout initialLayout = TextureLayout.Undefined;
+        if (initialData == null)
         {
-            initialState = D3D12_RESOURCE_STATE_COMMON;
+            if ((description.Usage & TextureUsage.RenderTarget) != 0)
+            {
+                if (isDepthStencil)
+                {
+                    initialLayout = TextureLayout.DepthWrite;
+                }
+                else
+                {
+                    initialLayout = TextureLayout.RenderTarget;
+                }
+            }
+            else if ((description.Usage & TextureUsage.ShaderWrite) != 0)
+            {
+                initialLayout = TextureLayout.UnorderedAccess;
+            }
+            else if ((description.Usage & TextureUsage.ShaderRead) != 0)
+            {
+                initialLayout = TextureLayout.ShaderResource;
+            }
         }
 
-        D3D12_RESOURCE_DESC resourceDesc = new();
-        resourceDesc.Dimension = description.Dimension.ToD3D12();
-        resourceDesc.Alignment = 0;
-        resourceDesc.Width = description.Width;
-        resourceDesc.Height = description.Height;
-        resourceDesc.DepthOrArraySize = (ushort)description.DepthOrArrayLayers;
-        resourceDesc.MipLevels = (ushort)description.MipLevelCount;
-        resourceDesc.Format = DxgiFormat;
-        resourceDesc.SampleDesc = new(description.SampleCount.ToSampleCount(), 0);
-        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        resourceDesc.Flags = resourceFlags;
+        D3D12_RESOURCE_DESC1 resourceDesc = new()
+        {
+            Dimension = description.Dimension.ToD3D12(),
+            Alignment = 0,
+            Width = description.Width,
+            Height = description.Height,
+            DepthOrArraySize = (ushort)description.DepthOrArrayLayers,
+            MipLevels = (ushort)description.MipLevelCount,
+            Format = DxgiFormat,
+            SampleDesc = new(description.SampleCount.ToSampleCount(), 0),
+            Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+            Flags = resourceFlags
+        };
 
         ulong allocatedSize = 0;
         uint numSubResources = Math.Max(1u, resourceDesc.MipLevels) * resourceDesc.DepthOrArraySize;
         _footprints = AllocateArray<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>(numSubResources);
         _rowSizesInBytes = AllocateArray<ulong>(numSubResources);
         _numRows = AllocateArray<uint>(numSubResources);
-        device.Handle->GetCopyableFootprints(
-            &resourceDesc,
-            0,
-            numSubResources,
-            0,
-            _footprints,
-            _numRows,
-            _rowSizesInBytes,
-            &allocatedSize
-        );
+        if (device.EnhancedBarriersSupported)
+        {
+            device.Device8->GetCopyableFootprints1(
+                &resourceDesc,
+                0,
+                numSubResources,
+                0,
+                _footprints,
+                _numRows,
+                _rowSizesInBytes,
+                &allocatedSize
+            );
+        }
+        else 
+        {
+            device.Device->GetCopyableFootprints(
+                (D3D12_RESOURCE_DESC*)&resourceDesc,
+                0,
+                numSubResources,
+                0,
+                _footprints,
+                _numRows,
+                _rowSizesInBytes,
+                &allocatedSize
+            );
+        }
+
         AllocatedSize = allocatedSize;
 
         D3D12_CLEAR_VALUE clearValue = default;
@@ -133,18 +171,41 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             pClearValue = null;
         }
 
-        D3D12MA_ALLOCATION_DESC allocationDesc = new();
-        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12MA.ALLOCATION_DESC allocationDesc = new()
+        {
+            HeapType = D3D12_HEAP_TYPE_DEFAULT
+        };
 
-        HRESULT hr = device.MemoryAllocator->CreateResource(
-            &allocationDesc,
-            &resourceDesc,
-            initialState,
-            pClearValue,
-            _allocation.GetAddressOf(),
-            __uuidof<ID3D12Resource>(),
-            _handle.GetVoidAddressOf()
+        HRESULT hr = E_FAIL;
+        if (device.EnhancedBarriersSupported)
+        {
+            D3D12TextureLayoutMapping textureLayout = ConvertTextureLayout(initialLayout);
+
+            hr = D3D12MA.Allocator_CreateResource3(
+                device.MemoryAllocator,
+                &allocationDesc,
+                &resourceDesc,
+                textureLayout.Layout,
+                null,
+                0, null,
+                out _allocation,
+                __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
             );
+        }
+        else 
+        {
+            D3D12_RESOURCE_STATES initialStateLegacy = ConvertTextureLayoutLegacy(initialLayout);
+
+            hr = D3D12MA.Allocator_CreateResource2(
+                device.MemoryAllocator,
+                &allocationDesc,
+                &resourceDesc,
+                initialStateLegacy,
+                pClearValue,
+                out _allocation,
+                __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
+                );
+        }
 
         if (hr.FAILED)
         {
@@ -155,7 +216,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         if (isShared)
         {
             HANDLE sharedHandle = default;
-            if (device.Handle->CreateSharedHandle((ID3D12DeviceChild*)_handle.Get(), null, GENERIC_ALL, null, &sharedHandle).FAILED)
+            if (device.Device->CreateSharedHandle((ID3D12DeviceChild*)_handle.Get(), null, GENERIC_ALL, null, &sharedHandle).FAILED)
             {
                 return;
             }
@@ -225,16 +286,15 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             }
         }
 
-        //State = description.InitialLayout;
+        SetTextureLayout(initialLayout);
     }
 
-    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription description)
         : base(description)
     {
         _device = device;
         DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
         _handle = existingTexture;
-        //State = description.InitialLayout;
 
         if (!string.IsNullOrEmpty(description.Label))
         {
@@ -247,8 +307,6 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
     public DXGI_FORMAT DxgiFormat { get; }
     public ID3D12Resource* Handle => _handle;
-    public ResourceStates State { get; set; }
-    public ResourceStates TransitioningState { get; set; } = (ResourceStates)uint.MaxValue;
     public ulong AllocatedSize { get; }
 
     /// <summary>
@@ -276,7 +334,10 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _ = CloseHandle(_sharedHandle);
         }
 
-        _allocation.Dispose();
+        if (_allocation != 0)
+        {
+            _ = D3D12MA.Allocation_Release(_allocation);
+        }
         _handle.Dispose();
         Free(_footprints);
         Free(_rowSizesInBytes);
@@ -305,7 +366,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _RTVs.Add(hash, descriptorIndex);
 
             D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
-            _device.Handle->CreateRenderTargetView(_handle.Get(), &viewDesc, cpuHandle);
+            _device.Device->CreateRenderTargetView(_handle.Get(), &viewDesc, cpuHandle);
         }
 
         return _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
@@ -327,7 +388,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _DSVs.Add(hash, descriptorIndex);
 
             D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
-            _device.Handle->CreateDepthStencilView(_handle.Get(), &viewDesc, cpuHandle);
+            _device.Device->CreateDepthStencilView(_handle.Get(), &viewDesc, cpuHandle);
         }
 
         return _device.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);

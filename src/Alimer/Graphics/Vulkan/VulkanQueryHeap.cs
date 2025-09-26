@@ -92,7 +92,7 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     }
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.QueryPool, _handle, newLabel);
     }

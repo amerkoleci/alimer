@@ -18,14 +18,35 @@ internal static unsafe partial class ObjectiveC
     public const string MetalFramework = "/System/Library/Frameworks/Metal.framework/Metal";
     public const string MetalKitFramework = "/System/Library/Frameworks/MetalKit.framework/MetalKit";
 
-    [LibraryImport(ObjCRuntime)]
-    public static partial byte* sel_getName(nint selector);
+    [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial string sel_getName(nint selector);
 
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
     public static unsafe partial nint sel_getUid(string name);
 
+    [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial nint objc_getClass(string name);
+
+    [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial nint class_getProperty(ObjectiveCClass @class, string name);
+
+    [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial string class_getName(ObjectiveCClass @class);
+
+    #region MessageSend
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
-    public static partial void objc_msgSend(nint receiver, nint selector);
+    public static partial void objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial ulong ulong_objc_msgSend(nint receiver, Selector selector);
+    #endregion
+
+    public static void retain(nint receiver) => objc_msgSend(receiver, Selectors.Retain);
+    public static void release(nint receiver) => objc_msgSend(receiver, Selectors.Release);
+    public static ulong GetRetainCount(nint receiver) => ulong_objc_msgSend(receiver, Selectors.RetainCount);
 
     public static string GetUtf8String(byte* stringStart)
     {

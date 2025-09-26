@@ -132,7 +132,7 @@ internal unsafe class D3D12SwapChain : SwapChain
         _backbufferTextures = new D3D12Texture[swapChainDesc.BufferCount];
         for (uint i = 0; i < swapChainDesc.BufferCount; ++i)
         {
-            TextureDescriptor description = TextureDescriptor.Texture2D(
+            TextureDescription description = TextureDescription.Texture2D(
                 ColorFormat,
                 swapChainDesc.Width,
                 swapChainDesc.Height,

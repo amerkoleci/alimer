@@ -1,23 +1,30 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
+
 namespace Alimer.Graphics;
 
 public abstract class Texture : GraphicsResource
 {
-    protected Texture(in TextureDescriptor descriptor)
-        : base(descriptor.Label)
+    protected readonly TextureLayout[] _subresourceLayouts;
+
+    protected Texture(in TextureDescription description)
+        : base(description.Label)
     {
-        Dimension = descriptor.Dimension;
-        Format = descriptor.Format;
-        Width = descriptor.Width;
-        Height = descriptor.Height;
-        Depth = (descriptor.Dimension == TextureDimension.Texture3D) ? descriptor.DepthOrArrayLayers : 1;
-        ArrayLayers = (descriptor.Dimension != TextureDimension.Texture3D) ? descriptor.DepthOrArrayLayers : 1;
-        MipLevelCount = descriptor.MipLevelCount;
-        SampleCount = descriptor.SampleCount;
-        Usage = descriptor.Usage;
-        CpuAccess = descriptor.CpuAccess;
+        Dimension = description.Dimension;
+        Format = description.Format;
+        Width = description.Width;
+        Height = description.Height;
+        Depth = (description.Dimension == TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1u;
+        ArrayLayers = (description.Dimension != TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1u;
+        MipLevelCount = Math.Max(description.MipLevelCount, 1u);
+        SampleCount = description.SampleCount;
+        Usage = description.Usage;
+        CpuAccess = description.CpuAccess;
+
+        uint numSubResources = MipLevelCount * description.DepthOrArrayLayers;
+        _subresourceLayouts = new TextureLayout[numSubResources];
     }
 
     /// <summary>
@@ -103,6 +110,62 @@ public abstract class Texture : GraphicsResource
     public uint CalculateSubresource(uint mipLevel, uint arrayLayer, uint planeSlice = 0)
     {
         return mipLevel + arrayLayer * MipLevelCount + planeSlice * MipLevelCount * ArrayLayers;
+    }
+
+    public TextureLayout GetTextureLayout(uint mipLevel, uint arrayLayer, uint placeSlice = 0)
+    {
+        Debug.Assert(mipLevel < MipLevelCount);
+        Debug.Assert(arrayLayer < Depth * ArrayLayers);
+
+        uint subresource = CalculateSubresource(mipLevel, arrayLayer, placeSlice);
+        return _subresourceLayouts[subresource];
+    }
+
+    public TextureLayout GetTextureLayout(uint subresource)
+    {
+        Debug.Assert(subresource < _subresourceLayouts.Length);
+
+        return _subresourceLayouts[subresource];
+    }
+
+    protected void SetTextureLayout(TextureLayout newLayout)
+    {
+        for (int i = 0; i < _subresourceLayouts.Length; i++)
+        {
+            _subresourceLayouts[i] = newLayout;
+        }
+    }
+
+    internal void SetTextureLayout(uint subresource, TextureLayout newLayout)
+    {
+        Debug.Assert(subresource < _subresourceLayouts.Length);
+
+        _subresourceLayouts[subresource] = newLayout;
+    }
+
+    internal void SetTextureLayout(TextureLayout newLayout, uint mipLevel, uint arrayLayer, uint placeSlice = 0)
+    {
+        Debug.Assert(mipLevel < MipLevelCount);
+        Debug.Assert(arrayLayer < Depth * ArrayLayers);
+
+        uint subresource = CalculateSubresource(mipLevel, arrayLayer, placeSlice);
+        _subresourceLayouts[subresource] = newLayout;
+    }
+
+    internal void SetTextureLayout(TextureLayout newLayout,
+        uint baseMiplevel,
+        uint levelCount,
+        uint baseArrayLayer,
+        uint layerCount)
+    {
+        for (uint arrayLayer = baseArrayLayer; arrayLayer < (baseArrayLayer + layerCount); arrayLayer++)
+        {
+            for (uint mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
+            {
+                uint iterSubresource = CalculateSubresource(mipLevel, arrayLayer);
+                _subresourceLayouts[iterSubresource] = newLayout;
+            }
+        }
     }
 
     public static Texture FromFile(GraphicsDevice device, string filePath, int channels = 4, bool srgb = true)

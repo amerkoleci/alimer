@@ -30,7 +30,9 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS9 _options9;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS10 _options10;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS11 _options11;
+#endif
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS12 _options12;
+#if TODO
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS13 _options13;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS14 _options14;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS15 _options15;
@@ -103,16 +105,19 @@ internal unsafe readonly struct D3D12Features
         {
             _options11 = default;
         }
+#endif
 
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, ref _options12).FAILED)
         {
             _options12 = default;
+            _options12.MSPrimitivesPipelineStatisticIncludesCulledPrimitives = D3D12_TRI_STATE.D3D12_TRI_STATE_UNKNOWN;
         }
 
+#if TODO
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).FAILED)
         {
             _options13 = default;
-        } 
+        }
 #endif
 
         if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).FAILED)
@@ -175,6 +180,7 @@ internal unsafe readonly struct D3D12Features
 
     public D3D12_MESH_SHADER_TIER MeshShaderTier => _options7.MeshShaderTier;
     public D3D12_SAMPLER_FEEDBACK_TIER SamplerFeedbackTier => _options7.SamplerFeedbackTier;
+    public bool EnhancedBarriersSupported => _options12.EnhancedBarriersSupported;
 
     private D3D_FEATURE_LEVEL QueryHighestFeatureLevel()
     {

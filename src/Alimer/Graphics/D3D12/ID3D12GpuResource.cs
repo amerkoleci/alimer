@@ -5,10 +5,7 @@ using TerraFX.Interop.DirectX;
 
 namespace Alimer.Graphics.D3D12;
 
-internal interface ID3D12GpuResource
+internal unsafe interface ID3D12GpuResource
 {
-    unsafe ID3D12Resource* Handle { get; }
-    ResourceStates State { get; set; }
-
-    ResourceStates TransitioningState { get; set; }
+    ID3D12Resource* Handle { get; }
 }

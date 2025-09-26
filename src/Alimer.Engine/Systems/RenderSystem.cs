@@ -26,7 +26,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         _blackTexture = CreateTextureFromColor(Colors.Transparent);
         _whiteTexture = CreateTextureFromColor(Colors.White);
         _defaultNormalTexture = CreateTextureFromColor(new Color(0.5f, 0.5f, 1.0f, 0f));
-        _defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
+        _defaultSampler = GraphicsDevice.CreateSampler(SamplerDescription.LinearWrap);
 
         ColorFormat = MainWindow.SwapChain!.ColorFormat;
         DepthStencilFormat = PixelFormat.Depth24UnormStencil8;
@@ -116,8 +116,8 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         {
             MultisampleColorTexture?.Dispose();
 
-            TextureDescriptor desc = TextureDescriptor.Texture2D(ColorFormat, (uint)Width, (uint)Height, 1, 1, TextureUsage.RenderTarget, SampleCount);
-            MultisampleColorTexture = GraphicsDevice.CreateTexture(in desc);
+            TextureDescription multisampleTextureDesc = TextureDescription.Texture2D(ColorFormat, (uint)Width, (uint)Height, 1, 1, TextureUsage.RenderTarget, SampleCount);
+            MultisampleColorTexture = GraphicsDevice.CreateTexture(in multisampleTextureDesc);
         }
 
         if (DepthStencilFormat != PixelFormat.Undefined &&
@@ -125,11 +125,11 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         {
             DepthStencilTexture?.Dispose();
 
-            TextureDescriptor desc = TextureDescriptor.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1, 
+            TextureDescription depthStencilTextureDesc = TextureDescription.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1, 
                 usage: TextureUsage.RenderTarget, 
                 sampleCount: SampleCount
                 );
-            DepthStencilTexture = GraphicsDevice.CreateTexture(in desc);
+            DepthStencilTexture = GraphicsDevice.CreateTexture(in depthStencilTextureDesc);
         }
     }
 

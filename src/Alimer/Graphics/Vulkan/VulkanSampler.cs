@@ -10,7 +10,7 @@ internal unsafe class VulkanSampler : Sampler
 {
     private readonly VulkanGraphicsDevice _device;
 
-    public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescriptor description)
+    public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescription description)
         : base(description)
     {
         _device = device;
@@ -37,7 +37,7 @@ internal unsafe class VulkanSampler : Sampler
     }
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.Sampler, Handle, newLabel);
     }

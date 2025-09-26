@@ -9,8 +9,6 @@ namespace Alimer.Graphics.Metal;
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal readonly partial struct Selector : IEquatable<Selector>
 {
-    public static readonly Selector Release = "release";
-
     public Selector(nint handle)
     {
         Handle = handle;
@@ -30,13 +28,9 @@ internal readonly partial struct Selector : IEquatable<Selector>
     public readonly bool IsNull => Handle == 0;
     public readonly bool IsNotNull => Handle != 0;
 
-    public unsafe string Name
+    public string Name
     {
-        get
-        {
-            byte* name = ObjectiveC.sel_getName(Handle);
-            return ObjectiveC.GetUtf8String(name);
-        }
+        get => ObjectiveC.sel_getName(Handle);
     }
 
     public static Selector Null => new(0);

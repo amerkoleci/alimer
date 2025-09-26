@@ -31,7 +31,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         HeapType = type;
         NumDescriptors = numDescriptors;
         ShaderVisible = shaderVisible;
-        Stride = device.Handle->GetDescriptorHandleIncrementSize(type);
+        Stride = device.Device->GetDescriptorHandleIncrementSize(type);
 
         Guard.IsTrue(AllocateResources(numDescriptors));
     }
@@ -149,7 +149,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
     public void CopyToShaderVisibleHeap(DescriptorIndex index, uint count = 1u)
     {
-        _device.Handle->CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
+        _device.Device->CopyDescriptorsSimple(count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
     }
 
     private bool AllocateResources(uint numDescriptors)
@@ -166,7 +166,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             NodeMask = 0
         };
 
-        HRESULT hr = _device.Handle->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _heap.GetVoidAddressOf());
+        HRESULT hr = _device.Device->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _heap.GetVoidAddressOf());
         if (hr.FAILED)
             return false;
 
@@ -177,7 +177,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         {
             heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-            hr = _device.Handle->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _shaderVisibleHeap.GetVoidAddressOf());
+            hr = _device.Device->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _shaderVisibleHeap.GetVoidAddressOf());
 
             if (FAILED(hr))
                 return false;
@@ -199,11 +199,11 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         if (!AllocateResources(newSize))
             return false;
 
-        _device.Handle->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
+        _device.Device->CopyDescriptorsSimple(oldSize, _startCpuHandle, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
 
         if (_shaderVisibleHeap.Get() is not null)
         {
-            _device.Handle->CopyDescriptorsSimple(oldSize, _startCpuHandleShaderVisible, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
+            _device.Device->CopyDescriptorsSimple(oldSize, _startCpuHandleShaderVisible, oldHeap.Get()->GetCPUDescriptorHandleForHeapStart(), HeapType);
         }
 
         return true;

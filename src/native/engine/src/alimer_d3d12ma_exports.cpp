@@ -25,6 +25,11 @@ D3D12MA_EXPORT_API uint32_t D3D12MA_Allocator_Release(Allocator* allocator)
     return allocator->Release();
 }
 
+D3D12MA_EXPORT_API void D3D12MA_Allocator_CalculateStatistics(Allocator* allocator, TotalStatistics* pStats)
+{
+    allocator->CalculateStatistics(pStats);
+}
+
 D3D12MA_EXPORT_API HRESULT D3D12MA_Allocator_CreateResource2(
     Allocator* allocator,
     const ALLOCATION_DESC* pAllocationDesc,

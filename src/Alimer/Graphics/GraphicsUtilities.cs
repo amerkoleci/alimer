@@ -5,25 +5,25 @@ namespace Alimer.Graphics;
 
 public static class GraphicsUtilities
 {
-    public static ulong ComputeTextureMemorySizeInBytes(in TextureDescriptor descriptor)
+    public static ulong ComputeTextureMemorySizeInBytes(in TextureDescription description)
     {
         ulong size = 0;
-        uint bytesPerBlock = descriptor.Format.GetFormatBytesPerBlock();
-        uint pixelsPerBlock = descriptor.Format.GetFormatHeightCompressionRatio();
-        uint numBlocksX = descriptor.Width / pixelsPerBlock;
-        uint numBlocksY = descriptor.Height / pixelsPerBlock;
-        uint mipLevelCount = descriptor.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(descriptor.Width, descriptor.Height, descriptor.DepthOrArrayLayers) : descriptor.MipLevelCount;
-        for (uint arrayLayer = 0; arrayLayer < descriptor.DepthOrArrayLayers; ++arrayLayer)
+        uint bytesPerBlock = description.Format.GetFormatBytesPerBlock();
+        uint pixelsPerBlock = description.Format.GetFormatHeightCompressionRatio();
+        uint numBlocksX = description.Width / pixelsPerBlock;
+        uint numBlocksY = description.Height / pixelsPerBlock;
+        uint mipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(description.Width, description.Height, description.DepthOrArrayLayers) : description.MipLevelCount;
+        for (uint arrayLayer = 0; arrayLayer < description.DepthOrArrayLayers; ++arrayLayer)
         {
             for (int mipLevel = 0; mipLevel < mipLevelCount; ++mipLevel)
             {
                 uint width = Math.Max(1u, numBlocksX >> mipLevel);
                 uint height = Math.Max(1u, numBlocksY >> mipLevel);
-                uint depth = Math.Max(1u, descriptor.DepthOrArrayLayers >> mipLevel);
+                uint depth = Math.Max(1u, description.DepthOrArrayLayers >> mipLevel);
                 size += width * height * depth * bytesPerBlock;
             }
         }
-        size *= (uint)descriptor.SampleCount;
+        size *= (uint)description.SampleCount;
         return size;
     }
 

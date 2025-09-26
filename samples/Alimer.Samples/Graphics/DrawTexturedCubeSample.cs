@@ -58,7 +58,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         ];
         _texture = ToDispose(GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
+        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
 
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)

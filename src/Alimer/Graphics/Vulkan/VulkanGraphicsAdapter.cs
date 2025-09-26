@@ -42,7 +42,14 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
 #endif
     // Extensions
+    public readonly VkPhysicalDeviceSamplerFilterMinmaxProperties SamplerFilterMinmaxProperties = default;
+    public readonly VkPhysicalDeviceDepthStencilResolveProperties DepthStencilResolveProperties = default;
     public readonly VkPhysicalDeviceDepthClipEnableFeaturesEXT DepthClipEnableFeatures = default;
+    public readonly VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures = default;
+    public readonly VkPhysicalDeviceAccelerationStructurePropertiesKHR AccelerationStructureProperties = default;
+    public readonly VkPhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingPipelineFeatures = default;
+    public readonly VkPhysicalDeviceRayTracingPipelinePropertiesKHR RayTracingPipelineProperties = default;
+    public readonly VkPhysicalDeviceRayQueryFeaturesKHR RayQueryFeatures = default;
 
     // Properties
     public readonly VkPhysicalDeviceProperties2 Properties2 = default;
@@ -60,12 +67,16 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceProperties2 properties2 = new();
         manager.InstanceApi.vkGetPhysicalDeviceProperties2(handle, &properties2);
 
-        // Features
+        // Features and properties
         VkPhysicalDeviceFeatures2 features2 = new();
         VkPhysicalDeviceVulkan11Features features11 = new();
         VkPhysicalDeviceVulkan12Features features12 = new();
         VkPhysicalDeviceVulkan13Features features13 = default;
         VkPhysicalDeviceVulkan14Features features14 = default;
+        VkPhysicalDeviceVulkan11Properties properties11 = new();
+        VkPhysicalDeviceVulkan12Properties properties12 = new();
+        VkPhysicalDeviceVulkan13Properties properties13 = default;
+        VkPhysicalDeviceVulkan14Properties properties14 = default;
 
         // Core in 1.3
         VkPhysicalDeviceMaintenance4Features maintenance4Features = default;
@@ -75,24 +86,50 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures = default;
         VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = default;
         VkPhysicalDevicePipelineCreationCacheControlFeatures pipelineCreationCacheControlFeatures = default;
+        VkPhysicalDeviceTextureCompressionASTCHDRFeatures astcHdrFeatures = default;
+
+        // Core in 1.4
+        VkPhysicalDeviceMaintenance5Features maintenance5Features = default;
+        VkPhysicalDeviceMaintenance6Features maintenance6Features = default;
+        VkPhysicalDeviceMaintenance6Properties maintenance6Properties = default;
+        VkPhysicalDevicePushDescriptorProperties pushDescriptorProps = default;
 
         // Extensions
+        VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = new();
+        VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = new();
         VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = default;
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = default;
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = default;
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = default;
+        VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = default;
 
+        // Setup pNext chains
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
+        VkBaseOutStructure* propertiesChainCurrent = (VkBaseOutStructure*)&properties2;
+
         AddToFeatureChain(&features11);
         AddToFeatureChain(&features12);
+        AddToPropertiesChain(&properties11);
+        AddToPropertiesChain(&properties12);
         if (properties2.properties.apiVersion >= VkVersion.Version_1_3)
         {
             features13 = new();
+            properties13 = new();
             AddToFeatureChain(&features13);
+            AddToPropertiesChain(&properties13);
         }
 
         if (properties2.properties.apiVersion >= VkVersion.Version_1_4)
         {
             features14 = new();
+            properties14 = new();
             AddToFeatureChain(&features14);
+            AddToPropertiesChain(&properties14);
         }
+
+        AddToPropertiesChain(&samplerFilterMinmaxProperties);
+        AddToPropertiesChain(&depthStencilResolveProperties);
 
         if (Extensions.DepthClipEnable)
         {
@@ -101,9 +138,125 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         }
 
         // Core in 1.3
-        if (properties2.properties.apiVersion < VkVersion.Version_1_3)
+        if (properties2.properties.apiVersion < VK_API_VERSION_1_3)
         {
-           // TODO:
+            if (Extensions.Maintenance4)
+            {
+                //enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
+
+                maintenance4Features = new();
+                maintenance4Properties = new();
+                AddToFeatureChain(&maintenance4Features);
+                AddToPropertiesChain(&maintenance4Properties);
+            }
+
+            if (Extensions.DynamicRendering)
+            {
+                //enabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+                dynamicRenderingFeatures = new();
+                AddToFeatureChain(&dynamicRenderingFeatures);
+            }
+
+            if (Extensions.Synchronization2)
+            {
+                //enabledDeviceExtensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+
+                synchronization2Features = new();
+                AddToFeatureChain(&synchronization2Features);
+            }
+
+            if (Extensions.ExtendedDynamicState)
+            {
+                //enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+
+                extendedDynamicStateFeatures = new();
+                AddToFeatureChain(&extendedDynamicStateFeatures);
+            }
+
+            if (Extensions.ExtendedDynamicState2)
+            {
+                //enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+
+                extendedDynamicState2Features = new();
+                AddToFeatureChain(&extendedDynamicState2Features);
+            }
+
+            if (Extensions.PipelineCreationCacheControl)
+            {
+                //enabledDeviceExtensions.push_back(VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME);
+
+                pipelineCreationCacheControlFeatures = new();
+                AddToFeatureChain(&pipelineCreationCacheControlFeatures);
+            }
+
+            if (Extensions.TextureCompressionAstcHdr)
+            {
+                //enabledDeviceExtensions.push_back(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
+
+                astcHdrFeatures = new();
+                AddToFeatureChain(&astcHdrFeatures);
+            }
+        }
+        else
+        {
+            // Core in 1.4
+            if (properties2.properties.apiVersion < VK_API_VERSION_1_4)
+            {
+                if (Extensions.Maintenance5)
+                {
+                    //enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+
+                    maintenance5Features = new();
+                    AddToFeatureChain(&maintenance5Features);
+                }
+
+                if (Extensions.Maintenance6)
+                {
+                    //enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
+
+                    maintenance6Features = new();
+                    maintenance6Properties = new();
+
+                    AddToFeatureChain(&maintenance6Features);
+                    AddToPropertiesChain(&maintenance6Properties);
+                }
+
+                if (Extensions.PushDescriptor)
+                {
+                    //enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+
+                    pushDescriptorProps = new();
+                    AddToPropertiesChain(&pushDescriptorProps);
+                }
+            }
+        }
+
+        if (Extensions.AccelerationStructure)
+        {
+            Guard.IsTrue(Extensions.DeferredHostOperations);
+
+            accelerationStructureFeatures = new();
+            AddToFeatureChain(&accelerationStructureFeatures);
+
+            accelerationStructureProperties = new();
+            AddToPropertiesChain(&accelerationStructureProperties);
+
+            if (Extensions.RaytracingPipeline)
+            {
+                // Required by VK_KHR_pipeline_library
+                rayTracingPipelineFeatures = new();
+                rayTracingPipelineProperties = new();
+
+                AddToFeatureChain(&rayTracingPipelineFeatures);
+                AddToPropertiesChain(&rayTracingPipelineProperties);
+            }
+
+            if (Extensions.RayQuery)
+            {
+                rayQueryFeatures = new();
+                AddToFeatureChain(&rayQueryFeatures);
+            }
         }
 
         manager.InstanceApi.vkGetPhysicalDeviceFeatures2(handle, &features2);
@@ -144,30 +297,14 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Features12 = features12;
         Features13 = features13;
         Features14 = features14;
+        SamplerFilterMinmaxProperties = samplerFilterMinmaxProperties;
+        DepthStencilResolveProperties = depthStencilResolveProperties;
         DepthClipEnableFeatures = depthClipEnableFeatures;
+        AccelerationStructureFeatures = accelerationStructureFeatures;
+        RayTracingPipelineFeatures = rayTracingPipelineFeatures;
+        RayQueryFeatures = rayQueryFeatures;
 
         // Properties
-        VkPhysicalDeviceVulkan11Properties properties11 = new();
-        VkPhysicalDeviceVulkan12Properties properties12 = new();
-        VkPhysicalDeviceVulkan13Properties properties13 = default;
-        VkPhysicalDeviceVulkan14Properties properties14 = default;
-
-        VkBaseOutStructure* propertiesChainCurrent = (VkBaseOutStructure*)&properties2;
-        AddToPropertiesChain(&properties11);
-        AddToPropertiesChain(&properties12);
-
-        if (properties2.properties.apiVersion >= VkVersion.Version_1_3)
-        {
-            properties13 = new();
-            AddToPropertiesChain(&properties13);
-        }
-
-        if (properties2.properties.apiVersion >= VkVersion.Version_1_4)
-        {
-            properties14 = new();
-            AddToPropertiesChain(&properties14);
-        }
-
         manager.InstanceApi.vkGetPhysicalDeviceProperties2(handle, &properties2);
         ApiVersion = properties2.properties.apiVersion;
         Properties2 = properties2;
@@ -175,7 +312,10 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Properties12 = properties12;
         Properties13 = properties13;
         Properties14 = properties14;
+        AccelerationStructureProperties = accelerationStructureProperties;
+        RayTracingPipelineProperties = rayTracingPipelineProperties;
 
+        // 
         DeviceName = Encoding.UTF8.GetString(properties2.properties.deviceName, (int)VK_MAX_PHYSICAL_DEVICE_NAME_SIZE).TrimEnd('\0');
         VendorId = properties2.properties.vendorID;
         DeviceId = properties2.properties.deviceID;

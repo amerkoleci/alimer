@@ -288,7 +288,7 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         for (int i = 0; i < actualImageCount; i++)
         {
-            TextureDescriptor descriptor = TextureDescriptor.Texture2D(
+            TextureDescription description = TextureDescription.Texture2D(
                 PixelFormat.BGRA8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,
@@ -296,7 +296,7 @@ internal unsafe class VulkanSwapChain : SwapChain
                 label: $"BackBuffer texture {i}"
             );
 
-            _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in descriptor);
+            _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in description);
             _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _acquireSemaphores[i]).CheckResult();
             _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _releaseSemaphores[i]).CheckResult();
         }
@@ -332,7 +332,7 @@ internal unsafe class VulkanSwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.SurfaceKHR, _handle, newLabel);
         _device.SetObjectName(VkObjectType.SwapchainKHR, _handle, newLabel);

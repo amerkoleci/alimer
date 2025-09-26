@@ -92,7 +92,7 @@ public abstract class Window : ISwapChainSurface
 
         if (DepthStencilFormat != PixelFormat.Undefined)
         {
-            TextureDescriptor depthStencilTextureDesc = TextureDescriptor.Texture2D(DepthStencilFormat,
+            TextureDescription depthStencilTextureDesc = TextureDescription.Texture2D(DepthStencilFormat,
                 (uint)ClientSize.Width, (uint)ClientSize.Height,
                 usage: TextureUsage.RenderTarget
                 );

@@ -23,7 +23,7 @@ internal unsafe class D3D12QueryHeap : QueryHeap
             Count = (uint)descriptor.Count,
             NodeMask = 0u
         };
-        HRESULT hr = device.Handle->CreateQueryHeap(&heapDesc, __uuidof<ID3D12QueryHeap>(), _handle.GetVoidAddressOf());
+        HRESULT hr = device.Device->CreateQueryHeap(&heapDesc, __uuidof<ID3D12QueryHeap>(), _handle.GetVoidAddressOf());
         if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create QueryHeap.");

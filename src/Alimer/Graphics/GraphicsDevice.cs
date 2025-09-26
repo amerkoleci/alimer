@@ -174,33 +174,33 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         )
         where T : unmanaged
     {
-        Guard.IsTrue(format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
-        Guard.IsGreaterThanOrEqualTo(width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(height, 1, nameof(TextureDescriptor.Height));
-        Guard.IsGreaterThanOrEqualTo(arrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+        Guard.IsTrue(format != PixelFormat.Undefined, nameof(TextureDescription.Format));
+        Guard.IsGreaterThanOrEqualTo(width, 1, nameof(TextureDescription.Width));
+        Guard.IsGreaterThanOrEqualTo(height, 1, nameof(TextureDescription.Height));
+        Guard.IsGreaterThanOrEqualTo(arrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
 
         fixed (T* initialDataPtr = initialData)
         {
             PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
             TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
 
-            return CreateTextureCore(TextureDescriptor.Texture2D(format, width, height, mipLevels, arrayLayers, usage), &initData);
+            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage), &initData);
         }
     }
 
-    public Texture CreateTexture(in TextureDescriptor description)
+    public Texture CreateTexture(in TextureDescription description)
     {
-        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescriptor.Height));
-        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));
+        Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescription.Height));
+        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
 
         return CreateTextureCore(description, default);
     }
 
-    public Sampler CreateSampler(in SamplerDescriptor descriptor)
+    public Sampler CreateSampler(in SamplerDescription description)
     {
-        if (descriptor.ReductionType == SamplerReductionType.Minimum ||
-            descriptor.ReductionType == SamplerReductionType.Maximum)
+        if (description.ReductionType == SamplerReductionType.Minimum ||
+            description.ReductionType == SamplerReductionType.Maximum)
         {
             if (Adapter.QueryFeatureSupport(Feature.SamplerMinMax))
             {
@@ -208,7 +208,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             }
         }
 
-        return CreateSamplerCore(descriptor);
+        return CreateSamplerCore(description);
     }
 
     public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescription description)
@@ -284,8 +284,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public abstract RenderContext BeginRenderContext(string? label = default);
 
     protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
-    protected abstract Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData);
-    protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
+    protected abstract Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
+    protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);

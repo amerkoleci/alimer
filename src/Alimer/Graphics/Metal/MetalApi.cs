@@ -23,7 +23,7 @@ internal static partial class MetalApi
         public static implicit operator MTLDevice(nint handle) => new(handle);
         public static implicit operator nint(MTLDevice handle) => handle.Handle;
 
-        public void Dispose() => ObjectiveC.objc_msgSend(Handle, Selector.Release);
+        public void Dispose() => ObjectiveC.objc_msgSend(Handle, Selectors.Release);
 
         public static bool operator ==(MTLDevice left, MTLDevice right) => left.Handle == right.Handle;
         public static bool operator !=(MTLDevice left, MTLDevice right) => left.Handle != right.Handle;
@@ -40,4 +40,7 @@ internal static partial class MetalApi
 
     [LibraryImport(ObjectiveC.MetalFramework)]
     public static partial MTLDevice MTLCreateSystemDefaultDevice();
+
+    [LibraryImport(ObjectiveC.MetalFramework)]
+    public static partial NSArray MTLCopyAllDevices();
 }

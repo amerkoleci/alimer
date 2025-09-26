@@ -20,6 +20,10 @@ using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
 using static TerraFX.Interop.DirectX.D3D12_STATIC_BORDER_COLOR;
+using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
+using static TerraFX.Interop.DirectX.D3D12_BARRIER_SYNC;
+using static TerraFX.Interop.DirectX.D3D12_BARRIER_ACCESS;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -243,6 +247,139 @@ internal static unsafe class D3D12Utils
         }
     }
 
+    public static D3D12TextureLayoutMapping ConvertTextureLayout(TextureLayout layout)
+    {
+        switch (layout)
+        {
+            case TextureLayout.Undefined:
+                return new(
+                    D3D12_BARRIER_LAYOUT_COMMON,
+                    D3D12_BARRIER_SYNC_NONE,
+                    D3D12_BARRIER_ACCESS_COMMON
+                    );
+
+            case TextureLayout.CopySource:
+                return new(
+                    D3D12_BARRIER_LAYOUT_COPY_SOURCE,
+                    D3D12_BARRIER_SYNC_COPY,
+                    D3D12_BARRIER_ACCESS_COPY_SOURCE
+                    );
+
+            case TextureLayout.CopyDest:
+                return new(
+                    D3D12_BARRIER_LAYOUT_COPY_DEST,
+                    D3D12_BARRIER_SYNC_COPY,
+                    D3D12_BARRIER_ACCESS_COPY_DEST
+                    );
+
+            case TextureLayout.ResolveSource:
+                return new(
+                    D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE,
+                    D3D12_BARRIER_SYNC_RESOLVE,
+                    D3D12_BARRIER_ACCESS_RESOLVE_SOURCE
+                    );
+
+            case TextureLayout.ResolveDest:
+                return new(
+                    D3D12_BARRIER_LAYOUT_RESOLVE_DEST,
+                    D3D12_BARRIER_SYNC_RESOLVE,
+                    D3D12_BARRIER_ACCESS_RESOLVE_DEST
+                    );
+
+            case TextureLayout.ShaderResource:
+                return new(
+                    D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
+                    D3D12_BARRIER_SYNC_ALL_SHADING,
+                    D3D12_BARRIER_ACCESS_SHADER_RESOURCE
+                    );
+
+            case TextureLayout.UnorderedAccess:
+                return new(
+                    D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+                    D3D12_BARRIER_SYNC_ALL_SHADING,
+                    D3D12_BARRIER_ACCESS_UNORDERED_ACCESS
+                    );
+
+            case TextureLayout.RenderTarget:
+                return new(
+                    D3D12_BARRIER_LAYOUT_RENDER_TARGET,
+                    D3D12_BARRIER_SYNC_RENDER_TARGET,
+                    D3D12_BARRIER_ACCESS_RENDER_TARGET
+                    );
+
+            case TextureLayout.DepthWrite:
+                return new(
+                    D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE,
+                    D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                    D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE
+                    );
+
+            case TextureLayout.DepthRead:
+            return new(
+                D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ,
+                D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ
+                );
+
+            case TextureLayout.Present:
+            return new(
+                D3D12_BARRIER_LAYOUT_PRESENT,
+                D3D12_BARRIER_SYNC_ALL,
+                D3D12_BARRIER_ACCESS_COMMON
+                );
+
+            case TextureLayout.ShadingRateSurface:
+            return new(
+                D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE,
+                D3D12_BARRIER_SYNC_PIXEL_SHADING,
+                D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
+                );
+
+            default:
+
+                return ThrowHelper.ThrowArgumentException<D3D12TextureLayoutMapping>();
+    }
+    }
+
+    public static D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(TextureLayout layout)
+    {
+        switch (layout)
+        {
+            case TextureLayout.Undefined:
+                return D3D12_RESOURCE_STATE_COMMON;
+
+            case TextureLayout.CopySource:
+                return D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+            case TextureLayout.CopyDest:
+                return D3D12_RESOURCE_STATE_COPY_DEST;
+
+            case TextureLayout.ShaderResource:
+                return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+            case TextureLayout.UnorderedAccess:
+                return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+            case TextureLayout.RenderTarget:
+                return D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+            case TextureLayout.DepthWrite:
+                return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+            case TextureLayout.DepthRead:
+                return D3D12_RESOURCE_STATE_DEPTH_READ;
+
+            case TextureLayout.Present:
+                return D3D12_RESOURCE_STATE_PRESENT;
+
+            case TextureLayout.ShadingRateSurface:
+                return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
+
+            default:
+                return ThrowHelper.ThrowArgumentException<D3D12_RESOURCE_STATES>("Unsupported texture layout");
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12(this BindingInfoType value)
     {
@@ -265,7 +402,7 @@ internal static unsafe class D3D12Utils
         }
     }
 
-    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescriptor description)
+    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescription description)
     {
         D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
         D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
@@ -331,7 +468,7 @@ internal static unsafe class D3D12Utils
 
     public static D3D12_STATIC_SAMPLER_DESC ToD3D12StaticSamplerDesc(
         uint shaderRegister,
-        in SamplerDescriptor description,
+        in SamplerDescription description,
         D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, uint registerSpace = 0u)
     {
         D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc(in description);
@@ -349,134 +486,62 @@ internal static unsafe class D3D12Utils
             MaxLOD = samplerDesc.MaxLOD,
             ShaderRegister = shaderRegister,
             RegisterSpace = registerSpace,
-            ShaderVisibility = shaderVisibility
-        };
-
-        staticDesc.BorderColor = description.BorderColor switch
-        {
-            SamplerBorderColor.FloatOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
-            SamplerBorderColor.UintOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT,
-            SamplerBorderColor.FloatOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE,
-            SamplerBorderColor.UintOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT,
-            _ => D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,
+            ShaderVisibility = shaderVisibility,
+            BorderColor = description.BorderColor switch
+            {
+                SamplerBorderColor.FloatOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
+                SamplerBorderColor.UintOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT,
+                SamplerBorderColor.FloatOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE,
+                SamplerBorderColor.UintOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT,
+                _ => D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,
+            }
         };
 
         return staticDesc;
     }
 
-    public static D3D12_RESOURCE_STATES ToD3D12(this ResourceStates states)
+    public static D3D12_RESOURCE_STATES ConvertBufferStateLegacy(this BufferStates states, QueueType queueType)
     {
-        if (states == ResourceStates.Common || states == ResourceStates.Present)
-            return D3D12_RESOURCE_STATE_COMMON;
+        D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
 
-        D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON; // also 0
-
-        if ((states & ResourceStates.ConstantBuffer) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        }
-
-        if ((states & ResourceStates.VertexBuffer) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        }
-
-        if ((states & ResourceStates.IndexBuffer) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
-        }
-
-        if ((states & ResourceStates.IndirectArgument) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-        }
-
-        if ((states & ResourceStates.ShaderResource) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-            result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        }
-
-        if ((states & ResourceStates.UnorderedAccess) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        }
-
-        if ((states & ResourceStates.RenderTarget) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
-        }
-
-        if ((states & ResourceStates.DepthWrite) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        }
-
-        if ((states & ResourceStates.DepthRead) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_DEPTH_READ;
-        }
-
-        if ((states & ResourceStates.StreamOut) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_STREAM_OUT;
-        }
-
-        if ((states & ResourceStates.CopyDest) != 0)
-        {
+        if ((states & BufferStates.CopyDest) != 0)
             result |= D3D12_RESOURCE_STATE_COPY_DEST;
-        }
 
-        if ((states & ResourceStates.CopySource) != 0)
-        {
+        if ((states & BufferStates.CopySource) != 0)
             result |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+        if ((states & BufferStates.ShaderResource) != 0)
+        {
+            result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            if (queueType == QueueType.Graphics)
+                result |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        if ((states & ResourceStates.ResolveDest) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RESOLVE_DEST;
-        }
+        if ((states & BufferStates.UnorderedAccess) != 0)
+            result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 
-        if ((states & ResourceStates.ResolveSource) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-        }
+        if ((states & BufferStates.VertexBuffer) != 0)
+            result |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        if ((states & BufferStates.IndexBuffer) != 0)
+            result |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+        if ((states & BufferStates.ConstantBuffer) != 0)
+            result |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        if ((states & BufferStates.Predication) != 0)
+            result |= D3D12_RESOURCE_STATE_PREDICATION;
+#if TODO
+            if ((stateBits & ResourceStates::IndirectArgument) != 0) result |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+            if ((stateBits & ResourceStates::StreamOut) != 0) result |= D3D12_RESOURCE_STATE_STREAM_OUT;
+            if ((stateBits & ResourceStates::AccelerationStructureRead) != 0) result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+            if ((stateBits & ResourceStates::AccelerationStructureWrite) != 0) result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+            if ((stateBits & ResourceStates::AccelerationStructureBuildInput) != 0) result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+            if ((stateBits & ResourceStates::ShadingRateSurface) != 0) result |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
+            if ((stateBits & ResourceStates::OpacityMicromapBuildInput) != 0) result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            if ((stateBits & ResourceStates::OpacityMicromapWrite) != 0) result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+#endif // TODO
 
-        if ((states & ResourceStates.AccelStructRead) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-        }
-
-        if ((states & ResourceStates.AccelStructWrite) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-        }
-
-        if ((states & ResourceStates.AccelStructBuildInput) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        }
-
-        if ((states & ResourceStates.AccelStructBuildBlas) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-        }
-
-        if ((states & ResourceStates.ShadingRateSurface) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
-        }
-
-        if ((states & ResourceStates.OpacityMicromapBuildInput) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        }
-
-        if ((states & ResourceStates.OpacityMicromapWrite) != 0)
-        {
-            result |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-        }
 
         return result;
     }
+
+    public readonly record struct D3D12TextureLayoutMapping(D3D12_BARRIER_LAYOUT Layout, D3D12_BARRIER_SYNC Sync, D3D12_BARRIER_ACCESS Access);
 }

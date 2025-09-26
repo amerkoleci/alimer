@@ -10,11 +10,11 @@ internal sealed unsafe class D3D12Sampler : Sampler
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12_SAMPLER_DESC _desc;
 
-    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescriptor descriptor)
-        : base(descriptor)
+    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
+        : base(description)
     {
         _device = device;
-        _desc = D3D12Utils.ToD3D12SamplerDesc(in descriptor);
+        _desc = D3D12Utils.ToD3D12SamplerDesc(in description);
     }
 
     /// <inheritdoc />
@@ -23,7 +23,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
     public void CreateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE handle)
     {
         D3D12_SAMPLER_DESC desc = _desc;
-        _device.Handle->CreateSampler(&desc, handle);
+        _device.Device->CreateSampler(&desc, handle);
     }
 
     protected internal override void Destroy()

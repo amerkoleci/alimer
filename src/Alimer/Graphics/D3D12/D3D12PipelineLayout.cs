@@ -153,7 +153,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 return;
             }
 
-            hr = device.Handle->CreateRootSignature(0,
+            hr = device.Device->CreateRootSignature(0,
                 rootSignatureBlob.Get()->GetBufferPointer(),
                 rootSignatureBlob.Get()->GetBufferSize(),
                 __uuidof<ID3D12RootSignature>(),

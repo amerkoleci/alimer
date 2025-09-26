@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
@@ -9,7 +8,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a Graphics buffer.
 /// </summary>
-public abstract class GraphicsBuffer : GraphicsResource
+public abstract unsafe class GraphicsBuffer : GraphicsResource
 {
     protected GraphicsBuffer(in BufferDescription description)
         : base(description.Label)
@@ -34,7 +33,10 @@ public abstract class GraphicsBuffer : GraphicsResource
     /// </summary>
     public CpuAccessMode CpuAccess { get; }
 
-    public unsafe void SetData<T>(in T data, int offsetInBytes = 0) where T : unmanaged
+    public BufferStates CurrentState { get; internal set; }
+
+    public void SetData<T>(in T data, int offsetInBytes = 0)
+        where T : unmanaged
     {
         fixed (T* pointer = &data)
         {
@@ -42,17 +44,19 @@ public abstract class GraphicsBuffer : GraphicsResource
         }
     }
 
-    public unsafe void SetData<T>(Span<T> data, int offsetInBytes = 0) where T : unmanaged
+    public void SetData<T>(Span<T> data, int offsetInBytes = 0)
+        where T : unmanaged
     {
         Guard.IsTrue(CpuAccess == CpuAccessMode.Write);
 
         fixed (T* dataPtr = data)
         {
-            SetDataUnsafe(dataPtr, offsetInBytes);  
+            SetDataUnsafe(dataPtr, offsetInBytes);
         }
     }
 
-    public T GetData<T>(int offsetInBytes = 0) where T : unmanaged
+    public T GetData<T>(int offsetInBytes = 0)
+        where T : unmanaged
     {
         T data = new();
         GetData(ref data, offsetInBytes);
@@ -60,18 +64,8 @@ public abstract class GraphicsBuffer : GraphicsResource
         return data;
     }
 
-    public unsafe T[] GetArray<T>(int offsetInBytes = 0) where T : unmanaged
-    {
-        Guard.IsTrue(CpuAccess != CpuAccessMode.None);
-
-        T[] data = new T[((int)Size / sizeof(T)) - offsetInBytes];
-        GetData(data.AsSpan(), offsetInBytes);
-
-        return data;
-    }
-
-
-    public unsafe void GetData<T>(ref T data, int offsetInBytes = 0) where T : unmanaged
+    public void GetData<T>(ref T data, int offsetInBytes = 0)
+        where T : unmanaged
     {
         Guard.IsTrue(CpuAccess != CpuAccessMode.None);
 
@@ -81,21 +75,14 @@ public abstract class GraphicsBuffer : GraphicsResource
         }
     }
 
-    public unsafe void GetData<T>(T[] destination, int offsetInBytes = 0) where T : unmanaged
+    public void GetData<T>(Span<T> destination, int offsetInBytes = 0) where T : unmanaged
     {
-        Guard.IsTrue(CpuAccess != CpuAccessMode.None);
-
-        fixed (T* destPtr = destination)
+        fixed (T* destinationPtr = destination)
         {
-            GetDataUnsafe(destPtr, offsetInBytes);
+            GetDataUnsafe(destinationPtr, offsetInBytes);
         }
     }
 
-    public void GetData<T>(Span<T> destination, int offsetInBytes = 0) where T : unmanaged
-    {
-        GetData(ref MemoryMarshal.GetReference(destination), offsetInBytes);
-    }
-
-    protected unsafe abstract void SetDataUnsafe(void* dataPtr, int offsetInBytes);
-    protected unsafe abstract void GetDataUnsafe(void* destPtr, int offsetInBytes);
+    protected abstract void SetDataUnsafe(void* dataPtr, int offsetInBytes);
+    protected abstract void GetDataUnsafe(void* destPtr, int offsetInBytes);
 }

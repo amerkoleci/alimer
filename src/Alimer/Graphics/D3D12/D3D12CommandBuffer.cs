@@ -17,6 +17,7 @@ using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE_COMBINER;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
+using static Alimer.Graphics.D3D12.D3D12Utils;
 using Alimer.Graphics.D3D;
 using System.Diagnostics;
 using Alimer.Numerics;
@@ -64,13 +65,13 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         for (uint i = 0; i < MaxFramesInFlight; ++i)
         {
             ThrowIfFailed(
-                queue.D3DDevice.Handle->CreateCommandAllocator(queue.CommandListType,
+                queue.D3DDevice.Device->CreateCommandAllocator(queue.CommandListType,
                 __uuidof<ID3D12CommandAllocator>(), _commandAllocators[i].GetVoidAddressOf())
             );
         }
 
         ThrowIfFailed(
-           queue.D3DDevice.Handle->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
+           queue.D3DDevice.Device->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
             __uuidof<ID3D12GraphicsCommandList6>(), _commandList.GetVoidAddressOf()
         ));
     }
@@ -149,59 +150,67 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         }
     }
 
-    public void TransitionResource(ID3D12GpuResource resource, ResourceStates newState, bool flushImmediate = false)
+    public void TextureBarrier(D3D12Texture resource, TextureLayout newLayout, uint subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false)
     {
-        ResourceStates oldState = resource.State;
-        D3D12_RESOURCE_STATES oldStateD3D12 = resource.State.ToD3D12();
-        D3D12_RESOURCE_STATES newStateD3D12 = newState.ToD3D12();
+        uint index = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;
+        TextureLayout currentLayout = resource.GetTextureLayout(index);
+        if (currentLayout == newLayout)
+            return;
+
+        if (_queue.D3DDevice.DxAdapter.Features.EnhancedBarriersSupported)
+        {
+        }
+
+        D3D12_RESOURCE_STATES oldStateLegacy = ConvertTextureLayoutLegacy(currentLayout);
+        D3D12_RESOURCE_STATES newStateLegacy = ConvertTextureLayoutLegacy(newLayout);
 
         if (_queue.QueueType == QueueType.Compute)
         {
-            Guard.IsTrue((oldStateD3D12 & s_ValidComputeResourceStates) == oldStateD3D12);
-            Guard.IsTrue((newStateD3D12 & s_ValidComputeResourceStates) == newStateD3D12);
+            Guard.IsTrue((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
+            Guard.IsTrue((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
         }
         else if (_queue.QueueType == QueueType.Copy)
         {
-            Guard.IsTrue((oldStateD3D12 & s_ValidCopyResourceStates) == oldStateD3D12);
-            Guard.IsTrue((newStateD3D12 & s_ValidCopyResourceStates) == newStateD3D12);
+            Guard.IsTrue((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
+            Guard.IsTrue((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);
         }
 
-        if (oldState != newState)
+        if (oldStateLegacy != newStateLegacy)
         {
             Guard.IsTrue(_numBarriersToFlush < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
-            ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
 
+            ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
             barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrierDesc.Transition.pResource = resource.Handle;
-            barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-            barrierDesc.Transition.StateBefore = oldStateD3D12;
-            barrierDesc.Transition.StateAfter = newStateD3D12;
+            barrierDesc.Transition.Subresource = subresource; // D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrierDesc.Transition.StateBefore = oldStateLegacy;
+            barrierDesc.Transition.StateAfter = newStateLegacy;
 
             // Check to see if we already started the transition
-            if (newState == resource.TransitioningState)
-            {
-                barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
-                resource.TransitioningState = (ResourceStates)uint.MaxValue;
-            }
-            else
+            //if (NewState == Resource.m_TransitioningState)
+            //{
+            //    BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
+            //    Resource.m_TransitioningState = (D3D12_RESOURCE_STATES)-1;
+            //}
+            //else
             {
                 barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
             }
 
-            resource.State = newState;
+            resource.SetTextureLayout(index, newLayout);
         }
-        else if (newState == ResourceStates.UnorderedAccess)
+        else if (newStateLegacy == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
         {
-            InsertUAVBarrier(resource, flushImmediate);
+            InsertUAVBarrier(resource, commit);
         }
 
-        if (flushImmediate || _numBarriersToFlush == MaxBarriers)
+        if (commit || _numBarriersToFlush == MaxBarriers)
         {
-            FlushResourceBarriers();
+            CommitBarriers();
         }
     }
 
-    public void InsertUAVBarrier(ID3D12GpuResource resource, bool flushImmediate = false)
+    public void InsertUAVBarrier(ID3D12GpuResource resource, bool commit = false)
     {
         Guard.IsTrue(_numBarriersToFlush < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
         ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
@@ -210,11 +219,11 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         barrierDesc.UAV.pResource = resource.Handle;
 
-        if (flushImmediate)
-            FlushResourceBarriers();
+        if (commit)
+            CommitBarriers();
     }
 
-    public void FlushResourceBarriers()
+    public void CommitBarriers()
     {
         if (_numBarriersToFlush > 0)
         {
@@ -396,7 +405,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             }
 
             // Barrier -> D3D12_RESOURCE_STATE_RENDER_TARGET
-            TransitionResource(texture, ResourceStates.RenderTarget, true);
+            TextureBarrier(texture, TextureLayout.RenderTarget);
 
             ++numRTVS;
         }
@@ -405,7 +414,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
 
-            var texture = (D3D12Texture)attachment.Texture!;
+            D3D12Texture texture = (D3D12Texture)attachment.Texture!;
             uint mipLevel = attachment.MipLevel;
             uint slice = attachment.Slice;
 
@@ -425,7 +434,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
                 case LoadAction.Clear:
                     DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.ClearDepth;
+                    DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.DepthClearValue;
                     break;
                 case LoadAction.Discard:
                     DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
@@ -454,7 +463,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
                     case LoadAction.Clear:
                         DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                        DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = (byte)attachment.ClearStencil;
+                        DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = attachment.StencilClearValue;
                         break;
                     case LoadAction.Discard:
                         DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
@@ -472,7 +481,11 @@ internal unsafe class D3D12CommandBuffer : RenderContext
                         break;
                 }
             }
+
+            TextureBarrier(texture,
+                (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite);
         }
+        CommitBarriers();
 
         _commandList.Get()->BeginRenderPass(numRTVS, RTVs,
              hasDepthOrStencil ? &DSV : null,

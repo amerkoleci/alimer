@@ -5,11 +5,12 @@ using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
+using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
-using Alimer.Numerics;
+using static TerraFX.Interop.Windows.E;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -17,7 +18,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly ComPtr<D3D12MA_Allocation> _allocation;
+    private readonly nint _allocation;
     public readonly void* pMappedData;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
@@ -43,36 +44,59 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
             resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
 
-        D3D12_RESOURCE_DESC resourceDesc = D3D12_RESOURCE_DESC.Buffer(alignedSize, resourceFlags);
-        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
+        D3D12_RESOURCE_DESC1 resourceDesc = D3D12_RESOURCE_DESC1.Buffer(alignedSize, resourceFlags);
 
-        D3D12MA_ALLOCATION_DESC allocationDesc = new();
-        allocationDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12MA.ALLOCATION_DESC allocationDesc = new()
+        {
+            HeapType = D3D12_HEAP_TYPE_DEFAULT
+        };
+
+        // https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html
+        // Buffers may only use D3D12_BARRIER_LAYOUT_UNDEFINED as an initial layout.
+        D3D12_BARRIER_LAYOUT initialLayout = D3D12_BARRIER_LAYOUT_UNDEFINED;
+        D3D12_RESOURCE_STATES initialStateLegacy = D3D12_RESOURCE_STATE_COMMON;
 
         if (description.CpuAccess == CpuAccessMode.Read)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
-            initialState = D3D12_RESOURCE_STATE_COPY_DEST;
             resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+
+            initialStateLegacy = D3D12_RESOURCE_STATE_COPY_DEST;
+            ImmutableState = true;
         }
         else if (description.CpuAccess == CpuAccessMode.Write)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-            initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
+            initialStateLegacy = D3D12_RESOURCE_STATE_GENERIC_READ;
+            ImmutableState = true;
+        }
+
+        HRESULT hr = E_FAIL;
+        if (device.EnhancedBarriersSupported)
+        {
+            hr = D3D12MA.Allocator_CreateResource3(
+                device.MemoryAllocator,
+                &allocationDesc,
+                &resourceDesc,
+                initialLayout,
+                null,
+                0, null,
+                out _allocation,
+                __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
+            );
         }
         else
         {
-            //initialState = ConvertResourceStates(desc.initialState);
-        }
-
-        HRESULT hr = device.MemoryAllocator->CreateResource(
-            &allocationDesc,
-            &resourceDesc,
-            initialState,
-            null,
-            _allocation.GetAddressOf(),
-            __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
+            hr = D3D12MA.Allocator_CreateResource2(
+                device.MemoryAllocator,
+                &allocationDesc,
+                &resourceDesc,
+                initialStateLegacy,
+                null,
+                out _allocation,
+                __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
             );
+        }
 
         if (hr.FAILED)
         {
@@ -86,7 +110,17 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         }
 
         ulong allocatedSize;
-        device.Handle->GetCopyableFootprints(&resourceDesc, 0, 1, 0, null, null, null, &allocatedSize);
+        if (device.EnhancedBarriersSupported)
+        {
+            device.Device8->GetCopyableFootprints1(&resourceDesc,
+                0, 1, 0, null, null, null, &allocatedSize);
+        }
+        else
+        {
+            device.Device->GetCopyableFootprints((D3D12_RESOURCE_DESC*)&resourceDesc,
+                0, 1, 0, null, null, null, &allocatedSize);
+        }
+
         GpuAddress = _handle.Get()->GetGPUVirtualAddress();
         AllocatedSize = allocatedSize;
 
@@ -153,8 +187,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     public override GraphicsDevice Device => _device;
 
     public ID3D12Resource* Handle => _handle;
-    public ResourceStates State { get; set; }
-    public ResourceStates TransitioningState { get; set; } = (ResourceStates)uint.MaxValue;
+    public bool ImmutableState { get; }
 
     public ulong GpuAddress { get; }
     public ulong AllocatedSize { get; }
@@ -162,7 +195,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _allocation.Dispose();
+        _ = D3D12MA.Allocation_Release(_allocation);
         _handle.Dispose();
     }
 

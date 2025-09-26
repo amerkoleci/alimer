@@ -68,7 +68,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 };
                                 viewDesc.Texture2D.MostDetailedMip = 0;
                                 viewDesc.Texture1D.MipLevels = backendTexture.MipLevelCount;
-                                _device.Handle->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
+                                _device.Device->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
                             }
 
                             found = true;
@@ -84,7 +84,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 BufferLocation = buffer.GpuAddress + offset,
                                 SizeInBytes = (uint)MathUtilities.AlignUp(entry.Size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
                             };
-                            device.Handle->CreateConstantBufferView(&cbvDesc, descriptorHandle);
+                            device.Device->CreateConstantBufferView(&cbvDesc, descriptorHandle);
                             found = true;
                             break;
                         }
@@ -104,7 +104,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 break;
 
                             case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-                                device.Handle->CreateConstantBufferView(null, descriptorHandle);
+                                device.Device->CreateConstantBufferView(null, descriptorHandle);
                                 break;
 
                             case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
@@ -148,7 +148,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                     {
                         // Create a default sampler
                         D3D12_SAMPLER_DESC samplerDesc = new();
-                        device.Handle->CreateSampler(&samplerDesc, descriptorHandle);
+                        device.Device->CreateSampler(&samplerDesc, descriptorHandle);
                         continue;
                     }
                 }
@@ -189,7 +189,7 @@ internal unsafe class D3D12BindGroup : BindGroup
             ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
             Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
         };
-        _device.Handle->CreateShaderResourceView(null, &viewDesc, descriptor);
+        _device.Device->CreateShaderResourceView(null, &viewDesc, descriptor);
     }
 
     public void CreateNullUAV(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, DXGI_FORMAT srvFormat = DXGI_FORMAT_R32_UINT)
@@ -199,6 +199,6 @@ internal unsafe class D3D12BindGroup : BindGroup
             Format = srvFormat,
             ViewDimension = D3D12_UAV_DIMENSION_BUFFER
         };
-        _device.Handle->CreateUnorderedAccessView(null, null, &viewDesc, descriptor);
+        _device.Device->CreateUnorderedAccessView(null, null, &viewDesc, descriptor);
     }
 }

@@ -395,7 +395,7 @@ internal unsafe class VulkanPipeline : Pipeline
     ~VulkanPipeline() => Dispose(disposing: false);
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.Pipeline, _handle, newLabel);
     }

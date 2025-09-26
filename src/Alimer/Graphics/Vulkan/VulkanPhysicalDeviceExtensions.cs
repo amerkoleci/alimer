@@ -46,15 +46,14 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool ExternalSemaphore;
     public bool ExternalFence;
 
-    public bool PerformanceQuery;
-    public bool HostQueryReset;
     public bool DeferredHostOperations;
     public bool PortabilitySubset;
     public bool TextureCompressionAstcHdr;
 
-    public bool accelerationStructure;
-    public bool raytracingPipeline;
-    public bool rayQuery;
+    public bool ShaderViewportIndexLayer;
+    public bool AccelerationStructure;
+    public bool RaytracingPipeline;
+    public bool RayQuery;
     public bool FragmentShadingRate;
     public bool MeshShader;
     public bool ConditionalRendering;
@@ -132,14 +131,6 @@ internal struct VulkanPhysicalDeviceExtensions
                 {
                     extensions.MemoryPriority = true;
                 }
-                else if (extensionName == VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME)
-                {
-                    extensions.PerformanceQuery = true;
-                }
-                else if (extensionName == VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME)
-                {
-                    extensions.HostQueryReset = true;
-                }
                 else if (extensionName == VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
                 {
                     extensions.DeferredHostOperations = true;
@@ -152,17 +143,21 @@ internal struct VulkanPhysicalDeviceExtensions
                 {
                     extensions.TextureCompressionAstcHdr = true;
                 }
+                else if (extensionName == VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)
+                {
+                    extensions.ShaderViewportIndexLayer = true;
+                }
                 else if (extensionName == VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
                 {
-                    extensions.accelerationStructure = true;
+                    extensions.AccelerationStructure = true;
                 }
                 else if (extensionName == VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
                 {
-                    extensions.raytracingPipeline = true;
+                    extensions.RaytracingPipeline = true;
                 }
                 else if (extensionName == VK_KHR_RAY_QUERY_EXTENSION_NAME)
                 {
-                    extensions.rayQuery = true;
+                    extensions.RayQuery = true;
                 }
                 else if (extensionName == VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME)
                 {

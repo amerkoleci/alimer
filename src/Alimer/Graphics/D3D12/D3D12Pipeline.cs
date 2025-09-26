@@ -184,7 +184,7 @@ internal unsafe class D3D12Pipeline : Pipeline
             streamDesc.SizeInBytes += (nuint)sizeof(GraphicsPipelineStateStream2);
         }
 
-        HRESULT hr = device.Handle->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
+        HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
         if (hr.FAILED)
         {
             Log.Error("D3D12: Failed to create Render Pipeline.");
@@ -215,7 +215,7 @@ internal unsafe class D3D12Pipeline : Pipeline
                 SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
             };
 
-            HRESULT hr = device.Handle->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
+            HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), _handle.GetVoidAddressOf());
             if (hr.FAILED)
             {
                 Log.Error("D3D12: Failed to create Compute Pipeline.");

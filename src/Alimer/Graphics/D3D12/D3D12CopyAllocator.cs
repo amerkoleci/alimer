@@ -61,10 +61,10 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         // If no buffer was found that fits the data, create one
         if (!context.IsValid)
         {
-            HRESULT hr = _device.Handle->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, __uuidof<ID3D12CommandAllocator>(), context.CommandAllocator.GetVoidAddressOf());
+            HRESULT hr = _device.Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, __uuidof<ID3D12CommandAllocator>(), context.CommandAllocator.GetVoidAddressOf());
             ThrowIfFailed(hr);
 
-            hr = _device.Handle->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY,
+            hr = _device.Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY,
                 context.CommandAllocator.Get(),
                 null,
                 __uuidof<ID3D12CommandList>(), context.CommandList.GetVoidAddressOf()
@@ -72,7 +72,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
             ThrowIfFailed(hr);
 
             ThrowIfFailed(context.CommandList.Get()->Close());
-            context.Fence = _device.Handle->CreateFence();
+            context.Fence = _device.Device->CreateFence();
 
             context.UploadBufferSize = BitOperations.RoundUpToPowerOf2(size);
 

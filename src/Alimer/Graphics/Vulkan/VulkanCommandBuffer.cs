@@ -24,7 +24,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private VkCommandBuffer _commandBuffer; // recording command buffer
 
     private uint _memoryBarrierCount;
-    private uint _bufferMemoryBarrierCount;
+    private uint _bufferBarrierCount;
     private uint _imageBarrierCount;
     private readonly VkMemoryBarrier2[] _memoryBarriers = new VkMemoryBarrier2[MaxBarrierCount];
     private readonly VkImageMemoryBarrier2[] _imageBarriers = new VkImageMemoryBarrier2[MaxBarrierCount];
@@ -96,7 +96,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _currentPipelineLayout = default;
         _currentRenderPass = default;
         _memoryBarrierCount = 0;
-        _bufferMemoryBarrierCount = 0;
+        _bufferBarrierCount = 0;
         _imageBarrierCount = 0;
         Array.Clear(_memoryBarriers, 0, _memoryBarriers.Length);
         Array.Clear(_bufferBarriers, 0, _bufferBarriers.Length);
@@ -191,8 +191,32 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         VkStringInterop.Free(pLabelName);
     }
 
-    public void BufferBarrier(VulkanBuffer buffer, ResourceStates newState)
+    public void BufferBarrier(VulkanBuffer buffer, BufferStates newState)
     {
+        if (buffer.CurrentState == newState)
+            return;
+
+        VkBufferStateMapping before = ConvertBufferState(buffer.CurrentState);
+        VkBufferStateMapping after = ConvertBufferState(newState);
+
+        ref VkBufferMemoryBarrier2 barrier = ref _bufferBarriers[_bufferBarrierCount++];
+        barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+        barrier.srcStageMask = before.StageFlags;
+        barrier.srcAccessMask = before.AccessMask;
+        barrier.dstStageMask = after.StageFlags;
+        barrier.dstAccessMask = after.AccessMask;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.buffer = buffer.Handle;
+        barrier.offset = 0;
+        barrier.size = VK_WHOLE_SIZE;
+
+        if (_bufferBarrierCount == MaxBarrierCount)
+        {
+            CommitBarriers();
+        }
+
+        buffer.CurrentState = newState;
     }
 
     public void TextureBarrier(VulkanTexture texture, TextureLayout newLayout,
@@ -202,7 +226,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         uint layerCount,
         TextureAspect aspect = TextureAspect.All)
     {
-        TextureLayout currentLayout = texture.GetImageLayout(baseMiplevel, baseArrayLayer);
+        TextureLayout currentLayout = texture.GetTextureLayout(baseMiplevel, baseArrayLayer);
         if (currentLayout == newLayout)
             return;
 
@@ -234,13 +258,13 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             CommitBarriers();
         }
 
-        texture.SetImageLayout(newLayout, baseMiplevel, levelCount, baseArrayLayer, layerCount);
+        texture.SetTextureLayout(newLayout, baseMiplevel, levelCount, baseArrayLayer, layerCount);
     }
 
     public void CommitBarriers()
     {
         if (_memoryBarrierCount > 0
-            || _bufferMemoryBarrierCount > 0
+            || _bufferBarrierCount > 0
             || _imageBarrierCount > 0)
         {
             fixed (VkMemoryBarrier2* pMemoryBarriers = _memoryBarriers)
@@ -253,7 +277,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                         {
                             memoryBarrierCount = _memoryBarrierCount,
                             pMemoryBarriers = pMemoryBarriers,
-                            bufferMemoryBarrierCount = _bufferMemoryBarrierCount,
+                            bufferMemoryBarrierCount = _bufferBarrierCount,
                             pBufferMemoryBarriers = pBufferMemoryBarriers,
                             imageMemoryBarrierCount = _imageBarrierCount,
                             pImageMemoryBarriers = pImageMemoryBarriers
@@ -264,7 +288,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             }
 
             _memoryBarrierCount = 0;
-            _bufferMemoryBarrierCount = 0;
+            _bufferBarrierCount = 0;
             _imageBarrierCount = 0;
         }
     }
@@ -391,7 +415,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             depthAttachment.resolveMode = VkResolveModeFlags.None;
             depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
             depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
-            depthAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
+            depthAttachment.clearValue.depthStencil = new(attachment.DepthClearValue, attachment.StencilClearValue);
             renderingInfo.pDepthAttachment = &depthAttachment;
 
             if (depthStencilFormat.IsStencilFormat())
@@ -401,7 +425,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
                 stencilAttachment.resolveMode = VkResolveModeFlags.None;
                 stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
                 stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
-                stencilAttachment.clearValue.depthStencil = new(attachment.ClearDepth, attachment.ClearStencil);
+                stencilAttachment.clearValue.depthStencil = new(attachment.DepthClearValue, attachment.StencilClearValue);
                 renderingInfo.pStencilAttachment = &stencilAttachment;
             }
 

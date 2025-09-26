@@ -31,7 +31,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VmaAllocation _nullImageAllocation2D = VmaAllocation.Null;
     private readonly VmaAllocation _nullImageAllocation3D = VmaAllocation.Null;
 
-    private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = [];
+    private readonly Dictionary<SamplerDescription, VkSampler> _samplerCache = [];
 
     private readonly VkBuffer _nullBuffer = default;
     private readonly VkBufferView _nullBufferView = default;
@@ -221,6 +221,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _queueCounts[i] = offsets[_queueFamilyIndices[i]];
         }
 
+        // Setup extensions and features
         UnsafeList<Utf8String> enabledDeviceExtensions = [];
         enabledDeviceExtensions.Add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -274,6 +275,77 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = _adapter.DepthClipEnableFeatures;
             AddToFeatureChain(&depthClipEnableFeatures);
+        }
+
+        if (_adapter.Extensions.ShaderViewportIndexLayer)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+        }
+
+        if (_adapter.Extensions.ExternalMemory)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+            }
+            else
+            {
+                enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+            }
+        }
+
+        if (_adapter.Extensions.ExternalSemaphore)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+            }
+            else
+            {
+                enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+            }
+        }
+
+        if (_adapter.Extensions.ExternalFence)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME);
+            }
+            else
+            {
+                enabledDeviceExtensions.Add(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME);
+            }
+        }
+
+        if (_adapter.Extensions.AccelerationStructure)
+        {
+            Guard.IsTrue(_adapter.Extensions.DeferredHostOperations);
+
+            // Required by VK_KHR_acceleration_structure
+            enabledDeviceExtensions.Add(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+            enabledDeviceExtensions.Add(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+
+            VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = _adapter.AccelerationStructureFeatures;
+            AddToFeatureChain(&accelerationStructureFeatures);
+
+            if (_adapter.Extensions.RaytracingPipeline)
+            {
+                // Required by VK_KHR_pipeline_library
+                enabledDeviceExtensions.Add(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+                enabledDeviceExtensions.Add(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
+
+                VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = _adapter.RayTracingPipelineFeatures;
+                AddToFeatureChain(&rayTracingPipelineFeatures);
+            }
+
+            if (_adapter.Extensions.RayQuery)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+
+                VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = _adapter.RayQueryFeatures;
+                AddToFeatureChain(&rayQueryFeatures);
+            }
         }
 
         using Utf8StringArray deviceExtensionNames = new(enabledDeviceExtensions);
@@ -492,7 +564,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageViewInfo.viewType = VkImageViewType.Image3D;
             _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).CheckResult();
 
-            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
+            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescription());
         }
 
         TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
@@ -764,12 +836,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
     {
-        return new VulkanTexture(this, descriptor, initialData);
+        return new VulkanTexture(this, description, initialData);
     }
 
-    public VkSampler GetOrCreateVulkanSampler(in SamplerDescriptor description)
+    public VkSampler GetOrCreateVulkanSampler(in SamplerDescription description)
     {
         if (!_samplerCache.TryGetValue(description, out VkSampler sampler))
         {
@@ -844,7 +916,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescriptor description)
+    protected override Sampler CreateSamplerCore(in SamplerDescription description)
     {
         return new VulkanSampler(this, description);
     }

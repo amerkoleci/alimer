@@ -77,7 +77,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     public ref VkPushConstantRange GetPushConstantRange(uint index) => ref _pushConstantRanges[index];
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.PipelineLayout, _handle, newLabel);
     }

@@ -34,20 +34,29 @@ internal class MetalGraphicsManager : GraphicsManager
 
     private static bool CheckIsSupported()
     {
+        bool result = false;
         try
         {
-            // Platform.IsMacOS || Platform.IsMacOS || Platform.IsIOS
-            using MTLDevice device = MTLCreateSystemDefaultDevice();
-            if (device.IsNull)
+            if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
             {
-                return false;
+                using NSArray allDevices = MTLCopyAllDevices();
+                result |= allDevices.Count > 0;
             }
+            else
+            {
+                using MTLDevice defaultDevice = MTLCreateSystemDefaultDevice();
 
-            return true;
+                if (defaultDevice.IsNotNull)
+                {
+                    result = true;
+                }
+            }
         }
         catch
         {
-            return false;
+            result = false;
         }
+
+        return result;
     }
 }

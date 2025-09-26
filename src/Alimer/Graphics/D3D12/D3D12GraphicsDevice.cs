@@ -6,44 +6,27 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
+using static Alimer.Graphics.D3D12.D3D12MA.ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_DRED_ENABLEMENT;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
-using static TerraFX.Interop.DirectX.D3D12_GPU_BASED_VALIDATION_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
-using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
-using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
 using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
-using static TerraFX.Interop.DirectX.DXGI_FEATURE;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
-using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
 using static TerraFX.Interop.Windows.Windows;
-
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 {
     private readonly D3D12GraphicsAdapter _adapter;
-    private readonly ComPtr<ID3D12Device5> _handle = default;
+    private readonly ComPtr<ID3D12Device5> _device = default;
+    private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
-    private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
+    private readonly nint _memoryAllocator;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
@@ -67,13 +50,14 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         : base(description)
     {
         _adapter = adapter;
-        _handle = adapter.Device;
+        _device = adapter.Device;
+        _device.CopyTo(_device8.GetAddressOf());
 
         if (adapter.Manager.ValidationMode != GraphicsValidationMode.Disabled)
         {
             // Configure debug device (if active).
             using ComPtr<ID3D12InfoQueue> infoQueue = default;
-            if (_handle.CopyTo(infoQueue.GetAddressOf()).SUCCEEDED)
+            if (_device.CopyTo(infoQueue.GetAddressOf()).SUCCEEDED)
             {
                 infoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
                 infoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
@@ -120,14 +104,14 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         bool supportVideoDevice = false;
-        if (_handle.CopyTo(_videoDevice.GetAddressOf()).SUCCEEDED)
+        if (_device.CopyTo(_videoDevice.GetAddressOf()).SUCCEEDED)
         {
             supportVideoDevice = true;
         }
 
         // Create fence to detect device removal
         {
-            _deviceRemovedFence = _handle.Get()->CreateFence();
+            _deviceRemovedFence = _device.Get()->CreateFence();
 
             _deviceRemovedEvent = CreateEventW(null, FALSE, FALSE, null);
             ThrowIfFailed(_deviceRemovedFence.Get()->SetEventOnCompletion(UINT64_MAX, _deviceRemovedEvent));
@@ -148,17 +132,17 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
         // Create memory allocator
         {
-            D3D12MA_ALLOCATOR_DESC allocatorDesc = new()
+            D3D12MA.ALLOCATOR_DESC allocatorDesc = new()
             {
-                pDevice = (ID3D12Device*)_handle.Get(),
+                pDevice = (ID3D12Device*)_device.Get(),
                 pAdapter = (IDXGIAdapter*)_adapter.Handle
             };
             //allocatorDesc.PreferredBlockSize = 256 * 1024 * 1024;
             //allocatorDesc.Flags |= D3D12MA::ALLOCATOR_FLAG_ALWAYS_COMMITTED;
-            allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
-            allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
+            allocatorDesc.Flags |= ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
+            allocatorDesc.Flags |= ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
 
-            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, _memoryAllocator.GetAddressOf())))
+            if (FAILED(D3D12MA.CreateAllocator(in allocatorDesc, out _memoryAllocator)))
             {
                 throw new GraphicsException("D3D12: Failed to create memory allocator");
             }
@@ -207,7 +191,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 pArgumentDescs = &dispatchArg
             };
 
-            _dispatchIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+            _dispatchIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
 
             // DrawIndirectCommand
             D3D12_INDIRECT_ARGUMENT_DESC drawInstancedArg = new()
@@ -218,7 +202,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DRAW_ARGUMENTS);
             cmdSignatureDesc.NumArgumentDescs = 1;
             cmdSignatureDesc.pArgumentDescs = &drawInstancedArg;
-            _drawIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+            _drawIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
 
             // DrawIndexedIndirectCommand
             D3D12_INDIRECT_ARGUMENT_DESC drawIndexedInstancedArg = new()
@@ -229,7 +213,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
             cmdSignatureDesc.NumArgumentDescs = 1;
             cmdSignatureDesc.pArgumentDescs = &drawIndexedInstancedArg;
-            _drawIndexedIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+            _drawIndexedIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
 
             if (_adapter.Features.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1)
             {
@@ -239,7 +223,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
                 cmdSignatureDesc.NumArgumentDescs = 1;
                 cmdSignatureDesc.pArgumentDescs = &dispatchMeshArg;
-                _dispatchMeshIndirectCommandSignature = _handle.Get()->CreateCommandSignature(&cmdSignatureDesc);
+                _dispatchMeshIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
             }
         }
 
@@ -254,9 +238,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }
 
-    public ID3D12Device5* Handle => _handle;
-    public D3D12MA_Allocator* MemoryAllocator => _memoryAllocator;
+    public ID3D12Device5* Device => _device;
+    public ID3D12Device8* Device8 => _device8;
+    public nint MemoryAllocator => _memoryAllocator;
     public D3D12GraphicsAdapter DxAdapter => _adapter;
+    public bool EnhancedBarriersSupported => _adapter.Features.EnhancedBarriersSupported;
 
     public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)QueueType.Graphics].Handle;
     public D3D12CommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
@@ -314,17 +300,17 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _dispatchMeshIndirectCommandSignature.Dispose();
 
             // Allocator.
-            if (_memoryAllocator.Get() is not null)
+            if (_memoryAllocator != 0)
             {
-                D3D12MA_TotalStatistics stats;
-                _memoryAllocator.Get()->CalculateStatistics(&stats);
+                D3D12MA.TotalStatistics stats;
+                D3D12MA.Allocator_CalculateStatistics(_memoryAllocator, &stats);
 
                 if (stats.Total.Stats.AllocationBytes > 0)
                 {
                     Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
-                }
+                } 
 
-                _memoryAllocator.Dispose();
+                _ = D3D12MA.Allocator_Release(_memoryAllocator);
             }
 
             // Device removed event
@@ -340,16 +326,16 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
 
             _videoDevice.Dispose();
-
+            _device8.Dispose();
 #if DEBUG
-            uint refCount = _handle.Get()->Release();
+            uint refCount = _device.Get()->Release();
             if (refCount > 0)
             {
                 Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
 
                 using ComPtr<ID3D12DebugDevice> debugDevice = default;
 
-                if (_handle.CopyTo(debugDevice.GetAddressOf()).SUCCEEDED)
+                if (_device.CopyTo(debugDevice.GetAddressOf()).SUCCEEDED)
                 {
                     debugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
                 }
@@ -456,13 +442,13 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
     {
         return new D3D12Texture(this, description, initialData);
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescriptor description)
+    protected override Sampler CreateSamplerCore(in SamplerDescription description)
     {
         return new D3D12Sampler(this, description);
     }

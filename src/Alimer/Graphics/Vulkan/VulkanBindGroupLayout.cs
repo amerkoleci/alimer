@@ -172,7 +172,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     public Span<VkDescriptorPoolSize> PoolSizes => CollectionsMarshal.AsSpan(_descriptorPoolSizeInfo);
 
     /// <inheritdoc />
-    protected override void OnLabelChanged(string newLabel)
+    protected override void OnLabelChanged(string? newLabel)
     {
         _device.SetObjectName(VkObjectType.DescriptorSetLayout, _handle, newLabel);
     }
