@@ -7,23 +7,22 @@ namespace Alimer.Engine;
 
 public sealed class CameraSystem : EntitySystem<CameraComponent>
 {
-    public CameraSystem()
+    public CameraSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
     {
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
+
+        // TODO: Handle multiple windows/viewport (not correct)
+        MainWindow = services.GetService<Window>();
     }
 
-    public GraphicsDevice? GraphicsDevice { get; set; }
+    public Window MainWindow { get; }
 
     public override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
     {
         foreach (CameraComponent cameraComponent in Components)
         {
-            float? screenAspectRatio = null;
-
-            //if (graphicsDevice.CommandList.Viewports.Length > 0)
-            //{
-            //    screenAspectRatio = graphicsDevice.CommandList.Viewports[0].Width / graphicsDevice.CommandList.Viewports[0].Height;
-            //}
+            float screenAspectRatio = MainWindow.AspectRatio;
 
             cameraComponent.Update(screenAspectRatio);
         }

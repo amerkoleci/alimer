@@ -3,33 +3,35 @@
 
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
+using static Alimer.Utilities.MarshalUtilities;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
 using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
 using static TerraFX.Interop.DirectX.D3D12_FEATURE;
 using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
+using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
 using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
 using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
-using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
-using static Alimer.Utilities.MarshalUtilities;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI;
+using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
 internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 {
     private readonly ComPtr<IDXGIAdapter1> _handle;
-    private readonly ComPtr<ID3D12Device5> _device = default;
     private readonly GraphicsDeviceLimits _limits;
+    private readonly bool _featureBGRA8UnormStorage;
 
-    public D3D12GraphicsAdapter(D3D12GraphicsManager manager, ComPtr<IDXGIAdapter1> handle)
+    public D3D12GraphicsAdapter(
+        D3D12GraphicsManager manager,
+        ComPtr<IDXGIAdapter1> handle,
+        ComPtr<ID3D12Device> device)
         : base(manager)
     {
         _handle = handle.Move();
@@ -37,16 +39,8 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         DXGI_ADAPTER_DESC1 adapterDesc;
         ThrowIfFailed(_handle.Get()->GetDesc1(&adapterDesc));
 
-        if (D3D12CreateDevice((IUnknown*)_handle.Get(),
-            D3D_FEATURE_LEVEL_12_0,
-            __uuidof<ID3D12Device5>(),
-            _device.GetVoidAddressOf()).FAILED)
-        {
-            return;
-        }
-
         // Init features
-        Features = new D3D12Features((ID3D12Device*)_device.Get());
+        Features = new D3D12Features(device.Get());
 
         // Convert the adapter's D3D12 driver version to a readable string like "24.21.13.9793".
         string driverDescription = string.Empty;
@@ -77,7 +71,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         {
             Type = Features.UMA() ? GraphicsAdapterType.IntegratedGpu : GraphicsAdapterType.DiscreteGpu;
         }
-
 
         _limits = new GraphicsDeviceLimits
         {
@@ -137,6 +130,15 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
         }
 
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
+        bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        HRESULT hr = device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+        if (hr.SUCCEEDED &&
+            (bgra8unormFormatInfo.Support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0)
+        {
+            _featureBGRA8UnormStorage = true;
+        }
+
         //if (_features.IndependentFrontAndBackStencilRefMaskSupported() == TRUE)
         //{
         //    LOGD("D3D12: IndependentFrontAndBackStencilRefMaskSupported supported");
@@ -151,15 +153,11 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         //{
         //    LOGD("D3D12: GPUUploadHeapSupported supported");
         //}
-
-        IsSuitable = true;
     }
 
     public D3D12GraphicsManager DxManager => (D3D12GraphicsManager)base.Manager;
 
     public IDXGIAdapter1* Handle => _handle;
-    public ID3D12Device5* Device => _device;
-    public bool IsSuitable { get; }
     public D3D12Features Features { get; }
 
     /// <inheritdoc />
@@ -210,17 +208,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
                 return true;
 
             case Feature.BGRA8UnormStorage:
-            {
-                D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
-                bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-                HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
-                if (hr.SUCCEEDED &&
-                    (bgra8unormFormatInfo.Support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0)
-                {
-                    return true;
-                }
-                return false;
-            }
+                return _featureBGRA8UnormStorage;
 
             case Feature.DepthBoundsTest:
                 return Features.DepthBoundsTestSupported;
@@ -283,7 +271,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 
     public void Dispose()
     {
-        _device.Dispose();
         _handle.Dispose();
     }
 }

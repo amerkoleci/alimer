@@ -1,19 +1,21 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
+using static TerraFX.Interop.DirectX.D3D12_DRED_ENABLEMENT;
+using static TerraFX.Interop.DirectX.D3D12_GPU_BASED_VALIDATION_FLAGS;
 using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.DXGI;
 using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
-using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_GPU_BASED_VALIDATION_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_DRED_ENABLEMENT;
 using static TerraFX.Interop.DirectX.DXGI_FEATURE;
 using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
-using System.Diagnostics;
+using static TerraFX.Interop.Windows.Windows;
+#if DEBUG
+using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+#endif
 
 namespace Alimer.Graphics.D3D12;
 
@@ -120,7 +122,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
         TearingSupported = tearingSupported;
 
         DXGI_GPU_PREFERENCE gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
-        List<D3D12GraphicsAdapter> adapters = new();
+        List<D3D12GraphicsAdapter> adapters = [];
         using ComPtr<IDXGIAdapter1> dxgiAdapter1 = default;
 
         for (uint i = 0;
@@ -136,11 +138,17 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
                 continue;
             }
 
-            D3D12GraphicsAdapter adapter = new(this, dxgiAdapter1.Move());
-            if (adapter.IsSuitable)
+            using ComPtr<ID3D12Device> device = default;
+            if (D3D12CreateDevice((IUnknown*)dxgiAdapter1.Get(),
+                D3D_FEATURE_LEVEL_12_0,
+                __uuidof<ID3D12Device>(),
+                device.GetVoidAddressOf()).FAILED)
             {
-                adapters.Add(adapter);
+                continue;
             }
+
+            D3D12GraphicsAdapter adapter = new(this, dxgiAdapter1.Move(), device.Move());
+            adapters.Add(adapter);
         }
 
         _adapters = [.. adapters];
@@ -152,10 +160,13 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-
+        for (int i = 0; i < _adapters.Length; i++)
+        {
+            _adapters[i].Dispose();
+        }
     }
 
-    private static unsafe bool CheckIsSupported()
+    private static bool CheckIsSupported()
     {
         try
         {
@@ -184,8 +195,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
                 }
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device.
-                if (D3D12CreateDevice((IUnknown*)dxgiAdapter.Get(), D3D_FEATURE_LEVEL_12_0,
-                     __uuidof<ID3D12Device>(), null).SUCCEEDED)
+                if (D3D12CreateDevice((IUnknown*)dxgiAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device>(), null).SUCCEEDED)
                 {
                     foundCompatibleDevice = true;
                     break;

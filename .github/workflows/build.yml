@@ -29,8 +29,5 @@ jobs:
       with:
         global-json-file: ./global.json
 
-    - name: Install Workloads
-      run: dotnet workload install android
-
     - name: Build/Pack
       run: dotnet pack Alimer.sln --configuration Release -p:Packing=true

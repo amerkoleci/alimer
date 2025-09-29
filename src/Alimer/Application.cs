@@ -126,6 +126,7 @@ public abstract class Application : DisposableObject, IApplication
             MainWindow.Destroy();
             GraphicsDevice.Dispose();
             AudioDevice.Dispose();
+            GraphicsManager.Dispose();
         }
     }
 

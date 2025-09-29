@@ -25,6 +25,13 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceVulkan13Features Features13 = default;
     public readonly VkPhysicalDeviceVulkan14Features Features14 = default;
 
+    // Properties
+    public readonly VkPhysicalDeviceProperties2 Properties2 = default;
+    public readonly VkPhysicalDeviceVulkan11Properties Properties11 = default;
+    public readonly VkPhysicalDeviceVulkan12Properties Properties12 = default;
+    public readonly VkPhysicalDeviceVulkan13Properties Properties13 = default;
+    public readonly VkPhysicalDeviceVulkan14Properties Properties14 = default;
+
 #if TODO
     // Core 1.4
     public readonly VkPhysicalDeviceMaintenance6Features Maintenance6Features = default;
@@ -41,6 +48,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDevicePipelineCreationCacheControlFeatures PipelineCreationCacheControlFeatures = default;
 
 #endif
+
     // Extensions
     public readonly VkPhysicalDeviceSamplerFilterMinmaxProperties SamplerFilterMinmaxProperties = default;
     public readonly VkPhysicalDeviceDepthStencilResolveProperties DepthStencilResolveProperties = default;
@@ -50,13 +58,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingPipelineFeatures = default;
     public readonly VkPhysicalDeviceRayTracingPipelinePropertiesKHR RayTracingPipelineProperties = default;
     public readonly VkPhysicalDeviceRayQueryFeaturesKHR RayQueryFeatures = default;
-
-    // Properties
-    public readonly VkPhysicalDeviceProperties2 Properties2 = default;
-    public readonly VkPhysicalDeviceVulkan11Properties Properties11 = default;
-    public readonly VkPhysicalDeviceVulkan12Properties Properties12 = default;
-    public readonly VkPhysicalDeviceVulkan13Properties Properties13 = default;
-    public readonly VkPhysicalDeviceVulkan14Properties Properties14 = default;
+    public readonly VkPhysicalDeviceFragmentShadingRatePropertiesKHR FragmentShadingRateProperties = default;
+    public readonly VkPhysicalDeviceFragmentShadingRateFeaturesKHR FragmentShadingRateFeatures = default;
 
     public VulkanGraphicsAdapter(VulkanGraphicsManager manager, in VkPhysicalDevice handle, in VulkanPhysicalDeviceExtensions extensions)
         : base(manager)
@@ -103,6 +106,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = default;
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = default;
         VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = default;
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures = default;
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = default;
 
         // Setup pNext chains
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
@@ -259,6 +264,15 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             }
         }
 
+        if (Extensions.FragmentShadingRate)
+        {
+            fragmentShadingRateFeatures = new();
+            fragmentShadingRateProperties = new();
+
+            AddToFeatureChain(&fragmentShadingRateFeatures);
+            AddToPropertiesChain(&fragmentShadingRateProperties);
+        }
+
         manager.InstanceApi.vkGetPhysicalDeviceFeatures2(handle, &features2);
 
         if (!features2.features.textureCompressionBC &&
@@ -303,6 +317,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         AccelerationStructureFeatures = accelerationStructureFeatures;
         RayTracingPipelineFeatures = rayTracingPipelineFeatures;
         RayQueryFeatures = rayQueryFeatures;
+        FragmentShadingRateFeatures = fragmentShadingRateFeatures;
 
         // Properties
         manager.InstanceApi.vkGetPhysicalDeviceProperties2(handle, &properties2);
@@ -314,7 +329,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Properties14 = properties14;
         AccelerationStructureProperties = accelerationStructureProperties;
         RayTracingPipelineProperties = rayTracingPipelineProperties;
-
+        FragmentShadingRateProperties = fragmentShadingRateProperties;
+        
         // 
         DeviceName = Encoding.UTF8.GetString(properties2.properties.deviceName, (int)VK_MAX_PHYSICAL_DEVICE_NAME_SIZE).TrimEnd('\0');
         VendorId = properties2.properties.vendorID;

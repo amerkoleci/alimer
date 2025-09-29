@@ -7,8 +7,9 @@ public sealed class TransformSystem : EntitySystem<TransformComponent>
 {
     private readonly HashSet<TransformComponent> _transformationRoots = [];
 
-    public TransformSystem()
+    public TransformSystem(IServiceRegistry services)
     {
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
     }
 
     public override void BeginDraw()

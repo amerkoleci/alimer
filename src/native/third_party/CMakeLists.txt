@@ -90,7 +90,7 @@ if(ALIMER_PHYSICS)
     CPMAddPackage(
         NAME JoltPhysics
         GITHUB_REPOSITORY jrouwe/JoltPhysics
-        GIT_TAG v5.3.0
+        GIT_TAG v5.4.0
         SOURCE_SUBDIR Build
         OPTIONS
             "OBJECT_LAYER_BITS 32"

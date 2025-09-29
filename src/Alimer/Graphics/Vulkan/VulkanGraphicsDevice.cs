@@ -348,6 +348,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
+        if (_adapter.Extensions.FragmentShadingRate)
+        {
+            enabledDeviceExtensions.Add(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
+
+            VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures = _adapter.FragmentShadingRateFeatures;
+            AddToFeatureChain(&fragmentShadingRateFeatures);
+        }
+
         using Utf8StringArray deviceExtensionNames = new(enabledDeviceExtensions);
         VkDeviceCreateInfo createInfo = new()
         {

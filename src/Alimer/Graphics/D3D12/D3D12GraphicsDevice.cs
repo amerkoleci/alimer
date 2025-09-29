@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
 using static Alimer.Graphics.D3D12.D3D12MA.ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
@@ -35,12 +36,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
     private readonly D3D12CopyAllocator _copyAllocator;
-
-    private readonly D3D12DescriptorAllocator _renderTargetViewHeap;
-    private readonly D3D12DescriptorAllocator _depthStencilViewHeap;
-    private readonly D3D12DescriptorAllocator _shaderResourceViewHeap;
-    private readonly D3D12DescriptorAllocator _samplerHeap;
-
     private readonly ComPtr<ID3D12CommandSignature> _dispatchIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _drawIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _drawIndexedIndirectCommandSignature = default;
@@ -50,7 +45,19 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         : base(description)
     {
         _adapter = adapter;
-        _device = adapter.Device;
+
+        HRESULT hr = D3D12CreateDevice(
+            (IUnknown*)adapter.Handle,
+            D3D_FEATURE_LEVEL_12_0,
+            __uuidof<ID3D12Device5>(),
+            _device.GetVoidAddressOf()
+            );
+
+        if (hr.FAILED)
+        {
+            throw new GraphicsException("D3D12: Failed to create device");
+        }
+
         _device.CopyTo(_device8.GetAddressOf());
 
         if (adapter.Manager.ValidationMode != GraphicsValidationMode.Disabled)
@@ -169,12 +176,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         const uint samplerHeapSize = 2048; // 2048 ->  Tier1 limit
 
         // CPU visible heaps
-        _renderTargetViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, renderTargetViewHeapSize, false);
-        _depthStencilViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, depthStencilViewHeapSize, false);
+        RenderTargetViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, renderTargetViewHeapSize, false);
+        DepthStencilViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, depthStencilViewHeapSize, false);
 
         // Shader visible descriptor heaps
-        _shaderResourceViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true);
-        _samplerHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize, true);
+        ShaderResourceViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true);
+        SamplerHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize, true);
 
         // Create command signatures
         {
@@ -251,10 +258,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.VideoDecode];
     public D3D12CommandQueue? VideoEncode => _queues[(int)QueueType.VideoEncode];
 
-    public D3D12DescriptorAllocator RenderTargetViewHeap => _renderTargetViewHeap;
-    public D3D12DescriptorAllocator DepthStencilViewHeap => _depthStencilViewHeap;
-    public D3D12DescriptorAllocator ShaderResourceViewHeap => _shaderResourceViewHeap;
-    public D3D12DescriptorAllocator SamplerHeap => _samplerHeap;
+    public D3D12DescriptorAllocator RenderTargetViewHeap { get; }
+    public D3D12DescriptorAllocator DepthStencilViewHeap { get; }
+    public D3D12DescriptorAllocator ShaderResourceViewHeap { get; }
+    public D3D12DescriptorAllocator SamplerHeap { get; }
 
     public ID3D12CommandSignature* DispatchIndirectCommandSignature => _dispatchIndirectCommandSignature;
     public ID3D12CommandSignature* DrawIndirectCommandSignature => _drawIndirectCommandSignature;
@@ -289,10 +296,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 _queues[i].Dispose();
             }
 
-            _renderTargetViewHeap.Dispose();
-            _depthStencilViewHeap.Dispose();
-            _shaderResourceViewHeap.Dispose();
-            _samplerHeap.Dispose();
+            RenderTargetViewHeap.Dispose();
+            DepthStencilViewHeap.Dispose();
+            ShaderResourceViewHeap.Dispose();
+            SamplerHeap.Dispose();
 
             _dispatchIndirectCommandSignature.Dispose();
             _drawIndirectCommandSignature.Dispose();
@@ -341,7 +348,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 }
             }
 #else
-            _handle.Dispose();
+            _device.Dispose();
 #endif
 
 #if DEBUG

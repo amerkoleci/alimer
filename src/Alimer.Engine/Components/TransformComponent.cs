@@ -12,7 +12,7 @@ using Alimer.Numerics;
 namespace Alimer.Engine;
 
 [DefaultEntitySystem(typeof(TransformSystem))]
-public sealed class TransformComponent : EntityComponent, IEnumerable<TransformComponent>, INotifyPropertyChanged
+public partial class TransformComponent : EntityComponent, IEnumerable<TransformComponent>, INotifyPropertyChanged
 {
     private Matrix4x4 _localMatrix = Matrix4x4.Identity;
     private Matrix4x4 _worldMatrix = Matrix4x4.Identity;

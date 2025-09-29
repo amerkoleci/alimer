@@ -12,7 +12,7 @@ internal sealed class SerializationGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-       var classDeclarations = context.SyntaxProvider.ForAttributeWithMetadataName(
+        IncrementalValuesProvider<ComponentType> classDeclarations = context.SyntaxProvider.ForAttributeWithMetadataName(
            fullyQualifiedMetadataName: AlimerTypes.DefaultEntitySystemAttribute,
            predicate: static (node, _) => node.IsClass() && node.IsPartial(),
            transform: static (context, token) =>
@@ -26,7 +26,8 @@ internal sealed class SerializationGenerator : IIncrementalGenerator
                return new ComponentType(classSymbol, type);
            });
 
-        var valueProvider = context
+        IncrementalValueProvider<(Compilation Left, ImmutableArray<ComponentType> Right)> valueProvider =
+            context
             .CompilationProvider
             .Combine(classDeclarations.Collect());
 
@@ -35,7 +36,7 @@ internal sealed class SerializationGenerator : IIncrementalGenerator
 
         static void Execute(Compilation _, ImmutableArray<ComponentType> assets, SourceProductionContext context)
         {
-            foreach (var asset in assets)
+            foreach (ComponentType asset in assets)
             {
                 string source = Build(asset);
                 context.AddSource($"{asset.Symbol.Name}.g.cs", source);
@@ -62,7 +63,7 @@ internal sealed class SerializationGenerator : IIncrementalGenerator
                 .AppendOpenBracer()
                 .AppendLine($"global::Alimer.Engine.EntityManager.RegisterSystemFactory((services) => new {componentType.Type}(services));")
                 .AppendCloseBracer()
-            .Serialize(componentType)
+            //.Serialize(componentType)
             .AppendCloseBracer();
 
         return builder.ToString();

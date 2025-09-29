@@ -6,7 +6,7 @@ using Alimer.Rendering;
 namespace Alimer.Engine;
 
 [DefaultEntitySystem(typeof(RenderSystem))]
-public sealed class MeshComponent : EntityComponent
+public sealed partial class MeshComponent : EntityComponent
 {
     public MeshComponent()
     {

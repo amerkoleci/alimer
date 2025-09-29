@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
@@ -11,18 +12,18 @@ namespace Alimer.Engine;
 
 public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable<Entity>
 {
-    private static readonly Dictionary<Type, Func<IServiceRegistry, EntitySystem>> s_registeredFactories = [];
+    private static readonly ConcurrentDictionary<Type, Func<IServiceRegistry, EntitySystem>> s_registeredFactories = [];
     private readonly HashSet<Entity> _entities = [];
     private readonly Dictionary<Type, List<EntitySystem>> _systemsPerComponentType = [];
 
-    public static void RegisterSystemFactory<T>() where T : EntitySystem, new()
+    public static bool RegisterSystemFactory<T>() where T : EntitySystem, new()
     {
-        s_registeredFactories.Add(typeof(T), (services) => new T());
+        return s_registeredFactories.TryAdd(typeof(T), (services) => new T());
     }
 
-    public static void RegisterSystemFactory<T>(Func<IServiceRegistry, T> factory) where T : EntitySystem
+    public static bool RegisterSystemFactory<T>(Func<IServiceRegistry, T> factory) where T : EntitySystem
     {
-        s_registeredFactories.Add(typeof(T), factory);
+        return s_registeredFactories.TryAdd(typeof(T), factory);
     }
 
     protected EntityManager(IServiceRegistry services)

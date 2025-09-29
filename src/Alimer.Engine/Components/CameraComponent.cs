@@ -9,7 +9,7 @@ namespace Alimer.Engine;
 
 [DataContract(Name = nameof(CameraComponent))]
 [DefaultEntitySystem(typeof(CameraSystem))]
-public sealed class CameraComponent : EntityComponent
+public partial class CameraComponent : EntityComponent
 {
     [IgnoreDataMember]
     [JsonIgnore]
