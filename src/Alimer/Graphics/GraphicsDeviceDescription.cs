@@ -13,9 +13,9 @@ public record struct GraphicsDeviceDescription
     }
 
     /// <summary>
-    /// Gets the GPU adapter selection power preference.
+    /// Gets or sets the maximum number of frames that can be processed concurrently.
     /// </summary>
-    public GpuPowerPreference PowerPreference { get; set; } = GpuPowerPreference.Undefined;
+    public uint MaxFramesInFlight { get; set; } = Constants.MaxFramesInFlight;
 
     /// <summary>
     /// Gets or sets the label of <see cref="GraphicsDevice"/>.

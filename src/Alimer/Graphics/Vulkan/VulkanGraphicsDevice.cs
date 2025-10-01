@@ -13,6 +13,8 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 {
+    private const ulong TimeoutValue = 2000000000ul; // 2 seconds
+
     private readonly VulkanGraphicsAdapter _adapter;
     private readonly uint[] _queueFamilyIndices;
     private readonly uint[] _queueIndices;
@@ -356,6 +358,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             AddToFeatureChain(&fragmentShadingRateFeatures);
         }
 
+        if (_adapter.Extensions.MeshShader)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+
+            VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures = _adapter.MeshShaderFeatures;
+            AddToFeatureChain(&meshShaderFeatures);
+        }
+
         using Utf8StringArray deviceExtensionNames = new(enabledDeviceExtensions);
         VkDeviceCreateInfo createInfo = new()
         {
@@ -691,18 +701,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override bool WaitIdle()
+    public override CommandQueue GetCommandQueue(QueueType type) => _queues[(int)type];
+
+    /// <inheritdoc />
+    public override void WaitIdle()
     {
         VkResult result = _deviceApi.vkDeviceWaitIdle(Handle);
         if (result != VK_SUCCESS)
-            return false;
+        {
+            throw new GraphicsException("Vulkan: Failed to wait for Vulkan device idle");
+        }
 
         ProcessDeletionQueue(true);
-        return true;
     }
 
     /// <inheritdoc />
-    public override void FinishFrame()
+    public override ulong CommitFrame()
     {
         // Final submits with fences
         for (int i = 0; i < (int)QueueType.Count; i++)
@@ -716,14 +730,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         AdvanceFrame();
 
         // Initiate stalling CPU when GPU is not yet finished with next frame
-        if (_frameCount >= Constants.MaxFramesInFlight)
+        if (_frameCount >= MaxFramesInFlight)
         {
             for (int i = 0; i < (int)QueueType.Count; i++)
             {
                 if (_queues[i] is null)
                     continue;
 
-                _deviceApi.vkWaitForFences(_handle, _queues[i].FrameFence, true, 0xFFFFFFFFFFFFFFFF).CheckResult();
+                _deviceApi.vkWaitForFences(_handle, _queues[i].FrameFence, true, TimeoutValue).CheckResult();
                 _deviceApi.vkResetFences(_handle, _queues[i].FrameFence).CheckResult();
             }
         }
@@ -737,6 +751,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         ProcessDeletionQueue(false);
+
+        return _frameCount;
     }
 
     public override void WriteShadingRateValue(ShadingRate rate, void* dest)

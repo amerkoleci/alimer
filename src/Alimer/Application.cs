@@ -51,6 +51,7 @@ public abstract class Application : DisposableObject, IApplication
         GraphicsAdapter = GraphicsManager.GetBestAdapter();
         GraphicsDeviceDescription deviceDescription = new()
         {
+            MaxFramesInFlight = 2u
         };
 
         GraphicsDevice = GraphicsAdapter.CreateDevice(in deviceDescription);
@@ -217,7 +218,7 @@ public abstract class Application : DisposableObject, IApplication
 
     protected virtual void EndDraw()
     {
-        GraphicsDevice.FinishFrame();
+        _ = GraphicsDevice.CommitFrame();
     }
 
     public void Tick()

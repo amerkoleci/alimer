@@ -252,10 +252,11 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
     }
 
     /// <inheritdoc />
-    public override bool QueryPixelFormatSupport(PixelFormat format)
+    public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format)
     {
         // TODO:
-        return false;
+        PixelFormatSupport result = PixelFormatSupport.None;
+        return result;
     }
 
 #if TODO

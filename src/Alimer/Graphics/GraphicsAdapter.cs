@@ -41,7 +41,7 @@ public abstract class GraphicsAdapter
     public abstract GraphicsDeviceLimits Limits { get; }
 
     public abstract bool QueryFeatureSupport(Feature feature);
-    public abstract /*PixelFormatSupport*/bool QueryPixelFormatSupport(PixelFormat format);
+    public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
     //public abstract bool QueryVertexFormatSupport(VertexFormat format);
 
     /// <summary>

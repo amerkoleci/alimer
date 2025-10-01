@@ -196,7 +196,8 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         }
     }
 
-    public void WaitIdle()
+    /// <inheritdoc />
+    public override void WaitIdle()
     {
         WaitForFence(IncrementFence());
     }

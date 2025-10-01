@@ -7,7 +7,7 @@ using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsDevice : GraphicsObjectBase
+public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
 {
     protected uint _frameIndex = 0;
     protected ulong _frameCount = 0;
@@ -17,12 +17,18 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public GraphicsDevice(in GraphicsDeviceDescription description)
         : base(description.Label)
     {
+        MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, 2u), 3u);
     }
 
     /// <summary>
     /// Get the <see cref="GraphicsAdapter"/> object that created this object.
     /// </summary>
     public abstract GraphicsAdapter Adapter { get; }
+
+    /// <summary>
+    /// Gets the maximum number of frames that can be processed concurrently.
+    /// </summary>
+    public uint MaxFramesInFlight { get; }
 
     /// <summary>
     /// Get the timestamp frequency.
@@ -40,12 +46,22 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public uint FrameIndex => _frameIndex;
 
     /// <summary>
+    /// Get command queue of the specified type.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public abstract CommandQueue GetCommandQueue(QueueType type);
+
+    /// <summary>
     /// Wait for device to finish pending GPU operations.
     /// </summary>
-    /// <returns>True if succeed, false otherwise</returns>
-    public abstract bool WaitIdle();
+    public abstract void WaitIdle();
 
-    public abstract void FinishFrame();
+    /// <summary>
+    /// Commit the current frame and advance to next one.
+    /// </summary>
+    /// <returns></returns>
+    public abstract ulong CommitFrame();
 
     protected void AdvanceFrame()
     {
@@ -59,7 +75,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         while (!_deferredDestroyObjects.IsEmpty)
         {
             if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item)
-                && (force || item.Item2 + Constants.MaxFramesInFlight < _frameCount))
+                && (force || item.Item2 + MaxFramesInFlight < _frameCount))
             {
                 if (_deferredDestroyObjects.TryDequeue(out item))
                 {
@@ -84,7 +100,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         _deferredDestroyObjects.Enqueue(Tuple.Create(@object, _frameCount));
     }
 
-    public virtual void WriteShadingRateValue(ShadingRate rate, void* dest)
+    public virtual unsafe void WriteShadingRateValue(ShadingRate rate, void* dest)
     {
 
     }
@@ -283,8 +299,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract RenderContext BeginRenderContext(string? label = default);
 
-    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
-    protected abstract Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
+    protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
+    protected abstract unsafe  Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);

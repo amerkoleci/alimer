@@ -41,6 +41,10 @@ internal static unsafe partial class ObjectiveC
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool bool_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial ulong ulong_objc_msgSend(nint receiver, Selector selector);
     #endregion
 

@@ -315,7 +315,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 if (stats.Total.Stats.AllocationBytes > 0)
                 {
                     Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
-                } 
+                }
 
                 _ = D3D12MA.Allocator_Release(_memoryAllocator);
             }
@@ -380,9 +380,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
     public void Submit(in D3D12UploadContext context) => _copyAllocator.Submit(in context);
 
+    /// <inheritdoc />
+    public override CommandQueue GetCommandQueue(QueueType type) => _queues[(int)type];
 
     /// <inheritdoc />
-    public override bool WaitIdle()
+    public override void WaitIdle()
     {
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
@@ -393,11 +395,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         ProcessDeletionQueue(true);
-        return true;
     }
 
     /// <inheritdoc />
-    public override void FinishFrame()
+    public override ulong CommitFrame()
     {
         for (int i = 0; i < (int)QueueType.Count; i++)
         {
@@ -430,6 +431,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         ProcessDeletionQueue(false);
+        return _frameIndex;
     }
 
     public override void WriteShadingRateValue(ShadingRate rate, void* dest)

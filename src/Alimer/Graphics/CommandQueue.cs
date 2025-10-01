@@ -14,4 +14,9 @@ public abstract class CommandQueue
     /// Gets the type of this queue.
     /// </summary>
     public abstract QueueType QueueType { get; }
+
+    /// <summary>
+    /// Wait for the queue to finish pending GPU operations.
+    /// </summary>
+    public abstract void WaitIdle();
 }

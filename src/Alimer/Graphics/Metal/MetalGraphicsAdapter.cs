@@ -23,6 +23,6 @@ internal class MetalGraphicsAdapter : GraphicsAdapter
     public override GraphicsDeviceLimits Limits => throw new NotImplementedException();
 
     public override bool QueryFeatureSupport(Feature feature) => throw new NotImplementedException();
-    public override bool QueryPixelFormatSupport(PixelFormat format) => throw new NotImplementedException();
+    public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) => throw new NotImplementedException();
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => throw new NotImplementedException();
 }

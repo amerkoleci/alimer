@@ -87,9 +87,14 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         _presentSwapChains.Clear();
     }
 
-    public void WaitIdle()
+    /// <inheritdoc />
+    public override void WaitIdle()
     {
-        VkDevice.DeviceApi.vkQueueWaitIdle(Handle);
+        VkResult result = VkDevice.DeviceApi.vkQueueWaitIdle(Handle);
+        if (result != VK_SUCCESS)
+        {
+            throw new GraphicsException("Vulkan: Failed to wait for Vulkan queue idle");
+        }
     }
 
     public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
