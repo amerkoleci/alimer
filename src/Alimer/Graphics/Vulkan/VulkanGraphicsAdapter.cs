@@ -28,23 +28,21 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceVulkan13Properties Properties13 = default;
     public readonly VkPhysicalDeviceVulkan14Properties Properties14 = default;
 
-#if TODO
-    // Core 1.4
-    public readonly VkPhysicalDeviceMaintenance6Features Maintenance6Features = default;
-    public readonly VkPhysicalDeviceMaintenance6Properties Maintenance6Properties = default;
-    public readonly VkPhysicalDevicePushDescriptorProperties PushDescriptorProps = default;
-
     // Core in 1.3
-    public readonly VkPhysicalDeviceMaintenance4Features Maintenance4Features = default;
+    public VkPhysicalDeviceMaintenance4Features Maintenance4Features = default;
     public readonly VkPhysicalDeviceMaintenance4Properties Maintenance4Properties = default;
     public readonly VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures = default;
     public readonly VkPhysicalDeviceSynchronization2Features Synchronization2Features = default;
     public readonly VkPhysicalDeviceExtendedDynamicStateFeaturesEXT ExtendedDynamicStateFeatures = default;
     public readonly VkPhysicalDeviceExtendedDynamicState2FeaturesEXT ExtendedDynamicState2Features = default;
     public readonly VkPhysicalDevicePipelineCreationCacheControlFeatures PipelineCreationCacheControlFeatures = default;
+    public readonly VkPhysicalDeviceTextureCompressionASTCHDRFeatures AstcHdrFeatures = default;
 
-#endif
-    public VkPhysicalDeviceTextureCompressionASTCHDRFeatures AstcHdrFeatures = default;
+    // Core 1.4
+    public readonly VkPhysicalDeviceMaintenance5Features Maintenance5Features = default;
+    public readonly VkPhysicalDeviceMaintenance6Features Maintenance6Features = default;
+    public readonly VkPhysicalDeviceMaintenance6Properties Maintenance6Properties = default;
+    public readonly VkPhysicalDevicePushDescriptorProperties PushDescriptorProperties = default;
 
     // Extensions
     public readonly VkPhysicalDeviceSamplerFilterMinmaxProperties SamplerFilterMinmaxProperties = default;
@@ -59,6 +57,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceFragmentShadingRatePropertiesKHR FragmentShadingRateProperties = default;
     public readonly VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures = default;
     public readonly VkPhysicalDeviceMeshShaderPropertiesEXT MeshShaderProperties = default;
+    public readonly VkPhysicalDeviceConditionalRenderingFeaturesEXT ConditionalRenderingFeatures = default;
 
     public VulkanGraphicsAdapter(VulkanGraphicsManager manager, in VkPhysicalDevice handle, in VulkanPhysicalDeviceExtensions extensions)
         : base(manager)
@@ -95,7 +94,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceMaintenance5Features maintenance5Features = default;
         VkPhysicalDeviceMaintenance6Features maintenance6Features = default;
         VkPhysicalDeviceMaintenance6Properties maintenance6Properties = default;
-        VkPhysicalDevicePushDescriptorProperties pushDescriptorProps = default;
+        VkPhysicalDevicePushDescriptorProperties pushDescriptorProperties = default;
 
         // Extensions
         VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = new();
@@ -110,6 +109,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = default;
         VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures = default;
         VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = default;
+        VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures = default;
 
         // Setup pNext chains
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
@@ -149,8 +149,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         {
             if (Extensions.Maintenance4)
             {
-                //enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
-
                 maintenance4Features = new();
                 maintenance4Properties = new();
                 AddToFeatureChain(&maintenance4Features);
@@ -159,48 +157,36 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
             if (Extensions.DynamicRendering)
             {
-                //enabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-
                 dynamicRenderingFeatures = new();
                 AddToFeatureChain(&dynamicRenderingFeatures);
             }
 
             if (Extensions.Synchronization2)
             {
-                //enabledDeviceExtensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
-
                 synchronization2Features = new();
                 AddToFeatureChain(&synchronization2Features);
             }
 
             if (Extensions.ExtendedDynamicState)
             {
-                //enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-
                 extendedDynamicStateFeatures = new();
                 AddToFeatureChain(&extendedDynamicStateFeatures);
             }
 
             if (Extensions.ExtendedDynamicState2)
             {
-                //enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-
                 extendedDynamicState2Features = new();
                 AddToFeatureChain(&extendedDynamicState2Features);
             }
 
             if (Extensions.PipelineCreationCacheControl)
             {
-                //enabledDeviceExtensions.push_back(VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME);
-
                 pipelineCreationCacheControlFeatures = new();
                 AddToFeatureChain(&pipelineCreationCacheControlFeatures);
             }
 
             if (Extensions.TextureCompressionAstcHdr)
             {
-                //enabledDeviceExtensions.push_back(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
-
                 astcHdrFeatures = new();
                 AddToFeatureChain(&astcHdrFeatures);
             }
@@ -212,16 +198,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             {
                 if (Extensions.Maintenance5)
                 {
-                    //enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
-
                     maintenance5Features = new();
                     AddToFeatureChain(&maintenance5Features);
                 }
 
                 if (Extensions.Maintenance6)
                 {
-                    //enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
-
                     maintenance6Features = new();
                     maintenance6Properties = new();
 
@@ -231,10 +213,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
                 if (Extensions.PushDescriptor)
                 {
-                    //enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-
-                    pushDescriptorProps = new();
-                    AddToPropertiesChain(&pushDescriptorProps);
+                    pushDescriptorProperties = new();
+                    AddToPropertiesChain(&pushDescriptorProperties);
                 }
             }
         }
@@ -284,6 +264,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             AddToPropertiesChain(&meshShaderProperties);
         }
 
+        if (Extensions.ConditionalRendering)
+        {
+            conditionalRenderingFeatures = new();
+            AddToFeatureChain(&conditionalRenderingFeatures);
+        }
+
         manager.InstanceApi.vkGetPhysicalDeviceFeatures2(handle, &features2);
 
         if (!features2.features.textureCompressionBC &&
@@ -330,8 +316,18 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         RayQueryFeatures = rayQueryFeatures;
         FragmentShadingRateFeatures = fragmentShadingRateFeatures;
         MeshShaderFeatures = meshShaderFeatures;
+        ConditionalRenderingFeatures = conditionalRenderingFeatures;
         // Core in 1.3
+        DynamicRenderingFeatures = dynamicRenderingFeatures;
+        Synchronization2Features = synchronization2Features;
+        ExtendedDynamicStateFeatures = extendedDynamicStateFeatures;
+        ExtendedDynamicState2Features = extendedDynamicState2Features;
+        PipelineCreationCacheControlFeatures = pipelineCreationCacheControlFeatures;
+        Maintenance4Features = maintenance4Features;
         AstcHdrFeatures = astcHdrFeatures;
+        // Core 1.4
+        Maintenance5Features = maintenance5Features;
+        Maintenance6Features = maintenance6Features;
 
         // Properties
         manager.InstanceApi.vkGetPhysicalDeviceProperties2(handle, &properties2);
@@ -345,6 +341,11 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         RayTracingPipelineProperties = rayTracingPipelineProperties;
         FragmentShadingRateProperties = fragmentShadingRateProperties;
         MeshShaderProperties = meshShaderProperties;
+        // Core in 1.3
+        Maintenance4Properties = maintenance4Properties;
+        // Core 1.4
+        Maintenance6Properties = maintenance6Properties;
+        PushDescriptorProperties = pushDescriptorProperties;
 
         // 
         DeviceName = Encoding.UTF8.GetString(properties2.properties.deviceName, (int)VK_MAX_PHYSICAL_DEVICE_NAME_SIZE).TrimEnd('\0');
@@ -487,9 +488,9 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
                 return false;
 
-            case Feature.Predication:
-                return ConditionalRenderingFeatures.conditionalRendering; 
 #endif
+            case Feature.Predication:
+                return ConditionalRenderingFeatures.conditionalRendering;
 
             case Feature.DescriptorIndexing:
                 //Guard.IsTrue(PhysicalDeviceFeatures1_2.runtimeDescriptorArray);

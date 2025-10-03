@@ -7,6 +7,7 @@ using static Alimer.Graphics.Constants;
 using System.Diagnostics;
 using static Alimer.Utilities.MemoryUtilities;
 using static Alimer.Utilities.MarshalUtilities;
+using Alimer.Utilities;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -337,7 +338,7 @@ internal unsafe class VulkanPipeline : Pipeline
         _layout = (VulkanPipelineLayout)description.Layout;
         BindPoint = VkPipelineBindPoint.Compute;
 
-        VkUtf8String entryPoint = new(VkStringInterop.ConvertToUnmanaged(description.ComputeShader.EntryPoint));
+        Utf8String entryPoint = new(VkStringInterop.ConvertToUnmanaged(description.ComputeShader.EntryPoint));
 
         VkPipelineShaderStageCreateInfo stage = new()
         {

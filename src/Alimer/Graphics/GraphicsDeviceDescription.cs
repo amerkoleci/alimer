@@ -15,7 +15,7 @@ public record struct GraphicsDeviceDescription
     /// <summary>
     /// Gets or sets the maximum number of frames that can be processed concurrently.
     /// </summary>
-    public uint MaxFramesInFlight { get; set; } = Constants.MaxFramesInFlight;
+    public uint MaxFramesInFlight { get; set; } = Constants.DefaultMaxFramesInFlight;
 
     /// <summary>
     /// Gets or sets the label of <see cref="GraphicsDevice"/>.

@@ -43,7 +43,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     private static readonly D3D12_RESOURCE_STATES s_ValidCopyResourceStates = D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_COPY_SOURCE;
 
     private readonly D3D12CommandQueue _queue;
-    private readonly ComPtr<ID3D12CommandAllocator>[] _commandAllocators = new ComPtr<ID3D12CommandAllocator>[MaxFramesInFlight];
+    private readonly ComPtr<ID3D12CommandAllocator>[] _commandAllocators;
     private readonly ComPtr<ID3D12GraphicsCommandList6> _commandList;
     private readonly D3D12_RESOURCE_BARRIER[] _resourceBarriers = new D3D12_RESOURCE_BARRIER[MaxBarriers];
     private uint _numBarriersToFlush;
@@ -62,7 +62,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     {
         _queue = queue;
 
-        for (uint i = 0; i < MaxFramesInFlight; ++i)
+        _commandAllocators = new ComPtr<ID3D12CommandAllocator>[queue.D3DDevice.MaxFramesInFlight];
+        for (int i = 0; i < _commandAllocators.Length; ++i)
         {
             ThrowIfFailed(
                 queue.D3DDevice.Device->CreateCommandAllocator(queue.CommandListType,

@@ -47,10 +47,10 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 
         device.DeviceApi.vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
 
-        _frameFences = new VkFence[MaxFramesInFlight];
-        for (int frameIndex = 0; frameIndex < MaxFramesInFlight; ++frameIndex)
+        _frameFences = new VkFence[device.MaxFramesInFlight];
+        for (int i = 0; i < device.MaxFramesInFlight; ++i)
         {
-            device.DeviceApi.vkCreateFence(device.Handle, out _frameFences[frameIndex]);
+            device.DeviceApi.vkCreateFence(device.Handle, out _frameFences[i]);
         }
     }
 
@@ -68,9 +68,9 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         WaitIdle();
         VkDevice.DeviceApi.vkDestroySemaphore(VkDevice.Handle, _semaphore);
 
-        for (int frameIndex = 0; frameIndex < _frameFences.Length; ++frameIndex)
+        for (int i = 0; i < _frameFences.Length; ++i)
         {
-            VkDevice.DeviceApi.vkDestroyFence(VkDevice.Handle, _frameFences[frameIndex]);
+            VkDevice.DeviceApi.vkDestroyFence(VkDevice.Handle, _frameFences[i]);
         }
 
         foreach (VulkanCommandBuffer commandBuffer in _commandBuffers)

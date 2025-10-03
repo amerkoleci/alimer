@@ -19,8 +19,8 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private readonly VulkanCommandQueue _queue;
     private readonly VkInstanceApi _instanceApi;
     private readonly VkDeviceApi _deviceApi;
-    private readonly VkCommandPool[] _commandPools = new VkCommandPool[MaxFramesInFlight];
-    private readonly VkCommandBuffer[] _commandBuffers = new VkCommandBuffer[MaxFramesInFlight];
+    private readonly VkCommandPool[] _commandPools;
+    private readonly VkCommandBuffer[] _commandBuffers;
     private VkCommandBuffer _commandBuffer; // recording command buffer
 
     private uint _memoryBarrierCount;
@@ -44,7 +44,9 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _instanceApi = queue.VkDevice.InstanceApi;
         _deviceApi = queue.VkDevice.DeviceApi;
 
-        for (uint i = 0; i < MaxFramesInFlight; ++i)
+        _commandPools = new VkCommandPool[queue.VkDevice.MaxFramesInFlight];
+        _commandBuffers = new VkCommandBuffer[queue.VkDevice.MaxFramesInFlight];
+        for (uint i = 0; i < queue.VkDevice.MaxFramesInFlight; ++i)
         {
             VkCommandPoolCreateInfo poolInfo = new()
             {

@@ -17,7 +17,7 @@ public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
     public GraphicsDevice(in GraphicsDeviceDescription description)
         : base(description.Label)
     {
-        MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, 2u), 3u);
+        MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, Constants.DefaultMaxFramesInFlight), 3u);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
     {
         // Begin new frame
         _frameCount++;
-        _frameIndex = (uint)(_frameCount % Constants.MaxFramesInFlight);
+        _frameIndex = (uint)(_frameCount % MaxFramesInFlight);
     }
 
     protected void ProcessDeletionQueue(bool force)

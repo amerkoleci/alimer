@@ -52,7 +52,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             bool hasPortability = false;
             for (int i = 0; i < extensionCount; i++)
             {
-                VkUtf8String extensionName = new(availableInstanceExtensions[i].extensionName);
+                Utf8String extensionName = new(availableInstanceExtensions[i].extensionName);
                 if (extensionName == VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
                 {
                     DebugUtils = true;
@@ -143,7 +143,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
                 {
                     fixed (byte* pExtensionName = availableLayerInstanceExtensions[i].extensionName)
                     {
-                        VkUtf8String extensionName = new(pExtensionName);
+                        Utf8String extensionName = new(pExtensionName);
                         if (extensionName == VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)
                         {
                             validationFeatures = true;
@@ -328,7 +328,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     private static void GetOptimalValidationLayers(ref UnsafeList<Utf8String> instanceLayers, Span<VkLayerProperties> availableLayers)
     {
         // The preferred validation layer is "VK_LAYER_KHRONOS_validation"
-        UnsafeList<VkUtf8String> validationLayers =
+        UnsafeList<Utf8String> validationLayers =
         [
             VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME
         ];
@@ -339,10 +339,10 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         }
 
         // Otherwise we fallback to using the LunarG meta layer
-        validationLayers = new()
-        {
+        validationLayers =
+        [
             "VK_LAYER_LUNARG_standard_validation"u8
-        };
+        ];
         if (ValidateLayers(validationLayers, availableLayers))
         {
             instanceLayers.Add("VK_LAYER_LUNARG_standard_validation"u8);
@@ -350,14 +350,14 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         }
 
         // Otherwise we attempt to enable the individual layers that compose the LunarG meta layer since it doesn't exist
-        validationLayers = new()
-        {
+        validationLayers =
+        [
             "VK_LAYER_GOOGLE_threading"u8,
             "VK_LAYER_LUNARG_parameter_validation"u8,
             "VK_LAYER_LUNARG_object_tracker"u8,
             "VK_LAYER_LUNARG_core_validation"u8,
             "VK_LAYER_GOOGLE_unique_objects"u8,
-        };
+        ];
 
         if (ValidateLayers(validationLayers, availableLayers))
         {
@@ -370,10 +370,10 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         }
 
         // Otherwise as a last resort we fallback to attempting to enable the LunarG core layer
-        validationLayers = new()
-        {
+        validationLayers =
+        [
             "VK_LAYER_LUNARG_core_validation"u8
-        };
+        ];
 
         if (ValidateLayers(validationLayers, availableLayers))
         {
@@ -382,16 +382,16 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         }
     }
 
-    private static bool ValidateLayers(UnsafeList<VkUtf8String> required, Span<VkLayerProperties> availableLayers)
+    private static bool ValidateLayers(UnsafeList<Utf8String> required, Span<VkLayerProperties> availableLayers)
     {
-        foreach (VkUtf8String layer in required)
+        foreach (Utf8String layer in required)
         {
             bool found = false;
             for (int i = 0; i < availableLayers.Length; i++)
             {
                 fixed (byte* pLayerName = availableLayers[i].layerName)
                 {
-                    VkUtf8String availableLayer = new(pLayerName);
+                    Utf8String availableLayer = new(pLayerName);
 
                     if (availableLayer == layer)
                     {

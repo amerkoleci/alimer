@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
@@ -24,8 +24,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkDevice _handle = VkDevice.Null;
     private readonly VkDeviceApi _deviceApi;
     private readonly VulkanCopyAllocator _copyAllocator;
-    private readonly VkPipelineCache _pipelineCache = VkPipelineCache.Null;
-
     private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)QueueType.Count];
     private readonly VmaAllocator _allocator;
     private readonly VmaAllocation _nullBufferAllocation = VmaAllocation.Null;
@@ -236,15 +234,103 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
         AddToFeatureChain(&features11);
         AddToFeatureChain(&features12);
-        if (_adapter.ApiVersion >= VkVersion.Version_1_3)
+        if (_adapter.ApiVersion >= VK_API_VERSION_1_3)
         {
             AddToFeatureChain(&features13);
         }
 
-        if (_adapter.ApiVersion >= VkVersion.Version_1_4)
+        if (_adapter.ApiVersion >= VK_API_VERSION_1_4)
         {
             AddToFeatureChain(&features14);
         }
+
+        // Core in 1.3
+        if (_adapter.ApiVersion < VK_API_VERSION_1_3)
+        {
+            if (_adapter.Extensions.Maintenance4)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
+
+                VkPhysicalDeviceMaintenance4Features maintenance4Features = _adapter.Maintenance4Features;
+                AddToFeatureChain(&maintenance4Features);
+            }
+
+            if (_adapter.Extensions.DynamicRendering)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+                var dynamicRenderingFeatures = _adapter.DynamicRenderingFeatures;
+                AddToFeatureChain(&dynamicRenderingFeatures);
+            }
+
+            if (_adapter.Extensions.Synchronization2)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+
+                var synchronization2Features = _adapter.Synchronization2Features;
+                AddToFeatureChain(&synchronization2Features);
+            }
+
+            if (_adapter.Extensions.ExtendedDynamicState)
+            {
+                enabledDeviceExtensions.Add(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+
+                var extendedDynamicStateFeatures = _adapter.ExtendedDynamicStateFeatures;
+                AddToFeatureChain(&extendedDynamicStateFeatures);
+            }
+
+            if (_adapter.Extensions.ExtendedDynamicState2)
+            {
+                enabledDeviceExtensions.Add(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+
+                var extendedDynamicState2Features = _adapter.ExtendedDynamicState2Features;
+                AddToFeatureChain(&extendedDynamicState2Features);
+            }
+
+            if (_adapter.Extensions.PipelineCreationCacheControl)
+            {
+                enabledDeviceExtensions.Add(VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME);
+
+                var pipelineCreationCacheControlFeatures = _adapter.PipelineCreationCacheControlFeatures;
+                AddToFeatureChain(&pipelineCreationCacheControlFeatures);
+            }
+
+            if (_adapter.Extensions.TextureCompressionAstcHdr)
+            {
+                enabledDeviceExtensions.Add(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
+
+                var astcHdrFeatures = _adapter.AstcHdrFeatures;
+                AddToFeatureChain(&astcHdrFeatures);
+            }
+        }
+        else
+        {
+            // Core in 1.4
+            if (_adapter.ApiVersion < VK_API_VERSION_1_4)
+            {
+                if (_adapter.Extensions.Maintenance5)
+                {
+                    enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+
+                    var maintenance5Features = _adapter.Maintenance5Features;
+                    AddToFeatureChain(&maintenance5Features);
+                }
+
+                if (_adapter.Extensions.Maintenance6)
+                {
+                    enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
+
+                    var maintenance6Features = _adapter.Maintenance6Features;
+                    AddToFeatureChain(&maintenance6Features);
+                }
+
+                if (_adapter.Extensions.PushDescriptor)
+                {
+                    enabledDeviceExtensions.Add(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+                }
+            }
+        }
+
 
         if (_adapter.Extensions.MemoryBudget)
         {
@@ -366,6 +452,52 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             AddToFeatureChain(&meshShaderFeatures);
         }
 
+        if (_adapter.Extensions.ConditionalRendering)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
+
+            VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures = _adapter.ConditionalRenderingFeatures;
+            AddToFeatureChain(&conditionalRenderingFeatures);
+        }
+
+        if (_adapter.Extensions.Video.Queue)
+        {
+            enabledDeviceExtensions.Add(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME);
+
+            if (_adapter.Extensions.Video.DecodeQueue)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
+
+                if (_adapter.Extensions.Video.DecodeH264)
+                {
+                    enabledDeviceExtensions.Add(VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME);
+                }
+
+                if (_adapter.Extensions.Video.DecodeH265)
+                {
+                    enabledDeviceExtensions.Add(VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME);
+                }
+            }
+
+#if VULKAN_VIDEO_ENCODE
+                if (physicalDeviceExtensions.video.encode_queue)
+                {
+                    enabledDeviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
+
+                    if (physicalDeviceExtensions.video.encode_h264)
+                    {
+                        enabledDeviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME);
+                    }
+
+                    if (physicalDeviceExtensions.video.encode_h265)
+                    {
+                        enabledDeviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME);
+                    }
+                }
+#endif // VULKAN_VIDEO_ENCODE
+
+        }
+
         using Utf8StringArray deviceExtensionNames = new(enabledDeviceExtensions);
         VkDeviceCreateInfo createInfo = new()
         {
@@ -456,6 +588,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         _copyAllocator = new(this);
+
+        // Pipeline Cache
+        {
+            // TODO: Add cache from disk
+            VkPipelineCacheCreateInfo pipelineCacheCreateInfo = new();
+
+            _deviceApi.vkCreatePipelineCache(_handle, in pipelineCacheCreateInfo, out VkPipelineCache pipelineCache).CheckResult();
+            PipelineCache = pipelineCache;
+        }
 
         // Create default null descriptors
         {
@@ -622,7 +763,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VmaAllocator Allocator => _allocator;
 
-    public VkPipelineCache PipelineCache => _pipelineCache;
+    public VkPipelineCache PipelineCache { get; }
 
     public VkBuffer NullBuffer => _nullBuffer;
     public VkImageView NullImage1DView => _nullImageView1D;
@@ -687,10 +828,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             vmaDestroyAllocator(_allocator);
 
-            if (_pipelineCache.IsNotNull)
+            if (PipelineCache.IsNotNull)
             {
                 // Destroy Vulkan pipeline cache
-                _deviceApi.vkDestroyPipelineCache(Handle, _pipelineCache);
+                _deviceApi.vkDestroyPipelineCache(Handle, PipelineCache);
             }
 
             if (Handle.IsNotNull)

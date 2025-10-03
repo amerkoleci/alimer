@@ -7,11 +7,10 @@ using Alimer.Graphics;
 using Vortice.SPIRV.Reflect;
 using Win32;
 using Win32.Graphics.Direct3D.Dxc;
+using Win32.Graphics.Direct3D12;
+using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
 using static Win32.Apis;
 using static Win32.Graphics.Direct3D.Dxc.Apis;
-using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
-using Win32.Graphics.Direct3D12;
-using Vortice.SPIRV;
 
 namespace Alimer.Shaders;
 
@@ -52,12 +51,12 @@ public sealed unsafe partial class ShaderCompiler
         ThrowIfFailed(DxcCreateInstance(
            (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in CLSID_DxcLibrary)),
             __uuidof<IDxcUtils>(),
-            dxcUtils.GetVoidAddressOf())
+            (void**)dxcUtils.GetAddressOf())
             );
         ThrowIfFailed(DxcCreateInstance(
             (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in CLSID_DxcCompiler)),
             __uuidof<IDxcCompiler3>(),
-            dxcCompiler.GetVoidAddressOf())
+            (void**)dxcCompiler.GetAddressOf())
             );
 
         ThrowIfFailed(
@@ -217,7 +216,11 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add("-Qstrip_debug");
         }
 
-        HResult hr = Compile(source, arguments.ToArray(), __uuidof<IDxcResult>(), results.GetVoidAddressOf());
+        HResult hr = Compile(source,
+            [.. arguments],
+            __uuidof<IDxcResult>(),
+            (void**)results.GetAddressOf()
+            );
 
         if (hr.Failure)
         {
@@ -230,7 +233,7 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcBlobUtf8> errors = default;
         results.Get()->GetOutput(DXC_OUT_ERRORS,
             __uuidof<IDxcBlobUtf8>(),
-            errors.GetVoidAddressOf(),
+            (void**)errors.GetAddressOf(),  
             null
             );
         // Note that d3dcompiler would return null if no errors or warnings are present.
@@ -254,7 +257,7 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcBlobUtf16> pShaderName = default;
         results.Get()->GetOutput(DXC_OUT_OBJECT,
             __uuidof<IDxcBlob>(),
-            byteCode.GetVoidAddressOf(),
+            (void**)byteCode.GetAddressOf(),
             pShaderName.GetAddressOf()
             );
         if (byteCode.Get() is null)
@@ -267,7 +270,7 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcBlobUtf16> pPDBName = default;
         results.Get()->GetOutput(DXC_OUT_PDB,
             __uuidof<IDxcBlob>(),
-            pPDB.GetVoidAddressOf(),
+            (void**)pPDB.GetAddressOf(),
             pPDBName.GetAddressOf());
         if (pPDB.Get() is null)
         {
@@ -277,7 +280,7 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcBlob> hash = default;
         results.Get()->GetOutput(DXC_OUT_SHADER_HASH,
             __uuidof<IDxcBlob>(),
-            hash.GetVoidAddressOf(),
+            (void**)hash.GetAddressOf(),
             null);
         if (hash.Get() is not null)
         {
@@ -286,7 +289,9 @@ public sealed unsafe partial class ShaderCompiler
         if (options.ShaderFormat == ShaderFormat.DXIL)
         {
             using ComPtr<IDxcBlob> reflectionData = default;
-            results.Get()->GetOutput(DXC_OUT_REFLECTION, __uuidof<IDxcBlob>(), reflectionData.GetVoidAddressOf(), null);
+            results.Get()->GetOutput(DXC_OUT_REFLECTION,
+                __uuidof<IDxcBlob>(),
+                (void**)reflectionData.GetAddressOf(), null);
             if (reflectionData.Get() is not null)
             {
                 // Create reflection interface.
@@ -298,7 +303,9 @@ public sealed unsafe partial class ShaderCompiler
                 };
 
                 using ComPtr<ID3D12ShaderReflection> reflection = default;
-                _dxcUtils.Get()->CreateReflection(&reflectionDataBuffer, __uuidof<ID3D12ShaderReflection>(), reflection.GetVoidAddressOf());
+                _dxcUtils.Get()->CreateReflection(&reflectionDataBuffer,
+                    __uuidof<ID3D12ShaderReflection>(),
+                    (void**)reflection.GetAddressOf());
 
                 ShaderDescription description;
                 ThrowIfFailed(reflection.Get()->GetDesc(&description));

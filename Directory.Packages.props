@@ -1,7 +1,7 @@
 <Project>
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
-    <VorticeWin32Version>2.2.7</VorticeWin32Version>
+    <VorticeWin32Version>2.3.0</VorticeWin32Version>
     <TerraFXWindowsVersion>10.0.26100.2</TerraFXWindowsVersion>
     <ImGuiVersion>2.2.8.4</ImGuiVersion>
     <SkiaSharpVersion>3.119.0</SkiaSharpVersion>
@@ -39,7 +39,7 @@
     <PackageVersion Include="Hexa.NET.ImPlot" Version="$(ImGuiVersion)" />
     
     <!-- Asset Pipeline -->
-    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.3" />
+    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />

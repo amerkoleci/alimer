@@ -411,7 +411,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         AdvanceFrame();
 
         // Initiate stalling CPU when GPU is not yet finished with next frame
-        if (_frameCount >= Constants.MaxFramesInFlight)
+        if (_frameCount >= MaxFramesInFlight)
         {
             for (int i = 0; i < (int)QueueType.Count; i++)
             {
