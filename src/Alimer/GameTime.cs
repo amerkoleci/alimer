@@ -3,13 +3,13 @@
 
 namespace Alimer;
 
-public class AppTime
+public sealed class GameTime
 {
-    public AppTime()
+    public GameTime()
     {
     }
 
-    public AppTime(TimeSpan totalTime, TimeSpan elapsedTime)
+    public GameTime(TimeSpan totalTime, TimeSpan elapsedTime)
     {
         Total = totalTime;
         Elapsed = elapsedTime;

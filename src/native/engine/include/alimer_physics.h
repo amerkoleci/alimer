@@ -59,5 +59,8 @@ ALIMER_API PhysicsShape* alimerPhysicsCreateBoxShape(float dimensions[3]);
 ALIMER_API PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, PhysicsShape* shape);
 ALIMER_API void alimerPhysicsBodyAddRef(PhysicsBody* body);
 ALIMER_API void alimerPhysicsBodyRelease(PhysicsBody* body);
+ALIMER_API void alimerPhysicsBodyGetPositionAndRotation(PhysicsBody* body, Vector3* position, Quaternion* rotation);
+ALIMER_API void alimerPhysicsBodySetPositionAndRotation(PhysicsBody* body, const Vector3* position, const Quaternion* rotation);
+ALIMER_API void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform);
 
 #endif /* ALIMER_PHYSICS_H_ */

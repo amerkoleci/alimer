@@ -9,7 +9,7 @@ public static class Program
 {
     public static void Main()
     {
-        using EditorApplication game = new();
+        using EditorGame game = new();
         game.Run();
     }
 }

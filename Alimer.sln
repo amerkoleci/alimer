@@ -33,13 +33,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Tests", "tests\Alime
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Samples", "samples\Alimer.Samples\Alimer.Samples.csproj", "{351AA2B8-1343-49BF-9E34-DECB218C8505}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Engine", "src\Alimer.Engine\Alimer.Engine.csproj", "{17287A65-E7C9-4615-82F1-0B67B5D69AE8}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Shaders", "src\assets\Alimer.Shaders\Alimer.Shaders.csproj", "{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Assets", "src\assets\Alimer.Assets\Alimer.Assets.csproj", "{A80A537D-096C-4916-9222-0F65FBFD64A8}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Physics", "src\Alimer.Physics\Alimer.Physics.csproj", "{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.UI", "src\Alimer.UI\Alimer.UI.csproj", "{18D54D83-0AA5-4916-87CF-48B69E9F66EA}"
 EndProject
@@ -75,10 +71,6 @@ Global
 		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{351AA2B8-1343-49BF-9E34-DECB218C8505}.Release|Any CPU.Build.0 = Release|Any CPU
-		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{17287A65-E7C9-4615-82F1-0B67B5D69AE8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAABA0E8-3EE0-4993-975C-A702F5DBDE08}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -87,10 +79,6 @@ Global
 		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A80A537D-096C-4916-9222-0F65FBFD64A8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F1BC001B-2C67-4BDF-A173-CBBD3AB06F36}.Release|Any CPU.Build.0 = Release|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18D54D83-0AA5-4916-87CF-48B69E9F66EA}.Release|Any CPU.ActiveCfg = Release|Any CPU

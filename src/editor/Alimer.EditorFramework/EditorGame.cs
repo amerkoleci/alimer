@@ -11,13 +11,13 @@ using Hexa.NET.ImPlot;
 
 namespace Alimer.Editor;
 
-public class EditorApplication : GameApplication
+public class EditorGame : Game
 {
     private readonly ImGuiSystem _imGui;
     private readonly ImNodesContextPtr _nodesContext;
     private readonly ImPlotContextPtr _plotContext;
 
-    public unsafe EditorApplication(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
+    public unsafe EditorGame(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
         : base(preferredGraphicsBackend)
     {
         _imGui = new ImGuiSystem(Services);
@@ -54,7 +54,7 @@ public class EditorApplication : GameApplication
         base.Dispose(disposing);
     }
 
-    protected override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    protected override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
         base.Draw(renderContext, outputTexture, time);
     }

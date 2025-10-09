@@ -6,10 +6,7 @@ using Alimer.Input;
 
 namespace Alimer;
 
-/// <summary>
-/// Core application platform Module, used for managing Views, Monitors, Input and Settings.
-/// </summary>
-public abstract class AppPlatform : DisposableObject
+internal abstract partial class GamePlatform : DisposableObject
 {
     public Action? Ready;
     public event EventHandler? TickRequested;
@@ -29,19 +26,8 @@ public abstract class AppPlatform : DisposableObject
     /// </summary>
     public abstract InputManager Input { get; }
 
-    protected AppPlatform()
+    protected GamePlatform()
     {
-    }
-
-    public static AppPlatform CreateDefault()
-    {
-#if WINDOWS || WINDOWS_UWP
-        return new WindowsPlatform(swapChainPanel: default);
-#elif __ANDROID__
-        throw new NotImplementedException();
-#else
-        return new SDLPlatform();
-#endif
     }
 
     public abstract void RunMainLoop();

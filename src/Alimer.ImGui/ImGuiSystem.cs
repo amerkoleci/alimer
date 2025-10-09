@@ -49,7 +49,7 @@ public sealed class ImGuiSystem : GameSystem
     public Window MainWindow { get; }
     public ref readonly ImGuiContextPtr Context => ref _context;
 
-    public override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    public override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
 
     }

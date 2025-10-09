@@ -90,7 +90,7 @@ public sealed class PhysicsSimulation : DisposableObject
     }
 
     #region ContactListener
-    private ValidateResult OnContactValidate(JoltPhysicsSystem system, in Body body1, in Body body2, Double3 baseOffset, in CollideShapeResult collisionResult)
+    private ValidateResult OnContactValidate(JoltPhysicsSystem system, in Body body1, in Body body2, RVector3 baseOffset, in CollideShapeResult collisionResult)
     {
         Console.WriteLine("Contact validate callback");
 

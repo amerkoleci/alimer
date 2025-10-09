@@ -21,7 +21,7 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12SwapChain : SwapChain
 {
-    private static readonly Guid IID_ISwapChainPanelNativeWinUI = new (0x63AAD0B8, 0x7C24, 0x40FF, 0x85, 0xA8, 0x64, 0x0D, 0x94, 0x4C, 0xC3, 0x25);
+    private static readonly Guid IID_ISwapChainPanelNativeWinUI = new(0x63AAD0B8, 0x7C24, 0x40FF, 0x85, 0xA8, 0x64, 0x0D, 0x94, 0x4C, 0xC3, 0x25);
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<IDXGISwapChain3> _handle;
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
@@ -72,38 +72,38 @@ internal unsafe class D3D12SwapChain : SwapChain
                 break;
 
             case SwapChainSurfaceType.SwapChainPanel:
+            {
+                ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
+                    (IUnknown*)device.D3D12GraphicsQueue,
+                    &swapChainDesc,
+                    null,
+                    tempSwapChain.GetAddressOf()
+                    ));
+
+
+                fixed (ISwapChainPanelNative** swapChainPanelNative = _swapChainPanelNative)
                 {
-                    ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
-                        (IUnknown*)device.D3D12GraphicsQueue,
-                        &swapChainDesc,
-                        null,
-                        tempSwapChain.GetAddressOf()
-                        ));
+                    using ComPtr<IUnknown> swapChainPanel = default;
+                    //swapChainPanel.Attach((IUnknown*)((IWinRTObject)swapChainPanelSurface.Panel).NativeObject.GetRef());
+                    swapChainPanel.Attach((IUnknown*)surface.Handle);
 
 
-                    fixed (ISwapChainPanelNative** swapChainPanelNative = _swapChainPanelNative)
-                    {
-                        using ComPtr<IUnknown> swapChainPanel = default;
-                        //swapChainPanel.Attach((IUnknown*)((IWinRTObject)swapChainPanelSurface.Panel).NativeObject.GetRef());
-                        swapChainPanel.Attach((IUnknown*)surface.Handle);
-
-                        
-                        ThrowIfFailed(swapChainPanel.CopyTo(
-                            (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_ISwapChainPanelNativeWinUI)),
-                            (void**)swapChainPanelNative)
-                            );
-                    }
-
-                    ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
-                    ThrowIfFailed(_swapChainPanelNative.Get()->SetSwapChain((IDXGISwapChain*)tempSwapChain.Get()));
-                    //Matrix3x2 transformMatrix = new()
-                    //{
-                    //    M11 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleX,
-                    //    M22 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleY
-                    //};
-                    //ThrowIfFailed(_handle.Get()->SetMatrixTransform(&transformMatrix));
+                    ThrowIfFailed(swapChainPanel.CopyTo(
+                        (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_ISwapChainPanelNativeWinUI)),
+                        (void**)swapChainPanelNative)
+                        );
                 }
-                break;
+
+                ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
+                ThrowIfFailed(_swapChainPanelNative.Get()->SetSwapChain((IDXGISwapChain*)tempSwapChain.Get()));
+                //DXGI_MATRIX_3X2_F transformMatrix = new()
+                //{
+                //    _11 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleX,
+                //    _22 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleY
+                //};
+                //ThrowIfFailed(_handle.Get()->SetMatrixTransform(&transformMatrix));
+            }
+            break;
 
             default:
                 throw new GraphicsException("Surface not supported");

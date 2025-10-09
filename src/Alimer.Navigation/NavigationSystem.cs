@@ -22,7 +22,7 @@ public class NavigationSystem : EntitySystem<NavigationMeshComponent>
         base.Dispose(disposing);
     }
 
-    public override void Update(AppTime time)
+    public override void Update(GameTime time)
     {
         base.Update(time);
     }

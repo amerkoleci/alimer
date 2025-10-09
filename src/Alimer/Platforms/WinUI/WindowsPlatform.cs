@@ -8,7 +8,7 @@ using Windows.ApplicationModel.Core;
 
 namespace Alimer;
 
-internal unsafe class WindowsPlatform : AppPlatform
+internal unsafe class WindowsPlatform : GamePlatform
 {
     private readonly WindowsInput _input;
     private readonly SwapChainPanelView _window;
@@ -62,4 +62,10 @@ internal unsafe class WindowsPlatform : AppPlatform
     {
         OnTick();
     }
+}
+
+
+partial class GamePlatform
+{
+    public static GamePlatform CreateDefault() => new WindowsPlatform();
 }

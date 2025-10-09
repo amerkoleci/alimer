@@ -37,7 +37,7 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
     {
     }
 
-    public virtual void Update(AppTime time)
+    public virtual void Update(GameTime time)
     {
     }
 
@@ -45,7 +45,7 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
     {
     }
 
-    public virtual void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    public virtual void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
     }
 

@@ -55,14 +55,45 @@ static bool AssertFailedImpl(const char* inExpression, const char* inMessage, co
 
 #endif // JPH_ENABLE_ASSERTS
 
-static Vector3 FromJolt(const JPH::Vec3& value)
+static_assert(sizeof(JPH::Mat44) == sizeof(Matrix4x4));
+
+static void FromJolt(const JPH::Vec3& value, Vector3* result)
 {
-    return { value.GetX(), value.GetY(), value.GetZ() };
+    result->x = value.GetX();
+    result->y = value.GetY();
+    result->z = value.GetZ();
+}
+
+static void FromJolt(const JPH::Quat& quat, Quaternion* result)
+{
+    result->x = quat.GetX();
+    result->y = quat.GetY();
+    result->z = quat.GetZ();
+    result->w = quat.GetW();
+}
+
+[[maybe_unused]] static void FromJolt(const JPH::Mat44& value, Matrix4x4* result)
+{
+    JPH::Mat44 temp = value.Transposed();
+    memcpy(result, &temp, sizeof(Matrix4x4));
 }
 
 static JPH::Vec3 ToJolt(const Vector3* value)
 {
     return JPH::Vec3(value->x, value->y, value->z);
+}
+
+static JPH::Quat ToJolt(const Quaternion* value)
+{
+    return JPH::Quat(value->x, value->y, value->z, value->w);
+}
+
+[[maybe_unused]] static JPH::Mat44 ToJolt(const Matrix4x4* value)
+{
+    JPH::Mat44 result;
+    memcpy(&result, value, sizeof(Matrix4x4));
+
+    return result.Transposed();
 }
 
 // Based on: https://github.com/jrouwe/JoltPhysics/blob/master/HelloWorld/HelloWorld.cpp
@@ -268,6 +299,7 @@ struct PhysicsWorld final
 struct PhysicsBody final
 {
     std::atomic_uint32_t refCount;
+    PhysicsWorld* world;
     JPH::Body* handle;
     JPH::BodyID id;
 };
@@ -382,7 +414,7 @@ uint32_t alimerPhysicsWorldGetActiveBodyCount(PhysicsWorld* world)
 
 void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vector3* gravity)
 {
-    *gravity = FromJolt(world->system.GetGravity());
+    FromJolt(world->system.GetGravity(), gravity);
 }
 
 void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vector3* gravity)
@@ -447,7 +479,7 @@ PhysicsShape* alimerPhysicsCreateBoxShape(float dimensions[3])
     }
 
     shape->handle = shapeResult.Get();
-    //shape->handle->SetUserData((uint64_t)(uintptr_t)shape);
+    //shape->handle->SetUserData(reinterpret_cast<uint64_t>(shape));
     return shape;
 }
 
@@ -485,9 +517,10 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, PhysicsShape* shape)
 
     PhysicsBody* body = new PhysicsBody();
     body->refCount.store(1);
+    body->world = world;
     body->handle = bodyInterface.CreateBody(settings);
     body->id = body->handle->GetID();
-    body->handle->SetUserData((uint64_t)(uintptr_t)body);
+    body->handle->SetUserData(reinterpret_cast<uint64_t>(body));
 
     // Add it to the world
     bodyInterface.AddBody(body->id, JPH::EActivation::Activate);
@@ -506,6 +539,31 @@ void alimerPhysicsBodyRelease(PhysicsBody* body)
     {
         delete body;
     }
+}
+
+void alimerPhysicsBodyGetPositionAndRotation(PhysicsBody* body, Vector3* position, Quaternion* rotation)
+{
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+
+    JPH::RVec3 joltPosition{};
+    JPH::Quat joltRotation{};
+    bodyInterface.GetPositionAndRotation(body->id, joltPosition, joltRotation);
+    FromJolt(joltPosition, position);
+    FromJolt(joltRotation, rotation);
+}
+
+void alimerPhysicsBodySetPositionAndRotation(PhysicsBody* body, const Vector3* position, const Quaternion* rotation)
+{
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.SetPositionAndRotationWhenChanged(body->id, ToJolt(position), ToJolt(rotation), JPH::EActivation::Activate);
+}
+
+void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
+{
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+
+    JPH::RMat44 joltTransform = bodyInterface.GetWorldTransform(body->id);
+    FromJolt(joltTransform, transform);
 }
 
 #endif /* defined(ALIMER_PHYSICS) */

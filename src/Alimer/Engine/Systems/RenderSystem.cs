@@ -76,7 +76,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         base.Dispose(disposing);
     }
 
-    public override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    public override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
         Render(renderContext, outputTexture, Scene.CurrentCamera!);
     }

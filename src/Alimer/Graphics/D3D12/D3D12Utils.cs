@@ -29,12 +29,6 @@ namespace Alimer.Graphics.D3D12;
 
 internal static unsafe class D3D12Utils
 {
-#if !USE_D3D12MA
-    public static D3D12_HEAP_PROPERTIES DefaultHeapProps => new(D3D12_HEAP_TYPE_DEFAULT);
-    public static D3D12_HEAP_PROPERTIES UploadHeapProps => new(D3D12_HEAP_TYPE_UPLOAD);
-    public static D3D12_HEAP_PROPERTIES ReadbackHeapProps => new(D3D12_HEAP_TYPE_READBACK);
-#endif
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_COMMAND_LIST_TYPE ToD3D12(this QueueType queue)
     {

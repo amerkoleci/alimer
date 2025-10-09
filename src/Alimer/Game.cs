@@ -5,32 +5,31 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Audio;
 using Alimer.Content;
+using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Input;
 
 namespace Alimer;
 
 /// <summary>
-/// Alimer Application class.
+/// Alimer Game class.
 /// </summary>
-public abstract class Application : DisposableObject, IApplication
+public abstract class Game : DisposableObject, IGame
 {
+    private readonly GamePlatform _platform;
     private readonly ServiceRegistry _services;
     private readonly ContentManager _content;
-    private readonly object _tickLock = new();
+    private readonly Lock _tickLock = new();
     private readonly Stopwatch _stopwatch = new();
-    private readonly AppTime _appTime = new();
+    private readonly GameTime _appTime = new();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Application" /> class.
+    /// Initializes a new instance of the <see cref="Game" /> class.
     /// </summary>
     /// <param name="name">The optional name of the application.</param>
-    protected Application(AppPlatform? platform = default,
-        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default,
-        string? name = default)
+    protected Game(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
     {
-        Platform = platform ?? AppPlatform.CreateDefault();
-        Name = name ?? GetType().Name;
+        _platform = GamePlatform.CreateDefault();
         PrintSystemInformation();
 
         _services = new();
@@ -64,12 +63,15 @@ public abstract class Application : DisposableObject, IApplication
         _services.AddService(GraphicsDevice);
         _services.AddService(AudioDevice);
         _services.AddService(MainWindow);
+        SceneSystem = new SceneSystem(Services);
+        Services.AddService(SceneSystem);
+        GameSystems.Add(SceneSystem);
     }
 
     /// <summary>
-    /// Gets the Application name.
+    /// Gets the name of the game.
     /// </summary>
-    public string Name { get; }
+    public virtual string? Name { get; }
 
     /// <inheritdoc />
     public bool IsRunning { get; private set; }
@@ -77,26 +79,24 @@ public abstract class Application : DisposableObject, IApplication
     /// <inheritdoc />
     public bool IsExiting { get; private set; }
 
-    public AppTime Time => _appTime;
+    public GameTime Time => _appTime;
 
     public IServiceRegistry Services => _services;
 
+    /// <summary>
+    /// Gets the content manager.
+    /// </summary>
     public IContentManager Content => _content;
 
     /// <summary>
-    /// Gets the platform module.
+    /// Gets the main window, automatically created or managed by the <see cref="GamePlatform"/> module.
     /// </summary>
-    public AppPlatform Platform { get; }
+    public Window MainWindow => _platform.MainWindow;
 
     /// <summary>
-    /// Gets the main window, automatically created or managed by the <see cref="AppPlatform"/> module.
+    /// Gets the system input, created by the <see cref="GamePlatform"/> module.
     /// </summary>
-    public Window MainWindow => Platform.MainWindow;
-
-    /// <summary>
-    /// Gets the system input, created by the <see cref="AppPlatform"/> module.
-    /// </summary>
-    public InputManager Input => Platform.Input;
+    public InputManager Input => _platform.Input;
 
     /// <summary>
     /// Gets the <see cref="Graphics.GraphicsManager"/> created by the application.
@@ -114,15 +114,34 @@ public abstract class Application : DisposableObject, IApplication
     public GraphicsDevice GraphicsDevice { get; }
 
     /// <summary>
-    /// Gets the <see cref="AudioDevice"/> instance.
+    /// Gets the <see cref="Audio.AudioDevice"/> instance.
     /// </summary>
     public AudioDevice AudioDevice { get; private set; }
+
+    /// <summary>
+    /// Get the list of game systems.
+    /// </summary>
+    public List<IGameSystem> GameSystems { get; } = [];
+
+    /// <summary>
+    /// Gets the <see cref="SceneSystem"/> instance.
+    /// </summary>
+    public SceneSystem SceneSystem { get; }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            // Dispose game systems first.
+            foreach (IGameSystem system in GameSystems)
+            {
+                if (system is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+
             GraphicsDevice.WaitIdle();
             MainWindow.Destroy();
             GraphicsDevice.Dispose();
@@ -133,7 +152,7 @@ public abstract class Application : DisposableObject, IApplication
 
     public virtual void ConfigureServices(IServiceRegistry services)
     {
-        services.AddService<IApplication>(this);
+        services.AddService<IGame>(this);
         services.AddService<IContentManager>(_content);
     }
 
@@ -168,9 +187,9 @@ public abstract class Application : DisposableObject, IApplication
         void Launch()
         {
             // Startup application
-            Platform.Ready = OnPlatformReady;
-            Platform.TickRequested += OnTickRequested;
-            Platform.RunMainLoop();
+            _platform.Ready = OnPlatformReady;
+            _platform.TickRequested += OnTickRequested;
+            _platform.RunMainLoop();
         }
 
         IsRunning = true;
@@ -180,7 +199,7 @@ public abstract class Application : DisposableObject, IApplication
     {
         if (IsRunning && !IsExiting)
         {
-            Platform.RequestExit();
+            _platform.RequestExit();
             IsExiting = true;
         }
     }
@@ -202,22 +221,39 @@ public abstract class Application : DisposableObject, IApplication
     {
     }
 
-    protected virtual void Update(AppTime time)
+    protected virtual void Update(GameTime time)
     {
+        foreach (IGameSystem system in GameSystems)
+        {
+            system.Update(time);
+        }
     }
 
     protected virtual void BeginDraw()
     {
-
+        foreach (IGameSystem system in GameSystems)
+        {
+            system.BeginDraw();
+        }
     }
 
-    protected virtual void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    protected virtual void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
-
+        // Draw for all game systems
+        foreach (IGameSystem system in GameSystems)
+        {
+            system.Draw(renderContext, outputTexture, time);
+        }
     }
 
     protected virtual void EndDraw()
     {
+        // End drawing for all game systems
+        foreach (IGameSystem system in GameSystems)
+        {
+            system.EndDraw();
+        }
+
         _ = GraphicsDevice.CommitFrame();
     }
 

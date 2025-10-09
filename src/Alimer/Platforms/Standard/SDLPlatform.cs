@@ -8,7 +8,7 @@ using static Alimer.AlimerApi;
 
 namespace Alimer;
 
-internal unsafe class SDLPlatform : AppPlatform
+internal unsafe class SDLPlatform : GamePlatform
 {
     private readonly SDLInput _input;
     private readonly SDLWindow _window;
@@ -114,4 +114,9 @@ internal unsafe class SDLPlatform : AppPlatform
     {
         _idLookup.Remove(windowID);
     }
+}
+
+partial class GamePlatform
+{
+    public static GamePlatform CreateDefault() => new SDLPlatform();
 }

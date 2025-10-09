@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer.Physics\Alimer.Physics.csproj" />
+    <ProjectReference Include="..\Alimer\Alimer.csproj" />
   </ItemGroup>
 
 </Project>

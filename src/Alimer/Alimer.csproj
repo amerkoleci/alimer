@@ -67,6 +67,9 @@
     <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
     <PackageReference Include="Alimer.Bindings.WebGPU" Condition="'$(ExcludeWebGPU)' != 'true'" PrivateAssets="compile" />
+
+    <!-- Physics (until we remove with native one) -->
+    <PackageReference Include="JoltPhysicsSharp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -80,6 +83,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Engine\" />
   </ItemGroup>
 
 </Project>

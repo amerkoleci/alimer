@@ -8,11 +8,11 @@ using Alimer.Samples.Graphics;
 namespace Alimer.Samples;
 
 // https://github.com/dotnet/runtime/tree/main/src/tests/nativeaot
-public sealed class SampleBrowserApp : GameApplication
+public sealed class SampleBrowserGame : Game
 {
     private SampleBase _runningSample = null!;
 
-    public SampleBrowserApp(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
+    public SampleBrowserGame(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
         : base(preferredGraphicsBackend)
     {
         GameSystems.Add(new ImGuiSystem(Services));
@@ -49,7 +49,7 @@ public sealed class SampleBrowserApp : GameApplication
         base.Dispose(disposing);
     }
 
-    protected override void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    protected override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
         _runningSample.Draw(renderContext, outputTexture);
 
@@ -65,7 +65,7 @@ public sealed class SampleBrowserApp : GameApplication
         preferredGraphicsBackend = GraphicsBackendType.Vulkan;
 #endif
 
-        using SampleBrowserApp game = new(preferredGraphicsBackend);
+        using SampleBrowserGame game = new(preferredGraphicsBackend);
         game.Run();
     }
 }

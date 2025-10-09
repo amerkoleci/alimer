@@ -53,7 +53,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public virtual void Update(AppTime time)
+    public virtual void Update(GameTime time)
     {
         foreach (EntitySystem system in Systems)
         {
@@ -69,7 +69,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         }
     }
 
-    public virtual void Draw(RenderContext renderContext, Texture outputTexture, AppTime time)
+    public virtual void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
     {
         foreach (EntitySystem system in Systems)
         {

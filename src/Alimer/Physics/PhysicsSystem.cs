@@ -39,7 +39,7 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
         component.Simulation = null;
     }
 
-    public override void Update(AppTime time)
+    public override void Update(GameTime time)
     {
         BodyInterface bodyInterface = Simulation.BodyInterface;
 

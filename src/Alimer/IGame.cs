@@ -5,7 +5,7 @@ using Alimer.Content;
 
 namespace Alimer;
 
-public interface IApplication
+public interface IGame
 {
     IServiceRegistry Services { get; }
 

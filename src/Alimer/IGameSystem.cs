@@ -3,15 +3,15 @@
 
 using Alimer.Graphics;
 
-namespace Alimer.Engine;
+namespace Alimer;
 
 public interface IGameSystem
 {
-    void Update(AppTime time);
+    void Update(GameTime time);
 
     void BeginDraw();
 
-    void Draw(RenderContext renderContext, Texture outputTexture, AppTime time);
+    void Draw(RenderContext renderContext, Texture outputTexture, GameTime time);
 
     void EndDraw();
 }

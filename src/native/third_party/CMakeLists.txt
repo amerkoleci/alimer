@@ -6,7 +6,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.2.22
+        GIT_TAG release-3.2.24
         OPTIONS
             "SDL_SHARED OFF"
             "SDL_STATIC ON"
