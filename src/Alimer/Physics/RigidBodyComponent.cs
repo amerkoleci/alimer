@@ -4,8 +4,7 @@
 using System.Numerics;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using Alimer.Engine;
-using JoltPhysicsSharp;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Physics;
 
@@ -24,9 +23,9 @@ public class RigidBodyComponent : PhysicsComponent
                 return;
 
             _motionType = value;
-            if (Handle != null)
+            if (Handle.IsNotNull)
             {
-                Handle.MotionType = value.ToJolt();
+                //Handle.MotionType = value.ToJolt();
             }
         }
     }
@@ -81,15 +80,15 @@ public class RigidBodyComponent : PhysicsComponent
             if (!IsValid)
                 return Vector3.Zero;
 
-            return Simulation!.BodyInterfaceNoLock.GetLinearVelocity(BodyID);
+            alimerPhysicsBodyGetLinearVelocity(Handle, out Vector3 velocity);
+            return velocity;
         }
         set
         {
             if (!IsValid)
                 return;
 
-            //Handle.SetLinearVelocity(value);
-            Simulation!.BodyInterfaceNoLock.SetLinearVelocity(BodyID, value);
+            alimerPhysicsBodySetLinearVelocity(Handle, in value);
         }
     }
 
@@ -100,61 +99,58 @@ public class RigidBodyComponent : PhysicsComponent
     {
         get
         {
-            if (Handle == null)
+            if (Handle.IsNull)
                 return Matrix4x4.Identity;
 
-            return Handle.GetWorldTransform();
+            alimerPhysicsBodyGetWorldTransform(Handle, out Matrix4x4 transform);
+            return transform;
         }
         set
         {
-            // TODO: Update Jolt WorldTransform?
-            if (Handle != null)
-            {
-            }
         }
     }
 
-    internal Body? Handle { get; private set; }
-    internal BodyID BodyID { get; private set; }
-    internal bool IsValid => BodyID.IsValid;
+    internal PhysicsBody Handle { get; private set; }
+    internal uint BodyID { get; private set; }
+    internal bool IsValid => alimerPhysicsBodyIsValid(Handle);
 
     protected override void OnAttach()
     {
         base.OnAttach();
 
-        if (Handle != null)
+        if (Handle.IsNotNull)
         {
-            Simulation!.BodyInterface.DestroyBody(Handle.ID);
+            alimerPhysicsBodyRelease(Handle);
         }
 
         if (_shape is null)
             return;
 
-        BodyInterface bodyInterface = Simulation!.BodyInterface;
-
         Matrix4x4.Decompose(Entity!.Transform.WorldMatrix, out _, out Quaternion rotation, out Vector3 translation);
 
-        BodyCreationSettings bodySettings = new(
-            _shape.Handle,
-            translation,
-            rotation,
-            MotionType.ToJolt(),
-            (MotionType == MotionType.Static) ? PhysicsSimulation.Layers.NonMoving : PhysicsSimulation.Layers.Moving);
+        PhysicsBodyDesc bodyDesc = default;
+        alimerPhysicsBodyDescInit(ref bodyDesc);
 
-        Handle = bodyInterface.CreateBody(bodySettings);
-        BodyID = Handle.ID;
+        bodyDesc.initialTransform = new PhysicsBodyTransform
+        {
+            position = translation,
+            rotation = rotation
+        };
+        bodyDesc.type = PhysicsBodyType.Dynamic;
+
+        Handle = alimerPhysicsBodyCreate(Simulation.World, in bodyDesc);
+        BodyID = alimerPhysicsBodyGetID(Handle);
 
         // Add it to the world
-        bodyInterface.AddBody(Handle, (MotionType == MotionType.Static) ? Activation.DontActivate : Activation.Activate);
-        Simulation.RigidBodies.Add(BodyID, this);
+        //bodyInterface.AddBody(Handle, (MotionType == MotionType.Static) ? Activation.DontActivate : Activation.Activate);
+        Simulation.RigidBodies.Add(Handle, this);
     }
 
     protected override void OnDetach()
     {
         base.OnDetach();
 
-        Simulation!.RigidBodies.Remove(BodyID);
-        Simulation!.BodyInterface.RemoveBody(BodyID);
-        Simulation!.BodyInterface.DestroyBody(BodyID);
+        Simulation!.RigidBodies.Remove(Handle);
+        alimerPhysicsBodyRelease(Handle);
     }
 }

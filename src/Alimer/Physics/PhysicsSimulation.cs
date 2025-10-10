@@ -2,8 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using JoltPhysicsSharp;
-using JoltPhysicsSystem = JoltPhysicsSharp.PhysicsSystem;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Physics;
 
@@ -11,43 +10,22 @@ public sealed class PhysicsSimulation : DisposableObject
 {
     private const int MaxBodies = 65536;
     private const int MaxBodyPairs = 65536;
-    private const int MaxContactConstraints = 65536;
-    private const int NumBodyMutexes = 0;
     private bool _optimizeBroadPhase = true;
-    public Dictionary<BodyID, RigidBodyComponent> RigidBodies { get; } = [];
+
+    internal readonly PhysicsWorld World;
+    internal Dictionary<PhysicsBody, RigidBodyComponent> RigidBodies { get; } = [];
 
     public PhysicsSimulation()
     {
-        JobSystem = new JobSystemThreadPool();
-
         // TODO: Add Layers/LayerMask
-        // We use only 2 layers: one for non-moving objects and one for moving objects
-        ObjectLayerPairFilterTable objectLayerPairFilterTable = new(2);
-        objectLayerPairFilterTable.EnableCollision(Layers.NonMoving, Layers.Moving);
-        objectLayerPairFilterTable.EnableCollision(Layers.Moving, Layers.Moving);
-
-        // We use a 1-to-1 mapping between object layers and broadphase layers
-        BroadPhaseLayerInterfaceTable broadPhaseLayerInterfaceTable = new(2, 2);
-        broadPhaseLayerInterfaceTable.MapObjectToBroadPhaseLayer(Layers.NonMoving, BroadPhaseLayers.NonMoving);
-        broadPhaseLayerInterfaceTable.MapObjectToBroadPhaseLayer(Layers.Moving, BroadPhaseLayers.Moving);
-
-        ObjectVsBroadPhaseLayerFilterTable objectVsBroadPhaseLayerFilter = new(
-            broadPhaseLayerInterfaceTable, 2, objectLayerPairFilterTable, 2
-        );
-
-        PhysicsSystemSettings settings = new()
+        PhysicsWorldConfig config = new()
         {
-            MaxBodies = MaxBodies,
-            MaxBodyPairs = MaxBodyPairs,
-            MaxContactConstraints = MaxContactConstraints,
-            NumBodyMutexes = NumBodyMutexes,
-            ObjectLayerPairFilter = objectLayerPairFilterTable,
-            BroadPhaseLayerInterface = broadPhaseLayerInterfaceTable,
-            ObjectVsBroadPhaseLayerFilter = objectVsBroadPhaseLayerFilter
+            maxBodies = MaxBodies,
+            maxBodyPairs = MaxBodyPairs
         };
+        World = alimerPhysicsWorldCreate(in config);
 
-        InternalSimulation = new(settings);
-
+#if TODO_Events
         // ContactListener
         InternalSimulation.OnContactValidate += OnContactValidate;
         InternalSimulation.OnContactAdded += OnContactAdded;
@@ -56,19 +34,14 @@ public sealed class PhysicsSimulation : DisposableObject
         // BodyActivationListener
         InternalSimulation.OnBodyActivated += OnBodyActivated;
         InternalSimulation.OnBodyDeactivated += OnBodyDeactivated;
+#endif
     }
-
-    internal JobSystem JobSystem { get; }
-    internal JoltPhysicsSystem InternalSimulation { get; }
-    internal BodyInterface BodyInterface => InternalSimulation.BodyInterface;
-    internal BodyInterface BodyInterfaceNoLock => InternalSimulation.BodyInterfaceNoLock;
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            InternalSimulation.Dispose();
-            JobSystem.Dispose();
+            alimerPhysicsWorldDestroy(World);
         }
     }
 
@@ -76,7 +49,7 @@ public sealed class PhysicsSimulation : DisposableObject
     {
         if (_optimizeBroadPhase)
         {
-            InternalSimulation.OptimizeBroadPhase();
+            alimerPhysicsWorldOptimizeBroadPhase(World);
             _optimizeBroadPhase = false;
         }
 
@@ -85,10 +58,12 @@ public sealed class PhysicsSimulation : DisposableObject
 
         //const int steps = ::clamp(int(dt / TIMESTEP), 1, ACCURACY);
 
-        PhysicsUpdateError error = InternalSimulation.Update(deltaTime, numSteps, JobSystem);
-        Debug.Assert(error == PhysicsUpdateError.None);
+        //PhysicsUpdateError error = alimerPhysicsWorldUpdate(_world, deltaTime, numSteps);
+        //Debug.Assert(error == PhysicsUpdateError.None);
+        _ = alimerPhysicsWorldUpdate(World, deltaTime, numSteps);
     }
 
+#if TODO_Events
     #region ContactListener
     private ValidateResult OnContactValidate(JoltPhysicsSystem system, in Body body1, in Body body2, RVector3 baseOffset, in CollideShapeResult collisionResult)
     {
@@ -125,16 +100,5 @@ public sealed class PhysicsSimulation : DisposableObject
         Console.WriteLine("A body went to sleep");
     }
     #endregion
-
-    internal static class Layers
-    {
-        public static readonly ObjectLayer NonMoving = 0;
-        public static readonly ObjectLayer Moving = 1;
-    }
-
-    static class BroadPhaseLayers
-    {
-        public static readonly BroadPhaseLayer NonMoving = 0;
-        public static readonly BroadPhaseLayer Moving = 1;
-    }
+#endif
 }

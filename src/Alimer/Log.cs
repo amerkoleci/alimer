@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text;
-using Alimer.Utilities;
+using static Alimer.AlimerApi;
 
 namespace Alimer;
 
@@ -16,14 +16,13 @@ public static class Log
     private static readonly StringBuilder s_log = new();
     private static readonly LogAttribute[] s_logAttributes =
     [
-        new("TRACE ", LogColor.White),
-        new("DEBUG ", LogColor.Cyan),
-        new("INFO  ", LogColor.Green),
-        new("WARN  ", LogColor.Yellow),
-        new("ERROR ", LogColor.Red),
-        new("FATAL ", LogColor.Magenta),
-        new("SYSTEM", LogColor.Cyan),
-        new("ASSERT", LogColor.Magenta),
+        new("OFF", LogColor.White),
+        new("TRACE", LogColor.White),
+        new("DEBUG", LogColor.Cyan),
+        new("INFO", LogColor.Green),
+        new("WARN", LogColor.Yellow),
+        new("ERROR", LogColor.Red),
+        new("FATAL", LogColor.Red),
     ];
     private static readonly bool s_colorEnabled;
 
@@ -34,7 +33,7 @@ public static class Log
 #endif
     public static bool PrintToConsole { get; set; } = true;
 
-    static Log()
+    static unsafe Log()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -48,8 +47,8 @@ public static class Log
             s_colorEnabled = false;
         }
 
-        //alimerSetLogLevel(Verbosity);
-        //alimerSetLogCallback(&OnNativeLogCallback, IntPtr.Zero);
+        alimerSetLogLevel(Level);
+        alimerSetLogCallback(&OnNativeLogCallback, 0);
         Info($"Logging Enabled ({Level})");
     }
 
@@ -83,7 +82,7 @@ public static class Log
 
         s_log.Append($"{DateTime.Now.ToString("HH:mm:ss")} [{logAttribute.Name}] {message}");
 
-        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Assert))
+        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Fatal))
         {
             Debugger.Break();
         }
@@ -107,7 +106,7 @@ public static class Log
 
         s_log.Append($"{DateTime.Now.ToString("HH:mm:ss")} [{logAttribute.Name}] {callSite,-32} {message}");
 
-        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Assert))
+        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Fatal))
         {
             Debugger.Break();
         }
@@ -233,18 +232,22 @@ public static class Log
         LogInternal(LogLevel.Error, message, callerFilePath, callerLineNumber);
     }
 
-    [Conditional("DEBUG")]
-    public static void Assert(
-        [DoesNotReturnIf(false)] bool condition,
-        string message = "Assertion failed.",
+    public static bool FatalIf(
+        [DoesNotReturnIf(true)] bool condition,
+        string message,
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        if (!condition)
-        {
-            LogInternal(LogLevel.Assert, message, callerFilePath, callerLineNumber);
-            throw new Exception(message);
-        }
+        LogInternalIf(condition, LogLevel.Fatal, message, callerFilePath, callerLineNumber);
+        return condition;
+    }
+
+    public static void Fatal(
+        string message,
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
+    {
+        LogInternal(LogLevel.Fatal, message, callerFilePath, callerLineNumber);
     }
 
     public static void WriteToFile(string file)
@@ -258,23 +261,12 @@ public static class Log
         File.WriteAllText(file, s_log.ToString());
     }
 
-    //[UnmanagedCallersOnly]
-    //private static unsafe void OnNativeLogCallback(LogCategory category, LogLevel level, byte* messagePtr, nint userData)
-    //{
-    //    string message = Utf8CustomMarshaller.ConvertToManaged(messagePtr)!;
-
-    //    LogInternal(level, message);
-    //}
-
-    public enum LogLevel
+    [UnmanagedCallersOnly]
+    private static unsafe void OnNativeLogCallback(LogCategory category, LogLevel level, byte* messagePtr, nint userData)
     {
-        Trace,
-        Debug,
-        Info,
-        Warn,
-        Error,
-        Critical,
-        Assert,
+        string message = Utf8StringMarshaller.ConvertToManaged(messagePtr)!;
+
+        LogInternal(level, message);
     }
 
     private static class LogColor

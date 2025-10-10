@@ -86,46 +86,13 @@ internal unsafe static partial class AlimerApi
     } 
 #endif
 
-    //[LibraryImport(Library)]
-    //public static partial void Alimer_FreeString(byte* memory);
+    [LibraryImport(LibraryName)]
+    public static partial LogLevel alimerGetLogLevel();
+    [LibraryImport(LibraryName)]
+    public static partial void alimerSetLogLevel(LogLevel level);
 
-    public static string ParseUTF8(byte* str)
-    {
-        byte* ptr = str;
-        while (*ptr != 0)
-        {
-            ptr++;
-        }
-
-        return Encoding.UTF8.GetString(str, (int)(ptr - str));
-    }
-
-    //public static string ParseUTF8AndFree(byte* str)
-    //{
-    //    string result = ParseUTF8(str);
-    //    Alimer_FreeString(str);
-    //    return result;
-    //}
-
-    public static byte* ToUTF8(in string str)
-    {
-        int count = Encoding.UTF8.GetByteCount(str) + 1;
-        byte* ptr = (byte*)NativeMemory.Alloc((nuint)count);
-        var span = new Span<byte>(ptr, count);
-        Encoding.UTF8.GetBytes(str, span);
-        span[^1] = 0;
-        return ptr;
-    }
-
-    public static void FreeUTF8(void* ptr)
-    {
-        NativeMemory.Free(ptr);
-    }
-
-    public static void FreeUTF8(nint ptr)
-    {
-        NativeMemory.Free(ptr.ToPointer());
-    }
+    [LibraryImport(LibraryName)]
+    public static partial void alimerSetLogCallback(delegate* unmanaged<LogCategory, LogLevel, byte*, nint, void> callback, nint userdata);
 
     #region Image
     internal struct ImageDesc

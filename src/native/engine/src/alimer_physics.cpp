@@ -22,6 +22,8 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "Jolt/Physics/Collision/Shape/CylinderShape.h"
+#include "Jolt/Physics/Collision/Shape/MutableCompoundShape.h"
+#include "Jolt/Physics/Collision/PhysicsMaterialSimple.h"
 
 // STL includes
 #include <cstdarg>
@@ -55,45 +57,62 @@ static bool AssertFailedImpl(const char* inExpression, const char* inMessage, co
 
 #endif // JPH_ENABLE_ASSERTS
 
-static_assert(sizeof(JPH::Mat44) == sizeof(Matrix4x4));
-
-static void FromJolt(const JPH::Vec3& value, Vector3* result)
+namespace
 {
-    result->x = value.GetX();
-    result->y = value.GetY();
-    result->z = value.GetZ();
-}
+    static_assert(sizeof(JPH::Mat44) == sizeof(Matrix4x4));
 
-static void FromJolt(const JPH::Quat& quat, Quaternion* result)
-{
-    result->x = quat.GetX();
-    result->y = quat.GetY();
-    result->z = quat.GetZ();
-    result->w = quat.GetW();
-}
+    constexpr JPH::EMotionType ToJolt(PhysicsBodyType value)
+    {
+        switch (value)
+        {
+            case PhysicsBodyType_Kinematic:
+                return JPH::EMotionType::Kinematic;
+            case PhysicsBodyType_Dynamic:
+                return JPH::EMotionType::Dynamic;
+            case PhysicsBodyType_Static:
+            default:
+                return JPH::EMotionType::Static;
+        }
+    }
 
-[[maybe_unused]] static void FromJolt(const JPH::Mat44& value, Matrix4x4* result)
-{
-    JPH::Mat44 temp = value.Transposed();
-    memcpy(result, &temp, sizeof(Matrix4x4));
-}
+    static void FromJolt(const JPH::Vec3& value, Vector3* result)
+    {
+        result->x = value.GetX();
+        result->y = value.GetY();
+        result->z = value.GetZ();
+    }
 
-static JPH::Vec3 ToJolt(const Vector3* value)
-{
-    return JPH::Vec3(value->x, value->y, value->z);
-}
+    static void FromJolt(const JPH::Quat& quat, Quaternion* result)
+    {
+        result->x = quat.GetX();
+        result->y = quat.GetY();
+        result->z = quat.GetZ();
+        result->w = quat.GetW();
+    }
 
-static JPH::Quat ToJolt(const Quaternion* value)
-{
-    return JPH::Quat(value->x, value->y, value->z, value->w);
-}
+    [[maybe_unused]] static void FromJolt(const JPH::Mat44& value, Matrix4x4* result)
+    {
+        JPH::Mat44 temp = value.Transposed();
+        memcpy(result, &temp, sizeof(Matrix4x4));
+    }
 
-[[maybe_unused]] static JPH::Mat44 ToJolt(const Matrix4x4* value)
-{
-    JPH::Mat44 result;
-    memcpy(&result, value, sizeof(Matrix4x4));
+    static JPH::Vec3 ToJolt(const Vector3* value)
+    {
+        return JPH::Vec3(value->x, value->y, value->z);
+    }
 
-    return result.Transposed();
+    static JPH::Quat ToJolt(const Quaternion* value)
+    {
+        return JPH::Quat(value->x, value->y, value->z, value->w);
+    }
+
+    [[maybe_unused]] static JPH::Mat44 ToJolt(const Matrix4x4* value)
+    {
+        JPH::Mat44 result;
+        memcpy(&result, value, sizeof(Matrix4x4));
+
+        return result.Transposed();
+    }
 }
 
 // Based on: https://github.com/jrouwe/JoltPhysics/blob/master/HelloWorld/HelloWorld.cpp
@@ -277,6 +296,22 @@ public:
     }
 };
 
+class AlimerPhysicsMaterial : public JPH::PhysicsMaterialSimple
+{
+public:
+    float friction;
+    float restitution;
+
+    AlimerPhysicsMaterial() = default;
+
+    AlimerPhysicsMaterial(const std::string_view& name, JPH::ColorArg color, float friction_, float restitution_)
+        : JPH::PhysicsMaterialSimple(name, color)
+        , friction(friction_)
+        , restitution(restitution_)
+    {
+    }
+};
+
 static struct
 {
     bool initialized;
@@ -296,6 +331,12 @@ struct PhysicsWorld final
     JPH::ShapeRefC                      emptyShape;
 };
 
+struct PhysicsMaterial final
+{
+    std::atomic_uint32_t refCount;
+    JPH::Ref<AlimerPhysicsMaterial> handle;
+};
+
 struct PhysicsBody final
 {
     std::atomic_uint32_t refCount;
@@ -310,6 +351,7 @@ struct PhysicsShape final
     PhysicsShapeType type;
     JPH::ShapeRefC handle;
     PhysicsBody* body;
+    void* userdata = nullptr;
 };
 
 bool alimerPhysicsInit(const PhysicsConfig* config)
@@ -422,7 +464,7 @@ void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vector3* gravity)
     world->system.SetGravity(ToJolt(gravity));
 }
 
-void alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps)
+bool alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps)
 {
     JPH::EPhysicsUpdateError error = world->system.Update(
         deltaTime,
@@ -430,7 +472,37 @@ void alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisio
         physics_state.tempAllocator,
         physics_state.jobSystem
     );
-    ALIMER_UNUSED(error);
+    return error == JPH::EPhysicsUpdateError::None;
+}
+
+void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld* world)
+{
+    world->system.OptimizeBroadPhase();
+}
+
+/* Material */
+PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, float restitution)
+{
+    PhysicsMaterial* material = new PhysicsMaterial();
+    material->refCount.store(1);
+    material->handle = new AlimerPhysicsMaterial(name, JPH::ColorArg(255, 0, 0), friction, restitution);
+    return material;
+}
+
+uint32_t alimerPhysicsMaterialAddRef(PhysicsMaterial* material)
+{
+    return ++material->refCount;
+}
+
+uint32_t alimerPhysicsMaterialRelease(PhysicsMaterial* material)
+{
+    uint32_t newCount = --material->refCount;
+    if (newCount == 0)
+    {
+        delete material;
+    }
+
+    return newCount;
 }
 
 void alimerPhysicsShapeAddRef(PhysicsShape* shape)
@@ -457,35 +529,170 @@ PhysicsShapeType alimerPhysicsShapeGetType(PhysicsShape* shape)
     return shape->type;
 }
 
-PhysicsShape* alimerPhysicsCreateBoxShape(float dimensions[3])
+PhysicsBody* alimerPhysicsShapeGetBody(PhysicsShape* shape)
 {
-    //ALIMER_Check(dimensions[0] > 0.f && dimensions[1] > 0.f && dimensions[2] > 0.f, "BoxShape dimensions must be positive");
+    return shape->body;
+}
 
-    PhysicsShape* shape = new PhysicsShape();
-    shape->refCount.store(1);
+void* alimerPhysicsShapeGetUserData(PhysicsShape* shape)
+{
+    return shape->userdata;
+}
 
-    shape->type = PhysicsShapeType_Box;
-    const JPH::Vec3 halfExtent = { dimensions[0] / 2.f, dimensions[1] / 2.f, dimensions[2] / 2.f };
-    float shortestSide = std::min(dimensions[0], std::min(dimensions[1], dimensions[2]));
+void alimerPhysicsShapeSetUserData(PhysicsShape* shape, void* userdata)
+{
+    // freeUserData?
+    shape->userdata = userdata;
+}
+
+float alimerPhysicsShapeGetVolume(PhysicsShape* shape)
+{
+    return shape->handle->GetVolume();
+}
+
+float alimerPhysicsShapeGetDensity(PhysicsShape* shape)
+{
+    if (shape->type == PhysicsShapeType_Mesh || shape->type == PhysicsShapeType_Terrain)
+    {
+        return 0.f;
+    }
+
+    return JPH::StaticCast<JPH::ConvexShape>(shape->handle)->GetDensity();
+}
+
+float alimerPhysicsShapeGetMass(PhysicsShape* shape)
+{
+    if (shape->type == PhysicsShapeType_Mesh || shape->type == PhysicsShapeType_Terrain)
+    {
+        return 0.0f;
+    }
+
+    JPH::MassProperties properties = shape->handle->GetMassProperties();
+    return properties.mMass;
+}
+
+PhysicsShape* alimerPhysicsShapeCreateBox(const Vector3* size, PhysicsMaterial* material)
+{
+    JPH_ASSERT(size);
+    JPH_ASSERT(size->x > 0.f && size->y > 0.f && size->z > 0.f);
+
+    const JPH::Vec3 halfExtent = { size->x / 2.f, size->y / 2.f, size->z / 2.f };
+    float shortestSide = std::min(size->x, std::min(size->y, size->z));
     float convexRadius = std::min(shortestSide * .1f, .05f);
-
-    JPH::BoxShapeSettings settings(halfExtent, convexRadius);
+    JPH::BoxShapeSettings settings(halfExtent, convexRadius, material != nullptr ? material->handle : nullptr);
     settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
-        alimerLogError(LogCategory_Physics, "Jolt: CreateBox failed with %s", shapeResult.GetError().c_str());
+        alimerLogError(LogCategory_Physics, "Physics: CreateBox failed with %s", shapeResult.GetError().c_str());
         return nullptr;
     }
 
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_Box;
     shape->handle = shapeResult.Get();
     //shape->handle->SetUserData(reinterpret_cast<uint64_t>(shape));
     return shape;
 }
 
-/* Body */
-PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, PhysicsShape* shape)
+PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* material)
 {
+    JPH_ASSERT(radius > 0.f);
+
+    JPH::SphereShapeSettings settings(radius, material != nullptr ? material->handle : nullptr);
+    settings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        alimerLogError(LogCategory_Physics, "Physics: CreateSphere failed with %s", shapeResult.GetError().c_str());
+        return nullptr;
+    }
+
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_Sphere;
+    shape->handle = shapeResult.Get();
+    return shape;
+}
+
+PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, PhysicsMaterial* material)
+{
+    JPH::CapsuleShapeSettings settings(
+        std::max(0.01f, height) * 0.5f,
+        std::max(0.01f, radius), material != nullptr ? material->handle : nullptr
+    );
+    settings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        alimerLogError(LogCategory_Physics, "Physics: CreateCapsule failed with %s", shapeResult.GetError().c_str());
+        return nullptr;
+    }
+
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_Capsule;
+    shape->handle = shapeResult.Get();
+    return shape;
+}
+
+PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial* material)
+{
+    JPH::CylinderShapeSettings settings(
+        std::max(0.01f, height) * 0.5f,
+        std::max(0.01f, radius),
+        JPH::cDefaultConvexRadius,
+        material != nullptr ? material->handle : nullptr
+    );
+    settings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        //alimerLogError(LogCategory_Physics, "Jolt: CreateCylinder failed with %s", shapeResult.GetError().c_str());
+        return nullptr;
+    }
+
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_Cylinder;
+    shape->handle = shapeResult.Get();
+    return shape;
+}
+
+/* Body */
+void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc)
+{
+    desc->type = PhysicsBodyType_Dynamic;
+    desc->mass = 1.0f;
+    desc->linearDamping = 0.05f;
+    desc->angularDamping = 0.05f;
+    desc->gravityScale = 1.0f;
+    desc->isSensor = false;
+    desc->allowSleeping = true;
+    desc->continuous = false;
+    desc->shapeCount = 0;
+    desc->shapes = nullptr;
+}
+
+PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc* desc)
+{
+    if (!desc) {
+        return nullptr;
+    }
+
+    if (desc->shapeCount > 0)
+    {
+        for (uint32_t i = 0; i < desc->shapeCount; i++)
+        {
+            if (desc->shapes[i]->body)
+            {
+                alimerLogError(LogCategory_Physics, "PhysicsShape is already attached to another body");
+                return nullptr;
+            }
+        }
+    }
+
     const uint32_t count = world->system.GetNumBodies();
     const uint32_t limit = world->system.GetMaxBodies();
     if (count >= limit)
@@ -494,36 +701,66 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, PhysicsShape* shape)
         return nullptr;
     }
 
-    //ALIMER_ASSERT(shape);
-    //if (!shape->body)
-    //{
-    //    alimerLogError(LogCategory_Physics, "Shape is already attached to a collider!");
-    //    return nullptr;
-    //}
-
     JPH::BodyInterface& bodyInterface = world->system.GetBodyInterface();
 
-    JPH::RVec3 position = JPH::RVec3::sZero();
-    JPH::Quat rotation = JPH::Quat::sIdentity();
-    JPH::EMotionType type = shape && shape->handle->MustBeStatic() ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
-    JPH::ObjectLayer objectLayer = type == JPH::EMotionType::Static ? Layers::NON_MOVING : Layers::MOVING;
-    JPH::BodyCreationSettings settings(
-        shape ? shape->handle : world->emptyShape,
-        position,
-        rotation,
-        type,
-        objectLayer
-    );
+    JPH::RVec3 position = ToJolt(&desc->initialTransform.position);
+    JPH::Quat rotation = ToJolt(&desc->initialTransform.rotation);
+
+    JPH::EMotionType motionType = ToJolt(desc->type); // shape->handle->MustBeStatic()
+    JPH::ObjectLayer objectLayer = (desc->type == PhysicsBodyType_Static) ? Layers::NON_MOVING : Layers::MOVING;
+
+    JPH::MutableCompoundShapeSettings compoundShapeSettings;
+    JPH::BodyCreationSettings bodySettings;
+    bodySettings.mPosition = position;
+    bodySettings.mRotation = rotation;
+    bodySettings.mObjectLayer = objectLayer;
+    bodySettings.mMotionType = motionType;
+
+    bool useCompoundShape = desc->shapeCount > 1;
+    if (useCompoundShape)
+    {
+        for (uint32_t i = 0; i < desc->shapeCount; i++)
+        {
+            compoundShapeSettings.AddShape(JPH::Vec3::sZero(), JPH::Quat::sIdentity(), desc->shapes[i]->handle);
+        }
+
+        bodySettings.SetShapeSettings(&compoundShapeSettings);
+    }
+    else
+    {
+        bodySettings.SetShape((desc->shapeCount == 0) ? world->emptyShape : desc->shapes[0]->handle);
+    }
+
+    bodySettings.mAllowedDOFs = JPH::EAllowedDOFs::All;
+    // Allow dynamic bodies to become kinematic during, e.g., user interaction
+    bodySettings.mAllowDynamicOrKinematic = (desc->type == PhysicsBodyType_Dynamic);
+    bodySettings.mIsSensor = desc->isSensor;
+    bodySettings.mLinearDamping = desc->linearDamping;
+    bodySettings.mAngularDamping = desc->angularDamping;
+    bodySettings.mMotionQuality = desc->continuous ? JPH::EMotionQuality::LinearCast : JPH::EMotionQuality::Discrete;
+    bodySettings.mGravityFactor = desc->gravityScale;
+    if (desc->type != PhysicsBodyType_Static && (desc->mass != 0.0f))
+    {
+        bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+        bodySettings.mMassPropertiesOverride.mMass = desc->mass;
+    }
 
     PhysicsBody* body = new PhysicsBody();
     body->refCount.store(1);
     body->world = world;
-    body->handle = bodyInterface.CreateBody(settings);
+    body->handle = bodyInterface.CreateBody(bodySettings);
     body->id = body->handle->GetID();
     body->handle->SetUserData(reinterpret_cast<uint64_t>(body));
 
     // Add it to the world
     bodyInterface.AddBody(body->id, JPH::EActivation::Activate);
+
+    // Assign the body to the shapes
+    for (uint32_t i = 0; i < desc->shapeCount; i++)
+    {
+        desc->shapes[i]->body = body;
+    }
+
     return body;
 }
 
@@ -537,25 +774,63 @@ void alimerPhysicsBodyRelease(PhysicsBody* body)
     uint32_t result = --body->refCount;
     if (result == 0)
     {
+        JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+        bool added = bodyInterface.IsAdded(body->id);
+        if (added) {
+            bodyInterface.RemoveBody(body->id);
+        }
+
+        bodyInterface.DestroyBody(body->id);
+        body->handle = nullptr;
+        body->id = {};
+        body->world = nullptr;
+
         delete body;
     }
 }
 
-void alimerPhysicsBodyGetPositionAndRotation(PhysicsBody* body, Vector3* position, Quaternion* rotation)
+bool alimerPhysicsBodyIsValid(PhysicsBody* body)
 {
-    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
-
-    JPH::RVec3 joltPosition{};
-    JPH::Quat joltRotation{};
-    bodyInterface.GetPositionAndRotation(body->id, joltPosition, joltRotation);
-    FromJolt(joltPosition, position);
-    FromJolt(joltRotation, rotation);
+    return body && body->handle != nullptr;
 }
 
-void alimerPhysicsBodySetPositionAndRotation(PhysicsBody* body, const Vector3* position, const Quaternion* rotation)
+bool alimerPhysicsBodyIsActive(PhysicsBody* body)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    return bodyInterface.IsActive(body->id);
+}
+
+PhysicsWorld* alimerPhysicsBodyGetWorld(PhysicsBody* body)
+{
+    return body->world;
+}
+
+uint32_t alimerPhysicsBodyGetID(PhysicsBody* body)
+{
+    return body->id.GetIndexAndSequenceNumber();
+}
+
+void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform)
 {
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
-    bodyInterface.SetPositionAndRotationWhenChanged(body->id, ToJolt(position), ToJolt(rotation), JPH::EActivation::Activate);
+    JPH::RVec3 position{};
+    JPH::Quat rotation{};
+    bodyInterface.GetPositionAndRotation(body->id, position, rotation);
+
+    FromJolt(position, &transform->position);
+    FromJolt(rotation, &transform->rotation);
+}
+
+void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform* transform)
+{
+    // Update the transform iff it has changed significantly
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    JPH::RVec3 position = ToJolt(&transform->position);
+    JPH::Quat rotation = ToJolt(&transform->rotation);
+
+    bodyInterface.SetPositionAndRotationWhenChanged(body->id, position, rotation, JPH::EActivation::Activate);
 }
 
 void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
@@ -564,6 +839,38 @@ void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
 
     JPH::RMat44 joltTransform = bodyInterface.GetWorldTransform(body->id);
     FromJolt(joltTransform, transform);
+}
+
+void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vector3* velocity)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    FromJolt(bodyInterface.GetLinearVelocity(body->id), velocity);
+}
+
+void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vector3* velocity)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.SetLinearVelocity(body->id, ToJolt(velocity));
+}
+
+void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vector3* velocity)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    FromJolt(bodyInterface.GetAngularVelocity(body->id), velocity);
+}
+
+void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vector3* velocity)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.SetAngularVelocity(body->id, ToJolt(velocity));
 }
 
 #endif /* defined(ALIMER_PHYSICS) */

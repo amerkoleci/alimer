@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Alimer.Engine;
-using JoltPhysicsSharp;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Physics;
 
@@ -41,7 +41,7 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
 
     public override void Update(GameTime time)
     {
-        BodyInterface bodyInterface = Simulation.BodyInterface;
+        //BodyInterface bodyInterface = Simulation.BodyInterface;
 
         foreach (var rigidBody in Simulation.RigidBodies)
         {
@@ -52,7 +52,7 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
 
         foreach (var rigidBody in Simulation.RigidBodies)
         {
-            if (bodyInterface.IsActive(rigidBody.Key))
+            if (alimerPhysicsBodyIsActive(rigidBody.Key))
             {
                 rigidBody.Value.UpdateTransformComponent();
             }
@@ -63,30 +63,11 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
     [ModuleInitializer]
     public static void Initialize()
     {
-        if (Foundation.Init(false) == false)
+        PhysicsConfig config = default;
+        if (alimerPhysicsInit(in config) == false)
         {
             throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
         }
-
-        Foundation.SetTraceHandler((message) =>
-        {
-            Log.Trace(message);
-        });
-
-#if DEBUG
-        Foundation.SetAssertFailureHandler((inExpression, inMessage, inFile, inLine) =>
-        {
-            string message = inMessage ?? inExpression;
-
-            string outMessage = $"[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}";
-
-            System.Diagnostics.Debug.WriteLine(outMessage);
-
-            Log.Debug(outMessage);
-
-            throw new Exception(outMessage);
-        });
-#endif
 
         EntityManager.RegisterSystemFactory<PhysicsSystem>();
     }

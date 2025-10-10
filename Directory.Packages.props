@@ -30,7 +30,6 @@
     <PackageVersion Include="Vortice.Vulkan" Version="3.0.3" />
 
     <!-- Others -->
-    <PackageVersion Include="JoltPhysicsSharp" Version="2.19.0" />
     <PackageVersion Include="DotRecast.Recast" Version="2025.2.1" />
     
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />

@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using JoltPhysicsSharp;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Physics;
 
@@ -12,10 +12,10 @@ public class BoxColliderShape : ColliderShape
     {
         Size = size;
 
-        Handle = new BoxShape(size / 2.0f);
+        Handle = alimerPhysicsShapeCreateBox(size, PhysicsMaterial.Null);
     }
 
     public Vector3 Size { get; }
 
-    internal override Shape Handle { get; }
+    internal override PhysicsShape Handle { get; }
 }
