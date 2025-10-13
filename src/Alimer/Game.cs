@@ -177,7 +177,7 @@ public abstract class Game : DisposableObject, IGame
         }
         catch (Exception e)
         {
-            string path = Platform.UserDirectory(Name);
+            string path = _platform.UserDirectory(Name);
 
             Log.Error(e.Message);
             Log.WriteToFile(Path.Combine(path, $"{Name}.txt"));

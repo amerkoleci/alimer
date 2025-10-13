@@ -201,6 +201,9 @@ if (MSVC)
 	# Disable warning about STL and compiler-generated types using noexcept when exceptions are disabled
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4577")
 
+    # Disable warning about C++ exception handler used, but unwind semantics not enabled
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} wd4530")
+
     if(CMAKE_INTERPROCEDURAL_OPTIMIZATION)
       # Enable function-level linking
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Gy /Gw")

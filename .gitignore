@@ -49,4 +49,5 @@ project.assets.json
 [Bb]in/
 [Oo]bj/
 src/native/build*/
+src/native/win-x64-sdk/
 /samples/Alimer.Samples/*.user
