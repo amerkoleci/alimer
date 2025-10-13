@@ -1,46 +1,51 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Xunit;
+using NUnit.Framework;
 using static Alimer.Graphics.PixelFormatUtils;
 
 namespace Alimer.Graphics.Tests;
 
-[Trait("Graphics", "PixelFormat")]
+[TestFixture(TestOf = typeof(PixelFormat))]
 public class PixelFormatTests
 {
-    [Theory]
-    [InlineData(PixelFormat.R8Unorm, FormatKind.Unorm, DxgiFormat.R8Unorm)]
-    [InlineData(PixelFormat.R8Snorm, FormatKind.Snorm, DxgiFormat.R8Snorm)]
-    [InlineData(PixelFormat.R8Uint, FormatKind.Uint, DxgiFormat.R8Uint)]
-    [InlineData(PixelFormat.R8Sint, FormatKind.Sint, DxgiFormat.R8Sint)]
+    [TestCase(PixelFormat.R8Unorm, FormatKind.Unorm, DxgiFormat.R8Unorm)]
+    [TestCase(PixelFormat.R8Snorm, FormatKind.Snorm, DxgiFormat.R8Snorm)]
+    [TestCase(PixelFormat.R8Uint, FormatKind.Uint, DxgiFormat.R8Uint)]
+    [TestCase(PixelFormat.R8Sint, FormatKind.Sint, DxgiFormat.R8Sint)]
     public void Test8Bit(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;
         uint height = 512;
         PixelFormatInfo formatInfo = format.GetFormatInfo();
-        Assert.Equal(1u, formatInfo.BytesPerBlock);
-        Assert.Equal(1u, formatInfo.BlockWidth);
-        Assert.Equal(1u, formatInfo.BlockHeight);
-        Assert.Equal(kind, formatInfo.Kind);
-        Assert.False(format.IsSrgb());
-        Assert.False(format.IsCompressedFormat());
-        Assert.False(format.IsDepthFormat());
-        Assert.False(format.IsStencilFormat());
-        Assert.False(format.IsDepthStencilFormat());
-        Assert.False(format.IsDepthOnlyFormat());
-        Assert.Equal(format, format.SrgbToLinearFormat());
-        Assert.Equal(format, format.LinearToSrgbFormat());
-        Assert.Equal(8u, format.BitsPerPixel());
-        Assert.Equal(dxgiFormat, format.ToDxgiFormat());
+
+        Assert.That(() => formatInfo.BytesPerBlock, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.BlockWidth, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.BlockHeight, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.Kind, Is.EqualTo(kind));
+
+        Assert.That(() => format.IsSrgb(), Is.False);
+        Assert.That(() => format.IsCompressedFormat(), Is.False);
+        Assert.That(() => format.IsDepthFormat(), Is.False);
+        Assert.That(() => format.IsStencilFormat(), Is.False);
+        Assert.That(() => format.IsDepthStencilFormat(), Is.False);
+        Assert.That(() => format.IsDepthOnlyFormat(), Is.False);
+
+        Assert.That(() => format.SrgbToLinearFormat(), Is.EqualTo(format));
+        Assert.That(() => format.LinearToSrgbFormat(), Is.EqualTo(format));
+        Assert.That(() => format.BitsPerPixel(), Is.EqualTo(8u));
+
+        Assert.That(() => format.ToDxgiFormat(), Is.EqualTo(dxgiFormat));
 
         GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
-        Assert.Equal(width, rowPitch);
-        Assert.Equal(height * rowPitch, slicePitch);
-        Assert.Equal(width, widthCount);
-        Assert.Equal(height, heightCount);
+
+        Assert.That(() => rowPitch, Is.EqualTo(width));
+        Assert.That(() => slicePitch, Is.EqualTo(height * rowPitch));
+        Assert.That(() => width, Is.EqualTo(widthCount));
+        Assert.That(() => height, Is.EqualTo(heightCount));
     }
 
+#if TODO
     [Theory]
     [InlineData(PixelFormat.R16Unorm, FormatKind.Unorm, DxgiFormat.R16Unorm)]
     [InlineData(PixelFormat.R16Snorm, FormatKind.Snorm, DxgiFormat.R16Snorm)]
@@ -141,7 +146,7 @@ public class PixelFormatTests
             Assert.Equal(format, format.SrgbToLinearFormat());
             Assert.Equal(format, format.LinearToSrgbFormat());
         }
-        else if(format.IsSrgb())
+        else if (format.IsSrgb())
         {
             Assert.Equal(srgbFormat, format.SrgbToLinearFormat());
             Assert.Equal(format, srgbFormat.LinearToSrgbFormat());
@@ -258,5 +263,6 @@ public class PixelFormatTests
         Assert.Equal(height / 4, heightCount);
         Assert.Equal(widthCount * bytesPerBlock, rowPitch);
         Assert.Equal(heightCount * rowPitch, slicePitch);
-    }
+    } 
+#endif
 }

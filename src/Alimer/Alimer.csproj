@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net9.0;$(AlimerPlatforms)</TargetFrameworks>
+    <TargetFrameworks>net10.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <ExcludeWebGPU>true</ExcludeWebGPU>
@@ -56,7 +56,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" />
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="XenoAtom.Collections" />
     

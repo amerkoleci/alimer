@@ -202,7 +202,7 @@ if (MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4577")
 
     # Disable warning about C++ exception handler used, but unwind semantics not enabled
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} wd4530")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4530")
 
     if(CMAKE_INTERPROCEDURAL_OPTIMIZATION)
       # Enable function-level linking

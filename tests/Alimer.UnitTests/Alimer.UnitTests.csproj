@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <RootNamespace>Alimer</RootNamespace>
-    <OutputType>exe</OutputType>
-    <StartupObject>Program</StartupObject>
   </PropertyGroup>
+
+  <Import Project="$(AlimerRootDirectory)Alimer.MultiTargeting.targets" />
+  <Import Project="$(AlimerRootDirectory)Alimer.Native.targets" />
 
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

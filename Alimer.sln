@@ -29,7 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3A53E2F8
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer", "src\Alimer\Alimer.csproj", "{31201AEE-DCE6-4784-ACB8-DF3EB7B2F999}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Tests", "tests\Alimer.Tests\Alimer.Tests.csproj", "{F797B201-801E-4786-9C7E-C5B9929BCD57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.UnitTests", "tests\Alimer.UnitTests\Alimer.UnitTests.csproj", "{F797B201-801E-4786-9C7E-C5B9929BCD57}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alimer.Samples", "samples\Alimer.Samples\Alimer.Samples.csproj", "{351AA2B8-1343-49BF-9E34-DECB218C8505}"
 EndProject

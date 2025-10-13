@@ -16,26 +16,26 @@ public readonly record struct PipelineLayoutDescription
         PushConstantRanges = [];
     }
 
-    public PipelineLayoutDescription(params BindGroupLayout[] bindGroupLayouts)
+    public PipelineLayoutDescription(params Span<BindGroupLayout> bindGroupLayouts)
     {
         Guard.IsGreaterThan(bindGroupLayouts.Length, 0, nameof(bindGroupLayouts));
 
-        BindGroupLayouts = bindGroupLayouts;
+        BindGroupLayouts = bindGroupLayouts.ToArray();
         PushConstantRanges = [];
     }
 
-    public PipelineLayoutDescription(string label, params BindGroupLayout[] bindGroupLayouts)
+    public PipelineLayoutDescription(string label, params Span<BindGroupLayout> bindGroupLayouts)
         : this(bindGroupLayouts)
     {
         Label = label;
     }
 
-    public PipelineLayoutDescription(BindGroupLayout[] bindGroupLayouts, PushConstantRange[] pushConstantRanges, string? label = default)
+    public PipelineLayoutDescription(Span<BindGroupLayout> bindGroupLayouts, Span<PushConstantRange> pushConstantRanges, string? label = default)
     {
-        Guard.IsNotNull(bindGroupLayouts, nameof(bindGroupLayouts));
+        Guard.IsFalse(bindGroupLayouts.IsEmpty, nameof(bindGroupLayouts));
 
-        BindGroupLayouts = bindGroupLayouts;
-        PushConstantRanges = pushConstantRanges;
+        BindGroupLayouts = bindGroupLayouts.ToArray();
+        PushConstantRanges = pushConstantRanges.ToArray();
         Label = label;
     }
 

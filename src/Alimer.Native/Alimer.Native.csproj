@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net461;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net461;net9.0;net10.0</TargetFrameworks>
     <Description>Alimer native libraries</Description>
     <PackageVersion>1.0.0</PackageVersion>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -17,8 +17,8 @@
     <Content Include="build\**" PackagePath="build/%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/netstandard2.0" />
     <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net461" />
-    <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net8.0" />
     <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net9.0" />
+    <Content Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/net10.0" />
   </ItemGroup>
 
   <ItemGroup>
