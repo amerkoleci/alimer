@@ -49,3 +49,4 @@ project.assets.json
 [Bb]in/
 [Oo]bj/
 src/native/build*/
+/samples/Alimer.Samples/*.user
