@@ -21,6 +21,7 @@ using static Alimer.Graphics.D3D12.D3D12Utils;
 using Alimer.Graphics.D3D;
 using System.Diagnostics;
 using Alimer.Numerics;
+using Alimer.Utilities;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -102,7 +103,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _ = _queue.Commit(this);
     }
 
-    public void Begin(uint frameIndex, string? label = null)
+    public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
     {
         base.Reset(frameIndex);
         _currentPipeline = default;
@@ -116,7 +117,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         ThrowIfFailed(_commandAllocators[frameIndex].Get()->Reset());
         ThrowIfFailed(_commandList.Get()->Reset(_commandAllocators[frameIndex].Get(), null));
 
-        if (!string.IsNullOrEmpty(label))
+        if (!label.IsEmpty)
         {
             _hasLabel = true;
             PushDebugGroup(label);
@@ -237,12 +238,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         }
     }
 
-    public override void PushDebugGroup(string groupLabel)
+    public override void PushDebugGroup(Utf8ReadOnlyString groupLabel)
     {
         // TODO: Use Pix3 (WinPixEventRuntime)
 
-        var bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
-        var buffer = stackalloc byte[bufferSize];
+        int bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
+        byte* buffer = stackalloc byte[bufferSize];
         PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_BeginEvent_NoArgs, 0, groupLabel);
         _commandList.Get()->BeginEvent(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
@@ -348,10 +349,10 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     {
         if (!string.IsNullOrEmpty(renderPass.Label))
         {
-            PushDebugGroup(renderPass.Label);
+            //PushDebugGroup(renderPass.Label);
         }
 
-        System.Drawing.Size renderArea = new(int.MaxValue, int.MaxValue);
+        SizeI renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
         D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;

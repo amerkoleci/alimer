@@ -6,16 +6,12 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 
 namespace Alimer.Numerics;
 
 /// <summary>
 /// Defines a floating-point rectangle.
 /// </summary>
-[DataContract]
-[StructLayout(LayoutKind.Sequential, Pack = 4)]
 [DebuggerDisplay("X={X}, Y={Y}, Width={Width}, Height={Height}")]
 public partial struct Rect : IEquatable<Rect>, IFormattable
 {
@@ -41,6 +37,11 @@ public partial struct Rect : IEquatable<Rect>, IFormattable
 
     public static Rect Zero => new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref='Rect'/> struct.
+    /// </summary>
+    /// <param name="width">The width of the rectangle.</param>
+    /// <param name="height">The height of the rectangle.</param>
     public Rect(float width, float height)
     {
         X = 0.0f;
@@ -49,6 +50,13 @@ public partial struct Rect : IEquatable<Rect>, IFormattable
         Height = height;
     }
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="Rect"/> struct.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the rectangle</param>
+    /// <param name="y">The y-coordinate of the rectangle</param>
+    /// <param name="width">The width of the rectangle</param>
+    /// <param name="height">The height of the rectangle</param>
     public Rect(float x, float y, float width, float height)
     {
         X = x;
@@ -57,7 +65,12 @@ public partial struct Rect : IEquatable<Rect>, IFormattable
         Height = height;
     }
 
-    public Rect(in System.Drawing.PointF location, in System.Drawing.SizeF size)
+    /// <summary>
+    /// Initializes a new instance of the <see cref='Rect'/> struct with the specified location and size.
+    /// </summary>
+    /// <param name="location">The x and y-coordinate of the rectangle.</param>
+    /// <param name="size">The size of the rectangle.</param>
+    public Rect(in Vector2 location, in Size size)
     {
         X = location.X;
         Y = location.Y;
@@ -65,6 +78,10 @@ public partial struct Rect : IEquatable<Rect>, IFormattable
         Height = size.Height;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref='Rect'/> struct from the specified <see cref="Vector4"/>.
+    /// </summary>
+    /// <param name="vector">The vector containing x, y, width and height</param>
     public Rect(in Vector4 vector)
     {
         X = vector.X;
@@ -126,7 +143,7 @@ public partial struct Rect : IEquatable<Rect>, IFormattable
     /// Gets or sets the size of this <see cref='Rect'/>.
     /// </summary>
     [Browsable(false)]
-    public System.Drawing.SizeF Size
+    public Size Size
     {
         readonly get => new(Width, Height);
         set

@@ -1129,7 +1129,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override RenderContext BeginRenderContext(string? label = null)
+    public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
     {
         return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
     }

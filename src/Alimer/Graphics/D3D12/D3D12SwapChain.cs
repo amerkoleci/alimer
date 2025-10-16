@@ -136,9 +136,9 @@ internal unsafe class D3D12SwapChain : SwapChain
                 ColorFormat,
                 swapChainDesc.Width,
                 swapChainDesc.Height,
-                usage: TextureUsage.RenderTarget,
-                label: $"BackBuffer texture {i}"
+                usage: TextureUsage.RenderTarget
             );
+            description.Label = $"BackBuffer texture {i}";
 
             using ComPtr<ID3D12Resource> backbufferTexture = default;
             ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), backbufferTexture.GetVoidAddressOf()));

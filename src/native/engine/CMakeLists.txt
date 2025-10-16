@@ -99,7 +99,7 @@ elseif (WIN32)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE
-        vma
+        vulkan
         d3d12ma
     )
 elseif(APPLE)
@@ -108,7 +108,7 @@ elseif(UNIX OR ANDROID)
         src/alimer_vma_exports.cpp
     )
 
-    target_link_libraries(${TARGET_NAME} PRIVATE vma)
+    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
 endif()
 
 if (ALIMER_PHYSICS)

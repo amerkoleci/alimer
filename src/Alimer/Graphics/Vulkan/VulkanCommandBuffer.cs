@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Constants;
@@ -91,7 +92,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _queue.Commit(this, _commandBuffer);
     }
 
-    public void Begin(uint frameIndex, string? label = null)
+    public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
     {
         base.Reset(frameIndex);
         _currentPipeline = default;
@@ -142,14 +143,14 @@ internal unsafe class VulkanCommandBuffer : RenderContext
             //vkCmdBindVertexBuffers2(commandBuffer, 0, 1, &nullBuffer, &zero, &zero, &zero);
         }
 
-        if (!string.IsNullOrEmpty(label))
+        if (!label.IsEmpty)
         {
             _hasLabel = true;
             PushDebugGroup(label);
         }
     }
 
-    public override void PushDebugGroup(string groupLabel)
+    public void PushDebugGroup(string groupLabel)
     {
         if (!_queue.VkDevice.DebugUtils)
             return;
@@ -165,6 +166,22 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         label.color[3] = 1.0f;
         _queue.VkDevice.InstanceApi.vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &label);
         VkStringInterop.Free(pLabelName);
+    }
+
+    public override void PushDebugGroup(Utf8ReadOnlyString groupLabel)
+    {
+        if (!_queue.VkDevice.DebugUtils)
+            return;
+
+        VkDebugUtilsLabelEXT label = new()
+        {
+            pLabelName = (byte*)groupLabel
+        };
+        label.color[0] = 0.0f;
+        label.color[1] = 0.0f;
+        label.color[2] = 0.0f;
+        label.color[3] = 1.0f;
+        _queue.VkDevice.InstanceApi.vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &label);
     }
 
     public override void PopDebugGroup()

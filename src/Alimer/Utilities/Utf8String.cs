@@ -6,12 +6,17 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Alimer.Utilities;
+namespace Alimer;
 
 /// <summary>
 /// Represents a null terminated UTF8 encoded text buffer.
 /// </summary>
-public readonly unsafe struct Utf8String : IEquatable<Utf8String>
+/// <remarks>
+/// Initializes a new instance of <see cref="Utf8String"/> with a null-terminated UTF-8 string.
+/// </remarks>
+/// <param name="buffer">A null terminated UTF8 string.</param>
+/// <param name="length">The lenght of UTF8 string</param>
+public readonly unsafe struct Utf8String(byte* buffer, int length) : IEquatable<Utf8String>
 {
     /// <summary>
     /// Initializes a new instance of <see cref="Utf8String"/> with a null-terminated UTF8 string.
@@ -23,25 +28,14 @@ public readonly unsafe struct Utf8String : IEquatable<Utf8String>
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="Utf8String"/> with a null-terminated UTF-8 string.
-    /// </summary>
-    /// <param name="buffer">A null terminated UTF8 string.</param>
-    /// <param name="length">The lenght of UTF8 string</param>
-    public Utf8String(byte* buffer, int length)
-    {
-        Buffer = buffer;
-        Length = length;
-    }
-
-    /// <summary>
     /// Gets the pointer to the buffer.
     /// </summary>
-    public readonly byte* Buffer { get; }
+    public readonly byte* Buffer { get; } = buffer;
 
     /// <summary>
     /// Gets the number of bytes in the current <see cref="Utf8String"/>.
     /// </summary>
-    public readonly int Length { get; }
+    public readonly int Length { get; } = length;
 
     /// <summary>
     /// Gets whether this string is null.

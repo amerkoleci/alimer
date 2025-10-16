@@ -19,6 +19,7 @@ using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI;
 using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
 using static TerraFX.Interop.Windows.Windows;
+using Alimer.Utilities;
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
@@ -505,7 +506,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override RenderContext BeginRenderContext(string? label = null)
+    public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
     {
         return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
     }

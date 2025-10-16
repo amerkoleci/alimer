@@ -67,7 +67,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                     Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
                                 };
                                 viewDesc.Texture2D.MostDetailedMip = 0;
-                                viewDesc.Texture1D.MipLevels = backendTexture.MipLevelCount;
+                                viewDesc.Texture1D.MipLevels = (uint)backendTexture.MipLevelCount;
                                 _device.Device->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
                             }
 

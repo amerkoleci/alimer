@@ -6,6 +6,7 @@ using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
 using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
+using Alimer.Utilities;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -76,7 +77,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         _handle.Dispose();
     }
 
-    public RenderContext BeginCommandContext(string? label = null)
+    public RenderContext BeginCommandContext(Utf8ReadOnlyString label = default)
     {
         uint index = _commandBufferCount++;
         D3D12CommandBuffer commandBuffer;

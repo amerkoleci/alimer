@@ -215,7 +215,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         }
     }
 
-    public RenderContext BeginCommandContext(string? label = null)
+    public RenderContext BeginCommandContext(Utf8ReadOnlyString label = default)
     {
         uint index = _commandBufferCount++;
         VulkanCommandBuffer commandBuffer;

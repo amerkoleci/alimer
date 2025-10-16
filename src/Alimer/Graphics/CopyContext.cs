@@ -1,6 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Utilities;
+
 namespace Alimer.Graphics;
 
 public abstract class CopyContext
@@ -27,25 +29,20 @@ public abstract class CopyContext
     /// <param name="waitForCompletion"></param>
     public abstract void Flush(bool waitForCompletion = false);
 
-    public abstract void PushDebugGroup(string groupLabel);
+    public abstract void PushDebugGroup(Utf8ReadOnlyString groupLabel);
     public abstract void PopDebugGroup();
     public abstract void InsertDebugMarker(string debugLabel);
 
-    public IDisposable PushScopedDebugGroup(string groupLabel)
+    public IDisposable PushScopedDebugGroup(Utf8ReadOnlyString groupLabel)
     {
         PushDebugGroup(groupLabel);
         return new ScopedDebugGroup(this);
     }
 
     #region Nested
-    readonly struct ScopedDebugGroup : IDisposable
+    readonly struct ScopedDebugGroup(CopyContext context) : IDisposable
     {
-        private readonly CopyContext _context;
-
-        public ScopedDebugGroup(CopyContext context)
-        {
-            _context = context;
-        }
+        private readonly CopyContext _context = context;
 
         public void Dispose() => _context.PopDebugGroup();
     }

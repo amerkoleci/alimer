@@ -23,6 +23,7 @@ public sealed unsafe class Image : DisposableObject
         Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1);
 
         Description = description;
+        MipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1u) : description.MipLevelCount;
         _mipmaps = new MipMapDescription[MipLevelCount];
 
         uint levelsCount = 0;
@@ -170,7 +171,7 @@ public sealed unsafe class Image : DisposableObject
     /// <summary>
     /// Get the number of mipmap levels in the.
     /// </summary>
-    public uint MipLevelCount => Description.MipLevelCount;
+    public uint MipLevelCount { get; }
 
     /// <summary>
     /// Get the data size in bytes.

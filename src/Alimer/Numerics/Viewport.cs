@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -101,20 +100,6 @@ public partial struct Viewport : IEquatable<Viewport>
     /// </summary>
     /// <param name="bounds">A <see cref="Rect"/> that defines the location and size of the viewport in a render target.</param>
     public Viewport(in Rect bounds)
-    {
-        X = bounds.X;
-        Y = bounds.Y;
-        Width = bounds.Width;
-        Height = bounds.Height;
-        MinDepth = 0.0f;
-        MaxDepth = 1.0f;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Viewport"/> struct.
-    /// </summary>
-    /// <param name="bounds">A <see cref="System.Drawing.Rectangle"/> that defines the location and size of the viewport in a render target.</param>
-    public Viewport(in Rectangle bounds)
     {
         X = bounds.X;
         Y = bounds.Y;
@@ -237,13 +222,13 @@ public partial struct Viewport : IEquatable<Viewport>
         return source;
     }
 
-    public static Rectangle ComputeDisplayArea(ViewportScaling scaling, int backBufferWidth, int backBufferHeight, int outputWidth, int outputHeight)
+    public static Rect ComputeDisplayArea(ViewportScaling scaling, int backBufferWidth, int backBufferHeight, int outputWidth, int outputHeight)
     {
         switch (scaling)
         {
             case ViewportScaling.Stretch:
                 // Output fills the entire window area
-                return new Rectangle(0, 0, outputWidth, outputHeight);
+                return new Rect(0, 0, outputWidth, outputHeight);
 
             case ViewportScaling.AspectRatioStretch:
                 // Output fills the window area but respects the original aspect ratio, using pillar boxing or letter boxing as required
@@ -266,27 +251,27 @@ public partial struct Viewport : IEquatable<Viewport>
                     float offsetY = (outputHeight - scaledHeight) * 0.5f;
 
                     // Clip to display window
-                    return new Rectangle(
-                        (int)MathF.Max(0, offsetX),
-                        (int)MathF.Max(0, offsetY),
-                        (int)MathF.Min(outputWidth, scaledWidth),
-                        (int)MathF.Min(outputHeight, scaledHeight)
+                    return new Rect(
+                        MathF.Max(0, offsetX),
+                        MathF.Max(0, offsetY),
+                        MathF.Min(outputWidth, scaledWidth),
+                        MathF.Min(outputHeight, scaledHeight)
                         );
                 }
 
             case ViewportScaling.None:
             default:
                 // Output is displayed in the upper left corner of the window area
-                return new Rectangle(0, 0, Math.Min(backBufferWidth, outputWidth), Math.Min(backBufferHeight, outputHeight));
+                return new Rect(0, 0, MathF.Min(backBufferWidth, outputWidth), MathF.Min(backBufferHeight, outputHeight));
         }
     }
 
-    public static Rectangle ComputeTitleSafeArea(int backBufferWidth, int backBufferHeight)
+    public static Rect ComputeTitleSafeArea(int backBufferWidth, int backBufferHeight)
     {
         float safew = (backBufferWidth + 19.0f) / 20.0f;
         float safeh = (backBufferHeight + 19.0f) / 20.0f;
 
-        return Rectangle.FromLTRB(
+        return Rect.FromLTRB(
             (int)safew,
             (int)safeh,
             (int)(backBufferWidth - safew + 0.5f),

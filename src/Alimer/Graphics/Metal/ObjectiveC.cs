@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 
-namespace Alimer.Graphics.Metal;
+namespace Alimer.Platforms.Apple;
 
 internal static unsafe partial class ObjectiveC
 {
@@ -41,8 +41,20 @@ internal static unsafe partial class ObjectiveC
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [return: MarshalAs(UnmanagedType.U1)]
     public static partial bool bool_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool bool_objc_msgSend(nint receiver, Selector selector, nuint value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool bool_objc_msgSend(nint receiver, Selector selector, nint value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool bool_objc_msgSend(nint receiver, Selector selector, ulong value);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial ulong ulong_objc_msgSend(nint receiver, Selector selector);

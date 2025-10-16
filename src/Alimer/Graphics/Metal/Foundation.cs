@@ -4,13 +4,13 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Alimer.Graphics.Metal;
+namespace Alimer.Platforms.Apple;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal readonly struct NSArray : IDisposable, IEquatable<NSArray>
 {
     #region Selectors
-    private static readonly Selector sel_count = "count";
+    private static readonly Selector s_sel_count = "count";
     #endregion
 
     public NSArray(nint handle) => Handle = handle;
@@ -28,7 +28,7 @@ internal readonly struct NSArray : IDisposable, IEquatable<NSArray>
 
     public nint Handle { get; }
 
-    public ulong Count => ObjectiveC.ulong_objc_msgSend(Handle, sel_count);
+    public ulong Count => ObjectiveC.ulong_objc_msgSend(Handle, s_sel_count);
 
     public static implicit operator NSArray(nint handle) => new(handle);
     public static implicit operator nint(NSArray value) => value.Handle;

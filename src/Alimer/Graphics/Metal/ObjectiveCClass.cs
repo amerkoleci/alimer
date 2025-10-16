@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Alimer.Graphics.Metal;
+namespace Alimer.Platforms.Apple;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal readonly partial struct ObjectiveCClass : IEquatable<ObjectiveCClass>

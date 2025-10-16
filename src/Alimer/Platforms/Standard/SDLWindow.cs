@@ -4,7 +4,6 @@
 using Alimer.Graphics;
 using System.Runtime.InteropServices;
 using static Alimer.AlimerApi;
-using System.Drawing;
 using Alimer.Utilities;
 
 namespace Alimer;
@@ -12,7 +11,7 @@ namespace Alimer;
 internal unsafe class SDLWindow : Window
 {
     private readonly SDLPlatform _platform;
-    private SizeF _clientSize;
+    private SizeI _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
     private readonly nint _window;
@@ -109,7 +108,7 @@ internal unsafe class SDLWindow : Window
     }
 
     /// <inheritdoc />
-    public override PointF Position
+    public override System.Drawing.PointF Position
     {
         get
         {
@@ -123,7 +122,7 @@ internal unsafe class SDLWindow : Window
     }
 
     /// <inheritdoc />
-    public override SizeF ClientSize => _clientSize;
+    public override SizeI ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

@@ -1,18 +1,43 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics.CodeAnalysis;
-using Alimer.Numerics;
-using CommunityToolkit.Diagnostics;
-
 namespace Alimer.Graphics;
 
 /// <summary>
 /// Structure that describes the <see cref="Image"/>.
 /// </summary>
-public readonly record struct ImageDescription
+public record struct ImageDescription
 {
-    [SetsRequiredMembers]
+    /// <summary>
+    /// Gets or the dimension of <see cref="Image"/>
+    /// </summary>
+    public TextureDimension Dimension = TextureDimension.Texture2D;
+
+    /// <summary>
+    /// Gets the pixel format of <see cref="Image"/>
+    /// </summary>
+    public PixelFormat Format = PixelFormat.RGBA8Unorm;
+
+    /// <summary>
+    /// Gets the width of <see cref="Image"/>
+    /// </summary>
+    public uint Width = 1;
+
+    /// <summary>
+    /// Gets the height of <see cref="Image"/>
+    /// </summary>
+    public uint Height = 1;
+
+    /// <summary>
+    /// Gets the depth of <see cref="Image"/>, if it is 3D, or the array layers if it is an array of 1D or 2D resources.
+    /// </summary>
+    public uint DepthOrArrayLayers = 1;
+
+    /// <summary>
+    /// The number of mipmap levels in the <see cref="Image"/>.
+    /// </summary>
+    public uint MipLevelCount = 1;
+
     public ImageDescription(
         TextureDimension dimension,
         PixelFormat format,
@@ -21,17 +46,12 @@ public readonly record struct ImageDescription
         uint depthOrArrayLayers,
         uint mipLevelCount = 1)
     {
-        Guard.IsTrue(format != PixelFormat.Undefined);
-        Guard.IsGreaterThanOrEqualTo(width, 1);
-        Guard.IsGreaterThanOrEqualTo(height, 1);
-        Guard.IsGreaterThanOrEqualTo(depthOrArrayLayers, 1);
-
         Dimension = dimension;
         Format = format;
         Width = width;
         Height = height;
         DepthOrArrayLayers = depthOrArrayLayers;
-        MipLevelCount = mipLevelCount == 0 ? GetMipLevelCount(width, height, dimension == TextureDimension.Texture3D ? depthOrArrayLayers : 1) : mipLevelCount;
+        MipLevelCount = mipLevelCount;
     }
 
     public static ImageDescription Image1D(
@@ -46,7 +66,8 @@ public readonly record struct ImageDescription
             width,
             1,
             arrayLayers,
-            mipLevelCount);
+            mipLevelCount
+            );
     }
 
     public static ImageDescription Image2D(
@@ -62,7 +83,8 @@ public readonly record struct ImageDescription
             width,
             height,
             arrayLayers,
-            mipLevelCount);
+            mipLevelCount
+            );
     }
 
     public static ImageDescription Image3D(
@@ -78,7 +100,8 @@ public readonly record struct ImageDescription
             width,
             height,
             depth,
-            mipLevelCount);
+            mipLevelCount
+            );
     }
 
     public static ImageDescription ImageCube(
@@ -95,36 +118,6 @@ public readonly record struct ImageDescription
             arrayLayers * 6,
             mipLevelCount);
     }
-
-    /// <summary>
-    /// Gets or the dimension of <see cref="Image"/>
-    /// </summary>
-    public required TextureDimension Dimension { get; init; }
-
-    /// <summary>
-    /// Gets the pixel format of <see cref="Image"/>
-    /// </summary>
-    public required PixelFormat Format { get; init; }
-
-    /// <summary>
-    /// Gets the width of <see cref="Image"/>
-    /// </summary>
-    public required uint Width { get; init; } = 1;
-
-    /// <summary>
-    /// Gets the height of <see cref="Image"/>
-    /// </summary>
-    public required uint Height { get; init; } = 1;
-
-    /// <summary>
-    /// Gets the depth of <see cref="Image"/>, if it is 3D, or the array layers if it is an array of 1D or 2D resources.
-    /// </summary>
-    public required uint DepthOrArrayLayers { get; init; } = 1;
-
-    /// <summary>
-    /// The number of mipmap levels in the <see cref="Image"/>.
-    /// </summary>
-    public required uint MipLevelCount { get; init; } = 1;
 
     public static uint GetMipLevelCount(uint width, uint height, uint depth = 1, uint minDimension = 1, uint requiredAlignment = 1u)
     {

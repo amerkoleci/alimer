@@ -33,12 +33,12 @@ internal unsafe class VulkanTexture : Texture
         {
             case TextureDimension.Texture1D:
                 extent = new VkExtent3D(description.Width, 1u, 1u);
-                arrayLayers = description.DepthOrArrayLayers;
+                arrayLayers = (uint)ArrayLayers;
                 break;
 
             case TextureDimension.Texture2D:
                 extent = new VkExtent3D(description.Width, description.Height, 1u);
-                arrayLayers = description.DepthOrArrayLayers;
+                arrayLayers = (uint)ArrayLayers;
 
                 if (description.Width == description.Height &&
                     description.DepthOrArrayLayers >= 6)
@@ -47,7 +47,7 @@ internal unsafe class VulkanTexture : Texture
                 }
                 break;
             case TextureDimension.Texture3D:
-                extent = new VkExtent3D(description.Width, description.Height, description.DepthOrArrayLayers);
+                extent = new VkExtent3D(description.Width, description.Height, (uint)Depth);
                 arrayLayers = 1u;
                 flags |= VkImageCreateFlags.Array2DCompatible;
                 break;
@@ -171,7 +171,7 @@ internal unsafe class VulkanTexture : Texture
             imageType = imageType,
             format = VkFormat,
             extent = extent,
-            mipLevels = MipLevelCount,
+            mipLevels = (uint)MipLevelCount,
             arrayLayers = arrayLayers,
             samples = SampleCount.ToVk(),
             tiling = VkImageTiling.Optimal,
@@ -199,7 +199,6 @@ internal unsafe class VulkanTexture : Texture
         }
 
         bool depthOnlyFormat = Format.IsDepthOnlyFormat();
-        uint numSubResources = MipLevelCount * description.DepthOrArrayLayers;
 
         // Issue data copy on request
         VkImageSubresourceRange subresourceRange = new(

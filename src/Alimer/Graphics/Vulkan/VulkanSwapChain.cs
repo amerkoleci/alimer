@@ -292,9 +292,9 @@ internal unsafe class VulkanSwapChain : SwapChain
                 PixelFormat.BGRA8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,
-                usage: TextureUsage.RenderTarget,
-                label: $"BackBuffer texture {i}"
+                usage: TextureUsage.RenderTarget
             );
+            description.Label = $"BackBuffer texture {i}";
 
             _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in description);
             _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _acquireSemaphores[i]).CheckResult();

@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Alimer.Graphics.Metal;
+namespace Alimer.Platforms.Apple;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal readonly partial struct Selector : IEquatable<Selector>

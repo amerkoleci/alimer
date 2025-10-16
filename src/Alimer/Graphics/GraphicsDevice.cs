@@ -3,11 +3,12 @@
 
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
+public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 {
     protected uint _frameIndex = 0;
     protected ulong _frameCount = 0;
@@ -184,7 +185,7 @@ public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
         PixelFormat format,
         uint width,
         uint height,
-        uint mipLevels = 1,
+        uint mipLevelCount = 1,
         uint arrayLayers = 1,
         TextureUsage usage = TextureUsage.ShaderRead
         )
@@ -200,12 +201,14 @@ public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
             PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
             TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
 
-            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevels, arrayLayers, usage), &initData);
+            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevelCount, arrayLayers, usage), &initData);
         }
     }
 
     public Texture CreateTexture(in TextureDescription description)
     {
+        Guard.IsTrue(description.Format != PixelFormat.Undefined, nameof(TextureDescription.Format));
+        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));
         Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));
         Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescription.Height));
         Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
@@ -297,10 +300,10 @@ public abstract unsafe  class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     /// <param name="label">Optional label.</param>
     /// <returns></returns>
-    public abstract RenderContext BeginRenderContext(string? label = default);
+    public abstract RenderContext BeginRenderContext(Utf8ReadOnlyString label = default);
 
     protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
-    protected abstract unsafe  Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
+    protected abstract unsafe Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);

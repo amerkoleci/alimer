@@ -8,11 +8,13 @@ using System.Text;
 #pragma warning disable CS0660
 #pragma warning disable CS0661
 
-namespace Alimer.Utilities;
+namespace Alimer;
 
 public readonly ref struct Utf8ReadOnlyString(ReadOnlySpan<byte> span)
 {
     private readonly ReadOnlySpan<byte> _span = span;
+
+    public readonly bool IsEmpty => _span.IsEmpty;
 
     /// <inheritdoc />
     public override string? ToString() => Unsafe.IsNullRef(ref MemoryMarshal.GetReference(_span)) ? null : Encoding.UTF8.GetString(_span);

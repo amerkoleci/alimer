@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Drawing;
-
 namespace Alimer.Graphics;
 
 public abstract class SwapChain : GraphicsObject
@@ -24,7 +22,7 @@ public abstract class SwapChain : GraphicsObject
     public bool IsFullscreen { get; protected set; }
 
     public bool AutoResizeDrawable { get; set; } = true;
-    public SizeF DrawableSize => Surface.Size;
+    public SizeI DrawableSize => Surface.Size;
 
     protected abstract void ResizeBackBuffer();
 

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using XenoAtom.Collections;
 
-namespace Alimer.Utilities;
+namespace Alimer;
 
 public readonly unsafe struct Utf8StringArray : IDisposable
 {

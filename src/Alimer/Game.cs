@@ -277,7 +277,7 @@ public abstract class Game : DisposableObject, IGame
                 BeginDraw();
 
                 // Begin rendering commands
-                RenderContext renderContext = GraphicsDevice.BeginRenderContext("Frame");
+                RenderContext renderContext = GraphicsDevice.BeginRenderContext("Frame"u8);
                 Texture? swapChainTexture = MainWindow.SwapChain!.GetCurrentTexture();
                 if (swapChainTexture is not null)
                 {

@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Controls;
 using Windows.UI.ViewManagement;
 using WinRT;
 using PlatformWindow = Microsoft.UI.Xaml.Window;
-using System.Drawing;
 
 namespace Alimer;
 
@@ -14,7 +13,7 @@ internal unsafe class SwapChainPanelView : Window
 {
     private readonly WindowsPlatform _platform;
     private readonly SwapChainPanel _swapChainPanel;
-    private SizeF _clientSize;
+    private SizeI _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
 
@@ -50,16 +49,16 @@ internal unsafe class SwapChainPanelView : Window
     }
 
     /// <inheritdoc />
-    public override PointF Position
+    public override System.Drawing.PointF Position
     {
-        get => PointF.Empty;
+        get => System.Drawing.PointF.Empty;
         set
         {
         }
     }
 
     /// <inheritdoc />
-    public override SizeF ClientSize => _clientSize;
+    public override SizeI ClientSize => _clientSize;
 
     /// <inheritdoc />
     public override SwapChainSurfaceType Kind { get; }

@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Drawing;
-
 namespace Alimer.Graphics;
 
 /// <summary>
@@ -29,7 +27,7 @@ public interface ISwapChainSurface
     /// <summary>
     /// Gets the size, in pixels, of the surface.
     /// </summary>
-    SizeF Size { get; }
+    SizeI Size { get; }
 
     /// <summary>
     /// Gets the width, in pixels, of the surface.

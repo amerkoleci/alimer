@@ -20,5 +20,5 @@
 #endif
 
 ALIMER_DISABLE_WARNINGS()
-#include "vk_mem_alloc.h"
+#include "third_party/vk_mem_alloc.h"
 ALIMER_ENABLE_WARNINGS()

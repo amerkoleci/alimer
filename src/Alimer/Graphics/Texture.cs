@@ -16,9 +16,9 @@ public abstract class Texture : GraphicsResource
         Format = description.Format;
         Width = description.Width;
         Height = description.Height;
-        Depth = (description.Dimension == TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1u;
-        ArrayLayers = (description.Dimension != TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1u;
-        MipLevelCount = Math.Max(description.MipLevelCount, 1u);
+        Depth = (description.Dimension == TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1;
+        ArrayLayers = (description.Dimension != TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1;
+        MipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1) : description.MipLevelCount;
         SampleCount = description.SampleCount;
         Usage = description.Usage;
         CpuAccess = description.CpuAccess;
