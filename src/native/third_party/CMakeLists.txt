@@ -37,7 +37,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
-if (NOT APPLE AND (WIN32 OR UNIX OR ANDROID))
+if (ALIMER_GPU_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)
     set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
@@ -57,7 +57,7 @@ if (NOT APPLE AND (WIN32 OR UNIX OR ANDROID))
     set_target_properties(spirv_reflect PROPERTIES FOLDER "ThirdParty")
 endif()
 
-if (WIN32 OR WINDOWS_STORE)
+if (ALIMER_GPU_D3D12)
     add_library(DirectX-Headers INTERFACE)
     set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
     target_sources(DirectX-Headers INTERFACE 

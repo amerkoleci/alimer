@@ -37,7 +37,7 @@ typedef struct Font Font;
 typedef enum LogCategory {
     LogCategory_System = 0,
     LogCategory_Platform,
-    LogCategory_Graphics,
+    LogCategory_GPU,
     LogCategory_Audio,
     LogCategory_Physics,
 

@@ -98,7 +98,6 @@ elseif (WIN32)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE
-        vulkan
         d3d12ma
     )
 elseif(APPLE)
@@ -106,8 +105,6 @@ elseif(UNIX OR ANDROID)
     target_sources(${TARGET_NAME} PRIVATE
         src/alimer_vma_exports.cpp
     )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
 endif()
 
 if (ALIMER_AUDIO)
@@ -117,6 +114,44 @@ if (ALIMER_AUDIO)
     )
 
     target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_AUDIO)
+endif()
+
+if (ALIMER_AUDIO)
+    target_sources(${TARGET_NAME} PRIVATE
+        include/alimer_gpu.h
+        src/alimer_gpu.cpp
+        src/alimer_gpu_internal.h
+    )
+
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU)
+
+    if (ALIMER_GPU_VULKAN)
+        target_sources(${TARGET_NAME} PRIVATE
+            src/gpu/alimer_gpu_vulkan_funcs.h
+            src/gpu/alimer_gpu_vulkan.cpp
+        )
+
+        target_link_libraries(${TARGET_NAME} PRIVATE vulkan spirv_reflect)
+        
+        target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_VULKAN)
+    endif()
+
+    if (ALIMER_GPU_D3D12)
+        target_sources(${TARGET_NAME} PRIVATE
+            src/gpu/alimer_gpu_d3d12.cpp
+        )
+
+        target_link_libraries(${TARGET_NAME} PRIVATE d3d12ma)
+        
+        target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_D3D12)
+    endif()
+
+    if (ALIMER_GPU_WEBGPU)
+        target_sources(${TARGET_NAME} PRIVATE
+            src/gpu/alimer_gpu_webgpu.cpp
+        )
+        target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_WEBGPU)
+    endif()
 endif()
 
 if (ALIMER_PHYSICS)
