@@ -250,6 +250,20 @@ void alimerLog(LogCategory category, LogLevel level, const char* message)
     s_logCallback(category, level, message, s_logUserData);
 }
 
+void alimerLogFormat(LogCategory category, LogLevel level, const char* format, ...)
+{
+    if (!alimerShouldLog(level))
+        return;
+
+    char message[MAX_LOG_MESSAGE_SIZE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+
+    s_logCallback(category, level, message, s_logUserData);
+}
+
 void alimerLogInfo(LogCategory category, const char* format, ...)
 {
     if (!alimerShouldLog(LogLevel_Info))

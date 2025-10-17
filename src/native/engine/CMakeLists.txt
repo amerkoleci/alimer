@@ -15,7 +15,6 @@ set(TARGET_NAME alimer_native)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
 	include/alimer_platform.h
     include/alimer.h
-    #include/alimer_audio.h
 	src/alimer_internal.h
     src/alimer.cpp
     src/alimer_log.cpp
@@ -109,6 +108,15 @@ elseif(UNIX OR ANDROID)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
+endif()
+
+if (ALIMER_AUDIO)
+    target_sources(${TARGET_NAME} PRIVATE
+        include/alimer_audio.h
+        src/alimer_audio.cpp
+    )
+
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_AUDIO)
 endif()
 
 if (ALIMER_PHYSICS)

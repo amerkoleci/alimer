@@ -647,6 +647,7 @@ ALIMER_API void alimerSetLogLevel(LogLevel level);
 ALIMER_API void alimerSetLogCallback(AlimerLogCallback callback, void* userData);
 
 ALIMER_API void alimerLog(LogCategory category, LogLevel level, const char* message);
+ALIMER_API void alimerLogFormat(LogCategory category, LogLevel level, const char* format, ...);
 ALIMER_API void alimerLogFatal(LogCategory category, const char* format, ...);
 ALIMER_API void alimerLogError(LogCategory category, const char* format, ...);
 ALIMER_API void alimerLogWarn(LogCategory category, const char* format, ...);
