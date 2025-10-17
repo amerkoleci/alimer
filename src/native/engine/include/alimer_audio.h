@@ -49,6 +49,7 @@ typedef enum AudioFormat {
 
 /* Structs */
 typedef struct AudioDevice {
+    AudioDeviceType deviceType;
     size_t idSize;
     const void* id;
     const char* name;
@@ -67,7 +68,7 @@ typedef void AudioDeviceCallback(AudioDevice* device, void* userdata);
 
 ALIMER_API AudioContext* alimerAudioContextInit(void);
 ALIMER_API void alimerAudioContextDestroy(AudioContext* context);
-ALIMER_API void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceType type, AudioDeviceCallback* callback, void* userdata);
+ALIMER_API void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceCallback* callback, void* userdata);
 
 ALIMER_API AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* config);
 ALIMER_API void alimerAudioEngineDestroy(AudioEngine* engine);

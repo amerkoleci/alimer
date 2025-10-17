@@ -27,7 +27,6 @@ ALIMER_ENABLE_WARNINGS()
 
 namespace
 {
-    // EPhysicsUpdateError
     static_assert(sizeof(AudioEngineState) == sizeof(ma_device_state));
     static_assert(AudioEngineState_Uninitialized == (int)ma_device_state_uninitialized);
     static_assert(AudioEngineState_Stopped == (int)ma_device_state_stopped);
@@ -36,6 +35,19 @@ namespace
     static_assert(AudioEngineState_Stopping == (int)ma_device_state_stopping);
 
     static_assert(sizeof(ma_vec3f) == sizeof(Vector3));
+
+    constexpr AudioDeviceType FromMiniaudio(ma_device_type value)
+    {
+        switch (value)
+        {
+            case ma_device_type_playback:   return AudioDeviceType_Playback;
+            case ma_device_type_capture:    return AudioDeviceType_Capture;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return _AudioDeviceType_Count;
+        }
+    }
 
     constexpr AudioFormat FromMiniaudio(ma_format value)
     {
@@ -52,7 +64,6 @@ namespace
                 ALIMER_UNREACHABLE();
                 return AudioFormat_Unknown;
         }
-
     }
 
     static void FromMiniaudio(const ma_vec3f& value, Vector3* result)
@@ -160,26 +171,18 @@ void alimerAudioContextDestroy(AudioContext* context)
 
 static AudioDeviceCallback* s_enumerateCallback = nullptr;
 
-static ma_bool32 enumPlayback(ma_context* context, ma_device_type type, const ma_device_info* info, void* userdata)
+static ma_bool32 enumDevicesCallback(ma_context* context, ma_device_type type, const ma_device_info* info, void* userdata)
 {
-    AudioDevice device = { sizeof(info->id), &info->id, info->name, info->isDefault };
-    if (type == ma_device_type_playback)
-        s_enumerateCallback(&device, userdata);
+    const AudioDeviceType deviceType = FromMiniaudio(type);
+    AudioDevice device = { deviceType, sizeof(info->id), &info->id, info->name, info->isDefault };
+    s_enumerateCallback(&device, userdata);
     return MA_TRUE;
 }
 
-static ma_bool32 enumCapture(ma_context* context, ma_device_type type, const ma_device_info* info, void* userdata)
-{
-    AudioDevice device = { sizeof(info->id), &info->id, info->name, info->isDefault };
-    if (type == ma_device_type_capture)
-        s_enumerateCallback(&device, userdata);
-    return MA_TRUE;
-}
-
-void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceType type, AudioDeviceCallback* callback, void* userdata)
+void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceCallback* callback, void* userdata)
 {
     s_enumerateCallback = callback;
-    ma_result result = ma_context_enumerate_devices(&context->handle, type == AudioDeviceType_Playback ? enumPlayback : enumCapture, userdata);
+    ma_result result = ma_context_enumerate_devices(&context->handle, enumDevicesCallback, userdata);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "ma_context_enumerate_devices failed: %s", ma_result_description(result));
@@ -201,7 +204,7 @@ AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* c
     deviceConfig.playback.format = ma_format_f32;
     deviceConfig.noPreSilencedOutputBuffer = MA_TRUE;
     deviceConfig.noClip = MA_TRUE;
-    deviceConfig.sampleRate = config->sampleRate;
+    deviceConfig.sampleRate = (config != nullptr && config->sampleRate > 0) ? config->sampleRate : 0;
     deviceConfig.pUserData = engine;
     deviceConfig.dataCallback = [](ma_device* device, void* pOutput, const void* pInput, ma_uint32 frameCount)
     {

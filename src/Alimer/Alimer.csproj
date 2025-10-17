@@ -32,9 +32,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Audio -->
-    <DefineConstants Condition="'$(ExcludeOpenAL)' == 'true'">$(DefineConstants);EXCLUDE_OPENAL_BACKEND</DefineConstants>
-
     <!-- Graphics -->
     <DefineConstants Condition="'$(ExcludeD3D12)' == 'true'">$(DefineConstants);EXCLUDE_D3D12_BACKEND</DefineConstants>
     <DefineConstants Condition="'$(ExcludeVulkan)' == 'true'">$(DefineConstants);EXCLUDE_VULKAN_BACKEND</DefineConstants>
@@ -43,10 +40,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Audio -->
-    <Compile Remove="Audio/OpenAL/**/*" Condition="'$(ExcludeOpenAL)' == 'true'" />
-    <!--<Compile Remove="Audio/XAudio2/**/*" Condition="'$(ExcludeXAudio2)' == 'true'" />-->
-
     <!-- Graphics -->
     <Compile Remove="Graphics/D3D/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
     <Compile Remove="Graphics/D3D12/**/*" Condition="'$(ExcludeD3D12)' == 'true'" />
@@ -58,9 +51,6 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="XenoAtom.Collections" />
-    
-    <!-- Audio -->
-    <PackageReference Include="MonoGame.Library.OpenAL" Condition="'$(ExcludeOpenAL)' != 'true'" />
 
     <!-- Graphics -->
     <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />

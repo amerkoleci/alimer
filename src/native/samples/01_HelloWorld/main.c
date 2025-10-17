@@ -4,6 +4,7 @@
 //#define TEST_PHYSICS
 
 #include "alimer.h"
+#include "alimer_audio.h"
 #if defined(TEST_PHYSICS)
 #include "alimer_physics.h"
 #endif
@@ -23,6 +24,11 @@ int main(void)
     {
         return EXIT_FAILURE;
     }
+
+    AudioContext* context = alimerAudioContextInit();
+    AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
+    alimerAudioEngineDestroy(engine);
+    alimerAudioContextDestroy(context);
 
 #if defined(TEST_PHYSICS)
     // Physics
