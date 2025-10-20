@@ -71,12 +71,12 @@ struct GPUTextureImpl : public GPUResource
     GPUTextureDesc desc;
 };
 
-struct GPUSamplerImpl : public GPUResource
+struct GPUSampler : public GPUResource
 {
 
 };
 
-struct GPUQuerySetImpl : public GPUResource
+struct GPUQueryHeap : public GPUResource
 {
 
 };
@@ -96,7 +96,7 @@ struct GPUPipelineLayoutImpl : public GPUResource
 
 };
 
-struct GPUComputePipelineImpl : public GPUResource
+struct GPUComputePipeline : public GPUResource
 {
 
 };
@@ -116,7 +116,7 @@ struct GPUCommandEncoder : public GPUResource
 
 struct GPUComputePassEncoderImpl : public GPUCommandEncoder
 {
-    virtual void SetPipeline(GPUComputePipeline pipeline) = 0;
+    virtual void SetPipeline(GPUComputePipeline* pipeline) = 0;
     virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
 
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
@@ -154,7 +154,7 @@ struct GPUCommandBufferImpl : public GPUResource
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) = 0;
+    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture* surfaceTexture) = 0;
     virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
     virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
@@ -166,9 +166,8 @@ struct GPUQueueImpl : public GPUResource
     virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers) = 0;
 };
 
-struct GPUDeviceImpl : public GPUResource
+struct GPUDevice : public GPUResource
 {
-    virtual GPUBackendType GetBackend() const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUQueue GetQueue(GPUQueueType type) = 0;
     virtual bool WaitIdle() = 0;
@@ -177,37 +176,38 @@ struct GPUDeviceImpl : public GPUResource
     /* Resource creation */
     virtual GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
     virtual GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
-    virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
+    virtual GPUSampler* CreateSampler(const GPUSamplerDesc& desc) = 0;
     virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
     virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
-    virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
+    virtual GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
 };
 
-struct GPUSurfaceImpl : public GPUResource
+struct GPUSurface : public GPUResource
 {
-    virtual GPUResult GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const = 0;
+    virtual GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
     virtual bool Configure(const GPUSurfaceConfig* config_) = 0;
     virtual void Unconfigure() = 0;
 
     GPUSurfaceConfig config;
 };
 
-struct GPUAdapterImpl : public GPUResource
+struct GPUAdapter : public GPUResource
 {
     virtual GPUResult GetInfo(GPUAdapterInfo* info) const = 0;
     virtual GPUResult GetLimits(GPULimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
-    virtual GPUDevice CreateDevice(const GPUDeviceDesc& desc) = 0;
+    virtual GPUDevice* CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
 
-struct GPUInstance
+struct GPUFactory : public GPUResource
 {
 public:
-    virtual ~GPUInstance() = default;
+    virtual ~GPUFactory() = default;
 
-    virtual GPUSurface CreateSurface(Window* window) = 0;
-    virtual GPUAdapter RequestAdapter(const GPURequestAdapterOptions* options) = 0;
+    virtual GPUBackendType GetBackend() const = 0;
+    virtual GPUSurface* CreateSurface(Window* window) = 0;
+    virtual GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) = 0;
 };
 
 namespace
@@ -308,17 +308,17 @@ namespace
 
 #if defined(ALIMER_GPU_VULKAN)
 _ALIMER_EXTERN bool Vulkan_IsSupported(void);
-_ALIMER_EXTERN GPUInstance* Vulkan_CreateInstance(const GPUConfig* config);
+_ALIMER_EXTERN GPUFactory* Vulkan_CreateInstance(const GPUConfig* config);
 #endif
 
 #if defined(ALIMER_GPU_D3D12)
 _ALIMER_EXTERN bool D3D12_IsSupported(void);
-_ALIMER_EXTERN GPUInstance* D3D12_CreateInstance(const GPUConfig* config);
+_ALIMER_EXTERN GPUFactory* D3D12_CreateInstance(const GPUConfig* config);
 #endif
 
 #if defined(ALIMER_GPU_WEBGPU)
 _ALIMER_EXTERN bool WGPU_IsSupported(void);
-_ALIMER_EXTERN GPUInstance* WGPU_CreateInstance(const GPUConfig* config);
+_ALIMER_EXTERN GPUFactory* WGPU_CreateInstance(const GPUConfig* config);
 #endif
 
 #endif /* ALIMER_GPU_INTERNAL_H_ */

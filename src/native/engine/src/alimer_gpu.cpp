@@ -4,10 +4,6 @@
 #if defined(ALIMER_GPU)
 #include "alimer_gpu_internal.h"
 
-static struct {
-    GPUInstance* instance = nullptr;
-} state;
-
 bool agpuIsBackendSupport(GPUBackendType backend)
 {
     switch (backend)
@@ -42,12 +38,9 @@ bool agpuIsBackendSupport(GPUBackendType backend)
     }
 }
 
-bool agpuInit(const GPUConfig* config)
+GPUFactory* agpuCreateFactory(const GPUConfig* config)
 {
     ALIMER_ASSERT(config);
-
-    if (state.instance)
-        return true;
 
     GPUBackendType backend = config->preferredBackend;
     if (config->preferredBackend == GPUBackendType_Undefined)
@@ -70,81 +63,107 @@ bool agpuInit(const GPUConfig* config)
         }
     }
 
+    GPUFactory* factory = nullptr;
     switch (backend)
     {
         case GPUBackendType_Null:
-            return true;
+            return nullptr;
 
         case GPUBackendType_Vulkan:
 #if defined(ALIMER_GPU_VULKAN)
             if (Vulkan_IsSupported())
-                state.instance = Vulkan_CreateInstance(config);
+            {
+                factory = Vulkan_CreateInstance(config);
+            }
             break;
 #else
             alimerLogError(LogCategory_GPU, "Vulkan is not supported");
-            return false;
+            return nullptr;
 #endif
 
         case GPUBackendType_D3D12:
 #if defined(ALIMER_GPU_D3D12)
             if (D3D12_IsSupported())
-                state.instance = D3D12_CreateInstance(config);
+            {
+                factory = D3D12_CreateInstance(config);
+            }
             break;
 #else
             alimerLogError(LogCategory_GPU, "D3D12 is not supported");
-            return false;
+            return nullptr;
 #endif
             break;
 
         case GPUBackendType_Metal:
-            state.instance = nullptr;
+            factory = nullptr;
             break;
 
         case GPUBackendType_WebGPU:
 #if defined(ALIMER_GPU_WEBGPU)
             if (WGPU_IsSupported())
-                state.instance = WGPU_CreateInstance(config);
+            {
+                factory = WGPU_CreateInstance(config);
+            }
             break;
 #else
             alimerLogError(LogCategory_GPU, "WebGPU is not supported");
-            return false;
+            return nullptr;
 #endif
 
         default:
             break;
     }
 
-    if (!state.instance)
-    {
-        return false;
-    }
-
-    return true;
+    return factory;
 }
 
-void agpuShutdown(void)
+void agpuFactoryDestroy(GPUFactory* factory)
 {
-    if (!state.instance)
-        return;
-
-    delete state.instance;
-    memset(&state, 0, sizeof(state));
+    factory->Release();
 }
 
-GPUAdapter agpuRequestAdapter(const GPURequestAdapterOptions* options)
+GPUBackendType agpuFactoryGetBackend(GPUFactory* factory)
 {
-    return state.instance->RequestAdapter(options);
+    return factory->GetBackend();
+}
+
+GPUAdapter* agpuFactoryRequestAdapter(GPUFactory* factory, ALIMER_NULLABLE const GPURequestAdapterOptions* options)
+{
+    return factory->RequestAdapter(options);
+}
+
+/* Adapter */
+GPUResult agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
+{
+    if (!info)
+        return GPUResult_InvalidOperation;
+
+    return adapter->GetInfo(info);
+}
+
+GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits)
+{
+    if (!limits)
+        return GPUResult_InvalidOperation;
+
+    return adapter->GetLimits(limits);
+}
+
+bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature)
+{
+    return adapter->HasFeature(feature);
 }
 
 /* Surface */
-GPUSurface agpuCreateSurface(Window* window)
+GPUSurface* agpuCreateSurface(GPUFactory* factory, Window* window)
 {
+    ALIMER_ASSERT(factory);
     ALIMER_ASSERT(window);
 
-    return state.instance->CreateSurface(window);
+    return factory->CreateSurface(window);
 }
 
-GPUResult agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities)
+GPUResult agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities)
 {
     if (!surface || !adapter)
         return GPUResult_InvalidOperation;
@@ -163,7 +182,7 @@ static GPUSurfaceConfig _GPUSurfaceConfig_Defaults(const GPUSurfaceConfig* confi
     return def;
 }
 
-bool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config)
+bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config)
 {
     if (!config)
         return false;
@@ -172,43 +191,22 @@ bool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config)
     return surface->Configure(&configDef);
 }
 
-void agpuSurfaceUnconfigure(GPUSurface surface)
+void agpuSurfaceUnconfigure(GPUSurface* surface)
 {
     surface->Unconfigure();
 }
 
-uint32_t agpuSurfaceAddRef(GPUSurface surface)
+uint32_t agpuSurfaceAddRef(GPUSurface* surface)
 {
     return surface->AddRef();
 }
 
-uint32_t agpuSurfaceRelease(GPUSurface surface)
+uint32_t agpuSurfaceRelease(GPUSurface* surface)
 {
     return surface->Release();
 }
 
-/* Adapter */
-GPUResult agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
-{
-    if (!info)
-        return GPUResult_InvalidOperation;
-
-    return adapter->GetInfo(info);
-}
-
-GPUResult agpuAdapterGetLimits(GPUAdapter adapter, GPULimits* limits)
-{
-    if (!limits)
-        return GPUResult_InvalidOperation;
-
-    return adapter->GetLimits(limits);
-}
-
-bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature)
-{
-    return adapter->HasFeature(feature);
-}
-
+/* Device */
 static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc def = {};
@@ -220,49 +218,43 @@ static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
     return def;
 }
 
-/* Device */
-GPUDevice agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
+GPUDevice* agpuCreateDevice(GPUAdapter* adapter, const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
     return adapter->CreateDevice(descDef);
 }
 
-void agpuDeviceSetLabel(GPUDevice device, const char* label)
+void agpuDeviceSetLabel(GPUDevice* device, const char* label)
 {
     device->SetLabel(label);
 }
 
-uint32_t agpuDeviceAddRef(GPUDevice device)
+uint32_t agpuDeviceAddRef(GPUDevice* device)
 {
     return device->AddRef();
 }
 
-uint32_t agpuDeviceRelease(GPUDevice device)
+uint32_t agpuDeviceRelease(GPUDevice* device)
 {
     return device->Release();
 }
 
-GPUBackendType agpuDeviceGetBackend(GPUDevice device)
-{
-    return device->GetBackend();
-}
-
-bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
+bool agpuDeviceHasFeature(GPUDevice* device, GPUFeature feature)
 {
     return device->HasFeature(feature);
 }
 
-GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type)
+GPUQueue agpuDeviceGetQueue(GPUDevice* device, GPUQueueType type)
 {
     return device->GetQueue(type);
 }
 
-bool agpuDeviceWaitIdle(GPUDevice device)
+bool agpuDeviceWaitIdle(GPUDevice* device)
 {
     return device->WaitIdle();
 }
 
-uint64_t agpuDeviceCommitFrame(GPUDevice device)
+uint64_t agpuDeviceCommitFrame(GPUDevice* device)
 {
     return device->CommitFrame();
 }
@@ -299,7 +291,7 @@ void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const ch
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface* surface, GPUTexture* surfaceTexture)
 {
     return commandBuffer->AcquireSurfaceTexture(surface, surfaceTexture);
 }
@@ -325,7 +317,7 @@ GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBu
 }
 
 /* ComputePassEncoder */
-void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline pipeline)
+void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline* pipeline)
 {
     computePassEncoder->SetPipeline(pipeline);
 }
@@ -487,7 +479,7 @@ static GPUBufferDesc _GPUBufferDesc_Defaults(const GPUBufferDesc* desc) {
     return def;
 }
 
-GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer agpuCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const void* pInitialData)
 {
     if (!desc)
         return nullptr;
@@ -569,7 +561,7 @@ static bool ValidateTextureDesc(const GPUTextureDesc& desc)
     return true;
 }
 
-GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
+GPUTexture agpuCreateTexture(GPUDevice* device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
 {
     if (!desc)
         return nullptr;
@@ -658,23 +650,23 @@ static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc) {
 }
 
 
-GPUSampler agpuCreateSampler(GPUDevice device, const GPUSamplerDesc* desc)
+GPUSampler* agpuCreateSampler(GPUDevice* device, const GPUSamplerDesc* desc)
 {
     GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
     return device->CreateSampler(descDef);
 }
 
-void agpuSamplerSetLabel(GPUSampler sampler, const char* label)
+void agpuSamplerSetLabel(GPUSampler* sampler, const char* label)
 {
     sampler->SetLabel(label);
 }
 
-uint32_t agpuSamplerAddRef(GPUSampler sampler)
+uint32_t agpuSamplerAddRef(GPUSampler* sampler)
 {
     return sampler->AddRef();
 }
 
-uint32_t agpuSamplerRelease(GPUSampler sampler)
+uint32_t agpuSamplerRelease(GPUSampler* sampler)
 {
     return sampler->Release();
 }
@@ -685,7 +677,7 @@ static GPUPipelineLayoutDesc _GPUPipelineLayoutDesc_Defaults(const GPUPipelineLa
     return def;
 }
 
-GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice device, const GPUPipelineLayoutDesc* desc)
+GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice* device, const GPUPipelineLayoutDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -715,7 +707,7 @@ static GPUComputePipelineDesc _GPUComputePipelineDesc_Defaults(const GPUComputeP
     return def;
 }
 
-GPUComputePipeline agpuCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc)
+GPUComputePipeline* agpuCreateComputePipeline(GPUDevice* device, const GPUComputePipelineDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -724,17 +716,17 @@ GPUComputePipeline agpuCreateComputePipeline(GPUDevice device, const GPUComputeP
     return device->CreateComputePipeline(descDef);
 }
 
-void agpuComputePipelineSetLabel(GPUComputePipeline computePipeline, const char* label)
+void agpuComputePipelineSetLabel(GPUComputePipeline* computePipeline, const char* label)
 {
     computePipeline->SetLabel(label);
 }
 
-uint32_t agpuComputePipelineAddRef(GPUComputePipeline computePipeline)
+uint32_t agpuComputePipelineAddRef(GPUComputePipeline* computePipeline)
 {
     return computePipeline->AddRef();
 }
 
-uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline)
+uint32_t agpuComputePipelineRelease(GPUComputePipeline* computePipeline)
 {
     return computePipeline->Release();
 }
@@ -784,7 +776,7 @@ static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipe
     return def;
 }
 
-GPURenderPipeline agpuCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc)
+GPURenderPipeline agpuCreateRenderPipeline(GPUDevice* device, const GPURenderPipelineDesc* desc)
 {
     if (!desc)
         return nullptr;

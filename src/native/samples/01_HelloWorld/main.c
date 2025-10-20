@@ -4,8 +4,11 @@
 //#define TEST_PHYSICS
 
 #include "alimer.h"
+#if defined(ALIMER_AUDIO)
 #include "alimer_audio.h"
-#if defined(TEST_PHYSICS)
+#endif
+
+#if defined(ALIMER_PHYSICS)
 #include "alimer_physics.h"
 #endif
 #include <stdbool.h>
@@ -25,12 +28,12 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+#if defined(ALIMER_AUDIO)
     AudioContext* context = alimerAudioContextInit();
     AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
-    alimerAudioEngineDestroy(engine);
-    alimerAudioContextDestroy(context);
+#endif
 
-#if defined(TEST_PHYSICS)
+#if defined(ALIMER_PHYSICS)
     // Physics
     PhysicsConfig physicsConfig = {};
     if (!alimerPhysicsInit(&physicsConfig))
@@ -76,7 +79,13 @@ int main(void)
 #endif
 
     alimerWindowDestroy(window);
-#if defined(TEST_PHYSICS)
+
+#if defined(ALIMER_AUDIO)
+    alimerAudioEngineDestroy(engine);
+    alimerAudioContextDestroy(context);
+#endif
+
+#if defined(ALIMER_PHYSICS)
     alimerPhysicsWorldDestroy(physicsWorld);
     alimerPhysicsShutdown();
 #endif

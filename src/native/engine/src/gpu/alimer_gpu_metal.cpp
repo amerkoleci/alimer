@@ -1,230 +1,23 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_GPU_VULKAN)
+#if defined(ALIMER_GPU_METAL)
 #include "alimer_gpu_internal.h"
-#define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
 
-#if defined(_WIN32)
-#include <vulkan/vulkan_win32.h>
-#elif defined(__ANDROID__)
-#include <vulkan/vulkan_android.h>
-#elif defined(__APPLE__)
-#include <vulkan/vulkan_metal.h>
-#include <vulkan/vulkan_beta.h>
-#else
-typedef struct xcb_connection_t xcb_connection_t;
-typedef uint32_t xcb_window_t;
-typedef uint32_t xcb_visualid_t;
+#define NS_PRIVATE_IMPLEMENTATION
+#define CA_PRIVATE_IMPLEMENTATION
+#define MTL_PRIVATE_IMPLEMENTATION
+#include <Foundation/Foundation.hpp>
+#include <Metal/Metal.hpp>
+#include <QuartzCore/QuartzCore.hpp>
 
-//#include <vulkan/vulkan_xlib.h>
-#include <vulkan/vulkan_xcb.h>
-
-struct wl_display;
-struct wl_surface;
-#include <vulkan/vulkan_wayland.h>
-#endif
-
-ALIMER_DISABLE_WARNINGS()
-#if defined(_WIN32)
-#   define VMA_CALL_PRE __declspec(dllexport)
-#else
-#   define VMA_CALL_PRE __attribute__((visibility("default")))
-#endif
-
-#define VMA_IMPLEMENTATION
-#define VMA_STATS_STRING_ENABLED 0
-#define VMA_STATIC_VULKAN_FUNCTIONS 0
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
-#include "third_party/vk_mem_alloc.h"
-#include "spirv_reflect.h"
-ALIMER_ENABLE_WARNINGS()
-
-#if !defined(_WIN32)
-#include <dlfcn.h>
-#endif
-
-#include <inttypes.h>
 #include <algorithm>
 #include <vector>
 #include <deque>
-#include <mutex>
 
-#if defined(_DEBUG)
-/// Helper macro to test the result of Vulkan calls which can return an error.
-#define VK_CHECK(x) \
-	do \
-	{ \
-		VkResult err = x; \
-		if (err < 0) \
-		{ \
-			alimerLogError(LogCategory_GPU,"Detected Vulkan error: %s", VkResultToString(err)); \
-		} \
-	} while (0)
-#else
-#define VK_CHECK(x) (void)(x)
-#endif
-#define VK_LOG_ERROR(result, message) alimerLogError(LogCategory_GPU,"Vulkan: %s, error: %s", message, VkResultToString(result));
-
-    // Declare function pointers
-    static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
-
-#define VULKAN_GLOBAL_FUNCTION(name) static PFN_##name name = nullptr;
-#define VULKAN_INSTANCE_FUNCTION(name) static PFN_##name name = nullptr;
-#include "alimer_gpu_vulkan_funcs.h"
-
+#if TODO
 namespace
 {
-    static_assert(sizeof(GPUViewport) == sizeof(VkViewport), "Viewport mismatch");
-    static_assert(offsetof(GPUViewport, x) == offsetof(VkViewport, x), "Viewport layout mismatch");
-    static_assert(offsetof(GPUViewport, y) == offsetof(VkViewport, y), "Viewport layout mismatch");
-    static_assert(offsetof(GPUViewport, width) == offsetof(VkViewport, width), "Viewport layout mismatch");
-    static_assert(offsetof(GPUViewport, height) == offsetof(VkViewport, height), "Viewport layout mismatch");
-    static_assert(offsetof(GPUViewport, minDepth) == offsetof(VkViewport, minDepth), "Viewport layout mismatch");
-    static_assert(offsetof(GPUViewport, maxDepth) == offsetof(VkViewport, maxDepth), "Viewport layout mismatch");
-
-    static_assert(sizeof(GPUScissorRect) == sizeof(VkRect2D), "ScissorRect mismatch");
-    static_assert(offsetof(GPUScissorRect, x) == offsetof(VkRect2D, offset.x), "GPUScissorRect layout mismatch");
-    static_assert(offsetof(GPUScissorRect, y) == offsetof(VkRect2D, offset.y), "GPUScissorRect layout mismatch");
-    static_assert(offsetof(GPUScissorRect, width) == offsetof(VkRect2D, extent.width), "GPUScissorRect layout mismatch");
-    static_assert(offsetof(GPUScissorRect, height) == offsetof(VkRect2D, extent.height), "GPUScissorRect layout mismatch");
-
-    static_assert(sizeof(GPUDispatchIndirectCommand) == sizeof(VkDispatchIndirectCommand), "DispatchIndirectCommand mismatch");
-    static_assert(offsetof(GPUDispatchIndirectCommand, groupCountX) == offsetof(VkDispatchIndirectCommand, x), "DispatchIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDispatchIndirectCommand, groupCountY) == offsetof(VkDispatchIndirectCommand, y), "DispatchIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDispatchIndirectCommand, groupCountZ) == offsetof(VkDispatchIndirectCommand, z), "DispatchIndirectCommand layout mismatch");
-
-    static_assert(sizeof(GPUDrawIndexedIndirectCommand) == sizeof(VkDrawIndexedIndirectCommand), "DrawIndexedIndirectCommand mismatch");
-    static_assert(offsetof(GPUDrawIndexedIndirectCommand, indexCount) == offsetof(VkDrawIndexedIndirectCommand, indexCount), "DrawIndexedIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndexedIndirectCommand, instanceCount) == offsetof(VkDrawIndexedIndirectCommand, instanceCount), "DrawIndexedIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndexedIndirectCommand, firstIndex) == offsetof(VkDrawIndexedIndirectCommand, firstIndex), "DrawIndexedIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndexedIndirectCommand, baseVertex) == offsetof(VkDrawIndexedIndirectCommand, vertexOffset), "DrawIndexedIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndexedIndirectCommand, firstInstance) == offsetof(VkDrawIndexedIndirectCommand, firstInstance), "DrawIndexedIndirectCommand layout mismatch");
-
-    static_assert(sizeof(GPUDrawIndirectCommand) == sizeof(VkDrawIndirectCommand), "DrawIndirectCommand mismatch");
-    static_assert(offsetof(GPUDrawIndirectCommand, vertexCount) == offsetof(VkDrawIndirectCommand, vertexCount), "DrawIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndirectCommand, instanceCount) == offsetof(VkDrawIndirectCommand, instanceCount), "DrawIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndirectCommand, firstVertex) == offsetof(VkDrawIndirectCommand, firstVertex), "DrawIndirectCommand layout mismatch");
-    static_assert(offsetof(GPUDrawIndirectCommand, firstInstance) == offsetof(VkDrawIndirectCommand, firstInstance), "DrawIndirectCommand layout mismatch");
-
-    inline const char* VkResultToString(VkResult result)
-    {
-        switch (result)
-        {
-#define STR(r)   \
-	case VK_##r: \
-		return #r
-            STR(NOT_READY);
-            STR(TIMEOUT);
-            STR(EVENT_SET);
-            STR(EVENT_RESET);
-            STR(INCOMPLETE);
-            STR(ERROR_OUT_OF_HOST_MEMORY);
-            STR(ERROR_OUT_OF_DEVICE_MEMORY);
-            STR(ERROR_INITIALIZATION_FAILED);
-            STR(ERROR_DEVICE_LOST);
-            STR(ERROR_MEMORY_MAP_FAILED);
-            STR(ERROR_LAYER_NOT_PRESENT);
-            STR(ERROR_EXTENSION_NOT_PRESENT);
-            STR(ERROR_FEATURE_NOT_PRESENT);
-            STR(ERROR_INCOMPATIBLE_DRIVER);
-            STR(ERROR_TOO_MANY_OBJECTS);
-            STR(ERROR_FORMAT_NOT_SUPPORTED);
-            STR(ERROR_SURFACE_LOST_KHR);
-            STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
-            STR(SUBOPTIMAL_KHR);
-            STR(ERROR_OUT_OF_DATE_KHR);
-            STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
-            STR(ERROR_VALIDATION_FAILED_EXT);
-            STR(ERROR_INVALID_SHADER_NV);
-#undef STR
-            default:
-                return "UNKNOWN_ERROR";
-        }
-    }
-
-    template<typename MainT, typename NewT>
-    inline void PnextChainPushFront(MainT* mainStruct, NewT* newStruct)
-    {
-        newStruct->pNext = mainStruct->pNext;
-        mainStruct->pNext = newStruct;
-    }
-
-    VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessengerCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData)
-    {
-        ALIMER_UNUSED(pUserData);
-
-        const char* messageTypeStr = "General";
-
-        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
-            messageTypeStr = "Validation";
-        else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-            messageTypeStr = "Performance";
-
-        // Log debug messge
-        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-        {
-            alimerLogWarn(LogCategory_GPU, "Vulkan - %s: %s", messageTypeStr, pCallbackData->pMessage);
-        }
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-        {
-            alimerLogError(LogCategory_GPU, "Vulkan - %s: %s", messageTypeStr, pCallbackData->pMessage);
-#if defined(_DEBUG)
-            ALIMER_DEBUG_BREAK();
-#endif
-        }
-
-        return VK_FALSE;
-    }
-
-    bool ValidateLayers(const std::vector<const char*>& required, const std::vector<VkLayerProperties>& available)
-    {
-        for (auto layer : required)
-        {
-            bool found = false;
-            for (auto& available_layer : available)
-            {
-                if (strcmp(available_layer.layerName, layer) == 0)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                alimerLogWarn(LogCategory_GPU, "Validation Layer '%s' not found", layer);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    static bool GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
-    {
-#if defined(_WIN32)
-        //PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
-        if (!vkGetPhysicalDeviceWin32PresentationSupportKHR)
-        {
-            return false;
-        }
-
-        return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
-#elif defined(__ANDROID__)
-        return true;
-#elif defined(__APPLE__)
-        return true;
-#else
-        return true;
-#endif
-    }
-
     [[nodiscard]] constexpr PixelFormat ToGPUSwapChainFormat(VkFormat format)
     {
         switch (format)
@@ -1257,7 +1050,7 @@ struct VulkanTexture final : public GPUTextureImpl
     VkImageView GetView(uint32_t mipLevel) const;
 };
 
-struct VulkanSampler final : public GPUSampler
+struct VulkanSampler final : public GPUSamplerImpl
 {
     VulkanDevice* device = nullptr;
     VkSampler handle = VK_NULL_HANDLE;
@@ -3821,7 +3614,7 @@ GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUText
     return texture;
 }
 
-GPUSampler* VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
 {
     VulkanSampler* sampler = new VulkanSampler();
     sampler->device = this;
@@ -6054,5 +5847,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
 
     return instance;
 }
+#endif // TODO
 
-#endif /* defined(ALIMER_GPU_VULKAN) */
+
+#endif /* defined(ALIMER_GPU_METAL) */

@@ -93,7 +93,6 @@ endif()
 if(EMSCRIPTEN)
 elseif (WIN32)
     target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_vma_exports.cpp
         src/alimer_d3d12ma_exports.cpp
     )
 
@@ -102,9 +101,6 @@ elseif (WIN32)
     )
 elseif(APPLE)
 elseif(UNIX OR ANDROID)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_vma_exports.cpp
-    )
 endif()
 
 if (ALIMER_AUDIO)
@@ -113,7 +109,7 @@ if (ALIMER_AUDIO)
         src/alimer_audio.cpp
     )
 
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_AUDIO)
+    target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_AUDIO)
 endif()
 
 if (ALIMER_AUDIO)
@@ -123,7 +119,7 @@ if (ALIMER_AUDIO)
         src/alimer_gpu_internal.h
     )
 
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU)
+    target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_GPU)
 
     if (ALIMER_GPU_VULKAN)
         target_sources(${TARGET_NAME} PRIVATE
@@ -146,6 +142,17 @@ if (ALIMER_AUDIO)
         target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_D3D12)
     endif()
 
+    if (ALIMER_GPU_METAL)
+        target_sources(${TARGET_NAME} PRIVATE
+            src/gpu/alimer_gpu_metal.cpp
+        )
+
+        target_link_libraries(metal_cpp INTERFACE "-framework Metal")
+        target_link_libraries(${TARGET_NAME} PRIVATE metal_cpp)
+        
+        target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_METAL)
+    endif()
+
     if (ALIMER_GPU_WEBGPU)
         target_sources(${TARGET_NAME} PRIVATE
             src/gpu/alimer_gpu_webgpu.cpp
@@ -161,7 +168,7 @@ if (ALIMER_PHYSICS)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE Jolt)
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_PHYSICS)
+    target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_PHYSICS)
 endif()
 
 # Install

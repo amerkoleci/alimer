@@ -79,6 +79,14 @@ if (ALIMER_GPU_D3D12)
     set_target_properties(d3d12ma PROPERTIES FOLDER "ThirdParty")
 endif ()
 
+# Fetch & setup Metal C++ headers
+if(ALIMER_GPU_METAL)
+    message(STATUS "Fetching Metal C++ headers ...")
+    FetchPackage(metal_cpp URL ${ALIMER_METAL_CPP_URL})
+    add_library(metal_cpp INTERFACE)
+    target_include_directories(metal_cpp INTERFACE ${metal_cpp_SOURCE_DIR})
+endif()
+
 if(ALIMER_PHYSICS)
     CPMAddPackage(
         NAME JoltPhysics

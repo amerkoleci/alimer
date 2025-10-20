@@ -319,10 +319,16 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 #   define ALIMER_ARRAYSIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
 
+// Always turn on asserts in Debug mode
+#if defined(_DEBUG) && !defined(ALIMER_ENABLE_ASSERTS)
+#define ALIMER_ENABLE_ASSERTS
+#endif
 
-#ifndef ALIMER_ASSERT
+#ifdef ALIMER_ENABLE_ASSERTS
 #   include <assert.h>
 #   define ALIMER_ASSERT(c) assert(c)
+#else
+#   define ALIMER_ASSERT(...) ((void)0)
 #endif
 
 #define _ALIMER_DEF(val, def) (((val) == 0) ? (def) : (val))

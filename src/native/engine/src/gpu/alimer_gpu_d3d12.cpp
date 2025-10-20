@@ -34,7 +34,7 @@
 { \
   if (FAILED(hr)) { \
     alimerLogError(LogCategory_GPU, "[%s()] HRESULT error detected (0x%lX)", __FUNCTION__, hr); \
-    assert(false); \
+    ALIMER_DEBUG_BREAK(); \
     ExitProcess(1); \
   } \
 } while(0)
@@ -962,7 +962,7 @@ struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
     D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(DXGI_FORMAT dsvFormat, uint32_t mipLevel, bool readOnly) const;
 };
 
-struct D3D12Sampler final : public GPUSamplerImpl
+struct D3D12Sampler final : public GPUSampler
 {
     D3D12_SAMPLER_DESC samplerDesc{};
 };
@@ -984,7 +984,7 @@ struct D3D12PipelineLayout final : public GPUPipelineLayoutImpl
     void SetLabel(const char* label) override;
 };
 
-struct D3D12ComputePipeline final : public GPUComputePipelineImpl
+struct D3D12ComputePipeline final : public GPUComputePipeline
 {
     D3D12Device* device = nullptr;
     D3D12PipelineLayout* layout = nullptr;
@@ -1022,7 +1022,7 @@ struct D3D12ComputePassEncoder final : public GPUComputePassEncoderImpl
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    void SetPipeline(GPUComputePipeline pipeline) override;
+    void SetPipeline(GPUComputePipeline* pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
@@ -1109,7 +1109,7 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1371,7 +1371,7 @@ private:
     }
 };
 
-struct D3D12Device final : public GPUDeviceImpl
+struct D3D12Device final : public GPUDevice
 {
     D3D12Adapter* adapter = nullptr;
     ID3D12Device5* handle = nullptr;
@@ -1416,7 +1416,6 @@ struct D3D12Device final : public GPUDeviceImpl
     ~D3D12Device() override;
     void OnDeviceRemoved();
     void SetLabel(const char* label) override;
-    GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
     bool HasFeature(GPUFeature feature) const override;
     GPUQueue GetQueue(GPUQueueType type) override;
     bool WaitIdle() override;
@@ -1430,14 +1429,14 @@ struct D3D12Device final : public GPUDeviceImpl
     /* Resource creation */
     GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
-    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
+    GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
 };
 
-struct D3D12Surface final : public GPUSurfaceImpl
+struct D3D12Surface final : public GPUSurface
 {
     D3D12Instance* instance = nullptr;
     D3D12Device* device = nullptr;
@@ -1455,13 +1454,13 @@ struct D3D12Surface final : public GPUSurfaceImpl
     std::vector<D3D12Texture*> backbufferTextures;
 
     ~D3D12Surface() override;
-    GPUResult GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
+    GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
     void Present();
 };
 
-struct D3D12Adapter final : public GPUAdapterImpl
+struct D3D12Adapter final : public GPUAdapter
 {
     D3D12Instance* instance = nullptr;
     ComPtr<IDXGIAdapter1> dxgiAdapter1;
@@ -1491,18 +1490,20 @@ struct D3D12Adapter final : public GPUAdapterImpl
     GPUResult GetInfo(GPUAdapterInfo* info) const override;
     GPUResult GetLimits(GPULimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
+    GPUDevice* CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
-struct D3D12Instance final : public GPUInstance
+struct D3D12Instance final : public GPUFactory
 {
     ComPtr<IDXGIFactory4> dxgiFactory4;
     bool tearingSupported = false;
     GPUValidationMode validationMode;
 
     ~D3D12Instance() override;
-    GPUSurface CreateSurface(Window* window) override;
-    GPUAdapter RequestAdapter(const GPURequestAdapterOptions* options) override;
+
+    GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
+    GPUSurface* CreateSurface(Window* window) override;
+    GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
 /* D3D12Buffer */
@@ -1851,7 +1852,7 @@ void D3D12ComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
+void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline* pipeline)
 {
     if (currentPipeline == pipeline)
         return;
@@ -2621,7 +2622,7 @@ void D3D12CommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const void
     ALIMER_ASSERT(currentPipelineLayout);
 }
 
-GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface* surface, GPUTexture* surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
 
@@ -3582,7 +3583,7 @@ GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
     return texture;
 }
 
-GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler* D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
 {
     D3D12Sampler* sampler = new D3D12Sampler();
     sampler->samplerDesc = ToD3D12SamplerDesc(desc);
@@ -3697,7 +3698,7 @@ struct alignas(void*) PipelineDescComponent final
 using PipelineRootSignature = PipelineDescComponent<ID3D12RootSignature*, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE>;
 using PipelineComputeShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS>;
 
-GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
+GPUComputePipeline* D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
 {
     D3D12ComputePipeline* pipeline = new D3D12ComputePipeline();
     pipeline->device = this;
@@ -4024,7 +4025,7 @@ D3D12Surface::~D3D12Surface()
     Unconfigure();
 }
 
-GPUResult D3D12Surface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
+GPUResult D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = PixelFormat_BGRA8UnormSrgb;
     capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
@@ -4373,7 +4374,7 @@ inline void HandleDeviceRemoved(PVOID context, BOOLEAN)
 }
 #endif
 
-GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
+GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 {
     D3D12Device* device = new D3D12Device();
     device->adapter = this;
@@ -4614,7 +4615,7 @@ D3D12Instance::~D3D12Instance()
 {
 }
 
-GPUSurface D3D12Instance::CreateSurface(Window* window)
+GPUSurface* D3D12Instance::CreateSurface(Window* window)
 {
     D3D12Surface* surface = new D3D12Surface();
     surface->instance = this;
@@ -4637,7 +4638,7 @@ GPUSurface D3D12Instance::CreateSurface(Window* window)
     return surface;
 }
 
-GPUAdapter D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options)
+GPUAdapter* D3D12Instance::RequestAdapter(const GPURequestAdapterOptions* options)
 {
     const DXGI_GPU_PREFERENCE gpuPreference = (options && options->powerPreference == GPUPowerPreference_LowPower) ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
 
@@ -4903,7 +4904,7 @@ bool D3D12_IsSupported(void)
     return false;
 }
 
-GPUInstance* D3D12_CreateInstance(const GPUConfig* config)
+GPUFactory* D3D12_CreateInstance(const GPUConfig* config)
 {
     D3D12Instance* instance = new D3D12Instance();
     instance->validationMode = config->validationMode;

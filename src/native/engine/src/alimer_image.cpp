@@ -270,7 +270,7 @@ static Image* STB_LoadFromMemory(const uint8_t* pData, size_t dataSize)
                 memorySize = width * height * 4 * sizeof(uint16_t);
                 break;
             default:
-                assert(0);
+                ALIMER_UNREACHABLE();
         }
     }
     else if (stbi_is_hdr_from_memory(pData, (int)dataSize))
