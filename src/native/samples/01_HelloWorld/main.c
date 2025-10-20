@@ -35,13 +35,13 @@ int main(void)
 
 #if defined(ALIMER_PHYSICS)
     // Physics
-    PhysicsConfig physicsConfig = {};
+    PhysicsConfig physicsConfig = { 0 };
     if (!alimerPhysicsInit(&physicsConfig))
     {
         return EXIT_FAILURE;
     }
 
-    PhysicsWorldConfig physicsWorldConfig = {};
+    PhysicsWorldConfig physicsWorldConfig = { 0 };
     PhysicsWorld* physicsWorld = alimerPhysicsWorldCreate(&physicsWorldConfig);
 #endif
 

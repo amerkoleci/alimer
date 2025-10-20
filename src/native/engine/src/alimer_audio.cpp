@@ -141,8 +141,6 @@ AudioContext* alimerAudioContextInit(void)
     ma_context_config contextConfig = ma_context_config_init();
     contextConfig.pLog = &context->handle.log;
 
-    ma_backend nullBackend = ma_backend_null;
-
     result = ma_context_init(nullptr, 0, &contextConfig, &context->handle);
     if (result != MA_SUCCESS)
     {
