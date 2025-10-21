@@ -36,13 +36,6 @@ typedef uint64_t GPUDeviceAddress;
 #define GPU_LOD_CLAMP_NONE (1000.0F)
 
 /* Enums */
-typedef enum GPUResult {
-    GPUResult_Success = 0,
-    GPUResult_InvalidOperation = -1,
-
-    _GPUResult_Force32 = 0x7FFFFFFF
-} GPUResult;
-
 typedef enum GPUMemoryType {
     /// CPU no access, GPU read/write
     GPUMemoryType_Private,
@@ -809,10 +802,10 @@ typedef struct GPUSurfaceConfig {
     GPUPresentMode presentMode;
 } GPUSurfaceConfig;
 
-typedef struct GPUConfig {
+typedef struct GPUFactoryDesc {
     GPUBackendType preferredBackend;
     GPUValidationMode validationMode;
-} GPUConfig;
+} GPUFactoryDesc;
 
 /* Indirect Commands Structs */
 typedef struct GPUDispatchIndirectCommand {
@@ -837,19 +830,19 @@ typedef struct GPUDrawIndirectCommand {
 } GPUDrawIndirectCommand;
 
 ALIMER_API bool agpuIsBackendSupport(GPUBackendType backend);
-ALIMER_API GPUFactory* agpuCreateFactory(const GPUConfig* config);
+ALIMER_API GPUFactory* agpuCreateFactory(ALIMER_NULLABLE const GPUFactoryDesc* desc);
 ALIMER_API void agpuFactoryDestroy(GPUFactory* factory);
 ALIMER_API GPUBackendType agpuFactoryGetBackend(GPUFactory* factory);
 ALIMER_API GPUAdapter* agpuFactoryRequestAdapter(GPUFactory* factory, ALIMER_NULLABLE const GPURequestAdapterOptions* options);
 
 /* Adapter */
-ALIMER_API GPUResult agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info);
-ALIMER_API GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits);
+ALIMER_API void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info);
+ALIMER_API void agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits);
 ALIMER_API bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature);
 
 /* Surface */
 ALIMER_API GPUSurface* agpuCreateSurface(GPUFactory* factory, Window* window);
-ALIMER_API GPUResult agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities);
+ALIMER_API void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities);
 ALIMER_API bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config);
 ALIMER_API void agpuSurfaceUnconfigure(GPUSurface* surface);
 ALIMER_API uint32_t agpuSurfaceAddRef(GPUSurface* surface);

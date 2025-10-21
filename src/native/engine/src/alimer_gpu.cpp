@@ -38,12 +38,10 @@ bool agpuIsBackendSupport(GPUBackendType backend)
     }
 }
 
-GPUFactory* agpuCreateFactory(const GPUConfig* config)
+GPUFactory* agpuCreateFactory(ALIMER_NULLABLE const GPUFactoryDesc* desc)
 {
-    ALIMER_ASSERT(config);
-
-    GPUBackendType backend = config->preferredBackend;
-    if (config->preferredBackend == GPUBackendType_Undefined)
+    GPUBackendType backend = (desc != nullptr ? desc->preferredBackend : GPUBackendType_Undefined);
+    if (backend == GPUBackendType_Undefined)
     {
         if (agpuIsBackendSupport(GPUBackendType_D3D12))
         {
@@ -73,7 +71,7 @@ GPUFactory* agpuCreateFactory(const GPUConfig* config)
 #if defined(ALIMER_GPU_VULKAN)
             if (Vulkan_IsSupported())
             {
-                factory = Vulkan_CreateInstance(config);
+                factory = Vulkan_CreateInstance(desc);
             }
             break;
 #else
@@ -85,7 +83,7 @@ GPUFactory* agpuCreateFactory(const GPUConfig* config)
 #if defined(ALIMER_GPU_D3D12)
             if (D3D12_IsSupported())
             {
-                factory = D3D12_CreateInstance(config);
+                factory = D3D12_CreateInstance(desc);
             }
             break;
 #else
@@ -102,7 +100,7 @@ GPUFactory* agpuCreateFactory(const GPUConfig* config)
 #if defined(ALIMER_GPU_WEBGPU)
             if (WGPU_IsSupported())
             {
-                factory = WGPU_CreateInstance(config);
+                factory = WGPU_CreateInstance(desc);
             }
             break;
 #else
@@ -133,20 +131,20 @@ GPUAdapter* agpuFactoryRequestAdapter(GPUFactory* factory, ALIMER_NULLABLE const
 }
 
 /* Adapter */
-GPUResult agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
+void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
 {
     if (!info)
-        return GPUResult_InvalidOperation;
+        return;
 
-    return adapter->GetInfo(info);
+    adapter->GetInfo(info);
 }
 
-GPUResult agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits)
+void agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits)
 {
     if (!limits)
-        return GPUResult_InvalidOperation;
+        return;
 
-    return adapter->GetLimits(limits);
+    adapter->GetLimits(limits);
 }
 
 bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature)
@@ -163,15 +161,12 @@ GPUSurface* agpuCreateSurface(GPUFactory* factory, Window* window)
     return factory->CreateSurface(window);
 }
 
-GPUResult agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities)
+void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities)
 {
-    if (!surface || !adapter)
-        return GPUResult_InvalidOperation;
+    if (!surface || !adapter || !capabilities)
+        return;
 
-    if (!capabilities)
-        return GPUResult_InvalidOperation;
-
-    return surface->GetCapabilities(adapter, capabilities);
+    surface->GetCapabilities(adapter, capabilities);
 }
 
 static GPUSurfaceConfig _GPUSurfaceConfig_Defaults(const GPUSurfaceConfig* config) {

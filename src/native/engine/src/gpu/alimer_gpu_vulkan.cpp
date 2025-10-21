@@ -1526,7 +1526,7 @@ struct VulkanSurface final : public GPUSurface
     mutable std::vector<GPUPresentMode> supportedPresentModes;
 
     ~VulkanSurface() override;
-    GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
 };
@@ -1593,8 +1593,8 @@ struct VulkanAdapter final : public GPUAdapter
     VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = {};
     VkPhysicalDeviceMemoryProperties2 memoryProperties2;
 
-    GPUResult GetInfo(GPUAdapterInfo* info) const override;
-    GPUResult GetLimits(GPULimits* limits) const override;
+    void GetInfo(GPUAdapterInfo* info) const override;
+    void GetLimits(GPULimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
     bool IsDepthStencilFormatSupported(VkFormat format) const;
     VkFormat ToVkFormat(PixelFormat format) const;
@@ -4393,14 +4393,14 @@ VulkanSurface::~VulkanSurface()
     SAFE_RELEASE(device);
 }
 
-GPUResult VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
+void VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
     VulkanAdapter* backendAdapter = static_cast<VulkanAdapter*>(adapter);
 
     VkSurfaceCapabilitiesKHR surfaceCaps;
     VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backendAdapter->handle, handle, &surfaceCaps);
     if (result != VK_SUCCESS)
-        return GPUResult_InvalidOperation;
+        return;
 
     uint32_t formatCount;
     VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(backendAdapter->handle, handle, &formatCount, nullptr));
@@ -4458,10 +4458,9 @@ GPUResult VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabili
                 break;
         }
     }
+
     capabilities->presentModeCount = (uint32_t)supportedPresentModes.size();
     capabilities->presentModes = supportedPresentModes.data();
-
-    return GPUResult_Success;
 }
 
 bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
@@ -4652,7 +4651,7 @@ void VulkanSurface::Unconfigure()
 }
 
 /* VulkanAdapter */
-GPUResult VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
+void VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
 {
     memset(info, 0, sizeof(GPUAdapterInfo));
 
@@ -4707,11 +4706,9 @@ GPUResult VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
             info->adapterType = GPUAdapterType_Unknown;
             break;
     }
-
-    return GPUResult_Success;
 }
 
-GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
+void VulkanAdapter::GetLimits(GPULimits* limits) const
 {
     limits->maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
     limits->maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
@@ -4789,8 +4786,6 @@ GPUResult VulkanAdapter::GetLimits(GPULimits* limits) const
     //    m_Desc.shaderModel = 66;
     //if (features.features.shaderStorageImageMultisample)
     //    m_Desc.shaderModel = 67;
-
-    return GPUResult_Success;
 }
 
 bool VulkanAdapter::HasFeature(GPUFeature feature) const
@@ -5837,7 +5832,7 @@ bool Vulkan_IsSupported(void)
     return true;
 }
 
-GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
+GPUFactory* Vulkan_CreateInstance(const GPUFactoryDesc* desc)
 {
     VulkanInstance* instance = new VulkanInstance();
 
@@ -5927,7 +5922,9 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
     }
 #endif
 
-    if (config->validationMode != GPUValidationMode_Disabled)
+    const GPUValidationMode validationMode = (desc != nullptr) ? desc->validationMode : GPUValidationMode_Disabled;
+
+    if (validationMode != GPUValidationMode_Disabled)
     {
         // Determine the optimal validation layers to enable that are necessary for useful debugging
         std::vector<const char*> optimalValidationLyers = { "VK_LAYER_KHRONOS_validation" };
@@ -5939,7 +5936,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
     }
 
     bool validationFeatures = false;
-    if (config->validationMode == GPUValidationMode_GPU)
+    if (validationMode == GPUValidationMode_GPU)
     {
         uint32_t layerInstanceExtensionCount;
         VK_CHECK(vkEnumerateInstanceExtensionProperties("VK_LAYER_KHRONOS_validation", &layerInstanceExtensionCount, nullptr));
@@ -5975,7 +5972,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
 
     VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
 
-    if (config->validationMode != GPUValidationMode_Disabled && instance->debugUtils)
+    if (validationMode != GPUValidationMode_Disabled && instance->debugUtils)
     {
         debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debugUtilsCreateInfo.messageSeverity =
@@ -5986,7 +5983,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-        if (config->validationMode == GPUValidationMode_Verbose)
+        if (validationMode == GPUValidationMode_Verbose)
         {
             debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
             debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -5997,7 +5994,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
     }
 
     VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
-    if (config->validationMode == GPUValidationMode_GPU && validationFeatures)
+    if (validationMode == GPUValidationMode_GPU && validationFeatures)
     {
         static const VkValidationFeatureEnableEXT enable_features[2] = {
             VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
@@ -6019,7 +6016,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUConfig* config)
 #define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(instance->handle, #fn);
 #include "alimer_gpu_vulkan_funcs.h"
 
-    if (config->validationMode != GPUValidationMode_Disabled && instance->debugUtils)
+    if (validationMode != GPUValidationMode_Disabled && instance->debugUtils)
     {
         result = vkCreateDebugUtilsMessengerEXT(instance->handle, &debugUtilsCreateInfo, nullptr, &instance->debugUtilsMessenger);
         if (result != VK_SUCCESS)

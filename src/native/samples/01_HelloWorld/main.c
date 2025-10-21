@@ -8,9 +8,14 @@
 #include "alimer_audio.h"
 #endif
 
+#if defined(ALIMER_GPU)
+#include "alimer_gpu.h"
+#endif
+
 #if defined(ALIMER_PHYSICS)
 #include "alimer_physics.h"
 #endif
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +36,20 @@ int main(void)
 #if defined(ALIMER_AUDIO)
     AudioContext* context = alimerAudioContextInit();
     AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
+#endif
+
+#if defined(ALIMER_GPU)
+    GPUFactory* gpuFactory = agpuCreateFactory(NULL);
+    GPUBackendType backend = agpuFactoryGetBackend(gpuFactory);
+    if(backend == GPUBackendType_Undefined)
+    {
+        alimerLogError(LogCategory_GPU, "No GPU backend is available.");
+        return EXIT_FAILURE;
+    }
+
+    GPUAdapter* gpuAdapter = agpuFactoryRequestAdapter(gpuFactory, NULL);
+    GPUAdapterInfo adapterInfo;
+    agpuAdapterGetInfo(gpuAdapter, &adapterInfo);
 #endif
 
 #if defined(ALIMER_PHYSICS)
@@ -63,8 +82,8 @@ int main(void)
     bool running = true;
     while (running)
     {
-        Event evt;
-        while (alimerPollEvent(&evt))
+        PlatformEvent evt;
+        while (alimerPlatformPollEvent(&evt))
         {
             if (evt.type == EventType_Quit)
             {
@@ -83,6 +102,10 @@ int main(void)
 #if defined(ALIMER_AUDIO)
     alimerAudioEngineDestroy(engine);
     alimerAudioContextDestroy(context);
+#endif
+
+#if defined(ALIMER_GPU)
+    agpuFactoryDestroy(gpuFactory);
 #endif
 
 #if defined(ALIMER_PHYSICS)

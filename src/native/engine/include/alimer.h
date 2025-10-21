@@ -600,7 +600,7 @@ typedef struct MouseWheelEvent {
     float y;
 } MouseWheelEvent;
 
-typedef struct Event {
+typedef struct PlatformEvent {
     EventType       type;
     union
     {
@@ -611,7 +611,7 @@ typedef struct Event {
         MouseButtonEvent button;
         MouseWheelEvent wheel;
     };
-} Event;
+} PlatformEvent;
 
 typedef struct ImageLevel {
     uint32_t    width;
@@ -662,7 +662,7 @@ ALIMER_API void alimerBlobDestroy(Blob* blob);
 /* Platform */
 ALIMER_API bool alimerPlatformInit(void);
 ALIMER_API void alimerPlatformShutdown(void);
-ALIMER_API bool alimerPollEvent(Event* evt);
+ALIMER_API bool alimerPlatformPollEvent(PlatformEvent* evt);
 
 /* Window */
 ALIMER_API Window* alimerWindowCreate(const WindowDesc* desc);

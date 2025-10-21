@@ -128,7 +128,7 @@ partial class AlimerApi
         public float y;
     }
 
-    public struct Event
+    public struct PlatformEvent
     {
         public EventType type;
 
@@ -208,7 +208,7 @@ partial class AlimerApi
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerPollEvent(out Event @event);
+    public static unsafe partial bool alimerPlatformPollEvent(PlatformEvent* evt);
 
     #region Window
     [LibraryImport(LibraryName)]

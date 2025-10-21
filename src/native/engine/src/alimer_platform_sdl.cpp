@@ -222,9 +222,9 @@ namespace
         }
     }
 
-    inline Event ToEvent(const SDL_Event& e)
+    inline PlatformEvent ToEvent(const SDL_Event& e)
     {
-        Event ev{};
+        PlatformEvent ev{};
         switch (e.type)
         {
             case SDL_EVENT_QUIT:
@@ -331,15 +331,15 @@ struct Window
 
 static struct {
     bool initialized;
-    std::deque<Event> event_queue;
+    std::deque<PlatformEvent> event_queue;
 } state;
 
-static void PushEvent(Event&& e)
+static void PushEvent(PlatformEvent&& e)
 {
     state.event_queue.emplace_back(std::move(e));
 }
 
-static bool PopEvent(Event* e) noexcept
+static bool PopEvent(PlatformEvent* e) noexcept
 {
     // Pop the first event of the queue, if it is not empty
     if (!state.event_queue.empty())
@@ -395,7 +395,7 @@ void alimerPlatformShutdown(void)
     memset(&state, 0, sizeof(state));
 }
 
-bool alimerPollEvent(Event* evt)
+bool alimerPlatformPollEvent(PlatformEvent* evt)
 {
     ALIMER_ASSERT(state.initialized);
 

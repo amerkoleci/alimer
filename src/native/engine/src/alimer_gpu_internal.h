@@ -185,7 +185,7 @@ struct GPUDevice : public GPUResource
 
 struct GPUSurface : public GPUResource
 {
-    virtual GPUResult GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
+    virtual void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
     virtual bool Configure(const GPUSurfaceConfig* config_) = 0;
     virtual void Unconfigure() = 0;
 
@@ -194,8 +194,8 @@ struct GPUSurface : public GPUResource
 
 struct GPUAdapter : public GPUResource
 {
-    virtual GPUResult GetInfo(GPUAdapterInfo* info) const = 0;
-    virtual GPUResult GetLimits(GPULimits* limits) const = 0;
+    virtual void GetInfo(GPUAdapterInfo* info) const = 0;
+    virtual void GetLimits(GPULimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUDevice* CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
@@ -308,17 +308,17 @@ namespace
 
 #if defined(ALIMER_GPU_VULKAN)
 _ALIMER_EXTERN bool Vulkan_IsSupported(void);
-_ALIMER_EXTERN GPUFactory* Vulkan_CreateInstance(const GPUConfig* config);
+_ALIMER_EXTERN GPUFactory* Vulkan_CreateInstance(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_D3D12)
 _ALIMER_EXTERN bool D3D12_IsSupported(void);
-_ALIMER_EXTERN GPUFactory* D3D12_CreateInstance(const GPUConfig* config);
+_ALIMER_EXTERN GPUFactory* D3D12_CreateInstance(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_WEBGPU)
 _ALIMER_EXTERN bool WGPU_IsSupported(void);
-_ALIMER_EXTERN GPUFactory* WGPU_CreateInstance(const GPUConfig* config);
+_ALIMER_EXTERN GPUFactory* WGPU_CreateInstance(const GPUFactoryDesc* desc);
 #endif
 
 #endif /* ALIMER_GPU_INTERNAL_H_ */

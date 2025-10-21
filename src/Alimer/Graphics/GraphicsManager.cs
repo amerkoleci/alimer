@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using static Alimer.AlimerApi;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 
@@ -33,24 +34,7 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     {
         Guard.IsTrue(backendType != GraphicsBackendType.Default, nameof(backendType), "Invalid backend type");
 
-        switch (backendType)
-        {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                return Vulkan.VulkanGraphicsManager.IsSupported;
-#endif
-#if !EXCLUDE_D3D12_BACKEND
-            case GraphicsBackendType.D3D12:
-                return D3D12.D3D12GraphicsManager.IsSupported;
-#endif
-#if !EXCLUDE_METAL_BACKEND
-            case GraphicsBackendType.Metal:
-                return Metal.MetalGraphicsManager.IsSupported;
-#endif
-
-            default:
-                return false;
-        }
+        return agpuIsBackendSupport(backendType);
     }
 
     /// <summary>

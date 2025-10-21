@@ -195,7 +195,7 @@ if(EMSCRIPTEN)
     set(ALIMER_GPU_HAS_METAL OFF)
     set(ALIMER_GPU_HAS_WEBGPU ON) 
 elseif (WIN32)
-    set(ALIMER_GPU_HAS_D3D12 ON)
+    set(ALIMER_GPU_HAS_D3D12 OFF)  # Disable for now
     set(ALIMER_GPU_HAS_VULKAN ON)
     set(ALIMER_GPU_HAS_METAL OFF)
     set(ALIMER_GPU_HAS_WEBGPU OFF) # Disable for now

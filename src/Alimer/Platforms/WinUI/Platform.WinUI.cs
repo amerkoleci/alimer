@@ -5,9 +5,9 @@ using Windows.System.Profile;
 
 namespace Alimer;
 
-partial class Platform
+partial class PlatformInfo
 {
-    static Platform()
+    static PlatformInfo()
     {
         ID = PlatformID.Windows;
 
