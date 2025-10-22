@@ -8,6 +8,14 @@
 #include "alimer_gpu.h"
 #include <atomic>
 
+// Forward declaration for native handle
+typedef struct HINSTANCE__* HINSTANCE;
+typedef struct HWND__* HWND;
+struct IUnknown;
+struct ANativeWindow;
+struct wl_display;
+struct wl_surface;
+
 enum class TextureLayout : uint8_t
 {
     Undefined,
@@ -60,13 +68,13 @@ private:
     std::atomic_uint32_t refCount = 1;
 };
 
-struct GPUBufferImpl : public GPUResource
+struct GPUBuffer : public GPUResource
 {
     GPUBufferDesc desc;
     virtual GPUDeviceAddress GetDeviceAddress() const = 0;
 };
 
-struct GPUTextureImpl : public GPUResource
+struct GPUTexture : public GPUResource
 {
     GPUTextureDesc desc;
 };
@@ -114,16 +122,16 @@ struct GPUCommandEncoder : public GPUResource
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 };
 
-struct GPUComputePassEncoderImpl : public GPUCommandEncoder
+struct GPUComputePassEncoder : public GPUCommandEncoder
 {
     virtual void SetPipeline(GPUComputePipeline* pipeline) = 0;
     virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
 
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-    virtual void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
 };
 
-struct GPURenderPassEncoderImpl : public GPUCommandEncoder
+struct GPURenderPassEncoder : public GPUCommandEncoder
 {
     virtual void SetViewport(const GPUViewport* viewport) = 0;
     virtual void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) = 0;
@@ -132,55 +140,96 @@ struct GPURenderPassEncoderImpl : public GPUCommandEncoder
     virtual void SetBlendColor(const float blendColor[4]) = 0;
     virtual void SetStencilReference(uint32_t reference) = 0;
 
-    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) = 0;
-    virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) = 0;
+    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) = 0;
+    virtual void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) = 0;
     virtual void SetPipeline(GPURenderPipeline pipeline) = 0;
     virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
 
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;
-    virtual void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
-    virtual void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
 
-    virtual void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
-    virtual void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
 
     virtual void SetShadingRate(GPUShadingRate rate) = 0;
 };
 
-struct GPUCommandBufferImpl : public GPUResource
+struct GPUCommandBuffer : public GPUResource
 {
     virtual void PushDebugGroup(const char* groupLabel) const = 0;
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture* surfaceTexture) = 0;
-    virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
-    virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
+    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture) = 0;
+    virtual GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) = 0;
+    virtual GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
 
-struct GPUQueueImpl : public GPUResource
+struct GPUCommandQueue : public GPUResource
 {
-    virtual GPUQueueType GetQueueType() const = 0;
-    virtual GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
-    virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers) = 0;
+    virtual GPUCommandQueueType GetType() const = 0;
+
+    virtual void WaitIdle() = 0;
+    virtual GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
+    virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers) = 0;
 };
 
 struct GPUDevice : public GPUResource
 {
     virtual bool HasFeature(GPUFeature feature) const = 0;
-    virtual GPUQueue GetQueue(GPUQueueType type) = 0;
-    virtual bool WaitIdle() = 0;
+    virtual GPUCommandQueue* GetQueue(GPUCommandQueueType type) = 0;
+    virtual void WaitIdle() = 0;
     virtual uint64_t CommitFrame() = 0;
 
+    virtual uint64_t GetTimestampFrequency() const = 0;
+
     /* Resource creation */
-    virtual GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
-    virtual GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
+    virtual GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
+    virtual GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
     virtual GPUSampler* CreateSampler(const GPUSamplerDesc& desc) = 0;
-    virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
-    virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
+    virtual GPUBindGroupLayoutImpl* CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
+    virtual GPUPipelineLayoutImpl* CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
     virtual GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
-    virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
+    virtual GPURenderPipelineImpl* CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
+};
+
+struct GPUSurfaceHandle
+{
+    enum class Type
+    {
+        Invalid,
+        AndroidWindow,
+        MetalLayer,
+        WindowsHWND,
+        IDCompositionVisual,
+        SwapChainPanel,
+        SurfaceHandle,
+        WaylandSurface,
+        XlibWindow,
+    } type = Type::Invalid;
+
+    // MetalLayer
+    void* metalLayer = nullptr;
+    // ANativeWindow
+    ANativeWindow* androidNativeWindow = nullptr;
+
+    // Wayland
+    wl_display* waylandDisplay = nullptr;
+    wl_surface* waylandSurface = nullptr;
+    // Xlib
+    void* xDisplay = nullptr;
+    uint64_t xWindow = 0;
+
+    // WindowsHwnd
+    HINSTANCE hinstance = nullptr;
+    HWND hwnd = nullptr;
+
+    // IDCompositionVisual/SwapChainPanel
+    IUnknown* idCompositionVisualOrSwapChainPanel = nullptr;
+    // SurfaceHandle
+    void* surfaceHandle = nullptr;
 };
 
 struct GPUSurface : public GPUResource
@@ -206,7 +255,7 @@ public:
     virtual ~GPUFactory() = default;
 
     virtual GPUBackendType GetBackend() const = 0;
-    virtual GPUSurface* CreateSurface(Window* window) = 0;
+    virtual GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) = 0;
     virtual GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) = 0;
 };
 

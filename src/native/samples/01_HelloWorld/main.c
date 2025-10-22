@@ -41,7 +41,7 @@ int main(void)
 #if defined(ALIMER_GPU)
     GPUFactory* gpuFactory = agpuCreateFactory(NULL);
     GPUBackendType backend = agpuFactoryGetBackend(gpuFactory);
-    if(backend == GPUBackendType_Undefined)
+    if (backend == GPUBackendType_Undefined)
     {
         alimerLogError(LogCategory_GPU, "No GPU backend is available.");
         return EXIT_FAILURE;
@@ -50,6 +50,9 @@ int main(void)
     GPUAdapter* gpuAdapter = agpuFactoryRequestAdapter(gpuFactory, NULL);
     GPUAdapterInfo adapterInfo;
     agpuAdapterGetInfo(gpuAdapter, &adapterInfo);
+
+    GPUDevice* device = agpuCreateDevice(gpuAdapter, NULL);
+    GPUCommandQueue* graphicsQueue = agpuDeviceGetCommandQueue(device, GPUCommandQueueType_Graphics);
 #endif
 
 #if defined(ALIMER_PHYSICS)
@@ -80,6 +83,7 @@ int main(void)
     emscripten_set_main_loop(Render, 0, false);
 #else
     bool running = true;
+    uint64_t frameCount = 0;
     while (running)
     {
         PlatformEvent evt;
@@ -92,9 +96,14 @@ int main(void)
             }
         }
 
+        GPUCommandBuffer* commandBuffer = agpuCommandQueueAcquireCommandBuffer(graphicsQueue, NULL);  
+        agpuCommandQueueSubmit(graphicsQueue, 1, &commandBuffer);
+
         //Render();
-        //agpuDeviceCommitFrame(device);
+        frameCount = agpuDeviceCommitFrame(device);
     }
+
+    (void)(frameCount);
 #endif
 
     alimerWindowDestroy(window);
@@ -105,6 +114,8 @@ int main(void)
 #endif
 
 #if defined(ALIMER_GPU)
+    agpuDeviceWaitIdle(device);
+    agpuDeviceRelease(device);
     agpuFactoryDestroy(gpuFactory);
 #endif
 

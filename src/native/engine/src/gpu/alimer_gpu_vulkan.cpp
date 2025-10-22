@@ -843,9 +843,9 @@ struct VulkanQueueFamilyIndices final
 {
     uint32_t queueFamilyCount = 0;
 
-    uint32_t familyIndices[GPUQueueType_Count] = {};
-    uint32_t queueIndices[GPUQueueType_Count] = {};
-    uint32_t counts[GPUQueueType_Count] = {};
+    uint32_t familyIndices[_GPUCommandQueueType_Count] = {};
+    uint32_t queueIndices[_GPUCommandQueueType_Count] = {};
+    uint32_t counts[_GPUCommandQueueType_Count] = {};
 
     uint32_t timestampValidBits = 0;
 
@@ -860,9 +860,9 @@ struct VulkanQueueFamilyIndices final
         }
     }
 
-    bool IsComplete()
+    bool IsComplete() const
     {
-        return familyIndices[GPUQueueType_Graphics] != VK_QUEUE_FAMILY_IGNORED;
+        return familyIndices[GPUCommandQueueType_Graphics] != VK_QUEUE_FAMILY_IGNORED;
     }
 };
 
@@ -1163,45 +1163,48 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
         };
 
     if (!FindVacantQueue(
-        indices.familyIndices[GPUQueueType_Graphics],
-        indices.queueIndices[GPUQueueType_Graphics], VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
+        indices.familyIndices[GPUCommandQueueType_Graphics],
+        indices.queueIndices[GPUCommandQueueType_Graphics], VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
     {
         alimerLogError(LogCategory_GPU, "Vulkan: Could not find suitable graphics queue.");
         return indices;
     }
 
     // XXX: This assumes timestamp valid bits is the same for all queue types.
-    indices.timestampValidBits = queueFamilies[indices.familyIndices[GPUQueueType_Graphics]].queueFamilyProperties.timestampValidBits;
+    indices.timestampValidBits = queueFamilies[indices.familyIndices[GPUCommandQueueType_Graphics]].queueFamilyProperties.timestampValidBits;
 
     // Prefer another graphics queue since we can do async graphics that way.
     // The compute queue is to be treated as high priority since we also do async graphics on it.
-    if (!FindVacantQueue(indices.familyIndices[GPUQueueType_Compute], indices.queueIndices[GPUQueueType_Compute], VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 1.0f) &&
-        !FindVacantQueue(indices.familyIndices[GPUQueueType_Compute], indices.queueIndices[GPUQueueType_Compute], VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
+    if (!FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Compute], indices.queueIndices[GPUCommandQueueType_Compute], VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 1.0f) &&
+        !FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Compute], indices.queueIndices[GPUCommandQueueType_Compute], VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
     {
         // Fallback to the graphics queue if we must.
-        indices.familyIndices[GPUQueueType_Compute] = indices.familyIndices[GPUQueueType_Graphics];
-        indices.queueIndices[GPUQueueType_Compute] = indices.queueIndices[GPUQueueType_Graphics];
+        indices.familyIndices[GPUCommandQueueType_Compute] = indices.familyIndices[GPUCommandQueueType_Graphics];
+        indices.queueIndices[GPUCommandQueueType_Compute] = indices.queueIndices[GPUCommandQueueType_Graphics];
     }
 
     // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
     // If not, fallback to a dedicated compute queue.
     // Finally, fallback to same queue as compute.
-    if (!FindVacantQueue(indices.familyIndices[GPUQueueType_Copy], indices.queueIndices[GPUQueueType_Copy], VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f) &&
-        !FindVacantQueue(indices.familyIndices[GPUQueueType_Copy], indices.queueIndices[GPUQueueType_Copy], VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
+    if (!FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Copy], indices.queueIndices[GPUCommandQueueType_Copy], VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f) &&
+        !FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Copy], indices.queueIndices[GPUCommandQueueType_Copy], VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
     {
-        indices.familyIndices[GPUQueueType_Copy] = indices.familyIndices[GPUQueueType_Compute];
-        indices.queueIndices[GPUQueueType_Copy] = indices.queueIndices[GPUQueueType_Compute];
+        indices.familyIndices[GPUCommandQueueType_Copy] = indices.familyIndices[GPUCommandQueueType_Compute];
+        indices.queueIndices[GPUCommandQueueType_Copy] = indices.queueIndices[GPUCommandQueueType_Compute];
     }
 
     if (supportsVideoQueue)
     {
-        if (!FindVacantQueue(indices.familyIndices[GPUQueueType_VideoDecode],
-            indices.queueIndices[GPUQueueType_VideoDecode],
+#if TODO_VIDEO
+        if (!FindVacantQueue(indices.familyIndices[GPUCommandQueueType_VideoDecode],
+            indices.queueIndices[GPUCommandQueueType_VideoDecode],
             VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
         {
-            indices.familyIndices[GPUQueueType_VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
-            indices.queueIndices[GPUQueueType_VideoDecode] = UINT32_MAX;
+            indices.familyIndices[GPUCommandQueueType_VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
+            indices.queueIndices[GPUCommandQueueType_VideoDecode] = UINT32_MAX;
         }
+#endif // TODO_VIDEO
+
 
 #ifdef VK_ENABLE_BETA_EXTENSIONS
         //if ((flags & CONTEXT_CREATION_ENABLE_VIDEO_ENCODE_BIT) != 0)
@@ -1227,7 +1230,7 @@ struct VulkanSurface;
 struct VulkanAdapter;
 struct VulkanInstance;
 
-struct VulkanBuffer final : public GPUBufferImpl
+struct VulkanBuffer final : public GPUBuffer
 {
     VulkanDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
@@ -1242,7 +1245,7 @@ struct VulkanBuffer final : public GPUBufferImpl
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct VulkanTexture final : public GPUTextureImpl
+struct VulkanTexture final : public GPUTexture
 {
     VulkanDevice* device = nullptr;
     VkFormat vkFormat = VK_FORMAT_UNDEFINED;
@@ -1305,7 +1308,7 @@ struct VulkanRenderPipeline final : public GPURenderPipelineImpl
     void SetLabel(const char* label) override;
 };
 
-struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
+struct VulkanComputePassEncoder final : public GPUComputePassEncoder
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
@@ -1322,10 +1325,10 @@ struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 };
 
-struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
+struct VulkanRenderPassEncoder final : public GPURenderPassEncoder
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
@@ -1346,24 +1349,24 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetBlendColor(const float blendColor[4]) override;
     void SetStencilReference(uint32_t reference) override;
 
-    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
+    void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
-    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
-    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
-    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 
     void SetShadingRate(GPUShadingRate rate) override;
 };
 
-struct VulkanCommandBuffer final : public GPUCommandBufferImpl
+struct VulkanCommandBuffer final : public GPUCommandBuffer
 {
     static constexpr uint32_t kMaxBarrierCount = 16;
 
@@ -1395,19 +1398,19 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     void SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout);
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture* surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
-    GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
+    GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) override;
+    GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
-struct VulkanQueue final : public GPUQueueImpl
+struct VulkanQueue final : public GPUCommandQueue
 {
     VulkanDevice* device = nullptr;
-    GPUQueueType queueType = GPUQueueType_Count;
+    GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
     VkQueue handle = VK_NULL_HANDLE;
     VkFence frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
     std::mutex mutex;
@@ -1416,9 +1419,11 @@ struct VulkanQueue final : public GPUQueueImpl
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUQueueType GetQueueType() const override { return queueType; }
-    GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
-    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers) override;
+    GPUCommandQueueType GetType() const override { return queueType; }
+
+    void WaitIdle() override;
+    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers) override;
     void Submit(VkFence fence);
 };
 
@@ -1453,7 +1458,7 @@ struct VulkanDevice final : public GPUDevice
 {
     VulkanAdapter* adapter = nullptr;
     VkDevice handle = VK_NULL_HANDLE;
-    VulkanQueue queues[GPUQueueType_Count];
+    VulkanQueue queues[_GPUCommandQueueType_Count];
     VkPipelineCache pipelineCache = VK_NULL_HANDLE;
     VmaAllocator allocator = nullptr;
     VmaAllocator externalAllocator = nullptr;
@@ -1489,14 +1494,16 @@ struct VulkanDevice final : public GPUDevice
     void SetLabel(const char* label) override;
 
     bool HasFeature(GPUFeature feature) const override;
-    GPUQueue GetQueue(GPUQueueType type) override;
-    bool WaitIdle() override;
+    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    void WaitIdle() override;
     uint64_t CommitFrame() override;
     void ProcessDeletionQueue(bool force);
 
+    uint64_t GetTimestampFrequency() const override;
+
     /* Resource creation */
-    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -1615,7 +1622,7 @@ struct VulkanInstance final : public GPUFactory
     ~VulkanInstance() override;
 
     GPUBackendType GetBackend() const override { return GPUBackendType_Vulkan; }
-    GPUSurface* CreateSurface(Window* window) override;
+    GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
     GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
@@ -1910,7 +1917,7 @@ void VulkanComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCoun
     commandBuffer->device->vkCmdDispatch(commandBuffer->handle, groupCountX, groupCountY, groupCountZ);
 }
 
-void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDispatch();
 
@@ -2137,7 +2144,7 @@ void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
     commandBuffer->device->vkCmdSetStencilReference(commandBuffer->handle, VK_STENCIL_FRONT_AND_BACK, reference);
 }
 
-void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
+void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset)
 {
     // TODO: Batch with 1 call
     VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
@@ -2145,7 +2152,7 @@ void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, u
     commandBuffer->device->vkCmdBindVertexBuffers(commandBuffer->handle, slot, 1, &backendBuffer->handle, &offset);
 }
 
-void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
+void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
 {
     VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
     VkIndexType vkIndexType = (type == GPUIndexType_Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
@@ -2190,7 +2197,7 @@ void VulkanRenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instance
     commandBuffer->device->vkCmdDrawIndexed(commandBuffer->handle, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2204,7 +2211,7 @@ void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t in
     );
 }
 
-void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2218,7 +2225,7 @@ void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint
     );
 }
 
-void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2250,7 +2257,7 @@ void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64
     }
 }
 
-void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2427,7 +2434,7 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
     }
 #endif
 
-    if (queue->queueType == GPUQueueType_Graphics)
+    if (queue->queueType == GPUCommandQueueType_Graphics)
     {
         VkRect2D scissors[16];
         for (uint32_t i = 0; i < 16; ++i)
@@ -2581,7 +2588,7 @@ void VulkanCommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const voi
     );
 }
 
-GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface* surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture)
 {
     VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
     size_t swapChainAcquireSemaphoreIndex = backendSurface->swapChainAcquireSemaphoreIndex;
@@ -2670,7 +2677,7 @@ void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
     vkCmdInsertDebugUtilsLabelEXT(handle, &label);
 }
 
-GPUComputePassEncoder VulkanCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
+GPUComputePassEncoder* VulkanCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
 {
     if (encoderActive)
     {
@@ -2683,7 +2690,7 @@ GPUComputePassEncoder VulkanCommandBuffer::BeginComputePass(const GPUComputePass
     return computePassEncoder;
 }
 
-GPURenderPassEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
+GPURenderPassEncoder* VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
 {
     if (encoderActive)
     {
@@ -2697,7 +2704,12 @@ GPURenderPassEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDes
 }
 
 /* VulkanQueue */
-GPUCommandBuffer VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+void VulkanQueue::WaitIdle()
+{
+    VK_CHECK(device->vkQueueWaitIdle(handle));
+}
+
+GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
@@ -2736,7 +2748,7 @@ GPUCommandBuffer VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
     return commandBuffers[index];
 }
 
-void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* commandBuffers)
+void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
 {
     VkFence fence = VK_NULL_HANDLE;
     std::vector<VkSemaphoreSubmitInfo> submitWaitSemaphoreInfos;
@@ -2812,7 +2824,7 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer const* com
     presentInfo.pSwapchains = submitSwapchains.data();
     presentInfo.pImageIndices = submitSwapchainImageIndices.data();
 
-    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUQueueType_Graphics].handle, &presentInfo);
+    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUCommandQueueType_Graphics].handle, &presentInfo);
     if (result != VK_SUCCESS)
     {
         // Handle outdated error in present
@@ -2901,7 +2913,7 @@ void VulkanCopyAllocator::Init(VulkanDevice* device_)
 
 void VulkanCopyAllocator::Shutdown()
 {
-    device->vkQueueWaitIdle(device->queues[GPUQueueType_Copy].handle);
+    device->vkQueueWaitIdle(device->queues[GPUCommandQueueType_Copy].handle);
     for (auto& context : freeList)
     {
         device->vkDestroyCommandPool(device->handle, context.transferCommandPool, nullptr);
@@ -2944,10 +2956,10 @@ VulkanUploadContext VulkanCopyAllocator::Allocate(uint64_t size)
         VkCommandPoolCreateInfo poolCreateInfo = {};
         poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUQueueType_Copy];
+        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUCommandQueueType_Copy];
         VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transferCommandPool));
 
-        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUQueueType_Graphics];
+        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics];
         VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transitionCommandPool));
 
         VkCommandBufferAllocateInfo commandBufferInfo = {};
@@ -3030,8 +3042,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
         submitInfo.signalSemaphoreInfoCount = 1;
         submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
-        std::scoped_lock lock(device->queues[GPUQueueType_Copy].mutex);
-        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Copy].handle, 1, &submitInfo, VK_NULL_HANDLE));
+        std::scoped_lock lock(device->queues[GPUCommandQueueType_Copy].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUCommandQueueType_Copy].handle, 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     // Graphics queue
@@ -3068,8 +3080,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
         }
         submitInfo.pSignalSemaphoreInfos = signalSemaphoreInfos;
 
-        std::scoped_lock lock(device->queues[GPUQueueType_Graphics].mutex);
-        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Graphics].handle, 1, &submitInfo, VK_NULL_HANDLE));
+        std::scoped_lock lock(device->queues[GPUCommandQueueType_Graphics].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUCommandQueueType_Graphics].handle, 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
@@ -3104,8 +3116,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
         submitInfo.pSignalSemaphoreInfos = nullptr;
 
         // Final submit also signals fence!
-        std::scoped_lock lock(device->queues[GPUQueueType_Compute].mutex);
-        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Compute].handle, 1, &submitInfo, context.fence));
+        std::scoped_lock lock(device->queues[GPUCommandQueueType_Compute].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUCommandQueueType_Compute].handle, 1, &submitInfo, context.fence));
     }
 
     std::scoped_lock lock(locker);
@@ -3117,22 +3129,22 @@ VulkanDevice::~VulkanDevice()
 {
     VK_CHECK(vkDeviceWaitIdle(handle));
 
-    for (uint32_t queueIndex = 0; queueIndex < GPUQueueType_Count; ++queueIndex)
+    for (uint32_t index = 0; index < _GPUCommandQueueType_Count; ++index)
     {
-        if (queues[queueIndex].handle == VK_NULL_HANDLE)
+        if (queues[index].handle == VK_NULL_HANDLE)
             continue;
 
         for (uint32_t frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex)
         {
-            vkDestroyFence(handle, queues[queueIndex].frameFences[frameIndex], nullptr);
+            vkDestroyFence(handle, queues[index].frameFences[frameIndex], nullptr);
         }
 
         // Destroy command buffers and pools
-        for (size_t cmdBufferIndex = 0, count = queues[queueIndex].commandBuffers.size(); cmdBufferIndex < count; ++cmdBufferIndex)
+        for (size_t cmdBufferIndex = 0, count = queues[index].commandBuffers.size(); cmdBufferIndex < count; ++cmdBufferIndex)
         {
-            delete queues[queueIndex].commandBuffers[cmdBufferIndex];
+            delete queues[index].commandBuffers[cmdBufferIndex];
         }
-        queues[queueIndex].commandBuffers.clear();
+        queues[index].commandBuffers.clear();
     }
 
     copyAllocator.Shutdown();
@@ -3198,25 +3210,24 @@ bool VulkanDevice::HasFeature(GPUFeature feature) const
     return adapter->HasFeature(feature);
 }
 
-GPUQueue VulkanDevice::GetQueue(GPUQueueType type)
+GPUCommandQueue* VulkanDevice::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
 }
 
-bool VulkanDevice::WaitIdle()
+void VulkanDevice::WaitIdle()
 {
     VkResult result = vkDeviceWaitIdle(handle);
     if (result != VK_SUCCESS)
-        return false;
+        return;
 
     ProcessDeletionQueue(true);
-    return true;
 }
 
 uint64_t VulkanDevice::CommitFrame()
 {
     // Final submits with fences.
-    for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
+    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
     {
         queues[i].Submit(queues[i].frameFences[frameIndex]);
         queues[i].cmdBuffersCount = 0;
@@ -3229,7 +3240,7 @@ uint64_t VulkanDevice::CommitFrame()
     // Initiate stalling CPU when GPU is not yet finished with next frame
     if (frameCount >= maxFramesInFlight)
     {
-        for (uint32_t i = 0; i < GPUQueueType_Count; ++i)
+        for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
         {
             if (queues[i].handle == VK_NULL_HANDLE)
                 continue;
@@ -3278,7 +3289,13 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+uint64_t VulkanDevice::GetTimestampFrequency() const
+{
+    uint64_t timestampFrequency = uint64_t(1.0 / double(adapter->properties2.properties.limits.timestampPeriod) * 1000 * 1000 * 1000);
+    return timestampFrequency;
+}
+
+GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
     buffer->device = this;
@@ -3511,7 +3528,7 @@ GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIni
     return buffer;
 }
 
-GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
@@ -4693,17 +4710,20 @@ void VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
     switch (properties2.properties.deviceType)
     {
         case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-            info->adapterType = GPUAdapterType_IntegratedGPU;
+            info->adapterType = GPUAdapterType_IntegratedGpu;
             break;
         case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-            info->adapterType = GPUAdapterType_DiscreteGPU;
+            info->adapterType = GPUAdapterType_DiscreteGpu;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+            info->adapterType = GPUAdapterType_VirtualGpu;
             break;
         case VK_PHYSICAL_DEVICE_TYPE_CPU:
-            info->adapterType = GPUAdapterType_CPU;
+            info->adapterType = GPUAdapterType_Cpu;
             break;
 
         default:
-            info->adapterType = GPUAdapterType_Unknown;
+            info->adapterType = GPUAdapterType_Other;
             break;
     }
 }
@@ -5195,12 +5215,12 @@ GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-    for (uint32_t i = 0; i < GPUQueueType_Count; i++)
+    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; i++)
     {
         if (queueFamilyIndices.familyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
         {
             device->queues[i].device = device;
-            device->queues[i].queueType = (GPUQueueType)i;
+            device->queues[i].queueType = (GPUCommandQueueType)i;
 
             device->vkGetDeviceQueue(device->handle, queueFamilyIndices.familyIndices[i], queueFamilyIndices.queueIndices[i], &device->queues[i].handle);
             queueFamilyIndices.counts[i] = queueFamilyIndices.queueOffsets[queueFamilyIndices.familyIndices[i]];
@@ -5362,7 +5382,7 @@ VulkanInstance::~VulkanInstance()
     }
 }
 
-GPUSurface* VulkanInstance::CreateSurface(Window* window)
+GPUSurface* VulkanInstance::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 {
     VkResult result = VK_SUCCESS;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
@@ -5375,17 +5395,10 @@ GPUSurface* VulkanInstance::CreateSurface(Window* window)
         return nullptr;
     }
 
-    HWND hwnd = static_cast<HWND>(alimerWindowGetNativeHandle(window));
-    if (!IsWindow(hwnd))
-    {
-        alimerLogError(LogCategory_GPU, "Win32: Invalid vulkan hwnd handle");
-        return nullptr;
-    }
-
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-    surfaceCreateInfo.hwnd = hwnd;
+    surfaceCreateInfo.hinstance = surfaceHandle->hinstance; // GetModuleHandleW(nullptr);
+    surfaceCreateInfo.hwnd = surfaceHandle->hwnd;
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #elif defined(__ANDROID__)
@@ -5483,7 +5496,7 @@ GPUAdapter* VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* optio
             VkBool32 presentSupport = false;
             VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
                 physicalDevice,
-                adapter->queueFamilyIndices.familyIndices[GPUQueueType_Graphics],
+                adapter->queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics],
                 surface->handle,
                 &presentSupport
             );
