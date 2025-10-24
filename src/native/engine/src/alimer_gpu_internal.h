@@ -193,6 +193,8 @@ struct GPUDevice : public GPUResource
     virtual GPUPipelineLayoutImpl* CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
     virtual GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipelineImpl* CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
+    virtual GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
+
 };
 
 struct GPUSurfaceHandle
@@ -244,7 +246,7 @@ struct GPUSurface : public GPUResource
 struct GPUAdapter : public GPUResource
 {
     virtual void GetInfo(GPUAdapterInfo* info) const = 0;
-    virtual void GetLimits(GPULimits* limits) const = 0;
+    virtual void GetLimits(GPUAdapterLimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUDevice* CreateDevice(const GPUDeviceDesc& desc) = 0;
 };

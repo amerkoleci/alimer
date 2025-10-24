@@ -16,7 +16,7 @@ public abstract class ComputeContext : CopyContext
     }
 
     /// <inheritdoc />
-    public override QueueType QueueType => QueueType.Compute;
+    public override CommandQueueType QueueType => CommandQueueType.Compute;
 
     protected virtual void Reset(uint frameIndex)
     {

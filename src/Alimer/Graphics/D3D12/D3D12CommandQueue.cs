@@ -12,7 +12,7 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
 {
-    private readonly QueueType _queueType;
+    private readonly CommandQueueType _queueType;
     private readonly ComPtr<ID3D12CommandQueue> _handle;
     private readonly ComPtr<ID3D12Fence> _fence;
     private ulong _nextFenceValue;
@@ -24,7 +24,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
     private readonly List<D3D12CommandBuffer> _commandBuffers = [];
     private readonly List<D3D12SwapChain> _presentSwapChains = [];
 
-    public D3D12CommandQueue(D3D12GraphicsDevice device, QueueType queueType)
+    public D3D12CommandQueue(D3D12GraphicsDevice device, CommandQueueType queueType)
     {
         D3DDevice = device;
         _queueType = queueType;
@@ -58,7 +58,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
     public override GraphicsDevice Device => D3DDevice;
 
     /// <inheritdoc />
-    public override QueueType QueueType => _queueType;
+    public override CommandQueueType QueueType => _queueType;
 
     public D3D12GraphicsDevice D3DDevice { get; }
     public D3D12_COMMAND_LIST_TYPE CommandListType { get; }

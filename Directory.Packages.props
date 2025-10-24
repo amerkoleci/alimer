@@ -2,9 +2,9 @@
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
     <VorticeWin32Version>2.3.0</VorticeWin32Version>
-    <TerraFXWindowsVersion>10.0.26100.2</TerraFXWindowsVersion>
+    <TerraFXWindowsVersion>10.0.26100.3</TerraFXWindowsVersion>
     <ImGuiVersion>2.2.9</ImGuiVersion>
-    <SkiaSharpVersion>3.119.1</SkiaSharpVersion>
+    <SkiaSharpVersion>3.119.2-preview.1</SkiaSharpVersion>
   </PropertyGroup>
 
   <ItemGroup>

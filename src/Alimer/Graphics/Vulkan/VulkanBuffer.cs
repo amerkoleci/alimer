@@ -86,7 +86,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
 
-        uint* sharingIndices = stackalloc uint[(int)QueueType.Count];
+        uint* sharingIndices = stackalloc uint[(int)CommandQueueType.Count];
         device.FillBufferSharingIndices(ref createInfo, sharingIndices);
 
         // TODO: Add sparse buffer support

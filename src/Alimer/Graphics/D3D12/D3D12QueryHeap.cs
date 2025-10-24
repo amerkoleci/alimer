@@ -13,7 +13,7 @@ internal unsafe class D3D12QueryHeap : QueryHeap
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12QueryHeap> _handle;
 
-    public D3D12QueryHeap(D3D12GraphicsDevice device, in QueryHeapDescriptor descriptor)
+    public D3D12QueryHeap(D3D12GraphicsDevice device, in QueryHeapDescription descriptor)
         : base(descriptor)
     {
         _device = device;

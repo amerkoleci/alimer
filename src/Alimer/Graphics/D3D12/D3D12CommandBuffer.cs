@@ -30,7 +30,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     private const int MaxBarriers = 16;
 
     /// <summary>
-    /// Allowed states for <see cref="QueueType.Compute"/>
+    /// Allowed states for <see cref="CommandQueueType.Compute"/>
     /// </summary>
     private static readonly D3D12_RESOURCE_STATES s_ValidComputeResourceStates =
        D3D12_RESOURCE_STATE_UNORDERED_ACCESS
@@ -39,7 +39,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
        | D3D12_RESOURCE_STATE_COPY_SOURCE;
 
     /// <summary>
-    /// Allowed states for <see cref="QueueType.Copy"/>
+    /// Allowed states for <see cref="CommandQueueType.Copy"/>
     /// </summary>
     private static readonly D3D12_RESOURCE_STATES s_ValidCopyResourceStates = D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_COPY_SOURCE;
 
@@ -123,7 +123,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             PushDebugGroup(label);
         }
 
-        if (_queue.QueueType != QueueType.Copy)
+        if (_queue.QueueType != CommandQueueType.Copy)
         {
             ID3D12DescriptorHeap** descriptorHeaps = stackalloc ID3D12DescriptorHeap*[2]
             {
@@ -133,7 +133,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
             _commandList.Get()->SetDescriptorHeaps(2, descriptorHeaps);
         }
 
-        if (_queue.QueueType == QueueType.Graphics)
+        if (_queue.QueueType == CommandQueueType.Graphics)
         {
             for (int i = 0; i < MaxVertexBufferBindings; ++i)
             {
@@ -166,12 +166,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         D3D12_RESOURCE_STATES oldStateLegacy = ConvertTextureLayoutLegacy(currentLayout);
         D3D12_RESOURCE_STATES newStateLegacy = ConvertTextureLayoutLegacy(newLayout);
 
-        if (_queue.QueueType == QueueType.Compute)
+        if (_queue.QueueType == CommandQueueType.Compute)
         {
             Guard.IsTrue((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
             Guard.IsTrue((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
         }
-        else if (_queue.QueueType == QueueType.Copy)
+        else if (_queue.QueueType == CommandQueueType.Copy)
         {
             Guard.IsTrue((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
             Guard.IsTrue((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);

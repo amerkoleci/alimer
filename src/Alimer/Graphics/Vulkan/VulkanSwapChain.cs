@@ -24,7 +24,6 @@ internal unsafe class VulkanSwapChain : SwapChain
     {
         _device = device;
 
-
         // Create VkSurface first.
         VkInstance instance = device.VkAdapter.VkGraphicsManager.Instance;
         VkInstanceApi instanceApi = device.VkAdapter.VkGraphicsManager.InstanceApi;

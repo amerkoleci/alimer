@@ -24,7 +24,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkDevice _handle = VkDevice.Null;
     private readonly VkDeviceApi _deviceApi;
     private readonly VulkanCopyAllocator _copyAllocator;
-    private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)QueueType.Count];
+    private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)CommandQueueType.Count];
     private readonly VmaAllocator _allocator;
     private readonly VmaAllocation _nullBufferAllocation = VmaAllocation.Null;
     private readonly VmaAllocation _nullImageAllocation1D = VmaAllocation.Null;
@@ -53,10 +53,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         _adapter = adapter;
         _physicalDevice = adapter.Handle;
 
-        _queueFamilyIndices = new uint[(int)QueueType.Count];
-        _queueIndices = new uint[(int)QueueType.Count];
-        _queueCounts = new uint[(int)QueueType.Count];
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        _queueFamilyIndices = new uint[(int)CommandQueueType.Count];
+        _queueIndices = new uint[(int)CommandQueueType.Count];
+        _queueCounts = new uint[(int)CommandQueueType.Count];
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             _queueFamilyIndices[i] = VK_QUEUE_FAMILY_IGNORED;
         }
@@ -88,7 +88,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkSurfaceKHR surface = VkSurfaceKHR.Null;
 
         uint* offsets = stackalloc uint[queueFamilyCount];
-        float* priorities = stackalloc float[queueFamilyCount * (int)QueueType.Count];
+        float* priorities = stackalloc float[queueFamilyCount * (int)CommandQueueType.Count];
         bool FindVacantQueue(VkQueueFlags required, VkQueueFlags ignored, float priority, ref uint family, ref uint index)
         {
             for (uint i = 0; i < queueFamilyCount; i++)
@@ -152,7 +152,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     family = i;
                     queueProps[i].queueFamilyProperties.queueCount--;
                     index = offsets[i]++;
-                    priorities[i * (int)QueueType.Count + index] = priority;
+                    priorities[i * (int)CommandQueueType.Count + index] = priority;
                     return true;
                 }
             }
@@ -162,44 +162,44 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         // Find graphics queue
         if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute,
             VkQueueFlags.None, 0.5f,
-            ref _queueFamilyIndices[(int)QueueType.Graphics],
-            ref _queueIndices[(int)QueueType.Graphics]))
+            ref _queueFamilyIndices[(int)CommandQueueType.Graphics],
+            ref _queueIndices[(int)CommandQueueType.Graphics]))
         {
             throw new GraphicsException("Vulkan: Could not find graphics queue with compute and present");
         }
 
         // Prefer another graphics queue since we can do async graphics that way.
         // The compute queue is to be treated as high priority since we also do async graphics on it.
-        if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]) &&
-            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)QueueType.Compute], ref _queueIndices[(int)QueueType.Compute]))
+        if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)CommandQueueType.Compute], ref _queueIndices[(int)CommandQueueType.Compute]) &&
+            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)CommandQueueType.Compute], ref _queueIndices[(int)CommandQueueType.Compute]))
         {
-            _queueFamilyIndices[(int)QueueType.Compute] = _queueFamilyIndices[(int)QueueType.Graphics];
-            _queueIndices[(int)QueueType.Compute] = _queueIndices[(int)QueueType.Graphics];
+            _queueFamilyIndices[(int)CommandQueueType.Compute] = _queueFamilyIndices[(int)CommandQueueType.Graphics];
+            _queueIndices[(int)CommandQueueType.Compute] = _queueIndices[(int)CommandQueueType.Graphics];
         }
 
         // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
         // If not, fallback to a dedicated compute queue.
         // Finally, fallback to same queue as compute.
-        if (!FindVacantQueue(VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]) &&
-            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f, ref _queueFamilyIndices[(int)QueueType.Copy], ref _queueIndices[(int)QueueType.Copy]))
+        if (!FindVacantQueue(VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.Copy], ref _queueIndices[(int)CommandQueueType.Copy]) &&
+            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.Copy], ref _queueIndices[(int)CommandQueueType.Copy]))
         {
-            _queueFamilyIndices[(int)QueueType.Copy] = _queueFamilyIndices[(int)QueueType.Compute];
-            _queueIndices[(int)QueueType.Copy] = _queueIndices[(int)QueueType.Compute];
+            _queueFamilyIndices[(int)CommandQueueType.Copy] = _queueFamilyIndices[(int)CommandQueueType.Compute];
+            _queueIndices[(int)CommandQueueType.Copy] = _queueIndices[(int)CommandQueueType.Compute];
         }
 
         if (_adapter.Extensions.Video.Queue)
         {
-            if (!FindVacantQueue(VkQueueFlags.VideoDecodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoDecode], ref _queueIndices[(int)QueueType.VideoDecode]))
+            if (!FindVacantQueue(VkQueueFlags.VideoDecodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.VideoDecode], ref _queueIndices[(int)CommandQueueType.VideoDecode]))
             {
-                _queueFamilyIndices[(int)QueueType.VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
-                _queueIndices[(int)QueueType.VideoDecode] = uint.MaxValue;
+                _queueFamilyIndices[(int)CommandQueueType.VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
+                _queueIndices[(int)CommandQueueType.VideoDecode] = uint.MaxValue;
             }
 
-            if (!FindVacantQueue(VkQueueFlags.VideoEncodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)QueueType.VideoEncode], ref _queueIndices[(int)QueueType.VideoEncode]))
-            {
-                _queueFamilyIndices[(int)QueueType.VideoEncode] = VK_QUEUE_FAMILY_IGNORED;
-                _queueIndices[(int)QueueType.VideoEncode] = uint.MaxValue;
-            }
+            //if (!FindVacantQueue(VkQueueFlags.VideoEncodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.VideoEncode], ref _queueIndices[(int)CommandQueueType.VideoEncode]))
+            //{
+            //    _queueFamilyIndices[(int)CommandQueueType.VideoEncode] = VK_QUEUE_FAMILY_IGNORED;
+            //    _queueIndices[(int)CommandQueueType.VideoEncode] = uint.MaxValue;
+            //}
         }
 
         uint queueCreateInfosCount = 0u;
@@ -213,7 +213,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 queueFamilyIndex = i,
                 queueCount = offsets[i],
-                pQueuePriorities = &priorities[i * (int)QueueType.Count]
+                pQueuePriorities = &priorities[i * (int)CommandQueueType.Count]
             };
             queueCreateInfos[queueCreateInfosCount] = queueCreateInfo;
             queueCreateInfosCount++;
@@ -579,11 +579,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         vmaCreateAllocator(in allocatorCreateInfo, out _allocator).CheckResult();
 
         // Queues
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             if (_queueFamilyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
             {
-                _queues[i] = new VulkanCommandQueue(this, (QueueType)i);
+                _queues[i] = new VulkanCommandQueue(this, (CommandQueueType)i);
             }
         }
 
@@ -747,19 +747,19 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public bool DebugUtils => _adapter.VkGraphicsManager.DebugUtils;
 
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
-    public uint GraphicsFamily => _queueFamilyIndices[(int)QueueType.Graphics];
-    public uint ComputeFamily => _queueFamilyIndices[(int)QueueType.Compute];
-    public uint CopyQueueFamily => _queueFamilyIndices[(int)QueueType.Copy];
-    public uint VideoDecodeQueueFamily => _queueFamilyIndices[(int)QueueType.VideoDecode];
-    public uint VideoEncodeQueueFamily => _queueFamilyIndices[(int)QueueType.VideoEncode];
+    public uint GraphicsFamily => _queueFamilyIndices[(int)CommandQueueType.Graphics];
+    public uint ComputeFamily => _queueFamilyIndices[(int)CommandQueueType.Compute];
+    public uint CopyQueueFamily => _queueFamilyIndices[(int)CommandQueueType.Copy];
+    public uint VideoDecodeQueueFamily => _queueFamilyIndices[(int)CommandQueueType.VideoDecode];
+    //public uint VideoEncodeQueueFamily => _queueFamilyIndices[(int)CommandQueueType.VideoEncode];
 
     public VkDevice Handle => _handle;
     public VkDeviceApi DeviceApi => _deviceApi;
-    public VulkanCommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
-    public VulkanCommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
-    public VulkanCommandQueue CopyQueue => _queues[(int)QueueType.Copy];
-    public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)QueueType.VideoDecode];
-    public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)QueueType.VideoEncode];
+    public VulkanCommandQueue GraphicsQueue => _queues[(int)CommandQueueType.Graphics];
+    public VulkanCommandQueue ComputeQueue => _queues[(int)CommandQueueType.Compute];
+    public VulkanCommandQueue CopyQueue => _queues[(int)CommandQueueType.Copy];
+    public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)CommandQueueType.VideoDecode];
+    //public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)CommandQueueType.VideoEncode];
 
     public VmaAllocator Allocator => _allocator;
 
@@ -784,7 +784,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             WaitIdle();
             _shuttingDown = true;
 
-            for (int i = 0; i < (int)QueueType.Count; i++)
+            for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {
                 if (_queues[i] is null)
                     continue;
@@ -842,7 +842,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override CommandQueue GetCommandQueue(QueueType type) => _queues[(int)type];
+    public override CommandQueue GetCommandQueue(CommandQueueType type) => _queues[(int)type];
 
     /// <inheritdoc />
     public override void WaitIdle()
@@ -860,7 +860,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public override ulong CommitFrame()
     {
         // Final submits with fences
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
@@ -873,7 +873,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         // Initiate stalling CPU when GPU is not yet finished with next frame
         if (_frameCount >= MaxFramesInFlight)
         {
-            for (int i = 0; i < (int)QueueType.Count; i++)
+            for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {
                 if (_queues[i] is null)
                     continue;
@@ -883,7 +883,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
@@ -928,8 +928,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
     }
 
-    public uint GetQueueFamily(QueueType queueType) => _queueFamilyIndices[(int)queueType];
-    public uint GetQueueIndex(QueueType queueType) => _queueIndices[(int)queueType];
+    public uint GetQueueFamily(CommandQueueType queueType) => _queueFamilyIndices[(int)queueType];
+    public uint GetQueueIndex(CommandQueueType queueType) => _queueIndices[(int)queueType];
 
     public VulkanUploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
     public void Submit(in VulkanUploadContext context) => _copyAllocator.Submit(in context);
@@ -1117,7 +1117,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
     {
         return new VulkanQueryHeap(this, description);
     }
@@ -1131,7 +1131,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
     {
-        return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
+        return _queues[(int)CommandQueueType.Graphics].BeginCommandContext(label);
     }
 
     public void SetObjectName(VkObjectType objectType, ulong objectHandle, string? name = default)

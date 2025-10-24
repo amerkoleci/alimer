@@ -16,7 +16,7 @@ public abstract class CopyContext
     /// <summary>
     /// Get the <see cref="QueueType"/> object that will execute this context.
     /// </summary>
-    public virtual QueueType QueueType => QueueType.Copy;
+    public virtual CommandQueueType QueueType => CommandQueueType.Copy;
 
     /// <summary>
     /// Get the <see cref="GraphicsDevice"/> object that created this object.

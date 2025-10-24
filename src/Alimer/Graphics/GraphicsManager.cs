@@ -34,7 +34,24 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     {
         Guard.IsTrue(backendType != GraphicsBackendType.Default, nameof(backendType), "Invalid backend type");
 
-        return agpuIsBackendSupport(backendType);
+        switch (backendType)
+        {
+#if !EXCLUDE_VULKAN_BACKEND
+            case GraphicsBackendType.Vulkan:
+                return Vulkan.VulkanGraphicsManager.IsSupported;
+#endif
+#if !EXCLUDE_D3D12_BACKEND
+            case GraphicsBackendType.D3D12:
+                return D3D12.D3D12GraphicsManager.IsSupported;
+#endif
+#if !EXCLUDE_METAL_BACKEND
+            case GraphicsBackendType.Metal:
+                return Metal.MetalGraphicsManager.IsSupported;
+#endif
+
+            default:
+                return false;
+        }
     }
 
     /// <summary>

@@ -35,7 +35,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly HANDLE _deviceRemovedEvent = HANDLE.NULL;
     private readonly HANDLE _deviceRemovedWaitHandle = HANDLE.NULL;
 
-    private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)QueueType.Count];
+    private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)CommandQueueType.Count];
     private readonly D3D12CopyAllocator _copyAllocator;
     private readonly ComPtr<ID3D12CommandSignature> _dispatchIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _drawIndirectCommandSignature = default;
@@ -157,10 +157,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         // Create command queue's
-        QueueType supportedQueueCount = supportVideoDevice ? QueueType.Count : QueueType.VideoDecode;
+        CommandQueueType supportedQueueCount = supportVideoDevice ? CommandQueueType.Count : CommandQueueType.VideoDecode;
         for (int i = 0; i < (int)supportedQueueCount; i++)
         {
-            QueueType queue = (QueueType)i;
+            CommandQueueType queue = (CommandQueueType)i;
             _queues[i] = new D3D12CommandQueue(this, queue);
         }
 
@@ -252,12 +252,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12GraphicsAdapter DxAdapter => _adapter;
     public bool EnhancedBarriersSupported => _adapter.Features.EnhancedBarriersSupported;
 
-    public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)QueueType.Graphics].Handle;
-    public D3D12CommandQueue GraphicsQueue => _queues[(int)QueueType.Graphics];
-    public D3D12CommandQueue ComputeQueue => _queues[(int)QueueType.Compute];
-    public D3D12CommandQueue CopyQueue => _queues[(int)QueueType.Copy];
-    public D3D12CommandQueue? VideDecodeQueue => _queues[(int)QueueType.VideoDecode];
-    public D3D12CommandQueue? VideoEncode => _queues[(int)QueueType.VideoEncode];
+    public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)CommandQueueType.Graphics].Handle;
+    public D3D12CommandQueue GraphicsQueue => _queues[(int)CommandQueueType.Graphics];
+    public D3D12CommandQueue ComputeQueue => _queues[(int)CommandQueueType.Compute];
+    public D3D12CommandQueue CopyQueue => _queues[(int)CommandQueueType.Copy];
+    public D3D12CommandQueue? VideDecodeQueue => _queues[(int)CommandQueueType.VideoDecode];
+    //public D3D12CommandQueue? VideoEncode => _queues[(int)CommandQueueType.VideoEncode];
 
     public D3D12DescriptorAllocator RenderTargetViewHeap { get; }
     public D3D12DescriptorAllocator DepthStencilViewHeap { get; }
@@ -289,7 +289,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _frameIndex = 0;
 
             // Destroy CommandQueue's
-            for (int i = 0; i < (int)QueueType.Count; i++)
+            for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {
                 if (_queues[i] == null)
                     continue;
@@ -382,12 +382,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public void Submit(in D3D12UploadContext context) => _copyAllocator.Submit(in context);
 
     /// <inheritdoc />
-    public override CommandQueue GetCommandQueue(QueueType type) => _queues[(int)type];
+    public override CommandQueue GetCommandQueue(CommandQueueType type) => _queues[(int)type];
 
     /// <inheritdoc />
     public override void WaitIdle()
     {
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             if (_queues[i] == null)
                 continue;
@@ -401,7 +401,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override ulong CommitFrame()
     {
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
@@ -414,7 +414,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         // Initiate stalling CPU when GPU is not yet finished with next frame
         if (_frameCount >= MaxFramesInFlight)
         {
-            for (int i = 0; i < (int)QueueType.Count; i++)
+            for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {
                 if (_queues[i] is null)
                     continue;
@@ -423,7 +423,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 
-        for (int i = 0; i < (int)QueueType.Count; i++)
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             if (_queues[i] is null)
                 continue;
@@ -494,7 +494,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
     {
         return new D3D12QueryHeap(this, description);
     }
@@ -508,6 +508,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
     {
-        return _queues[(int)QueueType.Graphics].BeginCommandContext(label);
+        return _queues[(int)CommandQueueType.Graphics].BeginCommandContext(label);
     }
 }

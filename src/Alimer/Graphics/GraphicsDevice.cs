@@ -51,7 +51,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
-    public abstract CommandQueue GetCommandQueue(QueueType type);
+    public abstract CommandQueue GetCommandQueue(CommandQueueType type);
 
     /// <summary>
     /// Wait for device to finish pending GPU operations.
@@ -283,7 +283,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateComputePipelineCore(in description);
     }
 
-    public QueryHeap CreateQueryHeap(in QueryHeapDescriptor descriptor)
+    public QueryHeap CreateQueryHeap(in QueryHeapDescription descriptor)
     {
         return CreateQueryHeapCore(descriptor);
     }
@@ -310,6 +310,6 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
     protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
     protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
-    protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor);
+    protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription descriptor);
     protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description);
 }

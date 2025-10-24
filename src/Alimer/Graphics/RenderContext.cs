@@ -20,7 +20,7 @@ public abstract class RenderContext : ComputeContext
     }
 
     /// <inheritdoc />
-    public override QueueType QueueType => QueueType.Graphics;
+    public override CommandQueueType QueueType => CommandQueueType.Graphics;
 
     public void BeginRenderPass(in RenderPassDescription renderPass)
     {

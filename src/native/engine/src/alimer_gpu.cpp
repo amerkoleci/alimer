@@ -139,7 +139,7 @@ void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
     adapter->GetInfo(info);
 }
 
-void agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits)
+void agpuAdapterGetLimits(GPUAdapter* adapter, GPUAdapterLimits* limits)
 {
     if (!limits)
         return;
@@ -523,9 +523,9 @@ GPUBuffer* agpuCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const 
     GPUBufferDesc descDef = _GPUBufferDesc_Defaults(desc);
 
     // TODO: Validation
-    //if (descriptor->size > adapterProperties.limits.bufferMaxSize)
+    //if (descDef.size > adapterProperties.limits.bufferMaxSize)
     //{
-    //    LOGE("Buffer size too large: {}, limit: {}", desc.size, adapterProperties.limits.bufferMaxSize);
+    //    alimerLogError("Buffer size too large: {}, limit: {}", desc.size, adapterProperties.limits.bufferMaxSize);
     //    return nullptr;
     //}
 
@@ -834,6 +834,39 @@ uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline)
 uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline)
 {
     return renderPipeline->Release();
+}
+
+/* QueryHeap */
+static GPUQueryHeapDesc _GPUQueryHeapDesc_Defaults(const GPUQueryHeapDesc* desc)
+{
+    GPUQueryHeapDesc def = *desc;
+    def.queryType = _ALIMER_DEF(def.queryType, GPUQueryType_Timestamp);
+    def.count = _ALIMER_DEF(def.count, 1u);
+    return def;
+}
+
+GPUQueryHeap* agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUQueryHeapDesc descDef = _GPUQueryHeapDesc_Defaults(desc);
+    return device->CreateQueryHeap(descDef);
+}
+
+void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label)
+{
+    queryHeap->SetLabel(label);
+}
+
+uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap)
+{
+    return queryHeap->AddRef();
+}
+
+uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap)
+{
+    return queryHeap->Release();
 }
 
 /* Other */

@@ -13,7 +13,7 @@ public abstract class CommandQueue
     /// <summary>
     /// Gets the type of this queue.
     /// </summary>
-    public abstract QueueType QueueType { get; }
+    public abstract CommandQueueType QueueType { get; }
 
     /// <summary>
     /// Wait for the queue to finish pending GPU operations.

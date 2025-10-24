@@ -455,9 +455,22 @@ typedef enum GPUVariableRateShadingTier {
     _GPUVariableRateShadingTier_Force32 = 0x7FFFFFFF
 } GPUVariableRateShadingTier;
 
+typedef enum GPURayTracingTier {
+    GPURayTracingTier_NotSupported = 0,
+    GPURayTracingTier_1 = 1,
+    GPURayTracingTier_2 = 2,
+
+    _GPURayTracingTier_Force32 = 0x7FFFFFFF
+} GPURayTracingTier;
+
+typedef enum GPUMeshShaderTier {
+    GPUMeshShaderTier_NotSupported = 0,
+    GPUMeshShaderTier_1 = 1,
+
+    _GPUMeshShaderTier_Force32 = 0x7FFFFFFF
+} GPUMeshShaderTier;
+
 typedef enum GPUFeature {
-    GPUFeature_DepthClipControl,
-    GPUFeature_Depth32FloatStencil8,
     GPUFeature_TimestampQuery,
     GPUFeature_PipelineStatisticsQuery,
     GPUFeature_TextureCompressionBC,
@@ -476,13 +489,9 @@ typedef enum GPUFeature {
     GPUFeature_Tessellation,
     GPUFeature_DepthBoundsTest,
     GPUFeature_GPUUploadHeapSupported,
-    GPUFeature_CopyQueueTimestampQueriesSupported,
+    GPUFeature_CopyQueueTimestampQuery,
     GPUFeature_CacheCoherentUMA,
     GPUFeature_ShaderOutputViewportIndex,
-    GPUFeature_ConservativeRasterization,
-    GPUFeature_VariableRateShading,
-    GPUFeature_RayTracing,
-    GPUFeature_MeshShader,
     GPUFeature_Predication,
 
     _GPUFeature_Force32 = 0x7FFFFFFF
@@ -521,6 +530,21 @@ static const GPUColorWriteMask GPUColorWriteMask_Green = 0x0000000000000002;
 static const GPUColorWriteMask GPUColorWriteMask_Blue = 0x0000000000000004;
 static const GPUColorWriteMask GPUColorWriteMask_Alpha = 0x0000000000000008;
 static const GPUColorWriteMask GPUColorWriteMask_All = 0x000000000000000F /* Red | Green | Blue | Alpha */;
+
+typedef enum GPUQueryType {
+    /// Create a heap that contains timestamp queries
+    GPUQueryType_Timestamp,
+    /// Create a heap that contains timestamp queries for copy queue
+    GPUQueryType_TimestampCopyQueue,
+    /// Create a heap that contains occlusion queries
+    GPUQueryType_Occlusion,
+    /// Create a heap that contains binary occlusion queries
+    GPUQueryType_BinaryOcclusion,
+    /// Create a heap to contain a structure of `PipelineStatistics`
+    GPUQueryType_PipelineStatistics,
+
+    _GPUQueryType_Force32 = 0x7FFFFFFF
+} GPUQueryType;
 
 /* Structs */
 typedef struct GPUScissorRect {
@@ -698,6 +722,14 @@ typedef struct GPURenderPipelineDesc {
     PixelFormat                             depthStencilAttachmentFormat DEFAULT_INITIALIZER(PixelFormat_Undefined);
 } GPURenderPipelineDesc;
 
+typedef struct GPUQueryHeapDesc {
+    const char* label DEFAULT_INITIALIZER(nullptr);
+    /// ie: Timestamp, Occlusion, PipelineStatistics
+    GPUQueryType queryType DEFAULT_INITIALIZER(GPUQueryType_Timestamp);
+    /// Total size of the heap in number of queries.
+    uint32_t count DEFAULT_INITIALIZER(1);
+} GPUQueryHeapDesc;
+
 typedef struct GPUComputePassDesc {
     const char* label;
 } GPUComputePassDesc;
@@ -751,7 +783,7 @@ typedef struct GPUAdapterInfo {
     uint32_t deviceID;
 } GPUAdapterInfo;
 
-typedef struct GPULimits {
+typedef struct GPUAdapterLimits {
     uint32_t maxTextureDimension1D;
     uint32_t maxTextureDimension2D;
     uint32_t maxTextureDimension3D;
@@ -779,14 +811,26 @@ typedef struct GPULimits {
     /* Highest supported shader model */
     GPUShaderModel shaderModel;
 
-    /* Only if GPUFeature_ConservativeRasterization is supported */
+    /* ConservativeRasterization tier */
     GPUConservativeRasterizationTier conservativeRasterizationTier;
 
-    /* Only if GPUFeature_VariableRateShading is supported */
+    /* VariableRateShading tier */
     GPUVariableRateShadingTier variableShadingRateTier;
     uint32_t variableShadingRateImageTileSize;
     Bool32 isAdditionalVariableShadingRatesSupported;
-} GPULimits;
+
+    /* Ray tracing */
+    GPURayTracingTier rayTracingTier;
+    uint32_t rayTracingShaderGroupIdentifierSize;
+    uint32_t rayTracingShaderTableAlignment;
+    uint32_t rayTracingShaderTableMaxStride;
+    uint32_t rayTracingShaderRecursionMaxDepth;
+    uint32_t rayTracingMaxGeometryCount;
+    uint32_t rayTracingScratchAlignment;
+
+    /* Mesh shader */
+    GPUMeshShaderTier meshShaderTier;
+} GPUAdapterLimits;
 
 typedef struct GPUSurfaceCapabilities {
     PixelFormat preferredFormat;
@@ -840,7 +884,7 @@ ALIMER_API GPUAdapter* agpuFactoryRequestAdapter(GPUFactory* factory, ALIMER_NUL
 
 /* Adapter */
 ALIMER_API void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info);
-ALIMER_API void agpuAdapterGetLimits(GPUAdapter* adapter, GPULimits* limits);
+ALIMER_API void agpuAdapterGetLimits(GPUAdapter* adapter, GPUAdapterLimits* limits);
 ALIMER_API bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature);
 
 /* SurfaceHandle */
@@ -963,6 +1007,12 @@ ALIMER_API GPURenderPipeline agpuCreateRenderPipeline(GPUDevice* device, const G
 ALIMER_API void agpuRenderPipelineSetLabel(GPURenderPipeline renderPipeline, const char* label);
 ALIMER_API uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline);
 ALIMER_API uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline);
+
+/* QueryHeap */
+ALIMER_API GPUQueryHeap* agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc);
+ALIMER_API void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label);
+ALIMER_API uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap);
+ALIMER_API uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap);
 
 /* Other */
 ALIMER_API uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format);

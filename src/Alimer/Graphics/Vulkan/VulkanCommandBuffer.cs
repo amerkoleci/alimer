@@ -118,7 +118,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         };
         _deviceApi.vkBeginCommandBuffer(_commandBuffer, &beginInfo).CheckResult();
 
-        if (_queue.QueueType == QueueType.Graphics)
+        if (_queue.QueueType == CommandQueueType.Graphics)
         {
             VkRect2D* scissors = stackalloc VkRect2D[16];
             for (uint i = 0; i < 16; ++i)

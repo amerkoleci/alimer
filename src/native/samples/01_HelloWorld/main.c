@@ -39,7 +39,10 @@ int main(void)
 #endif
 
 #if defined(ALIMER_GPU)
-    GPUFactory* gpuFactory = agpuCreateFactory(NULL);
+    GPUFactoryDesc factoryDesc = {
+        .preferredBackend = GPUBackendType_Vulkan
+    };
+    GPUFactory* gpuFactory = agpuCreateFactory(&factoryDesc);
     GPUBackendType backend = agpuFactoryGetBackend(gpuFactory);
     if (backend == GPUBackendType_Undefined)
     {
@@ -50,6 +53,9 @@ int main(void)
     GPUAdapter* gpuAdapter = agpuFactoryRequestAdapter(gpuFactory, NULL);
     GPUAdapterInfo adapterInfo;
     agpuAdapterGetInfo(gpuAdapter, &adapterInfo);
+
+    GPUAdapterLimits adapterLimits;
+    agpuAdapterGetLimits(gpuAdapter, &adapterLimits);
 
     GPUDevice* device = agpuCreateDevice(gpuAdapter, NULL);
     GPUCommandQueue* graphicsQueue = agpuDeviceGetCommandQueue(device, GPUCommandQueueType_Graphics);

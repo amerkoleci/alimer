@@ -2,42 +2,41 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_COMPARISON_FUNC;
-using static TerraFX.Interop.DirectX.D3D12_FILTER_REDUCTION_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_FILTER_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
-using static TerraFX.Interop.DirectX.D3D12_FILL_MODE;
-using static TerraFX.Interop.DirectX.D3D12_CULL_MODE;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
-using static TerraFX.Interop.DirectX.D3D12_STATIC_BORDER_COLOR;
+using static TerraFX.Interop.DirectX.D3D12_BARRIER_ACCESS;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_SYNC;
-using static TerraFX.Interop.DirectX.D3D12_BARRIER_ACCESS;
-using CommunityToolkit.Diagnostics;
+using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_COMPARISON_FUNC;
+using static TerraFX.Interop.DirectX.D3D12_CULL_MODE;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_FILL_MODE;
+using static TerraFX.Interop.DirectX.D3D12_FILTER_REDUCTION_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_FILTER_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
+using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
+using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
+using static TerraFX.Interop.DirectX.D3D12_STATIC_BORDER_COLOR;
+using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
+using static TerraFX.Interop.DirectX.DirectX;
 
 namespace Alimer.Graphics.D3D12;
 
 internal static unsafe class D3D12Utils
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_COMMAND_LIST_TYPE ToD3D12(this QueueType queue)
+    public static D3D12_COMMAND_LIST_TYPE ToD3D12(this CommandQueueType queue)
     {
         return queue switch
         {
-            QueueType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
-            QueueType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
-            QueueType.VideoDecode => D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE,
-            QueueType.VideoEncode => D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE,
+            CommandQueueType.Compute => D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            CommandQueueType.Copy => D3D12_COMMAND_LIST_TYPE_COPY,
+            CommandQueueType.VideoDecode => D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE,
+            //CommandQueueType.VideoEncode => D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE,
             _ => D3D12_COMMAND_LIST_TYPE_DIRECT,
         };
     }
@@ -494,7 +493,7 @@ internal static unsafe class D3D12Utils
         return staticDesc;
     }
 
-    public static D3D12_RESOURCE_STATES ConvertBufferStateLegacy(this BufferStates states, QueueType queueType)
+    public static D3D12_RESOURCE_STATES ConvertBufferStateLegacy(this BufferStates states, CommandQueueType queueType)
     {
         D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
 
@@ -507,7 +506,7 @@ internal static unsafe class D3D12Utils
         if ((states & BufferStates.ShaderResource) != 0)
         {
             result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-            if (queueType == QueueType.Graphics)
+            if (queueType == CommandQueueType.Graphics)
                 result |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 

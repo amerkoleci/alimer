@@ -10,7 +10,6 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 {
-    private readonly QueueType _queueType;
     public readonly VkQueue Handle;
     public readonly object LockObject = new();
     private readonly VkSemaphore _semaphore = VkSemaphore.Null;
@@ -23,10 +22,10 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     private readonly List<VulkanSwapChain> _presentSwapChains = [];
     private readonly List<VkSemaphore> _submitSignalSemaphores = [];
 
-    public VulkanCommandQueue(VulkanGraphicsDevice device, QueueType queueType)
+    public VulkanCommandQueue(VulkanGraphicsDevice device, CommandQueueType queueType)
     {
         VkDevice = device;
-        _queueType = queueType;
+        QueueType = queueType;
 
         uint queueFamilyIndex = device.GetQueueFamily(queueType);
         uint queueIndex = device.GetQueueIndex(queueType);
@@ -58,7 +57,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     public override GraphicsDevice Device => VkDevice;
 
     /// <inheritdoc />
-    public override QueueType QueueType => _queueType;
+    public override CommandQueueType QueueType { get; }
 
     public VulkanGraphicsDevice VkDevice { get; }
     public VkFence FrameFence => _frameFences[Device.FrameIndex];
