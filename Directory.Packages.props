@@ -2,7 +2,6 @@
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
     <VorticeWin32Version>2.3.0</VorticeWin32Version>
-    <TerraFXWindowsVersion>10.0.26100.3</TerraFXWindowsVersion>
     <ImGuiVersion>2.2.9</ImGuiVersion>
     <SkiaSharpVersion>3.119.2-preview.1</SkiaSharpVersion>
   </PropertyGroup>
@@ -18,13 +17,11 @@
     
     <!-- Engine -->
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.4.0" />
-    <PackageVersion Include="Vortice.Win32.Graphics.Dxgi" Version="$(VorticeWin32Version)" />
-    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D11" Version="$(VorticeWin32Version)" />
-    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D12" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="XenoAtom.Collections" Version="1.2.0" />
 
     <!-- Graphics -->
-    <PackageVersion Include="TerraFX.Interop.Windows" Version="$(TerraFXWindowsVersion)" />
+    <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.4" />
+    <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
     <PackageVersion Include="Vortice.Vulkan" Version="3.0.3" />
 
     <!-- Others -->
@@ -37,7 +34,6 @@
     
     <!-- Asset Pipeline -->
     <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />
-    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SharpGLTF.Core" Version="1.0.5" />

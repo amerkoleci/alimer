@@ -4,13 +4,15 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 using Vortice.SPIRV.Reflect;
-using Win32;
-using Win32.Graphics.Direct3D.Dxc;
-using Win32.Graphics.Direct3D12;
 using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
-using static Win32.Apis;
-using static Win32.Graphics.Direct3D.Dxc.Apis;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXC;
+using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.Windows.CLSID;
+using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
 
 namespace Alimer.Shaders;
 
@@ -216,13 +218,13 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add("-Qstrip_debug");
         }
 
-        HResult hr = Compile(source,
+        HRESULT hr = Compile(source,
             [.. arguments],
             __uuidof<IDxcResult>(),
             (void**)results.GetAddressOf()
             );
 
-        if (hr.Failure)
+        if (hr.FAILED)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hr}");
         }
@@ -241,14 +243,14 @@ public sealed unsafe partial class ShaderCompiler
         // will be zero if there are no warnings or errors.
         if (errors.Get() is not null && errors.Get()->GetStringLength() != 0)
         {
-            string warningAndErrors = StringUtilities.GetString(errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength())!;
+            //string warningAndErrors = StringUtilities.GetString(errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength())!;
             //Log.Warn"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
         }
 
         // Quit if the compilation failed.
-        HResult hrStatus;
+        HRESULT hrStatus;
         results.Get()->GetStatus(&hrStatus);
-        if (hrStatus.Failure)
+        if (hrStatus.FAILED)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus}");
         }
@@ -307,7 +309,7 @@ public sealed unsafe partial class ShaderCompiler
                     __uuidof<ID3D12ShaderReflection>(),
                     (void**)reflection.GetAddressOf());
 
-                ShaderDescription description;
+                D3D12_SHADER_DESC description;
                 ThrowIfFailed(reflection.Get()->GetDesc(&description));
 #if TODO
 
@@ -385,7 +387,7 @@ public sealed unsafe partial class ShaderCompiler
         return new DxcShaderCompilationResult(byteCode);
     }
 
-    private HResult Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
+    private HRESULT Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
 
@@ -410,7 +412,7 @@ public sealed unsafe partial class ShaderCompiler
 
         try
         {
-            HResult hr = _dxcCompiler.Get()->Compile(
+            HRESULT hr = _dxcCompiler.Get()->Compile(
                 &buffer,
                 (char**)pArguments,
                 (uint)arguments.Length,

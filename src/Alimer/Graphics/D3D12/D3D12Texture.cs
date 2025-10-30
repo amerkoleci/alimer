@@ -24,7 +24,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly nint _allocation;
+    private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private readonly HANDLE _sharedHandle = HANDLE.NULL;
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
@@ -136,7 +136,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
                 &allocatedSize
             );
         }
-        else 
+        else
         {
             device.Device->GetCopyableFootprints(
                 (D3D12_RESOURCE_DESC*)&resourceDesc,
@@ -171,7 +171,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             pClearValue = null;
         }
 
-        D3D12MA.ALLOCATION_DESC allocationDesc = new()
+        D3D12MA_ALLOCATION_DESC allocationDesc = new()
         {
             HeapType = D3D12_HEAP_TYPE_DEFAULT
         };
@@ -181,29 +181,27 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         {
             D3D12TextureLayoutMapping textureLayout = ConvertTextureLayout(initialLayout);
 
-            hr = D3D12MA.Allocator_CreateResource3(
-                device.MemoryAllocator,
+            hr = device.MemoryAllocator->CreateResource3(
                 &allocationDesc,
                 &resourceDesc,
                 textureLayout.Layout,
                 null,
                 0, null,
-                out _allocation,
-                __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
+                _allocation.GetAddressOf(),
+                __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
-        else 
+        else
         {
             D3D12_RESOURCE_STATES initialStateLegacy = ConvertTextureLayoutLegacy(initialLayout);
 
-            hr = D3D12MA.Allocator_CreateResource2(
-                device.MemoryAllocator,
+            hr = device.MemoryAllocator->CreateResource2(
                 &allocationDesc,
                 &resourceDesc,
                 initialStateLegacy,
                 pClearValue,
-                out _allocation,
-                __uuidof<ID3D12Resource>(), _handle.GetVoidAddressOf()
+                _allocation.GetAddressOf(),
+                __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
                 );
         }
 
@@ -334,9 +332,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _ = CloseHandle(_sharedHandle);
         }
 
-        if (_allocation != 0)
+        if (_allocation.Get() is not null)
         {
-            _ = D3D12MA.Allocation_Release(_allocation);
+            _allocation.Dispose();
         }
         _handle.Dispose();
         Free(_footprints);

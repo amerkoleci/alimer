@@ -141,7 +141,7 @@ internal unsafe class D3D12SwapChain : SwapChain
             description.Label = $"BackBuffer texture {i}";
 
             using ComPtr<ID3D12Resource> backbufferTexture = default;
-            ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), backbufferTexture.GetVoidAddressOf()));
+            ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), (void**)backbufferTexture.GetAddressOf()));
             _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), description);
         }
     }

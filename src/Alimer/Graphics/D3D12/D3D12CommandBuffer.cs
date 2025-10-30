@@ -68,13 +68,13 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         {
             ThrowIfFailed(
                 queue.D3DDevice.Device->CreateCommandAllocator(queue.CommandListType,
-                __uuidof<ID3D12CommandAllocator>(), _commandAllocators[i].GetVoidAddressOf())
+                __uuidof<ID3D12CommandAllocator>(), (void**)_commandAllocators[i].GetAddressOf())
             );
         }
 
         ThrowIfFailed(
            queue.D3DDevice.Device->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
-            __uuidof<ID3D12GraphicsCommandList6>(), _commandList.GetVoidAddressOf()
+            __uuidof<ID3D12GraphicsCommandList6>(), (void**)_commandList.GetAddressOf()
         ));
     }
 
@@ -238,6 +238,14 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         }
     }
 
+    public void PushDebugGroup(string groupLabel)
+    {
+        int bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
+        byte* buffer = stackalloc byte[bufferSize];
+        PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_BeginEvent_NoArgs, 0, groupLabel);
+        _commandList.Get()->BeginEvent(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
+    }
+
     public override void PushDebugGroup(Utf8ReadOnlyString groupLabel)
     {
         // TODO: Use Pix3 (WinPixEventRuntime)
@@ -349,7 +357,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     {
         if (!string.IsNullOrEmpty(renderPass.Label))
         {
-            //PushDebugGroup(renderPass.Label);
+            PushDebugGroup(renderPass.Label);
         }
 
         SizeI renderArea = new(int.MaxValue, int.MaxValue);
@@ -482,6 +490,11 @@ internal unsafe class D3D12CommandBuffer : RenderContext
                         DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
                         break;
                 }
+            }
+            else
+            {
+                DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+                DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
             }
 
             TextureBarrier(texture,

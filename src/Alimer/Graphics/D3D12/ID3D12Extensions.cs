@@ -62,16 +62,16 @@ internal static unsafe partial class ID3D12Extensions
     /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the fence.</param>
     /// <returns>A pointer to the newly allocated <see cref="ID3D12Fence"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the creation of the command queue fails.</exception>
-    public static ComPtr<ID3D12Fence> CreateFence<TD3D12Device>(this ref TD3D12Device d3D12Device, bool shared = false)
+    public static ComPtr<ID3D12Fence> CreateFence<TD3D12Device>(this ref TD3D12Device d3D12Device)
         where TD3D12Device : unmanaged, ID3D12Device.Interface
     {
         using ComPtr<ID3D12Fence> d3D12Fence = default;
 
         ThrowIfFailed(d3D12Device.CreateFence(
             0,
-            shared ? D3D12_FENCE_FLAG_SHARED : D3D12_FENCE_FLAG_NONE,
+            D3D12_FENCE_FLAG_NONE,
             __uuidof<ID3D12Fence>(),
-            d3D12Fence.GetVoidAddressOf())
+            (void**)d3D12Fence.GetAddressOf())
             );
 
         return d3D12Fence.Move();
@@ -82,7 +82,7 @@ internal static unsafe partial class ID3D12Extensions
     {
         using ComPtr<ID3D12CommandSignature> result = default;
 
-        ThrowIfFailed(d3D12Device.CreateCommandSignature(desc, null, __uuidof<ID3D12CommandSignature>(), result.GetVoidAddressOf()));
+        ThrowIfFailed(d3D12Device.CreateCommandSignature(desc, null, __uuidof<ID3D12CommandSignature>(), (void**)result.GetAddressOf()));
 
         return result.Move();
     }

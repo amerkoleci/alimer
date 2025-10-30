@@ -31,7 +31,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
     public D3D12GraphicsAdapter(
         D3D12GraphicsManager manager,
         ComPtr<IDXGIAdapter1> handle,
-        ComPtr<ID3D12Device> device)
+        ID3D12Device* device)
         : base(manager)
     {
         _handle = handle.Move();
@@ -40,7 +40,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         ThrowIfFailed(_handle.Get()->GetDesc1(&adapterDesc));
 
         // Init features
-        Features = new D3D12Features(device.Get());
+        Features = new D3D12Features(device);
 
         // Convert the adapter's D3D12 driver version to a readable string like "24.21.13.9793".
         string driverDescription = string.Empty;
@@ -132,7 +132,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 
         D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
         bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        HRESULT hr = device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+        HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
         if (hr.SUCCEEDED &&
             (bgra8unormFormatInfo.Support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0)
         {

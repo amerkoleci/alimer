@@ -157,7 +157,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 rootSignatureBlob.Get()->GetBufferPointer(),
                 rootSignatureBlob.Get()->GetBufferSize(),
                 __uuidof<ID3D12RootSignature>(),
-                _handle.GetVoidAddressOf());
+                (void**)_handle.GetAddressOf());
             if (hr.FAILED)
             {
 

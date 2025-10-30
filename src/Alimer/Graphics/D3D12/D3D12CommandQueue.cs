@@ -40,13 +40,16 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
             Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
             NodeMask = 0
         };
-        HRESULT hr = device.Device->CreateCommandQueue(&queueDesc, __uuidof<ID3D12CommandQueue>(), _handle.GetVoidAddressOf());
+        HRESULT hr = device.Device->CreateCommandQueue(&queueDesc,
+            __uuidof<ID3D12CommandQueue>(),
+            (void**)_handle.GetAddressOf()
+            );
         if (hr.FAILED)
         {
             throw new GraphicsException("D3D12: Failed to create CommandQueue");
         }
 
-        _fence = device.Device->CreateFence(true);
+        _fence = device.Device->CreateFence();
         _fence.Get()->Signal(_lastCompletedFenceValue);
 
         _handle.Get()->SetName($"{queueType}Queue");

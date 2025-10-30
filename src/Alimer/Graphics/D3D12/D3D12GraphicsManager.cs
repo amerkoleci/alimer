@@ -15,6 +15,7 @@ using static TerraFX.Interop.DirectX.DXGI_GPU_PREFERENCE;
 using static TerraFX.Interop.Windows.Windows;
 #if DEBUG
 using static TerraFX.Interop.DirectX.DXGI_INFO_QUEUE_MESSAGE_SEVERITY;
+using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
 #endif
 
 namespace Alimer.Graphics.D3D12;
@@ -47,7 +48,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 
             using ComPtr<ID3D12Debug> d3d12Debug = default;
-            if (D3D12GetDebugInterface(__uuidof<ID3D12Debug>(), d3d12Debug.GetVoidAddressOf()).SUCCEEDED)
+            if (D3D12GetDebugInterface(__uuidof<ID3D12Debug>(), (void**)d3d12Debug.GetAddressOf()).SUCCEEDED)
             {
                 d3d12Debug.Get()->EnableDebugLayer();
 
@@ -76,7 +77,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             // DRED
             {
                 using ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> pDredSettings = default;
-                if (D3D12GetDebugInterface(__uuidof<ID3D12DeviceRemovedExtendedDataSettings1>(), pDredSettings.GetVoidAddressOf()).SUCCEEDED)
+                if (D3D12GetDebugInterface(__uuidof<ID3D12DeviceRemovedExtendedDataSettings1>(), (void**)pDredSettings.GetAddressOf()).SUCCEEDED)
                 {
                     // Turn on auto - breadcrumbs and page fault reporting.
                     pDredSettings.Get()->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
@@ -88,7 +89,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
 #if DEBUG
             using ComPtr<IDXGIInfoQueue> dxgiInfoQueue = default;
 
-            if (DXGIGetDebugInterface1(0u, __uuidof<IDXGIInfoQueue>(), dxgiInfoQueue.GetVoidAddressOf()).SUCCEEDED)
+            if (DXGIGetDebugInterface1(0u, __uuidof<IDXGIInfoQueue>(), (void**)dxgiInfoQueue.GetAddressOf()).SUCCEEDED)
             {
                 dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
                 dxgiInfoQueue.Get()->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -112,7 +113,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
 #endif
         }
 
-        ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, __uuidof<IDXGIFactory6>(), _handle.GetVoidAddressOf()));
+        ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, __uuidof<IDXGIFactory6>(), (void**)_handle.GetAddressOf()));
 
         BOOL tearingSupported = true;
         if (_handle.Get()->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearingSupported, (uint)sizeof(BOOL)).FAILED)
@@ -138,17 +139,18 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
                 continue;
             }
 
-            using ComPtr<ID3D12Device> device = default;
+            ID3D12Device* device = default;
             if (D3D12CreateDevice((IUnknown*)dxgiAdapter1.Get(),
                 D3D_FEATURE_LEVEL_12_0,
                 __uuidof<ID3D12Device>(),
-                device.GetVoidAddressOf()).FAILED)
+                (void**)&device).FAILED)
             {
                 continue;
             }
 
-            D3D12GraphicsAdapter adapter = new(this, dxgiAdapter1.Move(), device.Move());
+            D3D12GraphicsAdapter adapter = new(this, dxgiAdapter1.Move(), device);
             adapters.Add(adapter);
+            _ = device->Release();
         }
 
         _adapters = [.. adapters];
@@ -164,6 +166,14 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
         {
             _adapters[i].Dispose();
         }
+
+#if DEBUG
+        using ComPtr<IDXGIDebug1> dxgiDebug = default;
+        if (DXGIGetDebugInterface1(0u, __uuidof<IDXGIDebug1>(), (void**)dxgiDebug.GetAddressOf()).SUCCEEDED)
+        {
+            dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+        }
+#endif
     }
 
     private static bool CheckIsSupported()
@@ -178,7 +188,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             using ComPtr<IDXGIFactory4> dxgiFactory = default;
             using ComPtr<IDXGIAdapter1> dxgiAdapter = default;
 
-            ThrowIfFailed(CreateDXGIFactory1(__uuidof<IDXGIFactory4>(), dxgiFactory.GetVoidAddressOf()));
+            ThrowIfFailed(CreateDXGIFactory1(__uuidof<IDXGIFactory4>(), (void**)dxgiFactory.GetAddressOf()));
 
             bool foundCompatibleDevice = false;
             for (uint adapterIndex = 0;

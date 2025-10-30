@@ -166,7 +166,10 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             NodeMask = 0
         };
 
-        HRESULT hr = _device.Device->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _heap.GetVoidAddressOf());
+        HRESULT hr = _device.Device->CreateDescriptorHeap(&heapDesc,
+            __uuidof<ID3D12DescriptorHeap>(),
+            (void**)_heap.GetAddressOf()
+            );
         if (hr.FAILED)
             return false;
 
@@ -177,7 +180,10 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         {
             heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-            hr = _device.Device->CreateDescriptorHeap(&heapDesc, __uuidof<ID3D12DescriptorHeap>(), _shaderVisibleHeap.GetVoidAddressOf());
+            hr = _device.Device->CreateDescriptorHeap(&heapDesc,
+                __uuidof<ID3D12DescriptorHeap>(),
+                (void**)_shaderVisibleHeap.GetAddressOf()
+                );
 
             if (FAILED(hr))
                 return false;

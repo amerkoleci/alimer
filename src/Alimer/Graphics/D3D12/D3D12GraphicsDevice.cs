@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static Alimer.Graphics.D3D12.D3D12MA.ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
@@ -17,8 +16,10 @@ using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.DXGI_DEBUG_RLO_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
 using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.D3D12MemAlloc;
+using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
 using Alimer.Utilities;
 namespace Alimer.Graphics.D3D12;
 
@@ -28,12 +29,13 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<ID3D12Device5> _device = default;
     private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
-    private readonly nint _memoryAllocator;
+    private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
     private readonly HANDLE _deviceRemovedEvent = HANDLE.NULL;
     private readonly HANDLE _deviceRemovedWaitHandle = HANDLE.NULL;
+    private uint _callbackCookie;
 
     private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)CommandQueueType.Count];
     private readonly D3D12CopyAllocator _copyAllocator;
@@ -41,6 +43,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<ID3D12CommandSignature> _drawIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _drawIndexedIndirectCommandSignature = default;
     private readonly ComPtr<ID3D12CommandSignature> _dispatchMeshIndirectCommandSignature = default;
+
+    private readonly nint _winPixEventRuntimeDLL;
 
     public D3D12GraphicsDevice(D3D12GraphicsAdapter adapter, in GraphicsDeviceDescription description)
         : base(description)
@@ -51,7 +55,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             (IUnknown*)adapter.Handle,
             D3D_FEATURE_LEVEL_12_0,
             __uuidof<ID3D12Device5>(),
-            _device.GetVoidAddressOf()
+            (void**)_device.GetAddressOf()
             );
 
         if (hr.FAILED)
@@ -109,6 +113,19 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
                 ThrowIfFailed(infoQueue.Get()->AddStorageFilterEntries(&filter));
             }
+
+            using ComPtr<ID3D12InfoQueue1> infoQueue1 = default;
+            if (_device.CopyTo(infoQueue1.GetAddressOf()).SUCCEEDED)
+            {
+                uint callbackCookie = default;
+                ThrowIfFailed(infoQueue1.Get()->RegisterMessageCallback(
+                    &DebugMessageCallback,
+                    D3D12_MESSAGE_CALLBACK_FLAG_NONE,
+                    null,
+                    &callbackCookie
+                    ));
+                _callbackCookie = callbackCookie;
+            }
         }
 
         bool supportVideoDevice = false;
@@ -140,17 +157,17 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
         // Create memory allocator
         {
-            D3D12MA.ALLOCATOR_DESC allocatorDesc = new()
+            D3D12MA_ALLOCATOR_DESC allocatorDesc = new()
             {
                 pDevice = (ID3D12Device*)_device.Get(),
                 pAdapter = (IDXGIAdapter*)_adapter.Handle
             };
             //allocatorDesc.PreferredBlockSize = 256 * 1024 * 1024;
             //allocatorDesc.Flags |= D3D12MA::ALLOCATOR_FLAG_ALWAYS_COMMITTED;
-            allocatorDesc.Flags |= ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
-            allocatorDesc.Flags |= ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
+            allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
+            allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
 
-            if (FAILED(D3D12MA.CreateAllocator(in allocatorDesc, out _memoryAllocator)))
+            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, _memoryAllocator.ReleaseAndGetAddressOf())))
             {
                 throw new GraphicsException("D3D12: Failed to create memory allocator");
             }
@@ -235,6 +252,14 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 
+        // Try to load PIX (WinPixEventRuntime.dll)
+        if (NativeLibrary.TryLoad("WinPixEventRuntime.dll", out _winPixEventRuntimeDLL))
+        {
+            //PIXBeginEventOnCommandList = (PFN_PIXBeginEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXBeginEventOnCommandList");
+            //PIXEndEventOnCommandList = (PFN_PIXEndEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXEndEventOnCommandList");
+            //PIXSetMarkerOnCommandList = (PFN_PIXSetMarkerOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXSetMarkerOnCommandList");
+        }
+
         ulong timestampFrequency;
         ThrowIfFailed(D3D12GraphicsQueue->GetTimestampFrequency(&timestampFrequency));
         TimestampFrequency = timestampFrequency;
@@ -248,7 +273,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     public ID3D12Device5* Device => _device;
     public ID3D12Device8* Device8 => _device8;
-    public nint MemoryAllocator => _memoryAllocator;
+    public D3D12MA_Allocator* MemoryAllocator => _memoryAllocator;
     public D3D12GraphicsAdapter DxAdapter => _adapter;
     public bool EnhancedBarriersSupported => _adapter.Features.EnhancedBarriersSupported;
 
@@ -308,29 +333,35 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _dispatchMeshIndirectCommandSignature.Dispose();
 
             // Allocator.
-            if (_memoryAllocator != 0)
+            if (_memoryAllocator.Get() is not null)
             {
-                D3D12MA.TotalStatistics stats;
-                D3D12MA.Allocator_CalculateStatistics(_memoryAllocator, &stats);
+                D3D12MA_TotalStatistics stats;
+                _memoryAllocator.Get()->CalculateStatistics(&stats);
 
                 if (stats.Total.Stats.AllocationBytes > 0)
                 {
                     Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
                 }
 
-                _ = D3D12MA.Allocator_Release(_memoryAllocator);
+                _memoryAllocator.Dispose();
             }
 
             // Device removed event
+            if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
+                _deviceHandle.IsAllocated)
             {
-                if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
-                    _deviceHandle.IsAllocated)
-                {
-                    _deviceHandle.Free();
-                }
+                _deviceHandle.Free();
+            }
 
-                CloseHandle(_deviceRemovedEvent);
-                _deviceRemovedFence.Dispose();
+            CloseHandle(_deviceRemovedEvent);
+            _deviceRemovedFence.Dispose();
+
+            if (_callbackCookie != 0)
+            {
+                using ComPtr<ID3D12InfoQueue1> infoQueue1 = default;
+                ThrowIfFailed(_device.CopyTo(infoQueue1.GetAddressOf()));
+                infoQueue1.Get()->UnregisterMessageCallback(_callbackCookie);
+                _callbackCookie = 0;
             }
 
             _videoDevice.Dispose();
@@ -350,14 +381,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
 #else
             _device.Dispose();
-#endif
-
-#if DEBUG
-            using ComPtr<IDXGIDebug1> dxgiDebug = default;
-            if (DXGIGetDebugInterface1(0u, __uuidof<IDXGIDebug1>(), dxgiDebug.GetVoidAddressOf()).SUCCEEDED)
-            {
-                dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-            }
 #endif
         }
     }
@@ -509,5 +532,29 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
     {
         return _queues[(int)CommandQueueType.Graphics].BeginCommandContext(label);
+    }
+
+    [UnmanagedCallersOnly]
+    static void DebugMessageCallback(
+        D3D12_MESSAGE_CATEGORY Category,
+        D3D12_MESSAGE_SEVERITY Severity,
+        D3D12_MESSAGE_ID ID,
+        sbyte* pDescription,
+        void* pContext)
+    {
+        string message = MarshalUtilities.GetUtf8Span(pDescription).GetString()!;
+        if (Severity == D3D12_MESSAGE_SEVERITY_CORRUPTION
+            || Severity == D3D12_MESSAGE_SEVERITY_ERROR)
+        {
+            Log.Error($"[D3D12]: {message}");
+        }
+        else if (Severity == D3D12_MESSAGE_SEVERITY_WARNING)
+        {
+            Log.Warn($"[D3D12]: {message}");
+        }
+        else
+        {
+            Log.Info($"[D3D12]: {message}");
+        }
     }
 }
