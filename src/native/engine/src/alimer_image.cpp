@@ -320,24 +320,24 @@ Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize)
 {
     Image* image = nullptr;
 
-    if ((image = DDS_LoadFromMemory(pData, dataSize)) != NULL)
+    if ((image = DDS_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
-    if ((image = ASTC_LoadFromMemory(pData, dataSize)) != NULL)
+    if ((image = ASTC_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
 #if defined(ALIMER_IMAGE_KTX)
-    if ((image = KTX_LoadFromMemory(pData, dataSize)) != NULL)
+    if ((image = KTX_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 #endif
 
-    if ((image = EXR_LoadFromMemory(pData, dataSize)) != NULL)
+    if ((image = EXR_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
-    if ((image = QOI_LoadFromMemory(pData, dataSize)) != NULL)
+    if ((image = QOI_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
-    if ((image = STB_LoadFromMemory(pData, dataSize)) != NULL)
+    if ((image = STB_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
     return nullptr;

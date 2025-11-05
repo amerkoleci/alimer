@@ -15,11 +15,13 @@ set(TARGET_NAME alimer_native)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
 	include/alimer_platform.h
     include/alimer.h
+    include/alimer_scene.h
 	src/alimer_internal.h
     src/alimer.cpp
     src/alimer_log.cpp
     src/alimer_image.cpp
     src/alimer_font.cpp
+    src/alimer_scene.cpp
 )
 
 group_sources()
@@ -133,17 +135,6 @@ if (ALIMER_AUDIO)
         target_link_libraries(${TARGET_NAME} PRIVATE d3d12ma)
         
         target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_D3D12)
-    endif()
-
-    if (ALIMER_GPU_METAL)
-        target_sources(${TARGET_NAME} PRIVATE
-            src/gpu/alimer_gpu_metal.cpp
-        )
-
-        target_link_libraries(metal_cpp INTERFACE "-framework Metal")
-        target_link_libraries(${TARGET_NAME} PRIVATE metal_cpp)
-        
-        target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_METAL)
     endif()
 
     if (ALIMER_GPU_WEBGPU)

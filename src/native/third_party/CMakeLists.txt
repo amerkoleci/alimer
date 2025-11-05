@@ -6,7 +6,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.2.24
+        GIT_TAG release-3.2.26
         OPTIONS
             "SDL_SHARED OFF"
             "SDL_STATIC ON"
@@ -78,14 +78,6 @@ if (ALIMER_GPU_D3D12)
     target_compile_definitions(d3d12ma PUBLIC D3D12MA_USING_DIRECTX_HEADERS)
     set_target_properties(d3d12ma PROPERTIES FOLDER "ThirdParty")
 endif ()
-
-# Fetch & setup Metal C++ headers
-if(ALIMER_GPU_METAL)
-    message(STATUS "Fetching Metal C++ headers ...")
-    FetchPackage(metal_cpp URL ${ALIMER_METAL_CPP_URL})
-    add_library(metal_cpp INTERFACE)
-    target_include_directories(metal_cpp INTERFACE ${metal_cpp_SOURCE_DIR})
-endif()
 
 if(ALIMER_PHYSICS)
     CPMAddPackage(
