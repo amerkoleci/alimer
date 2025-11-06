@@ -7,9 +7,12 @@ namespace Alimer.Graphics.Metal;
 
 internal class MetalGraphicsAdapter : GraphicsAdapter
 {
-    public MetalGraphicsAdapter(MetalGraphicsManager manager)
+    public readonly MTLDevice Device;
+
+    public MetalGraphicsAdapter(MetalGraphicsManager manager, MTLDevice device)
         : base(manager)
     {
+        Device = device;
     }
 
     public override string DeviceName => throw new NotImplementedException();

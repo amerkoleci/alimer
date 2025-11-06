@@ -30,4 +30,4 @@ jobs:
         global-json-file: ./global.json
 
     - name: Build/Pack
-      run: dotnet pack Alimer.sln --configuration Release -p:Packing=true
+      run: dotnet pack Alimer.slnx --configuration Release -p:Packing=true

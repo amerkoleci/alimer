@@ -1,19 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net10.0</TargetFrameworks>
     <RootNamespace>Alimer.Editor</RootNamespace>
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <PackageReference Include="Hexa.NET.ImGui" />
-    <PackageReference Include="Hexa.NET.ImGuizmo" />
-    <PackageReference Include="Hexa.NET.ImNodes" />
-    <PackageReference Include="Hexa.NET.ImPlot" />
+    <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Alimer.ImGui\Alimer.ImGui.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <PackageReference Include="Avalonia.Diagnostics" Condition="'$(Configuration)' == 'Debug'" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>
 

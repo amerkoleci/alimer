@@ -9,7 +9,7 @@ namespace Alimer.Graphics.Metal;
 internal class MetalGraphicsManager : GraphicsManager
 {
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
-    private readonly GraphicsAdapter[] _adapters;
+    private readonly MetalGraphicsAdapter[] _adapters;
 
     /// <summary>
     /// Gets value indicating whether Metal is supported on this platform.
@@ -25,6 +25,23 @@ internal class MetalGraphicsManager : GraphicsManager
     public MetalGraphicsManager(in GraphicsManagerOptions options)
         : base(in options)
     {
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
+        {
+            List<MetalGraphicsAdapter> adapters = [];
+            NSArray allDevices = MTLCopyAllDevices();
+            for(ulong i = 0; i < allDevices.Count; i++)
+            {
+                MTLDevice device = allDevices.Object<MTLDevice>(i);
+                adapters.Add(new MetalGraphicsAdapter(this, device));
+            }
+
+            _adapters = [.. adapters];
+        }
+        else
+        {
+            MTLDevice defaultDevice = MTLCreateSystemDefaultDevice();
+            _adapters = [new MetalGraphicsAdapter(this, defaultDevice)];
+        }
     }
 
     /// <inheritdoc />

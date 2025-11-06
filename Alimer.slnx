@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/.root/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="Alimer.MultiTargeting.targets" />
+    <File Path="Alimer.Native.targets" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE" />
+    <File Path="NuGet.config" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/assets/">
+    <Project Path="src/assets/Alimer.Assets/Alimer.Assets.csproj" />
+    <Project Path="src/assets/Alimer.ShaderCompiler/Alimer.ShaderCompiler.csproj" />
+    <Project Path="src/assets/Alimer.Shaders/Alimer.Shaders.csproj" />
+  </Folder>
+  <Folder Name="/editor/">
+    <Project Path="src/editor/Alimer.Editor/Alimer.Editor.csproj" />
+    <Project Path="src/editor/Alimer.EditorFramework/Alimer.EditorFramework.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Alimer.Samples/Alimer.Samples.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Alimer.UnitTests/Alimer.UnitTests.csproj" />
+  </Folder>
+  <Project Path="src/Alimer.ImGui/Alimer.ImGui.csproj" />
+  <Project Path="src/Alimer.Native/Alimer.Native.csproj" />
+  <Project Path="src/Alimer.Navigation/Alimer.Navigation.csproj" />
+  <Project Path="src/Alimer.SourceGenerators/Alimer.SourceGenerators.csproj" />
+  <Project Path="src/Alimer.UI/Alimer.UI.csproj" />
+  <Project Path="src/Alimer/Alimer.csproj" />
+</Solution>

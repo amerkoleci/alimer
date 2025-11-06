@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Alimer.Editor.ViewModels"
+        xmlns:views="using:Alimer.Editor.Views"
+        xmlns:controls="using:Alimer.Editor.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Alimer.Editor.Views.MainView"
+        x:DataType="vm:MainViewModel">
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto, *, 25"
+        Background="Transparent">
+        <Menu Grid.Row="0" Grid.Column="0" VerticalAlignment="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open..." InputGesture="Ctrl+Shift+O" Command="{Binding OpenCommand}"  />
+                <MenuItem Header="_Disabled Menu Item" IsEnabled="False" InputGesture="Ctrl+D" />
+                <Separator/>
+                <MenuItem Header="Menu with _Submenu">
+                    <MenuItem Header="Submenu _1"/>
+                    <MenuItem Header="Submenu _2 with Submenu">
+                        <MenuItem Header="Submenu Level 2" />
+                    </MenuItem>
+                    <MenuItem Header="Submenu _3 with Submenu Disabled" IsEnabled="False">
+                        <MenuItem Header="Submenu Level 2" />
+                    </MenuItem>
+                </MenuItem>
+                <MenuItem Header="Menu Item with _Icon" InputGesture="Ctrl+Shift+B">
+                    <!--<MenuItem.Icon>
+                        <Image Source="/Assets/github_icon.png"/>
+                    </MenuItem.Icon>-->
+                </MenuItem>
+                <MenuItem Header="Menu Item with _Checkbox">
+                    <MenuItem.Icon>
+                        <CheckBox BorderThickness="0" IsHitTestVisible="False" IsChecked="True"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Second">
+                <MenuItem Header="Second _Menu Item"/>
+            </MenuItem>
+        </Menu>
+
+        <!--<controls:VulkanDrawingSurface Grid.Row="1">
+        </controls:VulkanDrawingSurface>-->
+    </Grid>
+
+</UserControl>

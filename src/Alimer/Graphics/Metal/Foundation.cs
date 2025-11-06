@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Alimer.Platforms.Apple;
 
@@ -11,6 +12,7 @@ internal readonly struct NSArray : IDisposable, IEquatable<NSArray>
 {
     #region Selectors
     private static readonly Selector s_sel_count = "count";
+    private static readonly Selector s_sel_objectAtIndex = "objectAtIndex:";
     #endregion
 
     public NSArray(nint handle) => Handle = handle;
@@ -32,6 +34,12 @@ internal readonly struct NSArray : IDisposable, IEquatable<NSArray>
 
     public static implicit operator NSArray(nint handle) => new(handle);
     public static implicit operator nint(NSArray value) => value.Handle;
+    public unsafe T Object<T>(ulong index)
+        where T : unmanaged
+    {
+        IntPtr value = ObjectiveC.IntPtr_objc_msgSend(Handle, s_sel_objectAtIndex, index);
+        return Unsafe.AsRef<T>(&value);
+    }
 
     public static bool operator ==(NSArray left, NSArray right) => left.Handle == right.Handle;
     public static bool operator !=(NSArray left, NSArray right) => left.Handle != right.Handle;

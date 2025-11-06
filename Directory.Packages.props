@@ -3,6 +3,7 @@
   <PropertyGroup>
     <ImGuiVersion>2.2.9</ImGuiVersion>
     <SkiaSharpVersion>3.119.2-preview.1</SkiaSharpVersion>
+    <AvaloniaVersion>11.3.8</AvaloniaVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +20,7 @@
     <PackageVersion Include="XenoAtom.Collections" Version="1.2.0" />
 
     <!-- Graphics -->
-    <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.4" />
+    <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.5" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
     <PackageVersion Include="Vortice.Vulkan" Version="3.0.3" />
 
@@ -41,9 +42,14 @@
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.1.1" />
 
     <!-- Editor -->
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.8" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
-
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="$(AvaloniaVersion)" />
+    
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageVersion Include="NUnit" Version="4.4.0" />
