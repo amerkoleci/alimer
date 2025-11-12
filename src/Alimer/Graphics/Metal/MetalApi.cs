@@ -1,4 +1,4 @@
-    // Copyright (c) Amer Koleci and Contributors.
+// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
@@ -144,11 +144,13 @@ internal static partial class MetalApi
     public readonly partial struct MTLDevice(nint handle) : IDisposable, IEquatable<MTLDevice>
     {
         #region Selectors
-        private static readonly Selector s_sel_supportsFamily = "supportsFamily:";
-        private static readonly Selector s_sel_isDepth24Stencil8PixelFormatSupported = "isDepth24Stencil8PixelFormatSupported";
-        private static readonly Selector s_sel_isHeadless = "isHeadless";
-        private static readonly Selector s_sel_isLowPower = "isLowPower";
-        private static readonly Selector s_sel_isRemovable = "isRemovable";
+        private static Selector sel_supportsFamily => "supportsFamily:";
+        private static Selector sel_isDepth24Stencil8PixelFormatSupported => "isDepth24Stencil8PixelFormatSupported";
+        private static Selector sel_isHeadless => "isHeadless";
+        private static Selector sel_isLowPower => "isLowPower";
+        private static Selector sel_isRemovable => "isRemovable";
+        private static Selector sel_hasUnifiedMemory => "hasUnifiedMemory";
+        private static Selector sel_name => "name";
         #endregion
 
         public nint Handle { get; } = handle;
@@ -174,19 +176,22 @@ internal static partial class MetalApi
 
         public bool SupportsFamily(MTLGPUFamily gpuFamily)
         {
-            return bool_objc_msgSend(Handle, s_sel_supportsFamily, (NSUInteger)gpuFamily);
+            return bool_objc_msgSend(Handle, sel_supportsFamily, (NSUInteger)gpuFamily);
         }
 
-        public bool isDepth24Stencil8PixelFormatSupported => bool_objc_msgSend(Handle, s_sel_isDepth24Stencil8PixelFormatSupported);
-        public bool  IsHeadless => bool_objc_msgSend(Handle, s_sel_isHeadless);
-        public bool  IsLowPower => bool_objc_msgSend(Handle, s_sel_isLowPower);
-        public bool  IsRemovable => bool_objc_msgSend(Handle, s_sel_isRemovable);
+        public bool isDepth24Stencil8PixelFormatSupported => bool_objc_msgSend(Handle, sel_isDepth24Stencil8PixelFormatSupported);
+        public bool IsHeadless => bool_objc_msgSend(Handle, sel_isHeadless);
+        public bool IsLowPower => bool_objc_msgSend(Handle, sel_isLowPower);
+        public bool IsRemovable => bool_objc_msgSend(Handle, sel_isRemovable);
+        public bool HasUnifiedMemory => bool_objc_msgSend(Handle, sel_hasUnifiedMemory);
+
+        public NSString Name => new(IntPtr_objc_msgSend(Handle, sel_name));
     }
     #endregion
 
-    [LibraryImport(ObjectiveC.MetalFramework)]
+    [LibraryImport(MetalFramework)]
     public static partial MTLDevice MTLCreateSystemDefaultDevice();
 
-    [LibraryImport(ObjectiveC.MetalFramework)]
+    [LibraryImport(MetalFramework)]
     public static partial NSArray MTLCopyAllDevices();
 }

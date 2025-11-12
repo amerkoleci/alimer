@@ -1045,18 +1045,19 @@ static VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDe
 #endif
     }
 
-    VkPhysicalDeviceProperties gpuProps;
-    vkGetPhysicalDeviceProperties(physicalDevice, &gpuProps);
+    VkPhysicalDeviceProperties2 properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+    vkGetPhysicalDeviceProperties2(physicalDevice, &properties2);
 
     // Core 1.4
-    if (gpuProps.apiVersion >= VK_API_VERSION_1_4)
+    if (properties2.properties.apiVersion >= VK_API_VERSION_1_4)
     {
+        extensions.maintenance5 = true;
         extensions.maintenance6 = true;
         extensions.pushDescriptor = true;
     }
 
     // Core 1.3
-    if (gpuProps.apiVersion >= VK_API_VERSION_1_3)
+    if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
     {
         extensions.maintenance4 = true;
         extensions.dynamicRendering = true;
@@ -1546,6 +1547,7 @@ struct VulkanAdapter final : public GPUAdapter
     VkPhysicalDevice handle = nullptr;
     VulkanPhysicalDeviceExtensions extensions;
     VulkanQueueFamilyIndices queueFamilyIndices;
+    GPUAdapterType adapterType = GPUAdapterType_Other;
     bool synchronization2;
     bool dynamicRendering;
     std::string driverDescription;
@@ -1571,6 +1573,7 @@ struct VulkanAdapter final : public GPUAdapter
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = {};
 
     // Core 1.4
+    VkPhysicalDeviceMaintenance5Features maintenance5Features = {};
     VkPhysicalDeviceMaintenance6Features maintenance6Features = {};
     VkPhysicalDeviceMaintenance6Properties maintenance6Properties = {};
     VkPhysicalDevicePushDescriptorProperties pushDescriptorProps = {};
@@ -1603,6 +1606,8 @@ struct VulkanAdapter final : public GPUAdapter
     VkPhysicalDeviceMemoryProperties2 memoryProperties2;
 
     bool Init(VkPhysicalDevice handle_);
+
+    GPUAdapterType GetType() const override { return adapterType; }
     void GetInfo(GPUAdapterInfo* info) const override;
     void GetLimits(GPUAdapterLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
@@ -1614,7 +1619,6 @@ struct VulkanAdapter final : public GPUAdapter
 struct VulkanInstance final : public GPUFactory
 {
     bool debugUtils = false;
-    bool headless = false;
     bool xcbSurface = false;
     bool xlibSurface = false;
     bool waylandSurface = false;
@@ -1626,6 +1630,8 @@ struct VulkanInstance final : public GPUFactory
     ~VulkanInstance() override;
 
     GPUBackendType GetBackend() const override { return GPUBackendType_Vulkan; }
+    uint32_t GetAdapterCount() const override { return static_cast<uint32_t>(adapters.size()); }
+    GPUAdapter* GetAdapter(uint32_t index) const override;
     GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
     GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
@@ -4777,6 +4783,10 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
     extensions = QueryPhysicalDeviceExtensions(handle_);
     queueFamilyIndices = QueryQueueFamilies(handle_, extensions.video.queue);
 
+    // Get current base properties
+    properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    vkGetPhysicalDeviceProperties2(handle, &properties2);
+
     VkBaseOutStructure* featureChainCurrent{ nullptr };
     auto addToFeatureChain = [&featureChainCurrent](auto* next) {
         auto n = reinterpret_cast<VkBaseOutStructure*>(next);
@@ -4796,7 +4806,6 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
     features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 
-    properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
     properties11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
     properties12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
 
@@ -4811,6 +4820,8 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
     if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
     {
         features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        properties13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
+
         addToFeatureChain(&features13);
         addToPropertiesChain(&properties13);
     }
@@ -4878,13 +4889,19 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
         // Core in 1.4
         if (properties2.properties.apiVersion < VK_API_VERSION_1_4)
         {
+            if (extensions.maintenance5)
+            {
+                maintenance5Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES;
+                addToFeatureChain(&maintenance5Features);
+            }
+
             if (extensions.maintenance6)
             {
                 maintenance6Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES;
                 maintenance6Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_PROPERTIES;
 
-                //addToFeatureChain(&adapter->maintenance6Features);
-                //addToPropertiesChain(&adapter->maintenance6Properties);
+                addToFeatureChain(&maintenance6Features);
+                addToPropertiesChain(&maintenance6Properties);
             }
 
             if (extensions.pushDescriptor)
@@ -4967,6 +4984,28 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
     memoryProperties2 = {};
     memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
     vkGetPhysicalDeviceMemoryProperties2(handle, &memoryProperties2);
+
+    switch (properties2.properties.deviceType)
+    {
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+            adapterType = GPUAdapterType_IntegratedGpu;
+            break;
+
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+            adapterType = GPUAdapterType_DiscreteGpu;
+            break;
+
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+            adapterType = GPUAdapterType_VirtualGpu;
+            break;
+
+        case VK_PHYSICAL_DEVICE_TYPE_CPU:
+            adapterType = GPUAdapterType_Cpu;
+            break;
+        default:
+            adapterType = GPUAdapterType_Other;
+            break;
+    }
 
     driverDescription = properties12.driverName;
     if (properties12.driverInfo[0] != '\0')
@@ -5132,26 +5171,7 @@ void VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
     }
 
     info->driverDescription = driverDescription.c_str();
-
-    switch (properties2.properties.deviceType)
-    {
-        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-            info->adapterType = GPUAdapterType_IntegratedGpu;
-            break;
-        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-            info->adapterType = GPUAdapterType_DiscreteGpu;
-            break;
-        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-            info->adapterType = GPUAdapterType_VirtualGpu;
-            break;
-        case VK_PHYSICAL_DEVICE_TYPE_CPU:
-            info->adapterType = GPUAdapterType_Cpu;
-            break;
-
-        default:
-            info->adapterType = GPUAdapterType_Other;
-            break;
-    }
+    info->adapterType = adapterType;
 }
 
 void VulkanAdapter::GetLimits(GPUAdapterLimits* limits) const
@@ -5713,6 +5733,14 @@ VulkanInstance::~VulkanInstance()
     }
 }
 
+GPUAdapter* VulkanInstance::GetAdapter(uint32_t index) const
+{
+    if (index >= adapters.size())
+        return nullptr;
+
+    return adapters[index];
+}
+
 GPUSurface* VulkanInstance::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 {
     VkResult result = VK_SUCCESS;
@@ -5783,26 +5811,26 @@ GPUAdapter* VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* optio
     for (VkPhysicalDevice physicalDevice : physicalDevices)
     {
         // We require minimum 1.2
-        VkPhysicalDeviceProperties physicalDeviceProperties;
-        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-        if (physicalDeviceProperties.apiVersion < VK_API_VERSION_1_2)
+        VkPhysicalDeviceProperties2 physicalDeviceProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+        vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties);
+        if (physicalDeviceProperties.properties.apiVersion < VK_API_VERSION_1_2)
         {
             continue;
         }
 
-        VkPhysicalDeviceFeatures physicalDeviceFeatures;
-        vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+        vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalDeviceFeatures);
 
-        if (physicalDeviceFeatures.robustBufferAccess != VK_TRUE
-            || physicalDeviceFeatures.fullDrawIndexUint32 != VK_TRUE
-            || physicalDeviceFeatures.depthClamp != VK_TRUE
-            || physicalDeviceFeatures.depthBiasClamp != VK_TRUE
-            || physicalDeviceFeatures.fragmentStoresAndAtomics != VK_TRUE
-            || physicalDeviceFeatures.imageCubeArray != VK_TRUE
-            || physicalDeviceFeatures.independentBlend != VK_TRUE
-            || physicalDeviceFeatures.sampleRateShading != VK_TRUE
-            || physicalDeviceFeatures.shaderClipDistance != VK_TRUE
-            || physicalDeviceFeatures.occlusionQueryPrecise != VK_TRUE)
+        if (physicalDeviceFeatures.features.robustBufferAccess != VK_TRUE
+            || physicalDeviceFeatures.features.fullDrawIndexUint32 != VK_TRUE
+            || physicalDeviceFeatures.features.depthClamp != VK_TRUE
+            || physicalDeviceFeatures.features.depthBiasClamp != VK_TRUE
+            || physicalDeviceFeatures.features.fragmentStoresAndAtomics != VK_TRUE
+            || physicalDeviceFeatures.features.imageCubeArray != VK_TRUE
+            || physicalDeviceFeatures.features.independentBlend != VK_TRUE
+            || physicalDeviceFeatures.features.sampleRateShading != VK_TRUE
+            || physicalDeviceFeatures.features.shaderClipDistance != VK_TRUE
+            || physicalDeviceFeatures.features.occlusionQueryPrecise != VK_TRUE)
         {
             continue;
         }
@@ -5847,10 +5875,10 @@ GPUAdapter* VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* optio
         }
 
         adapters.push_back(adapter);
-        bool priority = physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+        bool priority = physicalDeviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
         if (options && options->powerPreference == GPUPowerPreference_LowPower)
         {
-            priority = physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+            priority = physicalDeviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
         }
 
         if (priority || adapter->handle == VK_NULL_HANDLE)
@@ -5989,15 +6017,6 @@ GPUFactory* Vulkan_CreateInstance(const GPUFactoryDesc* desc)
         else if (strcmp(availableExtension.extensionName, VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME) == 0)
         {
             instanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
-        }
-        else if (strcmp(availableExtension.extensionName, VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME) == 0)
-        {
-            instanceExtensions.push_back(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME);
-        }
-        else if (strcmp(availableExtension.extensionName, VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME) == 0)
-        {
-            instance->headless = true;
-            //instanceExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
         }
         else if (strcmp(availableExtension.extensionName, "VK_KHR_xcb_surface") == 0)
         {
@@ -6155,7 +6174,7 @@ GPUFactory* Vulkan_CreateInstance(const GPUFactoryDesc* desc)
         }
     }
 
-#ifdef _DEBUG
+#if defined(_DEBUG)
     alimerLogInfo(LogCategory_GPU, "Created VkInstance with version: %d.%d.%d",
         VK_VERSION_MAJOR(appInfo.apiVersion),
         VK_VERSION_MINOR(appInfo.apiVersion),
@@ -6178,6 +6197,91 @@ GPUFactory* Vulkan_CreateInstance(const GPUFactoryDesc* desc)
         alimerLogInfo(LogCategory_GPU, "	\t%s", createInfo.ppEnabledExtensionNames[i]);
     }
 #endif
+
+    // Enumerate physical device and detect best one.
+    uint32_t physicalDeviceCount = 0;
+    VK_CHECK(vkEnumeratePhysicalDevices(instance->handle, &physicalDeviceCount, nullptr));
+    if (physicalDeviceCount == 0)
+    {
+        alimerLogDebug(LogCategory_GPU, "Vulkan: Failed to find GPUs with Vulkan support");
+        return nullptr;
+    }
+
+    instance->adapters.reserve(physicalDeviceCount);
+    std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+    VK_CHECK(vkEnumeratePhysicalDevices(instance->handle, &physicalDeviceCount, physicalDevices.data()));
+
+    for (VkPhysicalDevice physicalDevice : physicalDevices)
+    {
+        // We require minimum 1.2
+        VkPhysicalDeviceProperties2 physicalDeviceProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+        vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties);
+        if (physicalDeviceProperties.properties.apiVersion < VK_API_VERSION_1_2)
+        {
+            continue;
+        }
+
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+        vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalDeviceFeatures);
+
+        if (physicalDeviceFeatures.features.robustBufferAccess != VK_TRUE
+            || physicalDeviceFeatures.features.fullDrawIndexUint32 != VK_TRUE
+            || physicalDeviceFeatures.features.depthClamp != VK_TRUE
+            || physicalDeviceFeatures.features.depthBiasClamp != VK_TRUE
+            || physicalDeviceFeatures.features.fragmentStoresAndAtomics != VK_TRUE
+            || physicalDeviceFeatures.features.imageCubeArray != VK_TRUE
+            || physicalDeviceFeatures.features.independentBlend != VK_TRUE
+            || physicalDeviceFeatures.features.sampleRateShading != VK_TRUE
+            || physicalDeviceFeatures.features.shaderClipDistance != VK_TRUE
+            || physicalDeviceFeatures.features.occlusionQueryPrecise != VK_TRUE)
+        {
+            continue;
+        }
+
+        VulkanPhysicalDeviceExtensions extensions = QueryPhysicalDeviceExtensions(physicalDevice);
+        if (!extensions.swapchain)
+        {
+            continue;
+        }
+
+        VulkanQueueFamilyIndices queueFamilyIndices = QueryQueueFamilies(physicalDevice, extensions.video.queue);
+        if (!queueFamilyIndices.IsComplete())
+        {
+            continue;
+        }
+
+#if defined(TODO)
+        if (options && options->compatibleSurface != nullptr)
+        {
+            VulkanSurface* surface = static_cast<VulkanSurface*>(options->compatibleSurface);
+            VkBool32 presentSupport = false;
+            VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
+                physicalDevice,
+                queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics],
+                surface->handle,
+                &presentSupport
+            );
+
+            // Present family not found, we cannot create SwapChain
+            if (result != VK_SUCCESS || presentSupport == VK_FALSE)
+            {
+                continue;
+            }
+        }
+#endif // defined(TODO)
+
+
+        VulkanAdapter* adapter = new VulkanAdapter();
+        adapter->instance = instance;
+        adapter->debugUtils = instance->debugUtils;
+        if (!adapter->Init(physicalDevice))
+        {
+            delete adapter;
+            continue;
+        }
+
+        instance->adapters.push_back(adapter);
+    }
 
     return instance;
 }

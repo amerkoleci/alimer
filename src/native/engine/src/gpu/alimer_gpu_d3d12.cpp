@@ -1547,6 +1547,7 @@ struct D3D12Adapter final : public GPUAdapter
     ~D3D12Adapter() override;
 
     bool Init(ID3D12Device* device);
+    GPUAdapterType GetType() const override { return adapterType; }
     void GetInfo(GPUAdapterInfo* info) const override;
     void GetLimits(GPUAdapterLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
@@ -1566,10 +1567,13 @@ struct D3D12Instance final : public GPUFactory
     ComPtr<IDXGIFactory4> dxgiFactory4;
     bool tearingSupported = false;
     GPUValidationMode validationMode;
+    std::vector<D3D12Adapter*> adapters;
 
     ~D3D12Instance() override;
 
     GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
+    uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
+    GPUAdapter* GetAdapter(uint32_t index) const override;
     GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
     GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
@@ -2146,6 +2150,10 @@ void D3D12RenderPassEncoder::Begin(const GPURenderPassDesc& desc)
                     DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
                     break;
             }
+        }
+        else
+        {
+            
         }
 
         commandBuffer->TextureBarrier(texture, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite);
@@ -4427,6 +4435,31 @@ bool D3D12Adapter::Init(ID3D12Device* device)
     //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
     limits.shaderModel = FromD3D12(features.HighestShaderModel());
 
+    uint32_t MaxNonSamplerDescriptors = 0;
+    uint32_t MaxSamplerDescriptors = 0;
+    D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
+    if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
+    {
+        if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+        }
+        else if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+        }
+        else
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+        }
+        MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+    }
+    else
+    {
+        MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
+        MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
+    }
+
     // ConservativeRasterization
     limits.conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
 
@@ -4801,6 +4834,14 @@ GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 /* D3D12Instance */
 D3D12Instance::~D3D12Instance()
 {
+}
+
+GPUAdapter* D3D12Instance::GetAdapter(uint32_t index) const
+{
+    if (index >= adapters.size())
+        return nullptr;
+
+    return adapters[index];
 }
 
 GPUSurface* D3D12Instance::CreateSurface(GPUSurfaceHandle* surfaceHandle)

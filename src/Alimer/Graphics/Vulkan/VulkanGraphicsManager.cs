@@ -83,11 +83,6 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
                 {
                     HasWaylandSurface = true;
                 }
-                else if (extensionName == VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
-                {
-                    HasHeadlessSurface = true;
-                    instanceExtensions.Add(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
-                }
             }
             instanceExtensions.Add(VK_KHR_SURFACE_EXTENSION_NAME);
 
@@ -131,7 +126,14 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             if (options.ValidationMode != GraphicsValidationMode.Disabled)
             {
                 // Determine the optimal validation layers to enable that are necessary for useful debugging
-                GetOptimalValidationLayers(ref instanceLayers, availableInstanceLayers);
+                UnsafeList<Utf8String> validationLayers =
+                [
+                    VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME
+                ];
+                if (ValidateLayers(validationLayers, availableInstanceLayers))
+                {
+                    instanceLayers.Add(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME);
+                }
             }
 
             if (options.ValidationMode == GraphicsValidationMode.Gpu)
@@ -284,7 +286,6 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     public bool HasXlibSurface { get; }
     public bool HasXcbSurface { get; }
     public bool HasWaylandSurface { get; }
-    public bool HasHeadlessSurface { get; }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
@@ -322,63 +323,6 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         catch
         {
             return false;
-        }
-    }
-
-    private static void GetOptimalValidationLayers(ref UnsafeList<Utf8String> instanceLayers, Span<VkLayerProperties> availableLayers)
-    {
-        // The preferred validation layer is "VK_LAYER_KHRONOS_validation"
-        UnsafeList<Utf8String> validationLayers =
-        [
-            VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME
-        ];
-        if (ValidateLayers(validationLayers, availableLayers))
-        {
-            instanceLayers.Add(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME);
-            return;
-        }
-
-        // Otherwise we fallback to using the LunarG meta layer
-        validationLayers =
-        [
-            "VK_LAYER_LUNARG_standard_validation"u8
-        ];
-        if (ValidateLayers(validationLayers, availableLayers))
-        {
-            instanceLayers.Add("VK_LAYER_LUNARG_standard_validation"u8);
-            return;
-        }
-
-        // Otherwise we attempt to enable the individual layers that compose the LunarG meta layer since it doesn't exist
-        validationLayers =
-        [
-            "VK_LAYER_GOOGLE_threading"u8,
-            "VK_LAYER_LUNARG_parameter_validation"u8,
-            "VK_LAYER_LUNARG_object_tracker"u8,
-            "VK_LAYER_LUNARG_core_validation"u8,
-            "VK_LAYER_GOOGLE_unique_objects"u8,
-        ];
-
-        if (ValidateLayers(validationLayers, availableLayers))
-        {
-            instanceLayers.Add("VK_LAYER_GOOGLE_threading"u8);
-            instanceLayers.Add("VK_LAYER_LUNARG_parameter_validation"u8);
-            instanceLayers.Add("VK_LAYER_LUNARG_object_tracker"u8);
-            instanceLayers.Add("VK_LAYER_LUNARG_core_validation"u8);
-            instanceLayers.Add("VK_LAYER_GOOGLE_unique_objects"u8);
-            return;
-        }
-
-        // Otherwise as a last resort we fallback to attempting to enable the LunarG core layer
-        validationLayers =
-        [
-            "VK_LAYER_LUNARG_core_validation"u8
-        ];
-
-        if (ValidateLayers(validationLayers, availableLayers))
-        {
-            instanceLayers.Add("VK_LAYER_LUNARG_core_validation"u8);
-            return;
         }
     }
 

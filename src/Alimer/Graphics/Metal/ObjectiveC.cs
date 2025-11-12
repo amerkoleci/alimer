@@ -61,6 +61,12 @@ internal static unsafe partial class ObjectiveC
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial ulong ulong_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial byte* bytePtr_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector, nint a, nuint b);
     #endregion
 
     public static void retain(nint receiver) => objc_msgSend(receiver, Selectors.Retain);

@@ -40,7 +40,12 @@ int main(void)
 
 #if defined(ALIMER_GPU)
     GPUFactoryDesc factoryDesc = {
-        .preferredBackend = GPUBackendType_Vulkan
+        .preferredBackend = GPUBackendType_Vulkan,
+#if defined(_DEBUG)
+        .validationMode = GPUValidationMode_Enabled
+#else
+        .validationMode = GPUValidationMode_Disabled
+#endif
     };
     GPUFactory* gpuFactory = agpuCreateFactory(&factoryDesc);
     GPUBackendType backend = agpuFactoryGetBackend(gpuFactory);
@@ -50,7 +55,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    GPUAdapter* gpuAdapter = agpuFactoryRequestAdapter(gpuFactory, NULL);
+    GPUAdapter* gpuAdapter = agpuFactoryGetBestAdapter(gpuFactory);
     GPUAdapterInfo adapterInfo;
     agpuAdapterGetInfo(gpuAdapter, &adapterInfo);
 

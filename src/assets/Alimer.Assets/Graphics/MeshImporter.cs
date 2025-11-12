@@ -5,6 +5,7 @@ using System.Numerics;
 using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
 using Silk.NET.Assimp;
+using GLTF2;
 using AssimpScene = Silk.NET.Assimp.Scene;
 using GLTFMaterial = SharpGLTF.Schema2.Material;
 using GLTFMesh = SharpGLTF.Schema2.Mesh;
@@ -41,17 +42,98 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
 
     public Task<MeshAsset> ImportGLTF(string source, IServiceRegistry services)
     {
-        ModelRoot modelRoot = ModelRoot.Load(source);
+        using FileStream stream = System.IO.File.OpenRead(source);
+        var gltf = GltfUtils.ParseGltf(stream);
 
-        foreach (GLTFMaterial material in modelRoot.LogicalMaterials)
-        {
-        }
 
         List<Vector3> positions = [];
         List<Vector3> normals = [];
         List<Vector3> tangents = [];
         List<Vector2> texCoords0 = [];
         uint[] indices = [];
+
+        foreach (Gltf2.Mesh mesh in gltf.Meshes)
+        {
+            foreach (Gltf2.MeshPrimitive primitive in mesh.Primitives)
+            {
+                if (primitive.Attributes.TryGetValue("POSITION", out int index))
+                {
+                    var accessor = gltf.Accessors[index];
+
+                    int bufferViewIndex = accessor.BufferView ?? throw new Exception();
+                    Gltf2.BufferView bufferView = gltf.BufferViews[bufferViewIndex];
+
+                    int offset = bufferView.ByteOffset + accessor.ByteOffset;
+
+                    //int stride = accessor.ComponentType switch
+                    //{
+                    //    Gltf2.ComponentType.UnsignedShort => GetCountOfAccessorType(accessor.Type) * sizeof(ushort),
+                    //    Gltf2.ComponentType.UnsignedInt => GetCountOfAccessorType(accessor.Type) * sizeof(uint),
+                    //    _ => throw new NotSupportedException("This component type is not supported.")
+                    //};
+
+                    var buffer = gltf.Buffers[bufferView.Buffer];
+                    //return gltf.Buffers[bufferView.Buffer].AsSpan(offset, stride * accessor.Count);
+                }
+
+
+                //bool hasPosition = primitive.GetVertexAccessor("POSITION") is not null;
+                //bool hasNormal = primitive.GetVertexAccessor("NORMAL") is not null;
+                //bool hasTangent = primitive.GetVertexAccessor("TANGENT") is not null;
+                //bool hasTexCoord0 = primitive.GetVertexAccessor("TEXCOORD_0") is not null;
+
+                //Guard.IsTrue(hasPosition);
+                //Guard.IsTrue(hasNormal);
+                //Guard.IsTrue(hasTexCoord0);
+
+                //IList<Vector3> positionAccessor = primitive.GetVertexAccessor("POSITION").AsVector3Array();
+                //IList<Vector3> normalAccessor = primitive.GetVertexAccessor("NORMAL").AsVector3Array();
+                //IList<Vector3>? tangentAccessor = hasTangent ? primitive.GetVertexAccessor("TANGENT").AsVector3Array() : default;
+                //IList<Vector2> texcoordAccessor = primitive.GetVertexAccessor("TEXCOORD_0").AsVector2Array();
+                //var indexAccessor = primitive.GetIndexAccessor().AsIndicesArray();
+
+                //if (!hasTangent)
+                //{
+                //    Span<Vector3> calculatedTngents = VertexHelper.GenerateTangents(
+                //        positionAccessor.ToArray(),
+                //        texcoordAccessor.ToArray(),
+                //        indexAccessor.ToArray());
+                //    tangentAccessor = new List<Vector3>();
+                //    for (int i = 0; i < positionAccessor.Count; ++i)
+                //    {
+                //        tangentAccessor.Add(new Vector3(calculatedTngents[i].X, calculatedTngents[i].Y, calculatedTngents[i].Z));
+                //    }
+                //}
+
+                //for (int i = 0; i < positionAccessor.Count; ++i)
+                //{
+                //    Vector3 position = positionAccessor[i];
+                //    Vector3 normal = normalAccessor[i];
+                //    Vector3 tangent = hasTangent ? tangentAccessor[i]! : Vector3.Zero;
+                //    Vector2 texcoord = texcoordAccessor[i];
+
+                //    positions.Add(position);
+                //    normals.Add(normal);
+                //    tangents.Add(tangent);
+                //    texCoords0.Add(texcoord);
+                //}
+
+                //// Indices
+                //indices = new uint[indexAccessor.Count];
+
+                //for (int i = 0; i < indices.Length; i++)
+                //{
+                //    indices[i] = indexAccessor[i];
+                //}
+            }
+        }
+
+        ModelRoot modelRoot = ModelRoot.Load(source);
+
+        foreach (GLTFMaterial material in modelRoot.LogicalMaterials)
+        {
+        }
+
 
         foreach (GLTFMesh mesh in modelRoot.LogicalMeshes)
         {

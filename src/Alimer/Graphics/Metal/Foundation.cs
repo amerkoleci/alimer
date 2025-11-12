@@ -4,11 +4,62 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using static Alimer.Platforms.Apple.ObjectiveC;
 
 namespace Alimer.Platforms.Apple;
 
+internal readonly partial struct NSString : IDisposable
+{
+    #region Selectors
+    private static readonly ObjectiveCClass s_class = new(nameof(NSString));
+    private static Selector sel_utf8String => "UTF8String";
+    private static Selector sel_initWithCharacters => "initWithCharacters:length:";
+    #endregion 
+
+    public nint Handle { get; }
+
+    public NSString(nint handle) => Handle = handle;
+
+    public NSString()
+    {
+        Handle = s_class.AllocInit();
+    }
+
+    public void Dispose()
+    {
+        objc_msgSend(Handle, Selectors.Release);
+    }
+
+    public static unsafe implicit operator NSString(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return new NSString(0);
+        }
+
+        NSString nss = s_class.Alloc<NSString>();
+
+        fixed (char* utf16Ptr = value)
+        {
+            nuint length = (nuint)value.Length;
+            IntPtr newString = IntPtr_objc_msgSend(nss.Handle, sel_initWithCharacters, (nint)utf16Ptr, length);
+            return new NSString(newString);
+        }
+    }
+
+
+    public static implicit operator string(NSString @string)
+    {
+        unsafe
+        {
+            byte* utf8Ptr = bytePtr_objc_msgSend(@string.Handle, sel_utf8String);
+            return GetUtf8String(utf8Ptr);
+        }
+    }
+}
+
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal readonly struct NSArray : IDisposable, IEquatable<NSArray>
+internal readonly partial struct NSArray : IDisposable, IEquatable<NSArray>
 {
     #region Selectors
     private static readonly Selector s_sel_count = "count";
@@ -19,7 +70,7 @@ internal readonly struct NSArray : IDisposable, IEquatable<NSArray>
 
     public NSArray()
     {
-        var cls = new ObjectiveCClass("NSArray");
+        ObjectiveCClass cls = new("NSArray");
         Handle = cls.AllocInit();
     }
 

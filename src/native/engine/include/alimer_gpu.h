@@ -880,7 +880,9 @@ ALIMER_API bool agpuIsBackendSupport(GPUBackendType backend);
 ALIMER_API GPUFactory* agpuCreateFactory(ALIMER_NULLABLE const GPUFactoryDesc* desc);
 ALIMER_API void agpuFactoryDestroy(GPUFactory* factory);
 ALIMER_API GPUBackendType agpuFactoryGetBackend(GPUFactory* factory);
-ALIMER_API GPUAdapter* agpuFactoryRequestAdapter(GPUFactory* factory, ALIMER_NULLABLE const GPURequestAdapterOptions* options);
+ALIMER_API uint32_t agpuFactoryGetAdapterCount(GPUFactory* factory);
+ALIMER_API GPUAdapter* agpuFactoryGetAdapter(GPUFactory* factory, uint32_t index);
+ALIMER_API GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory* factory);
 
 /* Adapter */
 ALIMER_API void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info);

@@ -245,6 +245,7 @@ struct GPUSurface : public GPUResource
 
 struct GPUAdapter : public GPUResource
 {
+    virtual GPUAdapterType GetType() const = 0;
     virtual void GetInfo(GPUAdapterInfo* info) const = 0;
     virtual void GetLimits(GPUAdapterLimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
@@ -257,6 +258,8 @@ public:
     virtual ~GPUFactory() = default;
 
     virtual GPUBackendType GetBackend() const = 0;
+    virtual uint32_t GetAdapterCount() const = 0;
+    virtual GPUAdapter* GetAdapter(uint32_t index) const = 0;
     virtual GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) = 0;
     virtual GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) = 0;
 };

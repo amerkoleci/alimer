@@ -125,9 +125,33 @@ GPUBackendType agpuFactoryGetBackend(GPUFactory* factory)
     return factory->GetBackend();
 }
 
-GPUAdapter* agpuFactoryRequestAdapter(GPUFactory* factory, ALIMER_NULLABLE const GPURequestAdapterOptions* options)
+uint32_t agpuFactoryGetAdapterCount(GPUFactory* factory)
 {
-    return factory->RequestAdapter(options);
+    return factory->GetAdapterCount();
+}
+
+GPUAdapter* agpuFactoryGetAdapter(GPUFactory* factory, uint32_t index)
+{
+    return factory->GetAdapter(index);
+}
+
+GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory* factory)
+{
+    GPUAdapter* result = nullptr;
+    uint32_t kind = (uint32_t)GPUAdapterType_Other + 1;
+
+    for (uint32_t i = 0, count = factory->GetAdapterCount(); i < count; ++i)
+    {
+        GPUAdapter* adapter = factory->GetAdapter(i);
+        GPUAdapterType adapterType = adapter->GetType();
+        if ((uint32_t)adapterType < kind)
+        {
+            result = adapter;
+            kind = (uint32_t)adapterType;
+        }
+    }
+
+    return result;
 }
 
 /* Adapter */
