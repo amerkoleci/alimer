@@ -13,12 +13,7 @@ namespace Alimer;
 unsafe partial class AlimerApi
 {
     #region Enums
-    public enum GPUPowerPreference
-    {
-        Undefined = 0,
-        LowPower = 1,
-        HighPerformance = 2,
-    }
+
     #endregion
 
     #region Structs
@@ -28,15 +23,9 @@ unsafe partial class AlimerApi
         public GraphicsValidationMode validationMode;
     }
 
-    public struct GPURequestAdapterOptions
-    {
-        public GPUSurface compatibleSurface;
-        public GPUPowerPreference powerPreference;
-    }
-
     public struct GPUAdapterInfo
     {
-        public byte* deviceName;
+        public fixed byte deviceName[256];
         public fixed ushort driverVersion[4];
         public byte* driverDescription;
         public GraphicsAdapterType adapterType;
@@ -218,7 +207,11 @@ unsafe partial class AlimerApi
     [LibraryImport(LibraryName)]
     public static partial GraphicsBackendType agpuFactoryGetBackend(GPUFactory factory);
     [LibraryImport(LibraryName)]
-    public static partial GPUAdapter agpuFactoryRequestAdapter(GPUFactory factory, GPURequestAdapterOptions* options);
+    public static partial int agpuFactoryGetAdapterCount(GPUFactory factory);
+    [LibraryImport(LibraryName)]
+    public static partial GPUAdapter agpuFactoryGetAdapter(GPUFactory factory, int index);
+    [LibraryImport(LibraryName)]
+    public static partial GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory);
 
     #region GPUAdapter Methods
     [LibraryImport(LibraryName)]

@@ -520,6 +520,13 @@ typedef struct Quaternion {
     float w;
 } Quaternion;
 
+typedef struct Color {
+    float r;
+    float g;
+    float b;
+    float a;
+} Color;
+
 /// 4x4 row-major matrix: 32 bit floating point components
 typedef struct Matrix4x4 {
     float m11, m12, m13, m14;

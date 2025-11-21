@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Text;
 using Alimer.Utilities;
 using static Alimer.AlimerApi;
 namespace Alimer.Graphics.Native;
@@ -16,7 +17,7 @@ internal unsafe class NativeGraphicsAdapter : GraphicsAdapter
         agpuAdapterGetInfo(handle, out GPUAdapterInfo info);
         agpuAdapterGetLimits(handle, out GPULimits limits);
 
-        DeviceName = Utf8CustomMarshaller.ConvertToManaged(info.deviceName)!;
+        DeviceName = new Utf8String(info.deviceName).ToString();
         VendorId = info.vendorID;
         DeviceId = info.deviceID;
         Type = info.adapterType;

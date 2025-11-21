@@ -4,6 +4,7 @@
 using static Alimer.AlimerApi;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
+using Alimer.Graphics.Native;
 
 namespace Alimer.Graphics;
 
@@ -30,29 +31,7 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     /// </summary>
     public abstract ReadOnlySpan<GraphicsAdapter> Adapters { get; }
 
-    public static bool IsBackendSupport(GraphicsBackendType backendType)
-    {
-        Guard.IsTrue(backendType != GraphicsBackendType.Default, nameof(backendType), "Invalid backend type");
-
-        switch (backendType)
-        {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                return Vulkan.VulkanGraphicsManager.IsSupported;
-#endif
-#if !EXCLUDE_D3D12_BACKEND
-            case GraphicsBackendType.D3D12:
-                return D3D12.D3D12GraphicsManager.IsSupported;
-#endif
-#if !EXCLUDE_METAL_BACKEND
-            case GraphicsBackendType.Metal:
-                return Metal.MetalGraphicsManager.IsSupported;
-#endif
-
-            default:
-                return false;
-        }
-    }
+    public static bool IsBackendSupport(GraphicsBackendType backendType) => agpuIsBackendSupport(backendType);
 
     /// <summary>
     /// Creates a new <see cref="GraphicsManager"/> with the default options.
@@ -82,43 +61,8 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
             }
         }
 
-        GraphicsManager? manager = default;
-        switch (backend)
-        {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                if (Vulkan.VulkanGraphicsManager.IsSupported)
-                {
-                    manager = new Vulkan.VulkanGraphicsManager(in options);
-                }
-                break;
-#endif
-
-#if !EXCLUDE_D3D12_BACKEND 
-            case GraphicsBackendType.D3D12:
-                if (D3D12.D3D12GraphicsManager.IsSupported)
-                {
-                    manager = new D3D12.D3D12GraphicsManager(in options);
-                }
-                break;
-#endif
-
-#if !EXCLUDE_METAL_BACKEND
-            case GraphicsBackendType.Metal:
-                manager = new Metal.MetalGraphicsManager(in options);
-                break;
-#endif
-
-            default:
-                break;
-        }
-
-        if (manager == null)
-        {
-            throw new GraphicsException($"{backend} is not supported");
-        }
-
-        return manager!;
+        GraphicsManager manager = new NativeGraphicsManager(in options);
+        return manager;
     }
 
     /// <summary>

@@ -25,6 +25,9 @@ bool agpuIsBackendSupport(GPUBackendType backend)
             return false;
 #endif
 
+        case GPUBackendType_Metal:
+            return false;
+
         case GPUBackendType_WebGPU:
 #if defined(ALIMER_GPU_WEBGPU)
             return WGPU_IsSupported();
@@ -33,7 +36,6 @@ bool agpuIsBackendSupport(GPUBackendType backend)
 #endif
 
         default:
-        case GPUBackendType_Metal:
             return false;
     }
 }
@@ -65,7 +67,8 @@ GPUFactory* agpuCreateFactory(ALIMER_NULLABLE const GPUFactoryDesc* desc)
     switch (backend)
     {
         case GPUBackendType_Null:
-            return nullptr;
+            factory = Null_CreateInstance(desc);
+            break;
 
         case GPUBackendType_Vulkan:
 #if defined(ALIMER_GPU_VULKAN)
@@ -448,9 +451,9 @@ void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder* renderPassEncode
     renderPassEncoder->SetScissorRects(scissorCount, scissorRects);
 }
 
-void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder* renderPassEncoder, const float blendColor[4])
+void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder* renderPassEncoder, const Color* color)
 {
-    renderPassEncoder->SetBlendColor(blendColor);
+    renderPassEncoder->SetBlendColor(color);
 }
 
 void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder* renderPassEncoder, uint32_t reference)

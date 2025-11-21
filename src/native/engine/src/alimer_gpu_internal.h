@@ -137,7 +137,7 @@ struct GPURenderPassEncoder : public GPUCommandEncoder
     virtual void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) = 0;
     virtual void SetScissorRect(const GPUScissorRect* scissorRect) = 0;
     virtual void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) = 0;
-    virtual void SetBlendColor(const float blendColor[4]) = 0;
+    virtual void SetBlendColor(const Color* color) = 0;
     virtual void SetStencilReference(uint32_t reference) = 0;
 
     virtual void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) = 0;
@@ -261,7 +261,6 @@ public:
     virtual uint32_t GetAdapterCount() const = 0;
     virtual GPUAdapter* GetAdapter(uint32_t index) const = 0;
     virtual GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) = 0;
-    virtual GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) = 0;
 };
 
 namespace
@@ -359,6 +358,8 @@ namespace
             || depthStencil.frontFace.passOperation != GPUStencilOperation_Keep;
     }
 }
+
+_ALIMER_EXTERN GPUFactory* Null_CreateInstance(const GPUFactoryDesc* desc);
 
 #if defined(ALIMER_GPU_VULKAN)
 _ALIMER_EXTERN bool Vulkan_IsSupported(void);

@@ -423,12 +423,36 @@ namespace
     }
 
     /// @brief Helper function that hashes a single value into ioSeed
-  /// Taken from: https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
+    /// Taken from: https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
     template <typename T>
     inline void HashCombine(size_t& ioSeed, const T& value)
     {
         std::hash<T> hasher;
         ioSeed ^= hasher(value) + 0x9e3779b9 + (ioSeed << 6) + (ioSeed >> 2);
+    }
+}
+
+namespace string
+{
+    inline void copy_safe(char* dst, size_t dstSize, const char* src)
+    {
+        if (!dst || !src || dstSize == 0)
+        {
+            return;
+        }
+
+        // Copy characters from src to dst until either (dstSize - 1) is exhausted or we hit a null terminator in src.
+        while (dstSize > 1 && *src)
+        {
+            *dst++ = *src++;
+            --dstSize;
+        }
+        // Fill the rest of dst with null characters to ensure null-termination.
+        while (dstSize > 0)
+        {
+            *dst++ = 0;
+            --dstSize;
+        }
     }
 }
 #endif

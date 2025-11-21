@@ -19,9 +19,15 @@ internal class NativeGraphicsManager : GraphicsManager
     public unsafe NativeGraphicsManager(in GraphicsManagerOptions options)
         : base(in options)
     {
-        Handle = agpuCreateFactory(null);
+        GPUFactoryDesc factoryDesc = new()
+        {
+            preferredBackend = options.PreferredBackend,
+            validationMode = options.ValidationMode
+        };
+
+        Handle = agpuCreateFactory(&factoryDesc);
         BackendType = agpuFactoryGetBackend(Handle);
-        GPUAdapter adapter = agpuFactoryRequestAdapter(Handle, null);
+        GPUAdapter adapter = agpuFactoryGetBestAdapter(Handle);
 
         _adapters = new GraphicsAdapter[1];
         _adapters[0] = new NativeGraphicsAdapter(this, adapter);

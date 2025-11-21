@@ -1347,7 +1347,7 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoder
     void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) override;
     void SetScissorRect(const GPUScissorRect* scissorRect) override;
     void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) override;
-    void SetBlendColor(const float blendColor[4]) override;
+    void SetBlendColor(const Color* color) override;
     void SetStencilReference(uint32_t reference) override;
 
     void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
@@ -1379,8 +1379,8 @@ struct VulkanCommandBuffer final : public GPUCommandBuffer
     VulkanComputePassEncoder* computePassEncoder = nullptr;
     VulkanRenderPassEncoder* renderPassEncoder = nullptr;
 
-    VkCommandPool commandPools[GPU_MAX_INFLIGHT_FRAMES] = {};
-    VkCommandBuffer commandBuffers[GPU_MAX_INFLIGHT_FRAMES] = {};
+    std::vector<VkCommandPool> commandPools = {};
+    std::vector<VkCommandBuffer> commandBuffers = {};
     VkCommandBuffer handle = VK_NULL_HANDLE;
     uint32_t numBarriersToCommit = 0;
     std::vector<VkMemoryBarrier2> memoryBarriers;
@@ -1413,7 +1413,7 @@ struct VulkanQueue final : public GPUCommandQueue
     VulkanDevice* device = nullptr;
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
     VkQueue handle = VK_NULL_HANDLE;
-    VkFence frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
+    std::vector<VkFence> frameFences = {};
     std::mutex mutex;
 
     std::vector<VulkanCommandBuffer*> commandBuffers;
@@ -1633,7 +1633,6 @@ struct VulkanInstance final : public GPUFactory
     uint32_t GetAdapterCount() const override { return static_cast<uint32_t>(adapters.size()); }
     GPUAdapter* GetAdapter(uint32_t index) const override;
     GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
-    GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
 /* VulkanBuffer */
@@ -2162,9 +2161,11 @@ void VulkanRenderPassEncoder::SetScissorRects(uint32_t scissorCount, const GPUSc
     commandBuffer->device->vkCmdSetScissor(commandBuffer->handle, 0, scissorCount, (const VkRect2D*)scissorRects);
 }
 
-void VulkanRenderPassEncoder::SetBlendColor(const float blendColor[4])
+void VulkanRenderPassEncoder::SetBlendColor(const Color* color)
 {
-    commandBuffer->device->vkCmdSetBlendConstants(commandBuffer->handle, blendColor);
+    ALIMER_ASSERT(color != nullptr);
+
+    commandBuffer->device->vkCmdSetBlendConstants(commandBuffer->handle, &color->r);
 }
 
 void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
@@ -2751,6 +2752,8 @@ GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* 
         commandBuffer->computePassEncoder->commandBuffer = commandBuffer;
         commandBuffer->renderPassEncoder = new VulkanRenderPassEncoder();
         commandBuffer->renderPassEncoder->commandBuffer = commandBuffer;
+        commandBuffer->commandPools.resize(device->maxFramesInFlight);
+        commandBuffer->commandBuffers.resize(device->maxFramesInFlight);
 
         for (uint32_t i = 0; i < device->maxFramesInFlight; ++i)
         {
@@ -5137,7 +5140,7 @@ void VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
 {
     memset(info, 0, sizeof(GPUAdapterInfo));
 
-    info->deviceName = properties2.properties.deviceName;
+    string::copy_safe(info->deviceName, sizeof(info->deviceName), properties2.properties.deviceName);
     info->vendor = agpuGPUAdapterVendorFromID(properties2.properties.vendorID);
     info->vendorID = properties2.properties.vendorID;
     info->deviceID = properties2.properties.deviceID;
@@ -5575,6 +5578,7 @@ GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 
             device->vkGetDeviceQueue(device->handle, queueFamilyIndices.familyIndices[i], queueFamilyIndices.queueIndices[i], &device->queues[i].handle);
             queueFamilyIndices.counts[i] = queueFamilyIndices.queueOffsets[queueFamilyIndices.familyIndices[i]];
+            device->queues[i].frameFences.resize(device->maxFramesInFlight);
 
             for (uint32_t frameIndex = 0; frameIndex < device->maxFramesInFlight; ++frameIndex)
             {
@@ -5786,6 +5790,22 @@ GPUSurface* VulkanInstance::CreateSurface(GPUSurfaceHandle* surfaceHandle)
         return nullptr;
     }
 
+    // Query which queue families support presenting this surface
+    {
+        size_t nQueueFamilies = device.GetDeviceInfo().queueFamilies.size();
+        info.supportedQueueFamilies.resize(nQueueFamilies, false);
+
+        for (uint32_t i = 0; i < nQueueFamilies; ++i)
+        {
+            VkBool32 supported = VK_FALSE;
+            DAWN_TRY(CheckVkSuccess(vkGetPhysicalDeviceSurfaceSupportKHR(
+                vkPhysicalDevice, i, surface, &supported),
+                "vkGetPhysicalDeviceSurfaceSupportKHR"));
+
+            info.supportedQueueFamilies[i] = (supported == VK_TRUE);
+        }
+    }
+
     VulkanSurface* surface = new VulkanSurface();
     surface->instance = handle;
     surface->handle = vk_surface;
@@ -5868,7 +5888,7 @@ GPUAdapter* VulkanInstance::RequestAdapter(const GPURequestAdapterOptions* optio
         VulkanAdapter* adapter = new VulkanAdapter();
         adapter->instance = this;
         adapter->debugUtils = debugUtils;
-        if(!adapter->Init(physicalDevice))
+        if (!adapter->Init(physicalDevice))
         {
             delete adapter;
             continue;

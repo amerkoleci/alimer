@@ -1117,7 +1117,7 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoder
     void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) override;
     void SetScissorRect(const GPUScissorRect* scissorRect) override;
     void SetScissorRects(uint32_t scissorCount, const GPUScissorRect* scissorRects) override;
-    void SetBlendColor(const float blendColor[4]) override;
+    void SetBlendColor(const Color* color) override;
     void SetStencilReference(uint32_t reference) override;
 
     void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
@@ -1149,7 +1149,7 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
     D3D12ComputePassEncoder* computePassEncoder = nullptr;
     D3D12RenderPassEncoder* renderPassEncoder = nullptr;
 
-    ID3D12CommandAllocator* commandAllocators[GPU_MAX_INFLIGHT_FRAMES] = {};
+    std::vector<ID3D12CommandAllocator*> commandAllocators = {};
     ID3D12GraphicsCommandList6* commandList = nullptr;
     ID3D12GraphicsCommandList7* commandList7 = nullptr;
     UINT numBarriersToCommit = 0;
@@ -1172,7 +1172,6 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
     void CommitBarriers();
 
     void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
-    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
     GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -1193,7 +1192,7 @@ struct D3D12Queue final : public GPUCommandQueue
     uint64_t nextFenceValue = 0;
     uint64_t lastCompletedFenceValue = 0;
     std::mutex fenceMutex;
-    ID3D12Fence* frameFences[GPU_MAX_INFLIGHT_FRAMES] = {};
+    std::vector<ID3D12Fence*> frameFences = {};
 
     std::vector<D3D12CommandBuffer*> commandBuffers;
     uint32_t cmdBuffersCount = 0;
@@ -1575,7 +1574,6 @@ struct D3D12Instance final : public GPUFactory
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
     GPUAdapter* GetAdapter(uint32_t index) const override;
     GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
-    GPUAdapter* RequestAdapter(const GPURequestAdapterOptions* options) override;
 };
 
 /* D3D12Buffer */
@@ -2264,9 +2262,11 @@ void D3D12RenderPassEncoder::SetScissorRects(uint32_t scissorCount, const GPUSci
     commandBuffer->commandList->RSSetScissorRects(scissorCount, d3dScissorRects);
 }
 
-void D3D12RenderPassEncoder::SetBlendColor(const float blendColor[4])
+void D3D12RenderPassEncoder::SetBlendColor(const Color* color)
 {
-    commandBuffer->commandList->OMSetBlendFactor(blendColor);
+    ALIMER_ASSERT(color != nullptr);
+
+    commandBuffer->commandList->OMSetBlendFactor(&color->r);
 }
 
 void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
@@ -2710,11 +2710,6 @@ void D3D12CommandBuffer::SetPipelineLayout(D3D12PipelineLayout* newPipelineLayou
     }
 }
 
-void D3D12CommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
-{
-    ALIMER_ASSERT(currentPipelineLayout);
-}
-
 GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
@@ -2851,6 +2846,7 @@ GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* d
         commandBuffer->computePassEncoder->commandBuffer = commandBuffer;
         commandBuffer->renderPassEncoder = new D3D12RenderPassEncoder();
         commandBuffer->renderPassEncoder->commandBuffer = commandBuffer;
+        commandBuffer->commandAllocators.resize(device->maxFramesInFlight);
 
         D3D12_COMMAND_LIST_TYPE d3dCommandListType = ToD3D12(queueType);
 
@@ -4519,7 +4515,7 @@ void D3D12Adapter::GetInfo(GPUAdapterInfo* info) const
 {
     memset(info, 0, sizeof(GPUAdapterInfo));
 
-    info->deviceName = deviceName.c_str();
+    string::copy_safe(info->deviceName, sizeof(info->deviceName), deviceName.c_str());
     memcpy(info->driverVersion, driverVersion, sizeof(uint16_t) * 4);
     info->driverDescription = driverDescription.c_str();
     info->adapterType = adapterType;
@@ -4753,7 +4749,8 @@ GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
                 break;
         }
 
-        // Create frame-resident resources:
+        // Create frame-resident resources
+        device->queues[queue].frameFences.resize(device->maxFramesInFlight);
         for (uint32_t frameIndex = 0; frameIndex < device->maxFramesInFlight; ++frameIndex)
         {
             VHR(
@@ -5173,6 +5170,64 @@ GPUFactory* D3D12_CreateInstance(const GPUFactoryDesc* desc)
     else
     {
         instance->tearingSupported = true;
+    }
+
+    // Enumerate adapters
+    const DXGI_GPU_PREFERENCE gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+
+    ComPtr<IDXGIFactory6> dxgiFactory6;
+    const bool queryByPreference = SUCCEEDED(instance->dxgiFactory4.As(&dxgiFactory6));
+    auto NextAdapter = [&](uint32_t index, IDXGIAdapter1** ppAdapter)
+        {
+            if (queryByPreference)
+            {
+                return dxgiFactory6->EnumAdapterByGpuPreference(index, gpuPreference, IID_PPV_ARGS(ppAdapter));
+            }
+            return instance->dxgiFactory4->EnumAdapters1(index, ppAdapter);
+        };
+
+    ComPtr<IDXGIAdapter1> dxgiAdapter1;
+    for (uint32_t i = 0; NextAdapter(i, dxgiAdapter1.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND; ++i)
+    {
+        DXGI_ADAPTER_DESC1 adapterDesc;
+        VHR(dxgiAdapter1->GetDesc1(&adapterDesc));
+
+        // Don't select the Basic Render Driver adapter.
+        if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+        {
+            continue;
+        }
+
+
+        ComPtr<ID3D12Device> tempDevice;
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        if (d3d12_state.deviceFactory != nullptr)
+        {
+            if (FAILED(d3d12_state.deviceFactory->CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(tempDevice.ReleaseAndGetAddressOf()))))
+            {
+                continue;
+            }
+        }
+        else
+#endif
+        {
+            if (FAILED(d3d12_D3D12CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(tempDevice.ReleaseAndGetAddressOf()))))
+            {
+                continue;
+            }
+        }
+
+
+        D3D12Adapter* adapter = new D3D12Adapter();
+        adapter->instance = instance;
+        adapter->handle = dxgiAdapter1;
+        if (!adapter->Init(tempDevice.Get()))
+        {
+            delete adapter;
+            return nullptr;
+        }
+
+        instance->adapters.push_back(adapter);
     }
 
     return instance;

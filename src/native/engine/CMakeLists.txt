@@ -107,10 +107,11 @@ if (ALIMER_AUDIO)
     target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_AUDIO)
 endif()
 
-if (ALIMER_AUDIO)
+if (ALIMER_GPU)
     target_sources(${TARGET_NAME} PRIVATE
         include/alimer_gpu.h
         src/alimer_gpu.cpp
+        src/gpu/alimer_gpu_null.cpp
         src/alimer_gpu_internal.h
     )
 

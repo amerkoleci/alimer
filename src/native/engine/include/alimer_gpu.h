@@ -30,7 +30,7 @@ typedef struct GPURenderPipelineImpl*       GPURenderPipeline;
 typedef uint64_t GPUDeviceAddress;
 
 /* Constants */
-#define GPU_MAX_INFLIGHT_FRAMES (3u)
+#define GPU_MAX_PHYSICAL_DEVICE_NAME_SIZE  (256u)
 #define GPU_MAX_COLOR_ATTACHMENTS (8u)
 #define GPU_MAX_VERTEX_BUFFER_BINDINGS (8u)
 #define GPU_WHOLE_SIZE (UINT64_MAX)
@@ -79,14 +79,6 @@ typedef enum GPUValidationMode {
     _GPUValidationMode_Count,
     _GPUValidationMode_Force32 = 0x7FFFFFFF
 } GPUValidationMode;
-
-typedef enum GPUPowerPreference {
-    GPUPowerPreference_Undefined = 0,
-    GPUPowerPreference_LowPower = 1,
-    GPUPowerPreference_HighPerformance = 2,
-
-    _GPUPowerPreference_Force32 = 0x7FFFFFFF
-} GPUPowerPreference;
 
 typedef enum GPUCommandQueueType {
     GPUCommandQueueType_Graphics = 0,
@@ -763,18 +755,13 @@ typedef struct GPURenderPassDesc {
     GPUTexture*                                 shadingRateTexture DEFAULT_INITIALIZER(nullptr);
 } GPURenderPassDesc;
 
-typedef struct GPURequestAdapterOptions {
-    GPUSurface* compatibleSurface DEFAULT_INITIALIZER(nullptr);
-    GPUPowerPreference powerPreference DEFAULT_INITIALIZER(GPUPowerPreference_Undefined);
-} GPURequestAdapterOptions;
-
 typedef struct GPUDeviceDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
     uint32_t maxFramesInFlight DEFAULT_INITIALIZER(2);
 } GPUDeviceDesc;
 
 typedef struct GPUAdapterInfo {
-    const char* deviceName;
+    char deviceName[GPU_MAX_PHYSICAL_DEVICE_NAME_SIZE];
     uint16_t driverVersion[4];
     const char* driverDescription;
     GPUAdapterType adapterType;
@@ -944,7 +931,7 @@ ALIMER_API void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder* renderPas
 ALIMER_API void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder* renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports);
 ALIMER_API void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder* renderPassEncoder, const GPUScissorRect* scissorRect);
 ALIMER_API void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder* renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects);
-ALIMER_API void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder* renderPassEncoder, const float blendColor[4]);
+ALIMER_API void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder* renderPassEncoder, const Color* color);
 ALIMER_API void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder* renderPassEncoder, uint32_t reference);
 ALIMER_API void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder* renderPassEncoder, uint32_t slot, GPUBuffer* buffer, uint64_t offset);
 ALIMER_API void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder* renderPassEncoder, GPUBuffer* buffer, GPUIndexType type, uint64_t offset);
