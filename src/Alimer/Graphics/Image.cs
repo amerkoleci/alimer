@@ -269,7 +269,7 @@ public sealed unsafe class Image : DisposableObject
                 nuint dataSize;
 
                 alimerImageGetDesc(handle, &imageDesc);
-                void* pData = alimerImageGetData(handle, &dataSize);
+                byte* pData = alimerImageGetPixels(handle, &dataSize);
 
                 byte[] imageData = new byte[dataSize];
                 fixed (byte* destDataPtr = imageData)

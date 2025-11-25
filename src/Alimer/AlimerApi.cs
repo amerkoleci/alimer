@@ -118,7 +118,7 @@ internal unsafe static partial class AlimerApi
     public static partial void alimerImageGetDesc(nint handle, ImageDesc* desc);
 
     [LibraryImport(LibraryName)]
-    public static partial void* alimerImageGetData(nint handle, nuint* dataSize);
+    public static partial byte* alimerImageGetPixels(nint handle, nuint* dataSize);
     #endregion
 
     #region Font

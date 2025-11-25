@@ -61,8 +61,45 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
             }
         }
 
-        GraphicsManager manager = new NativeGraphicsManager(in options);
-        return manager;
+        GraphicsManager? manager = default;
+        switch (backend)
+        {
+#if !EXCLUDE_VULKAN_BACKEND
+            case GraphicsBackendType.Vulkan:
+                if (Vulkan.VulkanGraphicsManager.IsSupported)
+                {
+                    manager = new Vulkan.VulkanGraphicsManager(in options);
+                }
+                break;
+#endif
+
+#if !EXCLUDE_D3D12_BACKEND 
+            case GraphicsBackendType.D3D12:
+                if (D3D12.D3D12GraphicsManager.IsSupported)
+                {
+                    manager = new D3D12.D3D12GraphicsManager(in options);
+                }
+                break;
+#endif
+
+#if !EXCLUDE_METAL_BACKEND
+            case GraphicsBackendType.Metal:
+                manager = new Metal.MetalGraphicsManager(in options);
+                break;
+#endif
+
+            default:
+                break;
+        }
+
+        if (manager == null)
+        {
+            throw new GraphicsException($"{backend} is not supported");
+        }
+
+        return manager!;
+        //GraphicsManager manager = new NativeGraphicsManager(in options);
+        //return manager;
     }
 
     /// <summary>

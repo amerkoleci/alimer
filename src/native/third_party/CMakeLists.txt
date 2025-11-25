@@ -95,8 +95,6 @@ if (ALIMER_IMAGE_KTX)
 
     target_include_directories(ktx SYSTEM PUBLIC ${KTX_INCLUDE_DIRS})
 
-    target_link_libraries(ktx PUBLIC vulkan)
-
     set_target_properties(ktx PROPERTIES FOLDER "ThirdParty" POSITION_INDEPENDENT_CODE ON)
 endif()
 

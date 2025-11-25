@@ -27,10 +27,14 @@ internal class NativeGraphicsManager : GraphicsManager
 
         Handle = agpuCreateFactory(&factoryDesc);
         BackendType = agpuFactoryGetBackend(Handle);
-        GPUAdapter adapter = agpuFactoryGetBestAdapter(Handle);
+        //GPUAdapter adapter = agpuFactoryGetBestAdapter(Handle);
 
-        _adapters = new GraphicsAdapter[1];
-        _adapters[0] = new NativeGraphicsAdapter(this, adapter);
+        _adapters = new GraphicsAdapter[agpuFactoryGetAdapterCount(Handle)];
+        for(int i = 0; i < _adapters.Length; i++)
+        {
+            GPUAdapter adapter = agpuFactoryGetAdapter(Handle, i);
+            _adapters[i] = new NativeGraphicsAdapter(this, adapter);
+        }
     }
 
     public GPUFactory Handle { get; }

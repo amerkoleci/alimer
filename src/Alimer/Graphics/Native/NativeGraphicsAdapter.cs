@@ -15,7 +15,7 @@ internal unsafe class NativeGraphicsAdapter : GraphicsAdapter
     {
         Handle = handle;
         agpuAdapterGetInfo(handle, out GPUAdapterInfo info);
-        agpuAdapterGetLimits(handle, out GPULimits limits);
+        agpuAdapterGetLimits(handle, out GPUAdapterLimits limits);
 
         DeviceName = new Utf8String(info.deviceName).ToString();
         VendorId = info.vendorID;

@@ -3,12 +3,12 @@
   <PropertyGroup>
     <ImGuiVersion>2.2.9</ImGuiVersion>
     <SkiaSharpVersion>3.119.2-preview.1</SkiaSharpVersion>
-    <AvaloniaVersion>11.3.8</AvaloniaVersion>
+    <AvaloniaVersion>11.3.9</AvaloniaVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Source Generators -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" />
     
     <!-- Platform specific -->
@@ -49,6 +49,9 @@
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Controls.DataGrid" Version="$(AvaloniaVersion)" />
+
+    <!-- Tools -->
+    <PackageVersion Include="CppAst" Version="0.24.0" />
     
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />

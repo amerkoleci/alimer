@@ -29,12 +29,12 @@ unsafe partial class AlimerApi
         public fixed ushort driverVersion[4];
         public byte* driverDescription;
         public GraphicsAdapterType adapterType;
-        public /*GPUAdapterVendor*/uint vendor;
+        public GraphicsAdapterVendor vendor;
         public uint vendorID;
         public uint deviceID;
     }
 
-    public struct GPULimits
+    public struct GPUAdapterLimits
     {
         public uint maxTextureDimension1D;
         public uint maxTextureDimension2D;
@@ -63,13 +63,25 @@ unsafe partial class AlimerApi
         /* Highest supported shader model */
         public ShaderModel shaderModel;
 
-        /* Only if GPUFeature_ConservativeRasterization is supported */
+        /* ConservativeRasterization tier */
         public ConservativeRasterizationTier conservativeRasterizationTier;
 
-        /* Only if GPUFeature_VariableRateShading is supported */
+        /* VariableRateShading tier */
         public VariableRateShadingTier variableShadingRateTier;
         public uint variableShadingRateImageTileSize;
         public Bool32 isAdditionalVariableShadingRatesSupported;
+
+        /* Ray tracing */
+        public RayTracingTier rayTracingTier;
+        public uint rayTracingShaderGroupIdentifierSize;
+        public uint rayTracingShaderTableAlignment;
+        public uint rayTracingShaderTableMaxStride;
+        public uint rayTracingShaderRecursionMaxDepth;
+        public uint rayTracingMaxGeometryCount;
+        public uint rayTracingScratchAlignment;
+
+        /* Mesh shader */
+        public MeshShaderTier meshShaderTier;
     }
 
     public struct GPUDeviceDesc
@@ -217,7 +229,7 @@ unsafe partial class AlimerApi
     [LibraryImport(LibraryName)]
     public static partial void agpuAdapterGetInfo(GPUAdapter adapter, out GPUAdapterInfo info);
     [LibraryImport(LibraryName)]
-    public static partial void agpuAdapterGetLimits(GPUAdapter adapter, out GPULimits limits);
+    public static partial void agpuAdapterGetLimits(GPUAdapter adapter, out GPUAdapterLimits limits);
 
     //[LibraryImport(LibraryName)]
     //[return: MarshalAs(UnmanagedType.U1)]

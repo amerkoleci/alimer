@@ -3,7 +3,7 @@
 
 namespace Alimer.UI;
 
-public abstract class UIElement
+public abstract partial class UIElement
 {
     
 }
