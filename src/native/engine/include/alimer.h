@@ -554,7 +554,7 @@ typedef struct Blob {
 typedef struct WindowIcon {
     uint32_t    width;
     uint32_t    height;
-    uint8_t*    data;
+    uint8_t* data;
 } WindowIcon;
 
 typedef struct WindowDesc {
@@ -621,11 +621,12 @@ typedef struct PlatformEvent {
 } PlatformEvent;
 
 typedef struct ImageLevel {
-    uint32_t    width;
-    uint32_t    height;
-    uint32_t    rowPitch;
-    uint32_t    slicePitch;
-    uint8_t*    pixels;
+    uint32_t      width;
+    uint32_t      height;
+    PixelFormat   format;
+    uint32_t      rowPitch;
+    uint32_t      slicePitch;
+    uint8_t* pixels;
 } ImageLevel;
 
 typedef struct ImageDesc {
@@ -733,13 +734,22 @@ ALIMER_API PixelFormat alimerPixelFormatSrgbToLinear(PixelFormat format);
 /// Convert an linear format to sRGB. If the format doesn't have a matching sRGB format, will return the original
 ALIMER_API PixelFormat alimerPixelFormatLinearToSrgb(PixelFormat format);
 
+/// Get bits per pixel for a given format
+ALIMER_API uint32_t alimerPixelFormatGetBitsPerPixel(PixelFormat format);
+
+/// Get surface information for a given format and dimensions
+ALIMER_API void alimerGetSurfaceInfo(PixelFormat format, uint32_t width, uint32_t height, uint32_t* pRowPitch, uint32_t* pSlicePitch, uint32_t* pWidthCount /*= nullptr*/, uint32_t* pHeightCount /*= nullptr*/);
+
 ALIMER_API uint32_t alimerPixelFormatToDxgiFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromDxgiFormat(uint32_t dxgiFormat);
 ALIMER_API uint32_t alimerPixelFormatToVkFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromVkFormat(uint32_t vkFormat);
 
 /* Image */
+ALIMER_API Image* alimerImageCreate1D(PixelFormat format, uint32_t width, uint32_t arrayLayers, uint32_t mipLevelCount);
 ALIMER_API Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
+ALIMER_API Image* alimerImageCreate3D(PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevelCount);
+ALIMER_API Image* alimerImageCreateCube(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
 ALIMER_API Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize);
 ALIMER_API void alimerImageDestroy(Image* image);
 
@@ -751,7 +761,8 @@ ALIMER_API uint32_t alimerImageGetHeight(Image* image, uint32_t level);
 ALIMER_API uint32_t alimerImageGetDepth(Image* image, uint32_t level);
 ALIMER_API uint32_t alimerImageGetArrayLayers(Image* image);
 ALIMER_API uint32_t alimerImageGetMipLevelCount(Image* image);
-ALIMER_API void* alimerImageGetData(Image* image, size_t* size);
+ALIMER_API uint8_t* alimerImageGetPixels(Image* image, size_t* pixelsSize);
+ALIMER_API ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayOrDepthSlice /* = 0*/);
 
 /// Save in JPG format to file with specified quality. Return true if successful.
 ALIMER_API Blob* alimerImageEncodeJPG(Image* image, int quality);

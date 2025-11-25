@@ -542,12 +542,12 @@ char* _alimer_strdup(const char* source)
 // Format mapping table. The rows must be in the exactly same order as Format enum members are defined.
 static const PixelFormatInfo kPixelFormatInfo[] = {
     //        format                   name             bytes blk         kind               red   green   blue  alpha  depth  stencl signed  srgb
-    { PixelFormat_Undefined,      "Undefined",          0,   0, 0,  _PixelFormatKind_Force32 },
+    { PixelFormat_Undefined,        "Undefined",          0,   0, 0,  _PixelFormatKind_Force32 },
     // 8-bit formats
-    { PixelFormat_R8Unorm,        "R8Unorm",            1,   1, 1, PixelFormatKind_Unorm },
-    { PixelFormat_R8Snorm,        "R8Snorm",            1,   1, 1, PixelFormatKind_Snorm },
-    { PixelFormat_R8Uint,         "R8Uint",             1,   1, 1, PixelFormatKind_Uint },
-    { PixelFormat_R8Sint,         "R8USnt",             1,   1, 1, PixelFormatKind_Sint },
+    { PixelFormat_R8Unorm,          "R8Unorm",            1,   1, 1, PixelFormatKind_Unorm },
+    { PixelFormat_R8Snorm,          "R8Snorm",            1,   1, 1, PixelFormatKind_Snorm },
+    { PixelFormat_R8Uint,           "R8Uint",             1,   1, 1, PixelFormatKind_Uint },
+    { PixelFormat_R8Sint,           "R8USnt",             1,   1, 1, PixelFormatKind_Sint },
     // 16-bit formats
     { PixelFormat_R16Unorm,         "R16Unorm",         2,   1, 1, PixelFormatKind_Unorm },
     { PixelFormat_R16Snorm,         "R16Snorm",         2,   1, 1, PixelFormatKind_Snorm },
@@ -571,11 +571,11 @@ static const PixelFormatInfo kPixelFormatInfo[] = {
     { PixelFormat_RG16Uint,         "RG16Uint",         4,   1, 1, PixelFormatKind_Uint },
     { PixelFormat_RG16Sint,         "RG16Sint",         4,   1, 1, PixelFormatKind_Sint },
     { PixelFormat_RG16Float,        "RG16Float",        4,   1, 1, PixelFormatKind_Float },
-    { PixelFormat_RGBA8Uint,        "RGBA8Uint",        4,   1, 1, PixelFormatKind_Uint },
-    { PixelFormat_RGBA8Sint,        "RGBA8Sint",        4,   1, 1, PixelFormatKind_Sint },
     { PixelFormat_RGBA8Unorm,       "RGBA8Unorm",       4,   1, 1, PixelFormatKind_Unorm },
     { PixelFormat_RGBA8UnormSrgb,   "RGBA8UnormSrgb",   4,   1, 1, PixelFormatKind_UnormSrgb  },
     { PixelFormat_RGBA8Snorm,       "RGBA8Snorm",       4,   1, 1, PixelFormatKind_Snorm },
+    { PixelFormat_RGBA8Uint,        "RGBA8Uint",        4,   1, 1, PixelFormatKind_Uint },
+    { PixelFormat_RGBA8Sint,        "RGBA8Sint",        4,   1, 1, PixelFormatKind_Sint },
     { PixelFormat_BGRA8Unorm,       "BGRA8Unorm",       4,   1, 1, PixelFormatKind_Unorm },
     { PixelFormat_BGRA8UnormSrgb,   "BGRA8UnormSrgb",   4,   1, 1, PixelFormatKind_UnormSrgb },
     // Packed 32-Bit Pixel Formats
@@ -599,8 +599,8 @@ static const PixelFormatInfo kPixelFormatInfo[] = {
     // Depth-stencil formats
     //{ PixelFormat_Stencil8,               "Stencil8",                 4,   1, 1, VGPUFormatKind_Float },
     { PixelFormat_Depth16Unorm,           "Depth16Unorm",             2,   1, 1, PixelFormatKind_Unorm },
-    { PixelFormat_Depth32Float,           "Depth32Float",             4,   1, 1, PixelFormatKind_Float },
     { PixelFormat_Depth24UnormStencil8,   "Depth24UnormStencil8",     4,   1, 1, PixelFormatKind_Unorm },
+    { PixelFormat_Depth32Float,           "Depth32Float",             4,   1, 1, PixelFormatKind_Float },
     { PixelFormat_Depth32FloatStencil8,   "Depth32FloatStencil8",     8,   1, 1, PixelFormatKind_Float },
     // BC compressed formats
     { PixelFormat_BC1RGBAUnorm,       "BC1RGBAUnorm",         8,   4, 4, PixelFormatKind_Unorm },
@@ -941,6 +941,255 @@ PixelFormat alimerPixelFormatLinearToSrgb(PixelFormat format)
         default:
             return format;
     }
+}
+
+uint32_t alimerPixelFormatGetBitsPerPixel(PixelFormat format)
+{
+    switch (format)
+    {
+        case PixelFormat_RGBA32Uint:
+        case PixelFormat_RGBA32Sint:
+        case PixelFormat_RGBA32Float:
+            return 128;
+
+            //case PixelFormat.Rgb32Uint:
+            //case PixelFormat.Rgb32Sint:
+            //case PixelFormat.Rgb32Float:
+            //    return 96;
+
+        case PixelFormat_RGBA16Unorm:
+        case PixelFormat_RGBA16Snorm:
+        case PixelFormat_RGBA16Uint:
+        case PixelFormat_RGBA16Sint:
+        case PixelFormat_RGBA16Float:
+        case PixelFormat_RG32Uint:
+        case PixelFormat_RG32Sint:
+        case PixelFormat_RG32Float:
+        case PixelFormat_Depth32FloatStencil8:
+            return 64;
+
+        case PixelFormat_RGB10A2Unorm:
+        case PixelFormat_RGB10A2Uint:
+        case PixelFormat_RG11B10Ufloat:
+        case PixelFormat_RGB9E5Ufloat:
+        case PixelFormat_RGBA8Unorm:
+        case PixelFormat_RGBA8UnormSrgb:
+        case PixelFormat_RGBA8Snorm:
+        case PixelFormat_RGBA8Uint:
+        case PixelFormat_RGBA8Sint:
+        case PixelFormat_RG16Unorm:
+        case PixelFormat_RG16Snorm:
+        case PixelFormat_RG16Uint:
+        case PixelFormat_RG16Sint:
+        case PixelFormat_RG16Float:
+        case PixelFormat_Depth32Float:
+        case PixelFormat_R32Uint:
+        case PixelFormat_R32Sint:
+        case PixelFormat_R32Float:
+        case PixelFormat_Depth24UnormStencil8:
+        case PixelFormat_BGRA8Unorm:
+        case PixelFormat_BGRA8UnormSrgb:
+            return 32;
+
+        case PixelFormat_RG8Unorm:
+        case PixelFormat_RG8Snorm:
+        case PixelFormat_RG8Uint:
+        case PixelFormat_RG8Sint:
+        case PixelFormat_R16Unorm:
+        case PixelFormat_R16Snorm:
+        case PixelFormat_R16Uint:
+        case PixelFormat_R16Sint:
+        case PixelFormat_R16Float:
+        case PixelFormat_Depth16Unorm:
+        case PixelFormat_B5G6R5Unorm:
+        case PixelFormat_BGR5A1Unorm:
+        case PixelFormat_BGRA4Unorm:
+            return 16;
+
+        case PixelFormat_R8Unorm:
+        case PixelFormat_R8Snorm:
+        case PixelFormat_R8Uint:
+        case PixelFormat_R8Sint:
+        case PixelFormat_BC2RGBAUnorm:
+        case PixelFormat_BC2RGBAUnormSrgb:
+        case PixelFormat_BC3RGBAUnorm:
+        case PixelFormat_BC3RGBAUnormSrgb:
+        case PixelFormat_BC5RGUnorm:
+        case PixelFormat_BC5RGSnorm:
+        case PixelFormat_BC6HRGBUfloat:
+        case PixelFormat_BC6HRGBFloat:
+        case PixelFormat_BC7RGBAUnorm:
+        case PixelFormat_BC7RGBAUnormSrgb:
+        case PixelFormat_ETC2RGB8A1Unorm:
+        case PixelFormat_ETC2RGB8A1UnormSrgb:
+        case PixelFormat_ETC2RGBA8Unorm:
+        case PixelFormat_ETC2RGBA8UnormSrgb:
+        case PixelFormat_EACRG11Unorm:
+        case PixelFormat_EACRG11Snorm:
+            return 8;
+
+        case PixelFormat_BC1RGBAUnorm:
+        case PixelFormat_BC1RGBAUnormSrgb:
+        case PixelFormat_BC4RUnorm:
+        case PixelFormat_BC4RSnorm:
+        case PixelFormat_ETC2RGB8Unorm:
+        case PixelFormat_ETC2RGB8UnormSrgb:
+        case PixelFormat_EACR11Unorm:
+        case PixelFormat_EACR11Snorm:
+            return 4;
+
+        default:
+            return 0;
+    }
+}
+
+void alimerGetSurfaceInfo(PixelFormat format, uint32_t width, uint32_t height, uint32_t* pRowPitch, uint32_t* pSlicePitch, uint32_t* pWidthCount, uint32_t* pHeightCount)
+{
+    const PixelFormatInfo& formatInfo = GetPixelFormatInfo(format);
+
+    uint32_t rowPitch = 0;
+    uint32_t slicePitch = 0;
+    uint32_t widthCount = width;
+    uint32_t heightCount = height;
+
+    switch (format)
+    {
+        case PixelFormat_BC1RGBAUnorm:
+        case PixelFormat_BC1RGBAUnormSrgb:
+        case PixelFormat_BC2RGBAUnorm:
+        case PixelFormat_BC2RGBAUnormSrgb:
+        case PixelFormat_BC3RGBAUnorm:
+        case PixelFormat_BC3RGBAUnormSrgb:
+        case PixelFormat_BC4RUnorm:
+        case PixelFormat_BC4RSnorm:
+        case PixelFormat_BC5RGUnorm:
+        case PixelFormat_BC5RGSnorm:
+        case PixelFormat_BC6HRGBUfloat:
+        case PixelFormat_BC6HRGBFloat:
+        case PixelFormat_BC7RGBAUnorm:
+        case PixelFormat_BC7RGBAUnormSrgb:
+            widthCount = std::max(1u, (width + 3) / 4);
+            heightCount = std::max(1u, (height + 3) / 4);
+            rowPitch = widthCount * formatInfo.bytesPerBlock; // BytesPerBlock is 8 or 16
+            slicePitch = rowPitch * heightCount;
+            break;
+
+            // ETC2/EAC compressed formats
+        case PixelFormat_ETC2RGB8Unorm:
+        case PixelFormat_ETC2RGB8UnormSrgb:
+        case PixelFormat_ETC2RGB8A1Unorm:
+        case PixelFormat_ETC2RGB8A1UnormSrgb:
+        case PixelFormat_ETC2RGBA8Unorm:
+        case PixelFormat_ETC2RGBA8UnormSrgb:
+        case PixelFormat_EACR11Unorm:
+        case PixelFormat_EACR11Snorm:
+        case PixelFormat_EACRG11Unorm:
+        case PixelFormat_EACRG11Snorm:
+            widthCount = std::max(1u, (width + formatInfo.blockWidth - 1) / formatInfo.blockWidth);
+            heightCount = std::max(1u, (height + formatInfo.blockHeight - 1) / formatInfo.blockHeight);
+            rowPitch = widthCount * formatInfo.bytesPerBlock; // BytesPerBlock is 8 or 16
+            slicePitch = rowPitch * heightCount;
+            break;
+
+            // ASTC compressed formats
+        case PixelFormat_ASTC4x4Unorm:
+        case PixelFormat_ASTC4x4UnormSrgb:
+        case PixelFormat_ASTC5x4Unorm:
+        case PixelFormat_ASTC5x4UnormSrgb:
+        case PixelFormat_ASTC5x5Unorm:
+        case PixelFormat_ASTC5x5UnormSrgb:
+        case PixelFormat_ASTC6x5Unorm:
+        case PixelFormat_ASTC6x5UnormSrgb:
+        case PixelFormat_ASTC6x6Unorm:
+        case PixelFormat_ASTC6x6UnormSrgb:
+        case PixelFormat_ASTC8x5Unorm:
+        case PixelFormat_ASTC8x5UnormSrgb:
+        case PixelFormat_ASTC8x6Unorm:
+        case PixelFormat_ASTC8x6UnormSrgb:
+        case PixelFormat_ASTC8x8Unorm:
+        case PixelFormat_ASTC8x8UnormSrgb:
+        case PixelFormat_ASTC10x5Unorm:
+        case PixelFormat_ASTC10x5UnormSrgb:
+        case PixelFormat_ASTC10x6Unorm:
+        case PixelFormat_ASTC10x6UnormSrgb:
+        case PixelFormat_ASTC10x8Unorm:
+        case PixelFormat_ASTC10x8UnormSrgb:
+        case PixelFormat_ASTC10x10Unorm:
+        case PixelFormat_ASTC10x10UnormSrgb:
+        case PixelFormat_ASTC12x10Unorm:
+        case PixelFormat_ASTC12x10UnormSrgb:
+        case PixelFormat_ASTC12x12Unorm:
+            widthCount = std::max(1u, (width + formatInfo.blockWidth - 1) / formatInfo.blockWidth);
+            heightCount = std::max(1u, (height + formatInfo.blockHeight - 1) / formatInfo.blockHeight);
+            rowPitch = widthCount * formatInfo.bytesPerBlock;  // BytesPerBlock is always 16
+            slicePitch = rowPitch * heightCount;
+            break;
+
+            // ASTC HDR compressed formats
+        case PixelFormat_ASTC4x4HDR:
+        case PixelFormat_ASTC5x4HDR:
+        case PixelFormat_ASTC5x5HDR:
+        case PixelFormat_ASTC6x5HDR:
+        case PixelFormat_ASTC6x6HDR:
+        case PixelFormat_ASTC8x5HDR:
+        case PixelFormat_ASTC8x6HDR:
+        case PixelFormat_ASTC8x8HDR:
+        case PixelFormat_ASTC10x5HDR:
+        case PixelFormat_ASTC10x6HDR:
+        case PixelFormat_ASTC10x8HDR:
+        case PixelFormat_ASTC10x10HDR:
+        case PixelFormat_ASTC12x10HDR:
+        case PixelFormat_ASTC12x12HDR:
+            widthCount = std::max(1u, (width + formatInfo.blockWidth - 1) / formatInfo.blockWidth);
+            heightCount = std::max(1u, (height + formatInfo.blockHeight - 1) / formatInfo.blockHeight);
+            rowPitch = widthCount * formatInfo.bytesPerBlock;  // BytesPerBlock is always 16
+            slicePitch = rowPitch * heightCount;
+            break;
+
+            //case Format.R8G8_B8G8_UNorm:
+            //case Format.G8R8_G8B8_UNorm:
+            //case Format.YUY2:
+            //    packed = true;
+            //    bpe = 4;
+            //    break;
+            //
+            //case Format.Y210:
+            //case Format.Y216:
+            //    packed = true;
+            //    bpe = 8;
+            //    break;
+            //
+            //case Format.NV12:
+            //case Format.Opaque420:
+            //case Format.P208:
+            //    planar = true;
+            //    bpe = 2;
+            //    break;
+            //
+            //case Format.P010:
+            //case Format.P016:
+            //    planar = true;
+            //    bpe = 4;
+            //    break;
+
+        default:
+            const uint32_t bpp = alimerPixelFormatGetBitsPerPixel(format);
+            rowPitch = (width * bpp + 7) / 8; // round up to nearest byte
+            slicePitch = rowPitch * height;
+            break;
+    }
+
+    if (pRowPitch)
+        *pRowPitch = rowPitch;
+
+    if (pSlicePitch)
+        *pSlicePitch = slicePitch;
+
+    if (pWidthCount)
+        *pWidthCount = widthCount;
+
+    if (pHeightCount)
+        *pHeightCount = heightCount;
 }
 
 uint32_t alimerPixelFormatToDxgiFormat(PixelFormat format)

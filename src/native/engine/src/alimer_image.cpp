@@ -25,19 +25,13 @@ ALIMER_DISABLE_WARNINGS()
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define QOI_NO_STDIO
-#define QOI_IMPLEMENTATION
-//#define QOI_MALLOC(sz) STBI_MALLOC(sz)
-//#define QOI_FREE(p) STBI_FREE(p) 
-#include "third_party/qoi.h"
-
 #define TINYEXR_USE_MINIZ 0
 #define TINYEXR_USE_STB_ZLIB 1
 #define TINYEXR_IMPLEMENTATION
 #include "third_party/tinyexr.h"
 
 #if defined(ALIMER_IMAGE_KTX)
-//#include <gl_format.h>
+#include <vk_format.h>
 #include <ktx.h>
 #endif
 
@@ -46,9 +40,314 @@ ALIMER_ENABLE_WARNINGS()
 struct Image final
 {
     ImageDesc desc;
-    size_t dataSize;
-    void* pData;
+    /// Image levels count.
+    uint32_t levelsCount;
+    /// Image mip levels.
+    ImageLevel* levels;
+    /// Image pixel data.
+    uint8_t* pixels;
+    /// Image pixel memory size.
+    size_t pixelsSize;
 };
+
+namespace
+{
+    static uint32_t CountMips(uint32_t width, uint32_t height) noexcept
+    {
+        uint32_t mipLevels = 1;
+
+        while (height > 1 || width > 1)
+        {
+            if (height > 1)
+                height >>= 1;
+
+            if (width > 1)
+                width >>= 1;
+
+            ++mipLevels;
+        }
+
+        return mipLevels;
+    }
+
+    static uint32_t CountMips3D(uint32_t width, uint32_t height, uint32_t depth) noexcept
+    {
+        uint32_t mipLevels = 1;
+
+        while (height > 1 || width > 1 || depth > 1)
+        {
+            if (height > 1)
+                height >>= 1;
+
+            if (width > 1)
+                width >>= 1;
+
+            if (depth > 1)
+                depth >>= 1;
+
+            ++mipLevels;
+        }
+
+        return mipLevels;
+    }
+
+    static bool CalculateMipLevels(uint32_t width, uint32_t height, uint32_t& mipLevels) noexcept
+    {
+        if (mipLevels > 1)
+        {
+            const uint32_t maxMips = CountMips(width, height);
+            if (mipLevels > maxMips)
+                return false;
+        }
+        else if (mipLevels == 0)
+        {
+            mipLevels = CountMips(width, height);
+        }
+        else
+        {
+            mipLevels = 1;
+        }
+
+        return true;
+    }
+
+    static bool CalculateMipLevels3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t& mipLevels) noexcept
+    {
+        if (mipLevels > 1)
+        {
+            const uint32_t maxMips = CountMips3D(width, height, depth);
+            if (mipLevels > maxMips)
+                return false;
+        }
+        else if (mipLevels == 0)
+        {
+            mipLevels = CountMips3D(width, height, depth);
+        }
+        else
+        {
+            mipLevels = 1;
+        }
+        return true;
+    }
+
+    static bool DetermineImageArray(Image* image)
+    {
+        image->pixelsSize = 0;
+        image->levelsCount = 0;
+
+        switch (image->desc.dimension)
+        {
+            case TextureDimension_1D:
+            case TextureDimension_2D:
+            case TextureDimension_Cube:
+                for (uint32_t item = 0; item < image->desc.depthOrArrayLayers; ++item)
+                {
+                    uint32_t mipWidth = image->desc.width;
+                    uint32_t mipHeight = image->desc.height;
+
+                    for (uint32_t level = 0; level < image->desc.mipLevelCount; ++level)
+                    {
+                        uint32_t rowPitch, slicePitch, widthCount, heightCount;
+                        alimerGetSurfaceInfo(image->desc.format, mipWidth, mipHeight, &rowPitch, &slicePitch, &widthCount, &heightCount);
+
+                        image->pixelsSize += slicePitch;
+                        ++image->levelsCount;
+
+                        if (mipHeight > 1)
+                            mipHeight >>= 1;
+
+                        if (mipWidth > 1)
+                            mipWidth >>= 1;
+                    }
+                }
+                break;
+
+            case TextureDimension_3D:
+            {
+                uint32_t mipWidth = image->desc.width;
+                uint32_t mipHeight = image->desc.height;
+                uint32_t mipDepth = image->desc.depthOrArrayLayers;
+
+                for (uint32_t level = 0; level < image->desc.mipLevelCount; ++level)
+                {
+                    uint32_t rowPitch, slicePitch, widthCount, heightCount;
+                    alimerGetSurfaceInfo(image->desc.format, mipWidth, mipHeight, &rowPitch, &slicePitch, &widthCount, &heightCount);
+
+                    for (uint32_t slice = 0; slice < mipDepth; ++slice)
+                    {
+                        image->pixelsSize += slicePitch;
+                        ++image->levelsCount;
+                    }
+
+                    if (mipHeight > 1)
+                        mipHeight >>= 1;
+
+                    if (mipWidth > 1)
+                        mipWidth >>= 1;
+
+                    if (mipDepth > 1)
+                        mipDepth >>= 1;
+                }
+            }
+            break;
+
+            default:
+                return false;
+        }
+
+        return true;
+    }
+
+    static bool SetupImageArray(Image* image) noexcept
+    {
+        ALIMER_ASSERT(image);
+        ALIMER_ASSERT(image->pixels);
+        ALIMER_ASSERT(image->pixelsSize > 0);
+        ALIMER_ASSERT(image->levelsCount > 0);
+
+        if (!image->levels)
+            return false;
+
+        size_t index = 0;
+        uint8_t* pixels = image->pixels;
+        const uint8_t* pEndBits = image->pixels + image->pixelsSize;
+        //size_t offset = 0;
+
+        const ImageDesc& desc = image->desc;
+        switch (desc.dimension)
+        {
+            case TextureDimension_1D:
+            case TextureDimension_2D:
+            case TextureDimension_Cube:
+                if (desc.depthOrArrayLayers == 0 || desc.mipLevelCount == 0)
+                {
+                    return false;
+                }
+
+                for (uint32_t arrayIndex = 0; arrayIndex < desc.depthOrArrayLayers; ++arrayIndex)
+                {
+                    uint32_t mipWidth = desc.width;
+                    uint32_t mipHeight = desc.height;
+
+                    for (uint32_t level = 0; level < desc.mipLevelCount; ++level)
+                    {
+                        if (index >= image->levelsCount)
+                        {
+                            return false;
+                        }
+
+                        uint32_t rowPitch, slicePitch, widthCount, heightCount;
+                        alimerGetSurfaceInfo(desc.format, mipWidth, mipHeight, &rowPitch, &slicePitch, &widthCount, &heightCount);
+
+                        image->levels[index].width = mipWidth;
+                        image->levels[index].height = mipHeight;
+                        image->levels[index].format = desc.format;
+                        image->levels[index].rowPitch = rowPitch;
+                        image->levels[index].slicePitch = slicePitch;
+                        image->levels[index].pixels = pixels;
+                        ++index;
+
+                        //offset += slicePitch;
+                        pixels += slicePitch;
+                        if (pixels > pEndBits)
+                        {
+                            return false;
+                        }
+
+                        if (mipWidth > 1)
+                            mipWidth >>= 1;
+
+                        if (mipHeight > 1)
+                            mipHeight >>= 1;
+                    }
+                }
+                return true;
+
+            case TextureDimension_3D:
+            {
+                if (desc.mipLevelCount == 0 || desc.depthOrArrayLayers == 0)
+                {
+                    return false;
+                }
+
+                uint32_t mipWidth = desc.width;
+                uint32_t mipHeight = desc.height;
+                uint32_t mipDepth = desc.depthOrArrayLayers;
+
+                for (uint32_t level = 0; level < desc.mipLevelCount; ++level)
+                {
+                    uint32_t rowPitch, slicePitch, widthCount, heightCount;
+                    alimerGetSurfaceInfo(desc.format, mipWidth, mipHeight, &rowPitch, &slicePitch, &widthCount, &heightCount);
+
+                    for (uint32_t slice = 0; slice < mipDepth; ++slice)
+                    {
+                        if (index >= image->levelsCount)
+                        {
+                            return false;
+                        }
+
+                        // We use the same memory organization that Direct3D 11 needs for D3D11_SUBRESOURCE_DATA
+                        // with all slices of a given miplevel being continuous in memory
+                        image->levels[index].width = mipWidth;
+                        image->levels[index].height = mipHeight;
+                        image->levels[index].format = desc.format;
+                        image->levels[index].rowPitch = rowPitch;
+                        image->levels[index].slicePitch = slicePitch;
+                        image->levels[index].pixels = pixels;
+                        ++index;
+
+                        pixels += slicePitch;
+                        if (pixels > pEndBits)
+                        {
+                            return false;
+                        }
+                    }
+
+                    if (mipWidth > 1)
+                        mipWidth >>= 1;
+
+                    if (mipHeight > 1)
+                        mipHeight >>= 1;
+
+                    if (mipDepth > 1)
+                        mipDepth >>= 1;
+                }
+            }
+            return true;
+
+            default:
+                return false;
+        }
+    }
+
+    static bool InitializeImage(Image* image)
+    {
+        if (!DetermineImageArray(image))
+            return false;
+
+        image->levels = (ImageLevel*)alimerCalloc(image->levelsCount, sizeof(ImageLevel));
+        if (!image->levels)
+            return false;
+
+        image->pixels = (uint8_t*)alimerMalloc(image->pixelsSize);
+        //pixels = static_cast<uint8_t*>(NativeMemory::AlignedAlloc(_memorySize, 16));
+        if (!image->pixels)
+        {
+            alimerImageDestroy(image);
+            return false;
+        }
+
+        //memset(pixels, 0, _memorySize);
+
+        if (!SetupImageArray(image))
+        {
+            alimerImageDestroy(image);
+            return false;
+        }
+
+        return true;
+    }
+}
 
 static Image* DDS_LoadFromMemory(const uint8_t* pData, size_t dataSize)
 {
@@ -70,7 +369,7 @@ static Image* ASTC_LoadFromMemory(const uint8_t* pData, size_t dataSize)
 static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
 {
     ktxTexture* ktx_texture = 0;
-    KTX_error_code ktx_result = ktxTexture_CreateFromMemory(
+    KTX_error_code result = ktxTexture_CreateFromMemory(
         pData,
         dataSize,
         KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
@@ -78,7 +377,7 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
     );
 
     // Not ktx texture.
-    if (ktx_result != KTX_SUCCESS)
+    if (result != KTX_SUCCESS)
     {
         return NULL;
     }
@@ -92,7 +391,7 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
         {
             // Once transcoded, the ktxTexture object contains the texture data in a native GPU format (e.g. BC7)
             // Handle other formats (textureCompressionBC) See: https://raw.githubusercontent.com/KhronosGroup/Vulkan-Samples/main/samples/performance/texture_compression_basisu/texture_compression_basisu.cpp
-            ktx_result = ktxTexture2_TranscodeBasis(ktx_texture2, KTX_TTF_BC7_RGBA, 0);
+            result = ktxTexture2_TranscodeBasis(ktx_texture2, KTX_TTF_BC7_RGBA, 0);
             //result->format = TEXTURE_FORMAT_BC7;
         }
 
@@ -103,26 +402,34 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
         // KTX1
         ktxTexture1* ktx_texture1 = (ktxTexture1*)ktx_texture;
 
-        //format = FromVkFormat(vkGetFormatFromOpenGLInternalFormat(ktx_texture1->glInternalformat));
+        format = alimerPixelFormatFromVkFormat(vkGetFormatFromOpenGLInternalFormat(ktx_texture1->glInternalformat));
 
         // KTX-1 files don't contain color space information. Color data is normally
         // in sRGB, but the format we get back won't report that, so this will adjust it
         // if necessary.
-        //format = LinearToSrgbFormat(format);
+        format = alimerPixelFormatLinearToSrgb(format);
     }
 
-    Image* result = nullptr;
+    Image* image = nullptr;
     if (ktx_texture->baseDepth > 1)
     {
-        //Initialize3D(format, ktxTexture->baseWidth, ktxTexture->baseHeight, ktxTexture->baseDepth, ktxTexture->numLevels);
+        image = alimerImageCreate3D(format,
+            ktx_texture->baseWidth,
+            ktx_texture->baseHeight,
+            ktx_texture->baseDepth,
+            ktx_texture->numLevels);
     }
     else if (ktx_texture->isCubemap && !ktx_texture->isArray)
     {
-        //InitializeCube(format, ktxTexture->baseWidth, ktxTexture->baseHeight, ktxTexture->numFaces, ktxTexture->numLevels);
+        image = alimerImageCreateCube(format,
+            ktx_texture->baseWidth,
+            ktx_texture->baseHeight,
+            ktx_texture->numFaces,
+            ktx_texture->numLevels);
     }
     else
     {
-        result = alimerImageCreate2D(format,
+        image = alimerImageCreate2D(format,
             ktx_texture->baseWidth,
             ktx_texture->baseHeight,
             ktx_texture->isArray ? ktx_texture->numLayers : 1u,
@@ -154,9 +461,9 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
                     //LOGF("Error loading KTX texture");
                 }
 
-                auto levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
-                //auto levelData = GetLevel(miplevel, layer);
-                //memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
+                const ktx_size_t levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
+                ImageLevel* levelData = alimerImageGetLevel(image, miplevel, layer);
+                memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
             }
         }
     }
@@ -172,14 +479,14 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
                 //LOGF("Error loading KTX texture");
             }
 
-            //auto levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
-            //auto levelData = GetLevel(miplevel);
-            //memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
+            const ktx_size_t levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
+            ImageLevel* levelData = alimerImageGetLevel(image, miplevel, 0);
+            memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
         }
     }
 
     ktxTexture_Destroy(ktx_texture);
-    return result;
+    return image;
 }
 #endif /* defined(ALIMER_KTX) */
 
@@ -205,48 +512,10 @@ static Image* EXR_LoadFromMemory(const uint8_t* pData, size_t dataSize)
 
     // TODO: Allow conversion  to 16-bit (https://eliemichel.github.io/LearnWebGPU/advanced-techniques/hdr-textures.html)
     Image* image = alimerImageCreate2D(PixelFormat_RGBA32Float, width, height, 1, 1);
-    image->dataSize = width * height * 4 * sizeof(float);
-    image->pData = malloc(image->dataSize);
-    memcpy(image->pData, pixelData, image->dataSize);
+    memcpy(image->pixels, pixelData, image->pixelsSize);
     free(pixelData);
 
     return image;
-}
-
-bool AlimerImage_TestQOI(const uint8_t* data, size_t size)
-{
-    if (size < QOI_HEADER_SIZE)
-        return false;
-
-    int p = 0;
-    unsigned int magic = qoi_read_32(data, &p);
-    if (magic != QOI_MAGIC)
-        return false;
-
-    return true;
-}
-
-static Image* QOI_LoadFromMemory(const uint8_t* pData, size_t dataSize)
-{
-    if (!AlimerImage_TestQOI(pData, dataSize))
-        return nullptr;
-
-    int channels = 4;
-    qoi_desc qoi_desc;
-    void* result = qoi_decode(pData, (int)dataSize, &qoi_desc, channels);
-
-    if (result != nullptr)
-    {
-        Image* image = alimerImageCreate2D(PixelFormat_RGBA8Unorm, qoi_desc.width, qoi_desc.height, 1u, 1u);
-        image->dataSize = qoi_desc.width * qoi_desc.height * channels * sizeof(uint8_t);
-        image->pData = malloc(image->dataSize);
-        memcpy(image->pData, result, image->dataSize);
-
-        free(result);
-        return image;
-    }
-
-    return nullptr;
 }
 
 static Image* STB_LoadFromMemory(const uint8_t* pData, size_t dataSize)
@@ -254,7 +523,6 @@ static Image* STB_LoadFromMemory(const uint8_t* pData, size_t dataSize)
     int width, height, channels;
     PixelFormat format = PixelFormat_RGBA8Unorm;
     void* image_data;
-    uint32_t memorySize = 0;
     if (stbi_is_16_bit_from_memory(pData, (int)dataSize))
     {
         image_data = stbi_load_16_from_memory(pData, (int)dataSize, &width, &height, &channels, 0);
@@ -262,15 +530,12 @@ static Image* STB_LoadFromMemory(const uint8_t* pData, size_t dataSize)
         {
             case 1:
                 format = PixelFormat_R16Uint;
-                memorySize = width * height * sizeof(uint16_t);
                 break;
             case 2:
                 format = PixelFormat_RG16Uint;
-                memorySize = width * height * 2 * sizeof(uint16_t);
                 break;
             case 4:
                 format = PixelFormat_RGBA16Uint;
-                memorySize = width * height * 4 * sizeof(uint16_t);
                 break;
             default:
                 ALIMER_UNREACHABLE();
@@ -279,32 +544,48 @@ static Image* STB_LoadFromMemory(const uint8_t* pData, size_t dataSize)
     else if (stbi_is_hdr_from_memory(pData, (int)dataSize))
     {
         // TODO: Allow conversion  to 16-bit (https://eliemichel.github.io/LearnWebGPU/advanced-techniques/hdr-textures.html)
-        image_data = stbi_loadf_from_memory(pData, (int)dataSize, &width, &height, NULL, 4);
+        image_data = stbi_loadf_from_memory(pData, (int)dataSize, &width, &height, &channels, 4);
         format = PixelFormat_RGBA32Float;
-        memorySize = width * height * 4 * sizeof(float);
     }
     else
     {
-        image_data = stbi_load_from_memory(pData, (int)dataSize, &width, &height, NULL, 4);
+        image_data = stbi_load_from_memory(pData, (int)dataSize, &width, &height, &channels, 4);
         format = PixelFormat_RGBA8Unorm;
-        memorySize = width * height * 4 * sizeof(uint8_t);
     }
 
     if (!image_data)
         return nullptr;
 
     Image* result = alimerImageCreate2D(format, width, height, 1u, 1u);
-    result->dataSize = memorySize;
-    result->pData = malloc(memorySize);
-    memcpy(result->pData, image_data, memorySize);
+    memcpy(result->pixels, image_data, result->pixelsSize);
     stbi_image_free(image_data);
     return result;
+}
+
+Image* alimerImageCreate1D(PixelFormat format, uint32_t width, uint32_t arrayLayers, uint32_t mipLevelCount)
+{
+    if (format == PixelFormat_Undefined || !width || !arrayLayers)
+        return nullptr;
+
+
+    // 1D is a special case of the 2D case
+    Image* image = alimerImageCreate2D(format, width, 1u, arrayLayers, mipLevelCount);
+    if (!image)
+        return image;
+
+    image->desc.dimension = TextureDimension_1D;
+    return image;
 }
 
 Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount)
 {
     if (format == PixelFormat_Undefined || !width || !height || !arrayLayers)
         return nullptr;
+
+    if (!CalculateMipLevels(width, height, mipLevelCount))
+    {
+        return nullptr;
+    }
 
     Image* image = ALIMER_ALLOC(Image);
     ALIMER_ASSERT(image);
@@ -316,6 +597,59 @@ Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32_t height, 
     image->desc.depthOrArrayLayers = arrayLayers;
     image->desc.mipLevelCount = mipLevelCount;
 
+    // Already calls ImageDestroy on failure.
+    if (!InitializeImage(image))
+    {
+        return nullptr;
+    }
+
+    return image;
+}
+
+Image* alimerImageCreate3D(PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevelCount)
+{
+    if (format == PixelFormat_Undefined || !width || !height || !depth)
+    {
+        return nullptr;
+    }
+
+    if (!CalculateMipLevels3D(width, height, depth, mipLevelCount))
+    {
+        return nullptr;
+    }
+
+    Image* image = ALIMER_ALLOC(Image);
+    ALIMER_ASSERT(image);
+
+    image->desc.dimension = TextureDimension_3D;
+    image->desc.format = format;
+    image->desc.width = width;
+    image->desc.height = height;
+    image->desc.depthOrArrayLayers = depth;
+    image->desc.mipLevelCount = mipLevelCount;
+
+    // Already calls ImageDestroy on failure.
+    if (!InitializeImage(image))
+    {
+        return nullptr;
+    }
+
+    return image;
+}
+
+Image* alimerImageCreateCube(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount)
+{
+    if (!width || !height || !arrayLayers)
+        return nullptr;
+
+    // A cubemap is just a 2D texture array that is a multiple of 6 for each cube
+    Image* image = alimerImageCreate2D(format, width, height, arrayLayers * 6, mipLevelCount);
+    if (!image)
+    {
+        return nullptr;
+    }
+
+    image->desc.dimension = TextureDimension_Cube;
     return image;
 }
 
@@ -337,9 +671,6 @@ Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize)
     if ((image = EXR_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
-    if ((image = QOI_LoadFromMemory(pData, dataSize)) != nullptr)
-        return image;
-
     if ((image = STB_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
 
@@ -351,8 +682,16 @@ void alimerImageDestroy(Image* image)
     if (!image)
         return;
 
-    if (image->pData)
-        alimerFree(image->pData);
+    if (image->levels)
+    {
+        alimerFree(image->levels);
+    }
+
+    if (image->pixels)
+    {
+        // TODO: AlignedFree
+        alimerFree(image->pixels);
+    }
 
     alimerFree(image);
 }
@@ -408,12 +747,59 @@ uint32_t alimerImageGetMipLevelCount(Image* image)
     return image->desc.mipLevelCount;
 }
 
-void* alimerImageGetData(Image* image, size_t* size)
+uint8_t* alimerImageGetPixels(Image* image, size_t* pixelsSize)
 {
-    if (size)
-        *size = image->dataSize;
+    if (pixelsSize)
+        *pixelsSize = image->pixelsSize;
 
-    return image->pData;
+    return image->pixels;
+}
+
+ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayOrDepthSlice)
+{
+    ALIMER_ASSERT(image);
+
+    if (mipLevel >= image->desc.mipLevelCount)
+        return nullptr;
+
+    uint32_t index = 0;
+
+    switch (image->desc.dimension)
+    {
+        case TextureDimension_1D:
+        case TextureDimension_2D:
+        case TextureDimension_Cube:
+        {
+            if (arrayOrDepthSlice >= image->desc.depthOrArrayLayers)
+                return nullptr;
+
+            index = arrayOrDepthSlice * (image->desc.mipLevelCount) + mipLevel;
+            break;
+        }
+
+        case TextureDimension_3D:
+        {
+            uint32_t mipDepth = image->desc.depthOrArrayLayers;
+
+            for (uint32_t level = 0; level < mipLevel; ++level)
+            {
+                index += mipDepth;
+                if (mipDepth > 1)
+                    mipDepth >>= 1;
+            }
+
+            if (arrayOrDepthSlice >= mipDepth)
+                return nullptr;
+
+            index += arrayOrDepthSlice;
+            break;
+        }
+
+        default:
+            return nullptr;
+    }
+
+    return &image->levels[index];
 }
 
 struct ImageMemory
@@ -464,7 +850,7 @@ Blob* alimerImageEncodeJPG(Image* image, int quality)
         image->desc.width,
         image->desc.height,
         4,
-        image->pData,
+        image->pixels,
         quality) != 0)
     {
         return alimerBlobCreate(memory.data, memory.offset, nullptr);

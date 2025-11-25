@@ -23,6 +23,7 @@
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 #endif
+#include <assert.h>
 
 Window* window = NULL;
 
@@ -37,6 +38,10 @@ int main(void)
     AudioContext* context = alimerAudioContextInit();
     AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
 #endif
+
+    Image* image = alimerImageCreate1D(PixelFormat_RGBA8Unorm, 512, 1, 0);
+    assert(alimerImageGetMipLevelCount(image) == 10);
+    alimerImageDestroy(image);
 
 #if defined(ALIMER_GPU)
     GPUFactoryDesc factoryDesc = {

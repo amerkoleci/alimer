@@ -4,18 +4,100 @@ target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb")
 
 # ktx
 if (ALIMER_IMAGE_KTX)
-    CPMAddPackage(
-        NAME KTX
-        GITHUB_REPOSITORY KhronosGroup/KTX-Software
-        GIT_TAG v4.4.2
-        OPTIONS
-            "KTX_FEATURE_TESTS OFF"
-            "KTX_FEATURE_JS OFF"
-        EXCLUDE_FROM_ALL YES
+    # libktx
+    set(KTX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ktx)
+
+    set(KTX_SOURCES
+        ${KTX_DIR}/external/dfdutils/createdfd.c
+        ${KTX_DIR}/external/dfdutils/colourspaces.c
+        ${KTX_DIR}/external/dfdutils/dfd.h
+        ${KTX_DIR}/external/dfdutils/dfd2vk.inl
+        ${KTX_DIR}/external/dfdutils/interpretdfd.c
+        ${KTX_DIR}/external/dfdutils/printdfd.c
+        ${KTX_DIR}/external/dfdutils/queries.c
+        ${KTX_DIR}/external/dfdutils/vk2dfd.c
+        ${KTX_DIR}/external/etcdec/etcdec.cxx
+        ${KTX_DIR}/lib/src/checkheader.c
+        ${KTX_DIR}/lib/src/etcunpack.cxx
+        ${KTX_DIR}/lib/src/filestream.c
+        ${KTX_DIR}/lib/src/filestream.h
+        ${KTX_DIR}/lib/src/formatsize.h
+        ${KTX_DIR}/lib/src/hashlist.c
+        ${KTX_DIR}/lib/src/info.c
+        ${KTX_DIR}/lib/src/ktxint.h
+        ${KTX_DIR}/lib/src/memstream.c
+        ${KTX_DIR}/lib/src/memstream.h
+        ${KTX_DIR}/lib/src/strings.c
+        ${KTX_DIR}/lib/src/swap.c
+        ${KTX_DIR}/lib/src/uthash.h
+        ${KTX_DIR}/lib/src/texture.c
+        ${KTX_DIR}/lib/src/texture.h
+        ${KTX_DIR}/utils/unused.h
+    
+        # Basis Universal
+        ${KTX_DIR}/lib/src/basis_sgd.h
+        ${KTX_DIR}/lib/src/basis_transcode.cpp
+        ${KTX_DIR}/lib/src/miniz_wrapper.cpp
+        ${KTX_DIR}/external/basis_universal/encoder/basisu_miniz.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_containers.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_containers_impl.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_file_headers.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder_internal.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder_uastc.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder.cpp
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder.h
+        ${KTX_DIR}/external/basis_universal/transcoder/basisu.h
+        ${KTX_DIR}/external/basis_universal/zstd/zstd.c
+
+        # KT1
+        ${KTX_DIR}/lib/src/texture1.c
+        ${KTX_DIR}/lib/src/texture1.h
+
+        # KTX2
+        ${KTX_DIR}/lib/src/texture2.c
+        ${KTX_DIR}/lib/src/texture2.h
+
+        # GL support
+        ${KTX_DIR}/lib/src/gl_format.h
+
+        # Vulkan support
+        ${KTX_DIR}/lib/src/vk_format.h
+        ${KTX_DIR}/lib/src/vkformat_check.c
+        ${KTX_DIR}/lib/src/vkformat_enum.h
+        #${KTX_DIR}/lib/vkformat_str.c
+        ${KTX_DIR}/lib/src/vkformat_typesize.c
+        ${KTX_DIR}/lib/src/vkformat_check_variant.c
+        #${KTX_DIR}/lib/vk_funcs.c
+        #${KTX_DIR}/lib/vk_funcs.h
+        #${KTX_DIR}/lib/vkloader.c
     )
 
-    set_property(TARGET "ktx_version" PROPERTY FOLDER "ThirdParty")
-    set_property(TARGET "ktx" PROPERTY FOLDER "ThirdParty")
+    set(KTX_INCLUDE_DIRS
+        ${KTX_DIR}/lib/include
+        ${KTX_DIR}/lib/src
+        ${KTX_DIR}/utils
+        ${KTX_DIR}/external
+        ${KTX_DIR}/external/basis_universal
+        ${KTX_DIR}/external/basis_universal/zstd
+        ${KTX_DIR}/external/basis_universal/transcoder
+        ${KTX_DIR}/other_include
+    )
+
+    add_library(ktx STATIC ${KTX_SOURCES})
+
+    target_compile_definitions(ktx PUBLIC LIBKTX)
+    if (WIN32)
+        target_compile_definitions(ktx PUBLIC "KTX_API=__declspec(dllexport)")
+    endif()
+    target_compile_definitions(ktx PUBLIC KTX_FEATURE_WRITE=0)
+    target_compile_definitions(ktx PUBLIC BASISD_SUPPORT_KTX2_ZSTD=0)
+    target_compile_definitions(ktx PUBLIC BASISU_NO_ITERATOR_DEBUG_LEVEL)
+
+    target_include_directories(ktx SYSTEM PUBLIC ${KTX_INCLUDE_DIRS})
+
+    target_link_libraries(ktx PUBLIC vulkan)
+
+    set_target_properties(ktx PROPERTIES FOLDER "ThirdParty" POSITION_INDEPENDENT_CODE ON)
 endif()
 
 if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
