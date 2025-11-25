@@ -187,6 +187,7 @@ option(ALIMER_USE_SDL "Use SDL for desktop windows" ON)
 option(ALIMER_AUDIO "Enable Audio support" ON)
 option(ALIMER_GPU "Enable GPU support" ON)
 option(ALIMER_PHYSICS "Enable Physics support (using Jolt)" ON)
+option(ALIMER_IMAGE_KTX "Enable ktx support in image module" ON)
 
 # Determine available GPU backends
 if(EMSCRIPTEN)

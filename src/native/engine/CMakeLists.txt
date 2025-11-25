@@ -67,6 +67,14 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     stb
 )
 
+if (ALIMER_IMAGE_KTX)
+    target_link_libraries(${TARGET_NAME} PRIVATE
+        ktx
+    )
+
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMAGE_KTX)
+endif ()
+
 if (EMSCRIPTEN)
     target_sources(${TARGET_NAME} PRIVATE
         src/alimer_platform_sdl.cpp

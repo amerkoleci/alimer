@@ -2,6 +2,22 @@
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb")
 
+# ktx
+if (ALIMER_IMAGE_KTX)
+    CPMAddPackage(
+        NAME KTX
+        GITHUB_REPOSITORY KhronosGroup/KTX-Software
+        GIT_TAG v4.4.2
+        OPTIONS
+            "KTX_FEATURE_TESTS OFF"
+            "KTX_FEATURE_JS OFF"
+        EXCLUDE_FROM_ALL YES
+    )
+
+    set_property(TARGET "ktx_version" PROPERTY FOLDER "ThirdParty")
+    set_property(TARGET "ktx" PROPERTY FOLDER "ThirdParty")
+endif()
+
 if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL

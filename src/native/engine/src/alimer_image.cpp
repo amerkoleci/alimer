@@ -35,6 +35,12 @@ ALIMER_DISABLE_WARNINGS()
 #define TINYEXR_USE_STB_ZLIB 1
 #define TINYEXR_IMPLEMENTATION
 #include "third_party/tinyexr.h"
+
+#if defined(ALIMER_IMAGE_KTX)
+//#include <gl_format.h>
+#include <ktx.h>
+#endif
+
 ALIMER_ENABLE_WARNINGS()
 
 struct Image final
@@ -85,24 +91,27 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
         if (ktxTexture2_NeedsTranscoding(ktx_texture2))
         {
             // Once transcoded, the ktxTexture object contains the texture data in a native GPU format (e.g. BC7)
+            // Handle other formats (textureCompressionBC) See: https://raw.githubusercontent.com/KhronosGroup/Vulkan-Samples/main/samples/performance/texture_compression_basisu/texture_compression_basisu.cpp
             ktx_result = ktxTexture2_TranscodeBasis(ktx_texture2, KTX_TTF_BC7_RGBA, 0);
             //result->format = TEXTURE_FORMAT_BC7;
         }
-        else
-        {
-            // KTX1
-            ktxTexture1* ktx_texture1 = (ktxTexture1*)ktx_texture;
 
-            //format = FromVkFormat(vkGetFormatFromOpenGLInternalFormat(ktx_texture1->glInternalformat));
+        format = alimerPixelFormatFromVkFormat(ktx_texture2->vkFormat);
+    }
+    else
+    {
+        // KTX1
+        ktxTexture1* ktx_texture1 = (ktxTexture1*)ktx_texture;
 
-            // KTX-1 files don't contain color space information. Color data is normally
-            // in sRGB, but the format we get back won't report that, so this will adjust it
-            // if necessary.
-            //format = LinearToSrgbFormat(format);
-        }
+        //format = FromVkFormat(vkGetFormatFromOpenGLInternalFormat(ktx_texture1->glInternalformat));
+
+        // KTX-1 files don't contain color space information. Color data is normally
+        // in sRGB, but the format we get back won't report that, so this will adjust it
+        // if necessary.
+        //format = LinearToSrgbFormat(format);
     }
 
-    AlimerImage* result = NULL;
+    Image* result = nullptr;
     if (ktx_texture->baseDepth > 1)
     {
         //Initialize3D(format, ktxTexture->baseWidth, ktxTexture->baseHeight, ktxTexture->baseDepth, ktxTexture->numLevels);
@@ -120,7 +129,6 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
             ktx_texture->numLevels);
     }
 
-#if TODO
     // If the texture contains more than one layer, then populate the offsets otherwise take the mipmap level offsets
     if (ktx_texture->isCubemap || ktx_texture->isArray)
     {
@@ -147,8 +155,8 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
                 }
 
                 auto levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
-                auto levelData = GetLevel(miplevel, layer);
-                memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
+                //auto levelData = GetLevel(miplevel, layer);
+                //memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
             }
         }
     }
@@ -164,17 +172,12 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
                 //LOGF("Error loading KTX texture");
             }
 
-            auto levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
-            auto levelData = GetLevel(miplevel);
-            memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
+            //auto levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
+            //auto levelData = GetLevel(miplevel);
+            //memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
         }
     }
-#endif // TODO
 
-
-    result->dataSize = (uint32_t)ktx_texture->dataSize;
-    result->pData = malloc(ktx_texture->dataSize);
-    memcpy(result->pData, ktx_texture->pData, ktx_texture->dataSize);
     ktxTexture_Destroy(ktx_texture);
     return result;
 }

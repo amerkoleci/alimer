@@ -591,12 +591,6 @@ GPUSurface* NullInstance::CreateSurface(GPUSurfaceHandle* surfaceHandle)
     return surface;
 }
 
-GPUAdapter* NullInstance::RequestAdapter(const GPURequestAdapterOptions* options)
-{
-    NullAdapter* adapter = new NullAdapter();
-    return adapter;
-}
-
 GPUFactory* Null_CreateInstance(const GPUFactoryDesc* desc)
 {
     ALIMER_UNUSED(desc);
