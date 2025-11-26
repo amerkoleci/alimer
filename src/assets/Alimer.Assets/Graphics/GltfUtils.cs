@@ -24,7 +24,6 @@ public static class GltfUtils
 
                 ReadOnlySpan<byte> data = ReadBinaryChunk(binaryReader, CHUNKJSON);
                 return Gltf2.Deserialize(data);
-                //return  Encoding.UTF8.GetString(data);
             }
         }
         else

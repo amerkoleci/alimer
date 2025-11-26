@@ -45,7 +45,7 @@ int main(void)
 
 #if defined(ALIMER_GPU)
     GPUFactoryDesc factoryDesc = {
-        .preferredBackend = GPUBackendType_Undefined,
+        .preferredBackend = GPUBackendType_Vulkan,
 #if defined(_DEBUG)
         .validationMode = GPUValidationMode_Enabled
 #else

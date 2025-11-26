@@ -31,7 +31,52 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     /// </summary>
     public abstract ReadOnlySpan<GraphicsAdapter> Adapters { get; }
 
-    public static bool IsBackendSupport(GraphicsBackendType backendType) => agpuIsBackendSupport(backendType);
+    public static bool IsBackendSupport(GraphicsBackendType backendType)
+    {
+        switch (backendType)
+        {
+#if !EXCLUDE_VULKAN_BACKEND
+            case GraphicsBackendType.Vulkan:
+                return Vulkan.VulkanGraphicsManager.IsSupported;
+#endif
+#if !EXCLUDE_D3D12_BACKEND
+            case GraphicsBackendType.D3D12:
+                return D3D12.D3D12GraphicsManager.IsSupported;
+#endif
+#if !EXCLUDE_METAL_BACKEND
+            case GraphicsBackendType.Metal:
+                return Metal.MetalGraphicsManager.IsSupported;
+#endif
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Selects the most suitable graphics backend supported by the current operating system.
+    /// </summary>
+    /// <remarks>The method prioritizes Direct3D 12, Metal, and Vulkan backends in that order.
+    /// The selection depends on platform capabilities and available drivers.</remarks>
+    /// <returns>A value of the <see cref="GraphicsBackendType"/> enumeration representing the best available graphics backend.
+    /// Returns <see cref="GraphicsBackendType.Null"/> if no supported backend is found.</returns>
+    public static GraphicsBackendType GetBestPlatformBackend()
+    {
+        if (IsBackendSupport(GraphicsBackendType.D3D12))
+        {
+            return GraphicsBackendType.D3D12;
+        }
+        else if (IsBackendSupport(GraphicsBackendType.Metal))
+        {
+            return GraphicsBackendType.Metal;
+        }
+        else if (IsBackendSupport(GraphicsBackendType.Vulkan))
+        {
+            return GraphicsBackendType.Vulkan;
+        }
+
+        return GraphicsBackendType.Null;
+    }
 
     /// <summary>
     /// Creates a new <see cref="GraphicsManager"/> with the default options.
@@ -47,20 +92,10 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
         GraphicsBackendType backend = options.PreferredBackend;
         if (backend == GraphicsBackendType.Default)
         {
-            if (IsBackendSupport(GraphicsBackendType.D3D12))
-            {
-                backend = GraphicsBackendType.D3D12;
-            }
-            else if (IsBackendSupport(GraphicsBackendType.Metal))
-            {
-                backend = GraphicsBackendType.Metal;
-            }
-            else if (IsBackendSupport(GraphicsBackendType.Vulkan))
-            {
-                backend = GraphicsBackendType.Vulkan;
-            }
+            backend = GetBestPlatformBackend();
         }
 
+    retry:
         GraphicsManager? manager = default;
         switch (backend)
         {
@@ -84,7 +119,10 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
 
 #if !EXCLUDE_METAL_BACKEND
             case GraphicsBackendType.Metal:
-                manager = new Metal.MetalGraphicsManager(in options);
+                if (Metal.MetalGraphicsManager.IsSupported)
+                {
+                    manager = new Metal.MetalGraphicsManager(in options);
+                }
                 break;
 #endif
 
@@ -94,7 +132,15 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
 
         if (manager == null)
         {
-            throw new GraphicsException($"{backend} is not supported");
+            GraphicsBackendType platformBackend = GetBestPlatformBackend();
+            if (backend == platformBackend)
+            {
+                throw new GraphicsException($"{backend} is not supported");
+            }
+
+            Log.Warn($"Requested {backend} backend is not supported, falling back to {platformBackend} backend");
+            backend = platformBackend;
+            goto retry;
         }
 
         return manager!;

@@ -296,6 +296,7 @@ public sealed unsafe partial class ShaderCompiler
                 (void**)reflectionData.GetAddressOf(), null);
             if (reflectionData.Get() is not null)
             {
+#if TODO
                 // Create reflection interface.
                 DxcBuffer reflectionDataBuffer = new()
                 {
@@ -311,7 +312,6 @@ public sealed unsafe partial class ShaderCompiler
 
                 D3D12_SHADER_DESC description;
                 ThrowIfFailed(reflection.Get()->GetDesc(&description));
-#if TODO
 
                 // Iterate on all Constant buffers used by this shader
                 // Build all ParameterBuffers

@@ -839,11 +839,13 @@ static void alimer_stbi_write(void* context, void* data, int size)
 
 Blob* alimerImageEncodeJPG(Image* image, int quality)
 {
-    //if (IsCompressedFormat(desc.format))
-    //{
-    //    alimerLogError("Cannot save compressed image as JPG");
-    //    return false;
-    //}
+    ALIMER_ASSERT(image);
+
+    if (alimerPixelFormatIsCompressed(image->desc.format))
+    {
+        alimerLogError(LogCategory_System, "Cannot save compressed image as JPG");
+        return nullptr;
+    }
 
     ImageMemory memory;
     if (stbi_write_jpg_to_func(alimer_stbi_write, &memory,

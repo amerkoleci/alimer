@@ -24,7 +24,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly ComPtr<D3D12MA_Allocation> _allocation;
+    private readonly nint _allocation;
     private readonly HANDLE _sharedHandle = HANDLE.NULL;
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
@@ -181,13 +181,14 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         {
             D3D12TextureLayoutMapping textureLayout = ConvertTextureLayout(initialLayout);
 
-            hr = device.MemoryAllocator->CreateResource3(
+            hr = D3D12MA.Allocator_CreateResource3(
+                device.MemoryAllocator,
                 &allocationDesc,
                 &resourceDesc,
                 textureLayout.Layout,
                 null,
                 0, null,
-                _allocation.GetAddressOf(),
+                out _allocation,
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
@@ -195,12 +196,13 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         {
             D3D12_RESOURCE_STATES initialStateLegacy = ConvertTextureLayoutLegacy(initialLayout);
 
-            hr = device.MemoryAllocator->CreateResource2(
+            hr = D3D12MA.Allocator_CreateResource2(
+                device.MemoryAllocator,
                 &allocationDesc,
                 &resourceDesc,
                 initialStateLegacy,
                 pClearValue,
-                _allocation.GetAddressOf(),
+                out _allocation,
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
                 );
         }
@@ -332,9 +334,9 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             _ = CloseHandle(_sharedHandle);
         }
 
-        if (_allocation.Get() is not null)
+        if (_allocation != 0)
         {
-            _allocation.Dispose();
+            _ = D3D12MA.Allocation_Release(_allocation);
         }
         _handle.Dispose();
         Free(_footprints);

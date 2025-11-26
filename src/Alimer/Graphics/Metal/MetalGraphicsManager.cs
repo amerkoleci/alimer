@@ -1,11 +1,13 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Runtime.Versioning;
 using Alimer.Platforms.Apple;
 using static Alimer.Graphics.Metal.MetalApi;
 
 namespace Alimer.Graphics.Metal;
 
+//[SupportedOSPlatform("macos")]
 internal class MetalGraphicsManager : GraphicsManager
 {
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
@@ -29,7 +31,7 @@ internal class MetalGraphicsManager : GraphicsManager
         {
             List<MetalGraphicsAdapter> adapters = [];
             NSArray allDevices = MTLCopyAllDevices();
-            for(ulong i = 0; i < allDevices.Count; i++)
+            for (ulong i = 0; i < allDevices.Count; i++)
             {
                 MTLDevice device = allDevices.Object<MTLDevice>(i);
                 adapters.Add(new MetalGraphicsAdapter(this, device));
@@ -52,6 +54,13 @@ internal class MetalGraphicsManager : GraphicsManager
 
     private static bool CheckIsSupported()
     {
+        if (!OperatingSystem.IsMacOS() &&
+            !OperatingSystem.IsMacCatalyst() &&
+            !OperatingSystem.IsIOS())
+        {
+            return false;
+        }
+
         bool result = false;
         try
         {

@@ -11,9 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.Windows" />
     <PackageReference Include="Vortice.SPIRV.Reflect" />
     <PackageReference Include="Vortice.Dxc.Native" />
   </ItemGroup>
+
+  <Import Project="..\..\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.projitems" Label="Shared" />
 
 </Project>

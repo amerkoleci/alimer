@@ -18,8 +18,7 @@ using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
 using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12MemAlloc;
-using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
+using static Alimer.Graphics.D3D12.D3D12MA_ALLOCATOR_FLAGS;
 using Alimer.Utilities;
 namespace Alimer.Graphics.D3D12;
 
@@ -29,7 +28,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<ID3D12Device5> _device = default;
     private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
-    private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
+    private readonly nint _memoryAllocator;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
@@ -167,7 +166,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
             allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
 
-            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, _memoryAllocator.ReleaseAndGetAddressOf())))
+            if (FAILED(D3D12MA.CreateAllocator(&allocatorDesc, out _memoryAllocator)))
             {
                 throw new GraphicsException("D3D12: Failed to create memory allocator");
             }
@@ -273,7 +272,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     public ID3D12Device5* Device => _device;
     public ID3D12Device8* Device8 => _device8;
-    public D3D12MA_Allocator* MemoryAllocator => _memoryAllocator;
+    public nint MemoryAllocator => _memoryAllocator;
     public D3D12GraphicsAdapter DxAdapter => _adapter;
     public bool EnhancedBarriersSupported => _adapter.Features.EnhancedBarriersSupported;
 
@@ -333,17 +332,17 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             _dispatchMeshIndirectCommandSignature.Dispose();
 
             // Allocator.
-            if (_memoryAllocator.Get() is not null)
+            if (_memoryAllocator != 0)
             {
                 D3D12MA_TotalStatistics stats;
-                _memoryAllocator.Get()->CalculateStatistics(&stats);
+                D3D12MA.Allocator_CalculateStatistics(_memoryAllocator, &stats);
 
                 if (stats.Total.Stats.AllocationBytes > 0)
                 {
                     Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
                 }
 
-                _memoryAllocator.Dispose();
+                _ = D3D12MA.Allocator_Release(_memoryAllocator);
             }
 
             // Device removed event

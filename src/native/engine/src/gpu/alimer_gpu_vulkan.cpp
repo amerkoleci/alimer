@@ -4596,6 +4596,29 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
 {
     Unconfigure();
 
+    /*
+    uint32_t presentFamily = VK_QUEUE_FAMILY_IGNORED;
+    uint32_t familyIndex = 0;
+    for (const auto& queueFamily : queueFamilies)
+    {
+        VkBool32 presentSupport = false;
+        vulkan_check(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, (uint32_t)familyIndex, internal_state->surface, &presentSupport));
+
+        if (presentFamily == VK_QUEUE_FAMILY_IGNORED && queueFamily.queueFamilyProperties.queueCount > 0 && presentSupport)
+        {
+            presentFamily = familyIndex;
+            break;
+        }
+
+        familyIndex++;
+    }
+
+    // Present family not found, we cannot create SwapChain
+    if (presentFamily == VK_QUEUE_FAMILY_IGNORED)
+    {
+        return false;
+    }*/
+
     config = *config_;
     device = static_cast<VulkanDevice*>(config.device);
     device->AddRef();
