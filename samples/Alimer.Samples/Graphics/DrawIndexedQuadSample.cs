@@ -65,12 +65,11 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             Label = "BackBuffer"u8
         };
 
-        using (context.PushScopedPassPass(backBufferRenderPass))
-        {
-            context.SetVertexBuffer(0, _vertexBuffer);
-            context.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
-            context.SetPipeline(_renderPipeline!);
-            context.DrawIndexed(6);
-        }
+        RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
+        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
+        renderPassEncoder.SetPipeline(_renderPipeline!);
+        renderPassEncoder.DrawIndexed(6);
+        renderPassEncoder.EndEncoding();
     }
 }

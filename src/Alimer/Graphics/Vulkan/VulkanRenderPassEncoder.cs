@@ -22,6 +22,8 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi = deviceApi;
     }
 
+    public override GraphicsDevice Device => _commandBuffer.Device;
+
     public void Begin(in RenderPassDescriptor descriptor)
     {
         _currentPipeline = default;
@@ -93,6 +95,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
 
             renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
             renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
+            layerCount = Math.Min(layerCount, texture.ArrayLayers);
 
             depthAttachment.imageView = texture.GetView(mipLevel, slice);
             depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
@@ -161,6 +164,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
 
     /// <inheritdoc/>
     public override void InsertDebugMarker(Utf8ReadOnlyString debugLabel) => _commandBuffer.InsertDebugMarker(debugLabel);
+
     /// <inheritdoc/>
     protected override void SetPipelineCore(RenderPipeline pipeline)
     {
@@ -185,6 +189,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
     {
         _commandBuffer.SetPushConstants(pushConstantIndex, data, size);
     }
+
     public override void SetViewport(in Viewport viewport)
     {
         // Flip viewport to match DirectX coordinate system
@@ -342,4 +347,95 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
 
         _deviceApi.vkCmdBindIndexBuffer(_commandBuffer.Handle, vulkanBuffer.Handle, offset, vkIndexType);
     }
+    protected override void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+    {
+        PrepareDraw();
+
+        _deviceApi.vkCmdDraw(_commandBuffer.Handle, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    protected override void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance)
+    {
+        PrepareDraw();
+
+        _deviceApi.vkCmdDrawIndexed(_commandBuffer.Handle, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    protected override void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        _deviceApi.vkCmdDrawIndirect(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndirectCommand));
+    }
+
+    protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
+        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
+
+        _deviceApi.vkCmdDrawIndirectCount(_commandBuffer.Handle,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset,
+            maxCount, (uint)sizeof(VkDrawIndirectCommand)
+            );
+    }
+
+    protected override void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        _deviceApi.vkCmdDrawIndexedIndirect(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndexedIndirectCommand));
+    }
+
+    protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
+        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
+
+        _deviceApi.vkCmdDrawIndexedIndirectCount(_commandBuffer.Handle,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset,
+            maxCount, (uint)sizeof(VkDrawIndexedIndirectCommand)
+            );
+    }
+
+    protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        PrepareDraw();
+
+        _deviceApi.vkCmdDrawMeshTasksEXT(_commandBuffer.Handle, groupCountX, groupCountY, groupCountZ);
+    }
+
+    protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    {
+        PrepareDraw();
+
+        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
+        _deviceApi.vkCmdDrawMeshTasksIndirectEXT(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
+    }
+
+    protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    {
+        PrepareDraw();
+
+        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
+        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
+        _deviceApi.vkCmdDrawMeshTasksIndirectCountEXT(_commandBuffer.Handle,
+            backendIndirectBuffer.Handle, indirectBufferOffset,
+            backendCountBuffer.Handle, countBufferOffset,
+            maxCount, (uint)sizeof(VkDispatchIndirectCommand)
+            );
+    }
+
+    private void PrepareDraw()
+    {
+        _commandBuffer.FlushBindGroups(VK_PIPELINE_BIND_POINT_GRAPHICS);
+    }
+
 }

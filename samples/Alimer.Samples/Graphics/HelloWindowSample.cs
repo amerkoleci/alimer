@@ -23,8 +23,7 @@ public sealed class HelloWindowSample : GraphicsSampleBase
             Label = "BackBuffer"u8
         };
 
-        using (context.PushScopedPassPass(backBufferRenderPass))
-        {
-        }
+        RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
+        renderPassEncoder.EndEncoding();
     }
 }

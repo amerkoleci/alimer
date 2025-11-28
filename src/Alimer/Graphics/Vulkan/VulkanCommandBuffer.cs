@@ -29,7 +29,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     private readonly VkImageMemoryBarrier2[] _imageBarriers = new VkImageMemoryBarrier2[MaxBarrierCount];
     private readonly VkBufferMemoryBarrier2[] _bufferBarriers = new VkBufferMemoryBarrier2[MaxBarrierCount];
 
-    private VulkanRenderPipeline? _currentPipeline;
     private VulkanPipelineLayout? _currentPipelineLayout;
 
     private bool _bindGroupsDirty;
@@ -100,7 +99,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
     {
         base.Reset(frameIndex);
-        _currentPipeline = default;
         _currentPipelineLayout = default;
         _memoryBarrierCount = 0;
         _bufferBarrierCount = 0;
@@ -204,6 +202,15 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     {
         _renderPassEncoder.Begin(in descriptor);
         return _renderPassEncoder;
+    }
+
+    public override void Present(SwapChain swapChain)
+    {
+        VulkanSwapChain backendSwapChain = (VulkanSwapChain)swapChain;
+
+        TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present, 0, 1, 0, 1);
+        _queue.QueuePresent(backendSwapChain);
+        backendSwapChain.NeedAcquire = true;
     }
 
     public void EndEncoding()
@@ -324,101 +331,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    #region RenderContext Methods
-
-    
-
-    protected override void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
-    {
-        PrepareDraw();
-
-        _deviceApi.vkCmdDraw(_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
-    }
-
-    protected override void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance)
-    {
-        PrepareDraw();
-
-        _deviceApi.vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
-    }
-
-    protected override void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDraw();
-
-        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
-        _deviceApi.vkCmdDrawIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndirectCommand));
-    }
-
-    protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
-    {
-        PrepareDraw();
-
-        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
-        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
-
-        _deviceApi.vkCmdDrawIndirectCount(_commandBuffer,
-            backendIndirectBuffer.Handle, indirectBufferOffset,
-            backendCountBuffer.Handle, countBufferOffset,
-            maxCount, (uint)sizeof(VkDrawIndirectCommand)
-            );
-    }
-
-    protected override void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDraw();
-
-        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
-        _deviceApi.vkCmdDrawIndexedIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndexedIndirectCommand));
-    }
-
-    protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
-    {
-        PrepareDraw();
-
-        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
-        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
-
-        _deviceApi.vkCmdDrawIndexedIndirectCount(_commandBuffer,
-            backendIndirectBuffer.Handle, indirectBufferOffset,
-            backendCountBuffer.Handle, countBufferOffset,
-            maxCount, (uint)sizeof(VkDrawIndexedIndirectCommand)
-            );
-    }
-
-    protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
-    {
-        PrepareDraw();
-
-        _deviceApi.vkCmdDrawMeshTasksEXT(_commandBuffer, groupCountX, groupCountY, groupCountZ);
-    }
-
-    protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDraw();
-
-        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
-        _deviceApi.vkCmdDrawMeshTasksIndirectEXT(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
-    }
-
-    protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
-    {
-        PrepareDraw();
-
-        VulkanBuffer backendIndirectBuffer = (VulkanBuffer)indirectBuffer;
-        VulkanBuffer backendCountBuffer = (VulkanBuffer)countBuffer;
-        _deviceApi.vkCmdDrawMeshTasksIndirectCountEXT(_commandBuffer,
-            backendIndirectBuffer.Handle, indirectBufferOffset,
-            backendCountBuffer.Handle, countBufferOffset,
-            maxCount, (uint)sizeof(VkDispatchIndirectCommand)
-            );
-    }
-
-    private void PrepareDraw()
-    {
-        FlushBindGroups(VK_PIPELINE_BIND_POINT_GRAPHICS);
-    }
-
     public void SetPipelineLayout(VulkanPipelineLayout newPipelineLayout)
     {
         if (_currentPipelineLayout == newPipelineLayout)
@@ -428,7 +340,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         //_currentPipelineLayout.AddRef();
     }
 
-    public void  SetPushConstants(uint pushConstantIndex, void* data, int size)
+    public void SetPushConstants(uint pushConstantIndex, void* data, int size)
     {
         Debug.Assert(size <= _queue.VkDevice.Adapter.Limits.MaxPushConstantsSize);
         Debug.Assert(_currentPipelineLayout != null);
@@ -445,7 +357,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     public void FlushBindGroups(VkPipelineBindPoint bindPoint)
     {
         Debug.Assert(_currentPipelineLayout != null);
-        Debug.Assert(_currentPipeline != null);
 
         if (!_bindGroupsDirty)
             return;
@@ -460,14 +371,4 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         );
         _bindGroupsDirty = false;
     }
-
-    public override void Present(SwapChain swapChain)
-    {
-        VulkanSwapChain backendSwapChain = (VulkanSwapChain)swapChain;
-
-        TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present, 0, 1, 0, 1);
-        _queue.QueuePresent(backendSwapChain);
-        backendSwapChain.NeedAcquire = true;
-    }
-    #endregion RenderContext Methods
 }

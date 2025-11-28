@@ -20,6 +20,8 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
         _deviceApi = deviceApi;
     }
 
+    public override GraphicsDevice Device => _commandBuffer.Device;
+
     public void Begin(in ComputePassDescriptor descriptor)
     {
         _currentPipeline = default;

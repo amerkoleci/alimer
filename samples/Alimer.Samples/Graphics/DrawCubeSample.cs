@@ -106,15 +106,14 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             Label = "BackBuffer"u8
         };
 
-        using (context.PushScopedPassPass(backBufferRenderPass))
-        {
-            context.SetPipeline(_renderPipeline!);
-            context.SetBindGroup(0, _bindGroup0);
-            context.SetBindGroup(1, _bindGroup1);
+        RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
+        renderPassEncoder.SetPipeline(_renderPipeline!);
+        renderPassEncoder.SetBindGroup(0, _bindGroup0);
+        renderPassEncoder.SetBindGroup(1, _bindGroup1);
 
-            context.SetVertexBuffer(0, _vertexBuffer);
-            context.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
-            context.DrawIndexed(36);
-        }
+        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
+        renderPassEncoder.DrawIndexed(36);
+        renderPassEncoder.EndEncoding();
     }
 }

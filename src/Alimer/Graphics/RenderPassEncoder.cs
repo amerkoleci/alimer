@@ -85,6 +85,109 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         SetBlendColor(new Color(red, green, blue, alpha));
     }
 
+    /// <summary>
+    /// Draw non-indexed geometry.
+    /// </summary>
+    /// <param name="vertexCount"></param>
+    /// <param name="instanceCount"></param>
+    /// <param name="firstVertex"></param>
+    /// <param name="firstInstance"></param>
+    public void Draw(uint vertexCount, uint instanceCount = 1, uint firstVertex = 0, uint firstInstance = 0)
+    {
+        DrawCore(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    /// <summary>
+    /// Draw indexed geometry.
+    /// </summary>
+    /// <param name="indexCount"></param>
+    /// <param name="instanceCount"></param>
+    /// <param name="firstIndex"></param>
+    /// <param name="baseVertex"></param>
+    /// <param name="firstInstance"></param>
+    public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int baseVertex = 0, uint firstInstance = 0)
+    {
+#if VALIDATE_USAGE
+        ValidateIndexBuffer(indexCount);
+#endif
+
+        DrawIndexedCore(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    /// <summary>
+    /// Draw primitives with indirect parameters
+    /// </summary>
+    /// <param name="indirectBuffer"></param>
+    /// <param name="indirectBufferOffset"></param>
+    public void DrawIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    {
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+
+        DrawIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    public void DrawIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    {
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(countBuffer);
+        ValidateIndirectOffset(countBufferOffset);
+
+        DrawIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
+    }
+
+    /// <summary>
+    /// Draw primitives with indirect parameters and indexed vertices
+    /// </summary>
+    /// <param name="indirectBuffer"></param>
+    /// <param name="indirectBufferOffset"></param>
+    public void DrawIndexedIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    {
+        CommandEncoder.ValidateIndirectBuffer(indirectBuffer);
+        CommandEncoder.ValidateIndirectOffset(indirectBufferOffset);
+
+        DrawIndexedIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    public void DrawIndexedIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    {
+        CommandEncoder.ValidateIndirectBuffer(indirectBuffer);
+        CommandEncoder.ValidateIndirectOffset(indirectBufferOffset);
+        CommandEncoder.ValidateIndirectBuffer(countBuffer);
+        CommandEncoder.ValidateIndirectOffset(countBufferOffset);
+
+        DrawIndexedIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
+    }
+
+    public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        PreDispatchMeshValidation();
+
+        DispatchMeshCore(groupCountX, groupCountY, groupCountZ);
+    }
+
+    public void DispatchMeshIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    {
+        PreDispatchMeshValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+
+        DispatchMeshIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    public void DispatchMeshIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    {
+        PreDispatchMeshValidation();
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(countBuffer);
+        ValidateIndirectOffset(countBufferOffset);
+
+        DispatchMeshIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
+    }
+
+
     protected abstract void SetPipelineCore(RenderPipeline pipeline);
     public abstract void SetViewport(in Viewport viewport);
     public abstract void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0);
@@ -95,6 +198,15 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     public abstract void SetDepthBounds(float minBounds, float maxBounds);
     protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
     protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);
+    protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+    protected abstract void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance);
+    protected abstract void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+    protected abstract void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+    protected abstract void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ);
+    protected abstract void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
 
     #region Validation
 #if VALIDATE_USAGE
@@ -115,5 +227,15 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         }
     }
 #endif
+
+
+    [Conditional("VALIDATE_USAGE")]
+    private void PreDispatchMeshValidation()
+    {
+        if (!Device.Adapter.QueryFeatureSupport(Feature.MeshShader))
+        {
+            throw new GraphicsException($"Device doesn't support Feature.MeshShader.");
+        }
+    }
     #endregion
 }

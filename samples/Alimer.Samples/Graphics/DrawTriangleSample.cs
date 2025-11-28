@@ -56,10 +56,10 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
             Label = "BackBuffer"u8
         };
 
-        var renderPass = context.BeginRenderPass(backBufferRenderPass);
-        context.SetVertexBuffer(0, _vertexBuffer!);
-        context.SetPipeline(_renderPipeline!);
-        context.Draw(3);
-        renderPass.EndEncoding();
+        RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
+        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer!);
+        renderPassEncoder.SetPipeline(_renderPipeline!);
+        renderPassEncoder.Draw(3);
+        renderPassEncoder.EndEncoding();
     }
 }

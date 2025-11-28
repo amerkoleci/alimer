@@ -15,6 +15,8 @@ public abstract unsafe class CommandEncoder
     {
     }
 
+    public abstract GraphicsDevice Device { get; }
+
     public abstract void EndEncoding();
 
     public abstract void PushDebugGroup(Utf8ReadOnlyString groupLabel);
@@ -58,7 +60,7 @@ public abstract unsafe class CommandEncoder
 
     #region Validation
     [Conditional("VALIDATE_USAGE")]
-    protected internal static void ValidateIndirectBuffer(GraphicsBuffer indirectBuffer)
+    protected static void ValidateIndirectBuffer(GraphicsBuffer indirectBuffer)
     {
         if ((indirectBuffer.Usage & BufferUsage.Indirect) == 0)
         {
@@ -67,7 +69,7 @@ public abstract unsafe class CommandEncoder
     }
 
     [Conditional("VALIDATE_USAGE")]
-    protected internal static void ValidateIndirectOffset(ulong offset)
+    protected static void ValidateIndirectOffset(ulong offset)
     {
         if ((offset % 4) != 0)
         {
