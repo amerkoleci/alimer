@@ -11,18 +11,16 @@ using Alimer.Utilities;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanPipeline : Pipeline
+internal unsafe class VulkanRenderPipeline : RenderPipeline
 {
     private readonly VulkanGraphicsDevice _device;
-    private readonly VulkanPipelineLayout _layout;
     private readonly VkPipeline _handle = VkPipeline.Null;
 
-    public VulkanPipeline(VulkanGraphicsDevice device, in RenderPipelineDescription description)
-        : base(PipelineType.Render, description.Label)
+    public VulkanRenderPipeline(VulkanGraphicsDevice device, in RenderPipelineDescriptor description)
+        : base(description.Label)
     {
         _device = device;
-        _layout = (VulkanPipelineLayout)description.Layout;
-        BindPoint = VkPipelineBindPoint.Graphics;
+        VkLayout = (VulkanPipelineLayout)description.Layout;
 
         // ShaderStages
         int shaderStageCount = description.ShaderStages.Length;
@@ -304,7 +302,7 @@ internal unsafe class VulkanPipeline : Pipeline
             pDepthStencilState = &depthStencilState,
             pColorBlendState = &blendState,
             pDynamicState = &dynamicState,
-            layout = _layout.Handle,
+            layout = VkLayout.Handle,
             basePipelineHandle = VkPipeline.Null,
             basePipelineIndex = 0
         };
@@ -331,69 +329,19 @@ internal unsafe class VulkanPipeline : Pipeline
         }
     }
 
-    public VulkanPipeline(VulkanGraphicsDevice device, in ComputePipelineDescription description)
-        : base(PipelineType.Compute, description.Label)
-    {
-        _device = device;
-        _layout = (VulkanPipelineLayout)description.Layout;
-        BindPoint = VkPipelineBindPoint.Compute;
-
-        Utf8String entryPoint = new(VkStringInterop.ConvertToUnmanaged(description.ComputeShader.EntryPoint));
-
-        VkPipelineShaderStageCreateInfo stage = new()
-        {
-            stage = VkShaderStageFlags.Compute,
-            pName = entryPoint
-        };
-
-        VkResult result = _device.DeviceApi.vkCreateShaderModule(device.Handle, description.ComputeShader.ByteCode, null, out stage.module);
-        if (result != VkResult.Success)
-        {
-            Log.Error("Failed to create a pipeline shader module");
-            return;
-        }
-
-        VkComputePipelineCreateInfo createInfo = new()
-        {
-            stage = stage,
-            layout = _layout.Handle,
-            basePipelineHandle = VkPipeline.Null,
-            basePipelineIndex = 0
-        };
-
-        VkPipeline pipeline;
-        result = _device.DeviceApi.vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
-
-        // Delete shader module.
-        _device.DeviceApi.vkDestroyShaderModule(device.Handle, stage.module);
-
-        if (result != VkResult.Success)
-        {
-            Log.Error("Vulkan: Failed to create Compute Pipeline.");
-            return;
-        }
-
-        _handle = pipeline;
-
-        if (!string.IsNullOrEmpty(description.Label))
-        {
-            OnLabelChanged(description.Label!);
-        }
-    }
-
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
-    public override PipelineLayout Layout => _layout;
+    public override PipelineLayout Layout => VkLayout;
 
     public VkPipeline Handle => _handle;
-    public VkPipelineBindPoint BindPoint { get; }
+    public VulkanPipelineLayout VkLayout { get; }
 
     /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanPipeline" /> class.
+    /// Finalizes an instance of the <see cref="VulkanRenderPipeline" /> class.
     /// </summary>
-    ~VulkanPipeline() => Dispose(disposing: false);
+    ~VulkanRenderPipeline() => Dispose(disposing: false);
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)

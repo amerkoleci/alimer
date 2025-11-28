@@ -4,6 +4,7 @@
     <TargetFrameworks>net10.0;$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <ExcludeD3D12>true</ExcludeD3D12>
     <ExcludeWebGPU>true</ExcludeWebGPU>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
   </PropertyGroup>

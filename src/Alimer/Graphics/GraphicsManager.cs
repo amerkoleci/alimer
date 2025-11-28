@@ -1,10 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.AlimerApi;
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
-using Alimer.Graphics.Native;
 
 namespace Alimer.Graphics;
 

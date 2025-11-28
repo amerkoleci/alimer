@@ -17,7 +17,7 @@ using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Pipeline : Pipeline
+internal unsafe class D3D12RenderPipeline : RenderPipeline
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12PipelineLayout _layout;
@@ -25,22 +25,22 @@ internal unsafe class D3D12Pipeline : Pipeline
     private readonly uint _numVertexBindings = 0;
     private readonly uint[] _strides = new uint[MaxVertexBufferBindings];
 
-    public D3D12Pipeline(D3D12GraphicsDevice device, in RenderPipelineDescription description)
-        : base(PipelineType.Render, description.Label)
+    public D3D12RenderPipeline(D3D12GraphicsDevice device, in RenderPipelineDescriptor descriptor)
+        : base( descriptor.Label)
     {
         _device = device;
-        _layout = (D3D12PipelineLayout)description.Layout;
+        _layout = (D3D12PipelineLayout)descriptor.Layout;
 
         GraphicsPipelineStateStream stream = new();
         stream.stream1.pRootSignature = _layout.Handle;
 
         // ShaderStages
-        int shaderStageCount = description.ShaderStages.Length;
+        int shaderStageCount = descriptor.ShaderStages.Length;
         void** shaderStageBytecodes = stackalloc void*[shaderStageCount];
 
         for (int i = 0; i < shaderStageCount; i++)
         {
-            ref ShaderStageDescription shaderDesc = ref description.ShaderStages[i];
+            ref ShaderStageDescription shaderDesc = ref descriptor.ShaderStages[i];
             shaderStageBytecodes[i] = Unsafe.AsPointer(ref shaderDesc.ByteCode[0]);
 
             switch (shaderDesc.Stage)
@@ -73,18 +73,18 @@ internal unsafe class D3D12Pipeline : Pipeline
         stream.stream1.SampleMask = uint.MaxValue;
         // RasterizerState
         D3D12_RASTERIZER_DESC rasterizerState = D3D12_RASTERIZER_DESC.DEFAULT;
-        rasterizerState.FillMode = description.RasterizerState.FillMode.ToD3D12();
-        rasterizerState.CullMode = description.RasterizerState.CullMode.ToD3D12();
-        rasterizerState.FrontCounterClockwise = (description.RasterizerState.FrontFace == FrontFace.CounterClockwise) ? TRUE : FALSE;
+        rasterizerState.FillMode = descriptor.RasterizerState.FillMode.ToD3D12();
+        rasterizerState.CullMode = descriptor.RasterizerState.CullMode.ToD3D12();
+        rasterizerState.FrontCounterClockwise = (descriptor.RasterizerState.FrontFace == FrontFace.CounterClockwise) ? TRUE : FALSE;
         //rasterizerState.DepthBias = static_cast<INT>(desc.rasterizerState.depthBias);
         //rasterizerState.DepthBiasClamp = desc.rasterizerState.depthBiasClamp;
         //rasterizerState.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias;
-        rasterizerState.DepthClipEnable = (description.RasterizerState.DepthClipMode == DepthClipMode.Clip) ? TRUE : FALSE;
+        rasterizerState.DepthClipEnable = (descriptor.RasterizerState.DepthClipMode == DepthClipMode.Clip) ? TRUE : FALSE;
         //rasterizerState.MultisampleEnable = desc.sampleCount > TextureSampleCount::Count1 ? TRUE : FALSE;
         rasterizerState.AntialiasedLineEnable = FALSE;
         rasterizerState.ForcedSampleCount = 0;
         rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-        if (description.RasterizerState.ConservativeRaster &&
+        if (descriptor.RasterizerState.ConservativeRaster &&
             device.Adapter.QueryFeatureSupport(Feature.ConservativeRasterization))
         {
             rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
@@ -98,9 +98,9 @@ internal unsafe class D3D12Pipeline : Pipeline
         D3D12_INPUT_ELEMENT_DESC* inputElements = stackalloc D3D12_INPUT_ELEMENT_DESC[MaxVertexAttributes];
         D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = new();
         inputLayoutDesc.pInputElementDescs = inputElements;
-        for (uint binding = 0; binding < description.VertexBufferLayouts.Length; binding++)
+        for (uint binding = 0; binding < descriptor.VertexBufferLayouts.Length; binding++)
         {
-            ref readonly VertexBufferLayout layout = ref description.VertexBufferLayouts[binding];
+            ref readonly VertexBufferLayout layout = ref descriptor.VertexBufferLayouts[binding];
 
             if (layout.Stride == 0)
                 continue;
@@ -135,8 +135,8 @@ internal unsafe class D3D12Pipeline : Pipeline
         stream.stream1.InputLayout = inputLayoutDesc;
 
         // Handle index strip
-        if (description.PrimitiveTopology != PrimitiveTopology.TriangleStrip &&
-            description.PrimitiveTopology != PrimitiveTopology.LineStrip)
+        if (descriptor.PrimitiveTopology != PrimitiveTopology.TriangleStrip &&
+            descriptor.PrimitiveTopology != PrimitiveTopology.LineStrip)
         {
             stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
         }
@@ -146,7 +146,7 @@ internal unsafe class D3D12Pipeline : Pipeline
         }
 
         // PrimitiveTopologyType
-        switch (description.PrimitiveTopology)
+        switch (descriptor.PrimitiveTopology)
         {
             case PrimitiveTopology.PointList:
                 stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
@@ -167,10 +167,10 @@ internal unsafe class D3D12Pipeline : Pipeline
         // Color Attachments + RTV
         D3D12_RT_FORMAT_ARRAY RTVFormats = new();
         RTVFormats.NumRenderTargets = 1;
-        RTVFormats.RTFormats[0] = (DXGI_FORMAT)description.ColorFormats[0].ToDxgiFormat();
+        RTVFormats.RTFormats[0] = (DXGI_FORMAT)descriptor.ColorFormats[0].ToDxgiFormat();
 
         stream.stream1.RTVFormats = RTVFormats;
-        stream.stream1.DSVFormat = (DXGI_FORMAT)description.DepthStencilFormat.ToDxgiFormat();
+        stream.stream1.DSVFormat = (DXGI_FORMAT)descriptor.DepthStencilFormat.ToDxgiFormat();
         stream.stream1.SampleDesc = new(1, 0);
         stream.stream1.NodeMask = 0;
 
@@ -191,37 +191,7 @@ internal unsafe class D3D12Pipeline : Pipeline
             return;
         }
 
-        D3DPrimitiveTopology = description.PrimitiveTopology.ToD3DPrimitiveTopology(description.PatchControlPoints);
-    }
-
-    public D3D12Pipeline(D3D12GraphicsDevice device, in ComputePipelineDescription description)
-        : base(PipelineType.Compute, description.Label)
-    {
-        _device = device;
-        _layout = (D3D12PipelineLayout)description.Layout;
-
-        fixed (byte* pByteCode = description.ComputeShader.ByteCode)
-        {
-            ComputePipelineStateStream stream = new()
-            {
-                pRootSignature = _layout.Handle,
-                CS = new(pByteCode, (nuint)description.ComputeShader.ByteCode.Length),
-                NodeMask = 0
-            };
-
-            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
-            {
-                pPipelineStateSubobjectStream = &stream,
-                SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
-            };
-
-            HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), (void**)_handle.GetAddressOf());
-            if (hr.FAILED)
-            {
-                Log.Error("D3D12: Failed to create Compute Pipeline.");
-                return;
-            }
-        }
+        D3DPrimitiveTopology = descriptor.PrimitiveTopology.ToD3DPrimitiveTopology(descriptor.PatchControlPoints);
     }
 
     /// <inheritdoc />
@@ -238,9 +208,9 @@ internal unsafe class D3D12Pipeline : Pipeline
     public uint GetStride(uint slot) => _strides[slot];
 
     /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12Pipeline" /> class.
+    /// Finalizes an instance of the <see cref="D3D12RenderPipeline" /> class.
     /// </summary>
-    ~D3D12Pipeline() => Dispose(disposing: false);
+    ~D3D12RenderPipeline() => Dispose(disposing: false);
 
     /// <inheitdoc />
     protected internal override void Destroy()

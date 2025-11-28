@@ -209,9 +209,10 @@ internal static unsafe class VulkanUtils
             case VertexFormat.Int4: return VkFormat.R32G32B32A32Sint;
 
             //case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
-            case VertexFormat.UInt1010102Normalized: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-            case VertexFormat.RG11B10Float: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-            case VertexFormat.RGB9E5Float: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+            case VertexFormat.Unorm10_10_10_2:      return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case VertexFormat.Unorm8x4BGRA:         return VK_FORMAT_B8G8R8A8_UNORM;
+            //case VertexFormat.RG11B10Float:         return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+            //case VertexFormat.RGB9E5Float:          return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
             default:
                 return VkFormat.Undefined;

@@ -267,20 +267,20 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreatePipelineLayout(new PipelineLayoutDescription(bindGroupLayouts));
     }
 
-    public Pipeline CreateRenderPipeline(in RenderPipelineDescription description)
+    public RenderPipeline CreateRenderPipeline(in RenderPipelineDescriptor descriptor)
     {
-        Guard.IsGreaterThanOrEqualTo(description.ShaderStages.Length, 1, nameof(RenderPipelineDescription.ShaderStages));
+        Guard.IsGreaterThanOrEqualTo(descriptor.ShaderStages.Length, 1, nameof(RenderPipelineDescriptor.ShaderStages));
 
-        return CreateRenderPipelineCore(in description);
+        return CreateRenderPipelineCore(in descriptor);
     }
 
-    public Pipeline CreateComputePipeline(in ComputePipelineDescription description)
+    public ComputePipeline CreateComputePipeline(in ComputePipelineDescriptor descriptor)
     {
-        Guard.IsTrue(description.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescription.ComputeShader));
-        Guard.IsNotNull(description.ComputeShader.ByteCode != null, nameof(ComputePipelineDescription.ComputeShader.ByteCode));
-        Guard.IsGreaterThan(description.ComputeShader.ByteCode!.Length, 0);
+        Guard.IsTrue(descriptor.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescriptor.ComputeShader));
+        Guard.IsNotNull(descriptor.ComputeShader.ByteCode != null, nameof(ComputePipelineDescriptor.ComputeShader.ByteCode));
+        Guard.IsGreaterThan(descriptor.ComputeShader.ByteCode!.Length, 0);
 
-        return CreateComputePipelineCore(in description);
+        return CreateComputePipelineCore(in descriptor);
     }
 
     public QueryHeap CreateQueryHeap(in QueryHeapDescription descriptor)
@@ -296,11 +296,12 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     }
 
     /// <summary>
-    /// Begin new <see cref="RenderContext"/> in recording state.
+    /// Acquire command buffer ready for recording.
     /// </summary>
-    /// <param name="label">Optional label.</param>
+    /// <param name="queue"></param>
+    /// <param name="label"></param>
     /// <returns></returns>
-    public abstract RenderContext BeginRenderContext(Utf8ReadOnlyString label = default);
+    public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
     protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
     protected abstract unsafe Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
@@ -308,8 +309,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
-    protected abstract Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description);
-    protected abstract Pipeline CreateComputePipelineCore(in ComputePipelineDescription description);
+    protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
+    protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription descriptor);
     protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description);
 }

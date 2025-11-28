@@ -69,7 +69,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         }
     }
 
-    public virtual void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
+    public virtual void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
     {
         foreach (EntitySystem system in Systems)
         {

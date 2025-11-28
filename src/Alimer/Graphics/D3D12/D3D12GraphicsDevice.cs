@@ -504,15 +504,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description)
+    protected override RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor description)
     {
-        return new D3D12Pipeline(this, description);
+        return new D3D12RenderPipeline(this, description);
     }
 
     /// <inheritdoc />
-    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
+    protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor)
     {
-        return new D3D12Pipeline(this, description);
+        return new D3D12ComputePipeline(this, descriptor);
     }
 
     /// <inheritdoc />
@@ -528,9 +528,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
+    public override CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default)
     {
-        return _queues[(int)CommandQueueType.Graphics].BeginCommandContext(label);
+        return _queues[(int)queue].AcquireCommandBuffer(label);
     }
 
     [UnmanagedCallersOnly]

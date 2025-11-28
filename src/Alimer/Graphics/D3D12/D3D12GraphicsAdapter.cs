@@ -72,6 +72,10 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             Type = Features.UMA() ? GraphicsAdapterType.IntegratedGpu : GraphicsAdapterType.DiscreteGpu;
         }
 
+        // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
+        // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
+        const uint kMaxRootSignatureSize = 64u;
+
         _limits = new GraphicsDeviceLimits
         {
             MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
@@ -79,25 +83,26 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
             MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
             MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-            MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
-            UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
-            UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+            MaxBindGroups = kMaxRootSignatureSize,
+            //MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+            //UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
+            //UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
             MinConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
             MaxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
             MinStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
             MaxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
 
             MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
-            MaxPushConstantsSize = Constants.MaxPushConstantsSize, // D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+            MaxPushConstantsSize = sizeof(uint) * kMaxRootSignatureSize / 1,
+
+            MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
+            MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
 
             // Slot values can be 0-15, inclusive:
             // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
             MaxVertexBuffers = 16,
             MaxVertexAttributes = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
             MaxVertexBufferArrayStride = D3D12_SO_BUFFER_MAX_STRIDE_IN_BYTES,
-
-            MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-            MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
 
             // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
             // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
@@ -112,8 +117,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
             // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
             MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-
-            SamplerMaxAnisotropy = D3D12_DEFAULT_MAX_ANISOTROPY,
         };
 
         if (Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)

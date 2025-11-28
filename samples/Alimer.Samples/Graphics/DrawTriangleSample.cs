@@ -12,7 +12,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
 {
     private GraphicsBuffer _vertexBuffer;
     private PipelineLayout _pipelineLayout;
-    private Pipeline _renderPipeline;
+    private RenderPipeline _renderPipeline;
 
     public DrawTriangleSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Triangle", services, mainWindow)
@@ -41,26 +41,25 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescription renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
     }
 
-    public override void Draw(RenderContext context, Texture swapChainTexture)
+    public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
-        RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
-            Label = "BackBuffer"
+            Label = "BackBuffer"u8
         };
 
-        using (context.PushScopedPassPass(backBufferRenderPass))
-        {
-            context.SetVertexBuffer(0, _vertexBuffer!);
-            context.SetPipeline(_renderPipeline!);
-            context.Draw(3);
-        }
+        var renderPass = context.BeginRenderPass(backBufferRenderPass);
+        context.SetVertexBuffer(0, _vertexBuffer!);
+        context.SetPipeline(_renderPipeline!);
+        context.Draw(3);
+        renderPass.EndEncoding();
     }
 }

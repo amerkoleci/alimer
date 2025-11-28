@@ -6,7 +6,7 @@ using CommunityToolkit.Diagnostics;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="Pipeline"/> single shader stage.
+/// Structure that describes the <see cref="RenderPipeline"/> single shader stage.
 /// </summary>
 public readonly record struct ShaderStageDescription
 {

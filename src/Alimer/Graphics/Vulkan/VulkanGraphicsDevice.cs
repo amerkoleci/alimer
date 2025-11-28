@@ -1105,15 +1105,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Pipeline CreateRenderPipelineCore(in RenderPipelineDescription description)
+    protected override RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor)
     {
-        return new VulkanPipeline(this, description);
+        return new VulkanRenderPipeline(this, descriptor);
     }
 
     /// <inheritdoc />
-    protected override Pipeline CreateComputePipelineCore(in ComputePipelineDescription description)
+    protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor description)
     {
-        return new VulkanPipeline(this, description);
+        return new VulkanComputePipeline(this, description);
     }
 
     /// <inheritdoc />
@@ -1129,9 +1129,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override RenderContext BeginRenderContext(Utf8ReadOnlyString label = default)
+    public override CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default)
     {
-        return _queues[(int)CommandQueueType.Graphics].BeginCommandContext(label);
+        return _queues[(int)queue].AcquireCommandBuffer(label);
     }
 
     public void SetObjectName(VkObjectType objectType, ulong objectHandle, string? name = default)

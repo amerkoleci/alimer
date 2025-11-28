@@ -76,12 +76,12 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         base.Dispose(disposing);
     }
 
-    public override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
+    public override void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
     {
         Render(renderContext, outputTexture, Scene.CurrentCamera!);
     }
 
-    public void Render(RenderContext renderContext, Texture output, CameraComponent camera)
+    public void Render(CommandBuffer renderContext, Texture output, CameraComponent camera)
     {
         UpdateCamera(camera);
 
@@ -91,20 +91,19 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
             StoreAction = MultisampleColorTexture != null ? StoreAction.Discard : StoreAction.Store,
         };
 
-        RenderPassDescription renderPass = new(colorAttachment)
+        RenderPassDescriptor renderPassDescriptor = new(colorAttachment)
         {
-            Label = "Output pass"
+            Label = "Output pass"u8
         };
 
-        using (renderContext.PushScopedPassPass(renderPass))
-        {
-            //renderContext.SetBindGroup(0, camera.bindGroup);
+        RenderPassEncoder renderPass = renderContext.BeginRenderPass(renderPassDescriptor);
+        //renderContext.SetBindGroup(0, camera.bindGroup);
 
-            // Loop through all the renderable entities and store them by pipeline.
-            //for (const pipeline of this.renderBatch.sortedPipelines) {
-            //    passEncoder.setPipeline(pipeline.pipeline);
-            //}
-        }
+        // Loop through all the renderable entities and store them by pipeline.
+        //for (const pipeline of this.renderBatch.sortedPipelines) {
+        //    passEncoder.setPipeline(pipeline.pipeline);
+        //}
+        renderPass.EndEncoding();
     }
 
     public void Resize(int pixelWidth, int pixelHeight)

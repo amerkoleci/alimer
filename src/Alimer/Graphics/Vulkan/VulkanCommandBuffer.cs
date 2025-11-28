@@ -4,8 +4,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Alimer.Utilities;
-using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
@@ -13,7 +11,7 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanCommandBuffer : RenderContext
+internal unsafe class VulkanCommandBuffer : CommandBuffer
 {
     private const uint MaxBarrierCount = 16;
 
@@ -31,13 +29,14 @@ internal unsafe class VulkanCommandBuffer : RenderContext
     private readonly VkImageMemoryBarrier2[] _imageBarriers = new VkImageMemoryBarrier2[MaxBarrierCount];
     private readonly VkBufferMemoryBarrier2[] _bufferBarriers = new VkBufferMemoryBarrier2[MaxBarrierCount];
 
-    private VulkanPipeline? _currentPipeline;
+    private VulkanRenderPipeline? _currentPipeline;
     private VulkanPipelineLayout? _currentPipelineLayout;
-    private RenderPassDescription _currentRenderPass;
 
     private bool _bindGroupsDirty;
-    private uint _numBoundBindGroups;
+    private int _numBoundBindGroups;
     private readonly VkDescriptorSet[] _descriptorSets = new VkDescriptorSet[MaxBindGroups];
+    private readonly VulkanRenderPassEncoder _renderPassEncoder;
+    private readonly VulkanComputePassEncoder _computePassEncoder;
 
     public VulkanCommandBuffer(VulkanCommandQueue queue)
     {
@@ -67,10 +66,16 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
             //binderPools[i].Init(device);
         }
+
+        _renderPassEncoder = new VulkanRenderPassEncoder(this, _deviceApi);
+        _computePassEncoder = new VulkanComputePassEncoder(this, _deviceApi);
     }
 
+
     /// <inheritdoc />
-    public override GraphicsDevice Device => _queue.Device;
+    public override GraphicsDevice Device => _queue.VkDevice;
+    public VulkanGraphicsDevice VkDevice => _queue.VkDevice;
+    public VkCommandBuffer Handle => _commandBuffer;
 
     public void Destroy()
     {
@@ -97,7 +102,6 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         base.Reset(frameIndex);
         _currentPipeline = default;
         _currentPipelineLayout = default;
-        _currentRenderPass = default;
         _memoryBarrierCount = 0;
         _bufferBarrierCount = 0;
         _imageBarrierCount = 0;
@@ -150,24 +154,6 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         }
     }
 
-    public void PushDebugGroup(string groupLabel)
-    {
-        if (!_queue.VkDevice.DebugUtils)
-            return;
-
-        byte* pLabelName = VkStringInterop.ConvertToUnmanaged(groupLabel);
-        VkDebugUtilsLabelEXT label = new()
-        {
-            pLabelName = pLabelName
-        };
-        label.color[0] = 0.0f;
-        label.color[1] = 0.0f;
-        label.color[2] = 0.0f;
-        label.color[3] = 1.0f;
-        _queue.VkDevice.InstanceApi.vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &label);
-        VkStringInterop.Free(pLabelName);
-    }
-
     public override void PushDebugGroup(Utf8ReadOnlyString groupLabel)
     {
         if (!_queue.VkDevice.DebugUtils)
@@ -192,22 +178,37 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         _instanceApi.vkCmdEndDebugUtilsLabelEXT(_commandBuffer);
     }
 
-    public override void InsertDebugMarker(string debugLabel)
+    public override void InsertDebugMarker(Utf8ReadOnlyString debugLabel)
     {
         if (!_queue.VkDevice.DebugUtils)
             return;
 
-        byte* pLabelName = VkStringInterop.ConvertToUnmanaged(debugLabel);
         VkDebugUtilsLabelEXT label = new()
         {
-            pLabelName = pLabelName
+            pLabelName = (byte*)debugLabel
         };
         label.color[0] = 0.0f;
         label.color[1] = 0.0f;
         label.color[2] = 0.0f;
         label.color[3] = 1.0f;
         _instanceApi.vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &label);
-        VkStringInterop.Free(pLabelName);
+    }
+
+    protected override ComputePassEncoder BeginComputePassCore(in ComputePassDescriptor descriptor)
+    {
+        _computePassEncoder.Begin(in descriptor);
+        return _computePassEncoder;
+    }
+
+    protected override RenderPassEncoder BeginRenderPassCore(in RenderPassDescriptor descriptor)
+    {
+        _renderPassEncoder.Begin(in descriptor);
+        return _renderPassEncoder;
+    }
+
+    public void EndEncoding()
+    {
+        _encoderActive = false;
     }
 
     public void BufferBarrier(VulkanBuffer buffer, BufferStates newState)
@@ -312,22 +313,9 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         }
     }
 
-    #region ComputeContext Methods
-    protected override void SetPipelineCore(Pipeline pipeline)
+    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
     {
-        if (_currentPipeline == pipeline)
-            return;
-
-        VulkanPipeline newPipeline = (VulkanPipeline)pipeline;
-
-        _deviceApi.vkCmdBindPipeline(_commandBuffer, newPipeline.BindPoint, newPipeline.Handle);
-        _currentPipeline = newPipeline;
-        _currentPipelineLayout = (VulkanPipelineLayout)newPipeline.Layout;
-    }
-
-    protected override void SetBindGroupCore(uint groupIndex, BindGroup bindGroup)
-    {
-        var backendBindGroup = (VulkanBindGroup)bindGroup;
+        VulkanBindGroup backendBindGroup = (VulkanBindGroup)bindGroup;
         if (_descriptorSets[groupIndex] != backendBindGroup.Handle)
         {
             _bindGroupsDirty = true;
@@ -336,312 +324,9 @@ internal unsafe class VulkanCommandBuffer : RenderContext
         }
     }
 
-    protected override void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
-    {
-        Debug.Assert(size <= _queue.Device.Adapter.Limits.MaxPushConstantsSize);
-        Debug.Assert(_currentPipelineLayout != null);
-
-        ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);
-        _deviceApi.vkCmdPushConstants(_commandBuffer, _currentPipelineLayout.Handle, range.stageFlags, range.offset, size, data);
-    }
-
-    private void PrepareDispatch()
-    {
-        FlushBindGroups();
-    }
-
-    protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
-    {
-        PrepareDispatch();
-
-        _deviceApi.vkCmdDispatch(_commandBuffer, groupCountX, groupCountY, groupCountZ);
-    }
-
-    protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDispatch();
-
-        VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
-        _deviceApi.vkCmdDispatchIndirect(_commandBuffer, vulkanBuffer.Handle, indirectBufferOffset);
-    }
-    #endregion ComputeContext Methods
-
     #region RenderContext Methods
-    protected override void BeginRenderPassCore(in RenderPassDescription renderPass)
-    {
-        if (!string.IsNullOrEmpty(renderPass.Label))
-        {
-            PushDebugGroup(renderPass.Label);
-        }
 
-        VkRect2D renderArea = new(0, 0,
-            _queue.VkDevice.VkAdapter.Properties2.properties.limits.maxFramebufferWidth,
-            _queue.VkDevice.VkAdapter.Properties2.properties.limits.maxFramebufferHeight
-            );
-
-        VkRenderingInfo renderingInfo = new()
-        {
-            layerCount = 1,
-            viewMask = 0
-        };
-
-        VkRenderingAttachmentInfo* colorAttachments = stackalloc VkRenderingAttachmentInfo[MaxColorAttachments];
-        VkRenderingAttachmentInfo depthAttachment = new();
-        VkRenderingAttachmentInfo stencilAttachment = new();
-
-        PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
-        bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
-
-        for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
-        {
-            ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
-            Guard.IsTrue(attachment.Texture is not null);
-
-            VulkanTexture texture = (VulkanTexture)attachment.Texture;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
-            VkImageView imageView = texture.GetView(mipLevel, slice);
-
-            renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
-            renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
-
-            ref VkRenderingAttachmentInfo attachmentInfo = ref colorAttachments[renderingInfo.colorAttachmentCount++];
-            attachmentInfo = new()
-            {
-                imageView = imageView,
-                imageLayout = VkImageLayout.ColorAttachmentOptimal,
-                loadOp = attachment.LoadAction.ToVk(),
-                storeOp = attachment.StoreAction.ToVk(),
-                clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
-            };
-
-            TextureBarrier(texture, TextureLayout.RenderTarget, mipLevel, 1u, slice, 1u);
-        }
-
-        if (hasDepthOrStencil)
-        {
-            RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
-
-            VulkanTexture texture = (VulkanTexture)attachment.Texture!;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
-
-            renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
-            renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
-
-            depthAttachment.imageView = texture.GetView(mipLevel, slice);
-            depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            depthAttachment.resolveMode = VkResolveModeFlags.None;
-            depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
-            depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
-            depthAttachment.clearValue.depthStencil = new(attachment.DepthClearValue, attachment.StencilClearValue);
-            renderingInfo.pDepthAttachment = &depthAttachment;
-
-            if (depthStencilFormat.IsStencilFormat())
-            {
-                stencilAttachment.imageView = depthAttachment.imageView;
-                stencilAttachment.imageLayout = VkImageLayout.StencilAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                stencilAttachment.resolveMode = VkResolveModeFlags.None;
-                stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
-                stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
-                stencilAttachment.clearValue.depthStencil = new(attachment.DepthClearValue, attachment.StencilClearValue);
-                renderingInfo.pStencilAttachment = &stencilAttachment;
-            }
-
-            TextureBarrier(texture, TextureLayout.DepthWrite, mipLevel, 1u, slice, 1u);
-        }
-        CommitBarriers();
-
-        renderingInfo.renderArea = renderArea;
-        renderingInfo.pColorAttachments = renderingInfo.colorAttachmentCount > 0 ? colorAttachments : null;
-
-        _deviceApi.vkCmdBeginRendering(_commandBuffer, &renderingInfo);
-
-        // The viewport and scissor default to cover all of the attachments
-        VkViewport viewport = new()
-        {
-            x = 0.0f,
-            y = renderArea.extent.height,
-            width = renderArea.extent.width,
-            height = -(float)(renderArea.extent.height),
-            minDepth = 0.0f,
-            maxDepth = 1.0f
-        };
-        _deviceApi.vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissorRect = new(0, 0, renderArea.extent.width, renderArea.extent.height);
-        _deviceApi.vkCmdSetScissor(_commandBuffer, 0, 1, &scissorRect);
-
-        _currentRenderPass = renderPass;
-    }
-
-    protected override void EndRenderPassCore()
-    {
-        _deviceApi.vkCmdEndRendering(_commandBuffer);
-
-        if (!string.IsNullOrEmpty(_currentRenderPass.Label))
-        {
-            PopDebugGroup();
-        }
-    }
-
-    protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
-    {
-        VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
-        VkBuffer vkBuffer = vulkanBuffer.Handle;
-
-        _deviceApi.vkCmdBindVertexBuffers(_commandBuffer, slot, 1, &vkBuffer, &offset);
-    }
-
-    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
-    {
-        VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
-        VkIndexType vkIndexType = (indexType == IndexType.Uint16) ? VkIndexType.Uint16 : VkIndexType.Uint32;
-
-        _deviceApi.vkCmdBindIndexBuffer(_commandBuffer, vulkanBuffer.Handle, offset, vkIndexType);
-    }
-
-    public override void SetViewport(in Viewport viewport)
-    {
-        // Flip viewport to match DirectX coordinate system
-        VkViewport vkViewport = new()
-        {
-            x = viewport.X,
-            y = viewport.Height - viewport.Y,
-            width = viewport.Width,
-            height = -viewport.Height,
-            minDepth = viewport.MinDepth,
-            maxDepth = viewport.MaxDepth
-        };
-        _deviceApi.vkCmdSetViewport(_commandBuffer, 0, 1, &vkViewport);
-    }
-
-    public override void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0)
-    {
-        if (count == 0)
-        {
-            count = viewports.Length;
-        }
-        VkViewport* vkViewports = stackalloc VkViewport[count];
-
-        for (int i = 0; i < count; i++)
-        {
-            ref readonly Viewport viewport = ref viewports[(int)i];
-
-            vkViewports[i] = new()
-            {
-                x = viewport.X,
-                y = viewport.Height - viewport.Y,
-                width = viewport.Width,
-                height = -viewport.Height,
-                minDepth = viewport.MinDepth,
-                maxDepth = viewport.MaxDepth
-            };
-        }
-
-        _deviceApi.vkCmdSetViewport(_commandBuffer, firstViewport: 0, 1, vkViewports);
-    }
-
-    public override void SetScissorRect(in System.Drawing.Rectangle rect)
-    {
-        VkRect2D vkRect = new(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height);
-        _deviceApi.vkCmdSetScissor(_commandBuffer, 0, 1, &vkRect);
-    }
-
-    public override void SetStencilReference(uint reference)
-    {
-        _deviceApi.vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, reference);
-    }
-
-    public override void SetBlendColor(in Color color)
-    {
-        fixed (Color* colorPtr = &color)
-            _deviceApi.vkCmdSetBlendConstants(_commandBuffer, (float*)colorPtr);
-    }
-
-    public override void SetShadingRate(ShadingRate rate)
-    {
-#if TODO
-        if (_queue.Device.QueryFeatureSupport(Feature.VariableRateShading) && _currentShadingRate != rate)
-        {
-            _currentShadingRate = rate;
-
-            VkExtent2D fragmentSize;
-            switch (rate)
-            {
-                case ShadingRate.Rate1x1:
-                    fragmentSize.width = 1;
-                    fragmentSize.height = 1;
-                    break;
-                case ShadingRate.Rate1x2:
-                    fragmentSize.width = 1;
-                    fragmentSize.height = 2;
-                    break;
-                case ShadingRate.Rate2x1:
-                    fragmentSize.width = 2;
-                    fragmentSize.height = 1;
-                    break;
-                case ShadingRate.Rate2x2:
-                    fragmentSize.width = 2;
-                    fragmentSize.height = 2;
-                    break;
-                case ShadingRate.Rate2x4:
-                    fragmentSize.width = 2;
-                    fragmentSize.height = 4;
-                    break;
-                case ShadingRate.Rate4x2:
-                    fragmentSize.width = 4;
-                    fragmentSize.height = 2;
-                    break;
-                case ShadingRate.Rate4x4:
-                    fragmentSize.width = 4;
-                    fragmentSize.height = 4;
-                    break;
-                default:
-                    break;
-            }
-
-            var combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2]
-            {
-                VkFragmentShadingRateCombinerOpKHR.Keep,
-                VkFragmentShadingRateCombinerOpKHR.Keep
-            };
-
-            if (_queue.Device.FragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps)
-            {
-                if (_queue.Device.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
-                {
-                    combiner[0] = VkFragmentShadingRateCombinerOpKHR.Max;
-                }
-                if (_queue.Device.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
-                {
-                    combiner[1] = VkFragmentShadingRateCombinerOpKHR.Max;
-                }
-            }
-            else
-            {
-                if (_queue.Device.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
-                {
-                    combiner[0] = VkFragmentShadingRateCombinerOpKHR.Replace;
-                }
-                if (_queue.Device.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
-                {
-                    combiner[1] = VkFragmentShadingRateCombinerOpKHR.Replace;
-                }
-            }
-
-            _deviceApi.vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
-        } 
-#endif
-    }
-
-    public override void SetDepthBounds(float minBounds, float maxBounds)
-    {
-        if (_queue.VkDevice.VkAdapter.Features2.features.depthBounds)
-        {
-            _deviceApi.vkCmdSetDepthBounds(_commandBuffer, minBounds, maxBounds);
-        }
-    }
+    
 
     protected override void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
@@ -731,10 +416,33 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
     private void PrepareDraw()
     {
-        FlushBindGroups();
+        FlushBindGroups(VK_PIPELINE_BIND_POINT_GRAPHICS);
     }
 
-    private void FlushBindGroups()
+    public void SetPipelineLayout(VulkanPipelineLayout newPipelineLayout)
+    {
+        if (_currentPipelineLayout == newPipelineLayout)
+            return;
+
+        _currentPipelineLayout = newPipelineLayout;
+        //_currentPipelineLayout.AddRef();
+    }
+
+    public void  SetPushConstants(uint pushConstantIndex, void* data, int size)
+    {
+        Debug.Assert(size <= _queue.VkDevice.Adapter.Limits.MaxPushConstantsSize);
+        Debug.Assert(_currentPipelineLayout != null);
+
+        ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);
+        _deviceApi.vkCmdPushConstants(_commandBuffer.Handle,
+            _currentPipelineLayout.Handle,
+            range.stageFlags,
+            range.offset,
+            (uint)size,
+            data);
+    }
+
+    public void FlushBindGroups(VkPipelineBindPoint bindPoint)
     {
         Debug.Assert(_currentPipelineLayout != null);
         Debug.Assert(_currentPipeline != null);
@@ -744,7 +452,7 @@ internal unsafe class VulkanCommandBuffer : RenderContext
 
         _deviceApi.vkCmdBindDescriptorSets(
             _commandBuffer,
-            _currentPipeline.BindPoint,
+            bindPoint,
             _currentPipelineLayout.Handle,
             0u,
             (uint)_currentPipelineLayout.BindGroupLayoutCount,

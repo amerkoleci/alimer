@@ -25,7 +25,7 @@ using Alimer.Utilities;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12CommandBuffer : RenderContext
+internal unsafe class D3D12CommandBuffer : CommandBuffer
 {
     private const int MaxBarriers = 16;
 
@@ -51,9 +51,8 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
     private readonly D3D12_VERTEX_BUFFER_VIEW[] _vboViews = new D3D12_VERTEX_BUFFER_VIEW[MaxVertexBufferBindings];
 
-    private D3D12Pipeline? _currentPipeline;
+    private D3D12RenderPipeline? _currentPipeline;
     private D3D12PipelineLayout? _currentPipelineLayout;
-    private RenderPassDescription _currentRenderPass;
 
     private bool _bindGroupsDirty;
     private uint _numBoundBindGroups;
@@ -108,7 +107,6 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         base.Reset(frameIndex);
         _currentPipeline = default;
         _currentPipelineLayout = default;
-        _currentRenderPass = default;
         _bindGroupsDirty = false;
         _numBoundBindGroups = 0;
         Array.Clear(_boundBindGroups, 0, _boundBindGroups.Length);
@@ -261,7 +259,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         _commandList.Get()->EndEvent();
     }
 
-    public override void InsertDebugMarker(string debugLabel)
+    public override void InsertDebugMarker(Utf8ReadOnlyString debugLabel)
     {
         var bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
         var buffer = stackalloc byte[bufferSize];
@@ -270,24 +268,24 @@ internal unsafe class D3D12CommandBuffer : RenderContext
     }
 
     #region ComputeContext Methods
-    protected override void SetPipelineCore(Pipeline pipeline)
+    protected override void SetPipelineCore(RenderPipeline pipeline)
     {
         if (_currentPipeline == pipeline)
             return;
 
-        D3D12Pipeline newPipeline = (D3D12Pipeline)pipeline;
+        D3D12RenderPipeline newPipeline = (D3D12RenderPipeline)pipeline;
 
         _commandList.Get()->SetPipelineState(newPipeline.Handle);
 
-        if (newPipeline.PipelineType == PipelineType.Render)
+        //if (newPipeline.PipelineType == PipelineType.Render)
         {
             _commandList.Get()->SetGraphicsRootSignature(newPipeline.RootSignature);
             _commandList.Get()->IASetPrimitiveTopology(newPipeline.D3DPrimitiveTopology);
         }
-        else
-        {
-            _commandList.Get()->SetComputeRootSignature(newPipeline.RootSignature);
-        }
+        //else
+        //{
+        //    _commandList.Get()->SetComputeRootSignature(newPipeline.RootSignature);
+        //}
 
         _currentPipeline = newPipeline;
         _currentPipelineLayout = (D3D12PipelineLayout)newPipeline.Layout;
@@ -311,7 +309,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         uint rootParameterIndex = _currentPipelineLayout.PushConstantsBaseIndex + pushConstantIndex;
         uint num32BitValuesToSet = size / 4;
 
-        if (_currentPipeline.PipelineType == PipelineType.Render)
+        //if (_currentPipeline.PipelineType == PipelineType.Render)
         {
             _commandList.Get()->SetGraphicsRoot32BitConstants(
                 rootParameterIndex,
@@ -320,15 +318,15 @@ internal unsafe class D3D12CommandBuffer : RenderContext
                 0
             );
         }
-        else
-        {
-            _commandList.Get()->SetComputeRoot32BitConstants(
-                rootParameterIndex,
-                num32BitValuesToSet,
-                data,
-                0
-            );
-        }
+        //else
+        //{
+        //    _commandList.Get()->SetComputeRoot32BitConstants(
+        //        rootParameterIndex,
+        //        num32BitValuesToSet,
+        //        data,
+        //        0
+        //    );
+        //}
     }
 
     private void PrepareDispatch()
@@ -336,28 +334,29 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         FlushBindGroups(graphics: false);
     }
 
-    protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
-    {
-        PrepareDispatch();
-
-        _commandList.Get()->Dispatch(groupCountX, groupCountY, groupCountZ);
-    }
-
-    protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDispatch();
-
-        D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
-    }
+    //protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
+    //{
+    //    PrepareDispatch();
+    //
+    //    _commandList.Get()->Dispatch(groupCountX, groupCountY, groupCountZ);
+    //}
+    //
+    //protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    //{
+    //    PrepareDispatch();
+    //
+    //    D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
+    //    _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+    //}
     #endregion ComputeContext Methods
 
     #region RenderContext Methods
-    protected override void BeginRenderPassCore(in RenderPassDescription renderPass)
+    protected override RenderPassEncoder BeginRenderPassCore(in RenderPassDescriptor descriptor)
     {
-        if (!string.IsNullOrEmpty(renderPass.Label))
+        if (!descriptor.Label.IsEmpty)
         {
-            PushDebugGroup(renderPass.Label);
+            PushDebugGroup(descriptor.Label);
+            _hasLabel = true;
         }
 
         SizeI renderArea = new(int.MaxValue, int.MaxValue);
@@ -366,12 +365,12 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
         D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
 
-        bool hasDepthOrStencil = renderPass.DepthStencilAttachment.Texture != null;
-        PixelFormat depthStencilFormat = renderPass.DepthStencilAttachment.Texture != null ? renderPass.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+        bool hasDepthOrStencil = descriptor.DepthStencilAttachment.Texture != null;
+        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.Texture != null ? descriptor.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
 
-        for (int slot = 0; slot < renderPass.ColorAttachments.Length; slot++)
+        for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
-            ref readonly RenderPassColorAttachment attachment = ref renderPass.ColorAttachments[slot];
+            ref readonly RenderPassColorAttachment attachment = ref descriptor.ColorAttachments[slot];
             Guard.IsTrue(attachment.Texture is not null);
 
             D3D12Texture texture = (D3D12Texture)attachment.Texture;
@@ -422,7 +421,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
 
         if (hasDepthOrStencil)
         {
-            RenderPassDepthStencilAttachment attachment = renderPass.DepthStencilAttachment;
+            RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment;
 
             D3D12Texture texture = (D3D12Texture)attachment.Texture!;
             uint mipLevel = attachment.MipLevel;
@@ -512,19 +511,20 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         RECT scissorRect = new(0, 0, renderArea.Width, renderArea.Height);
         _commandList.Get()->RSSetViewports(1, &viewport);
         _commandList.Get()->RSSetScissorRects(1, &scissorRect);
-
-        _currentRenderPass = renderPass;
     }
 
+#if TODO
     protected override void EndRenderPassCore()
     {
-        if (!string.IsNullOrEmpty(_currentRenderPass.Label))
+        if (_hasLabel)
         {
             PopDebugGroup();
+            _hasLabel = false;
         }
 
         _commandList.Get()->EndRenderPass();
-    }
+    } 
+#endif
 
     protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
     {
@@ -766,5 +766,7 @@ internal unsafe class D3D12CommandBuffer : RenderContext
         var d3dSwapChain = (D3D12SwapChain)swapChain;
         _queue.QueuePresent(d3dSwapChain);
     }
+
+    protected override ComputePassEncoder BeginComputePassCore(in ComputePassDescriptor descriptor) => throw new NotImplementedException();
     #endregion RenderContext Methods
 }

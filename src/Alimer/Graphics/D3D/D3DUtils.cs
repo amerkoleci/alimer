@@ -50,9 +50,10 @@ internal static unsafe class D3DUtils
             case VertexFormat.Int3: return DXGI_FORMAT_R32G32B32_SINT;
             case VertexFormat.Int4: return DXGI_FORMAT_R32G32B32A32_SINT;
 
-            case VertexFormat.UInt1010102Normalized: return DXGI_FORMAT_R10G10B10A2_UNORM;
-            case VertexFormat.RG11B10Float: return DXGI_FORMAT_R11G11B10_FLOAT;
-            case VertexFormat.RGB9E5Float: return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+            case VertexFormat.Unorm10_10_10_2:  return DXGI_FORMAT_R10G10B10A2_UNORM;
+            case VertexFormat.Unorm8x4BGRA:     return DXGI_FORMAT_B8G8R8A8_UNORM;
+            //case VertexFormat.RG11B10Float:     return DXGI_FORMAT_R11G11B10_FLOAT;
+            //case VertexFormat.RGB9E5Float:      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
 
             default:
                 return DXGI_FORMAT_UNKNOWN;

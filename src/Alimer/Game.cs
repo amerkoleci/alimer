@@ -237,7 +237,7 @@ public abstract class Game : DisposableObject, IGame
         }
     }
 
-    protected virtual void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
+    protected virtual void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
     {
         // Draw for all game systems
         foreach (IGameSystem system in GameSystems)
@@ -277,17 +277,17 @@ public abstract class Game : DisposableObject, IGame
                 BeginDraw();
 
                 // Begin rendering commands
-                RenderContext renderContext = GraphicsDevice.BeginRenderContext("Frame"u8);
+                CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer(CommandQueueType.Graphics, "Frame"u8);
                 Texture? swapChainTexture = MainWindow.SwapChain!.GetCurrentTexture();
                 if (swapChainTexture is not null)
                 {
-                    Draw(renderContext, swapChainTexture, _appTime);
+                    Draw(commandBuffer, swapChainTexture, _appTime);
                 }
 
-                renderContext.Present(MainWindow.SwapChain!);
+                commandBuffer.Present(MainWindow.SwapChain!);
 
                 //GraphicsDevice.Submit(commandBuffer);
-                renderContext.Flush(waitForCompletion: false);
+                commandBuffer.Flush(waitForCompletion: false);
             }
             finally
             {

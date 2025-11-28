@@ -11,7 +11,7 @@ public interface IGameSystem
 
     void BeginDraw();
 
-    void Draw(RenderContext renderContext, Texture outputTexture, GameTime time);
+    void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time);
 
     void EndDraw();
 }

@@ -67,7 +67,7 @@ public sealed class SceneCubeSample : SampleBase
     public GraphicsDevice GraphicsDevice { get; }
     public SceneSystem Scene { get; }
 
-    public override void Draw(RenderContext context, Texture swapChainTexture)
+    public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
         _meshEntity.Get<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
     }

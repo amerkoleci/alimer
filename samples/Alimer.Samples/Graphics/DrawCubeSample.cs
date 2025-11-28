@@ -23,7 +23,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     private readonly BindGroup _bindGroup1;
 
     private readonly PipelineLayout _pipelineLayout;
-    private readonly Pipeline _renderPipeline;
+    private readonly RenderPipeline _renderPipeline;
 
     private Stopwatch _clock;
 
@@ -76,7 +76,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescription renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             Label = "RenderPipeline"
         };
@@ -85,7 +85,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _clock = Stopwatch.StartNew();
     }
 
-    public override void Draw(RenderContext context, Texture swapChainTexture)
+    public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
         float time = _clock.ElapsedMilliseconds / 1000.0f;
         Matrix4x4 world = Matrix4x4.CreateRotationX(time) * Matrix4x4.CreateRotationY(time * 2) * Matrix4x4.CreateRotationZ(time * .7f);
@@ -101,9 +101,9 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
-        RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
-            Label = "BackBuffer"
+            Label = "BackBuffer"u8
         };
 
         using (context.PushScopedPassPass(backBufferRenderPass))

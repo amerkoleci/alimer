@@ -80,7 +80,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         _handle.Dispose();
     }
 
-    public RenderContext BeginCommandContext(Utf8ReadOnlyString label = default)
+    public CommandBuffer AcquireCommandBuffer(Utf8ReadOnlyString label = default)
     {
         uint index = _commandBufferCount++;
         D3D12CommandBuffer commandBuffer;

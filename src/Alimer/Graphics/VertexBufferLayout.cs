@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes vertex buffer layout <see cref="RenderPipelineDescription"/>.
+/// Structure that describes vertex buffer layout <see cref="RenderPipelineDescriptor"/>.
 /// </summary>
 public readonly record struct VertexBufferLayout
 {

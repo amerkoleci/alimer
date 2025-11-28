@@ -18,7 +18,7 @@ public sealed class CameraSystem : EntitySystem<CameraComponent>
 
     public Window MainWindow { get; }
 
-    public override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
+    public override void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
     {
         foreach (CameraComponent cameraComponent in Components)
         {

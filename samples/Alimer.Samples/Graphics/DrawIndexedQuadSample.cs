@@ -13,7 +13,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
     private GraphicsBuffer _vertexBuffer;
     private GraphicsBuffer _indexBuffer;
     private PipelineLayout _pipelineLayout;
-    private Pipeline _renderPipeline;
+    private RenderPipeline _renderPipeline;
 
     public DrawIndexedQuadSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - DrawIndexed Quad", services, mainWindow)
@@ -49,20 +49,20 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescription renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             Label = "RenderPipeline"
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
     }
 
-    public override void Draw(RenderContext context, Texture swapChainTexture)
+    public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
         RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
-        RenderPassDescription backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
-            Label = "BackBuffer"
+            Label = "BackBuffer"u8
         };
 
         using (context.PushScopedPassPass(backBufferRenderPass))

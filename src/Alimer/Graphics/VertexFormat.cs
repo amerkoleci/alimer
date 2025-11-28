@@ -41,9 +41,10 @@ public enum VertexFormat
     Int4,
 
     //Int1010102Normalized,
-    UInt1010102Normalized,
-    RG11B10Float,
-    RGB9E5Float,
+    Unorm10_10_10_2,
+    Unorm8x4BGRA,
+    //RG11B10Float,
+    //RGB9E5Float,
 
     Count
 }

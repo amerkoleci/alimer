@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_ACCESS;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_SYNC;
@@ -406,7 +407,7 @@ internal static unsafe class D3D12Utils
         D3D12_SAMPLER_DESC desc = new();
 
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
-        desc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), 16u);
+        desc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), D3D12_DEFAULT_MAX_ANISOTROPY);
         if (desc.MaxAnisotropy > 1)
         {
             desc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);

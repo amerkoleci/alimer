@@ -6,11 +6,11 @@ using CommunityToolkit.Diagnostics;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes a compute <see cref="Pipeline"/>.
+/// Structure that describes a compute <see cref="RenderPipeline"/>.
 /// </summary>
-public readonly record struct ComputePipelineDescription
+public readonly record struct ComputePipelineDescriptor
 {
-    public ComputePipelineDescription(PipelineLayout layout, ShaderStageDescription computeShader)
+    public ComputePipelineDescriptor(PipelineLayout layout, ShaderStageDescription computeShader)
     {
         Guard.IsNotNull(layout, nameof(layout));
         Guard.IsNotNull(computeShader.ByteCode, nameof(computeShader.ByteCode));
@@ -25,7 +25,7 @@ public readonly record struct ComputePipelineDescription
     public ShaderStageDescription ComputeShader { get; init; }
 
     /// <summary>
-    /// Gets or sets the label of <see cref="Pipeline"/>.
+    /// Gets or sets the label of <see cref="RenderPipeline"/>.
     /// </summary>
     public string? Label { get; init; }
 }

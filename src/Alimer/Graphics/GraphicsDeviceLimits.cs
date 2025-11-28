@@ -10,25 +10,25 @@ public struct GraphicsDeviceLimits
     public uint MaxTextureDimension3D;
     public uint MaxTextureDimensionCube;
     public uint MaxTextureArrayLayers;
-    public uint MaxTexelBufferDimension2D;
+    public uint MaxBindGroups;
+    //public uint MaxTexelBufferDimension2D;
 
-    public uint UploadBufferTextureRowAlignment;
-    public uint UploadBufferTextureSliceAlignment;
+    //public uint UploadBufferTextureRowAlignment;
+    //public uint UploadBufferTextureSliceAlignment;
     public uint MinConstantBufferOffsetAlignment;
-    public ulong MaxConstantBufferBindingSize;
+    public uint MaxConstantBufferBindingSize;
 
     public uint MinStorageBufferOffsetAlignment;
-    public ulong MaxStorageBufferBindingSize;
+    public uint MaxStorageBufferBindingSize;
 
     public ulong MaxBufferSize;
     public uint MaxPushConstantsSize;
+    public uint MaxColorAttachments;
+    public uint MaxViewports;
 
     public uint MaxVertexBuffers;
     public uint MaxVertexAttributes;
     public uint MaxVertexBufferArrayStride;
-
-    public uint MaxViewports;
-    public uint MaxColorAttachments;
 
     public uint MaxComputeWorkgroupStorageSize;
     public uint MaxComputeInvocationsPerWorkGroup;
@@ -36,8 +36,6 @@ public struct GraphicsDeviceLimits
     public uint MaxComputeWorkGroupSizeY;
     public uint MaxComputeWorkGroupSizeZ;
     public uint MaxComputeWorkGroupsPerDimension;
-
-    public ushort SamplerMaxAnisotropy;
 
     // VariableRateShading
     public uint VariableRateShadingTileSize;

@@ -30,7 +30,7 @@ public abstract class SampleBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public virtual void Draw(RenderContext context, Texture outputTexture)
+    public virtual void Draw(CommandBuffer context, Texture outputTexture)
     {
 
     }

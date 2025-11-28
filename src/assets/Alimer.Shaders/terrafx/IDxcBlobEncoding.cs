@@ -9,9 +9,10 @@ using System.Runtime.InteropServices;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.IID;
 
+#pragma warning disable CS0649
+
 namespace TerraFX.Interop.DirectX;
 
-/// <include file='IDxcBlobEncoding.xml' path='doc/member[@name="IDxcBlobEncoding"]/*' />
 [Guid("7241D424-2646-4191-97C0-98E96E42FC68")]
 [NativeTypeName("struct IDxcBlobEncoding : IDxcBlob")]
 [NativeInheritance("IDxcBlob")]

@@ -49,8 +49,11 @@ public sealed class SampleBrowserGame : Game
         base.Dispose(disposing);
     }
 
-    protected override void Draw(RenderContext renderContext, Texture outputTexture, GameTime time)
+    protected override void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
     {
+        var testAmer = renderContext.BeginComputePass();
+        testAmer.EndEncoding();
+
         _runningSample.Draw(renderContext, outputTexture);
 
         base.Draw(renderContext, outputTexture, time);
@@ -62,8 +65,8 @@ public sealed class SampleBrowserGame : Game
 
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
-        preferredGraphicsBackend = GraphicsBackendType.Metal;
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        //preferredGraphicsBackend = GraphicsBackendType.Metal;
 #endif
 
         using SampleBrowserGame game = new(preferredGraphicsBackend);

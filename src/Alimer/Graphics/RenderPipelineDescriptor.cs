@@ -6,20 +6,20 @@ using CommunityToolkit.Diagnostics;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="Pipeline"/>.
+/// Structure that describes the <see cref="RenderPipeline"/>.
 /// </summary>
-public readonly record struct RenderPipelineDescription
+public readonly record struct RenderPipelineDescriptor
 {
-    public RenderPipelineDescription(
+    public RenderPipelineDescriptor(
         PipelineLayout layout, 
         ShaderStageDescription[] shaderStages, 
         PixelFormat[] colorFormats, 
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
-        : this(layout, shaderStages, Array.Empty<VertexBufferLayout>(), colorFormats, depthStencilFormat)
+        : this(layout, shaderStages, [], colorFormats, depthStencilFormat)
     {
     }
 
-    public RenderPipelineDescription(
+    public RenderPipelineDescriptor(
         PipelineLayout layout, 
         ShaderStageDescription[] shaderStages, 
         VertexBufferLayout[] vertexBufferLayouts, 
@@ -65,7 +65,7 @@ public readonly record struct RenderPipelineDescription
     public TextureSampleCount SampleCount { get; init; } = 0;
 
     /// <summary>
-    /// Gets or sets the label of <see cref="Pipeline"/>.
+    /// Gets or sets the label of <see cref="RenderPipeline"/>.
     /// </summary>
     public string? Label { get; init; }
 }

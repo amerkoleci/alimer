@@ -3,15 +3,12 @@
 
 namespace Alimer.Graphics;
 
-public abstract class Pipeline : GraphicsObject
+public abstract class RenderPipeline : GraphicsObject
 {
-    protected Pipeline(PipelineType pipelineType, string? label)
+    protected RenderPipeline(string? label)
         : base(label)
     {
-        PipelineType = pipelineType;
     }
-
-    public PipelineType PipelineType { get; }
 
     /// <summary>
     /// Get the <see cref="PipelineLayout"/>.

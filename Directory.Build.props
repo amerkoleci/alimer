@@ -63,6 +63,7 @@
 
   <PropertyGroup>
     <IncludeWindowsTargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows')) or '$(Packing)' == 'true'">true</IncludeWindowsTargetFrameworks>
+    <IncludeWindowsTargetFrameworks>false</IncludeWindowsTargetFrameworks>
     <IncludeAndroidTargetFrameworks>false</IncludeAndroidTargetFrameworks>
   </PropertyGroup>
 
