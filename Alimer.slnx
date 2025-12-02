@@ -34,5 +34,4 @@
   <Project Path="src/Alimer.SourceGenerators/Alimer.SourceGenerators.csproj" />
   <Project Path="src/Alimer.UI/Alimer.UI.csproj" />
   <Project Path="src/Alimer/Alimer.csproj" />
-  <Project Path="src/TerraFX.Interop.Windows.Shared/TerraFX.Interop.Windows.Shared.shproj" Id="bc61a7b9-4e0b-4f71-b1de-c5e053e7dfbe" />
 </Solution>

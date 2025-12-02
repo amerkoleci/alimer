@@ -46,16 +46,17 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     private readonly D3D12CommandQueue _queue;
     private readonly ComPtr<ID3D12CommandAllocator>[] _commandAllocators;
     private readonly ComPtr<ID3D12GraphicsCommandList6> _commandList;
+
+    private readonly D3D12RenderPassEncoder _renderPassEncoder;
+    private readonly D3D12ComputePassEncoder _computePassEncoder;
+
     private readonly D3D12_RESOURCE_BARRIER[] _resourceBarriers = new D3D12_RESOURCE_BARRIER[MaxBarriers];
     private uint _numBarriersToFlush;
 
-    private readonly D3D12_VERTEX_BUFFER_VIEW[] _vboViews = new D3D12_VERTEX_BUFFER_VIEW[MaxVertexBufferBindings];
-
-    private D3D12RenderPipeline? _currentPipeline;
     private D3D12PipelineLayout? _currentPipelineLayout;
 
     private bool _bindGroupsDirty;
-    private uint _numBoundBindGroups;
+    private int _numBoundBindGroups;
     private readonly D3D12BindGroup[] _boundBindGroups = new D3D12BindGroup[MaxBindGroups];
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
@@ -75,11 +76,15 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
            queue.D3DDevice.Device->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
             __uuidof<ID3D12GraphicsCommandList6>(), (void**)_commandList.GetAddressOf()
         ));
+
+        _renderPassEncoder = new D3D12RenderPassEncoder(this);
+        _computePassEncoder = new D3D12ComputePassEncoder(this);
     }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _queue.Device;
 
+    public D3D12GraphicsDevice D3DDevice => _queue.D3DDevice;
     public ID3D12GraphicsCommandList6* CommandList => _commandList;
 
     public void Destroy()
@@ -105,7 +110,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
     {
         base.Reset(frameIndex);
-        _currentPipeline = default;
         _currentPipelineLayout = default;
         _bindGroupsDirty = false;
         _numBoundBindGroups = 0;
@@ -133,10 +137,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
         if (_queue.QueueType == CommandQueueType.Graphics)
         {
-            for (int i = 0; i < MaxVertexBufferBindings; ++i)
-            {
-                _vboViews[i] = default;
-            }
 
             RECT* scissorRects = stackalloc RECT[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
             for (int i = 0; i < D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX; ++i)
@@ -148,6 +148,11 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             }
             _commandList.Get()->RSSetScissorRects(D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX, scissorRects);
         }
+    }
+
+    public void EndEncoding()
+    {
+        _encoderActive = false;
     }
 
     public void TextureBarrier(D3D12Texture resource, TextureLayout newLayout, uint subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false)
@@ -236,14 +241,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
     }
 
-    public void PushDebugGroup(string groupLabel)
-    {
-        int bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
-        byte* buffer = stackalloc byte[bufferSize];
-        PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_BeginEvent_NoArgs, 0, groupLabel);
-        _commandList.Get()->BeginEvent(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
-    }
-
     public override void PushDebugGroup(Utf8ReadOnlyString groupLabel)
     {
         // TODO: Use Pix3 (WinPixEventRuntime)
@@ -261,37 +258,21 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public override void InsertDebugMarker(Utf8ReadOnlyString debugLabel)
     {
-        var bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
-        var buffer = stackalloc byte[bufferSize];
+        int bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
+        byte* buffer = stackalloc byte[bufferSize];
         PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_SetMarker_NoArgs, 0, debugLabel);
         _commandList.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
-
-    #region ComputeContext Methods
-    protected override void SetPipelineCore(RenderPipeline pipeline)
+    public void SetPipelineLayout(D3D12PipelineLayout newPipelineLayout)
     {
-        if (_currentPipeline == pipeline)
+        if (_currentPipelineLayout == newPipelineLayout)
             return;
 
-        D3D12RenderPipeline newPipeline = (D3D12RenderPipeline)pipeline;
-
-        _commandList.Get()->SetPipelineState(newPipeline.Handle);
-
-        //if (newPipeline.PipelineType == PipelineType.Render)
-        {
-            _commandList.Get()->SetGraphicsRootSignature(newPipeline.RootSignature);
-            _commandList.Get()->IASetPrimitiveTopology(newPipeline.D3DPrimitiveTopology);
-        }
-        //else
-        //{
-        //    _commandList.Get()->SetComputeRootSignature(newPipeline.RootSignature);
-        //}
-
-        _currentPipeline = newPipeline;
-        _currentPipelineLayout = (D3D12PipelineLayout)newPipeline.Layout;
+        _currentPipelineLayout = newPipelineLayout;
+        //_currentPipelineLayout.AddRef();
     }
 
-    protected override void SetBindGroupCore(uint groupIndex, BindGroup bindGroup)
+    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
     {
         if (_boundBindGroups[groupIndex] != bindGroup)
         {
@@ -301,422 +282,21 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
     }
 
-    protected override unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, uint size)
+    protected override ComputePassEncoder BeginComputePassCore(in ComputePassDescriptor descriptor)
     {
-        Debug.Assert(_currentPipeline != null);
-        Debug.Assert(_currentPipelineLayout != null);
-
-        uint rootParameterIndex = _currentPipelineLayout.PushConstantsBaseIndex + pushConstantIndex;
-        uint num32BitValuesToSet = size / 4;
-
-        //if (_currentPipeline.PipelineType == PipelineType.Render)
-        {
-            _commandList.Get()->SetGraphicsRoot32BitConstants(
-                rootParameterIndex,
-                num32BitValuesToSet,
-                data,
-                0
-            );
-        }
-        //else
-        //{
-        //    _commandList.Get()->SetComputeRoot32BitConstants(
-        //        rootParameterIndex,
-        //        num32BitValuesToSet,
-        //        data,
-        //        0
-        //    );
-        //}
+        _computePassEncoder.Begin(in descriptor);
+        return _computePassEncoder;
     }
 
-    private void PrepareDispatch()
-    {
-        FlushBindGroups(graphics: false);
-    }
-
-    //protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
-    //{
-    //    PrepareDispatch();
-    //
-    //    _commandList.Get()->Dispatch(groupCountX, groupCountY, groupCountZ);
-    //}
-    //
-    //protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    //{
-    //    PrepareDispatch();
-    //
-    //    D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-    //    _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
-    //}
-    #endregion ComputeContext Methods
-
-    #region RenderContext Methods
     protected override RenderPassEncoder BeginRenderPassCore(in RenderPassDescriptor descriptor)
     {
-        if (!descriptor.Label.IsEmpty)
-        {
-            PushDebugGroup(descriptor.Label);
-            _hasLabel = true;
-        }
-
-        SizeI renderArea = new(int.MaxValue, int.MaxValue);
-        uint numRTVS = 0;
-        D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
-        D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
-
-        bool hasDepthOrStencil = descriptor.DepthStencilAttachment.Texture != null;
-        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.Texture != null ? descriptor.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
-
-        for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
-        {
-            ref readonly RenderPassColorAttachment attachment = ref descriptor.ColorAttachments[slot];
-            Guard.IsTrue(attachment.Texture is not null);
-
-            D3D12Texture texture = (D3D12Texture)attachment.Texture;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
-
-            renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
-            renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
-
-            RTVs[slot].cpuDescriptor = texture.GetRTV(mipLevel, slice, texture.DxgiFormat);
-            RTVs[slot].BeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
-
-            switch (attachment.LoadAction)
-            {
-                default:
-                case LoadAction.Load:
-                    RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-                    break;
-
-                case LoadAction.Clear:
-                    RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[0] = attachment.ClearColor.Red;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[1] = attachment.ClearColor.Green;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[2] = attachment.ClearColor.Blue;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[3] = attachment.ClearColor.Alpha;
-                    break;
-                case LoadAction.Discard:
-                    RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-                    break;
-            }
-
-            switch (attachment.StoreAction)
-            {
-                default:
-                case StoreAction.Store:
-                    RTVs[slot].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                    break;
-                case StoreAction.Discard:
-                    RTVs[slot].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                    break;
-            }
-
-            // Barrier -> D3D12_RESOURCE_STATE_RENDER_TARGET
-            TextureBarrier(texture, TextureLayout.RenderTarget);
-
-            ++numRTVS;
-        }
-
-        if (hasDepthOrStencil)
-        {
-            RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment;
-
-            D3D12Texture texture = (D3D12Texture)attachment.Texture!;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
-
-            renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
-            renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
-
-            DSV.cpuDescriptor = texture.GetDSV(mipLevel, slice/*, attachment.depthReadOnly, attachment.stencilReadOnly*/);
-            DSV.DepthBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
-            DSV.StencilBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
-
-            switch (attachment.DepthLoadAction)
-            {
-                default:
-                case LoadAction.Load:
-                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-                    break;
-
-                case LoadAction.Clear:
-                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.DepthClearValue;
-                    break;
-                case LoadAction.Discard:
-                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-                    break;
-            }
-
-            switch (attachment.DepthStoreAction)
-            {
-                default:
-                case StoreAction.Store:
-                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                    break;
-                case StoreAction.Discard:
-                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                    break;
-            }
-
-            if (!texture.Format.IsDepthOnlyFormat())
-            {
-                switch (attachment.StencilLoadAction)
-                {
-                    default:
-                    case LoadAction.Load:
-                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-                        break;
-
-                    case LoadAction.Clear:
-                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                        DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = attachment.StencilClearValue;
-                        break;
-                    case LoadAction.Discard:
-                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-                        break;
-                }
-
-                switch (attachment.StencilStoreAction)
-                {
-                    default:
-                    case StoreAction.Store:
-                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                        break;
-                    case StoreAction.Discard:
-                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                        break;
-                }
-            }
-            else
-            {
-                DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
-                DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
-            }
-
-            TextureBarrier(texture,
-                (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite);
-        }
-        CommitBarriers();
-
-        _commandList.Get()->BeginRenderPass(numRTVS, RTVs,
-             hasDepthOrStencil ? &DSV : null,
-             renderPassFlags
-         );
-
-        // The viewport and scissor default to cover all of the attachments
-        D3D12_VIEWPORT viewport = new(0.0f, 0.0f, (float)renderArea.Width, (float)renderArea.Height);
-        RECT scissorRect = new(0, 0, renderArea.Width, renderArea.Height);
-        _commandList.Get()->RSSetViewports(1, &viewport);
-        _commandList.Get()->RSSetScissorRects(1, &scissorRect);
+        _renderPassEncoder.Begin(in descriptor);
+        return _renderPassEncoder;
     }
 
-#if TODO
-    protected override void EndRenderPassCore()
-    {
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-            _hasLabel = false;
-        }
-
-        _commandList.Get()->EndRenderPass();
-    } 
-#endif
-
-    protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
-    {
-        D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
-
-        _vboViews[slot].BufferLocation = d3d12Buffer.GpuAddress + offset;
-        _vboViews[slot].SizeInBytes = (uint)(d3d12Buffer.Size - offset);
-        _vboViews[slot].StrideInBytes = 0;
-    }
-
-    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
-    {
-        D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
-
-        D3D12_INDEX_BUFFER_VIEW view;
-        view.BufferLocation = d3d12Buffer.GpuAddress + offset;
-        view.SizeInBytes = (uint)(d3d12Buffer.Size - offset);
-        view.Format = indexType.ToDxgiFormat();
-        _commandList.Get()->IASetIndexBuffer(&view);
-    }
-
-    public override void SetViewport(in Viewport viewport)
-    {
-        D3D12_VIEWPORT d3d12Viewport = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
-        _commandList.Get()->RSSetViewports(1, &d3d12Viewport);
-    }
-
-    public override void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0)
-    {
-        if (count == 0)
-        {
-            count = viewports.Length;
-        }
-        D3D12_VIEWPORT* d3d12Viewports = stackalloc D3D12_VIEWPORT[count];
-
-        for (int i = 0; i < count; i++)
-        {
-            ref readonly Viewport viewport = ref viewports[(int)i];
-
-            d3d12Viewports[i] = new D3D12_VIEWPORT(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
-        }
-        _commandList.Get()->RSSetViewports((uint)count, d3d12Viewports);
-    }
-
-    public override void SetScissorRect(in System.Drawing.Rectangle rect)
-    {
-        RECT scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
-        _commandList.Get()->RSSetScissorRects(1, &scissorRect);
-    }
-
-    public override void SetStencilReference(uint reference)
-    {
-        _commandList.Get()->OMSetStencilRef(reference);
-    }
-
-    public override void SetBlendColor(in Color color)
-    {
-        fixed (Color* colorPtr = &color)
-            _commandList.Get()->OMSetBlendFactor((float*)colorPtr);
-    }
-
-    public override void SetShadingRate(ShadingRate rate)
-    {
-        if (_queue.Device.Adapter.QueryFeatureSupport(Feature.VariableRateShading)
-            && _currentShadingRate != rate)
-        {
-            _currentShadingRate = rate;
-
-            D3D12_SHADING_RATE d3dRate = D3D12_SHADING_RATE_1X1;
-            _queue.Device.WriteShadingRateValue(rate, &d3dRate);
-
-            var combiners = stackalloc D3D12_SHADING_RATE_COMBINER[2]
-            {
-                D3D12_SHADING_RATE_COMBINER_MAX,
-                D3D12_SHADING_RATE_COMBINER_MAX,
-            };
-            _commandList.Get()->RSSetShadingRate(d3dRate, combiners);
-        }
-    }
-
-    public override void SetDepthBounds(float minBounds, float maxBounds)
-    {
-        if (_queue.Device.Adapter.QueryFeatureSupport(Feature.DepthBoundsTest))
-        {
-            _commandList.Get()->OMSetDepthBounds(minBounds, maxBounds);
-        }
-    }
-
-    protected override void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
-    {
-        PrepareDraw();
-
-        _commandList.Get()->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
-    }
-
-    protected override void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance)
-    {
-        PrepareDraw();
-
-        _commandList.Get()->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
-    }
-
-    protected override void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDraw();
-
-        D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
-    }
-
-    protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
-    {
-        PrepareDraw();
-
-        D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
-        D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
-
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndirectCommandSignature, maxCount,
-            backendIndirectBuffer.Handle, indirectBufferOffset,
-            backendCountBuffer.Handle, countBufferOffset);
-    }
-
-    protected override void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDraw();
-
-        D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndexedIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
-    }
-
-    protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
-    {
-        PrepareDraw();
-
-        D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
-        D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
-
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DrawIndexedIndirectCommandSignature, maxCount,
-            backendIndirectBuffer.Handle, indirectBufferOffset,
-            backendCountBuffer.Handle, countBufferOffset);
-    }
-
-    protected override void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ)
-    {
-        PrepareDraw();
-
-        _commandList.Get()->DispatchMesh(groupCountX, groupCountY, groupCountZ);
-    }
-
-    protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
-    {
-        PrepareDraw();
-
-        D3D12Buffer backendBuffer = (D3D12Buffer)indirectBuffer;
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchMeshIndirectCommandSignature, 1, backendBuffer.Handle, indirectBufferOffset, null, 0);
-    }
-
-    protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
-    {
-        PrepareDraw();
-
-        D3D12Buffer backendIndirectBuffer = (D3D12Buffer)indirectBuffer;
-        D3D12Buffer backendCountBuffer = (D3D12Buffer)countBuffer;
-
-        _commandList.Get()->ExecuteIndirect(_queue.D3DDevice.DispatchMeshIndirectCommandSignature,
-            maxCount,
-            backendIndirectBuffer.Handle, indirectBufferOffset,
-            backendCountBuffer.Handle, countBufferOffset);
-    }
-
-    private void PrepareDraw()
-    {
-        if (_currentPipeline!.NumVertexBindings > 0)
-        {
-            for (uint i = 0; i < _currentPipeline.NumVertexBindings; ++i)
-            {
-                _vboViews[i].StrideInBytes = _currentPipeline.GetStride(i);
-            }
-
-            fixed (D3D12_VERTEX_BUFFER_VIEW* pViews = _vboViews)
-            {
-                _commandList.Get()->IASetVertexBuffers(0, _currentPipeline.NumVertexBindings, pViews);
-            }
-        }
-
-        FlushBindGroups(graphics: true);
-    }
-
-    private void FlushBindGroups(bool graphics)
+    public void FlushBindGroups(bool graphics)
     {
         Debug.Assert(_currentPipelineLayout != null);
-        Debug.Assert(_currentPipeline != null);
 
         if (!_bindGroupsDirty)
             return;
@@ -767,6 +347,5 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _queue.QueuePresent(d3dSwapChain);
     }
 
-    protected override ComputePassEncoder BeginComputePassCore(in ComputePassDescriptor descriptor) => throw new NotImplementedException();
-    #endregion RenderContext Methods
+    
 }

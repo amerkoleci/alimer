@@ -20,21 +20,19 @@ namespace Alimer.Graphics.D3D12;
 internal unsafe class D3D12ComputePipeline : ComputePipeline
 {
     private readonly D3D12GraphicsDevice _device;
-    private readonly D3D12PipelineLayout _layout;
     private readonly ComPtr<ID3D12PipelineState> _handle;
 
-    
     public D3D12ComputePipeline(D3D12GraphicsDevice device, in ComputePipelineDescriptor descriptor)
         : base(descriptor.Label)
     {
         _device = device;
-        _layout = (D3D12PipelineLayout)descriptor.Layout;
+        D3DLayout = (D3D12PipelineLayout)descriptor.Layout;
 
         fixed (byte* pByteCode = descriptor.ComputeShader.ByteCode)
         {
             ComputePipelineStateStream stream = new()
             {
-                pRootSignature = _layout.Handle,
+                pRootSignature = D3DLayout.Handle,
                 CS = new(pByteCode, (nuint)descriptor.ComputeShader.ByteCode.Length),
                 NodeMask = 0
             };
@@ -58,10 +56,11 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
-    public override PipelineLayout Layout => _layout;
+    public override PipelineLayout Layout => D3DLayout;
 
     public ID3D12PipelineState* Handle => _handle;
-    public ID3D12RootSignature* RootSignature => _layout.Handle;
+    public D3D12PipelineLayout D3DLayout { get; }
+    public ID3D12RootSignature* RootSignature => D3DLayout.Handle;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12ComputePipeline" /> class.

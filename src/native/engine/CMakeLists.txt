@@ -102,11 +102,6 @@ endif()
 
 if(EMSCRIPTEN)
 elseif (WIN32)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_d3d12ma_exports.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE d3d12ma)
 elseif(APPLE)
 elseif(UNIX OR ANDROID)
 endif()

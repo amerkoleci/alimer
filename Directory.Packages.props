@@ -21,6 +21,7 @@
 
     <!-- Graphics -->
     <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.5" />
+    <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
     <PackageVersion Include="Vortice.Vulkan" Version="3.0.3" />
 
     <!-- Others -->

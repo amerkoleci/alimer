@@ -20,7 +20,6 @@ namespace Alimer.Graphics.D3D12;
 internal unsafe class D3D12RenderPipeline : RenderPipeline
 {
     private readonly D3D12GraphicsDevice _device;
-    private readonly D3D12PipelineLayout _layout;
     private readonly ComPtr<ID3D12PipelineState> _handle;
     private readonly uint _numVertexBindings = 0;
     private readonly uint[] _strides = new uint[MaxVertexBufferBindings];
@@ -29,10 +28,10 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         : base( descriptor.Label)
     {
         _device = device;
-        _layout = (D3D12PipelineLayout)descriptor.Layout;
+        D3DLayout = (D3D12PipelineLayout)descriptor.Layout;
 
         GraphicsPipelineStateStream stream = new();
-        stream.stream1.pRootSignature = _layout.Handle;
+        stream.stream1.pRootSignature = D3DLayout.Handle;
 
         // ShaderStages
         int shaderStageCount = descriptor.ShaderStages.Length;
@@ -198,10 +197,11 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
-    public override PipelineLayout Layout => _layout;
+    public override PipelineLayout Layout => D3DLayout;
 
     public ID3D12PipelineState* Handle => _handle;
-    public ID3D12RootSignature* RootSignature => _layout.Handle;
+    public D3D12PipelineLayout D3DLayout { get; }
+    public ID3D12RootSignature* RootSignature => D3DLayout.Handle;
 
     public D3D_PRIMITIVE_TOPOLOGY D3DPrimitiveTopology { get; }
     public uint NumVertexBindings => _numVertexBindings;

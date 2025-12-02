@@ -324,12 +324,9 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
 #endif
     }
 
-    public override void SetDepthBounds(float minBounds, float maxBounds)
+    protected override void SetDepthBoundsCore(float minBounds, float maxBounds)
     {
-        if (_commandBuffer.VkDevice.VkAdapter.Features2.features.depthBounds)
-        {
-            _deviceApi.vkCmdSetDepthBounds(_commandBuffer.Handle, minBounds, maxBounds);
-        }
+        _deviceApi.vkCmdSetDepthBounds(_commandBuffer.Handle, minBounds, maxBounds);
     }
 
     protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)

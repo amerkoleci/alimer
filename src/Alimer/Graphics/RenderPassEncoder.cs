@@ -195,9 +195,19 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     public abstract void SetStencilReference(uint reference);
     public abstract void SetBlendColor(in Color color);
     public abstract void SetShadingRate(ShadingRate rate);
-    public abstract void SetDepthBounds(float minBounds, float maxBounds);
+
+    public void SetDepthBounds(float minBounds, float maxBounds)
+    {
+        if (!Device.Adapter.QueryFeatureSupport(Feature.DepthBoundsTest))
+            throw new GraphicsException($"{nameof(Feature.DepthBoundsTest)} feature is not supported");
+
+        SetDepthBoundsCore(minBounds, maxBounds);
+    }
+
     protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
     protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);
+    protected abstract void SetDepthBoundsCore(float minBounds, float maxBounds);
+
     protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
     protected abstract void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance);
     protected abstract void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
