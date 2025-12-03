@@ -86,14 +86,22 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    public override void Flush(bool waitForCompletion = false)
+    public VkCommandBuffer End()
     {
+        //for (auto & surface : presentSurfaces)
+        //{
+        //    VulkanTexture* swapChainTexture = surface->backbufferTextures[surface->backBufferIndex];
+        //    TextureBarrier(swapChainTexture, TextureLayout::Present, 0, 1, 0, 1);
+        //}
+        CommitBarriers();
+
         if (_hasLabel)
         {
             PopDebugGroup();
         }
 
-        _queue.Commit(this, _commandBuffer);
+        _deviceApi.vkEndCommandBuffer(_commandBuffer).CheckResult();
+        return _commandBuffer;
     }
 
     public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)

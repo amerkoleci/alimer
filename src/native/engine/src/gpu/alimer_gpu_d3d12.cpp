@@ -1652,7 +1652,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
     viewDesc.Format = rtvFormat;
     switch (desc.dimension)
     {
-        case TextureDimension_1D:
+        case GPUTextureDimension_1D:
             if (isArray)
             {
                 viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
@@ -1666,7 +1666,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
                 viewDesc.Texture1D.MipSlice = mipLevel;
             }
             break;
-        case TextureDimension_2D:
+        case GPUTextureDimension_2D:
             if (isMultiSample)
             {
                 viewDesc.ViewDimension = isArray ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY : D3D12_RTV_DIMENSION_TEXTURE2DMS;
@@ -1693,13 +1693,13 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetRTV(DXGI_FORMAT rtvFormat, uint32_t
                 }
             }
             break;
-        case TextureDimension_3D:
+        case GPUTextureDimension_3D:
             viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
             viewDesc.Texture3D.MipSlice = mipLevel;
             viewDesc.Texture3D.FirstWSlice = 0;
             viewDesc.Texture3D.WSize = resourceDesc.DepthOrArraySize;
             break;
-        case TextureDimension_Cube:
+        case GPUTextureDimension_Cube:
             viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
             viewDesc.Texture2DArray.MipSlice = mipLevel;
             viewDesc.Texture2DArray.FirstArraySlice = 0;
@@ -1750,7 +1750,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetDSV(DXGI_FORMAT dsvFormat, uint32_t
 
     switch (desc.dimension)
     {
-        case TextureDimension_1D:
+        case GPUTextureDimension_1D:
             if (isArray)
             {
                 viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
@@ -1764,7 +1764,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetDSV(DXGI_FORMAT dsvFormat, uint32_t
                 viewDesc.Texture1D.MipSlice = mipLevel;
             }
             break;
-        case TextureDimension_2D:
+        case GPUTextureDimension_2D:
             if (isMultiSample)
             {
                 if (isArray)
@@ -1795,14 +1795,14 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetDSV(DXGI_FORMAT dsvFormat, uint32_t
             }
             break;
 
-        case TextureDimension_Cube:
+        case GPUTextureDimension_Cube:
             viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
             viewDesc.Texture2DArray.MipSlice = mipLevel;
             viewDesc.Texture2DArray.FirstArraySlice = 0;
             viewDesc.Texture2DArray.ArraySize = -1;
             break;
 
-        case TextureDimension_3D:
+        case GPUTextureDimension_3D:
             alimerLogError(LogCategory_GPU, "Invalid TextureView type");
             return {};
 
@@ -3484,11 +3484,11 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
         texture->dxgiFormat = GetTypelessFormatFromDepthFormat(desc.format);
     }
 
-    const uint32_t arraySizeMultiplier = (desc.dimension == TextureDimension_Cube) ? 6 : 1;
+    const uint32_t arraySizeMultiplier = (desc.dimension == GPUTextureDimension_Cube) ? 6 : 1;
     D3D12_RESOURCE_DESC1 resourceDesc{};
     switch (desc.dimension)
     {
-        case TextureDimension_1D:
+        case GPUTextureDimension_1D:
             resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
             resourceDesc.Width = desc.width;
             resourceDesc.Height = 1u;
@@ -3496,15 +3496,15 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
             break;
 
         default:
-        case TextureDimension_2D:
-        case TextureDimension_Cube:
+        case GPUTextureDimension_2D:
+        case GPUTextureDimension_Cube:
             resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
             resourceDesc.Width = desc.width;
             resourceDesc.Height = desc.height;
             resourceDesc.DepthOrArraySize = (UINT16)(desc.depthOrArrayLayers * arraySizeMultiplier);
             break;
 
-        case TextureDimension_3D:
+        case GPUTextureDimension_3D:
             resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
             resourceDesc.Width = desc.width;
             resourceDesc.Height = desc.height;

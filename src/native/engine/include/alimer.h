@@ -30,8 +30,6 @@
 
 /* Forward declarations */
 typedef struct Window Window;
-typedef struct Image Image;
-typedef struct Font Font;
 
 /* Enums */
 typedef enum LogCategory {
@@ -470,21 +468,6 @@ typedef enum PixelFormatKind {
     _PixelFormatKind_Force32 = 0x7FFFFFFF
 } PixelFormatKind;
 
-typedef enum TextureDimension {
-    /// Undefined - default to 2D texture.
-    TextureDimension_Undefined = 0,
-    /// One-dimensional Texture.
-    TextureDimension_1D = 1,
-    /// Two-dimensional Texture.
-    TextureDimension_2D = 2,
-    /// Three-dimensional Texture.
-    TextureDimension_3D = 3,
-    /// Cubemap Texture.
-    TextureDimension_Cube = 4,
-
-    _TextureDimension_Force32 = 0x7FFFFFFF
-} TextureDimension;
-
 typedef Flags WindowFlags;
 static const WindowFlags WindowFlags_None = 0x0000000000000000;
 static const WindowFlags WindowFlags_Fullscreen = 0x0000000000000001;
@@ -620,24 +603,6 @@ typedef struct PlatformEvent {
     };
 } PlatformEvent;
 
-typedef struct ImageLevel {
-    uint32_t      width;
-    uint32_t      height;
-    PixelFormat   format;
-    uint32_t      rowPitch;
-    uint32_t      slicePitch;
-    uint8_t* pixels;
-} ImageLevel;
-
-typedef struct ImageDesc {
-    TextureDimension    dimension;
-    PixelFormat         format;
-    uint32_t            width;
-    uint32_t            height;
-    uint32_t            depthOrArrayLayers;
-    uint32_t            mipLevelCount;
-} ImageDesc;
-
 /* Platform */
 ALIMER_API void alimerGetVersion(uint32_t* major, uint32_t* minor, uint32_t* patch);
 
@@ -744,38 +709,6 @@ ALIMER_API uint32_t alimerPixelFormatToDxgiFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromDxgiFormat(uint32_t dxgiFormat);
 ALIMER_API uint32_t alimerPixelFormatToVkFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromVkFormat(uint32_t vkFormat);
-
-/* Image */
-ALIMER_API Image* alimerImageCreate1D(PixelFormat format, uint32_t width, uint32_t arrayLayers, uint32_t mipLevelCount);
-ALIMER_API Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
-ALIMER_API Image* alimerImageCreate3D(PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevelCount);
-ALIMER_API Image* alimerImageCreateCube(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
-ALIMER_API Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize);
-ALIMER_API void alimerImageDestroy(Image* image);
-
-ALIMER_API void alimerImageGetDesc(Image* image, ImageDesc* pDesc);
-ALIMER_API TextureDimension alimerImageGetDimension(Image* image);
-ALIMER_API PixelFormat alimerImageGetFormat(Image* image);
-ALIMER_API uint32_t alimerImageGetWidth(Image* image, uint32_t level);
-ALIMER_API uint32_t alimerImageGetHeight(Image* image, uint32_t level);
-ALIMER_API uint32_t alimerImageGetDepth(Image* image, uint32_t level);
-ALIMER_API uint32_t alimerImageGetArrayLayers(Image* image);
-ALIMER_API uint32_t alimerImageGetMipLevelCount(Image* image);
-ALIMER_API uint8_t* alimerImageGetPixels(Image* image, size_t* pixelsSize);
-ALIMER_API ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayOrDepthSlice /* = 0*/);
-
-/// Save in JPG format to file with specified quality. Return true if successful.
-ALIMER_API Blob* alimerImageEncodeJPG(Image* image, int quality);
-
-/* Font */
-ALIMER_API Font* alimerFontCreateFromMemory(const uint8_t* data, size_t size);
-ALIMER_API void alimerFontDestroy(Font* font);
-ALIMER_API void alimerFontGetMetrics(Font* font, int* ascent, int* descent, int* linegap);
-ALIMER_API int alimerFontGetGlyphIndex(Font* font, int codepoint);
-ALIMER_API float alimerFontGetScale(Font* font, float size);
-ALIMER_API float alimerFontGetKerning(Font* font, int glyph1, int glyph2, float scale);
-ALIMER_API void alimerFontGetCharacter(Font* font, int glyph, float scale, int* width, int* height, float* advance, float* offsetX, float* offsetY, int* visible);
-ALIMER_API void alimerFontGetPixels(Font* font, uint8_t* dest, int glyph, int width, int height, float scale);
 
 #if defined(__clang__)
 #   pragma clang diagnostic pop

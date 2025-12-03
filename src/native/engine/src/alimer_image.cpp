@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "alimer_internal.h"
+#include "alimer_image.h"
 #include <stdio.h>
 
 ALIMER_DISABLE_WARNINGS()
@@ -34,6 +35,10 @@ ALIMER_DISABLE_WARNINGS()
 #include <vk_format.h>
 #include <ktx.h>
 #endif
+
+#ifndef KTX2_IDENTIFIER_REF
+#define KTX2_IDENTIFIER_REF  { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A }
+#endif 
 
 ALIMER_ENABLE_WARNINGS()
 
@@ -135,11 +140,11 @@ namespace
         image->pixelsSize = 0;
         image->levelsCount = 0;
 
-        switch (image->desc.dimension)
+        switch (image->desc.type)
         {
-            case TextureDimension_1D:
-            case TextureDimension_2D:
-            case TextureDimension_Cube:
+            case ImageType1D:
+            case ImageType2D:
+            case ImageTypeCube:
                 for (uint32_t item = 0; item < image->desc.depthOrArrayLayers; ++item)
                 {
                     uint32_t mipWidth = image->desc.width;
@@ -162,7 +167,7 @@ namespace
                 }
                 break;
 
-            case TextureDimension_3D:
+            case ImageType3D:
             {
                 uint32_t mipWidth = image->desc.width;
                 uint32_t mipHeight = image->desc.height;
@@ -214,11 +219,11 @@ namespace
         //size_t offset = 0;
 
         const ImageDesc& desc = image->desc;
-        switch (desc.dimension)
+        switch (desc.type)
         {
-            case TextureDimension_1D:
-            case TextureDimension_2D:
-            case TextureDimension_Cube:
+            case ImageType1D:
+            case ImageType2D:
+            case ImageTypeCube:
                 if (desc.depthOrArrayLayers == 0 || desc.mipLevelCount == 0)
                 {
                     return false;
@@ -263,7 +268,7 @@ namespace
                 }
                 return true;
 
-            case TextureDimension_3D:
+            case ImageType3D:
             {
                 if (desc.mipLevelCount == 0 || desc.depthOrArrayLayers == 0)
                 {
@@ -347,15 +352,99 @@ namespace
 
         return true;
     }
+
+    static bool IsBMP(const uint8_t* data, size_t size)
+    {
+        struct BMPFileHeader // little-endian
+        {
+            uint8_t b; // = 'B'
+            uint8_t m; // = 'M'
+            uint32_t size;
+            uint16_t reserved1;
+            uint16_t reserved2;
+            uint32_t offBits;
+        };
+
+        if (size >= sizeof(BMPFileHeader))
+        {
+            if (data[0] == 'B' && data[1] == 'M')
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsPNG(const uint8_t* data, size_t size)
+    {
+        if (size < 8)
+            return false;
+
+        constexpr uint8_t png_signature[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+        bool png = true;
+        for (int i = 0; i < 8; ++i)
+        {
+            if (png_signature[i] != data[i])
+            {
+                png = false;
+                break;
+            }
+        }
+
+        return png;
+    }
+
+    static bool IsJPEG(const uint8_t* data, size_t size)
+    {
+        if (size > 3)
+        {
+            if (data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static bool IsDDS(const uint8_t* data, size_t size)
+    {
+        if (size < 4)
+            return false;
+
+        return data[0] == 'D' && data[1] == 'D' && data[2] == 'S';
+    }
+
+    static bool IsKTX1(const uint8_t* data, size_t size)
+    {
+        if (size <= 12)
+            return false;
+
+
+        static const uint8_t ktx_ident_ref[12] = KTX_IDENTIFIER_REF;
+        return memcmp(ktx_ident_ref, data, 12) == 0;
+    }
+
+    static bool IsKTX2(const uint8_t* data, size_t size)
+    {
+        if (size <= 12)
+            return false;
+
+
+        static const uint8_t ktx_ident_ref[12] = KTX2_IDENTIFIER_REF;
+        return memcmp(ktx_ident_ref, data, 12) == 0;
+    }
+
+    static Image* DDS_LoadFromMemory(const uint8_t* pData, size_t dataSize)
+    {
+        ALIMER_UNUSED(pData);
+        ALIMER_UNUSED(dataSize);
+
+        return nullptr;
+    }
 }
 
-static Image* DDS_LoadFromMemory(const uint8_t* pData, size_t dataSize)
-{
-    ALIMER_UNUSED(pData);
-    ALIMER_UNUSED(dataSize);
-
-    return nullptr;
-}
 
 static Image* ASTC_LoadFromMemory(const uint8_t* pData, size_t dataSize)
 {
@@ -573,7 +662,7 @@ Image* alimerImageCreate1D(PixelFormat format, uint32_t width, uint32_t arrayLay
     if (!image)
         return image;
 
-    image->desc.dimension = TextureDimension_1D;
+    image->desc.type = ImageType1D;
     return image;
 }
 
@@ -590,7 +679,7 @@ Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32_t height, 
     Image* image = ALIMER_ALLOC(Image);
     ALIMER_ASSERT(image);
 
-    image->desc.dimension = TextureDimension_2D;
+    image->desc.type = ImageType2D;
     image->desc.format = format;
     image->desc.width = width;
     image->desc.height = height;
@@ -621,7 +710,7 @@ Image* alimerImageCreate3D(PixelFormat format, uint32_t width, uint32_t height, 
     Image* image = ALIMER_ALLOC(Image);
     ALIMER_ASSERT(image);
 
-    image->desc.dimension = TextureDimension_3D;
+    image->desc.type = ImageType3D;
     image->desc.format = format;
     image->desc.width = width;
     image->desc.height = height;
@@ -649,8 +738,52 @@ Image* alimerImageCreateCube(PixelFormat format, uint32_t width, uint32_t height
         return nullptr;
     }
 
-    image->desc.dimension = TextureDimension_Cube;
+    image->desc.type = ImageTypeCube;
     return image;
+}
+
+ImageFileType alimerImageDetectFileType(const void* pData, size_t dataSize)
+{
+    if (!pData || dataSize == 0)
+    {
+        return ImageFileType_Unknown;
+    }
+
+    const uint8_t* data = (const uint8_t*)pData;
+    if (IsDDS(data, dataSize))
+    {
+        return ImageFileType_DDS;
+    }
+    else  if (IsEXRFromMemory(data, dataSize) == TINYEXR_SUCCESS)
+    {
+        return ImageFileType_EXR;
+    }
+    else if (IsKTX1(data, dataSize))
+    {
+        return ImageFileType_KTX1;
+    }
+    else if (IsKTX2(data, dataSize))
+    {
+        return ImageFileType_KTX2;
+    }
+    else if (IsBMP(data, dataSize))
+    {
+        return ImageFileType_BMP;
+    }
+    else if (IsPNG(data, dataSize))
+    {
+        return ImageFileType_PNG;
+    }
+    else if (IsJPEG(data, dataSize))
+    {
+        return ImageFileType_JPEG;
+    }
+    else if (stbi_is_hdr_from_memory(data, (int)dataSize))
+    {
+        return ImageFileType_EXR;
+    }
+
+    return ImageFileType_Unknown;
 }
 
 Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize)
@@ -704,9 +837,9 @@ void alimerImageGetDesc(Image* image, ImageDesc* pDesc)
     *pDesc = image->desc;
 }
 
-TextureDimension alimerImageGetDimension(Image* image)
+ImageType alimerImageGetType(Image* image)
 {
-    return image->desc.dimension;
+    return image->desc.type;
 }
 
 PixelFormat alimerImageGetFormat(Image* image)
@@ -726,7 +859,7 @@ uint32_t alimerImageGetHeight(Image* image, uint32_t level)
 
 uint32_t alimerImageGetDepth(Image* image, uint32_t level)
 {
-    if (image->desc.dimension != TextureDimension_3D) {
+    if (image->desc.type != ImageType3D) {
         return 1u;
     }
 
@@ -735,7 +868,7 @@ uint32_t alimerImageGetDepth(Image* image, uint32_t level)
 
 uint32_t alimerImageGetArrayLayers(Image* image)
 {
-    if (image->desc.dimension == TextureDimension_3D) {
+    if (image->desc.type == ImageType3D) {
         return 1u;
     }
 
@@ -764,11 +897,11 @@ ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayO
 
     uint32_t index = 0;
 
-    switch (image->desc.dimension)
+    switch (image->desc.type)
     {
-        case TextureDimension_1D:
-        case TextureDimension_2D:
-        case TextureDimension_Cube:
+        case ImageType1D:
+        case ImageType2D:
+        case ImageTypeCube:
         {
             if (arrayOrDepthSlice >= image->desc.depthOrArrayLayers)
                 return nullptr;
@@ -777,7 +910,7 @@ ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayO
             break;
         }
 
-        case TextureDimension_3D:
+        case ImageType3D:
         {
             uint32_t mipDepth = image->desc.depthOrArrayLayers;
 

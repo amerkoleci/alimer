@@ -28,7 +28,7 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
 
     public Type? MainComponentType { get; }
 
-    public IList<Type> RequiredComponentTypes { get; } = new List<Type>();
+    public IList<Type> RequiredComponentTypes { get; } = [];
 
     public EntityManager? EntityManager { get; internal set; }
 
@@ -45,7 +45,7 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
     {
     }
 
-    public virtual void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
+    public virtual void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
     {
     }
 

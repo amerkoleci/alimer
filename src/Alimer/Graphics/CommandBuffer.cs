@@ -29,12 +29,6 @@ public abstract class CommandBuffer
 
     }
 
-    /// <summary>
-    /// Flush existing commands to the GPU and optinally wait for completion.
-    /// </summary>
-    /// <param name="waitForCompletion"></param>
-    public abstract void Flush(bool waitForCompletion = false);
-
     public abstract void PushDebugGroup(Utf8ReadOnlyString groupLabel);
     public abstract void PopDebugGroup();
     public abstract void InsertDebugMarker(Utf8ReadOnlyString debugLabel);

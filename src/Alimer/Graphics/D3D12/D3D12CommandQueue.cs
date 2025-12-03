@@ -80,6 +80,12 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         _handle.Dispose();
     }
 
+    /// <inheritdoc />
+    public override void WaitIdle()
+    {
+        WaitForFence(IncrementFence());
+    }
+
     public CommandBuffer AcquireCommandBuffer(Utf8ReadOnlyString label = default)
     {
         uint index = _commandBufferCount++;
@@ -96,6 +102,15 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
 
         commandBuffer.Begin(D3DDevice.FrameIndex, label);
         return commandBuffer;
+    }
+
+    public override void Execute(IEnumerable<CommandBuffer> commandBuffers, bool waitForCompletion = false)
+    {
+        foreach (D3D12CommandBuffer commandBuffer in commandBuffers)
+        {
+            ID3D12CommandList* handle = commandBuffer.End();
+            //_submitCommandBuffers.Add(handle);
+        }
     }
 
     public void FinishFrame()
@@ -130,36 +145,6 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
     public void QueuePresent(D3D12SwapChain swapChain)
     {
         _presentSwapChains.Add(swapChain);
-    }
-
-    public ulong Commit(D3D12CommandBuffer commandBuffer)
-    {
-        lock (_fenceMutex)
-        {
-            foreach (D3D12SwapChain swapChain in _presentSwapChains)
-            {
-                D3D12Texture swapChainTexture = (D3D12Texture)swapChain.GetCurrentTexture()!;
-                commandBuffer.TextureBarrier(swapChainTexture, TextureLayout.Present);
-            }
-            commandBuffer.CommitBarriers();
-
-            ID3D12GraphicsCommandList6* commandList = commandBuffer.CommandList;
-            ThrowIfFailed(commandList->Close());
-
-            ID3D12CommandList** commandLists = stackalloc ID3D12CommandList*[1]
-            {
-                (ID3D12CommandList*)commandList
-            };
-
-            // Kickoff the command list
-            _handle.Get()->ExecuteCommandLists(1, commandLists);
-
-            // Signal the next fence value (with the GPU)
-            _handle.Get()->Signal(_fence.Get(), _nextFenceValue);
-
-            // And increment the fence value.  
-            return _nextFenceValue++;
-        }
     }
 
     public ulong IncrementFence()
@@ -198,11 +183,5 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
             _fence.Get()->SetEventOnCompletion(fenceValue, HANDLE.NULL);
             _lastCompletedFenceValue = fenceValue;
         }
-    }
-
-    /// <inheritdoc />
-    public override void WaitIdle()
-    {
-        WaitForFence(IncrementFence());
     }
 }

@@ -32,6 +32,22 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public uint MaxFramesInFlight { get; }
 
     /// <summary>
+    /// Gets the graphics command queue used to submit rendering commands to the GPU.
+    /// </summary>
+    public CommandQueue GraphicsCommandQueue
+    {
+        get => field ??= GetCommandQueue(CommandQueueType.Graphics);
+    }
+
+    /// <summary>
+    /// Gets the command queue used for compute operations on the device.
+    /// </summary>
+    public CommandQueue ComputeCommandQueue
+    {
+        get => field ??= GetCommandQueue(CommandQueueType.Compute);
+    }
+
+    /// <summary>
     /// Get the timestamp frequency.
     /// </summary>
     public abstract ulong TimestampFrequency { get; }

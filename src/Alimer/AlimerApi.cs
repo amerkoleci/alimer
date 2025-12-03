@@ -95,15 +95,26 @@ internal unsafe static partial class AlimerApi
     public static partial void alimerSetLogCallback(delegate* unmanaged<LogCategory, LogLevel, byte*, nint, void> callback, nint userdata);
 
     #region Image
-    internal struct ImageDesc
+    public enum ImageType
     {
-        public TextureDimension dimension;
+        Type2D = 0,
+        Type1D,
+        Type3D,
+        TypeCube,
+    }
+
+    public struct ImageDesc
+    {
+        public ImageType type;
         public PixelFormat format;
         public uint width;
         public uint height;
         public uint depthOrArrayLayers;
         public uint mipLevelCount;
     }
+
+    [LibraryImport(LibraryName)]
+    public static partial ImageFileType alimerImageDetectFileType(void* data, nuint size);
 
     [LibraryImport(LibraryName)]
     public static partial nint alimerImageCreate2D(PixelFormat format, uint width, uint height, uint arrayLayers, uint mipLevelCount);

@@ -587,7 +587,7 @@ GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer)
 /* Texture */
 static GPUTextureDesc _GPUTextureDesc_Defaults(const GPUTextureDesc* desc) {
     GPUTextureDesc def = *desc;
-    def.dimension = _ALIMER_DEF(def.dimension, TextureDimension_2D);
+    def.dimension = _ALIMER_DEF(def.dimension, GPUTextureDimension_2D);
     def.format = _ALIMER_DEF(def.format, PixelFormat_RGBA8Unorm);
     def.width = _ALIMER_DEF(def.width, 1u);
     def.height = _ALIMER_DEF(def.height, 1u);
@@ -614,7 +614,7 @@ static bool ValidateTextureDesc(const GPUTextureDesc& desc)
         return false;
     }
 
-    if ((desc.dimension == TextureDimension_1D || desc.dimension == TextureDimension_3D)
+    if ((desc.dimension == GPUTextureDimension_1D || desc.dimension == GPUTextureDimension_3D)
         && desc.sampleCount != 1)
     {
         alimerLogError(LogCategory_GPU, "1D and 3D Textures must use TextureSampleCount.Count1.");
@@ -643,7 +643,7 @@ void agpuTextureSetLabel(GPUTexture* texture, const char* label)
     texture->SetLabel(label);
 }
 
-TextureDimension agpuTextureGetDimension(GPUTexture* texture)
+GPUTextureDimension agpuTextureGetDimension(GPUTexture* texture)
 {
     return texture->desc.dimension;
 }

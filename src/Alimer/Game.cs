@@ -237,12 +237,12 @@ public abstract class Game : DisposableObject, IGame
         }
     }
 
-    protected virtual void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
+    protected virtual void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
     {
         // Draw for all game systems
         foreach (IGameSystem system in GameSystems)
         {
-            system.Draw(renderContext, outputTexture, time);
+            system.Draw(commandBuffer, outputTexture, time);
         }
     }
 
@@ -286,8 +286,8 @@ public abstract class Game : DisposableObject, IGame
 
                 commandBuffer.Present(MainWindow.SwapChain!);
 
-                //GraphicsDevice.Submit(commandBuffer);
-                commandBuffer.Flush(waitForCompletion: false);
+                // Execute 
+                GraphicsDevice.GraphicsCommandQueue.Execute(commandBuffer);
             }
             finally
             {

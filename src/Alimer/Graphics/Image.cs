@@ -263,6 +263,7 @@ public sealed unsafe class Image : DisposableObject
         {
             fixed (byte* dataPtr = data)
             {
+                ImageFileType fileType = alimerImageDetectFileType(dataPtr, (uint)data.Length);
                 nint handle = alimerImageCreateFromMemory(dataPtr, (uint)data.Length);
 
                 ImageDesc imageDesc;

@@ -1716,16 +1716,16 @@ VkImageView VulkanTexture::GetView(uint32_t mipLevel) const
         const bool isArray = desc.depthOrArrayLayers > 1;
         switch (desc.dimension)
         {
-            case TextureDimension_1D:
+            case GPUTextureDimension_1D:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
                 break;
-            case TextureDimension_2D:
+            case GPUTextureDimension_2D:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
                 break;
-            case TextureDimension_3D:
+            case GPUTextureDimension_3D:
                 createInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
                 break;
-            case TextureDimension_Cube:
+            case GPUTextureDimension_Cube:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
                 break;
             default:
@@ -3578,18 +3578,18 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTex
 
     switch (desc.dimension)
     {
-        case TextureDimension_1D:
+        case GPUTextureDimension_1D:
             createInfo.imageType = VK_IMAGE_TYPE_1D;
             createInfo.arrayLayers = desc.depthOrArrayLayers;
             break;
 
-        case TextureDimension_2D:
+        case GPUTextureDimension_2D:
             createInfo.imageType = VK_IMAGE_TYPE_2D;
             createInfo.extent.height = desc.height;
             createInfo.arrayLayers = desc.depthOrArrayLayers;
             break;
 
-        case TextureDimension_3D:
+        case GPUTextureDimension_3D:
             createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
             createInfo.imageType = VK_IMAGE_TYPE_3D;
             createInfo.extent.height = desc.height;
@@ -3597,7 +3597,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTex
             createInfo.arrayLayers = 1u;
             break;
 
-        case TextureDimension_Cube:
+        case GPUTextureDimension_Cube:
             createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
             createInfo.imageType = VK_IMAGE_TYPE_2D;
             createInfo.extent.height = desc.height;

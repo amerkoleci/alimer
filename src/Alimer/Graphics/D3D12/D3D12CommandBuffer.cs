@@ -97,14 +97,22 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandList.Dispose();
     }
 
-    public override void Flush(bool waitForCompletion = false)
+    public ID3D12CommandList* End()
     {
+        //for (auto & surface : presentSurfaces)
+        //{
+        //    TextureBarrier(surface->backbufferTextures[surface->backBufferIndex], TextureLayout::Present);
+        //}
+        CommitBarriers();
+
         if (_hasLabel)
         {
             PopDebugGroup();
         }
 
-        _ = _queue.Commit(this);
+        ThrowIfFailed(_commandList.Get()->Close());
+
+        return (ID3D12CommandList*)_commandList.Get();
     }
 
     public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
@@ -347,5 +355,5 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _queue.QueuePresent(d3dSwapChain);
     }
 
-    
+
 }

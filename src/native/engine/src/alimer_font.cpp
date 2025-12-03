@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "alimer_internal.h"
+#include "alimer_font.h"
 
 ALIMER_DISABLE_WARNINGS()
 #define STBTT_STATIC
@@ -17,11 +18,11 @@ struct Font {
     int spaceAdvance;
 };
 
-Font* alimerFontCreateFromMemory(const uint8_t* data, size_t size)
+Font* alimerFontCreateFromMemory(const void* data, size_t size)
 {
     ALIMER_UNUSED(size);
 
-    int offset = stbtt_GetFontOffsetForIndex(data, 0);
+    int offset = stbtt_GetFontOffsetForIndex((const unsigned char*)data, 0);
     if (offset == -1)
     {
         alimerLogError(LogCategory_System, "Unable to parse Font File");
@@ -31,7 +32,7 @@ Font* alimerFontCreateFromMemory(const uint8_t* data, size_t size)
     Font* font = ALIMER_ALLOC(Font);
     ALIMER_ASSERT(font);
 
-    if (!stbtt_InitFont(&font->info, data, offset))
+    if (!stbtt_InitFont(&font->info, (const unsigned char*)data, offset))
     {
         alimerLogError(LogCategory_System, "Unable to parse Font File");
         alimerFree(font);

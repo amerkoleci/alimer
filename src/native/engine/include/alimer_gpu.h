@@ -139,6 +139,21 @@ typedef enum GPUVertexFormat {
     _GPUVertexFormat_Force32 = 0x7FFFFFFF
 } GPUVertexFormat;
 
+typedef enum GPUTextureDimension {
+    /// Undefined - default to 2D texture.
+    GPUTextureDimension_Undefined = 0,
+    /// One-dimensional Texture.
+    GPUTextureDimension_1D = 1,
+    /// Two-dimensional Texture.
+    GPUTextureDimension_2D = 2,
+    /// Three-dimensional Texture.
+    GPUTextureDimension_3D = 3,
+    /// Cubemap Texture.
+    GPUTextureDimension_Cube = 4,
+
+    _GPUTextureDimension_Force32 = 0x7FFFFFFF
+} GPUTextureDimension;
+
 typedef enum GPUIndexType {
     GPUIndexType_Uint16 = 0,
     GPUIndexType_Uint32 = 1,
@@ -575,7 +590,7 @@ typedef struct GPUBufferDesc {
 
 typedef struct GPUTextureDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
-    TextureDimension dimension DEFAULT_INITIALIZER(TextureDimension_2D);
+    GPUTextureDimension dimension DEFAULT_INITIALIZER(GPUTextureDimension_2D);
     PixelFormat format DEFAULT_INITIALIZER(PixelFormat_RGBA8Unorm);
     GPUTextureUsage usage DEFAULT_INITIALIZER(GPUTextureUsage_None);
     uint32_t width DEFAULT_INITIALIZER(0);
@@ -960,7 +975,7 @@ ALIMER_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer);
 /* Texture */
 ALIMER_API GPUTexture* agpuCreateTexture(GPUDevice* device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
 ALIMER_API void agpuTextureSetLabel(GPUTexture* texture, const char* label);
-ALIMER_API TextureDimension agpuTextureGetDimension(GPUTexture* texture);
+ALIMER_API GPUTextureDimension agpuTextureGetDimension(GPUTexture* texture);
 ALIMER_API PixelFormat agpuTextureGetFormat(GPUTexture* texture);
 ALIMER_API GPUTextureUsage agpuTextureGetUsage(GPUTexture* texture);
 ALIMER_API uint32_t agpuTextureGetWidth(GPUTexture* texture);

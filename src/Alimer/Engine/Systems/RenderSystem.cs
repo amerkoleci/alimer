@@ -76,12 +76,12 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         base.Dispose(disposing);
     }
 
-    public override void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
+    public override void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
     {
-        Render(renderContext, outputTexture, Scene.CurrentCamera!);
+        Render(commandBuffer, outputTexture, Scene.CurrentCamera!);
     }
 
-    public void Render(CommandBuffer renderContext, Texture output, CameraComponent camera)
+    public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera)
     {
         UpdateCamera(camera);
 
@@ -96,7 +96,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
             Label = "Output pass"u8
         };
 
-        RenderPassEncoder renderPass = renderContext.BeginRenderPass(renderPassDescriptor);
+        RenderPassEncoder renderPass = commandBuffer.BeginRenderPass(renderPassDescriptor);
         //renderContext.SetBindGroup(0, camera.bindGroup);
 
         // Loop through all the renderable entities and store them by pipeline.

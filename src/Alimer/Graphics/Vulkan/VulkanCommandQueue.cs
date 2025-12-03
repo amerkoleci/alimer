@@ -86,6 +86,15 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         _presentSwapChains.Clear();
     }
 
+    public override void Execute(IEnumerable<CommandBuffer> commandBuffers, bool waitForCompletion = false)
+    {
+        foreach (VulkanCommandBuffer commandBuffer in commandBuffers)
+        {
+            VkCommandBuffer handle = commandBuffer.End();
+            _submitCommandBuffers.Add(handle);
+        }
+    }
+
     /// <inheritdoc />
     public override void WaitIdle()
     {
@@ -94,14 +103,6 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         {
             throw new GraphicsException("Vulkan: Failed to wait for Vulkan queue idle");
         }
-    }
-
-    public void Commit(VulkanCommandBuffer vulkanCommandBuffer, VkCommandBuffer commandBuffer)
-    {
-        vulkanCommandBuffer.CommitBarriers();
-        VkDevice.DeviceApi.vkEndCommandBuffer(commandBuffer).CheckResult();
-
-        _submitCommandBuffers.Add(commandBuffer);
     }
 
     public void QueuePresent(VulkanSwapChain swapChain)
