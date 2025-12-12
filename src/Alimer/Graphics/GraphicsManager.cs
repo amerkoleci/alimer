@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
@@ -32,21 +33,13 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     {
         switch (backendType)
         {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                return Vulkan.VulkanGraphicsManager.IsSupported;
-#endif
-#if !EXCLUDE_D3D12_BACKEND
-            case GraphicsBackendType.D3D12:
-                return D3D12.D3D12GraphicsManager.IsSupported;
-#endif
 #if !EXCLUDE_METAL_BACKEND
             case GraphicsBackendType.Metal:
                 return Metal.MetalGraphicsManager.IsSupported;
 #endif
 
             default:
-                return false;
+                return agpuIsBackendSupport(backendType);
         }
     }
 
@@ -96,24 +89,6 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
         GraphicsManager? manager = default;
         switch (backend)
         {
-#if !EXCLUDE_VULKAN_BACKEND
-            case GraphicsBackendType.Vulkan:
-                if (Vulkan.VulkanGraphicsManager.IsSupported)
-                {
-                    manager = new Vulkan.VulkanGraphicsManager(in options);
-                }
-                break;
-#endif
-
-#if !EXCLUDE_D3D12_BACKEND 
-            case GraphicsBackendType.D3D12:
-                if (D3D12.D3D12GraphicsManager.IsSupported)
-                {
-                    manager = new D3D12.D3D12GraphicsManager(in options);
-                }
-                break;
-#endif
-
 #if !EXCLUDE_METAL_BACKEND
             case GraphicsBackendType.Metal:
                 if (Metal.MetalGraphicsManager.IsSupported)
@@ -123,7 +98,17 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
                 break;
 #endif
 
+#if !EXCLUDE_VULKAN_BACKEND
+            case GraphicsBackendType.Vulkan:
+                if (Vulkan.VulkanGraphicsManager.IsSupported)
+                {
+                    manager = new Vulkan.VulkanGraphicsManager(in options);
+                }
+                break;
+#endif
+
             default:
+                manager = new Native.NativeGraphicsManager(in options);
                 break;
         }
 
@@ -141,8 +126,6 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
         }
 
         return manager!;
-        //GraphicsManager manager = new NativeGraphicsManager(in options);
-        //return manager;
     }
 
     /// <summary>

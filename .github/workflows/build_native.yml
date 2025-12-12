@@ -26,7 +26,7 @@ jobs:
         ninjaVersion: latest
       
     - name: Configure win-x64
-      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
+      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk" -DALIMER_SAMPLES=OFF
     - name: Build win-x64
       run: cmake --build build_win_64 --target install --config Release
 
@@ -58,7 +58,7 @@ jobs:
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
     - name: CMake Configure (linux-x64)
-      run: cmake -S "src/native" -B "build_linux_x64" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="linux-x64-sdk"
+      run: cmake -S "src/native" -B "build_linux_x64" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="linux-x64-sdk" -DALIMER_SAMPLES=OFF
     - name: Build linux-x64
       run: cmake --build build_linux_x64 --target install --config Distribution --verbose --parallel 
      
@@ -79,7 +79,7 @@ jobs:
         ninjaVersion: latest
 
     - name: CMake Configure (osx-universal)
-      run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_INSTALL_PREFIX="osx-sdk"
+      run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_INSTALL_PREFIX="osx-sdk" -DALIMER_SAMPLES=OFF
     - name: Build osx-universal
       run: cmake --build build_osx --target install --config Distribution --verbose --parallel 
      

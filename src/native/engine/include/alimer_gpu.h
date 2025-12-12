@@ -30,7 +30,7 @@ typedef struct GPURenderPipelineImpl*       GPURenderPipeline;
 typedef uint64_t GPUDeviceAddress;
 
 /* Constants */
-#define GPU_MAX_PHYSICAL_DEVICE_NAME_SIZE  (256u)
+#define GPU_MAX_ADAPTER_NAME_SIZE  (256u)
 #define GPU_MAX_COLOR_ATTACHMENTS (8u)
 #define GPU_MAX_VERTEX_BUFFER_BINDINGS (8u)
 #define GPU_WHOLE_SIZE (UINT64_MAX)
@@ -776,7 +776,7 @@ typedef struct GPUDeviceDesc {
 } GPUDeviceDesc;
 
 typedef struct GPUAdapterInfo {
-    char deviceName[GPU_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+    char deviceName[GPU_MAX_ADAPTER_NAME_SIZE];
     uint16_t driverVersion[4];
     const char* driverDescription;
     GPUAdapterType adapterType;
@@ -892,7 +892,7 @@ ALIMER_API void agpuAdapterGetLimits(GPUAdapter* adapter, GPUAdapterLimits* limi
 ALIMER_API bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature);
 
 /* SurfaceHandle */
-ALIMER_API GPUSurfaceHandle* agpuSurfaceHandleCreateFromWin32(void* hinstance, void* hwnd);
+ALIMER_API GPUSurfaceHandle* agpuSurfaceHandleCreateFromWin32(void* hwnd);
 ALIMER_API GPUSurfaceHandle* agpuSurfaceHandleCreateFromAndroid(void* window);
 ALIMER_API void agpuSurfaceHandleDestroy(GPUSurfaceHandle* surfaceHandle);
 

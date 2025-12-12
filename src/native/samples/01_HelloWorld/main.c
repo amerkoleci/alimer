@@ -3,7 +3,7 @@
 
 //#define TEST_PHYSICS
 
-#include "alimer.h"
+#include "alimer_image.h"
 #if defined(ALIMER_AUDIO)
 #include "alimer_audio.h"
 #endif
@@ -92,6 +92,20 @@ int main(void)
     window = alimerWindowCreate(&windowDesc);
     alimerWindowSetCentered(window);
 
+#if defined(ALIMER_GPU)
+    GPUSurfaceHandle* surfaceHandle = alimerWindowCreateSurfaceHandle(window);
+    GPUSurface* surface = agpuCreateSurface(gpuFactory, surfaceHandle);
+    GPUSurfaceConfig surfaceConfig = {
+        .device = device,
+        //.usage = GPUSurfaceUsage_Present,
+        .format = PixelFormat_BGRA8Unorm,
+        .width = windowDesc.width,
+        .height = windowDesc.height,
+        .presentMode = GPUPresentMode_Fifo
+    };
+    agpuSurfaceConfigure(surface, &surfaceConfig);
+#endif
+
     // GPU setup ready, show window
     alimerWindowShow(window);
 
@@ -112,7 +126,24 @@ int main(void)
             }
         }
 
-        GPUCommandBuffer* commandBuffer = agpuCommandQueueAcquireCommandBuffer(graphicsQueue, NULL);  
+        GPUCommandBuffer* commandBuffer = agpuCommandQueueAcquireCommandBuffer(graphicsQueue, NULL);
+        GPUTexture* surfaceTexture = NULL;
+        GPUAcquireSurfaceResult acquireResult = agpuCommandBufferAcquireSurfaceTexture(commandBuffer, surface, &surfaceTexture);
+        if (acquireResult == GPUAcquireSurfaceResult_SuccessOptimal)
+        {
+            GPURenderPassDesc renderPassDesc = {
+                .colorAttachmentCount = 1,
+                .colorAttachments = &(GPURenderPassColorAttachment){
+                    .texture = surfaceTexture,
+                    .loadAction = GPULoadAction_Clear,
+                    .storeAction = GPUStoreAction_Store,
+                    .clearColor = { 0.1f, 0.2f, 0.3f, 1.0f }
+                },
+                .depthStencilAttachment = NULL
+            };
+            GPURenderPassEncoder* renderPass = agpuCommandBufferBeginRenderPass(commandBuffer, &renderPassDesc);
+            agpuRenderPassEncoderEnd(renderPass);
+        }
         agpuCommandQueueSubmit(graphicsQueue, 1, &commandBuffer);
 
         //Render();
@@ -131,6 +162,10 @@ int main(void)
 
 #if defined(ALIMER_GPU)
     agpuDeviceWaitIdle(device);
+
+    agpuSurfaceRelease(surface);
+    agpuSurfaceHandleDestroy(surfaceHandle);
+
     agpuDeviceRelease(device);
     agpuFactoryDestroy(gpuFactory);
 #endif

@@ -662,6 +662,11 @@ ALIMER_API void alimerWindowMinimize(Window* window);
 ALIMER_API void alimerWindowRestore(Window* window);
 ALIMER_API void alimerWindowFocus(Window* window);
 
+#if defined(ALIMER_GPU)
+typedef struct GPUSurfaceHandle             GPUSurfaceHandle;
+ALIMER_API GPUSurfaceHandle* alimerWindowCreateSurfaceHandle(Window* window);
+#endif
+
 ALIMER_API void* alimerWindowGetNativeHandle(Window* window);
 
 /* Clipboard */

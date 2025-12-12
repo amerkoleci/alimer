@@ -4655,6 +4655,7 @@ GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
                 enabledSeverities.push_back(D3D12_MESSAGE_SEVERITY_INFO);
             }
 
+            disabledMessages.push_back(D3D12_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS);
             disabledMessages.push_back(D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE);
             disabledMessages.push_back(D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE);
             disabledMessages.push_back(D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE);
@@ -4662,6 +4663,8 @@ GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
             disabledMessages.push_back(D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE);
             disabledMessages.push_back(D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE);
             disabledMessages.push_back(D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED);
+            disabledMessages.push_back(D3D12_MESSAGE_ID_CREATEPIPELINELIBRARY_DRIVERVERSIONMISMATCH);
+            disabledMessages.push_back(D3D12_MESSAGE_ID_CREATEPIPELINELIBRARY_ADAPTERVERSIONMISMATCH);
 
 #if defined (ALIMER_DX12_USE_PIPELINE_LIBRARY)
             disabledMessages.push_back(D3D12_MESSAGE_ID_LOADPIPELINE_NAMENOTFOUND);

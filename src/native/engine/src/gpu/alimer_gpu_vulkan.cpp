@@ -840,7 +840,6 @@ struct VulkanPhysicalDeviceExtensions final
 struct VulkanQueueFamilyIndices final
 {
     uint32_t queueFamilyCount = 0;
-
     uint32_t familyIndices[_GPUCommandQueueType_Count] = {};
     uint32_t queueIndices[_GPUCommandQueueType_Count] = {};
     uint32_t counts[_GPUCommandQueueType_Count] = {};
@@ -1096,17 +1095,15 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
     indices.queueOffsets.resize(queueFamilyCount);
     indices.queuePriorities.resize(queueFamilyCount);
 
-    const auto FindVacantQueue = [&](uint32_t& family, uint32_t& index,
-        VkQueueFlags required, VkQueueFlags ignore_flags,
-        float priority) -> bool
+    const auto FindVacantQueue = [&](GPUCommandQueueType type, VkQueueFlags requiredFlags, VkQueueFlags ignoreFlags, float priority) -> bool
         {
             for (uint32_t familyIndex = 0; familyIndex < queueFamilyCount; familyIndex++)
             {
-                if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignore_flags) != 0)
+                if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignoreFlags) != 0)
                     continue;
 
                 // A graphics queue candidate must support present for us to select it.
-                if ((required & VK_QUEUE_GRAPHICS_BIT) != 0)
+                if ((requiredFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
                 {
                     bool supported = GetPresentationSupport(physicalDevice, familyIndex);
                     if (!supported)
@@ -1114,7 +1111,7 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
                 }
 
                 // A video decode queue candidate must support VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR or VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR
-                if ((required & VK_QUEUE_VIDEO_DECODE_BIT_KHR) != 0)
+                if ((requiredFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR) != 0)
                 {
                     VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[familyIndex].videoCodecOperations;
 
@@ -1140,11 +1137,11 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
 #endif
 
                 if (queueFamilies[familyIndex].queueFamilyProperties.queueCount &&
-                    (queueFamilies[familyIndex].queueFamilyProperties.queueFlags & required) == required)
+                    (queueFamilies[familyIndex].queueFamilyProperties.queueFlags & requiredFlags) == requiredFlags)
                 {
-                    family = familyIndex;
+                    indices.familyIndices[type] = familyIndex;
                     queueFamilies[familyIndex].queueFamilyProperties.queueCount--;
-                    index = indices.queueOffsets[familyIndex]++;
+                    indices.queueIndices[type] = indices.queueOffsets[familyIndex]++;
                     indices.queuePriorities[familyIndex].push_back(priority);
                     return true;
                 }
@@ -1153,9 +1150,7 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
             return false;
         };
 
-    if (!FindVacantQueue(
-        indices.familyIndices[GPUCommandQueueType_Graphics],
-        indices.queueIndices[GPUCommandQueueType_Graphics], VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
+    if (!FindVacantQueue(GPUCommandQueueType_Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
     {
         alimerLogError(LogCategory_GPU, "Vulkan: Could not find suitable graphics queue.");
         return indices;
@@ -1164,10 +1159,9 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
     // XXX: This assumes timestamp valid bits is the same for all queue types.
     indices.timestampValidBits = queueFamilies[indices.familyIndices[GPUCommandQueueType_Graphics]].queueFamilyProperties.timestampValidBits;
 
-    // Prefer another graphics queue since we can do async graphics that way.
-    // The compute queue is to be treated as high priority since we also do async graphics on it.
-    if (!FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Compute], indices.queueIndices[GPUCommandQueueType_Compute], VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 1.0f) &&
-        !FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Compute], indices.queueIndices[GPUCommandQueueType_Compute], VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
+    // Prefer standalone compute queue. If not, fall back to another graphics queue.
+    if (!FindVacantQueue(GPUCommandQueueType_Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
+        && !FindVacantQueue(GPUCommandQueueType_Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
     {
         // Fallback to the graphics queue if we must.
         indices.familyIndices[GPUCommandQueueType_Compute] = indices.familyIndices[GPUCommandQueueType_Graphics];
@@ -1177,8 +1171,8 @@ static VulkanQueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevi
     // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
     // If not, fallback to a dedicated compute queue.
     // Finally, fallback to same queue as compute.
-    if (!FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Copy], indices.queueIndices[GPUCommandQueueType_Copy], VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f) &&
-        !FindVacantQueue(indices.familyIndices[GPUCommandQueueType_Copy], indices.queueIndices[GPUCommandQueueType_Copy], VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
+    if (!FindVacantQueue(GPUCommandQueueType_Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
+        && !FindVacantQueue(GPUCommandQueueType_Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
     {
         indices.familyIndices[GPUCommandQueueType_Copy] = indices.familyIndices[GPUCommandQueueType_Compute];
         indices.queueIndices[GPUCommandQueueType_Copy] = indices.queueIndices[GPUCommandQueueType_Compute];
@@ -1530,7 +1524,7 @@ struct VulkanSurface final : public GPUSurface
     std::mutex locker;
     size_t swapChainAcquireSemaphoreIndex = 0;
     std::vector<VkSemaphore> swapchainAcquireSemaphores;
-    VkSemaphore swapchainReleaseSemaphore = VK_NULL_HANDLE;
+    std::vector<VkSemaphore> swapchainReleaseSemaphores;
     mutable std::vector<PixelFormat> supportedFormats;
     mutable std::vector<GPUPresentMode> supportedPresentModes;
 
@@ -2636,23 +2630,12 @@ GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface* s
     if (result != VK_SUCCESS)
     {
         // Handle outdated error in acquire
-        if (result == VK_SUBOPTIMAL_KHR
-            || result == VK_ERROR_OUT_OF_DATE_KHR)
+        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
         {
-            // we need to create a new semaphore or jump through a few hoops to
-            // wait for the current one to be unsignalled before we can use it again
-            // creating a new one is easiest. See also:
-            // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
-            // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
+            if (backendSurface->Configure(&backendSurface->config))
             {
-                const uint64_t frameCount = queue->device->frameCount;
-                std::scoped_lock lock(queue->device->destroyMutex);
-                for (auto& x : backendSurface->swapchainAcquireSemaphores)
-                {
-                    queue->device->destroyedSemaphores.emplace_back(x, frameCount);
-                }
+                return AcquireSurfaceTexture(backendSurface, surfaceTexture);
             }
-            backendSurface->swapchainAcquireSemaphores.clear();
         }
     }
 
@@ -2755,6 +2738,7 @@ GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* 
         commandBuffer->commandPools.resize(device->maxFramesInFlight);
         commandBuffer->commandBuffers.resize(device->maxFramesInFlight);
 
+        // TODO: Move to per frame command pools and allocate from there? instead of per command buffer * frame?
         for (uint32_t i = 0; i < device->maxFramesInFlight; ++i)
         {
             VkCommandPoolCreateInfo poolInfo = {};
@@ -2785,6 +2769,10 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandB
     std::vector<VkSemaphoreSubmitInfo> submitWaitSemaphoreInfos;
     std::vector<VkSemaphoreSubmitInfo> submitSignalSemaphoreInfos;
     std::vector<VkCommandBufferSubmitInfo> submitCommandBufferInfos;
+
+    std::vector<VkSwapchainKHR> submitSwapchains;
+    std::vector<uint32_t> submitSwapchainImageIndices;
+    std::vector<VkSemaphore> swapchainWaitSemaphores;
     bool submitPresent = false;
 
     for (uint32_t i = 0; i < numCommandBuffers; i++)
@@ -2805,11 +2793,21 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandB
 
             VkSemaphoreSubmitInfo& signalSemaphore = submitSignalSemaphoreInfos.emplace_back();
             signalSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-            signalSemaphore.semaphore = surface->swapchainReleaseSemaphore;
+            signalSemaphore.semaphore = surface->swapchainReleaseSemaphores[surface->backBufferIndex];
             signalSemaphore.value = 0; // not a timeline semaphore
+
+            submitSwapchains.push_back(surface->swapchain);
+            submitSwapchainImageIndices.push_back(surface->backBufferIndex);
+            swapchainWaitSemaphores.push_back(signalSemaphore.semaphore);
+
+            // Advance surface frame index
+            surface->swapChainAcquireSemaphoreIndex = (surface->swapChainAcquireSemaphoreIndex + 1) % surface->swapchainAcquireSemaphores.size();
+            surface->Release();
 
             submitPresent = true;
         }
+
+        commandBuffer->presentSurfaces.clear();
     }
 
     VkSubmitInfo2 submitInfo = {};
@@ -2825,43 +2823,21 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandB
     if (!submitPresent)
         return;
 
-    // Present surfaces
-    std::vector<VkSwapchainKHR> submitSwapchains;
-    std::vector<uint32_t> submitSwapchainImageIndices;
-    std::vector<VkSemaphore> submitSignalSemaphores;
-    for (uint32_t i = 0; i < numCommandBuffers; i++)
-    {
-        VulkanCommandBuffer* commandBuffer = static_cast<VulkanCommandBuffer*>(commandBuffers[i]);
-
-        for (auto& surface : commandBuffer->presentSurfaces)
-        {
-            submitSwapchains.push_back(surface->swapchain);
-            submitSwapchainImageIndices.push_back(surface->backBufferIndex);
-            submitSignalSemaphores.push_back(surface->swapchainReleaseSemaphore);
-
-            // Advance surface frame index
-            surface->swapChainAcquireSemaphoreIndex = (surface->swapChainAcquireSemaphoreIndex + 1) % surface->swapchainAcquireSemaphores.size();
-            surface->Release();
-        }
-
-        commandBuffer->presentSurfaces.clear();
-    }
-
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = (uint32_t)submitSignalSemaphores.size();
-    presentInfo.pWaitSemaphores = submitSignalSemaphores.data();
+    presentInfo.waitSemaphoreCount = (uint32_t)swapchainWaitSemaphores.size();
+    presentInfo.pWaitSemaphores = swapchainWaitSemaphores.data();
     presentInfo.swapchainCount = (uint32_t)submitSwapchains.size();
     presentInfo.pSwapchains = submitSwapchains.data();
     presentInfo.pImageIndices = submitSwapchainImageIndices.data();
 
     const VkResult result = device->vkQueuePresentKHR(device->queues[GPUCommandQueueType_Graphics].handle, &presentInfo);
-    if (result != VK_SUCCESS)
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
         // Handle outdated error in present
-        if (result == VK_SUBOPTIMAL_KHR
-            || result == VK_ERROR_OUT_OF_DATE_KHR)
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
+            ALIMER_UNREACHABLE();
         }
         else
         {
@@ -4498,8 +4474,8 @@ VulkanSurface::~VulkanSurface()
     for (size_t i = 0; i < backbufferTextures.size(); ++i)
     {
         device->destroyedSemaphores.push_back(std::make_pair(swapchainAcquireSemaphores[i], frameCount));
+        device->destroyedSemaphores.push_back(std::make_pair(swapchainReleaseSemaphores[i], frameCount));
     }
-    device->destroyedSemaphores.push_back(std::make_pair(swapchainReleaseSemaphore, frameCount));
 
     if (swapchain)
     {
@@ -4596,46 +4572,51 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
 {
     Unconfigure();
 
-    /*
-    uint32_t presentFamily = VK_QUEUE_FAMILY_IGNORED;
-    uint32_t familyIndex = 0;
-    for (const auto& queueFamily : queueFamilies)
-    {
-        VkBool32 presentSupport = false;
-        vulkan_check(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, (uint32_t)familyIndex, internal_state->surface, &presentSupport));
+    VulkanDevice* device = static_cast<VulkanDevice*>(config_->device);
+    VkPhysicalDevice physicalDevice = device->adapter->handle;
+    const VulkanQueueFamilyIndices& queueFamilyIndices = device->adapter->queueFamilyIndices;
 
-        if (presentFamily == VK_QUEUE_FAMILY_IGNORED && queueFamily.queueFamilyProperties.queueCount > 0 && presentSupport)
+    VkBool32 presentSupport = false;
+    uint32_t queuePresentSupport = 0;
+
+    for (auto& index : queueFamilyIndices.familyIndices)
+    {
+        if (index == VK_QUEUE_FAMILY_IGNORED)
         {
-            presentFamily = familyIndex;
-            break;
+            continue;
         }
 
-        familyIndex++;
+        if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, index, handle, &presentSupport) == VK_SUCCESS
+            && presentSupport)
+        {
+            queuePresentSupport |= 1u << index;
+        }
     }
 
     // Present family not found, we cannot create SwapChain
-    if (presentFamily == VK_QUEUE_FAMILY_IGNORED)
+    if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics])) == 0)
     {
+        alimerLogError(LogCategory_GPU, "No presentation queue found for GPU.");
         return false;
-    }*/
+    }
 
     config = *config_;
-    device = static_cast<VulkanDevice*>(config.device);
+    this->device = device;
     device->AddRef();
 
     VkSurfaceCapabilitiesKHR surfaceCaps;
-    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->adapter->handle, handle, &surfaceCaps));
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, handle, &surfaceCaps));
 
     uint32_t formatCount;
-    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device->adapter->handle, handle, &formatCount, nullptr));
+    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, handle, &formatCount, nullptr));
 
     std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
-    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(device->adapter->handle, handle, &formatCount, swapchainFormats.data()));
+    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, handle, &formatCount, swapchainFormats.data()));
 
     uint32_t presentModeCount;
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(device->adapter->handle, handle, &presentModeCount, nullptr));
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, handle, &presentModeCount, nullptr));
     std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(device->adapter->handle, handle, &presentModeCount, swapchainPresentModes.data()));
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, handle, &presentModeCount, swapchainPresentModes.data()));
 
     VkPresentModeKHR vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -4741,22 +4722,40 @@ bool VulkanSurface::Configure(const GPUSurfaceConfig* config_)
     std::vector<VkImage> swapchainImages(imageCount);
     VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, swapchain, &imageCount, swapchainImages.data()));
 
+    // Destroy all semaphores
+    if (!swapchainAcquireSemaphores.empty())
+    {
+        // we need to create a new semaphore or jump through a few hoops to
+        // wait for the current one to be unsignalled before we can use it again
+        // creating a new one is easiest. See also:
+        // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
+        // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
+        const uint64_t frameCount = device->frameCount;
+        device->destroyMutex.lock();
+        for (auto& x : swapchainAcquireSemaphores)
+        {
+            device->destroyedSemaphores.emplace_back(x, frameCount);
+        }
+        for (auto& x : swapchainReleaseSemaphores)
+        {
+            device->destroyedSemaphores.emplace_back(x, frameCount);
+        }
+        device->destroyMutex.unlock();
+
+        swapchainAcquireSemaphores.clear();
+        swapchainReleaseSemaphores.clear();
+    }
+
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    if (swapchainAcquireSemaphores.empty())
+    for (size_t i = 0; i < swapchainImages.size(); ++i)
     {
-        for (size_t i = 0; i < swapchainImages.size(); ++i)
-        {
-            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainAcquireSemaphores.emplace_back()));
-        }
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainAcquireSemaphores.emplace_back()));
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainReleaseSemaphores.emplace_back()));
     }
 
-    if (swapchainReleaseSemaphore == VK_NULL_HANDLE)
-    {
-        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainReleaseSemaphore));
-    }
-
+    swapChainAcquireSemaphoreIndex = 0;
     backBufferIndex = 0;
     backbufferTextures.resize(imageCount);
 
@@ -5783,7 +5782,7 @@ GPUSurface* VulkanInstance::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.hinstance = surfaceHandle->hinstance; // GetModuleHandleW(nullptr);
+    typedef struct GPUSurfaceHandle             GPUSurfaceHandle; surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
     surfaceCreateInfo.hwnd = surfaceHandle->hwnd;
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);

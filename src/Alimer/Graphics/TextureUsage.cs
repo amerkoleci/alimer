@@ -28,5 +28,8 @@ public enum TextureUsage
     RenderTarget = 1 << 2,
     Transient = 1 << 3,
     ShadingRate = 1 << 4,
+    /// <summary>
+    /// Supports shared handle usage.
+    /// </summary>
     Shared = 1 << 5,
 }

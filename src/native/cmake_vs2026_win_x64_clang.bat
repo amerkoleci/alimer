@@ -1,5 +1,5 @@
 @echo off
-cmake -S "." -B "build_win_x64_clang" -G "Visual Studio 17 2022" -A x64 -T ClangCL -DCMAKE_INSTALL_PREFIX:String="SDK" %*
+cmake -S "." -B "build_win_x64_clang" -G "Visual Studio 18 2026" -A x64 -T ClangCL -DCMAKE_INSTALL_PREFIX:String="SDK" %*
 echo:
 echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 echo Make sure to install:

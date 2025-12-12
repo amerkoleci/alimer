@@ -180,7 +180,7 @@ bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature)
 }
 
 /* SurfaceHandle */
-GPUSurfaceHandle* agpuSurfaceHandleCreateFromWin32(void* hinstance, void* hwnd)
+GPUSurfaceHandle* agpuSurfaceHandleCreateFromWin32(void* hwnd)
 {
 #if defined(_WIN32)
     if (!IsWindow(static_cast<HWND>(hwnd)))
@@ -192,7 +192,6 @@ GPUSurfaceHandle* agpuSurfaceHandleCreateFromWin32(void* hinstance, void* hwnd)
 
     GPUSurfaceHandle* handle = new GPUSurfaceHandle();
     handle->type = GPUSurfaceHandle::Type::WindowsHWND;
-    handle->hinstance = static_cast<HINSTANCE>(hinstance);
     handle->hwnd = static_cast<HWND>(hwnd);
     return handle;
 }
@@ -239,6 +238,12 @@ bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config)
 {
     if (!config)
         return false;
+
+    if(!config->device)
+    {
+        alimerLogError(LogCategory_GPU, "Surface configuration requires a valid GPUDevice");
+        return false;
+    }
 
     GPUSurfaceConfig configDef = _GPUSurfaceConfig_Defaults(config);
     return surface->Configure(&configDef);

@@ -67,7 +67,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
-    public abstract CommandQueue GetCommandQueue(CommandQueueType type);
+    public abstract CommandQueue? GetCommandQueue(CommandQueueType type);
 
     /// <summary>
     /// Wait for device to finish pending GPU operations.

@@ -3,7 +3,16 @@
 
 #include "alimer_internal.h"
 #include "alimer.h"
+#if defined(ALIMER_GPU)
+#include "alimer_gpu.h"
+#endif
+
 #include <SDL3/SDL.h>
+
+#if defined(SDL_PLATFORM_MACOS)
+#include <SDL3/SDL_metal.h>
+#endif
+
 #include <deque>
 
 namespace
@@ -644,6 +653,34 @@ void alimerWindowFocus(Window* window)
 
     SDL_RaiseWindow(window->handle);
 }
+
+#if defined(ALIMER_GPU)
+GPUSurfaceHandle* alimerWindowCreateSurfaceHandle(Window* window)
+{
+    SDL_PropertiesID props = SDL_GetWindowProperties(window->handle);
+
+#if defined(SDL_PLATFORM_WIN32)
+    return agpuSurfaceHandleCreateFromWin32(
+        SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)
+    );
+#elif defined(SDL_PLATFORM_MACOS)
+    //NSWindow* nswindow = (__bridge NSWindow*)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
+#elif defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
+    {
+    }
+    else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
+    {
+
+    }
+    return nullptr;
+#elif defined(SDL_PLATFORM_IOS)
+    //UIWindow* uiwindow = (__bridge UIWindow*)SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER, NULL);
+#else
+    return nullptr;
+#endif
+}
+#endif
 
 void* alimerWindowGetNativeHandle(Window* window)
 {

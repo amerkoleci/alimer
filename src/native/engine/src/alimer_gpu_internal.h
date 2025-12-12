@@ -225,7 +225,6 @@ struct GPUSurfaceHandle
     uint64_t xWindow = 0;
 
     // WindowsHwnd
-    HINSTANCE hinstance = nullptr;
     HWND hwnd = nullptr;
 
     // IDCompositionVisual/SwapChainPanel
