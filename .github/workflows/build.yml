@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+
+env:
+  # common settings
+  ALIMER_SAMPLES: ON
+  ALIMER_EDITOR: OFF
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Get CMake and Ninja
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: latestrc
+        ninjaVersion: latest
+
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Configure win-x64
+      run: cmake -S "." -B "build_win_64" -G "Visual Studio 17 2022" -A x64 -D CMAKE_SYSTEM_VERSION=10.0.26100.0 -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
+
+    - name: Build win-x64
+      run: cmake --build build_win_64 --config Distribution --target install --verbose --parallel  
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Get CMake and Ninja
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: latestrc
+        ninjaVersion: latest
+
+    - name: Install dependencies on Ubuntu
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential git make \
+            pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+            libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+            libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+    - name: CMake Configure (linux-x64)
+      run: cmake -S "." -B "build_linux_x64" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX:String="linux-x64-sdk"
+
+    - name: Build linux-x64
+      run: cmake --build build_linux_x64 --config Distribution --verbose --parallel
+
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Get CMake and Ninja
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: latestrc
+        ninjaVersion: latest
+
+    - name: Configure macos
+      run: cmake -S "." -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_INSTALL_PREFIX="macos-sdk"
+
+    - name: Build macos
+      run: cmake --build build_osx --config Distribution --target install --verbose --parallel  

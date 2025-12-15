@@ -1,0 +1,62 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.dmp
+
+# Compiled shaders
+*.cso
+*.spv
+
+# Build dir
+.vs
+[Bb]in/
+[Oo]bj/
+lib
+[Bb]uild/
+
+# Compiled shaders
+**/dxil/*.bin
+**/dxbc/*.bin
+**/spirv/*.bin
+
+# NuGet Packages
+*.nupkg
+*.nuget.g.props
+*.nuget.g.targets
+*.nuget.cache
+**/packages/*
+project.lock.json
+project.assets.json
+*.nuget.dgspec.json
+
+# Others
+*.Cache
