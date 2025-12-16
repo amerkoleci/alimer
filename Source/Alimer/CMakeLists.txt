@@ -231,6 +231,17 @@ if (NOT ALIMER_STD_CONTAINERS)
     target_link_libraries(${TARGET_NAME} PUBLIC unordered_dense)
 endif()
 
+# SDL
+if (NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
+    #target_sources(${TARGET_NAME} PRIVATE
+    #    ${CMAKE_CURRENT_SOURCE_DIR}/ImGui/backends/imgui_impl_sdl3.cpp
+	#    ${CMAKE_CURRENT_SOURCE_DIR}/ImGui/backends/imgui_impl_sdl3.h
+    #)
+
+    target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_USE_SDL)
+endif ()
+
 if (ALIMER_RHI_VULKAN)
     target_link_libraries(${TARGET_NAME} PRIVATE vma spirv_reflect)
 endif (ALIMER_RHI_VULKAN)
