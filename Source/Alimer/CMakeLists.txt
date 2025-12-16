@@ -216,7 +216,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     #ktx
     #miniaudio
     #tinygltf
-    #Jolt
+    Jolt
     ShaderMakeBlob
 )
 
@@ -237,3 +237,7 @@ endif (ALIMER_RHI_VULKAN)
 if (ALIMER_RHI_D3D12)
     target_link_libraries(${TARGET_NAME} PRIVATE d3d12ma)
 endif (ALIMER_RHI_D3D12)
+
+if(ALIMER_RHI_METAL)
+    target_link_libraries(${TARGET_NAME} PRIVATE alimer-rhi-metal-cpp)
+endif ()

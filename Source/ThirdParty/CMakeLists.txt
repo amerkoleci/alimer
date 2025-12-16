@@ -28,6 +28,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/unordered_dense/include/ankerl
 add_subdirectory(lz4)
 set_property(TARGET lz4 PROPERTY FOLDER "ThirdParty")
 
+# RHI
 if (ALIMER_RHI_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)
@@ -83,3 +84,18 @@ if (ALIMER_RHI_D3D12 OR ALIMER_SHADER_COMPILER)
         set_property(TARGET d3d12ma PROPERTY FOLDER "ThirdParty")
     endif ()
 endif (ALIMER_RHI_D3D12 OR ALIMER_SHADER_COMPILER)
+
+# Fetch & setup Metal C++ headers
+if(ALIMER_RHI_METAL)
+    message(STATUS "Fetching Metal C++ headers ...")
+    FetchPackage(metal_cpp URL ${ALIMER_RHI_METAL_CPP_URL})
+    add_library(alimer-rhi-metal-cpp INTERFACE)
+    target_include_directories(alimer-rhi-metal-cpp INTERFACE ${metal_cpp_SOURCE_DIR})
+    target_link_libraries(alimer-rhi-metal-cpp INTERFACE "-framework Metal")
+endif (ALIMER_RHI_METAL)
+
+# Jolt Physics
+set(OBJECT_LAYER_BITS 32)
+set(ENABLE_OBJECT_STREAM OFF)
+add_subdirectory (JoltPhysics)
+set_property(TARGET Jolt PROPERTY FOLDER "ThirdParty")
