@@ -179,11 +179,6 @@ cmake_dependent_option(ALIMER_D3D12_AGILITY_SDK "Enable Direct3D12 Agility SDK" 
 cmake_dependent_option(ALIMER_RHI_METAL "Enable Metal backend" ON "ALIMER_RHI_HAS_METAL" OFF)
 cmake_dependent_option(ALIMER_RHI_WEBGPU "Enable WebGPU backend" ON "ALIMER_RHI_HAS_WEBGPU" OFF)
 
-# Metal C++ headers
-if(NOT DEFINED ALIMER_RHI_METAL_CPP_URL)
-    set(ALIMER_RHI_METAL_CPP_URL "https://developer.apple.com/metal/cpp/files/metal-cpp_macOS15.2_iOS18.2.zip")
-endif()
-
 # ShaderCompiler
 #if ((WIN32 OR UNIX) AND NOT (APPLE))
 if (WIN32)

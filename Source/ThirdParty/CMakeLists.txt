@@ -88,9 +88,8 @@ endif (ALIMER_RHI_D3D12 OR ALIMER_SHADER_COMPILER)
 # Fetch & setup Metal C++ headers
 if(ALIMER_RHI_METAL)
     message(STATUS "Fetching Metal C++ headers ...")
-    FetchPackage(metal_cpp URL ${ALIMER_RHI_METAL_CPP_URL})
     add_library(alimer-rhi-metal-cpp INTERFACE)
-    target_include_directories(alimer-rhi-metal-cpp INTERFACE ${metal_cpp_SOURCE_DIR})
+    target_include_directories(alimer-rhi-metal-cpp INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/metal-cpp")
     target_link_libraries(alimer-rhi-metal-cpp INTERFACE "-framework Metal")
 endif (ALIMER_RHI_METAL)
 
