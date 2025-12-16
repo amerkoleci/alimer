@@ -39,6 +39,7 @@ set (HEADER_FILES ${ROOT_HEADER_FILES})
 
 define_engine_source_files(
     Core
+    Platform
     Math
     IO
     Serialization
