@@ -50,10 +50,7 @@ namespace Alimer
         Resizable = 1 << 3,
         Maximized = 1 << 4,
         AlwaysOnTop = 1 << 5,
-        Utility = 1 << 6,
-        Tooltip = 1 << 7,
-        PopupMenu = 1 << 8,
-        Transparent = 1 << 9,
+        Transparent = 1 << 6,
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(WindowFlags);
 

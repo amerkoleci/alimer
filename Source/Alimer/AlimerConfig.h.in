@@ -17,6 +17,8 @@
 #define ALIMER_CHANGE_SET_DATE  "@ALIMER_CHANGE_SET_DATE@"
 
 /* Build configuration */
+#cmakedefine ALIMER_ENABLE_ASAN_UBSAN
+#cmakedefine ALIMER_ENABLE_TSAN
 #cmakedefine ALIMER_STD_CONTAINERS
 #cmakedefine ALIMER_PROFILING
 #cmakedefine ALIMER_NETWORK

@@ -4,6 +4,7 @@
 #include "Alimer/Core/Assert.h"
 #include "Alimer/Core/Log.h"
 #include "Alimer/Application.h"
+#include "Alimer/Platform/DynamicLibrary.h"
 
 #include <thread>
 
@@ -35,7 +36,8 @@ Application::Application()
         LOGF("Failed to initialize platform");
         return;
     }
-#endif 
+#endif
+    _mainWindow = std::make_unique<Window>("Alimer", 640, 480);
 
     s_Instance = this;
 }

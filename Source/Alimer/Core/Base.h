@@ -57,13 +57,13 @@
 #define ALIMER_BIT(x) (1 << x)
 
 #define ALIMER_DISABLE_COPY(Class) \
-    Class(const Class &) = delete;\
-    Class &operator=(const Class &) = delete;
+    Class(const Class &) = delete; \
+    Class &operator=(const Class &) = delete
 #define ALIMER_DISABLE_MOVE(Class) \
     Class(Class &&) = delete; \
-    Class &operator=(Class &&) = delete;
+    Class &operator=(Class &&) = delete
 #define ALIMER_DISABLE_COPY_MOVE(Class) \
-    ALIMER_DISABLE_COPY(Class) \
+    ALIMER_DISABLE_COPY(Class); \
     ALIMER_DISABLE_MOVE(Class)
 
 #define ALIMER_ENUM_CLASS_FLAG_OPERATORS(EnumType) \

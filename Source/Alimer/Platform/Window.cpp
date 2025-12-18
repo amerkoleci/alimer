@@ -2,9 +2,19 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Alimer/Core/Log.h"
-#include "Alimer/Platform/Window.h"
+#if defined(ALIMER_USE_SDL)
+#include "Alimer/Platform/SDL/Window.SDL.h"
+#endif
 
 using namespace Alimer;
+
+Window::Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
+    : impl(std::make_unique<WindowImpl>(title, width, height, flags))
+{
+
+}
+
+Window::~Window() = default;
 
 #if TODO
 void Window::OnResized()

@@ -3,7 +3,6 @@
 
 #pragma once
 
-
 #include "Alimer/Platform/Window.h"
 //#include "Alimer/Timer.h"
 //#include "Alimer/Animations/AnimationSystem.h"
@@ -29,10 +28,10 @@ namespace Alimer
         /// Occurs when the application is deactivated.
         Signal<> Deactivated;
 
-        ALIMER_DISABLE_COPY_MOVE(Application)
-
         /// Destructor.
         virtual ~Application();
+
+        ALIMER_DISABLE_COPY_MOVE(Application);
 
         static Application& Get();
         static bool IsMainThread();
@@ -51,7 +50,7 @@ namespace Alimer
         [[nodiscard]] const AppOptions& GetOptions() const { return _options; }
 
         /// Gets the main window.
-        //[[nodiscard]] Window* GetMainWindow() const { return mainWindow.get(); }
+        [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
 
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }
@@ -94,7 +93,7 @@ namespace Alimer
 
         static Application* s_Instance;
 
-        //std::unique_ptr<Window> mainWindow;
+        std::unique_ptr<Window> _mainWindow;
         // Rendering loop timer.
         //Timer timer;
 

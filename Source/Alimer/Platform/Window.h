@@ -7,20 +7,9 @@
 #include "Alimer/Core/Signal.h"
 #include "Alimer/Platform/Types.h"
 
-#if defined(ALIMER_USE_SDL)
-struct SDL_Window;
-#endif
-
 namespace Alimer
 {
-    struct WindowDesc final
-    {
-        std::string title = "Alimer";
-
-        //Int2 position = { WindowPositionCentered, WindowPositionCentered };
-        //SizeI size = { 1280, 720 };
-        WindowFlags flags = WindowFlags::Resizable | WindowFlags::Hidden;
-    };
+    class WindowImpl;
 
     /// Class that defines an OS window.
     class ALIMER_API Window final 
@@ -28,13 +17,13 @@ namespace Alimer
         friend class Application;
 
     public:
-        Window(const WindowDesc& desc);
+        Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Resizable | WindowFlags::Hidden);
 
         /// Destructor.
         ~Window();
 
         // Non-copyable and non-movable
-        ALIMER_DISABLE_COPY_MOVE(Window)
+        ALIMER_DISABLE_COPY_MOVE(Window);
 
         [[nodiscard]] uint32_t GetId() const { return id; }
 
@@ -71,6 +60,7 @@ namespace Alimer
         void SetCursorVisible(bool value);
 
     private:
+        std::unique_ptr<WindowImpl> impl;
         uint32_t id{};
         std::string _title;
     };

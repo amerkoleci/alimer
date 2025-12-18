@@ -6,6 +6,7 @@
 #include "Alimer/Core/String.h"
 #include "Alimer/Core/UUID.h"
 #include "Alimer/Core/Vector.h"
+#include "Alimer/IO/Types.h"
 
 namespace Alimer
 {

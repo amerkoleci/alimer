@@ -8,14 +8,6 @@
 
 namespace Alimer
 {
-    /// File open mode.
-    enum class FileMode : uint32_t
-    {
-        Read,
-        Write,
-        ReadWrite,
-    };
-
     /// File stream class
     class ALIMER_API FileStream : public Stream
     {
