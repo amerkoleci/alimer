@@ -71,7 +71,7 @@ uint32_t StringId32::Hash(const char* str)
 String StringId32::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%08X", hash);
+    snprintf(tempBuffer, kConversionBufferLength, "%08X", hash);
     return String(tempBuffer);
 }
 

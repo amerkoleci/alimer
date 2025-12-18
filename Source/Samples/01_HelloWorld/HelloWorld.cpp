@@ -7,6 +7,18 @@ using namespace Alimer;
 
 class HelloWorldApp final : public Application
 {
+public:
+    void Setup() override;
+    void Initialize() override;
 };
+
+void HelloWorldApp::Setup()
+{
+}
+
+void HelloWorldApp::Initialize()
+{
+}
+
 
 ALIMER_DEFINE_APPLICATION(HelloWorldApp);

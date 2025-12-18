@@ -41,9 +41,9 @@ bool DynamicLibrary::Open(const std::string& libraryPath, std::string* error)
         *error = "DynamicLibrary.Open: " + libraryPath + " Windows Error: " + std::to_string(GetLastError());
     }
 #elif defined(__linux__) || defined(__APPLE__)
-    mHandle = dlopen(libraryPath.c_str(), RTLD_NOW);
+    _handle = dlopen(libraryPath.c_str(), RTLD_NOW);
 
-    if (mHandle == nullptr && error != nullptr) {
+    if (_handle == nullptr && error != nullptr) {
         *error = dlerror();
     }
 #else

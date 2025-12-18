@@ -3,9 +3,9 @@
 
 #include "Alimer/Core/Assert.h"
 #include "Alimer/Core/Log.h"
+#include "Alimer/Core/Timer.h"
 #include "Alimer/Application.h"
-#include "Alimer/Platform/DynamicLibrary.h"
-
+#include "Alimer/Platform/AppPlatform.h"
 #include <thread>
 
 using namespace Alimer;
@@ -29,15 +29,14 @@ Application::Application()
     Log::Init();
     //JobSystem::Initialize();
     mainThreadId = std::this_thread::get_id();
+    _platform = AppPlatform::Create(this);
 
-#if TODO
-    if (!PlatformInit())
+    // Init platform first
+    if (!_platform)
     {
         LOGF("Failed to initialize platform");
         return;
     }
-#endif
-    _mainWindow = std::make_unique<Window>("Alimer", 640, 480);
 
     s_Instance = this;
 }
@@ -47,14 +46,19 @@ Application::~Application()
     Log::Shutdown();
 #if TODO
     //JobSystem::Shutdown();
-    PlatformShutdown();
 #endif
+    SafeDelete(_platform);
     s_Instance = nullptr;
+}
+
+[[nodiscard]] Window* Application::GetMainWindow() const
+{
+    return _platform->GetMainWindow();
 }
 
 void Application::ResetElapsedTime()
 {
-    //timer.ResetElapsedTime();
+    _timer.ResetElapsedTime();
 }
 
 void Application::Run()
@@ -64,49 +68,53 @@ void Application::Run()
     // Allow config override.
     Setup();
 
-    //if (settings.window.title.empty())
-    //{
-    //    settings.window.title = settings.name;
-    //}
-
     //if (settings.graphics.preferredApi == GraphicsAPI::Count)
     //{
     //    settings.graphics.preferredApi = RHIGetPlatformPreferredApi();
     //}
 
-#if TODO
     // Run platform main loop.
-    PlatformRun();
-#endif
+    _platform->RunMainLoop();
 
     _running = false;
-    _exitRequested = false;
 }
 
 void Application::Tick()
 {
+    _timer.Tick();
+    DoUpdate();
     Render();
 }
 
 void Application::RequestExit()
 {
-    _exitRequested = true;
+    _platform->RequestExit();
 }
 
 void Application::DoUpdate()
 {
+    const float elapsedTime = float(_timer.GetElapsedSeconds());
+    ALIMER_UNUSED(elapsedTime);
+
+    Update();
 }
 
 void Application::InitBeforeRun()
 {
+    // We're ready, now init.
+    Initialize();
     _running = true;
-    _exitRequested = false;
 
     LOGI("{} Engine v{} initialized", ENGINE_NAME, ALIMER_VERSION_STR);
 }
 
 void Application::Render()
 {
+    // Don't try to render anything before the first Update.
+    if (_timer.GetFrameCount() == 0)
+    {
+        return;
+    }
 }
 
 bool Application::BeginDraw()

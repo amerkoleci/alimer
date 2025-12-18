@@ -4,22 +4,37 @@
 #pragma once
 
 #include "Alimer/Platform/Window.h"
-//#include "Alimer/Timer.h"
+#include "Alimer/Core/Timer.h"
 //#include "Alimer/Animations/AnimationSystem.h"
 //#include "Alimer/Scene/Scene.h"
 
 namespace Alimer
 {
+    struct WindowDesc final
+    {
+        std::string title = "Alimer";
+
+        //Int2 position = { WindowPositionCentered, WindowPositionCentered };
+        //SizeI size = { 1280, 720 };
+        uint32_t width = 1280;
+        uint32_t height = 720;
+        WindowFlags flags = WindowFlags::Resizable | WindowFlags::Hidden;
+    };
+
     struct AppOptions final
     {
         /// Application name.
         std::string name = "Alimer";
+        WindowDesc window;
     };
+
+    class AppPlatform;
 
     /// Class that provides graphics initialization, application logic, and rendering code.
     class ALIMER_API Application : public Object
     {
         ALIMER_OBJECT(Application, Object);
+        friend class AppPlatform;
 
     public:
         /// Occurs when the application is activated.
@@ -45,18 +60,16 @@ namespace Alimer
         /// Request exit application.
         void RequestExit();
 
+        /// Reset the elapsed time counter.
         void ResetElapsedTime();
 
         [[nodiscard]] const AppOptions& GetOptions() const { return _options; }
 
         /// Gets the main window.
-        [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
+        [[nodiscard]] Window* GetMainWindow() const;
 
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }
-
-        /// Gets the Scene Renderer.
-        //SceneRenderer* GetSceneRenderer() const { return _scene->GetRenderer(); }
 
     protected:
         /// Constructor.
@@ -64,7 +77,7 @@ namespace Alimer
 
         virtual void Setup() {}
         virtual void Initialize() {}
-        //virtual void Update([[maybe_unused]] const Timer& timer) {}
+        virtual void Update() {}
         //virtual void OnDraw([[maybe_unused]] GraphicsContext& context, [[maybe_unused]] const RenderPassDesc& mainRenderPass) {}
         virtual bool BeginDraw();
         virtual void EndDraw();
@@ -75,29 +88,16 @@ namespace Alimer
 
         AppOptions _options{};
         bool _running{ false };
-        bool _exitRequested{ false };
         bool _isActive{ false };
         bool _headless{ false };
-
-        /// Main scene.
-        //SceneRef _scene;
+        Timer _timer;
 
     private:
         void InitBeforeRun();
         void DoUpdate();
         void Render();
 
-        //bool PlatformInit();
-        //void PlatformShutdown();
-        //void PlatformRun();
-
         static Application* s_Instance;
-
-        std::unique_ptr<Window> _mainWindow;
-        // Rendering loop timer.
-        //Timer timer;
-
-        // Game systems
-        //std::unique_ptr<AnimationSystem> animationSystem;
+        AppPlatform* _platform = nullptr;
     };
 }

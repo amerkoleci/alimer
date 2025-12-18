@@ -5,14 +5,21 @@
 #include "Alimer/Platform/SDL/Window.SDL.h"
 #include <SDL3/SDL.h>
 
+namespace
+{
+    static uint32_t s_WindowCount = 0;
+}
+
 using namespace Alimer;
 
-WindowImpl::WindowImpl(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
+WindowSDL::WindowSDL(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
+    : _fullscreen(false)
 {
     SDL_WindowFlags sdl_flags = 0;
     if (CheckBitsAny(flags, WindowFlags::Fullscreen))
     {
         sdl_flags |= SDL_WINDOW_FULLSCREEN;
+        _fullscreen = true;
     }
     if (CheckBitsAny(flags, WindowFlags::Hidden))
     {
@@ -48,13 +55,111 @@ WindowImpl::WindowImpl(const std::string& title, uint32_t width, uint32_t height
         LOGE("Failed to create SDL windows");
         return;
     }
+
+    _id = SDL_GetWindowID(_handle);
+    s_WindowCount++;
 }
 
-WindowImpl::~WindowImpl()
+WindowSDL::~WindowSDL()
 {
     if (_handle != nullptr)
     {
         SDL_DestroyWindow(_handle);
         _handle = nullptr;
     }
+
+    s_WindowCount--;
+}
+
+void WindowSDL::SetTitle(std::string_view title)
+{
+    _title = title;
+    SDL_SetWindowTitle(_handle, _title.c_str());
+}
+
+void WindowSDL::Show()
+{
+    //CreateSwapChain();
+    SDL_ShowWindow(_handle);
+}
+
+void WindowSDL::Hide()
+{
+    SDL_HideWindow(_handle);
+}
+
+void WindowSDL::Maximize()
+{
+    SDL_MaximizeWindow(_handle);
+}
+
+void WindowSDL::Minimize()
+{
+    SDL_MinimizeWindow(_handle);
+}
+
+void WindowSDL::Restore()
+{
+    SDL_RestoreWindow(_handle);
+}
+
+bool WindowSDL::IsOpen() const
+{
+    return _handle != nullptr;
+}
+
+bool WindowSDL::IsMinimized() const
+{
+    return (SDL_GetWindowFlags(_handle) & SDL_WINDOW_MINIMIZED) != 0;
+}
+
+bool WindowSDL::IsFullscreen() const
+{
+    return (SDL_GetWindowFlags(_handle) & SDL_WINDOW_FULLSCREEN) != 0;
+}
+
+bool WindowSDL::IsFocused() const
+{
+    return (SDL_GetWindowFlags(_handle) & SDL_WINDOW_INPUT_FOCUS) != 0;
+}
+
+bool WindowSDL::IsCursorVisible() const
+{
+    return SDL_CursorVisible();
+}
+
+void WindowSDL::RequestFocus()
+{
+    SDL_RaiseWindow(_handle);
+}
+void WindowSDL::SetFullscreen(bool value)
+{
+    if (_fullscreen == value)
+        return;
+
+    if (!SDL_SetWindowFullscreen(_handle, value))
+    {
+        const char* result = SDL_GetError();
+        SDL_ClearError();
+        ::SDL_Log("%s", result);
+    }
+
+    _fullscreen = value;
+}
+
+void WindowSDL::SetCursorVisible(bool value)
+{
+    if (value)
+    {
+        SDL_ShowCursor();
+    }
+    else
+    {
+        SDL_HideCursor();
+    }
+}
+
+void WindowSDL::OnResized()
+{
+    OnClientSizeChanged();
 }

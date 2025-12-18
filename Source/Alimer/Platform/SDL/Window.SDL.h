@@ -9,18 +9,39 @@ struct SDL_Window;
 
 namespace Alimer
 {
-    class WindowImpl final
+    class WindowSDL final : public Window
     {
     public:
-        WindowImpl(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags);
-        ~WindowImpl();
+        WindowSDL(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags);
+        ~WindowSDL() override;
 
-        // Non-copyable and non-movable
-        ALIMER_DISABLE_COPY_MOVE(WindowImpl);
+        void SetTitle(std::string_view title)  override;
 
-        SDL_Window* GetHandle() const noexcept { return _handle; }
+        void Show() override;
+        void Hide() override;
+        void Maximize() override;
+        void Minimize() override;
+        void Restore() override;
+
+        bool IsOpen() const override;
+        bool IsMinimized() const override;
+        bool IsFullscreen() const override;
+        bool IsFocused() const override;
+        bool IsCursorVisible() const;
+
+        void RequestFocus() override;
+        void SetFullscreen(bool value) override;
+        void SetCursorVisible(bool value) override;
+
+        /// <summary>
+        /// Called by SDL resize event
+        /// </summary>
+        void OnResized();
+
+        [[nodiscard]] SDL_Window* GetHandle() const noexcept { return _handle; }
 
     private:
         SDL_Window* _handle;
+        bool _fullscreen;
     };
 }
