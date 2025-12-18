@@ -66,6 +66,15 @@ if (NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     define_engine_source_files(Platform/SDL NO_INSTALL)
 endif ()
 
+# RHI
+if (ALIMER_RHI_D3D12)
+    define_engine_source_files(RHI/D3D12 NO_INSTALL)
+endif()
+
+if (ALIMER_RHI_VULKAN)
+    define_engine_source_files(RHI/Vulkan NO_INSTALL)
+endif()
+
 group_sources()
 
 if (ALIMER_BUILD_SHARED)
