@@ -5,6 +5,7 @@
 
 #include "Alimer/Platform/Window.h"
 #include "Alimer/Core/Timer.h"
+#include "Alimer/RHI/RHI.h"
 //#include "Alimer/Animations/AnimationSystem.h"
 //#include "Alimer/Scene/Scene.h"
 
@@ -99,5 +100,7 @@ namespace Alimer
 
         static Application* s_Instance;
         AppPlatform* _platform = nullptr;
+        RHIFactoryRef _rhiFactory = nullptr;
+        RHIDevice* _rhiDevice = nullptr;
     };
 }

@@ -367,6 +367,7 @@ namespace Alimer
 
 #if defined(ALIMER_RHI_VULKAN)
     extern bool Vulkan_IsSupported();
+    extern RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc);
     extern RHIDevice* Vulkan_CreateDevice(const std::string& appName, const RHIDeviceDesc& desc);
 #endif
 #if defined(ALIMER_RHI_D3D12) && defined(TODO)
@@ -696,14 +697,55 @@ namespace Alimer
             return GraphicsAPI::Metal;
         }
 #endif
-#if defined(ALIMER_RHI_WEBGPU)
-        if (WGPU_IsSupported())
-        {
-            return GraphicsAPI::WebGPU;
-        }
-#endif
 
         return GraphicsAPI::Null;
+    }
+
+    RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc)
+    {
+        GraphicsAPI api = desc.preferredApi;
+        if (api == GraphicsAPI::Count)
+        {
+            api = RHIGetPlatformPreferredApi();
+        }
+
+        RHIFactoryRef factory;
+        switch (api)
+        {
+#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+            case GraphicsAPI::D3D12:
+                if (D3D12_IsSupported())
+                {
+                    GRHIDevice = D3D12_CreateDevice(appName, desc);
+                }
+                else
+                {
+                    LOGF("Direct3D12 is not supported on current OS");
+                    return false;
+                }
+                break;
+#endif
+
+#if defined(ALIMER_RHI_VULKAN)
+            case GraphicsAPI::Vulkan:
+                if (Vulkan_IsSupported())
+                {
+                    factory = Vulkan_CreateFactory(desc);
+                }
+                else
+                {
+                    LOGF("Vulkan is not supported on current OS");
+                    return nullptr;
+                }
+                break;
+#endif
+
+            default:
+                ALIMER_UNREACHABLE();
+                break;
+        }
+
+        return factory;
     }
 
     bool RHIInit(const std::string& appName, const RHIDeviceDesc& desc)
@@ -754,21 +796,6 @@ namespace Alimer
                 else
                 {
                     LOGF("Vulkan is not supported on current OS");
-                    return false;
-                }
-                break;
-#endif
-
-
-#if defined(ALIMER_RHI_WEBGPU)
-            case GraphicsAPI::WebGPU:
-                if (WGPU_IsSupported())
-                {
-                    GRHIDevice = WGPU_CreateDevice(appName, desc);
-                }
-                else
-                {
-                    LOGF("WGPU is not supported on current OS");
                     return false;
                 }
                 break;

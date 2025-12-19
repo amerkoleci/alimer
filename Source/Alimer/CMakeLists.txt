@@ -57,9 +57,11 @@ define_engine_source_files(
 
 # Platform/Private files (not installed)
 define_engine_source_files(
+    Private
     Platform/${ALIMER_PLATFORM_NAME}
     RHI/Private
-    NO_INSTALL)
+    NO_INSTALL
+)
 
 # SDL
 if (NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
@@ -222,7 +224,7 @@ endif ()
 target_link_libraries(${TARGET_NAME} PRIVATE
     stb
     lz4
-    #rapidjson
+    rapidjson
     #ktx
     #miniaudio
     #tinygltf

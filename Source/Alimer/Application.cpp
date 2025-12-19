@@ -101,6 +101,10 @@ void Application::DoUpdate()
 
 void Application::InitBeforeRun()
 {
+    // Create RHI factory and device.
+    RHIFactoryDesc factoryDesc{};
+    _rhiFactory = RHICreateFactory(factoryDesc);
+
     // We're ready, now init.
     Initialize();
     _running = true;

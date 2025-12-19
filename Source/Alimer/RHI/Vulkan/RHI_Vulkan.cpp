@@ -1623,8 +1623,6 @@ namespace Alimer
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "RHI_Vulkan_Funcs.h"
 
-        static bool IsSupported();
-
         VulkanDevice(const std::string& appName, const RHIDeviceDesc& desc);
         ~VulkanDevice() override;
 
@@ -1818,6 +1816,26 @@ namespace Alimer
         std::vector<std::unique_ptr<VulkanCommandContext>> commandBuffers;
         uint32_t cmdBuffersCount = 0;
         std::mutex cmdBuffersLocker;
+    };
+
+    class VulkanRHIFactory final : public RHIFactory
+    {
+    public:
+#define VULKAN_INSTANCE_FUNCTION(name) PFN_##name name = nullptr;
+#include "RHI_Vulkan_Funcs.h"
+
+        bool debugUtils{ false };
+        bool headless{ false };
+        bool xcb_surface{ false };
+        bool xlib_surface{ false };
+        bool wayland_surface{ false };
+        VkInstance instance = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
+
+        static bool IsSupported();
+
+        VulkanRHIFactory(const RHIFactoryDesc& desc);
+        ~VulkanRHIFactory() override;
     };
 
     /* VulkanBuffer */
@@ -3268,87 +3286,6 @@ namespace Alimer
     }
 
     /* VulkanDevice */
-    bool VulkanDevice::IsSupported()
-    {
-        static bool available_initialized = false;
-        static bool available = false;
-
-        if (available_initialized) {
-            return available;
-        }
-
-        available_initialized = true;
-#if defined(_WIN32)
-        HMODULE module = LoadLibraryA("vulkan-1.dll");
-        if (!module)
-            return false;
-
-        vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)GetProcAddress(module, "vkGetInstanceProcAddr");
-#elif defined(__APPLE__)
-        void* module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
-        if (!module)
-            module = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
-        if (!module)
-            module = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
-        // Add support for using Vulkan and MoltenVK in a Framework. App store rules for iOS
-        // strictly enforce no .dylib's. If they aren't found it just falls through
-        if (!module)
-            module = dlopen("vulkan.framework/vulkan", RTLD_NOW | RTLD_LOCAL);
-        if (!module)
-            module = dlopen("MoltenVK.framework/MoltenVK", RTLD_NOW | RTLD_LOCAL);
-        // modern versions of macOS don't search /usr/local/lib automatically contrary to what man dlopen says
-        // Vulkan SDK uses this as the system-wide installation location, so we're going to fallback to this if all else fails
-        if (!module && getenv("DYLD_FALLBACK_LIBRARY_PATH") == NULL)
-            module = dlopen("/usr/local/lib/libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
-        if (!module)
-            return false;
-
-        vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
-#else
-        void* module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
-        if (!module) {
-            module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
-        }
-        if (!module) {
-            return false;
-        }
-        vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
-#endif
-
-#define VULKAN_GLOBAL_FUNCTION(name) \
-    name = (PFN_##name)vkGetInstanceProcAddr(VK_NULL_HANDLE, #name); \
-    if (name == nullptr) { \
-        return false; \
-    }
-#include "RHI_Vulkan_Funcs.h"
-
-        // We require vulkan 1.2
-        uint32_t apiVersion;
-        if (vkEnumerateInstanceVersion(&apiVersion) != VK_SUCCESS)
-            return false;
-
-        // Check if the Vulkan API version is sufficient.
-        static constexpr uint32_t kMinimumVulkanVersion = VK_API_VERSION_1_2;
-        if (apiVersion < kMinimumVulkanVersion)
-        {
-            LOGW("The Vulkan API version supported on the system ({}.{}.{}) is too low, at least {}.{}.{} is required.",
-                VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion), VK_API_VERSION_PATCH(apiVersion),
-                VK_API_VERSION_MAJOR(kMinimumVulkanVersion), VK_API_VERSION_MINOR(kMinimumVulkanVersion), VK_API_VERSION_PATCH(kMinimumVulkanVersion)
-            );
-            return false;
-        }
-
-        // Spec says: A non-zero variant indicates the API is a variant of the Vulkan API and applications will typically need to be modified to run against it.
-        if (VK_API_VERSION_VARIANT(apiVersion) != 0)
-        {
-            LOGW("The Vulkan API supported on the system uses an unexpected variant: {}.", VK_API_VERSION_VARIANT(apiVersion));
-            return false;
-        }
-
-        available = true;
-        return true;
-    }
-
     VulkanDevice::VulkanDevice(const std::string& appName, const RHIDeviceDesc& desc)
     {
         VkResult result = VK_SUCCESS;
@@ -7746,9 +7683,380 @@ namespace Alimer
         freeList.push_back(context);
     }
 
+    /* VulkanRHIFactory */
+    bool VulkanRHIFactory::IsSupported()
+    {
+        static bool available_initialized = false;
+        static bool available = false;
+
+        if (available_initialized) {
+            return available;
+        }
+
+        available_initialized = true;
+#if defined(_WIN32)
+        HMODULE module = LoadLibraryA("vulkan-1.dll");
+        if (!module)
+            return false;
+
+        vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)GetProcAddress(module, "vkGetInstanceProcAddr");
+#elif defined(__APPLE__)
+        void* module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+        if (!module)
+            module = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
+        if (!module)
+            module = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+        // Add support for using Vulkan and MoltenVK in a Framework. App store rules for iOS
+        // strictly enforce no .dylib's. If they aren't found it just falls through
+        if (!module)
+            module = dlopen("vulkan.framework/vulkan", RTLD_NOW | RTLD_LOCAL);
+        if (!module)
+            module = dlopen("MoltenVK.framework/MoltenVK", RTLD_NOW | RTLD_LOCAL);
+        // modern versions of macOS don't search /usr/local/lib automatically contrary to what man dlopen says
+        // Vulkan SDK uses this as the system-wide installation location, so we're going to fallback to this if all else fails
+        if (!module && getenv("DYLD_FALLBACK_LIBRARY_PATH") == NULL)
+            module = dlopen("/usr/local/lib/libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+        if (!module)
+            return false;
+
+        vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
+#else
+        void* module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+        if (!module) {
+            module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+        }
+        if (!module) {
+            return false;
+        }
+        vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
+#endif
+
+#define VULKAN_GLOBAL_FUNCTION(name) \
+    name = (PFN_##name)vkGetInstanceProcAddr(VK_NULL_HANDLE, #name); \
+    if (name == nullptr) { \
+        return false; \
+    }
+#include "RHI_Vulkan_Funcs.h"
+
+        // We require vulkan 1.2
+        uint32_t apiVersion;
+        if (vkEnumerateInstanceVersion(&apiVersion) != VK_SUCCESS)
+            return false;
+
+        // Check if the Vulkan API version is sufficient.
+        static constexpr uint32_t kMinimumVulkanVersion = VK_API_VERSION_1_2;
+        if (apiVersion < kMinimumVulkanVersion)
+        {
+            LOGW("The Vulkan API version supported on the system ({}.{}.{}) is too low, at least {}.{}.{} is required.",
+                VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion), VK_API_VERSION_PATCH(apiVersion),
+                VK_API_VERSION_MAJOR(kMinimumVulkanVersion), VK_API_VERSION_MINOR(kMinimumVulkanVersion), VK_API_VERSION_PATCH(kMinimumVulkanVersion)
+            );
+            return false;
+        }
+
+        // Spec says: A non-zero variant indicates the API is a variant of the Vulkan API and applications will typically need to be modified to run against it.
+        if (VK_API_VERSION_VARIANT(apiVersion) != 0)
+        {
+            LOGW("The Vulkan API supported on the system uses an unexpected variant: {}.", VK_API_VERSION_VARIANT(apiVersion));
+            return false;
+        }
+
+        available = true;
+        return true;
+    }
+
+    VulkanRHIFactory::VulkanRHIFactory(const RHIFactoryDesc& desc)
+    {
+        // Enumerate available layers and extensions
+        uint32_t instanceLayerCount;
+        VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr));
+        std::vector<VkLayerProperties> availableInstanceLayers(instanceLayerCount);
+        VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, availableInstanceLayers.data()));
+
+        uint32_t extensionCount = 0;
+        VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr));
+        std::vector<VkExtensionProperties> availableInstanceExtensions(extensionCount);
+        VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableInstanceExtensions.data()));
+
+        std::vector<const char*> instanceLayers;
+        std::vector<const char*> instanceExtensions;
+
+        for (auto& availableExtension : availableInstanceExtensions)
+        {
+            if (strcmp(availableExtension.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+            {
+                debugUtils = true;
+                instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            }
+            else if (strcmp(availableExtension.extensionName, VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME) == 0)
+            {
+                instanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+            }
+            else if (strcmp(availableExtension.extensionName, VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME) == 0)
+            {
+                instanceExtensions.push_back(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME);
+            }
+            else if (strcmp(availableExtension.extensionName, VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME) == 0)
+            {
+                headless = true;
+                instanceExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+            }
+            else if (strcmp(availableExtension.extensionName, "VK_KHR_xcb_surface") == 0)
+            {
+                xcb_surface = true;
+            }
+            else if (strcmp(availableExtension.extensionName, "VK_KHR_xlib_surface") == 0)
+            {
+                xlib_surface = true;
+            }
+            else if (strcmp(availableExtension.extensionName, "VK_KHR_wayland_surface") == 0)
+            {
+                wayland_surface = true;
+            }
+        }
+
+        instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+        // Enable surface extensions depending on os
+#if defined(_WIN32)
+        instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#elif defined(__ANDROID__)
+        instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(__APPLE__)
+        instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+        instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+
+        // https://vulkan.lunarg.com/doc/view/1.3.280.0/windows/synchronization2_layer.html
+        // https://vulkan.lunarg.com/doc/view/latest/windows/shader_object_layer.html
+        for (auto& availableLayer : availableInstanceLayers)
+        {
+            if (strcmp(availableLayer.layerName, "VK_LAYER_KHRONOS_synchronization2") == 0)
+            {
+                instanceLayers.push_back("VK_LAYER_KHRONOS_synchronization2");
+                break;
+            }
+        }
+#else
+        if (xcb_surface)
+        {
+            instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+        }
+        else
+        {
+            ALIMER_ASSERT(xlib_surface);
+            instanceExtensions.push_back("VK_KHR_xlib_surface");
+        }
+
+        if (wayland_surface)
+        {
+            instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+        }
+#endif
+
+        if (desc.validationMode != ValidationMode::Disabled)
+        {
+            // Determine the optimal validation layers to enable that are necessary for useful debugging
+            std::vector<const char*> optimalValidationLyers = GetOptimalValidationLayers(availableInstanceLayers);
+            instanceLayers.insert(instanceLayers.end(), optimalValidationLyers.begin(), optimalValidationLyers.end());
+        }
+
+        bool validationFeatures = false;
+        if (desc.validationMode == ValidationMode::GPU)
+        {
+            uint32_t layerInstanceExtensionCount;
+            VK_CHECK(vkEnumerateInstanceExtensionProperties("VK_LAYER_KHRONOS_validation", &layerInstanceExtensionCount, nullptr));
+            std::vector<VkExtensionProperties> availableLayerInstanceExtensions(layerInstanceExtensionCount);
+            VK_CHECK(vkEnumerateInstanceExtensionProperties("VK_LAYER_KHRONOS_validation", &layerInstanceExtensionCount, availableLayerInstanceExtensions.data()));
+
+            for (auto& availableExtension : availableLayerInstanceExtensions)
+            {
+                if (strcmp(availableExtension.extensionName, VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == 0)
+                {
+                    validationFeatures = true;
+                    instanceExtensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+                }
+            }
+        }
+
+        uint32_t instanceApiVersion;
+        VK_CHECK(vkEnumerateInstanceVersion(&instanceApiVersion));
+
+        VkApplicationInfo appInfo = {};
+        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName = desc.label.data();
+        appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+        appInfo.pEngineName = ENGINE_NAME;
+        appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
+        // Target Vulkan 1.4 if available.
+        appInfo.apiVersion = std::max(VK_API_VERSION_1_3, std::min(VK_API_VERSION_1_4, instanceApiVersion));
+
+        VkInstanceCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        createInfo.pApplicationInfo = &appInfo;
+#if defined(__APPLE__)
+        createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+        createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
+        createInfo.ppEnabledLayerNames = instanceLayers.data();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
+        createInfo.ppEnabledExtensionNames = instanceExtensions.data();
+
+        VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
+
+        if (desc.validationMode != ValidationMode::Disabled && debugUtils)
+        {
+            debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+            debugUtilsCreateInfo.messageSeverity =
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+            debugUtilsCreateInfo.messageType =
+                //VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+            if (desc.validationMode == ValidationMode::Verbose)
+            {
+                debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+                debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+            }
+
+            debugUtilsCreateInfo.pfnUserCallback = DebugUtilsMessengerCallback;
+            createInfo.pNext = &debugUtilsCreateInfo;
+        }
+
+        VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
+        if (desc.validationMode == ValidationMode::GPU && validationFeatures)
+        {
+            static const VkValidationFeatureEnableEXT enable_features[2] = {
+                VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+                VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+            };
+            validationFeaturesInfo.enabledValidationFeatureCount = 2;
+            validationFeaturesInfo.pEnabledValidationFeatures = enable_features;
+            PnextChainPushFront(&createInfo, &validationFeaturesInfo);
+        }
+
+        VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create Vulkan instance.");
+            return;
+        }
+
+#define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(instance, #fn);
+#include "RHI_Vulkan_Funcs.h"
+
+        if (desc.validationMode != ValidationMode::Disabled && debugUtils)
+        {
+            result = vkCreateDebugUtilsMessengerEXT(instance, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger);
+            if (result != VK_SUCCESS)
+            {
+                VK_LOG_ERROR(result, "Could not create debug utils messenger");
+            }
+        }
+
+#ifdef _DEBUG
+        LOGI("Created VkInstance with version: {}.{}.{}",
+            VK_VERSION_MAJOR(appInfo.apiVersion),
+            VK_VERSION_MINOR(appInfo.apiVersion),
+            VK_VERSION_PATCH(appInfo.apiVersion)
+        );
+
+        if (createInfo.enabledLayerCount)
+        {
+            LOGI("Enabled {} Validation Layers:", createInfo.enabledLayerCount);
+
+            for (uint32_t i = 0; i < createInfo.enabledLayerCount; ++i)
+            {
+                LOGI("	\t{}", createInfo.ppEnabledLayerNames[i]);
+            }
+        }
+
+        LOGI("Enabled {} Instance Extensions:", createInfo.enabledExtensionCount);
+        for (uint32_t i = 0; i < createInfo.enabledExtensionCount; ++i)
+        {
+            LOGI("	\t{}", createInfo.ppEnabledExtensionNames[i]);
+        }
+#endif
+
+#if TODO_DEVICES
+        // Enumerate physical device and detect best one.
+        uint32_t physicalDeviceCount = 0;
+        VK_CHECK(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr));
+        if (physicalDeviceCount == 0)
+        {
+            LOGE("Vulkan: Failed to find GPUs with Vulkan support");
+            return;
+        }
+
+        std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+        VK_CHECK(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data()));
+
+        for (const VkPhysicalDevice& candidatePhysicalDevice : physicalDevices)
+        {
+            // We require minimum 1.2
+            VkPhysicalDeviceProperties2 physicalDeviceProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+            vkGetPhysicalDeviceProperties2(candidatePhysicalDevice, &physicalDeviceProperties);
+            if (physicalDeviceProperties.properties.apiVersion < VK_API_VERSION_1_2)
+            {
+                continue;
+            }
+
+            PhysicalDeviceExtensions physicalDeviceExt = QueryPhysicalDeviceExtensions(candidatePhysicalDevice);
+            if (!physicalDeviceExt.swapchain)
+            {
+                continue;
+            }
+
+            QueueFamilyIndices queueFamilyIndices = QueryQueueFamilies(candidatePhysicalDevice, physicalDeviceExtensions.video.queue);
+            if (!queueFamilyIndices.IsComplete())
+            {
+                continue;
+            }
+
+
+            bool priority = physicalDeviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+            if (desc.powerPreference == GPUPowerPreference::LowPower)
+            {
+                priority = physicalDeviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+            }
+
+            if (priority || _physicalDevice == VK_NULL_HANDLE)
+            {
+                _physicalDevice = candidatePhysicalDevice;
+                if (priority)
+                {
+                    // If this is prioritized GPU type, look no further
+                    break;
+                }
+            }
+        }
+#endif // TODO_DEVICES
+
+    }
+
+    VulkanRHIFactory::~VulkanRHIFactory()
+    {
+
+    }
+
     bool Vulkan_IsSupported()
     {
-        return VulkanDevice::IsSupported();
+        return VulkanRHIFactory::IsSupported();
+    }
+
+    RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc)
+    {
+        if (!VulkanRHIFactory::IsSupported())
+        {
+            LOGE("Vulkan is not supported on this system.");
+            return nullptr;
+        }
+
+
+        SharedPtr<VulkanRHIFactory> factory(new VulkanRHIFactory(desc));
+        return factory;
     }
 
     RHIDevice* Vulkan_CreateDevice(const std::string& appName, const RHIDeviceDesc& desc)

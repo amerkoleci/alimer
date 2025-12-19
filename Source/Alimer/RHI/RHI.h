@@ -660,6 +660,8 @@ namespace Alimer
     class RHISwapChain;
     class RHIQueryHeap;
     class RHIDevice;
+    class RHIAdapter;
+    class RHIFactory;
 
     using RHIBufferRef = SharedPtr<RHIBuffer>;
     using RHITextureRef = SharedPtr<RHITexture>;
@@ -673,6 +675,7 @@ namespace Alimer
     using RHIQueryHeapRef = SharedPtr<RHIQueryHeap>;
     using RHISwapChainRef = SharedPtr<RHISwapChain>;
     using RHICommandQueueRef = SharedPtr<RHICommandQueue>;
+    using RHIFactoryRef = SharedPtr<RHIFactory>;
 
     /* Structs */
     union ClearColorValue
@@ -1088,6 +1091,13 @@ namespace Alimer
         std::string_view label;
         GraphicsAPI preferredApi = GraphicsAPI::Count;
         GPUPowerPreference powerPreference = GPUPowerPreference::HighPerformance;
+        ValidationMode validationMode = ValidationMode::Disabled;
+    };
+
+    struct RHIFactoryDesc
+    {
+        std::string_view label;
+        GraphicsAPI preferredApi = GraphicsAPI::Count;
         ValidationMode validationMode = ValidationMode::Disabled;
     };
 
@@ -1765,11 +1775,23 @@ namespace Alimer
         Vector<RHISamplerRef> staticSamplers;
     };
 
+
+    class ALIMER_API RHIAdapter : public RHIObject
+    {
+    };
+
+
+
+    class ALIMER_API RHIFactory : public RHIObject
+    {
+    };
+
     /** A global pointer to the RHI device. */
     extern ALIMER_API RHIDevice* GRHIDevice;
 
     ALIMER_API bool RHIIsSupported(GraphicsAPI backend);
     ALIMER_API GraphicsAPI RHIGetPlatformPreferredApi();
+    ALIMER_API RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc);
     ALIMER_API bool RHIInit(const std::string& appName, const RHIDeviceDesc& desc);
     ALIMER_API void RHIShutdown();
 

@@ -3,12 +3,11 @@
 
 #include "Alimer/IO/Stream.h"
 #include "Alimer/Core/StringId.h"
-#include "Alimer/Math/MathHelper.h"
-//#include "Alimer/Math/Vector4.h"
-//#include "Alimer/Math/Quaternion.h"
+#include "Alimer/Math/Vector4.h"
+#include "Alimer/Math/Quaternion.h"
 //#include "Alimer/Math/Rect.h"
-//#include "Alimer/Assets/AssetRef.h"
-//#include "Alimer/Assets/JsonValue.h"
+#include "Alimer/Assets/AssetRef.h"
+#include "Alimer/Assets/JsonValue.h"
 
 using namespace Alimer;
 
@@ -210,7 +209,6 @@ UUID Stream::ReadUUID()
     Read(&ret, sizeof ret);
     return ret;
 }
-#if TODO
 
 Vector2 Stream::ReadVector2()
 {
@@ -240,6 +238,7 @@ Quaternion Stream::ReadQuaternion()
     return Quaternion(data);
 }
 
+#if TODO
 Rect Stream::ReadRect()
 {
     int32_t data[4];
@@ -253,6 +252,7 @@ RectF Stream::ReadRectF()
     Read(data, sizeof data);
     return RectF(data[0], data[1], data[2], data[3]);
 }
+#endif // TODO
 
 AssetRef Stream::ReadAssetRef()
 {
@@ -267,7 +267,6 @@ JsonValue Stream::ReadJsonValue()
     ret.FromBinary(*this);
     return ret;
 }
-#endif // TODO
 
 
 bool Stream::Write(uint8_t value)
@@ -431,7 +430,6 @@ bool Stream::WriteLine(const std::string& value)
     return success;
 }
 
-#if TODO
 bool Stream::WriteVector2(const Vector2& value)
 {
     return Write(&value.x, sizeof(Vector2)) == sizeof(Vector2);
@@ -462,4 +460,3 @@ void Stream::Write(const JsonValue& value)
     value.ToBinary(*this);
 }
 
-#endif // #if TODO

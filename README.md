@@ -23,3 +23,4 @@ Uses the following open-source and third-party libraries:
 - [D3D12MemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator): Direct3D 12 Memory Allocator
 - [JoltPhysics](https://github.com/jrouwe/JoltPhysics): A multi core friendly rigid body physics and collision detection library
 - [Metal-cpp](https://developer.apple.com/metal/cpp/): Metal-cpp is a low-overhead C++ interface for Metal
+- [RapidJSON ](https://rapidjson.org/): A fast JSON parser/generator for C++ with both SAX/DOM style API
