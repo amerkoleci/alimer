@@ -633,7 +633,7 @@ Matrix4x4 Matrix4x4::CreatePerspectiveInfiniteReverseZ(float fieldOfView, float 
     const float width = height / aspectRatio;
 
     Matrix4x4 result;
-#if defined(ALIMER_USE_SSE)
+#if defined(ALIMER_USE_SSE4_1)
     __m128 vTemp = _mm_setr_ps(width, height, 0.0f, zNearPlane);
     const __m128 vOne = _mm_set1_ps(-1.0f);
 
@@ -642,6 +642,17 @@ Matrix4x4 Matrix4x4::CreatePerspectiveInfiniteReverseZ(float fieldOfView, float 
     simdMatrix.row[1] = _mm_insert_ps(vTemp, vTemp, 0xd);
     simdMatrix.row[2] = _mm_insert_ps(vTemp, vOne, 0x33);
     simdMatrix.row[3] = _mm_insert_ps(vTemp, vTemp, 0xeb);
+    simd_float4x4_store(simdMatrix, &result);
+#elif defined(ALIMER_USE_SSE)
+    __m128 vTemp = _mm_setr_ps(width, height, 0.0f, zNearPlane);
+    const __m128 vOne = _mm_set1_ps(-1.0f);
+    const __m128 vZero = _mm_setzero_ps();
+
+    simd_float4x4 simdMatrix;
+    simdMatrix.row[0] = _mm_setr_ps(width, 0.0f, 0.0f, 0.0f);
+    simdMatrix.row[1] = _mm_setr_ps(0.0f, height, 0.0f, 0.0f);
+    simdMatrix.row[2] = _mm_setr_ps(0.0f, 0.0f, 0.0f, -1.0f);
+    simdMatrix.row[3] = _mm_setr_ps(0.0f, 0.0f, zNearPlane, 0.0f);
     simd_float4x4_store(simdMatrix, &result);
 #else
     result.m11 = width;

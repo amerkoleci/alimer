@@ -216,13 +216,13 @@ void Quaternion::Slerp(const Quaternion& q1, const Quaternion& q2, float amount,
     }
     else
     {
-        float omega = std::acosf(cosOmega);
-        float invSinOmega = 1 / std::sinf(omega);
+        float omega = acosf(cosOmega);
+        float invSinOmega = 1 / sinf(omega);
 
-        s1 = std::sinf((1.0f - t) * omega) * invSinOmega;
+        s1 = sinf((1.0f - t) * omega) * invSinOmega;
         s2 = (flip)
-            ? -std::sinf(t * omega) * invSinOmega
-            : std::sinf(t * omega) * invSinOmega;
+            ? -sinf(t * omega) * invSinOmega
+            : sinf(t * omega) * invSinOmega;
     }
 
     result.x = s1 * q1.x + s2 * q2.x;
