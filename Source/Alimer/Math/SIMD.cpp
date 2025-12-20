@@ -24,7 +24,7 @@ namespace Alimer
 #if defined(ALIMER_USE_NEON)
         float32x2_t VL = vget_low_f32(vector);
         vst1_f32(reinterpret_cast<float*>(pDestination), VL);
-        vst1q_lane_f32(reinterpret_cast<float*>(pDestination) + 2, V, 2);
+        vst1q_lane_f32(reinterpret_cast<float*>(pDestination) + 2, vector, 2);
 #elif defined(ALIMER_USE_SSE4_1)
         * reinterpret_cast<int*>(&pDestination->x) = _mm_extract_ps(vector, 0);
         *reinterpret_cast<int*>(&pDestination->y) = _mm_extract_ps(vector, 1);

@@ -103,7 +103,11 @@ void Application::InitBeforeRun()
 {
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};
-    _rhiFactory = RHICreateFactory(factoryDesc);
+#if defined(_DEBUG)
+    factoryDesc.validationMode = ValidationMode::Enabled;
+#endif
+    _rhiFactory = RHIFactory::Create(factoryDesc);
+    _rhiAdapter = _rhiFactory->GetBestAdapter();
 
     // We're ready, now init.
     Initialize();

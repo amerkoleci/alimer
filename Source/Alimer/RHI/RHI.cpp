@@ -368,11 +368,10 @@ namespace Alimer
 #if defined(ALIMER_RHI_VULKAN)
     extern bool Vulkan_IsSupported();
     extern RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc);
-    extern RHIDevice* Vulkan_CreateDevice(const std::string& appName, const RHIDeviceDesc& desc);
 #endif
 #if defined(ALIMER_RHI_D3D12) && defined(TODO)
     extern bool D3D12_IsSupported();
-    extern RHIDevice* D3D12_CreateDevice(const std::string& appName, const RHIDeviceDesc& desc);
+    extern RHIFactoryRef D3D12_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
     bool RHIIsSupported(GraphicsAPI backend)
@@ -399,7 +398,7 @@ namespace Alimer
         }
     }
 
-    RHIDevice* GRHIDevice = nullptr;
+    RHIDeviceRef GRHIDevice;
 
     RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
@@ -677,6 +676,7 @@ namespace Alimer
         return CreateSwapChainCore(surface, desc);
     }
 
+    /* RHIFactory */
     GraphicsAPI RHIGetPlatformPreferredApi()
     {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
@@ -701,7 +701,7 @@ namespace Alimer
         return GraphicsAPI::Null;
     }
 
-    RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc)
+    RHIFactoryRef RHIFactory::Create(const RHIFactoryDesc& desc)
     {
         GraphicsAPI api = desc.preferredApi;
         if (api == GraphicsAPI::Count)
@@ -748,64 +748,41 @@ namespace Alimer
         return factory;
     }
 
-    bool RHIInit(const std::string& appName, const RHIDeviceDesc& desc)
+    RHIAdapter* RHIFactory::GetBestAdapter() const
+    {
+        RHIAdapter* adapter = nullptr;
+        uint32_t kind = (uint32_t)AdapterType::Other + 1;
+        for (size_t i = 0, count = _adapters.size(); i < count; ++i)
+        {
+            RHIAdapter* item = _adapters[i];
+
+            if ((uint32_t)item->GetType() < kind)
+            {
+                adapter = item;
+                kind = (uint32_t)item->GetType();
+            }
+        }
+
+        return adapter;
+    }
+
+    uint32_t RHIFactory::GetAdapterCount() const
+    {
+        return (uint32_t)_adapters.size();
+    }
+
+    RHIAdapter* RHIFactory::GetAdapter(uint32_t index) const
+    {
+        ALIMER_ASSERT(index < _adapters.size());
+        return _adapters[index];
+    }
+
+    bool RHIInit(RHIAdapter* adapter, const RHIDeviceDesc& desc)
     {
         if (GRHIDevice != nullptr)
             return true;
 
-        GraphicsAPI api = desc.preferredApi;
-        if (api == GraphicsAPI::Count)
-        {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            if (D3D12_IsSupported())
-            {
-                api = GraphicsAPI::D3D12;
-            }
-#endif
-
-#if defined(ALIMER_RHI_VULKAN)
-            if (Vulkan_IsSupported())
-            {
-                api = GraphicsAPI::Vulkan;
-            }
-#endif
-        }
-
-        switch (api)
-        {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            case GraphicsAPI::D3D12:
-                if (D3D12_IsSupported())
-                {
-                    GRHIDevice = D3D12_CreateDevice(appName, desc);
-                }
-                else
-                {
-                    LOGF("Direct3D12 is not supported on current OS");
-                    return false;
-                }
-                break;
-#endif
-
-#if defined(ALIMER_RHI_VULKAN)
-            case GraphicsAPI::Vulkan:
-                if (Vulkan_IsSupported())
-                {
-                    GRHIDevice = Vulkan_CreateDevice(appName, desc);
-                }
-                else
-                {
-                    LOGF("Vulkan is not supported on current OS");
-                    return false;
-                }
-                break;
-#endif
-
-            default:
-                ALIMER_UNREACHABLE();
-                break;
-        }
-
+        GRHIDevice = adapter->CreateDevice(desc);
         return GRHIDevice != nullptr;
     }
 
@@ -1078,9 +1055,12 @@ namespace Alimer
         {
             // Blend state initialization
             {
-                BlendState blendDesc;
+                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Opaque)];
                 BlendStateDescs[ecast(CommonBlendState::Opaque)] = blendDesc;
+            }
 
+            {
+                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Transparent)];
                 blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::SourceAlpha;
                 blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::OneMinusSourceAlpha;
                 blendDesc.renderTargets[0].colorBlendOp = BlendOperation::Add;
@@ -1088,8 +1068,10 @@ namespace Alimer
                 blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::Zero;
                 blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
                 blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-                BlendStateDescs[ecast(CommonBlendState::Transparent)] = blendDesc;
+            }
 
+            {
+                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Premultiplied)];
                 //blendDesc.renderTargets[0].blendEnable = true;
                 blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::One;
                 blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::OneMinusSourceAlpha;
@@ -1098,8 +1080,10 @@ namespace Alimer
                 blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::OneMinusSourceAlpha;
                 blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
                 blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-                BlendStateDescs[ecast(CommonBlendState::Premultiplied)] = blendDesc;
+            }
 
+            {
+                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Additive)];
                 //blendDesc.renderTargets[0].blendEnable = true;
                 blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::SourceAlpha;
                 blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::One;
@@ -1108,12 +1092,15 @@ namespace Alimer
                 blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::One;
                 blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
                 blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-                BlendStateDescs[ecast(CommonBlendState::Additive)] = blendDesc;
+            }
 
-                blendDesc = {};
+            {
+                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::ColorWriteDisable)];
                 blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::None;
-                BlendStateDescs[ecast(CommonBlendState::ColorWriteDisable)] = blendDesc;
+            }
 
+            {
+                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Multiply)];
                 //blendDesc.renderTargets[0].blendEnable = true;
                 blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::DestinationColor;
                 blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::Zero;
@@ -1122,17 +1109,6 @@ namespace Alimer
                 blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::Zero;
                 blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
                 blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-                BlendStateDescs[ecast(CommonBlendState::Multiply)] = blendDesc;
-
-                //blendDesc.renderTargets[0].blendEnable = true;
-                blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::Zero;
-                blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::SourceColor;
-                blendDesc.renderTargets[0].colorBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].srcAlphaBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Max;
-                blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-                BlendStateDescs[ecast(CommonBlendState::TransparentShadow)] = blendDesc;
             }
 
             // RasterizerState initialization

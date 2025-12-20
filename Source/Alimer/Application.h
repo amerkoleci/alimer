@@ -101,6 +101,7 @@ namespace Alimer
         static Application* s_Instance;
         AppPlatform* _platform = nullptr;
         RHIFactoryRef _rhiFactory = nullptr;
+        RHIAdapter* _rhiAdapter = nullptr;
         RHIDevice* _rhiDevice = nullptr;
     };
 }

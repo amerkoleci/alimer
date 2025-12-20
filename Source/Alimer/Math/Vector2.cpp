@@ -28,8 +28,7 @@ Vector2::Vector2(simd_float4_param xy)
 {
     // XMStoreFloat2
 #if defined(ALIMER_USE_NEON)
-    float32x2_t VL = vget_low_f32(xy);
-    vst1_f32(reinterpret_cast<float*>(pDestination), VL);
+    vst1_f32(reinterpret_cast<float*>(this), vget_low_f32(xy));
 #elif defined(ALIMER_USE_SSE)
     _mm_store_sd(reinterpret_cast<double*>(this), _mm_castps_pd(xy));
 #endif
@@ -245,7 +244,7 @@ size_t Vector2::GetHashCode() const
 std::string Vector2::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%g %g", x, y);
+    snprintf(tempBuffer, kConversionBufferLength, "%g %g", x, y);
     return std::string(tempBuffer);
 }
 
@@ -258,7 +257,7 @@ const Int2 Int2::UnitY = { 0, 1 };
 std::string Int2::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%d %d", x, y);
+    snprintf(tempBuffer, kConversionBufferLength, "%d %d", x, y);
     return std::string(tempBuffer);
 }
 
@@ -271,7 +270,7 @@ const UInt2 UInt2::UnitY = { 0u, 1u };
 std::string UInt2::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%u %u", x, y);
+    snprintf(tempBuffer, kConversionBufferLength, "%u %u", x, y);
     return std::string(tempBuffer);
 }
 

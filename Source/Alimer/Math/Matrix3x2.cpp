@@ -64,7 +64,7 @@ float Matrix3x2::Determinant() const noexcept
 std::string Matrix3x2::ToString() const
 {
     char tempBuffer[kMatrixConversionBufferLength];
-    sprintf(tempBuffer, "%g %g %g %g %g %g", m11, m12, m21, m22, m31, m32);
+    snprintf(tempBuffer, kMatrixConversionBufferLength, "%g %g %g %g %g %g", m11, m12, m21, m22, m31, m32);
     return std::string(tempBuffer);
 }
 

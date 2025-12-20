@@ -67,6 +67,7 @@ ALIMER_ENABLE_WARNINGS()
 static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
 
 #define VULKAN_GLOBAL_FUNCTION(name) static PFN_##name name = nullptr;
+// TODO: remove once migrate to RHIFactory
 #define VULKAN_INSTANCE_FUNCTION(name) static PFN_##name name = nullptr;
 #include "RHI_Vulkan_Funcs.h"
 
@@ -973,7 +974,11 @@ namespace Alimer
         uint64_t allocatedSize{};
         VkDeviceAddress deviceAddress{};
         void* pMappedData{ nullptr };
+#if defined(_WIN32)
         void* sharedHandle = nullptr;
+#else
+        int sharedHandle = 0;
+#endif
 
         explicit VulkanBuffer(VulkanDevice* device_, const BufferDesc& desc_)
             : RHIBuffer(desc_)
@@ -1004,7 +1009,11 @@ namespace Alimer
         //void* pMappedData{ nullptr };
         uint32_t numSubResources = 0;
         mutable std::vector<TextureLayout> imageLayouts;
+#if defined(_WIN32)
         void* sharedHandle = nullptr;
+#else
+        int sharedHandle = 0;
+#endif
 
         explicit VulkanTexture(VulkanDevice* device_, const TextureDesc& desc)
             : RHITexture(desc)
@@ -1818,6 +1827,85 @@ namespace Alimer
         std::mutex cmdBuffersLocker;
     };
 
+    class VulkanRHIFactory;
+
+    class VulkanRHIAdapter final : public RHIAdapter
+    {
+    public:
+        VulkanRHIFactory* factory;
+        VkPhysicalDevice handle;
+        PhysicalDeviceExtensions extensions;
+        QueueFamilyIndices queueFamilyIndices;
+        bool synchronization2;
+        bool dynamicRendering;
+        std::string driverDescription;
+        bool supportsDepth32Stencil8 = false;
+        bool supportsDepth24Stencil8 = false;
+        bool supportsStencil8 = false;
+
+
+        // Features
+        VkPhysicalDeviceFeatures2 features2 = {};
+        VkPhysicalDeviceVulkan11Features features11 = {};
+        VkPhysicalDeviceVulkan12Features features12 = {};
+        VkPhysicalDeviceVulkan13Features features13 = {};
+        VkPhysicalDeviceVulkan14Features features14 = {};
+
+        // Core 1.3
+        VkPhysicalDeviceMaintenance4Features maintenance4Features = {};
+        VkPhysicalDeviceMaintenance4Properties maintenance4Properties = {};
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {};
+        VkPhysicalDeviceSynchronization2Features synchronization2Features = {};
+        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures = {};
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = {};
+
+        // Core 1.4
+        VkPhysicalDeviceMaintenance5Features maintenance5Features = {};
+        VkPhysicalDeviceMaintenance6Features maintenance6Features = {};
+        VkPhysicalDeviceMaintenance6Properties maintenance6Properties = {};
+        VkPhysicalDevicePushDescriptorProperties pushDescriptorProps = {};
+
+        // Extensions
+        VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures{};
+        VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures{};
+        VkPhysicalDeviceHostQueryResetFeatures hostQueryResetFeatures = {};
+        VkPhysicalDeviceTextureCompressionASTCHDRFeatures astcHdrFeatures{};
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{};
+        VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures{};
+        VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
+        VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures{};
+
+        // Properties
+        VkPhysicalDeviceProperties2 properties2 = {};
+        VkPhysicalDeviceVulkan11Properties properties11 = {};
+        VkPhysicalDeviceVulkan12Properties properties12 = {};
+        VkPhysicalDeviceVulkan13Properties properties13 = {};
+        VkPhysicalDeviceVulkan14Properties properties14 = {};
+        VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = {};
+        VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = {};
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProps = {};
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = {};
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = {};
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = {};
+        VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = {};
+        VkPhysicalDeviceMemoryProperties2 memoryProperties2;
+
+        VulkanRHIAdapter(VulkanRHIFactory* factory_, VkPhysicalDevice handle_);
+        bool Init();
+
+        RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) override;
+
+        VkFormat ToVkFormat(PixelFormat format);
+        bool IsDepthStencilFormatSupported(VkFormat format) const;
+
+        AdapterType GetType() const override { return _type; }
+
+    private:
+        AdapterType _type = AdapterType::Other;
+    };
+
     class VulkanRHIFactory final : public RHIFactory
     {
     public:
@@ -1829,13 +1917,17 @@ namespace Alimer
         bool xcb_surface{ false };
         bool xlib_surface{ false };
         bool wayland_surface{ false };
-        VkInstance instance = VK_NULL_HANDLE;
+        VkInstance handle = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
 
         static bool IsSupported();
 
         VulkanRHIFactory(const RHIFactoryDesc& desc);
         ~VulkanRHIFactory() override;
+
+        PhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice);
+        QueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue);
+        bool GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
     };
 
     /* VulkanBuffer */
@@ -7683,6 +7775,403 @@ namespace Alimer
         freeList.push_back(context);
     }
 
+    /* VulkanRHIAdapter */
+    VulkanRHIAdapter::VulkanRHIAdapter(VulkanRHIFactory* factory_, VkPhysicalDevice handle_)
+        : factory(factory_)
+        , handle(handle_)
+    {
+
+    }
+
+    bool VulkanRHIAdapter::Init()
+    {
+        extensions = factory->QueryPhysicalDeviceExtensions(handle);
+        queueFamilyIndices = factory->QueryQueueFamilies(handle, extensions.video.queue);
+
+        // Get current base properties
+        properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        factory->vkGetPhysicalDeviceProperties2(handle, &properties2);
+
+        VkBaseOutStructure* featureChainCurrent{ nullptr };
+        auto addToFeatureChain = [&featureChainCurrent](auto* next) {
+            auto n = reinterpret_cast<VkBaseOutStructure*>(next);
+            featureChainCurrent->pNext = n;
+            featureChainCurrent = n;
+            };
+
+        VkBaseOutStructure* propertiesChainCurrent{ nullptr };
+        auto addToPropertiesChain = [&propertiesChainCurrent](auto* next) {
+            auto n = reinterpret_cast<VkBaseOutStructure*>(next);
+            propertiesChainCurrent->pNext = n;
+            propertiesChainCurrent = n;
+            };
+
+        // Features
+        features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+        features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+        properties11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
+        properties12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
+
+        featureChainCurrent = reinterpret_cast<VkBaseOutStructure*>(&features2);
+        propertiesChainCurrent = reinterpret_cast<VkBaseOutStructure*>(&properties2);
+
+        addToFeatureChain(&features11);
+        addToFeatureChain(&features12);
+        addToPropertiesChain(&properties11);
+        addToPropertiesChain(&properties12);
+
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
+        {
+            features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+            properties13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
+
+            addToFeatureChain(&features13);
+            addToPropertiesChain(&properties13);
+        }
+
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_4)
+        {
+            features14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
+            properties14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES;
+
+            addToFeatureChain(&features14);
+            addToPropertiesChain(&properties14);
+        }
+
+        // Properties
+        samplerFilterMinmaxProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES;
+        depthStencilResolveProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES;
+
+        addToPropertiesChain(&samplerFilterMinmaxProperties);
+        addToPropertiesChain(&depthStencilResolveProperties);
+
+        // Core in 1.3
+        if (properties2.properties.apiVersion < VK_API_VERSION_1_3)
+        {
+            if (extensions.maintenance4)
+            {
+                maintenance4Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES;
+                maintenance4Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES;
+
+                addToFeatureChain(&maintenance4Features);
+                addToPropertiesChain(&maintenance4Properties);
+            }
+
+            if (extensions.dynamicRendering)
+            {
+                dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+                addToFeatureChain(&dynamicRenderingFeatures);
+            }
+
+            if (extensions.synchronization2)
+            {
+                synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+                addToFeatureChain(&synchronization2Features);
+            }
+
+            if (extensions.extendedDynamicState)
+            {
+                extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+                addToFeatureChain(&extendedDynamicStateFeatures);
+            }
+
+            if (extensions.extendedDynamicState2)
+            {
+                extendedDynamicState2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+                addToFeatureChain(&extendedDynamicState2Features);
+            }
+
+            if (extensions.textureCompressionAstcHdr)
+            {
+                astcHdrFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES;
+                addToFeatureChain(&astcHdrFeatures);
+            }
+        }
+        else
+        {
+            // Core in 1.4
+            if (properties2.properties.apiVersion < VK_API_VERSION_1_4)
+            {
+                if (extensions.maintenance5)
+                {
+                    maintenance5Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES;
+                    addToFeatureChain(&maintenance5Features);
+                }
+
+                if (extensions.maintenance6)
+                {
+                    maintenance6Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES;
+                    maintenance6Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_PROPERTIES;
+
+                    addToFeatureChain(&maintenance6Features);
+                    addToPropertiesChain(&maintenance6Properties);
+                }
+
+                if (extensions.pushDescriptor)
+                {
+                    pushDescriptorProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES;
+                    addToPropertiesChain(&pushDescriptorProps);
+                }
+            }
+        }
+
+        if (extensions.conservativeRasterization)
+        {
+            conservativeRasterizationProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT;
+            addToPropertiesChain(&conservativeRasterizationProps);
+        }
+
+        if (extensions.depthClipEnable)
+        {
+            depthClipEnableFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
+            addToFeatureChain(&depthClipEnableFeatures);
+        }
+
+        if (extensions.accelerationStructure)
+        {
+            ALIMER_ASSERT(extensions.deferredHostOperations);
+
+            accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+            accelerationStructureProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR;
+
+            addToFeatureChain(&accelerationStructureFeatures);
+            addToPropertiesChain(&accelerationStructureProperties);
+
+            if (extensions.raytracingPipeline)
+            {
+                rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+                rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+
+                addToFeatureChain(&rayTracingPipelineFeatures);
+                addToPropertiesChain(&rayTracingPipelineProperties);
+            }
+
+            if (extensions.rayQuery)
+            {
+                rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+                addToFeatureChain(&rayQueryFeatures);
+            }
+        }
+
+        if (extensions.fragmentShadingRate)
+        {
+            fragmentShadingRateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+            fragmentShadingRateProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR;
+
+            addToFeatureChain(&fragmentShadingRateFeatures);
+            addToPropertiesChain(&fragmentShadingRateProperties);
+        }
+
+        if (extensions.meshShader)
+        {
+            meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+            meshShaderProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT;
+
+            addToFeatureChain(&meshShaderFeatures);
+            addToPropertiesChain(&meshShaderProperties);
+        }
+
+        if (extensions.conditionalRendering)
+        {
+            conditionalRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT;
+            addToFeatureChain(&conditionalRenderingFeatures);
+        }
+
+        factory->vkGetPhysicalDeviceFeatures2(handle, &features2);
+        factory->vkGetPhysicalDeviceProperties2(handle, &properties2);
+
+        synchronization2 = features13.synchronization2 == VK_TRUE || synchronization2Features.synchronization2 == VK_TRUE;
+        dynamicRendering = features13.dynamicRendering == VK_TRUE || dynamicRenderingFeatures.dynamicRendering == VK_TRUE;
+
+
+        memoryProperties2 = {};
+        memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+        factory->vkGetPhysicalDeviceMemoryProperties2(handle, &memoryProperties2);
+
+        switch (properties2.properties.deviceType)
+        {
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                _type = AdapterType::IntegratedGpu;
+                break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                _type = AdapterType::DiscreteGpu;
+                break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                _type = AdapterType::VirtualGpu;
+                break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                _type = AdapterType::Cpu;
+                break;
+            default:
+                _type = AdapterType::Other;
+                break;
+        }
+
+        driverDescription = properties12.driverName;
+        if (properties12.driverInfo[0] != '\0')
+        {
+            driverDescription += std::string(": ") + properties12.driverInfo;
+        }
+
+        // The environment can request to various options for depth-stencil formats that could be
+        // unavailable. Override the decision if it is not applicable.
+        supportsDepth32Stencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D32_SFLOAT_S8_UINT);
+        supportsDepth24Stencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D24_UNORM_S8_UINT);
+        supportsStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_S8_UINT);
+
+        // Init limits
+        _limits.maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
+        _limits.maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
+        _limits.maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
+        _limits.maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
+        _limits.maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
+        _limits.maxBindGroups = properties2.properties.limits.maxBoundDescriptorSets;
+        _limits.maxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange;
+        _limits.maxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange;
+        _limits.minConstantBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
+        _limits.minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
+        //_limits.maxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize;
+        [[maybe_unused]] const uint32_t maxPushDescriptors = pushDescriptorProps.maxPushDescriptors;
+        _limits.maxBufferSize = properties13.maxBufferSize;
+        _limits.maxColorAttachments = properties2.properties.limits.maxColorAttachments;
+        _limits.maxViewports = properties2.properties.limits.maxViewports;
+        //_limits.viewportBoundsMin = properties2.properties.limits.viewportBoundsRange[0];
+        //_limits.viewportBoundsMax = properties2.properties.limits.viewportBoundsRange[1];
+
+        /* Compute */
+        _limits.maxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize;
+        _limits.maxComputeInvocationsPerWorkgroup = properties2.properties.limits.maxComputeWorkGroupInvocations;
+
+        _limits.maxComputeWorkgroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0];
+        _limits.maxComputeWorkgroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1];
+        _limits.maxComputeWorkgroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2];
+
+        _limits.maxComputeWorkgroupsPerDimension = std::min({
+            properties2.properties.limits.maxComputeWorkGroupCount[0],
+            properties2.properties.limits.maxComputeWorkGroupCount[1],
+            properties2.properties.limits.maxComputeWorkGroupCount[2],
+            }
+            );
+
+#if TODO_VULKAN
+        // Based on https://docs.vulkan.org/guide/latest/hlsl.html#_shader_model_coverage
+        _limits.shaderModel = GPUShaderModel_6_0;
+        if (features11.multiview)
+            limits.shaderModel = GPUShaderModel_6_1;
+        if (features12.shaderFloat16 || features2.features.shaderInt16)
+            limits.shaderModel = GPUShaderModel_6_2;
+        if (extensions.accelerationStructure)
+            limits.shaderModel = GPUShaderModel_6_3;
+        if (limits.variableShadingRateTier >= GPUVariableRateShadingTier_2)
+            limits.shaderModel = GPUShaderModel_6_4;
+        //if (m_Desc.isMeshShaderSupported || m_Desc.rayTracingTier >= 2)
+        //    m_Desc.shaderModel = 65;
+        //if (m_Desc.isShaderAtomicsI64Supported)
+        //    m_Desc.shaderModel = 66;
+        //if (features.features.shaderStorageImageMultisample)
+        //    m_Desc.shaderModel = 67;
+
+        limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_NotSupported;
+        if (extensions.conservativeRasterization)
+        {
+            limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_1;
+
+            if (conservativeRasterizationProps.primitiveOverestimationSize < 1.0f / 2.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
+                limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_2;
+            if (conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
+                limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_3;
+        }
+
+        limits.variableShadingRateTier = GPUVariableRateShadingTier_NotSupported;
+        if (extensions.fragmentShadingRate)
+        {
+            if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+            {
+                limits.variableShadingRateTier = GPUVariableRateShadingTier_1;
+            }
+
+            if (fragmentShadingRateFeatures.primitiveFragmentShadingRate && fragmentShadingRateFeatures.attachmentFragmentShadingRate)
+            {
+                limits.variableShadingRateTier = GPUVariableRateShadingTier_2;
+            }
+
+            const auto& tileExtent = fragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+            limits.variableShadingRateImageTileSize = std::max(tileExtent.width, tileExtent.height);
+            limits.isAdditionalVariableShadingRatesSupported = fragmentShadingRateProperties.maxFragmentSize.height > 2 || fragmentShadingRateProperties.maxFragmentSize.width > 2;
+        }
+
+        // Ray tracing
+        limits.rayTracingTier = GPURayTracingTier_NotSupported;
+        if (features12.bufferDeviceAddress == VK_TRUE
+            && accelerationStructureFeatures.accelerationStructure == VK_TRUE
+            && rayTracingPipelineFeatures.rayTracingPipeline == VK_TRUE)
+        {
+            limits.rayTracingTier = GPURayTracingTier_1;
+
+            if (rayQueryFeatures.rayQuery == VK_TRUE)
+            {
+                limits.rayTracingTier = GPURayTracingTier_2;
+            }
+
+            //if (OpacityMicromapFeatures.micromap)
+            //    m_Desc.tiers.rayTracing++;
+
+            limits.rayTracingShaderGroupIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
+            limits.rayTracingShaderTableAlignment = rayTracingPipelineProperties.shaderGroupBaseAlignment;
+            limits.rayTracingShaderTableMaxStride = rayTracingPipelineProperties.maxShaderGroupStride;
+            limits.rayTracingShaderRecursionMaxDepth = rayTracingPipelineProperties.maxRayRecursionDepth;
+            limits.rayTracingMaxGeometryCount = (uint32_t)accelerationStructureProperties.maxGeometryCount;
+            limits.rayTracingScratchAlignment = accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment;
+        }
+
+        // Mesh shader
+        limits.meshShaderTier = GPUMeshShaderTier_NotSupported;
+        if (meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE)
+        {
+            limits.meshShaderTier = GPUMeshShaderTier_1;
+        }
+#endif // TODO_VULKAN
+
+        return true;
+    }
+
+    RHIDeviceRef VulkanRHIAdapter::CreateDevice(const RHIDeviceDesc& desc)
+    {
+        // TODO
+        return nullptr;
+    }
+
+    VkFormat VulkanRHIAdapter::ToVkFormat(PixelFormat format)
+    {
+        if (format == PixelFormat::Stencil8 && !supportsStencil8)
+        {
+            return VK_FORMAT_D24_UNORM_S8_UINT;
+        }
+
+        if (format == PixelFormat::Depth24UnormStencil8 && !supportsDepth24Stencil8)
+        {
+            return VK_FORMAT_D32_SFLOAT_S8_UINT;
+        }
+
+        // https://github.com/doitsujin/dxvk/blob/master/src/dxgi/dxgi_format.cpp
+        VkFormat vkFormat = static_cast<VkFormat>(Alimer::ToVkFormat(format));
+        return vkFormat;
+    }
+
+    bool VulkanRHIAdapter::IsDepthStencilFormatSupported(VkFormat format) const
+    {
+        ALIMER_ASSERT(format == VK_FORMAT_D16_UNORM_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_S8_UINT);
+
+        VkFormatProperties2 properties2 = { VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2 };
+        factory->vkGetPhysicalDeviceFormatProperties2(handle, format, &properties2);
+        return properties2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+
     /* VulkanRHIFactory */
     bool VulkanRHIFactory::IsSupported()
     {
@@ -7937,19 +8426,19 @@ namespace Alimer
             PnextChainPushFront(&createInfo, &validationFeaturesInfo);
         }
 
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+        VkResult result = vkCreateInstance(&createInfo, nullptr, &handle);
         if (result != VK_SUCCESS)
         {
             VK_LOG_ERROR(result, "Failed to create Vulkan instance.");
             return;
         }
 
-#define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(instance, #fn);
+#define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(handle, #fn);
 #include "RHI_Vulkan_Funcs.h"
 
         if (desc.validationMode != ValidationMode::Disabled && debugUtils)
         {
-            result = vkCreateDebugUtilsMessengerEXT(instance, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger);
+            result = vkCreateDebugUtilsMessengerEXT(handle, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger);
             if (result != VK_SUCCESS)
             {
                 VK_LOG_ERROR(result, "Could not create debug utils messenger");
@@ -7980,65 +8469,470 @@ namespace Alimer
         }
 #endif
 
-#if TODO_DEVICES
         // Enumerate physical device and detect best one.
         uint32_t physicalDeviceCount = 0;
-        VK_CHECK(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr));
+        VK_CHECK(vkEnumeratePhysicalDevices(handle, &physicalDeviceCount, nullptr));
         if (physicalDeviceCount == 0)
         {
             LOGE("Vulkan: Failed to find GPUs with Vulkan support");
             return;
         }
 
+        _adapters.reserve(physicalDeviceCount);
         std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-        VK_CHECK(vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data()));
+        VK_CHECK(vkEnumeratePhysicalDevices(handle, &physicalDeviceCount, physicalDevices.data()));
 
-        for (const VkPhysicalDevice& candidatePhysicalDevice : physicalDevices)
+        for (const VkPhysicalDevice& physicalDevice : physicalDevices)
         {
             // We require minimum 1.2
             VkPhysicalDeviceProperties2 physicalDeviceProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-            vkGetPhysicalDeviceProperties2(candidatePhysicalDevice, &physicalDeviceProperties);
+            vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties);
             if (physicalDeviceProperties.properties.apiVersion < VK_API_VERSION_1_2)
             {
                 continue;
             }
 
-            PhysicalDeviceExtensions physicalDeviceExt = QueryPhysicalDeviceExtensions(candidatePhysicalDevice);
+            VkPhysicalDeviceFeatures2 physicalDeviceFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+            vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalDeviceFeatures);
+
+            // Check required features
+            if (physicalDeviceFeatures.features.robustBufferAccess != VK_TRUE
+                || physicalDeviceFeatures.features.fullDrawIndexUint32 != VK_TRUE
+                || physicalDeviceFeatures.features.depthClamp != VK_TRUE
+                || physicalDeviceFeatures.features.depthBiasClamp != VK_TRUE
+                || physicalDeviceFeatures.features.fragmentStoresAndAtomics != VK_TRUE
+                || physicalDeviceFeatures.features.imageCubeArray != VK_TRUE
+                || physicalDeviceFeatures.features.independentBlend != VK_TRUE
+                || physicalDeviceFeatures.features.sampleRateShading != VK_TRUE
+                || physicalDeviceFeatures.features.shaderClipDistance != VK_TRUE
+                || physicalDeviceFeatures.features.occlusionQueryPrecise != VK_TRUE)
+            {
+                continue;
+            }
+
+            PhysicalDeviceExtensions physicalDeviceExt = QueryPhysicalDeviceExtensions(physicalDevice);
             if (!physicalDeviceExt.swapchain)
             {
                 continue;
             }
 
-            QueueFamilyIndices queueFamilyIndices = QueryQueueFamilies(candidatePhysicalDevice, physicalDeviceExtensions.video.queue);
+            QueueFamilyIndices queueFamilyIndices = QueryQueueFamilies(physicalDevice, physicalDeviceExt.video.queue);
             if (!queueFamilyIndices.IsComplete())
             {
                 continue;
             }
 
-
-            bool priority = physicalDeviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-            if (desc.powerPreference == GPUPowerPreference::LowPower)
+            VulkanRHIAdapter* adapter = new VulkanRHIAdapter(this, physicalDevice);
+            if (!adapter->Init())
             {
-                priority = physicalDeviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+                delete adapter;
+                continue;
             }
 
-            if (priority || _physicalDevice == VK_NULL_HANDLE)
-            {
-                _physicalDevice = candidatePhysicalDevice;
-                if (priority)
-                {
-                    // If this is prioritized GPU type, look no further
-                    break;
-                }
-            }
+            _adapters.push_back(adapter);
         }
-#endif // TODO_DEVICES
-
     }
 
     VulkanRHIFactory::~VulkanRHIFactory()
     {
+        // Delete adapters
+        for (size_t i = 0, count = _adapters.size(); i < count; ++i)
+        {
+            VulkanRHIAdapter* adapter = static_cast<VulkanRHIAdapter*>(_adapters[i]);
+            SafeDelete(adapter);
+        }
+        _adapters.clear();
 
+        if (debugUtilsMessenger != VK_NULL_HANDLE)
+        {
+            vkDestroyDebugUtilsMessengerEXT(handle, debugUtilsMessenger, nullptr);
+            debugUtilsMessenger = VK_NULL_HANDLE;
+        }
+
+        if (handle != VK_NULL_HANDLE)
+        {
+            vkDestroyInstance(handle, nullptr);
+            handle = VK_NULL_HANDLE;
+        }
+    }
+
+    PhysicalDeviceExtensions VulkanRHIFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
+    {
+        uint32_t count = 0;
+        VkResult result = vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
+        if (result != VK_SUCCESS)
+            return {};
+
+        std::vector<VkExtensionProperties> vk_extensions(count);
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, vk_extensions.data());
+
+        PhysicalDeviceExtensions extensions{};
+
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            // Core in 1.3
+            if (strcmp(vk_extensions[i].extensionName, VK_KHR_MAINTENANCE_4_EXTENSION_NAME) == 0)
+            {
+                extensions.maintenance4 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
+            {
+                extensions.dynamicRendering = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME) == 0)
+            {
+                extensions.synchronization2 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) == 0)
+            {
+                extensions.extendedDynamicState = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME) == 0)
+            {
+                extensions.extendedDynamicState2 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME) == 0)
+            {
+                extensions.pipelineCreationCacheControl = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME) == 0)
+            {
+                extensions.formatFeatureFlags2 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) == 0)
+            {
+                extensions.pushDescriptor = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME) == 0)
+            {
+                extensions.copyCommands2 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+            {
+                extensions.swapchain = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME) == 0)
+            {
+                extensions.memoryBudget = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME) == 0)
+            {
+                extensions.AMD_device_coherent_memory = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME) == 0)
+            {
+                extensions.EXT_memory_priority = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0)
+            {
+                extensions.deferredHostOperations = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, "VK_KHR_portability_subset") == 0) // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+            {
+                extensions.portabilitySubset = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME) == 0)
+            {
+                extensions.depthClipEnable = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME) == 0)
+            {
+                extensions.textureCompressionAstcHdr = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) == 0)
+            {
+                extensions.shaderViewportIndexLayer = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME) == 0)
+            {
+                extensions.conservativeRasterization = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_MAINTENANCE_5_EXTENSION_NAME) == 0)
+            {
+                extensions.maintenance5 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_MAINTENANCE_6_EXTENSION_NAME) == 0)
+            {
+                extensions.maintenance6 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) == 0)
+            {
+                extensions.accelerationStructure = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) == 0)
+            {
+                extensions.raytracingPipeline = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_RAY_QUERY_EXTENSION_NAME) == 0)
+            {
+                extensions.rayQuery = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME) == 0)
+            {
+                extensions.fragmentShadingRate = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME) == 0)
+            {
+                extensions.meshShader = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME) == 0)
+            {
+                extensions.conditionalRendering = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME) == 0)
+            {
+                extensions.unifiedImageLayouts = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_QUEUE_EXTENSION_NAME) == 0)
+            {
+                extensions.video.queue = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME) == 0)
+            {
+                extensions.video.decode_queue = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME) == 0)
+            {
+                extensions.video.decode_h264 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME) == 0)
+            {
+                extensions.video.decode_h265 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME) == 0)
+            {
+                extensions.video.encode_queue = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME) == 0)
+            {
+                extensions.video.encode_h264 = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME) == 0)
+            {
+                extensions.video.encode_h265 = true;
+            }
+
+#if defined(_WIN32)
+            if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
+            {
+                extensions.externalMemory = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME) == 0)
+            {
+                extensions.externalSemaphore = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME) == 0)
+            {
+                extensions.externalFence = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME) == 0)
+            {
+                extensions.win32_full_screen_exclusive = true;
+            }
+#else
+            if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME) == 0)
+            {
+                extensions.externalMemory = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME) == 0)
+            {
+                extensions.externalSemaphore = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME) == 0)
+            {
+                extensions.externalFence = true;
+            }
+#endif
+        }
+
+        VkPhysicalDeviceProperties2 properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+        vkGetPhysicalDeviceProperties2(physicalDevice, &properties2);
+
+        // Core 1.4
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_4)
+        {
+            extensions.maintenance5 = true;
+            extensions.maintenance6 = true;
+            extensions.pushDescriptor = true;
+        }
+
+        // Core 1.3
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
+        {
+            extensions.maintenance4 = true;
+            extensions.dynamicRendering = true;
+            extensions.synchronization2 = true;
+            extensions.extendedDynamicState = true;
+            extensions.extendedDynamicState2 = true;
+            extensions.pipelineCreationCacheControl = true;
+            extensions.formatFeatureFlags2 = true;
+        }
+
+        return extensions;
+    }
+
+    QueueFamilyIndices VulkanRHIFactory::QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue)
+    {
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties2> queueFamilies(queueFamilyCount);
+        std::vector<VkQueueFamilyVideoPropertiesKHR> queueFamiliesVideo(queueFamilyCount);
+        for (uint32_t i = 0; i < queueFamilyCount; ++i)
+        {
+            queueFamilies[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
+
+            if (supportsVideoQueue)
+            {
+                queueFamilies[i].pNext = &queueFamiliesVideo[i];
+                queueFamiliesVideo[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_VIDEO_PROPERTIES_KHR;
+            }
+        }
+
+        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+        QueueFamilyIndices indices;
+        indices.queueFamilyCount = queueFamilyCount;
+        indices.queueOffsets.resize(queueFamilyCount);
+        indices.queuePriorities.resize(queueFamilyCount);
+
+        const auto FindVacantQueue = [&](QueueType type, VkQueueFlags required, VkQueueFlags ignore_flags,
+            float priority) -> bool
+            {
+                for (uint32_t familyIndex = 0; familyIndex < queueFamilyCount; familyIndex++)
+                {
+                    if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignore_flags) != 0)
+                        continue;
+
+                    // A graphics queue candidate must support present for us to select it.
+                    if ((required & VK_QUEUE_GRAPHICS_BIT) != 0)
+                    {
+                        bool supported = GetPresentationSupport(physicalDevice, familyIndex);
+                        if (!supported)
+                            continue;
+                    }
+
+                    // A video decode queue candidate must support VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR or VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR
+                    if ((required & VK_QUEUE_VIDEO_DECODE_BIT_KHR) != 0)
+                    {
+                        VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[familyIndex].videoCodecOperations;
+
+                        if ((videoCodecOperations & VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) == 0 &&
+                            (videoCodecOperations & VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) == 0)
+                        {
+                            continue;
+                        }
+                    }
+
+#if defined(RHI_VIDEO_ENCODE)
+                    // A video decode queue candidate must support VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR or VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR
+                    if ((required & VK_QUEUE_VIDEO_ENCODE_BIT_KHR) != 0)
+                    {
+                        VkVideoCodecOperationFlagsKHR videoCodecOperations = queueFamiliesVideo[familyIndex].videoCodecOperations;
+
+                        if ((videoCodecOperations & VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_EXT) == 0 &&
+                            (videoCodecOperations & VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_EXT) == 0)
+                        {
+                            continue;
+                        }
+                    }
+#endif
+
+                    if (queueFamilies[familyIndex].queueFamilyProperties.queueCount &&
+                        (queueFamilies[familyIndex].queueFamilyProperties.queueFlags & required) == required)
+                    {
+                        indices.familyIndices[ecast(type)] = familyIndex;
+                        queueFamilies[familyIndex].queueFamilyProperties.queueCount--;
+                        indices.queueIndices[ecast(type)] = indices.queueOffsets[familyIndex]++;
+                        indices.queuePriorities[familyIndex].push_back(priority);
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+        if (!FindVacantQueue(QueueType::Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
+        {
+            LOGE("Vulkan: Could not find suitable graphics queue.");
+            return indices;
+        }
+
+        // XXX: This assumes timestamp valid bits is the same for all queue types.
+        indices.timestampValidBits = queueFamilies[indices.familyIndices[ecast(QueueType::Graphics)]].queueFamilyProperties.timestampValidBits;
+
+        // Prefer standalone compute queue. If not, fall back to another graphics queue.
+        if (!FindVacantQueue(QueueType::Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
+            && !FindVacantQueue(QueueType::Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
+        {
+            // Fallback to the graphics queue if we must.
+            indices.familyIndices[ecast(QueueType::Compute)] = indices.familyIndices[ecast(QueueType::Graphics)];
+            indices.queueIndices[ecast(QueueType::Compute)] = indices.queueIndices[ecast(QueueType::Graphics)];
+        }
+
+        // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
+        // If not, fallback to a dedicated compute queue.
+        // Finally, fallback to same queue as compute.
+        if (!FindVacantQueue(QueueType::Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
+            && !FindVacantQueue(QueueType::Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
+        {
+            indices.familyIndices[ecast(QueueType::Copy)] = indices.familyIndices[ecast(QueueType::Compute)];
+            indices.queueIndices[ecast(QueueType::Copy)] = indices.queueIndices[ecast(QueueType::Compute)];
+        }
+
+        if (supportsVideoQueue)
+        {
+            if (!FindVacantQueue(QueueType::VideoDecode, VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
+            {
+                indices.familyIndices[ecast(QueueType::VideoDecode)] = VK_QUEUE_FAMILY_IGNORED;
+                indices.queueIndices[ecast(QueueType::VideoDecode)] = UINT32_MAX;
+            }
+
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+            //if ((flags & CONTEXT_CREATION_ENABLE_VIDEO_ENCODE_BIT) != 0)
+            //{
+            //    if (!find_vacant_queue(queue_info.family_indices[QUEUE_INDEX_VIDEO_ENCODE],
+            //        queue_indices[QUEUE_INDEX_VIDEO_ENCODE],
+            //        VK_QUEUE_VIDEO_ENCODE_BIT_KHR, 0, 0.5f))
+            //    {
+            //        queue_info.family_indices[QUEUE_INDEX_VIDEO_ENCODE] = VK_QUEUE_FAMILY_IGNORED;
+            //        queue_indices[QUEUE_INDEX_VIDEO_ENCODE] = UINT32_MAX;
+            //    }
+            //}
+#endif
+        }
+
+        return indices;
+    }
+
+    bool VulkanRHIFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
+    {
+#if defined(_WIN32)
+        //PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
+        if (!vkGetPhysicalDeviceWin32PresentationSupportKHR)
+        {
+            LOGE("{} extension is not enabled in the Vulkan instance.", VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+            return false;
+        }
+
+        return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
+#elif defined(__ANDROID__)
+        return true;
+#elif defined(__APPLE__)
+        return true;
+#else
+        // Linux
+        //if (vkGetPhysicalDeviceXcbPresentationSupportKHR)
+        //{
+        //
+        //}
+        //else
+        //{
+        //    return vkGetPhysicalDeviceWaylandPresentationSupportKHR(physicalDevice, queueFamilyIndex, _this->internal->display);
+        //}
+
+        return true;
+#endif
     }
 
     bool Vulkan_IsSupported()
@@ -8057,11 +8951,6 @@ namespace Alimer
 
         SharedPtr<VulkanRHIFactory> factory(new VulkanRHIFactory(desc));
         return factory;
-    }
-
-    RHIDevice* Vulkan_CreateDevice(const std::string& appName, const RHIDeviceDesc& desc)
-    {
-        return new VulkanDevice(appName, desc);
     }
 }
 #endif /* defined(ALIMER_RHI_VULKAN) */

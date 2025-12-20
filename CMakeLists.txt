@@ -365,12 +365,12 @@ if(ALIMER_INSTALL)
     file (MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     if (NOT ANDROID)
         foreach(dir Assets)
-            foreach (CONFIG ${CMAKE_CONFIGURATION_TYPES})
-                create_symlink(${CMAKE_CURRENT_SOURCE_DIR}/${dir} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG}/${dir})
-            endforeach()
+            #foreach (CONFIG ${CMAKE_CONFIGURATION_TYPES})
+            #    create_symlink(${CMAKE_CURRENT_SOURCE_DIR}/${dir} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG}/${dir})
+            #endforeach()
 
             # Install
-            install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${dir} DESTINATION ${CMAKE_INSTALL_BINDIR})
+            #install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${dir} DESTINATION ${CMAKE_INSTALL_BINDIR})
         endforeach()
     endif ()
 

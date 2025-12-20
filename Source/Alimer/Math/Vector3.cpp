@@ -113,7 +113,7 @@ bool Vector3::TryParse(StringView str, Vector3* result)
 std::string Vector3::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%g %g %g", x, y, z);
+    snprintf(tempBuffer, kConversionBufferLength, "%g %g %g", x, y, z);
     return std::string(tempBuffer);
 }
 
@@ -313,7 +313,7 @@ Vector3 Vector3::TransformNormal(const Vector3& value, const Matrix4x4& matrix) 
 std::string Int3::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%u %u %u", x, y, z);
+    snprintf(tempBuffer, kConversionBufferLength, "%u %u %u", x, y, z);
     return std::string(tempBuffer);
 }
 

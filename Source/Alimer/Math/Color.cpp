@@ -567,7 +567,7 @@ float Color::SaturationHSL(float min, float max) const
 std::string Color::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%g %g %g %g", r, g, b, a);
+    snprintf(tempBuffer, kConversionBufferLength, "%g %g %g %g", r, g, b, a);
     return std::string(tempBuffer);
 }
 

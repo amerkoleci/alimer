@@ -123,13 +123,19 @@ namespace Alimer
         LowPower,
     };
 
+    /// Describe the RHIAdapter types
     enum class AdapterType : uint8_t
     {
-        Other,
-        IntegratedGpu,
+        /// The device is typically a separate processor connected to the host via an interlink.
         DiscreteGpu,
+        /// The device is typically one embedded in or tightly coupled with the host.
+        IntegratedGpu,
+        /// The device is typically a virtual node in a virtualization environment.
         VirtualGpu,
+        /// The device is typically running on the same processors as the host.
         Cpu,
+        /// The device does not match any other available types.
+        Other,
     };
 
     enum class QueueType : uint8_t
@@ -675,6 +681,7 @@ namespace Alimer
     using RHIQueryHeapRef = SharedPtr<RHIQueryHeap>;
     using RHISwapChainRef = SharedPtr<RHISwapChain>;
     using RHICommandQueueRef = SharedPtr<RHICommandQueue>;
+    using RHIDeviceRef = SharedPtr<RHIDevice>;
     using RHIFactoryRef = SharedPtr<RHIFactory>;
 
     /* Structs */
@@ -1776,23 +1783,41 @@ namespace Alimer
     };
 
 
-    class ALIMER_API RHIAdapter : public RHIObject
+    class ALIMER_API RHIAdapter
     {
-    };
+    public:
+        virtual RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) = 0;
 
+        virtual AdapterType GetType() const = 0;
+
+        /// Return the adapter limits.
+        [[nodiscard]] const RHIAdapterLimits& GetLimits() const { return _limits; }
+
+    protected:
+        RHIAdapterLimits _limits{};
+    };
 
 
     class ALIMER_API RHIFactory : public RHIObject
     {
+    public:
+        static RHIFactoryRef Create(const RHIFactoryDesc& desc);
+
+        RHIAdapter* GetBestAdapter() const;
+
+        uint32_t GetAdapterCount() const;
+        RHIAdapter* GetAdapter(uint32_t index) const;
+
+    protected:
+        Vector<RHIAdapter*> _adapters;
     };
 
     /** A global pointer to the RHI device. */
-    extern ALIMER_API RHIDevice* GRHIDevice;
+    extern ALIMER_API RHIDeviceRef GRHIDevice;
 
     ALIMER_API bool RHIIsSupported(GraphicsAPI backend);
     ALIMER_API GraphicsAPI RHIGetPlatformPreferredApi();
-    ALIMER_API RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc);
-    ALIMER_API bool RHIInit(const std::string& appName, const RHIDeviceDesc& desc);
+    ALIMER_API bool RHIInit(RHIAdapter* adapter, const RHIDeviceDesc& desc);
     ALIMER_API void RHIShutdown();
 
     ALIMER_FORCE_INLINE GraphicsContext* RHIBeginGraphicsContext(const std::string& label = "")
@@ -1857,7 +1882,6 @@ namespace Alimer
         Premultiplied,
         ColorWriteDisable,
         Multiply,
-        TransparentShadow,
 
         Count
     };

@@ -59,7 +59,7 @@ bool Quaternion::TryParse(StringView str, Quaternion* result)
 std::string Quaternion::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
-    sprintf(tempBuffer, "%g %g %g %g", x, y, z, w);
+    snprintf(tempBuffer, kConversionBufferLength, "%g %g %g %g", x, y, z, w);
     return std::string(tempBuffer);
 }
 

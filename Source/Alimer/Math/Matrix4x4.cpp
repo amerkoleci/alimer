@@ -1404,7 +1404,7 @@ Matrix4x4 Matrix4x4::Transform(const Matrix4x4& matrix, const Quaternion& rotati
 std::string Matrix4x4::ToString() const
 {
     char tempBuffer[kMatrixConversionBufferLength];
-    sprintf(tempBuffer, "%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
+    snprintf(tempBuffer, kMatrixConversionBufferLength, "%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
         m11, m12, m13, m14,
         m21, m22, m23, m24,
         m31, m32, m33, m34,

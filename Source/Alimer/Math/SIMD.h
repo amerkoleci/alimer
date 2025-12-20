@@ -359,15 +359,15 @@ namespace Alimer
 #if defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64) || defined(_M_ARM64EC) || __aarch64__
         return vrndq_f32(v);
 #else
-        float32x4_t vTest = vabsq_f32(V);
+        float32x4_t vTest = vabsq_f32(v);
         vTest = vreinterpretq_f32_u32(vcltq_f32(vTest, g_XMNoFraction));
 
-        int32x4_t vInt = vcvtq_s32_f32(V);
+        int32x4_t vInt = vcvtq_s32_f32(v);
         float32x4_t vResult = vcvtq_f32_s32(vInt);
 
         // All numbers less than 8388608 will use the round to int
         // All others, use the ORIGINAL value
-        return vbslq_f32(vreinterpretq_u32_f32(vTest), vResult, V);
+        return vbslq_f32(vreinterpretq_u32_f32(vTest), vResult, v);
 #endif
 #endif
     }
@@ -392,7 +392,7 @@ namespace Alimer
     {
 #if defined(ALIMER_USE_NEON)
         // Dot4
-        float32x4_t vTemp = vmulq_f32(V, V);
+        float32x4_t vTemp = vmulq_f32(vector, vector);
         float32x2_t v1 = vget_low_f32(vTemp);
         float32x2_t v2 = vget_high_f32(vTemp);
         v1 = vadd_f32(v1, v2);
@@ -414,7 +414,7 @@ namespace Alimer
         __m128 vTemp = _mm_dp_ps(vector, vector, 0xff);
         return _mm_sqrt_ps(vTemp);
 #elif defined(_XM_SSE3_INTRINSICS_)
-        XMVECTOR vLengthSq = _mm_mul_ps(V, V);
+        XMVECTOR vLengthSq = _mm_mul_ps(vector, vector);
         vLengthSq = _mm_hadd_ps(vLengthSq, vLengthSq);
         vLengthSq = _mm_hadd_ps(vLengthSq, vLengthSq);
         vLengthSq = _mm_sqrt_ps(vLengthSq);
