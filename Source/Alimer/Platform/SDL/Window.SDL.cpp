@@ -12,14 +12,13 @@ namespace
 
 using namespace Alimer;
 
-WindowSDL::WindowSDL(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
-    : _fullscreen(false)
+Window::Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
+    : _impl(new WindowImpl())
 {
     SDL_WindowFlags sdl_flags = 0;
     if (CheckBitsAny(flags, WindowFlags::Fullscreen))
     {
         sdl_flags |= SDL_WINDOW_FULLSCREEN;
-        _fullscreen = true;
     }
     if (CheckBitsAny(flags, WindowFlags::Hidden))
     {
@@ -49,105 +48,103 @@ WindowSDL::WindowSDL(const std::string& title, uint32_t width, uint32_t height, 
         sdl_flags |= SDL_WINDOW_TRANSPARENT;
     }
 
-    _handle = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height), sdl_flags);
-    if (_handle == nullptr)
+    _impl->handle = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height), sdl_flags);
+    if (_impl->handle == nullptr)
     {
         LOGE("Failed to create SDL windows");
         return;
     }
 
-    _id = SDL_GetWindowID(_handle);
+    _id = SDL_GetWindowID(_impl->handle);
     s_WindowCount++;
 }
 
-WindowSDL::~WindowSDL()
+Window::~Window()
 {
-    if (_handle != nullptr)
+    if (_impl->handle != nullptr)
     {
-        SDL_DestroyWindow(_handle);
-        _handle = nullptr;
+        SDL_DestroyWindow(_impl->handle);
+        _impl->handle = nullptr;
     }
+
+    delete _impl;
 
     s_WindowCount--;
 }
 
-void WindowSDL::SetTitle(std::string_view title)
+void Window::SetTitle(std::string_view title)
 {
     _title = title;
-    SDL_SetWindowTitle(_handle, _title.c_str());
+    SDL_SetWindowTitle(_impl->handle, _title.c_str());
 }
 
-void WindowSDL::Show()
+void Window::Show()
 {
     //CreateSwapChain();
-    SDL_ShowWindow(_handle);
+    SDL_ShowWindow(_impl->handle);
 }
 
-void WindowSDL::Hide()
+void Window::Hide()
 {
-    SDL_HideWindow(_handle);
+    SDL_HideWindow(_impl->handle);
 }
 
-void WindowSDL::Maximize()
+void Window::Maximize()
 {
-    SDL_MaximizeWindow(_handle);
+    SDL_MaximizeWindow(_impl->handle);
 }
 
-void WindowSDL::Minimize()
+void Window::Minimize()
 {
-    SDL_MinimizeWindow(_handle);
+    SDL_MinimizeWindow(_impl->handle);
 }
 
-void WindowSDL::Restore()
+void Window::Restore()
 {
-    SDL_RestoreWindow(_handle);
+    SDL_RestoreWindow(_impl->handle);
 }
 
-bool WindowSDL::IsOpen() const
+bool Window::IsOpen() const
 {
-    return _handle != nullptr;
+    return _impl->handle != nullptr;
 }
 
-bool WindowSDL::IsMinimized() const
+bool Window::IsMinimized() const
 {
-    return (SDL_GetWindowFlags(_handle) & SDL_WINDOW_MINIMIZED) != 0;
+    return (SDL_GetWindowFlags(_impl->handle) & SDL_WINDOW_MINIMIZED) != 0;
 }
 
-bool WindowSDL::IsFullscreen() const
+bool Window::IsFullscreen() const
 {
-    return (SDL_GetWindowFlags(_handle) & SDL_WINDOW_FULLSCREEN) != 0;
+    return (SDL_GetWindowFlags(_impl->handle) & SDL_WINDOW_FULLSCREEN) != 0;
 }
 
-bool WindowSDL::IsFocused() const
+bool Window::IsFocused() const
 {
-    return (SDL_GetWindowFlags(_handle) & SDL_WINDOW_INPUT_FOCUS) != 0;
+    return (SDL_GetWindowFlags(_impl->handle) & SDL_WINDOW_INPUT_FOCUS) != 0;
 }
 
-bool WindowSDL::IsCursorVisible() const
+bool Window::IsCursorVisible() const
 {
     return SDL_CursorVisible();
 }
 
-void WindowSDL::RequestFocus()
+void Window::RequestFocus()
 {
-    SDL_RaiseWindow(_handle);
+    SDL_RaiseWindow(_impl->handle);
 }
-void WindowSDL::SetFullscreen(bool value)
-{
-    if (_fullscreen == value)
-        return;
 
-    if (!SDL_SetWindowFullscreen(_handle, value))
+void Window::SetFullscreen(bool value)
+{
+    if (!SDL_SetWindowFullscreen(_impl->handle, value))
     {
         const char* result = SDL_GetError();
         SDL_ClearError();
         ::SDL_Log("%s", result);
     }
-
-    _fullscreen = value;
 }
 
-void WindowSDL::SetCursorVisible(bool value)
+void Window::SetCursorVisible(bool value)
 {
     if (value)
     {
@@ -157,9 +154,4 @@ void WindowSDL::SetCursorVisible(bool value)
     {
         SDL_HideCursor();
     }
-}
-
-void WindowSDL::OnResized()
-{
-    OnClientSizeChanged();
 }

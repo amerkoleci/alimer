@@ -9,17 +9,22 @@
 
 namespace Alimer
 {
+    struct WindowImpl;
+
     /// Class that defines an OS window.
-    class ALIMER_API Window 
+    class ALIMER_API Window final
     {
-        friend class Application;
+        friend class AppPlatform;
 
     public:
-        /// Occurs when the client size is changed.
-        Signal<> ClientSizeChanged;
+        /// Occurs when the window is resized.
+        Signal<> Resized;
+
+        /// Constructor.
+        Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Resizable);
 
         /// Destructor.
-        virtual ~Window() = default;
+        ~Window();
 
         // Non-copyable and non-movable
         ALIMER_DISABLE_COPY_MOVE(Window);
@@ -40,29 +45,30 @@ namespace Alimer
 
 
         [[nodiscard]] const std::string& GetTitle() const { return _title; }
-        virtual void SetTitle(std::string_view title) = 0;
+        void SetTitle(std::string_view title);
 
-        virtual void Show() = 0;
-        virtual void Hide() = 0;
-        virtual void Maximize()= 0;
-        virtual void Minimize()= 0;
-        virtual void Restore() = 0;
+        void Show();
+        void Hide();
+        void Maximize();
+        void Minimize();
+        void Restore();
 
-        [[nodiscard]] virtual bool IsOpen() const = 0;
-        [[nodiscard]] virtual bool IsMinimized() const = 0;
-        [[nodiscard]] virtual bool IsFullscreen() const = 0;
-        [[nodiscard]] virtual bool IsFocused() const = 0;
-        [[nodiscard]] virtual bool IsCursorVisible() const = 0;
+        [[nodiscard]] bool IsOpen() const;
+        [[nodiscard]] bool IsMinimized() const;
+        [[nodiscard]] bool IsFullscreen() const;
+        [[nodiscard]] bool IsFocused() const;
+        [[nodiscard]] bool IsCursorVisible() const;
 
-        virtual void RequestFocus() = 0;
-        virtual void SetFullscreen(bool value) = 0;
-        virtual void SetCursorVisible(bool value) = 0;
+        void RequestFocus();
+        void SetFullscreen(bool value);
+        void SetCursorVisible(bool value);
 
-    protected:
-        Window() = default;
+        [[nodiscard]] WindowImpl* GetImpl() const noexcept { return _impl; }
 
-        virtual void OnClientSizeChanged();
+        void OnResized();
 
+    private:
+        WindowImpl* _impl;
         uint32_t _id{};
         std::string _title;
     };

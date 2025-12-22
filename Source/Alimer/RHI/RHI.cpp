@@ -369,9 +369,15 @@ namespace Alimer
     extern bool Vulkan_IsSupported();
     extern RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc);
 #endif
+
 #if defined(ALIMER_RHI_D3D12) && defined(TODO)
     extern bool D3D12_IsSupported();
     extern RHIFactoryRef D3D12_CreateFactory(const RHIFactoryDesc& desc);
+#endif
+
+#if defined(ALIMER_RHI_METAL)
+    extern bool Metal_IsSupported();
+    extern RHIFactoryRef Metal_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
     bool RHIIsSupported(GraphicsAPI backend)

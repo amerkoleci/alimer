@@ -77,6 +77,10 @@ if (ALIMER_RHI_VULKAN)
     define_engine_source_files(RHI/Vulkan NO_INSTALL)
 endif()
 
+if (ALIMER_RHI_METAL)
+    define_engine_source_files(RHI/Metal NO_INSTALL)
+endif()
+
 group_sources()
 
 if (ALIMER_BUILD_SHARED)

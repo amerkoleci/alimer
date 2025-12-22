@@ -49,10 +49,8 @@ public:
 
     void RunMainLoop() override;
     void RequestExit() override;
-    Window* GetMainWindow() const override { return _mainWindow.get(); }
 
 private:
-    std::unique_ptr<WindowSDL> _mainWindow;
     bool _exitRequested{ false };
 };
 
@@ -73,7 +71,7 @@ void AppPlatformSDL::RunMainLoop()
     if (title.empty())
         title = _app->GetOptions().name;
 
-    _mainWindow = std::make_unique<WindowSDL>(title, windowDesc.width, windowDesc.height, windowDesc.flags);
+    _mainWindow = std::make_unique<Window>(title, windowDesc.width, windowDesc.height, windowDesc.flags);
     OnReady();
 
     _mainWindow->Show();
@@ -184,7 +182,7 @@ void AppPlatformSDL::RunMainLoop()
                     {
                         // Window events.
                         if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                            event.window.windowID == SDL_GetWindowID(_mainWindow->GetHandle()))
+                            event.window.windowID == _mainWindow->GetId())
                         {
                             _exitRequested = true;
                         }

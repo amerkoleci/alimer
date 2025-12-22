@@ -26,7 +26,7 @@ namespace Alimer
         virtual void RequestExit() = 0;
 
         /// Gets the main window.
-        virtual Window* GetMainWindow() const = 0;
+        [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
 
     protected:
         AppPlatform(Application* app)
@@ -40,5 +40,6 @@ namespace Alimer
         virtual void OnReady();
 
         Application* _app;
+        std::unique_ptr<Window> _mainWindow;
     };
 }

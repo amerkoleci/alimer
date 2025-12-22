@@ -1,14 +1,16 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Alimer/Platform/Window.h"
+#if defined(ALIMER_USE_SDL)
+#include "Alimer/Platform/SDL/Window.SDL.h"
+#endif
 #include "Alimer/Core/Log.h"
 
 using namespace Alimer;
 
-void Window::OnClientSizeChanged()
+void Window::OnResized()
 {
-    ClientSizeChanged.Emit();
+    Resized.Emit();
 }
 
 #if TODO
