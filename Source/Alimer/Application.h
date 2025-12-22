@@ -29,13 +29,10 @@ namespace Alimer
         WindowDesc window;
     };
 
-    class AppPlatform;
-
     /// Class that provides graphics initialization, application logic, and rendering code.
     class ALIMER_API Application : public Object
     {
         ALIMER_OBJECT(Application, Object);
-        friend class AppPlatform;
 
     public:
         /// Occurs when the application is activated.
@@ -67,7 +64,7 @@ namespace Alimer
         [[nodiscard]] const AppOptions& GetOptions() const { return _options; }
 
         /// Gets the main window.
-        [[nodiscard]] Window* GetMainWindow() const;
+        [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
 
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }
@@ -89,9 +86,17 @@ namespace Alimer
 
         AppOptions _options{};
         bool _running{ false };
+        bool _exitRequested{ false };
         bool _isActive{ false };
         bool _headless{ false };
         Timer _timer;
+        RHIDeviceRef _rhiDevice;
+
+    private:
+        /* Platform App implementations */
+        bool PlatformInit();
+        void PlatformShutdown();
+        void PlatformRunMainLoop();
 
     private:
         void InitBeforeRun();
@@ -99,9 +104,8 @@ namespace Alimer
         void Render();
 
         static Application* s_Instance;
-        AppPlatform* _platform = nullptr;
         RHIFactoryRef _rhiFactory = nullptr;
         RHIAdapter* _rhiAdapter = nullptr;
-        RHIDevice* _rhiDevice = nullptr;
+        std::unique_ptr<Window> _mainWindow;
     };
 }

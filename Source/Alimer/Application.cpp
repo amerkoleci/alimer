@@ -5,7 +5,6 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/Core/Timer.h"
 #include "Alimer/Application.h"
-#include "Alimer/Platform/AppPlatform.h"
 #include <thread>
 
 using namespace Alimer;
@@ -29,10 +28,9 @@ Application::Application()
     Log::Init();
     //JobSystem::Initialize();
     mainThreadId = std::this_thread::get_id();
-    _platform = AppPlatform::Create(this);
 
     // Init platform first
-    if (!_platform)
+    if (!PlatformInit())
     {
         LOGF("Failed to initialize platform");
         return;
@@ -43,17 +41,15 @@ Application::Application()
 
 Application::~Application()
 {
+    _rhiDevice->WaitIdle();
+
+    _rhiDevice.Reset();
     Log::Shutdown();
 #if TODO
     //JobSystem::Shutdown();
 #endif
-    SafeDelete(_platform);
+    PlatformShutdown();
     s_Instance = nullptr;
-}
-
-[[nodiscard]] Window* Application::GetMainWindow() const
-{
-    return _platform->GetMainWindow();
 }
 
 void Application::ResetElapsedTime()
@@ -74,7 +70,7 @@ void Application::Run()
     //}
 
     // Run platform main loop.
-    _platform->RunMainLoop();
+    PlatformRunMainLoop();
 
     _running = false;
 }
@@ -88,7 +84,7 @@ void Application::Tick()
 
 void Application::RequestExit()
 {
-    _platform->RequestExit();
+    _exitRequested = true;
 }
 
 void Application::DoUpdate()
@@ -108,6 +104,8 @@ void Application::InitBeforeRun()
 #endif
     _rhiFactory = RHIFactory::Create(factoryDesc);
     _rhiAdapter = _rhiFactory->GetBestAdapter();
+    RHIDeviceDesc deviceDesc{};
+    _rhiDevice = _rhiAdapter->CreateDevice(deviceDesc);
 
     // We're ready, now init.
     Initialize();

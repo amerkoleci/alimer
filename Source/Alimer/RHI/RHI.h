@@ -124,7 +124,7 @@ namespace Alimer
     };
 
     /// Describe the RHIAdapter types
-    enum class AdapterType : uint8_t
+    enum class RHIAdapterType : uint8_t
     {
         /// The device is typically a separate processor connected to the host via an interlink.
         DiscreteGpu,
@@ -1096,9 +1096,6 @@ namespace Alimer
     struct RHIDeviceDesc
     {
         std::string_view label;
-        GraphicsAPI preferredApi = GraphicsAPI::Count;
-        GPUPowerPreference powerPreference = GPUPowerPreference::HighPerformance;
-        ValidationMode validationMode = ValidationMode::Disabled;
     };
 
     struct RHIFactoryDesc
@@ -1191,7 +1188,7 @@ namespace Alimer
         std::string         deviceName;
         uint32_t            vendorID = 0;
         uint32_t            deviceID = 0;
-        AdapterType         adapterType = AdapterType::Other;
+        RHIAdapterType      adapterType = RHIAdapterType::Other;
         std::string         driverDescription;
         uint8_t             uuid[kUUIDSize];
         uint64_t            luid[kLUIDSize];
@@ -1731,18 +1728,11 @@ namespace Alimer
         virtual GraphicsContext* BeginGraphicsContext(const std::string& label = "") = 0;
         virtual ComputeContext* BeginComputeContext(const std::string& label = "") = 0;
 
-        /// Returns the API kind that the RHI backend is running on top of.
-        virtual GraphicsAPI GetGraphicsAPI() const = 0;
+        virtual RHIAdapter* GetAdapter() const = 0;
 
         constexpr bool IsDeviceLost() const noexcept { return _deviceLost; }
         constexpr uint64_t GetFrameCount() const noexcept { return frameCount; }
         constexpr uint32_t GetFrameIndex() const noexcept { return frameIndex; }
-
-        /// Return the physical adapter properties.
-        [[nodiscard]] const RHIAdapterProperties& GetAdapterProperties() const { return adapterProperties; }
-
-        /// Return the physical adapter limits.
-        [[nodiscard]] const RHIAdapterLimits& GetAdapterLimits() const { return limits; }
 
 
         [[nodiscard]] virtual bool QueryFeatureSupport(RHIFeature feature) = 0;
@@ -1768,9 +1758,6 @@ namespace Alimer
         virtual RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) = 0;
         virtual RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) = 0;
 
-        RHIAdapterProperties adapterProperties{};
-        RHIAdapterLimits    limits{};
-
         bool _deviceLost{ false };
         uint64_t frameCount{};
         uint32_t frameIndex{};
@@ -1782,18 +1769,21 @@ namespace Alimer
         Vector<RHISamplerRef> staticSamplers;
     };
 
-
     class ALIMER_API RHIAdapter
     {
     public:
         virtual RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) = 0;
 
-        virtual AdapterType GetType() const = 0;
+        virtual RHIAdapterType GetType() const = 0;
+
+        /// Return the physical adapter properties.
+        [[nodiscard]] const RHIAdapterProperties& GetAdapterProperties() const { return _properties; }
 
         /// Return the adapter limits.
         [[nodiscard]] const RHIAdapterLimits& GetLimits() const { return _limits; }
 
     protected:
+        RHIAdapterProperties _properties{};
         RHIAdapterLimits _limits{};
     };
 
@@ -1803,10 +1793,12 @@ namespace Alimer
     public:
         static RHIFactoryRef Create(const RHIFactoryDesc& desc);
 
-        RHIAdapter* GetBestAdapter() const;
+        /// Returns the API kind that the RHI backend is running on top of.
+        virtual GraphicsAPI GetGraphicsAPI() const = 0;
 
         uint32_t GetAdapterCount() const;
         RHIAdapter* GetAdapter(uint32_t index) const;
+        RHIAdapter* GetBestAdapter() const;
 
     protected:
         Vector<RHIAdapter*> _adapters;
@@ -1853,7 +1845,7 @@ namespace Alimer
     ALIMER_API RHISwapChainRef RHICreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc);
 
     ALIMER_API const std::string ToString(GraphicsAPI type);
-    ALIMER_API const std::string ToString(AdapterType type);
+    ALIMER_API const std::string ToString(RHIAdapterType type);
 
     ALIMER_API GPUAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId);
     ALIMER_API uint32_t AdapterVendorToVendorId(GPUAdapterVendor vendor);
@@ -1873,43 +1865,6 @@ namespace Alimer
     ALIMER_API bool BlendEnabled(const RenderTargetBlendState* state);
     ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
     ALIMER_API DescriptorType GetDescriptorType(const BindGroupLayoutEntry& entry);
-
-    enum class CommonBlendState : uint8_t
-    {
-        Opaque,
-        Transparent,
-        Additive,
-        Premultiplied,
-        ColorWriteDisable,
-        Multiply,
-
-        Count
-    };
-
-    enum class CommonRasterizerState : uint8_t
-    {
-        CullNone,
-        CullFront,
-        CullBack,
-        Wireframe,
-
-        Count
-    };
-
-    enum class CommonDepthStencilState : uint8_t
-    {
-        None,
-        Default,
-        Read,
-        ReverseZ,
-        ReadReverseZ,
-
-        Count
-    };
-
-    ALIMER_API BlendState GetBlendState(CommonBlendState state);
-    ALIMER_API RasterizerState GetRasterizerState(CommonRasterizerState state);
-    ALIMER_API DepthStencilState GetDepthStencilState(CommonDepthStencilState state);
 
     enum class VertexFormatKind : uint8_t
     {

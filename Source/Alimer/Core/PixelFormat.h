@@ -7,7 +7,7 @@
 
 namespace Alimer
 {
-    /// Defines pixelf format.
+    /// Enum describing pixel format.
     enum class PixelFormat : uint32_t
     {
         Undefined = 0,

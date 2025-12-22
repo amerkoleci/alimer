@@ -278,7 +278,7 @@ namespace Alimer
         }
 
         GPULinearAllocator& allocator = frameAllocators[GRHIDevice->GetFrameIndex()];
-        const uint64_t alignment = Max(GRHIDevice->GetAdapterLimits().minConstantBufferOffsetAlignment, GRHIDevice->GetAdapterLimits().minStorageBufferOffsetAlignment);
+        const uint64_t alignment = Max(GRHIDevice->GetAdapter()->GetLimits().minConstantBufferOffsetAlignment, GRHIDevice->GetAdapter()->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();
         const uint64_t freeSpace = bufferSize - allocator.offset;
@@ -408,9 +408,9 @@ namespace Alimer
 
     RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
-        if (desc.size > limits.maxBufferSize)
+        if (desc.size > GetAdapter()->GetLimits().maxBufferSize)
         {
-            LOGE("Buffer size too large: {}, limit: {}", desc.size, limits.maxBufferSize);
+            LOGE("Buffer size too large: {}, limit: {}", desc.size, GetAdapter()->GetLimits().maxBufferSize);
             return nullptr;
         }
 
@@ -757,15 +757,16 @@ namespace Alimer
     RHIAdapter* RHIFactory::GetBestAdapter() const
     {
         RHIAdapter* adapter = nullptr;
-        uint32_t kind = (uint32_t)AdapterType::Other + 1;
+        uint32_t kind = (uint32_t)RHIAdapterType::Other + 1;
         for (size_t i = 0, count = _adapters.size(); i < count; ++i)
         {
             RHIAdapter* item = _adapters[i];
+            RHIAdapterType type = item->GetType();
 
-            if ((uint32_t)item->GetType() < kind)
+            if ((uint32_t)type < kind)
             {
                 adapter = item;
-                kind = (uint32_t)item->GetType();
+                kind = (uint32_t)type;
             }
         }
 
@@ -909,15 +910,15 @@ namespace Alimer
         }
     }
 
-    const std::string ToString(AdapterType type)
+    const std::string ToString(RHIAdapterType type)
     {
         switch (type)
         {
-            case AdapterType::IntegratedGpu:    return "IntegratedGpu";
-            case AdapterType::DiscreteGpu:      return "DiscreteGpu";
-            case AdapterType::VirtualGpu:       return "VirtualGpu";
-            case AdapterType::Cpu:              return "Cpu";
-            default:                            return "Other";
+            case RHIAdapterType::IntegratedGpu:     return "IntegratedGpu";
+            case RHIAdapterType::DiscreteGpu:       return "DiscreteGpu";
+            case RHIAdapterType::VirtualGpu:        return "VirtualGpu";
+            case RHIAdapterType::Cpu:               return "Cpu";
+            default:                                return "Other";
         }
     }
 
@@ -1049,151 +1050,6 @@ namespace Alimer
         }
     }
 
-    static BlendState BlendStateDescs[ecast(CommonBlendState::Count)] = {};
-    static RasterizerState RasterizerStateDescc[ecast(CommonRasterizerState::Count)] = {};
-    static DepthStencilState DepthStateDescs[ecast(CommonDepthStencilState::Count)] = {};
-
-    static void InitCommonStates()
-    {
-        // https://github.com/microsoft/DirectXTK12/blob/main/Src/CommonStates.cpp
-        static bool initialized = false;
-        if (!initialized)
-        {
-            // Blend state initialization
-            {
-                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Opaque)];
-                BlendStateDescs[ecast(CommonBlendState::Opaque)] = blendDesc;
-            }
-
-            {
-                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Transparent)];
-                blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::SourceAlpha;
-                blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::OneMinusSourceAlpha;
-                blendDesc.renderTargets[0].colorBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].srcAlphaBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::Zero;
-                blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-            }
-
-            {
-                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Premultiplied)];
-                //blendDesc.renderTargets[0].blendEnable = true;
-                blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::OneMinusSourceAlpha;
-                blendDesc.renderTargets[0].colorBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].srcAlphaBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::OneMinusSourceAlpha;
-                blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-            }
-
-            {
-                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Additive)];
-                //blendDesc.renderTargets[0].blendEnable = true;
-                blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::SourceAlpha;
-                blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].colorBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].srcAlphaBlendFactor = BlendFactor::Zero;
-                blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::One;
-                blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-            }
-
-            {
-                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::ColorWriteDisable)];
-                blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::None;
-            }
-
-            {
-                BlendState& blendDesc = BlendStateDescs[ecast(CommonBlendState::Multiply)];
-                //blendDesc.renderTargets[0].blendEnable = true;
-                blendDesc.renderTargets[0].srcColorBlendFactor = BlendFactor::DestinationColor;
-                blendDesc.renderTargets[0].destColorBlendFactor = BlendFactor::Zero;
-                blendDesc.renderTargets[0].colorBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].srcAlphaBlendFactor = BlendFactor::DestinationAlpha;
-                blendDesc.renderTargets[0].destAlphaBlendFactor = BlendFactor::Zero;
-                blendDesc.renderTargets[0].alphaBlendOp = BlendOperation::Add;
-                blendDesc.renderTargets[0].colorWriteMask = ColorWriteMask::All;
-            }
-
-            // RasterizerState initialization
-            {
-                RasterizerState rasterizerState;
-                rasterizerState.fillMode = FillMode::Solid;
-                rasterizerState.cullMode = CullMode::None;
-                RasterizerStateDescc[ecast(CommonRasterizerState::CullNone)] = rasterizerState;
-
-                rasterizerState.fillMode = FillMode::Solid;
-                rasterizerState.cullMode = CullMode::Front;
-                RasterizerStateDescc[ecast(CommonRasterizerState::CullFront)] = rasterizerState;
-
-                rasterizerState.fillMode = FillMode::Solid;
-                rasterizerState.cullMode = CullMode::Back;
-                RasterizerStateDescc[ecast(CommonRasterizerState::CullBack)] = rasterizerState;
-
-                rasterizerState.fillMode = FillMode::Wireframe;
-                rasterizerState.cullMode = CullMode::None;
-                RasterizerStateDescc[ecast(CommonRasterizerState::Wireframe)] = rasterizerState;
-            }
-
-            // DepthStencilState initialization
-            {
-                DepthStencilState& dsDesc = DepthStateDescs[ecast(CommonDepthStencilState::None)];
-                dsDesc.depthWriteEnabled = false;
-                dsDesc.depthCompare = CompareFunction::Always;
-            }
-
-            {
-                DepthStencilState& dsDesc = DepthStateDescs[ecast(CommonDepthStencilState::Default)];
-                dsDesc.depthWriteEnabled = true;
-                dsDesc.depthCompare = CompareFunction::LessEqual;
-            }
-
-            {
-                DepthStencilState& dsDesc = DepthStateDescs[ecast(CommonDepthStencilState::Read)];
-                dsDesc.depthWriteEnabled = false;
-                dsDesc.depthCompare = CompareFunction::LessEqual;
-            }
-
-            {
-                DepthStencilState& dsDesc = DepthStateDescs[ecast(CommonDepthStencilState::ReverseZ)];
-                dsDesc.depthWriteEnabled = true;
-                dsDesc.depthCompare = CompareFunction::GreaterEqual;
-            }
-
-            {
-                DepthStencilState& dsDesc = DepthStateDescs[ecast(CommonDepthStencilState::ReadReverseZ)];
-                dsDesc.depthWriteEnabled = false;
-                dsDesc.depthCompare = CompareFunction::GreaterEqual;
-            }
-
-            initialized = true;
-        }
-    }
-
-    BlendState GetBlendState(CommonBlendState state)
-    {
-        InitCommonStates();
-
-        return BlendStateDescs[ecast(state)];
-    }
-
-    RasterizerState GetRasterizerState(CommonRasterizerState state)
-    {
-        InitCommonStates();
-
-        return RasterizerStateDescc[ecast(state)];
-    }
-
-
-    DepthStencilState GetDepthStencilState(CommonDepthStencilState state)
-    {
-        InitCommonStates();
-
-        return DepthStateDescs[ecast(state)];
-    }
-
     static const VertexFormatInfo s_VertexFormatTable[] = {
         {VertexFormat::Undefined,           0, 0,   VertexFormatKind::Float},
         {VertexFormat::UByte,               1, 1,   VertexFormatKind::Uint},
@@ -1263,10 +1119,10 @@ namespace Alimer
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
-        if (GRHIDevice->GetGraphicsAPI() == GraphicsAPI::D3D12)
-        {
-            dxil = true;
-        }
+        //if (GRHIDevice->GetGraphicsAPI() == GraphicsAPI::D3D12)
+        //{
+        //    dxil = true;
+        //}
 
         const char* stageName = GetEntryPointName(stage);
         std::vector<ShaderMake::ShaderConstant> constants;

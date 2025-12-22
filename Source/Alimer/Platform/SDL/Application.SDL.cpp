@@ -1,9 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Alimer/Platform/AppPlatform.h"
-#include "Alimer/Platform/SDL/Window.SDL.h"
 #include "Alimer/Application.h"
+#include "Alimer/Platform/SDL/Window.SDL.h"
 #include "Alimer/Core/Log.h"
 #include <SDL3/SDL.h>
 
@@ -37,42 +36,54 @@ namespace
                 break;
         }
     }
-
-
 }
 
-class AppPlatformSDL final : public AppPlatform
+
+bool Application::PlatformInit()
 {
-public:
-    AppPlatformSDL(Application* app);
-    ~AppPlatformSDL() override;
+#if defined(_DEBUG)
+    SDL_SetLogPriority(SDL_LOG_CATEGORY_ERROR, SDL_LOG_PRIORITY_DEBUG);
+#endif
+    SDL_SetLogOutputFunction(AlimerLog_SDL, nullptr);
 
-    void RunMainLoop() override;
-    void RequestExit() override;
+    // Init SDL
+    const Uint32 sdl_init_flags = SDL_INIT_VIDEO | SDL_INIT_GAMEPAD;
+    if (!SDL_Init(sdl_init_flags))
+    {
+        LOGE("Alimer: SDL_Init Failed: {}", SDL_GetError());
+        return false;
+    }
 
-private:
-    bool _exitRequested{ false };
-};
+    if (!_options.name.empty())
+    {
+        SDL_SetHint(SDL_HINT_APP_NAME, _options.name.c_str());
+    }
 
-AppPlatformSDL::AppPlatformSDL(Application* app)
-    : AppPlatform(app)
-{
+    const int version = SDL_GetVersion();
+    LOGI("SDL Initialized: v{}.{}.{}, revision: {}",
+        SDL_VERSIONNUM_MAJOR(version),
+        SDL_VERSIONNUM_MINOR(version),
+        SDL_VERSIONNUM_MICRO(version),
+        SDL_GetRevision()
+    );
+
+    return true;
 }
 
-AppPlatformSDL::~AppPlatformSDL()
+void Application::PlatformShutdown()
 {
     SDL_Quit();
 }
 
-void AppPlatformSDL::RunMainLoop()
+void Application::PlatformRunMainLoop()
 {
-    const WindowDesc& windowDesc = _app->GetOptions().window;
+    const WindowDesc& windowDesc = _options.window;
     std::string title = windowDesc.title;
     if (title.empty())
-        title = _app->GetOptions().name;
+        title = _options.name;
 
     _mainWindow = std::make_unique<Window>(title, windowDesc.width, windowDesc.height, windowDesc.flags);
-    OnReady();
+    InitBeforeRun();
 
     _mainWindow->Show();
     _exitRequested = false;
@@ -204,7 +215,8 @@ void AppPlatformSDL::RunMainLoop()
             break;
         }
 
-        _app->Tick();
+        // Tick one frame
+        Tick();
 
 #if ALIMER_IMGUI
         // Update and Render additional Platform Windows
@@ -221,40 +233,4 @@ void AppPlatformSDL::RunMainLoop()
     }
 
     _mainWindow.reset();
-}
-
-void AppPlatformSDL::RequestExit()
-{
-    _exitRequested = true;
-}
-
-AppPlatform* AppPlatform::Create(Application* app)
-{
-#if defined(_DEBUG)
-    SDL_SetLogPriority(SDL_LOG_CATEGORY_ERROR, SDL_LOG_PRIORITY_DEBUG);
-#endif
-    SDL_SetLogOutputFunction(AlimerLog_SDL, nullptr);
-
-    // Init SDL
-    const Uint32 sdl_init_flags = SDL_INIT_VIDEO | SDL_INIT_GAMEPAD;
-    if (!SDL_Init(sdl_init_flags))
-    {
-        LOGE("Alimer: SDL_Init Failed: {}", SDL_GetError());
-        return nullptr;
-    }
-
-    if (!app->GetOptions().name.empty())
-    {
-        SDL_SetHint(SDL_HINT_APP_NAME, app->GetOptions().name.c_str());
-    }
-
-    const int version = SDL_GetVersion();
-    LOGI("SDL Initialized: v{}.{}.{}, revision: {}",
-        SDL_VERSIONNUM_MAJOR(version),
-        SDL_VERSIONNUM_MINOR(version),
-        SDL_VERSIONNUM_MICRO(version),
-        SDL_GetRevision()
-    );
-
-    return new AppPlatformSDL(app);
 }
