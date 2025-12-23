@@ -25,6 +25,14 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+#undef Always
+#undef Bool
+#undef False
+#undef None
+#undef True
+#endif
+
 ALIMER_DISABLE_WARNINGS()
 #define VMA_IMPLEMENTATION
 #define VMA_STATS_STRING_ENABLED 0
@@ -7472,7 +7480,7 @@ namespace Alimer
             .sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT,
             .pNext = nullptr,
             .flags = 0,
-            .pLayer = (CAMetalLayer*)window;
+            .pLayer = (CAMetalLayer*)window
         };
 
         result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &surface->handle);
