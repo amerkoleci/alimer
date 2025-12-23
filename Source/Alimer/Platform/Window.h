@@ -6,6 +6,8 @@
 #include "Alimer/Core/Object.h"
 #include "Alimer/Core/Signal.h"
 #include "Alimer/Platform/Types.h"
+#include "Alimer/Math/Vector2.h"
+#include "Alimer/RHI/RHI.h"
 
 namespace Alimer
 {
@@ -14,7 +16,7 @@ namespace Alimer
     /// Class that defines an OS window.
     class ALIMER_API Window final
     {
-        friend class AppPlatform;
+        friend class Application;
 
     public:
         /// Occurs when the window is resized.
@@ -30,15 +32,16 @@ namespace Alimer
         ALIMER_DISABLE_COPY_MOVE(Window);
 
         [[nodiscard]] uint32_t GetId() const { return _id; }
+        [[nodiscard]] UInt2 GetSize() const;
+        [[nodiscard]] UInt2 GetSizeInPixels() const;
+        [[nodiscard]] float GetAspectRatio() const;
 
 #if TODO
         [[nodiscard]] Int2 GetPosition() const;
         void SetPosition(int32_t x, int32_t y) noexcept;
         void SetPosition(const Int2& position) noexcept;
 
-        [[nodiscard]] SizeI GetSize() const;
-        [[nodiscard]] SizeI GetDrawableSize() const;
-        [[nodiscard]] float GetAspectRatio() const;
+        
         void SetSize(int32_t width, int32_t height) noexcept;
         void SetSize(const SizeI& size) noexcept;
 #endif // TODO
@@ -64,12 +67,22 @@ namespace Alimer
         void SetCursorVisible(bool value);
 
         [[nodiscard]] WindowImpl* GetImpl() const noexcept { return _impl; }
-
-        void OnResized();
+        [[nodiscard]] RHISurface* GetSurface() const noexcept { return _surface.Get(); }
+        [[nodiscard]] RHISwapChain* GetSwapChain() const noexcept { return _swapChain.Get(); }
 
     private:
+        /* Called by Application */
+        void CreateSurface(RHIFactory* factory);
+        void CreateSwapChain(RHIDevice* device);
+        void DestroySwapChain();
+        void OnResized();
+
         WindowImpl* _impl;
         uint32_t _id{};
         std::string _title;
+        PixelFormat _colorFormat = PixelFormat::BGRA8UnormSrgb;
+        RHISurfaceRef _surface;
+        RHIDeviceRef _device;
+        RHISwapChainRef _swapChain;
     };
 }

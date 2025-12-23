@@ -16,15 +16,15 @@
 #ifdef __cplusplus
 using bool32 = uint32_t;
 using uint = uint32_t;
-//using float2 = Alimer::Vector2;
-//using float3 = Alimer::Vector3;
-//using float4 = Alimer::Vector4;
-//using color4 = Alimer::Color;
-//using int4 = Alimer::Int4;
-//using uint2 = Alimer::UInt2;
-//using uint4 = Alimer::UInt4;
+using float2 = Alimer::Vector2;
+using float3 = Alimer::Vector3;
+using float4 = Alimer::Vector4;
+using color4 = Alimer::Color;
+using int4 = Alimer::Int4;
+using uint2 = Alimer::UInt2;
+using uint4 = Alimer::UInt4;
 //using float3x3 = Alimer::Matrix3x3;
-//using float4x4 = Alimer::Matrix4x4;
+using float4x4 = Alimer::Matrix4x4;
 #else
 #define constexpr
 #define bool32 bool

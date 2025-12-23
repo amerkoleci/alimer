@@ -4,12 +4,14 @@
 #pragma once
 
 #include "Alimer/Platform/Window.h"
-struct SDL_Window;
+typedef struct SDL_Window SDL_Window;
+typedef void* SDL_MetalView;
 
 namespace Alimer
 {
     struct WindowImpl final
     {
         SDL_Window* handle = nullptr;
+        SDL_MetalView view = nullptr;
     };
 }

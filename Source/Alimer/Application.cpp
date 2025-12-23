@@ -100,12 +100,16 @@ void Application::InitBeforeRun()
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};
 #if defined(_DEBUG)
-    factoryDesc.validationMode = ValidationMode::Enabled;
+    factoryDesc.validationMode = RHIValidationMode::Enabled;
 #endif
     _rhiFactory = RHIFactory::Create(factoryDesc);
+    _mainWindow->CreateSurface(_rhiFactory);
     _rhiAdapter = _rhiFactory->GetBestAdapter();
-    RHIDeviceDesc deviceDesc{};
+    RHIDeviceDesc deviceDesc{
+        .label = "Main RHI Device"
+    };
     _rhiDevice = _rhiAdapter->CreateDevice(deviceDesc);
+    _mainWindow->CreateSwapChain(_rhiDevice);
 
     // We're ready, now init.
     Initialize();

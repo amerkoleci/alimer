@@ -10,39 +10,47 @@ using namespace Alimer;
 
 void Window::OnResized()
 {
+    if (_swapChain != nullptr)
+    {
+        _device->WaitIdle();
+
+        //CreateSwapChain();
+    }
+
     Resized.Emit();
 }
 
-#if TODO
-void Window::OnResized()
+void Window::CreateSwapChain(RHIDevice* device)
 {
-    if (swapChain != nullptr)
-    {
-        GRHIDevice->WaitIdle();
-    }
+    _device.Reset(device);
+    UInt2 size = GetSize();
 
-    //swapChain->Resize();
+    const RHISwapChainDesc desc{
+        .label = "Window SwapChain",
+        .width = size.x,
+        .height = size.y,
+        .colorFormat = _colorFormat,
+        .presentMode = PresentMode::Fifo,
+    };
+    _swapChain = _device->CreateSwapChain(_surface, desc);
 }
 
-void Window::CreateSwapChain()
+void Window::DestroySwapChain()
 {
-    if (swapChain != nullptr)
-    {
-        GRHIDevice->WaitIdle();
-    }
+    _device->WaitIdle();
+    _swapChain.Reset();
+}
 
+float Window::GetAspectRatio() const
+{
     auto size = GetSize();
+    if (size.x == 0 || size.y == 0)
+        return 0.0f;
 
-    RHISwapChainDesc desc{};
-    desc.width = size.width;
-    desc.height = size.height;
-    //desc.usage = colorUsage;
-    desc.colorFormat = colorFormat;
-    desc.presentMode = PresentMode::Fifo;
-    //desc.presentMode = PresentMode::Immediate;
-    swapChain = RHICreateSwapChain(surface, desc);
+    return static_cast<float>(size.x) / size.y;
 }
 
+#if TODO
 void Window::SetPosition(const Int2& position) noexcept
 {
     SetPosition(position.x, position.y);
@@ -51,15 +59,6 @@ void Window::SetPosition(const Int2& position) noexcept
 void Window::SetSize(const SizeI& size) noexcept
 {
     SetSize(size.width, size.height);
-}
-
-float Window::GetAspectRatio() const
-{
-    auto size = GetSize();
-    if (size.width == 0 || size.height == 0)
-        return 0.0f;
-
-    return static_cast<float>(size.width) / size.height;
 }
 
 #endif // TODO

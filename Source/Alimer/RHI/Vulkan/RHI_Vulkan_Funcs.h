@@ -183,6 +183,9 @@ VULKAN_DEVICE_FUNCTION(vkDestroySwapchainKHR)
 VULKAN_DEVICE_FUNCTION(vkQueuePresentKHR)
 VULKAN_DEVICE_FUNCTION(vkGetSwapchainImagesKHR)
 
+// VK_KHR_ray_tracing_pipeline
+VULKAN_DEVICE_FUNCTION(vkCreateRayTracingPipelinesKHR)
+
 #if defined(VK_KHR_external_memory_win32)
 VULKAN_DEVICE_FUNCTION(vkGetMemoryWin32HandleKHR)
 VULKAN_DEVICE_FUNCTION(vkGetMemoryWin32HandlePropertiesKHR)

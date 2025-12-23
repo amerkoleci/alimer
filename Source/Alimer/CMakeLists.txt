@@ -258,6 +258,20 @@ if (NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
 endif ()
 
 if (ALIMER_RHI_VULKAN)
+    target_compile_definitions(${TARGET_NAME} PRIVATE
+        $<$<BOOL:${WIN32}>:
+            VK_USE_PLATFORM_WIN32_KHR
+        >
+        $<$<BOOL:${APPLE}>:
+            VK_USE_PLATFORM_METAL_EXT;VK_ENABLE_BETA_EXTENSIONS
+        >
+        $<$<BOOL:${ALIMER_ENABLE_XLIB_SUPPORT}>:
+            VK_USE_PLATFORM_XLIB_KHR
+        >
+        $<$<BOOL:${ALIMER_ENABLE_WAYLAND_SUPPORT}>:
+            VK_USE_PLATFORM_WAYLAND_KHR
+        >
+    )
     target_link_libraries(${TARGET_NAME} PRIVATE vma spirv_reflect)
 endif (ALIMER_RHI_VULKAN)
 

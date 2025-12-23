@@ -138,147 +138,17 @@ namespace Alimer
         return it->second.Get();
     }
 
-
-    /* RHISurface */
-    RHISurface::RHISurface(Type type_)
-        : type(type_)
-    {
-
-    }
-
-    ANativeWindow* RHISurface::GetAndroidNativeWindow() const
-    {
-        ALIMER_ASSERT(type == Type::AndroidWindow);
-        return androidNativeWindow;
-    }
-
-    void* RHISurface::GetMetalLayer() const
-    {
-        ALIMER_ASSERT(type == Type::MetalLayer);
-        return metalLayer;
-    }
-
-    wl_display* RHISurface::GetWaylandDisplay() const
-    {
-        ALIMER_ASSERT(type == Type::WaylandSurface);
-        return waylandDisplay;
-    }
-
-    wl_surface* RHISurface::GetWaylandSurface() const
-    {
-        ALIMER_ASSERT(type == Type::WaylandSurface);
-        return waylandSurface;
-    }
-
-    void* RHISurface::GetXDisplay() const
-    {
-        ALIMER_ASSERT(type == Type::XlibWindow);
-        return xDisplay;
-    }
-
-    uint64_t RHISurface::GetXWindow() const
-    {
-        ALIMER_ASSERT(type == Type::XlibWindow);
-        return xWindow;
-    }
-
-    HWND RHISurface::GetHWND() const
-    {
-        ALIMER_ASSERT(type == Type::WindowsHWND);
-        return hwnd;
-    }
-
-    RHISurfaceRef RHISurface::CreateAndroid(ANativeWindow* window)
-    {
-        RHISurfaceRef surface(new RHISurface(Type::AndroidWindow));
-        surface->androidNativeWindow = window;
-        return surface;
-    }
-
-    RHISurfaceRef RHISurface::CreateMetalLayer(/*CAMetalLayer*/void* layer)
-    {
-        RHISurfaceRef surface(new RHISurface(Type::MetalLayer));
-        surface->metalLayer = layer;
-        return surface;
-    }
-
-    RHISurfaceRef RHISurface::CreateWayland(wl_display* waylandDisplay, wl_surface* waylandSurface)
-    {
-        RHISurfaceRef surface(new RHISurface(Type::WaylandSurface));
-        surface->waylandDisplay = waylandDisplay;
-        surface->waylandSurface = waylandSurface;
-        return surface;
-    }
-
-    RHISurfaceRef RHISurface::CreateXlib(/*Display*/void* display, /*Window*/uint64_t window)
-    {
-        RHISurfaceRef surface(new RHISurface(Type::XlibWindow));
-        surface->xDisplay = display;
-        surface->xWindow = window;
-        return surface;
-    }
-
-    RHISurfaceRef RHISurface::CreateWin32([[maybe_unused]] HWND hwnd)
-    {
-#if defined(_WIN32)
-        ALIMER_ASSERT(IsWindow(hwnd));
-
-        RHISurfaceRef surface(new RHISurface(Type::WindowsHWND));
-        surface->hwnd = hwnd;
-        return surface;
-#else
-        LOGE("Win32 surface can be created only on Windows platforms");
-        return nullptr;
-#endif
-    }
-
-    RHISurfaceRef RHISurface::CreateIDCompositionVisual(IUnknown* visual)
-    {
-        RHISurfaceRef surface(new RHISurface(Type::IDCompositionVisual));
-        surface->idCompositionVisualOrSwapChainPanel = visual;
-        return surface;
-    }
-
-    RHISurfaceRef RHISurface::CreateSwapChainPanel(IUnknown* swapChainPanel)
-    {
-        RHISurfaceRef surface(new RHISurface(Type::SwapChainPanel));
-        surface->idCompositionVisualOrSwapChainPanel = swapChainPanel;
-        return surface;
-    }
-
-    IUnknown* RHISurface::GetIDCompositionVisual() const
-    {
-        ALIMER_ASSERT(type == Type::IDCompositionVisual);
-        return idCompositionVisualOrSwapChainPanel;
-    }
-
-    IUnknown* RHISurface::GetSwapChainPanel() const
-    {
-        ALIMER_ASSERT(type == Type::SwapChainPanel);
-        return idCompositionVisualOrSwapChainPanel;
-    }
-
-    void* RHISurface::GetSurfaceHandle() const
-    {
-        ALIMER_ASSERT(type == Type::SurfaceHandle);
-        return surfaceHandle;
-    }
-
-    RHISwapChain::RHISwapChain(RHISurface* surface_)
-        : surface(surface_)
-    {
-
-    }
-
-    GPUAllocation CopyContext::AllocateGPU(uint64_t size)
+    /* RHICommandBuffer */
+    GPUAllocation RHICommandBuffer::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
             return {};
         }
 
-        GPULinearAllocator& allocator = frameAllocators[GRHIDevice->GetFrameIndex()];
-        const uint64_t alignment = Max(GRHIDevice->GetAdapter()->GetLimits().minConstantBufferOffsetAlignment, GRHIDevice->GetAdapter()->GetLimits().minStorageBufferOffsetAlignment);
+        RHIDevice* device = GetDevice();
+        GPULinearAllocator& allocator = frameAllocators[_frameIndex];
+        const uint64_t alignment = Max(device->GetAdapter()->GetLimits().minConstantBufferOffsetAlignment, device->GetAdapter()->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();
         const uint64_t freeSpace = bufferSize - allocator.offset;
@@ -289,7 +159,7 @@ namespace Alimer
             bufferDesc.usage = BufferUsage::Vertex | BufferUsage::Index | BufferUsage::Constant | BufferUsage::ShaderRead;
             bufferDesc.memoryType = MemoryType::Upload;
 
-            allocator.buffer = GRHIDevice->CreateBuffer(bufferDesc);
+            allocator.buffer = device->CreateBuffer(bufferDesc);
             allocator.offset = 0;
         }
 
@@ -304,7 +174,7 @@ namespace Alimer
         return allocation;
     }
 
-    void CopyContext::UpdateBuffer(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void RHICommandBuffer::UpdateBuffer(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -318,30 +188,29 @@ namespace Alimer
         CopyBufferToBuffer(allocation.buffer.Get(), allocation.offset, buffer, offset, size);
     }
 
-    /* ComputeContext */
-    void ComputeContext::PreDispatchValidation()
+    void RHICommandBuffer::PreDispatchValidation()
     {
 #if defined(_DEBUG)
         ALIMER_ASSERT_MSG(!insideRenderPass, "Dispatch needs to happen Outside render pass.");
 #endif
     }
 
-    void ComputeContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void RHICommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         PreDispatchValidation();
 
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    /* GraphicsContext */
-    void GraphicsContext::Reset(uint32_t frameIndex)
+    void RHICommandBuffer::Reset(uint32_t frameIndex)
     {
+        _frameIndex = frameIndex;
         insideRenderPass = false;
         currentShadingRate = ShadingRate::Invalid;
         frameAllocators[frameIndex].Reset();
     }
 
-    void GraphicsContext::BeginRenderPass(const RenderPassDesc& desc)
+    void RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     {
         if (insideRenderPass)
         {
@@ -353,7 +222,7 @@ namespace Alimer
         insideRenderPass = true;
     }
 
-    void GraphicsContext::EndRenderPass()
+    void RHICommandBuffer::EndRenderPass()
     {
         if (!insideRenderPass)
         {
@@ -379,32 +248,6 @@ namespace Alimer
     extern bool Metal_IsSupported();
     extern RHIFactoryRef Metal_CreateFactory(const RHIFactoryDesc& desc);
 #endif
-
-    bool RHIIsSupported(GraphicsAPI backend)
-    {
-        switch (backend)
-        {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            case GraphicsAPI::D3D12:
-                return D3D12_IsSupported();
-#endif
-
-#if defined(ALIMER_RHI_VULKAN)
-            case GraphicsAPI::Vulkan:
-                return Vulkan_IsSupported();
-#endif
-
-#if defined(ALIMER_RHI_METAL)
-            case GraphicsAPI::Metal:
-                return false;
-#endif
-
-            default:
-                return false;
-        }
-    }
-
-    RHIDeviceRef GRHIDevice;
 
     RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
@@ -593,9 +436,9 @@ namespace Alimer
 
     RHIShaderModuleRef RHIDevice::CreateShaderModule(const ShaderModuleDesc& desc)
     {
-        if (desc.bytecodeSize == 0 || desc.bytecode == nullptr)
+        if (desc.byteCodeSize == 0 || desc.byteCode == nullptr)
         {
-            LOGE("Invalid shader module bytecode");
+            LOGE("Invalid shader module byteCode");
             return nullptr;
         }
 
@@ -621,7 +464,7 @@ namespace Alimer
         return CreateBindGroupCore(layout, desc);
     }
 
-    RHIPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    RHIRenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDesc& desc)
     {
         // Vertex shader is necessary when not using mesh shaders
         if (desc.vertexShader == nullptr)
@@ -646,7 +489,7 @@ namespace Alimer
         return CreateRenderPipelineCore(desc);
     }
 
-    RHIPipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
+    RHIComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
     {
         ALIMER_ASSERT(desc.layout != nullptr);
         ALIMER_ASSERT(desc.shader != nullptr);
@@ -654,10 +497,8 @@ namespace Alimer
         return CreateComputePipelineCore(desc);
     }
 
-    RHIPipelineRef RHIDevice::CreateRayTracingPipeline(const RayTracingPipelineDesc& desc)
+    RHIRayTracingPipelineRef RHIDevice::CreateRayTracingPipeline(const RayTracingPipelineDesc& desc)
     {
-        ALIMER_ASSERT(desc.layout != nullptr);
-
         return CreateRayTracingPipelineCore(desc);
     }
 
@@ -683,7 +524,31 @@ namespace Alimer
     }
 
     /* RHIFactory */
-    GraphicsAPI RHIGetPlatformPreferredApi()
+    bool RHIFactory::IsSupported(GraphicsAPI backend)
+    {
+        switch (backend)
+        {
+#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+            case GraphicsAPI::D3D12:
+                return D3D12_IsSupported();
+#endif
+
+#if defined(ALIMER_RHI_VULKAN)
+            case GraphicsAPI::Vulkan:
+                return Vulkan_IsSupported();
+#endif
+
+#if defined(ALIMER_RHI_METAL)
+            case GraphicsAPI::Metal:
+                return false;
+#endif
+
+            default:
+                return false;
+        }
+    }
+
+    GraphicsAPI RHIFactory::GetPlatformPreferredApi()
     {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
         if (D3D12_IsSupported())
@@ -712,7 +577,7 @@ namespace Alimer
         GraphicsAPI api = desc.preferredApi;
         if (api == GraphicsAPI::Count)
         {
-            api = RHIGetPlatformPreferredApi();
+            api = GetPlatformPreferredApi();
         }
 
         RHIFactoryRef factory;
@@ -784,121 +649,6 @@ namespace Alimer
         return _adapters[index];
     }
 
-    bool RHIInit(RHIAdapter* adapter, const RHIDeviceDesc& desc)
-    {
-        if (GRHIDevice != nullptr)
-            return true;
-
-        GRHIDevice = adapter->CreateDevice(desc);
-        return GRHIDevice != nullptr;
-    }
-
-    void RHIShutdown()
-    {
-        if (GRHIDevice != nullptr)
-        {
-            delete GRHIDevice;
-            GRHIDevice = nullptr;
-        }
-    }
-
-    RHIBufferRef RHICreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        BufferDesc bufferDesc{};
-        bufferDesc.label = label;
-        bufferDesc.size = size;
-        bufferDesc.usage = usage;
-        return GRHIDevice->CreateBuffer(bufferDesc, initialData);
-    }
-
-    RHIBufferRef RHICreateBuffer(const BufferDesc& desc, const void* initialData)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateBuffer(desc, initialData);
-    }
-
-    RHITextureRef RHICreateTexture(const TextureDesc& desc, const TextureData* initialData)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateTexture(desc, initialData);
-    }
-
-    RHISamplerRef RHICreateSampler(const SamplerDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateSampler(desc);
-    }
-
-    RHIShaderModuleRef RHICreateShaderModule(const ShaderModuleDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateShaderModule(desc);
-    }
-
-    RHIBindGroupLayoutRef RHICreateBindGroupLayout(const BindGroupLayoutDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateBindGroupLayout(desc);
-    }
-
-    RHIPipelineLayoutRef RHICreatePipelineLayout(const PipelineLayoutDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreatePipelineLayout(desc);
-    }
-
-    RHIBindGroupRef RHICreateBindGroup(RHIBindGroupLayout* layout, const BindGroupDesc& desc)
-    {
-        ALIMER_ASSERT(layout);
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateBindGroup(layout, desc);
-    }
-
-    RHIPipelineRef RHICreateRenderPipeline(const RenderPipelineDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateRenderPipeline(desc);
-    }
-
-    RHIPipelineRef RHICreateComputePipeline(const ComputePipelineDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateComputePipeline(desc);
-    }
-
-    RHIPipelineRef RHICreateRayTracingPipeline(const RayTracingPipelineDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateRayTracingPipeline(desc);
-    }
-
-    RHIQueryHeapRef RHICreateQueryHeap(const QueryHeapDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-
-        return GRHIDevice->CreateQueryHeap(desc);
-    }
-
-    RHISwapChainRef RHICreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc)
-    {
-        ALIMER_ASSERT(GRHIDevice);
-        ALIMER_ASSERT(surface);
-
-        return GRHIDevice->CreateSwapChain(surface, desc);
-    }
-
     const std::string ToString(GraphicsAPI type)
     {
         switch (type)
@@ -922,59 +672,59 @@ namespace Alimer
         }
     }
 
-    GPUAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
+    RHIAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
     {
         switch (vendorId)
         {
             case (uint32_t)KnownGPUAdapterVendor::AMD:
-                return GPUAdapterVendor::AMD;
+                return RHIAdapterVendor::AMD;
             case (uint32_t)KnownGPUAdapterVendor::NVIDIA:
-                return GPUAdapterVendor::NVIDIA;
+                return RHIAdapterVendor::NVIDIA;
             case (uint32_t)KnownGPUAdapterVendor::INTEL:
-                return GPUAdapterVendor::Intel;
+                return RHIAdapterVendor::Intel;
             case (uint32_t)KnownGPUAdapterVendor::ARM:
-                return GPUAdapterVendor::ARM;
+                return RHIAdapterVendor::ARM;
             case (uint32_t)KnownGPUAdapterVendor::QUALCOMM:
-                return GPUAdapterVendor::Qualcomm;
+                return RHIAdapterVendor::Qualcomm;
             case (uint32_t)KnownGPUAdapterVendor::IMGTECH:
-                return GPUAdapterVendor::ImgTech;
+                return RHIAdapterVendor::ImgTech;
             case (uint32_t)KnownGPUAdapterVendor::MSFT:
-                return GPUAdapterVendor::MSFT;
+                return RHIAdapterVendor::MSFT;
             case (uint32_t)KnownGPUAdapterVendor::APPLE:
-                return GPUAdapterVendor::Apple;
+                return RHIAdapterVendor::Apple;
             case (uint32_t)KnownGPUAdapterVendor::MESA:
-                return GPUAdapterVendor::Mesa;
+                return RHIAdapterVendor::Mesa;
             case (uint32_t)KnownGPUAdapterVendor::BROADCOM:
-                return GPUAdapterVendor::Broadcom;
+                return RHIAdapterVendor::Broadcom;
 
             default:
-                return GPUAdapterVendor::Unknown;
+                return RHIAdapterVendor::Unknown;
         }
     }
 
-    uint32_t AdapterVendorToVendorId(GPUAdapterVendor vendor)
+    uint32_t AdapterVendorToVendorId(RHIAdapterVendor vendor)
     {
         switch (vendor)
         {
-            case GPUAdapterVendor::AMD:
+            case RHIAdapterVendor::AMD:
                 return (uint32_t)KnownGPUAdapterVendor::AMD;
-            case GPUAdapterVendor::NVIDIA:
+            case RHIAdapterVendor::NVIDIA:
                 return (uint32_t)KnownGPUAdapterVendor::NVIDIA;
-            case GPUAdapterVendor::Intel:
+            case RHIAdapterVendor::Intel:
                 return (uint32_t)KnownGPUAdapterVendor::INTEL;
-            case GPUAdapterVendor::ARM:
+            case RHIAdapterVendor::ARM:
                 return (uint32_t)KnownGPUAdapterVendor::ARM;
-            case GPUAdapterVendor::Qualcomm:
+            case RHIAdapterVendor::Qualcomm:
                 return (uint32_t)KnownGPUAdapterVendor::QUALCOMM;
-            case GPUAdapterVendor::ImgTech:
+            case RHIAdapterVendor::ImgTech:
                 return (uint32_t)KnownGPUAdapterVendor::IMGTECH;
-            case GPUAdapterVendor::MSFT:
+            case RHIAdapterVendor::MSFT:
                 return (uint32_t)KnownGPUAdapterVendor::MSFT;
-            case GPUAdapterVendor::Apple:
+            case RHIAdapterVendor::Apple:
                 return (uint32_t)KnownGPUAdapterVendor::APPLE;
-            case GPUAdapterVendor::Mesa:
+            case RHIAdapterVendor::Mesa:
                 return (uint32_t)KnownGPUAdapterVendor::MESA;
-            case GPUAdapterVendor::Broadcom:
+            case RHIAdapterVendor::Broadcom:
                 return (uint32_t)KnownGPUAdapterVendor::BROADCOM;
 
             default:
@@ -1115,14 +865,14 @@ namespace Alimer
         return s_VertexFormatTable[ecast(format)];
     }
 
-    RHIShaderModuleRef RHILoadShader(ShaderStages stage, const char* fileName, const std::vector<ShaderMacro>* pDefines)
+    RHIShaderModuleRef RHILoadShader(RHIDevice* device, ShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines)
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
-        //if (GRHIDevice->GetGraphicsAPI() == GraphicsAPI::D3D12)
-        //{
-        //    dxil = true;
-        //}
+        if (device->GetGraphicsAPI() == GraphicsAPI::D3D12)
+        {
+            dxil = true;
+        }
 
         const char* stageName = GetEntryPointName(stage);
         std::vector<ShaderMake::ShaderConstant> constants;
@@ -1151,10 +901,10 @@ namespace Alimer
 
         ShaderModuleDesc desc{};
         desc.label = shaderFileName.c_str();
-        desc.bytecodeSize = permutationSize;
-        desc.bytecode = permutationBytecode;
+        desc.byteCodeSize = permutationSize;
+        desc.byteCode = permutationBytecode;
 
-        RHIShaderModuleRef shaderModule = RHICreateShaderModule(desc);
+        RHIShaderModuleRef shaderModule = device->CreateShaderModule(desc);
         return shaderModule;
     }
 }

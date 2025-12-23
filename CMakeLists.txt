@@ -172,12 +172,20 @@ elseif(UNIX OR ANDROID)
     set(ALIMER_RHI_HAS_WEBGPU OFF)
 endif()
 
+# Test packages availability ("find_package" works only for X11)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_path(XLIB_HEADERS NAMES "X11/Xlib.h")
+    find_path(WAYLAND_HEADERS NAMES "wayland-client.h")
+endif()
+
 # RHI backends
 cmake_dependent_option(ALIMER_RHI_VULKAN "Enable Vulkan backend" ON "ALIMER_RHI_HAS_VULKAN" OFF)
 cmake_dependent_option(ALIMER_RHI_D3D12 "Enable D3D12 backend" ON "ALIMER_RHI_HAS_D3D12" OFF)
 cmake_dependent_option(ALIMER_D3D12_AGILITY_SDK "Enable Direct3D12 Agility SDK" OFF "ALIMER_RHI_HAS_D3D12" OFF)
 cmake_dependent_option(ALIMER_RHI_METAL "Enable Metal backend" ON "ALIMER_RHI_HAS_METAL" OFF)
 cmake_dependent_option(ALIMER_RHI_WEBGPU "Enable WebGPU backend" ON "ALIMER_RHI_HAS_WEBGPU" OFF)
+cmake_dependent_option(ALIMER_ENABLE_XLIB_SUPPORT "Enable X11 support" ON "XLIB_HEADERS" OFF)
+cmake_dependent_option(ALIMER_ENABLE_WAYLAND_SUPPORT "Enable Wayland support" ON "WAYLAND_HEADERS" OFF)
 
 # ShaderCompiler
 #if ((WIN32 OR UNIX) AND NOT (APPLE))

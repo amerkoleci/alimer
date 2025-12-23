@@ -4,6 +4,9 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/Platform/SDL/Window.SDL.h"
 #include <SDL3/SDL.h>
+#if defined(SDL_PLATFORM_MACOS)
+#include <SDL3/SDL_metal.h>
+#endif
 
 namespace
 {
@@ -48,6 +51,12 @@ Window::Window(const std::string& title, uint32_t width, uint32_t height, Window
         sdl_flags |= SDL_WINDOW_TRANSPARENT;
     }
 
+#if defined(ALIMER_RHI_METAL)
+    sdl_flags |= SDL_WINDOW_METAL;
+#elif defined(ALIMER_RHI_VULKAN)
+    sdl_flags |= SDL_WINDOW_VULKAN;
+#endif
+
     _impl->handle = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height), sdl_flags);
     if (_impl->handle == nullptr)
     {
@@ -55,14 +64,28 @@ Window::Window(const std::string& title, uint32_t width, uint32_t height, Window
         return;
     }
 
+#if defined(__APPLE__)
+    _impl->view = SDL_Metal_CreateView(_impl->handle);
+#endif
+
     _id = SDL_GetWindowID(_impl->handle);
     s_WindowCount++;
 }
 
 Window::~Window()
 {
+    DestroySwapChain();
+
     if (_impl->handle != nullptr)
     {
+#if defined(__APPLE__)
+        if (_impl->view)
+        {
+            SDL_Metal_DestroyView(_impl->view);
+            _impl->view = nullptr;
+        }
+#endif
+
         SDL_DestroyWindow(_impl->handle);
         _impl->handle = nullptr;
     }
@@ -70,6 +93,22 @@ Window::~Window()
     delete _impl;
 
     s_WindowCount--;
+}
+
+UInt2 Window::GetSize() const
+{
+    int width, height;
+    SDL_GetWindowSize(_impl->handle, &width, &height);
+
+    return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+}
+
+UInt2 Window::GetSizeInPixels() const
+{
+    int width, height;
+    SDL_GetWindowSizeInPixels(_impl->handle, &width, &height);
+
+    return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 }
 
 void Window::SetTitle(std::string_view title)
@@ -154,4 +193,36 @@ void Window::SetCursorVisible(bool value)
     {
         SDL_HideCursor();
     }
+}
+
+
+void Window::CreateSurface(RHIFactory* factory)
+{
+    [[maybe_unused]] SDL_PropertiesID properties = SDL_GetWindowProperties(_impl->handle);
+
+#if defined(SDL_PLATFORM_WIN32)
+    void* hwnd = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+    _surface = factory->CreateSurface(hwnd, nullptr);
+#elif defined(SDL_PLATFORM_MACOS)
+    void* layer = SDL_Metal_GetLayer(_impl->view);
+    _surface = factory->CreateSurface(layer, nullptr);
+#elif defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
+    {
+        void* xdisplay = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
+        Sint64 xwindow = SDL_GetNumberProperty(properties, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+        if (xdisplay && xwindow)
+        {
+        }
+    }
+    else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
+    {
+        struct wl_display* display = (struct wl_display*)SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
+        struct wl_surface* surface = (struct wl_surface*)SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
+        if (display && surface)
+        {
+            _surface = factory->CreateSurface(surface, display);
+        }
+    }
+#endif
 }

@@ -10,9 +10,6 @@
 #include "Core/Hash.h"
 #include "RHI/RHI.h"
 
-#define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
-
 #if defined(_WIN32)
 // Use the C++ standard templated min/max
 #define NOMINMAX
@@ -23,27 +20,10 @@
 #define NOSERVICE
 #define NOHELP
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <vulkan/vulkan_win32.h>
-#elif defined(__ANDROID__)
-#include <vulkan/vulkan_android.h>
-#elif defined(__APPLE__)
-#include <vulkan/vulkan_metal.h>
-#include <vulkan/vulkan_beta.h>
-#else
+#endif /* defined(_WIN32) */
 
-#endif
-
-typedef struct xcb_connection_t xcb_connection_t;
-typedef uint32_t xcb_window_t;
-typedef uint32_t xcb_visualid_t;
-
-//#include <vulkan/vulkan_xlib.h>
-#include <vulkan/vulkan_xcb.h>
-
-struct wl_display;
-struct wl_surface;
-#include <vulkan/vulkan_wayland.h>
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
 
 ALIMER_DISABLE_WARNINGS()
 #define VMA_IMPLEMENTATION
@@ -957,7 +937,10 @@ namespace Alimer
         }
     }
 
+    /* Forward vulkan type declarations */
     class VulkanDevice;
+    class VulkanRHIAdapter;
+    class VulkanRHIFactory;
 
     struct VulkanBuffer final : public RHIBuffer
     {
@@ -1133,20 +1116,39 @@ namespace Alimer
         uint32_t bindlessFirstSet = 0;
     };
 
-    struct VulkanPipeline final : public RHIPipeline
+    struct VulkanComputePipeline final : public RHIComputePipeline
     {
         VulkanDevice* device = nullptr;
-        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        Type type = Type::Render;
-
         VulkanPipelineLayoutReflection reflection{};
 
         SharedPtr<VulkanPipelineLayout> layout;
         VkPipeline handle = VK_NULL_HANDLE;
 
-        ~VulkanPipeline() override;
+        ~VulkanComputePipeline() override;
+        void SetLabel(const char* label) override;
+    };
 
-        RHIPipeline::Type GetType() const override { return type; }
+    struct VulkanRenderPipeline final : public RHIRenderPipeline
+    {
+        VulkanDevice* device = nullptr;
+        VulkanPipelineLayoutReflection reflection{};
+
+        SharedPtr<VulkanPipelineLayout> layout;
+        VkPipeline handle = VK_NULL_HANDLE;
+
+        ~VulkanRenderPipeline() override;
+        void SetLabel(const char* label) override;
+    };
+
+    struct VulkanRayTracingPipeline final : public RHIRayTracingPipeline
+    {
+        VulkanDevice* device = nullptr;
+        VulkanPipelineLayoutReflection reflection{};
+
+        SharedPtr<VulkanPipelineLayout> layout;
+        VkPipeline handle = VK_NULL_HANDLE;
+
+        ~VulkanRayTracingPipeline() override;
         void SetLabel(const char* label) override;
     };
 
@@ -1164,15 +1166,25 @@ namespace Alimer
         QueryType GetType() const override { return desc.type; }
     };
 
+    struct VulkanRHISurface final : public RHISurface
+    {
+        VulkanRHIFactory* factory = nullptr;
+        VkSurfaceKHR handle = VK_NULL_HANDLE;
+
+        ~VulkanRHISurface() override;
+    };
+
     struct VulkanSwapChain final : public RHISwapChain
     {
         VulkanDevice* device = nullptr;
         std::mutex locker;
-        VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
+
+        SharedPtr<VulkanRHISurface> surface;
         VkSwapchainKHR handle = VK_NULL_HANDLE;
 
         uint32_t imageIndex = 0;
         VkExtent2D extent{};
+        uint32_t queuePresentSupport = 0;
         PixelFormat colorFormat = PixelFormat::Undefined;
         PresentMode presentMode = PresentMode::Immediate;
         std::vector<SharedPtr<VulkanTexture>> backbufferTextures;
@@ -1180,9 +1192,9 @@ namespace Alimer
         std::vector<VkSemaphore> acquireSemaphores;
         std::vector<VkSemaphore> releaseSemaphores;
 
-        explicit VulkanSwapChain(RHISurface* surface);
         ~VulkanSwapChain() override;
 
+        RHISurface* GetSurface() const { return surface; }
         PixelFormat GetColorFormat() const override { return colorFormat; }
         void SetLabel(const char* label) override;
     };
@@ -1222,17 +1234,18 @@ namespace Alimer
         inline bool IsValid() const { return transferCommandBuffer != VK_NULL_HANDLE; }
     };
 
-    class VulkanCommandContext final : public GraphicsContext
+    class VulkanRHICommandBuffer final : public RHICommandBuffer
     {
         friend class VulkanDevice;
 
     public:
-        VulkanCommandContext(VulkanDevice* device, QueueType queueType, uint32_t id);
-        ~VulkanCommandContext() override;
+        VulkanRHICommandBuffer(VulkanDevice* device, QueueType queueType, uint32_t id);
+        ~VulkanRHICommandBuffer() override;
 
         void Begin(uint32_t frameIndex, const std::string& label);
         VkCommandBuffer End();
 
+        RHIDevice* GetDevice() const override;
         void PushDebugGroup(std::string_view name) override;
         void PopDebugGroup() override;
         void InsertDebugMarker(std::string_view name) override;
@@ -1245,8 +1258,7 @@ namespace Alimer
         void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) override;
         void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
 
-        /* ComputeContext */
-        void SetPipeline(RHIPipeline* pipeline) override;
+        void SetPipeline(RHIRenderPipeline* pipeline) override;
         void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
         void SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup) override;
         void FlushBindGroups();
@@ -1264,15 +1276,12 @@ namespace Alimer
 
         void BeginRenderPassCore(const RenderPassDesc& desc) override;
         void EndRenderPassCore() override;
-        void SetViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f) override;
-        //void SetViewport(const Viewport& viewport) override;
-        //void SetViewports(uint32_t count, const Viewport* viewports) override;
-        void SetScissorRect(int32_t x, int32_t y, int32_t width, int32_t height) override;
-        //void SetScissorRect(const Rect& rect) override;
-        //void SetScissorRects(uint32_t count, const Rect* scissorRects) override;
-        void SetStencilReference(uint32_t reference) override;
-        void SetBlendColor(float red, float green, float blue, float alpha) override;
-        //void SetBlendColor(const Color& color) override;
+        void SetViewport(const Viewport& viewport) override;
+        void SetViewports(const Viewport* viewports, uint32_t count) override;
+        void SetScissorRect(const ScissorRect& rect) override;
+        void SetScissorRects(const ScissorRect* scissorRects, uint32_t count) override;
+        void SetStencilReference(uint32_t referenceValue) override;
+        void SetBlendColor(const Color& color) override;
         void SetShadingRate(ShadingRate rate) override;
         void SetDepthBounds(float minBounds, float maxBounds) override;
 
@@ -1304,7 +1313,7 @@ namespace Alimer
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         VkSemaphore semaphore = VK_NULL_HANDLE;
 
-        std::vector<VulkanCommandContext*> waits;
+        std::vector<VulkanRHICommandBuffer*> waits;
         std::atomic_bool hasPendingWaits{ false };
         bool hasLabel = false;
 
@@ -1318,7 +1327,7 @@ namespace Alimer
         SharedPtr<VulkanBindGroup> boundBindGroups[kMaxBindGroups] = {};
         VkDescriptorSet descriptorSets[kMaxBindGroups] = {};
 
-        SharedPtr<VulkanPipeline> currentPipeline;
+        SharedPtr<VulkanRenderPipeline> currentPipeline;
         SharedPtr<VulkanPipelineLayout> currentPipelineLayout;
         std::vector<SharedPtr<VulkanSwapChain>> presentSwapChains;
     };
@@ -1355,7 +1364,6 @@ namespace Alimer
         bool AMD_device_coherent_memory;
         bool EXT_memory_priority;
         bool deferredHostOperations;
-        bool portabilitySubset;
         bool depthClipEnable;
         bool textureCompressionAstcHdr;
         bool shaderViewportIndexLayer;
@@ -1405,11 +1413,9 @@ namespace Alimer
         }
     };
 
-    class VulkanRHIAdapter;
-
     class VulkanDevice final : public RHIDevice
     {
-        friend class VulkanCommandContext;
+        friend class VulkanRHICommandBuffer;
         friend struct VulkanQueue;
         friend struct VulkanBindGroup;
 
@@ -1417,10 +1423,13 @@ namespace Alimer
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "RHI_Vulkan_Funcs.h"
 
-        VulkanDevice(VulkanRHIAdapter* adapter, VkDevice device, const RHIDeviceDesc& desc);
+        VulkanDevice(VulkanRHIAdapter* adapter, VkDevice handle_);
         ~VulkanDevice() override;
 
-        void Init();
+        void Init(const RHIDeviceDesc& desc);
+
+        GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
+        void SetLabel(const char* label) override;
         bool WaitIdle() override;
         uint64_t CommitFrame() override;
 
@@ -1439,22 +1448,20 @@ namespace Alimer
 
         RHIPipelineLayoutRef CreatePipelineLayoutCore(const PipelineLayoutDesc& desc) override;
         RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) override;
-        RHIPipelineRef CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
-        RHIPipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) override;
-        RHIPipelineRef CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc) override;
+        RHIComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) override;
+        RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
+        RHIRayTracingPipelineRef CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc) override;
         RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) override;
         RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
         void UpdateSwapChain(VulkanSwapChain* swapChain);
 
         void WriteShadingRateValue(ShadingRate rate, void* dest) const override;
 
-        GraphicsContext* BeginGraphicsContext(const std::string& label = "") override;
-        ComputeContext* BeginComputeContext(const std::string& label = "") override;
-        GraphicsContext* BeginCommandContext(QueueType queue, const std::string& label);
+        RHICommandBuffer* BeginCommandBuffer(QueueType queue, const std::string& label = "") override;
 
         void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices);
         void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices);
-        void SetObjectName(VkObjectType type, uint64_t handle, const char* label);
+        void SetObjectName(VkObjectType objectType, uint64_t objectHandle, const char* label);
         bool GetImageFormatProperties(const VkImageCreateInfo& createInfo, const void* pNext, VkImageFormatProperties2* properties2) const;
         bool GetImageFormatProperties(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags, const void* pNext, VkImageFormatProperties2* properties2) const;
 
@@ -1469,7 +1476,7 @@ namespace Alimer
 
         RHIAdapter* GetAdapter() const override;
 
-        VkDevice GetHandle() const { return device; }
+        VkDevice GetHandle() const { return handle; }
         VulkanQueue& GetGraphicsQueue() { return queues[ecast(QueueType::Graphics)]; }
         VulkanQueue& GetComputeQueue() { return queues[ecast(QueueType::Compute)]; }
         VulkanQueue& GetCopyQueue() { return queues[ecast(QueueType::Copy)]; }
@@ -1488,13 +1495,13 @@ namespace Alimer
         std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
         std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
         std::deque<std::pair<VkSwapchainKHR, uint64_t>> destroyedSwapchains;
-        std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
+        //std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
         std::deque<std::pair<std::pair<VkDescriptorPool, VkDescriptorSet>, uint64_t>> destroyedDescriptorSets;
 
     private:
         bool shuttingDown{ false };
         VulkanRHIAdapter* _adapter;
-        VkDevice device = VK_NULL_HANDLE;
+        VkDevice handle = VK_NULL_HANDLE;
         VulkanQueue queues[ecast(QueueType::Count)];
 
         VmaAllocator allocator{ VK_NULL_HANDLE };
@@ -1544,12 +1551,10 @@ namespace Alimer
         VkImageView		nullImageView3D = VK_NULL_HANDLE;
         std::vector<VkSampler> vkStaticSamplers;
 
-        std::vector<std::unique_ptr<VulkanCommandContext>> commandBuffers;
+        std::vector<std::unique_ptr<VulkanRHICommandBuffer>> commandBuffers;
         uint32_t cmdBuffersCount = 0;
         std::mutex cmdBuffersLocker;
     };
-
-    class VulkanRHIFactory;
 
     class VulkanRHIAdapter final : public RHIAdapter
     {
@@ -1561,7 +1566,6 @@ namespace Alimer
         QueueFamilyIndices queueFamilyIndices;
         bool synchronization2{ false };
         bool dynamicRendering{ false };
-        std::string driverDescription;
         bool supportsDepth32Stencil8{ false };
         bool supportsDepth24Stencil8{ false };
         bool supportsStencil8{ false };
@@ -1637,11 +1641,11 @@ namespace Alimer
 
         bool debugUtils{ false };
         bool headless{ false };
-        bool xcb_surface{ false };
         bool xlib_surface{ false };
         bool wayland_surface{ false };
         VkInstance handle = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
+        Vector<VkSurfaceKHR> destroyedSurfaces;
 
         static bool IsSupported();
 
@@ -1649,6 +1653,9 @@ namespace Alimer
         ~VulkanRHIFactory() override;
 
         GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
+
+        RHISurfaceRef CreateSurface(void* window, void* display) override;
+
         PhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice);
         QueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue);
         bool GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
@@ -2066,7 +2073,7 @@ namespace Alimer
         }
 
         device->vkUpdateDescriptorSets(
-            device->device,
+            device->handle,
             descriptorWriteCount,
             descriptorWrites.data(),
             0,
@@ -2074,8 +2081,8 @@ namespace Alimer
         );
     }
 
-    /* VulkanPipeline */
-    VulkanPipeline::~VulkanPipeline()
+    /* VulkanComputePipeline */
+    VulkanComputePipeline::~VulkanComputePipeline()
     {
         const uint64_t frameCount = device->GetFrameCount();
         device->destroyMutex.lock();
@@ -2087,7 +2094,43 @@ namespace Alimer
         device->destroyMutex.unlock();
     }
 
-    void VulkanPipeline::SetLabel(const char* label)
+    void VulkanComputePipeline::SetLabel(const char* label)
+    {
+        device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
+    }
+
+    /* VulkanRenderPipeline */
+    VulkanRenderPipeline::~VulkanRenderPipeline()
+    {
+        const uint64_t frameCount = device->GetFrameCount();
+        device->destroyMutex.lock();
+        if (handle)
+        {
+            device->destroyedPipelines.push_back(std::make_pair(handle, frameCount));
+        }
+        handle = VK_NULL_HANDLE;
+        device->destroyMutex.unlock();
+    }
+
+    void VulkanRenderPipeline::SetLabel(const char* label)
+    {
+        device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
+    }
+
+    /* VulkanRayTracingPipeline */
+    VulkanRayTracingPipeline::~VulkanRayTracingPipeline()
+    {
+        const uint64_t frameCount = device->GetFrameCount();
+        device->destroyMutex.lock();
+        if (handle)
+        {
+            device->destroyedPipelines.push_back(std::make_pair(handle, frameCount));
+        }
+        handle = VK_NULL_HANDLE;
+        device->destroyMutex.unlock();
+    }
+
+    void VulkanRayTracingPipeline::SetLabel(const char* label)
     {
         device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
     }
@@ -2111,11 +2154,16 @@ namespace Alimer
     }
 
     /* VulkanSwapChain */
-    VulkanSwapChain::VulkanSwapChain(RHISurface* surface_)
-        : RHISwapChain(surface_)
+    VulkanRHISurface::~VulkanRHISurface()
     {
+        if (handle != VK_NULL_HANDLE)
+        {
+            factory->destroyedSurfaces.push_back(handle);
+            handle = VK_NULL_HANDLE;
+        }
     }
 
+    /* VulkanSwapChain */
     VulkanSwapChain::~VulkanSwapChain()
     {
         const uint64_t frameCount = device->GetFrameCount();
@@ -2126,11 +2174,6 @@ namespace Alimer
             device->destroyedSwapchains.push_back(std::make_pair(handle, frameCount));
         }
 
-        if (vkSurface)
-        {
-            device->destroyedSurfaces.push_back(std::make_pair(vkSurface, frameCount));
-        }
-
         for (size_t i = 0; i < backbufferTextures.size(); ++i)
         {
             device->destroyedSemaphores.push_back(std::make_pair(acquireSemaphores[i], frameCount));
@@ -2138,8 +2181,6 @@ namespace Alimer
         }
 
         handle = VK_NULL_HANDLE;
-        vkSurface = VK_NULL_HANDLE;
-
         device->destroyMutex.unlock();
     }
 
@@ -2148,8 +2189,8 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, reinterpret_cast<uint64_t>(handle), label);
     }
 
-    /* VulkanCommandContext */
-    VulkanCommandContext::VulkanCommandContext(VulkanDevice* device_, QueueType queueType_, uint32_t id_)
+    /* VulkanRHICommandBuffer */
+    VulkanRHICommandBuffer::VulkanRHICommandBuffer(VulkanDevice* device_, QueueType queueType_, uint32_t id_)
         : device(device_)
         , queueType(queueType_)
         , id(id_)
@@ -2161,22 +2202,22 @@ namespace Alimer
             poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             poolInfo.queueFamilyIndex = device_->_adapter->queueFamilyIndices.familyIndices[ecast(queueType_)];
 
-            VK_CHECK(device->vkCreateCommandPool(device->device, &poolInfo, nullptr, &commandPools[i]));
+            VK_CHECK(device->vkCreateCommandPool(device->handle, &poolInfo, nullptr, &commandPools[i]));
 
             VkCommandBufferAllocateInfo commandBufferInfo = {};
             commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             commandBufferInfo.commandPool = commandPools[i];
             commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             commandBufferInfo.commandBufferCount = 1;
-            VK_CHECK(device->vkAllocateCommandBuffers(device->device, &commandBufferInfo, &commandBuffers[i]));
+            VK_CHECK(device->vkAllocateCommandBuffers(device->handle, &commandBufferInfo, &commandBuffers[i]));
         }
 
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        VK_CHECK(device->vkCreateSemaphore(device->device, &semaphoreInfo, nullptr, &semaphore));
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &semaphore));
     }
 
-    VulkanCommandContext::~VulkanCommandContext()
+    VulkanRHICommandBuffer::~VulkanRHICommandBuffer()
     {
         for (uint32_t i = 0; i < kMaxBindGroups; ++i)
         {
@@ -2186,15 +2227,15 @@ namespace Alimer
 
         for (uint32_t i = 0; i < kNumFramesInFlight; ++i)
         {
-            device->vkDestroyCommandPool(device->device, commandPools[i], nullptr);
+            device->vkDestroyCommandPool(device->handle, commandPools[i], nullptr);
         }
 
-        device->vkDestroySemaphore(device->device, semaphore, nullptr);
+        device->vkDestroySemaphore(device->handle, semaphore, nullptr);
     }
 
-    void VulkanCommandContext::Begin(uint32_t frameIndex, const std::string& label)
+    void VulkanRHICommandBuffer::Begin(uint32_t frameIndex, const std::string& label)
     {
-        GraphicsContext::Reset(frameIndex);
+        RHICommandBuffer::Reset(frameIndex);
         waits.clear();
         hasPendingWaits.store(false);
         currentPipeline.Reset();
@@ -2204,7 +2245,7 @@ namespace Alimer
         imageBarriers.clear();
         bufferBarriers.clear();
 
-        VK_CHECK(device->vkResetCommandPool(device->device, commandPools[frameIndex], 0));
+        VK_CHECK(device->vkResetCommandPool(device->handle, commandPools[frameIndex], 0));
         commandBuffer = commandBuffers[frameIndex];
 
         VkCommandBufferBeginInfo beginInfo = {};
@@ -2272,7 +2313,7 @@ namespace Alimer
         }
     }
 
-    VkCommandBuffer VulkanCommandContext::End()
+    VkCommandBuffer VulkanRHICommandBuffer::End()
     {
         for (auto& swapChain : presentSwapChains)
         {
@@ -2290,7 +2331,12 @@ namespace Alimer
         return commandBuffer;
     }
 
-    void VulkanCommandContext::PushDebugGroup(std::string_view name)
+    RHIDevice* VulkanRHICommandBuffer::GetDevice() const
+    {
+        return device;
+    }
+
+    void VulkanRHICommandBuffer::PushDebugGroup(std::string_view name)
     {
         if (!device->_adapter->debugUtils)
             return;
@@ -2305,7 +2351,7 @@ namespace Alimer
         device->_adapter->factory->vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label);
     }
 
-    void VulkanCommandContext::PopDebugGroup()
+    void VulkanRHICommandBuffer::PopDebugGroup()
     {
         if (!device->_adapter->debugUtils)
             return;
@@ -2313,7 +2359,7 @@ namespace Alimer
         device->_adapter->factory->vkCmdEndDebugUtilsLabelEXT(commandBuffer);
     }
 
-    void VulkanCommandContext::InsertDebugMarker(std::string_view name)
+    void VulkanRHICommandBuffer::InsertDebugMarker(std::string_view name)
     {
         if (!device->_adapter->debugUtils)
             return;
@@ -2328,7 +2374,7 @@ namespace Alimer
         device->_adapter->factory->vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &label);
     }
 
-    void VulkanCommandContext::BufferBarrier(const VulkanBuffer* buffer, BufferStates newState)
+    void VulkanRHICommandBuffer::BufferBarrier(const VulkanBuffer* buffer, BufferStates newState)
     {
         if (buffer->currentState == newState)
             return;
@@ -2357,7 +2403,7 @@ namespace Alimer
             CommitBarriers();
     }
 
-    void VulkanCommandContext::TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, TextureAspect aspect)
+    void VulkanRHICommandBuffer::TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, TextureAspect aspect)
     {
         const uint32_t mipLevelCount = texture->GetMipLevelCount();
         const uint32_t subresource = CalculateSubresource(baseMiplevel, baseArrayLayer, mipLevelCount);
@@ -2402,7 +2448,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout)
+    void VulkanRHICommandBuffer::TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout)
     {
         const VulkanTexture* backendTexture = static_cast<const VulkanTexture*>(view->GetTexture());
         TextureBarrier(backendTexture, newLayout,
@@ -2412,7 +2458,7 @@ namespace Alimer
         );
     }
 
-    void VulkanCommandContext::CommitBarriers()
+    void VulkanRHICommandBuffer::CommitBarriers()
     {
         if (!memoryBarriers.empty() || !bufferBarriers.empty() || !imageBarriers.empty())
         {
@@ -2434,7 +2480,7 @@ namespace Alimer
         numBarriersToCommit = 0;
     }
 
-    void VulkanCommandContext::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
+    void VulkanRHICommandBuffer::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2455,7 +2501,7 @@ namespace Alimer
         );
     }
 
-    void VulkanCommandContext::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
+    void VulkanRHICommandBuffer::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2476,12 +2522,12 @@ namespace Alimer
         );
     }
 
-    void VulkanCommandContext::SetPipeline(RHIPipeline* pipeline)
+    void VulkanRHICommandBuffer::SetPipeline(RHIRenderPipeline* pipeline)
     {
         if (currentPipeline.Get() == pipeline)
             return;
 
-        VulkanPipeline* newPipeline = static_cast<VulkanPipeline*>(pipeline);
+        VulkanRenderPipeline* newPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
         VulkanPipelineLayout* newPipelineLayout = newPipeline->layout.Get();
 
         if (currentPipelineLayout.Get() != newPipelineLayout)
@@ -2489,13 +2535,13 @@ namespace Alimer
 
         }
 
-        device->vkCmdBindPipeline(commandBuffer, newPipeline->bindPoint, newPipeline->handle);
+        device->vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline->handle);
 
         currentPipeline = newPipeline;
         currentPipelineLayout = newPipelineLayout;
     }
 
-    void VulkanCommandContext::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void VulkanRHICommandBuffer::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
         ALIMER_ASSERT_MSG(currentPipelineLayout.Get() != nullptr, "No PipelineLayout bound");
 
@@ -2511,7 +2557,7 @@ namespace Alimer
         device->vkCmdPushConstants(commandBuffer, currentPipelineLayout->handle, range.stageFlags, offset, size, data);
     }
 
-    void VulkanCommandContext::SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup)
+    void VulkanRHICommandBuffer::SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup)
     {
         ALIMER_VERIFY(bindGroup != nullptr);
         ALIMER_VERIFY(groupIndex < kMaxBindGroups);
@@ -2525,7 +2571,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::FlushBindGroups()
+    void VulkanRHICommandBuffer::FlushBindGroups()
     {
         if (!currentPipelineLayout)
             return;
@@ -2538,7 +2584,7 @@ namespace Alimer
 
         device->vkCmdBindDescriptorSets(
             commandBuffer,
-            currentPipeline->bindPoint,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
             currentPipelineLayout->handle,
             0u,
             currentPipelineLayout->bindGroupLayoutCount,
@@ -2548,19 +2594,19 @@ namespace Alimer
         bindGroupsDirty = false;
     }
 
-    void VulkanCommandContext::PrepareDispatch()
+    void VulkanRHICommandBuffer::PrepareDispatch()
     {
         FlushBindGroups();
     }
 
-    void VulkanCommandContext::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void VulkanRHICommandBuffer::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         PrepareDispatch();
 
         device->vkCmdDispatch(commandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    void VulkanCommandContext::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
+    void VulkanRHICommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
@@ -2580,7 +2626,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::EndQuery(const RHIQueryHeap* heap, uint32_t index)
+    void VulkanRHICommandBuffer::EndQuery(const RHIQueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
@@ -2598,7 +2644,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
+    void VulkanRHICommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         auto vulkanDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2626,20 +2672,20 @@ namespace Alimer
         );
     }
 
-    void VulkanCommandContext::ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count)
+    void VulkanRHICommandBuffer::ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         device->vkCmdResetQueryPool(commandBuffer, vulkanHeap->handle, index, count);
     }
 
-    RHITexture* VulkanCommandContext::AcquireSwapChainTexture(RHISwapChain* swapChain)
+    RHITexture* VulkanRHICommandBuffer::AcquireSwapChainTexture(RHISwapChain* swapChain)
     {
         VulkanSwapChain* backendSwapChain = (VulkanSwapChain*)swapChain;
         const size_t swapChainAcquireSemaphoreIndex = backendSwapChain->acquireSemaphoreIndex;
 
         backendSwapChain->locker.lock();
         VkResult result = device->vkAcquireNextImageKHR(
-            device->device,
+            device->handle,
             backendSwapChain->handle,
             UINT64_MAX,
             backendSwapChain->acquireSemaphores[swapChainAcquireSemaphoreIndex],
@@ -2679,7 +2725,7 @@ namespace Alimer
         return swapChainTexture;
     }
 
-    void VulkanCommandContext::BeginRenderPassCore(const RenderPassDesc& desc)
+    void VulkanRHICommandBuffer::BeginRenderPassCore(const RenderPassDesc& desc)
     {
         VkRect2D renderArea = {};
         renderArea.extent.width = device->_adapter->properties2.properties.limits.maxFramebufferWidth;
@@ -2775,25 +2821,12 @@ namespace Alimer
         device->vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
     }
 
-    void VulkanCommandContext::EndRenderPassCore()
+    void VulkanRHICommandBuffer::EndRenderPassCore()
     {
         device->vkCmdEndRendering(commandBuffer);
     }
 
-    void VulkanCommandContext::SetViewport(float x, float y, float width, float height, float minDepth, float maxDepth)
-    {
-        VkViewport vkViewport{};
-        vkViewport.x = x;
-        vkViewport.y = height - y;
-        vkViewport.width = width;
-        vkViewport.height = -height;
-        vkViewport.minDepth = minDepth;
-        vkViewport.maxDepth = maxDepth;
-        device->vkCmdSetViewport(commandBuffer, 0, 1, &vkViewport);
-    }
-
-#if TODO
-    void VulkanCommandContext::SetViewport(const Viewport& viewport)
+    void VulkanRHICommandBuffer::SetViewport(const Viewport& viewport)
     {
         // Flip viewport to match DirectX coordinate system
         VkViewport vkViewport{};
@@ -2806,10 +2839,10 @@ namespace Alimer
         device->vkCmdSetViewport(commandBuffer, 0, 1, &vkViewport);
     }
 
-    void VulkanCommandContext::SetViewports(uint32_t count, const Viewport* viewports)
+    void VulkanRHICommandBuffer::SetViewports(const Viewport* viewports, uint32_t count)
     {
         ALIMER_ASSERT(viewports != nullptr);
-        ALIMER_ASSERT(count < device->limits.maxViewports);
+        ALIMER_ASSERT(count < device->_adapter->GetLimits().maxViewports);
 
         VkViewport vkViewports[kMaxViewportsAndScissors] = {};
         for (uint32_t i = 0; i < count; ++i)
@@ -2825,52 +2858,33 @@ namespace Alimer
 
         device->vkCmdSetViewport(commandBuffer, 0, count, vkViewports);
     }
-#endif // TODO
 
-
-    void VulkanCommandContext::SetScissorRect(int32_t x, int32_t y, int32_t width, int32_t height)
-    {
-        VkRect2D vkScissorRect;
-        vkScissorRect.offset.x = x;
-        vkScissorRect.offset.y = y;
-        vkScissorRect.extent.width = static_cast<uint32_t>(width);
-        vkScissorRect.extent.height = static_cast<uint32_t>(height);
-        device->vkCmdSetScissor(commandBuffer, 0, 1, &vkScissorRect);
-    }
-
-#if TODO
-    void VulkanCommandContext::SetScissorRect(const Rect& rect)
+    void VulkanRHICommandBuffer::SetScissorRect(const ScissorRect& rect)
     {
         device->vkCmdSetScissor(commandBuffer, 0, 1, (VkRect2D*)&rect);
     }
 
-    void VulkanCommandContext::SetScissorRects(uint32_t count, const Rect* scissorRects)
+    void VulkanRHICommandBuffer::SetScissorRects(const ScissorRect* scissorRects, uint32_t count)
     {
         ALIMER_ASSERT(scissorRects != nullptr);
-        ALIMER_ASSERT(count < device->limits.maxViewports);
+        ALIMER_ASSERT(count < device->_adapter->GetLimits().maxViewports);
 
         device->vkCmdSetScissor(commandBuffer, 0, count, (const VkRect2D*)scissorRects);
     }
-#endif // TODO
 
 
-    void VulkanCommandContext::SetStencilReference(uint32_t reference)
+    void VulkanRHICommandBuffer::SetStencilReference(uint32_t reference)
     {
         device->vkCmdSetStencilReference(commandBuffer, VK_STENCIL_FRONT_AND_BACK, reference);
     }
 
-    void VulkanCommandContext::SetBlendColor(float red, float green, float blue, float alpha)
+    void VulkanRHICommandBuffer::SetBlendColor(const Color& color)
     {
-        const float blendcolor[4] = { red, green, blue, alpha };
-        device->vkCmdSetBlendConstants(commandBuffer, blendcolor);
+        const float blendColor[4] = { color.r, color.g, color.b, color.a };
+        device->vkCmdSetBlendConstants(commandBuffer, blendColor);
     }
 
-    //void VulkanCommandContext::SetBlendColor(const Color& color)
-    //{
-    //    device->vkCmdSetBlendConstants(commandBuffer, &color.r);
-    //}
-
-    void VulkanCommandContext::SetShadingRate(ShadingRate rate)
+    void VulkanRHICommandBuffer::SetShadingRate(ShadingRate rate)
     {
         if (device->_adapter->fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE
             && currentShadingRate != rate)
@@ -2948,7 +2962,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::SetDepthBounds(float minBounds, float maxBounds)
+    void VulkanRHICommandBuffer::SetDepthBounds(float minBounds, float maxBounds)
     {
         if (device->_adapter->features2.features.depthBounds == VK_TRUE)
         {
@@ -2960,14 +2974,14 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
+    void VulkanRHICommandBuffer::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
     {
         auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
 
         device->vkCmdBindVertexBuffers(commandBuffer, slot, 1u, &backendBuffer->handle, &offset);
     }
 
-    void VulkanCommandContext::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
+    void VulkanRHICommandBuffer::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
     {
         ALIMER_ASSERT(buffers != nullptr);
         ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
@@ -2989,7 +3003,7 @@ namespace Alimer
         device->vkCmdBindVertexBuffers(commandBuffer, slot, count, vkBuffers, offsets);
     }
 
-    void VulkanCommandContext::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType)
+    void VulkanRHICommandBuffer::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType)
     {
         auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
         const VkIndexType vkIndexType = (indexType == IndexType::UInt16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
@@ -2997,28 +3011,28 @@ namespace Alimer
         device->vkCmdBindIndexBuffer(commandBuffer, vulkanBuffer->handle, offset, vkIndexType);
     }
 
-    void VulkanCommandContext::PrepareDraw()
+    void VulkanRHICommandBuffer::PrepareDraw()
     {
         ALIMER_ASSERT(insideRenderPass);
 
         FlushBindGroups();
     }
 
-    void VulkanCommandContext::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void VulkanRHICommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         PrepareDraw();
 
         device->vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    void VulkanCommandContext::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+    void VulkanRHICommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
     {
         PrepareDraw();
 
         device->vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    void VulkanCommandContext::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
+    void VulkanRHICommandBuffer::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
     {
         ALIMER_ASSERT(buffer);
         PrepareDraw();
@@ -3027,7 +3041,7 @@ namespace Alimer
         device->vkCmdDrawIndirect(commandBuffer, vulkanBuffer->handle, offset, 1, (uint32_t)sizeof(DrawIndirectCommand));
     }
 
-    void VulkanCommandContext::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRHICommandBuffer::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -3036,14 +3050,14 @@ namespace Alimer
         device->vkCmdDrawIndexedIndirect(commandBuffer, backendBuffer->handle, indirectBufferOffset, 1, (uint32_t)sizeof(DrawIndexedIndirectCommand));
     }
 
-    void VulkanCommandContext::DispatchMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
+    void VulkanRHICommandBuffer::DispatchMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
     {
         PrepareDraw();
 
         device->vkCmdDrawMeshTasksEXT(commandBuffer, threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
-    void VulkanCommandContext::DispatchMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRHICommandBuffer::DispatchMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -3057,7 +3071,7 @@ namespace Alimer
         );
     }
 
-    void VulkanCommandContext::DispatchMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
+    void VulkanRHICommandBuffer::DispatchMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
     {
         ALIMER_ASSERT(indirectBuffer);
         ALIMER_ASSERT(countBuffer);
@@ -3072,7 +3086,7 @@ namespace Alimer
             maxCount, sizeof(DispatchIndirectCommand));
     }
 
-    void VulkanCommandContext::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
+    void VulkanRHICommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
     {
         if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
         {
@@ -3093,7 +3107,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandContext::EndPredication()
+    void VulkanRHICommandBuffer::EndPredication()
     {
         if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
         {
@@ -3102,9 +3116,9 @@ namespace Alimer
     }
 
     /* VulkanDevice */
-    VulkanDevice::VulkanDevice(VulkanRHIAdapter* adapter, VkDevice device_, const RHIDeviceDesc& desc)
+    VulkanDevice::VulkanDevice(VulkanRHIAdapter* adapter, VkDevice handle_)
         : _adapter(adapter)
-        , device(device_)
+        , handle(handle_)
     {
     }
 
@@ -3120,24 +3134,24 @@ namespace Alimer
 
             for (uint32_t frameIndex = 0; frameIndex < kNumFramesInFlight; ++frameIndex)
             {
-                vkDestroyFence(device, queues[i].frameFences[frameIndex], nullptr);
+                vkDestroyFence(handle, queues[i].frameFences[frameIndex], nullptr);
             }
         }
 
         copyAllocator.Shutdown();
 
         vmaDestroyBuffer(allocator, nullBuffer, nullBufferAllocation);
-        vkDestroyBufferView(device, nullBufferView, nullptr);
+        vkDestroyBufferView(handle, nullBufferView, nullptr);
         vmaDestroyImage(allocator, nullImage1D, nullImageAllocation1D);
         vmaDestroyImage(allocator, nullImage2D, nullImageAllocation2D);
         vmaDestroyImage(allocator, nullImage3D, nullImageAllocation3D);
-        vkDestroyImageView(device, nullImageView1D, nullptr);
-        vkDestroyImageView(device, nullImageView1DArray, nullptr);
-        vkDestroyImageView(device, nullImageView2D, nullptr);
-        vkDestroyImageView(device, nullImageView2DArray, nullptr);
-        vkDestroyImageView(device, nullImageViewCube, nullptr);
-        vkDestroyImageView(device, nullImageViewCubeArray, nullptr);
-        vkDestroyImageView(device, nullImageView3D, nullptr);
+        vkDestroyImageView(handle, nullImageView1D, nullptr);
+        vkDestroyImageView(handle, nullImageView1DArray, nullptr);
+        vkDestroyImageView(handle, nullImageView2D, nullptr);
+        vkDestroyImageView(handle, nullImageView2DArray, nullptr);
+        vkDestroyImageView(handle, nullImageViewCube, nullptr);
+        vkDestroyImageView(handle, nullImageViewCubeArray, nullptr);
+        vkDestroyImageView(handle, nullImageView3D, nullptr);
 
         commandBuffers.clear();
         cmdBuffersCount = 0;
@@ -3151,21 +3165,21 @@ namespace Alimer
             // DescriptorSetLayouts
             for (auto& it : descriptorSetLayoutCache)
             {
-                vkDestroyDescriptorSetLayout(device, it.second, nullptr);
+                vkDestroyDescriptorSetLayout(handle, it.second, nullptr);
             }
             descriptorSetLayoutCache.clear();
 
             // PipelineLayouts
             for (auto& it : pipelineLayoutCache)
             {
-                vkDestroyPipelineLayout(device, it.second, nullptr);
+                vkDestroyPipelineLayout(handle, it.second, nullptr);
             }
             pipelineLayoutCache.clear();
 
             // Samplers
             for (auto& it : samplerCache)
             {
-                vkDestroySampler(device, it.second, nullptr);
+                vkDestroySampler(handle, it.second, nullptr);
             }
             samplerCache.clear();
             staticSamplers.clear();
@@ -3173,7 +3187,7 @@ namespace Alimer
             // Destroy Descriptor Pools
             for (VkDescriptorPool descriptorPool : descriptorSetPools)
             {
-                vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+                vkDestroyDescriptorPool(handle, descriptorPool, nullptr);
             }
             descriptorSetPools.clear();
         }
@@ -3203,19 +3217,26 @@ namespace Alimer
         if (pipelineCache != VK_NULL_HANDLE)
         {
             // Destroy Vulkan pipeline cache
-            vkDestroyPipelineCache(device, pipelineCache, nullptr);
+            vkDestroyPipelineCache(handle, pipelineCache, nullptr);
             pipelineCache = VK_NULL_HANDLE;
         }
 
-        if (device != VK_NULL_HANDLE)
+        if (handle != VK_NULL_HANDLE)
         {
-            vkDestroyDevice(device, nullptr);
-            device = VK_NULL_HANDLE;
+            vkDestroyDevice(handle, nullptr);
+            handle = VK_NULL_HANDLE;
         }
     }
 
-    void VulkanDevice::Init()
+    void VulkanDevice::Init(const RHIDeviceDesc& desc)
     {
+        if (desc.label)
+        {
+            SetLabel(desc.label);
+        }
+
+        _timestampFrequency = uint64_t(1.0 / double(_adapter->properties2.properties.limits.timestampPeriod) * 1000 * 1000 * 1000);
+
         VkResult result = VK_SUCCESS;
 
         // Create comamnd queues
@@ -3229,13 +3250,13 @@ namespace Alimer
                 VkDeviceQueueInfo2 queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2 };
                 queueInfo.queueFamilyIndex = _adapter->queueFamilyIndices.familyIndices[i];
                 queueInfo.queueIndex = _adapter->queueFamilyIndices.queueIndices[i];
-                vkGetDeviceQueue2(device, &queueInfo, &queues[i].queue);
+                vkGetDeviceQueue2(handle, &queueInfo, &queues[i].queue);
 
                 _adapter->queueFamilyIndices.counts[i] = _adapter->queueFamilyIndices.queueOffsets[_adapter->queueFamilyIndices.familyIndices[i]];
 
                 for (uint32_t frameIndex = 0; frameIndex < kNumFramesInFlight; ++frameIndex)
                 {
-                    VK_CHECK(vkCreateFence(device, &fenceInfo, nullptr, &queues[i].frameFences[frameIndex]));
+                    VK_CHECK(vkCreateFence(handle, &fenceInfo, nullptr, &queues[i].frameFences[frameIndex]));
                 }
             }
             else
@@ -3248,7 +3269,7 @@ namespace Alimer
         {
             VmaAllocatorCreateInfo allocatorInfo{};
             allocatorInfo.physicalDevice = _adapter->handle;
-            allocatorInfo.device = device;
+            allocatorInfo.device = handle;
             allocatorInfo.instance = _adapter->factory->handle;
             allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 
@@ -3363,7 +3384,7 @@ namespace Alimer
             bufferViewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
             bufferViewInfo.range = VK_WHOLE_SIZE;
             bufferViewInfo.buffer = nullBuffer;
-            VK_CHECK(vkCreateBufferView(device, &bufferViewInfo, nullptr, &nullBufferView));
+            VK_CHECK(vkCreateBufferView(handle, &bufferViewInfo, nullptr, &nullBufferView));
 
             // Images
             memoryInfo = {};
@@ -3442,34 +3463,34 @@ namespace Alimer
             imageViewInfo.subresourceRange.layerCount = 1;
             imageViewInfo.subresourceRange.baseMipLevel = 0;
             imageViewInfo.subresourceRange.levelCount = 1;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView1D));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageView1D));
 
             imageViewInfo.image = nullImage1D;
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView1DArray));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageView1DArray));
 
             imageViewInfo.image = nullImage2D;
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView2D));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageView2D));
 
             imageViewInfo.image = nullImage2D;
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView2DArray));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageView2DArray));
 
             imageViewInfo.image = nullImage2D;
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
             imageViewInfo.subresourceRange.layerCount = 6;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageViewCube));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageViewCube));
 
             imageViewInfo.image = nullImage2D;
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
             imageViewInfo.subresourceRange.layerCount = 6;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageViewCubeArray));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageViewCubeArray));
 
             imageViewInfo.image = nullImage3D;
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
             imageViewInfo.subresourceRange.layerCount = 1;
-            VK_CHECK(vkCreateImageView(device, &imageViewInfo, nullptr, &nullImageView3D));
+            VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageView3D));
         }
 
         // Allocate at least one descriptor pool.
@@ -3492,9 +3513,14 @@ namespace Alimer
         LOGI("Vulkan: Initialized with success");
     }
 
+    void VulkanDevice::SetLabel(const char* label)
+    {
+        SetObjectName(VK_OBJECT_TYPE_DEVICE, reinterpret_cast<uint64_t>(handle), label);
+    }
+
     bool VulkanDevice::WaitIdle()
     {
-        VkResult result = vkDeviceWaitIdle(device);
+        VkResult result = vkDeviceWaitIdle(handle);
         if (result != VK_SUCCESS)
             return false;
 
@@ -3510,7 +3536,7 @@ namespace Alimer
             cmdBuffersCount = 0;
             for (uint32_t cmd = 0; cmd < cmd_last; ++cmd)
             {
-                VulkanCommandContext& commandBuffer = *commandBuffers[cmd].get();
+                VulkanRHICommandBuffer& commandBuffer = *commandBuffers[cmd].get();
                 VkCommandBuffer vkCommandBuffer = commandBuffer.End();
 
                 VulkanQueue& queue = queues[ecast(commandBuffer.queueType)];
@@ -3588,8 +3614,8 @@ namespace Alimer
                 if (queues[i].queue == VK_NULL_HANDLE)
                     continue;
 
-                VK_CHECK(vkWaitForFences(device, 1, &queues[i].frameFences[frameIndex], true, 0xFFFFFFFFFFFFFFFF));
-                VK_CHECK(vkResetFences(device, 1, &queues[i].frameFences[frameIndex]));
+                VK_CHECK(vkWaitForFences(handle, 1, &queues[i].frameFences[frameIndex], true, 0xFFFFFFFFFFFFFFFF));
+                VK_CHECK(vkResetFences(handle, 1, &queues[i].frameFences[frameIndex]));
             }
         }
 
@@ -3728,7 +3754,7 @@ namespace Alimer
             VkBufferDeviceAddressInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
             info.buffer = buffer->handle;
-            buffer->deviceAddress = vkGetBufferDeviceAddress(device, &info);
+            buffer->deviceAddress = vkGetBufferDeviceAddress(handle, &info);
         }
 
         // TODO
@@ -4081,14 +4107,14 @@ namespace Alimer
             getWin32HandleInfoKHR.pNext = nullptr;
             getWin32HandleInfoKHR.memory = allocationInfo.deviceMemory;
             getWin32HandleInfoKHR.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-            VK_CHECK(vkGetMemoryWin32HandleKHR(device, &getWin32HandleInfoKHR, &texture->sharedHandle));
+            VK_CHECK(vkGetMemoryWin32HandleKHR(handle, &getWin32HandleInfoKHR, &texture->sharedHandle));
 #elif defined(__linux__)
             VkMemoryGetFdInfoKHR memoryGetFdInfoKHR = {};
             memoryGetFdInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
             memoryGetFdInfoKHR.pNext = nullptr;
             memoryGetFdInfoKHR.memory = allocationInfo.deviceMemory;
             memoryGetFdInfoKHR.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-            VK_CHECK(vkGetMemoryFdKHR(device, &memoryGetFdInfoKHR, &texture->sharedHandle));
+            VK_CHECK(vkGetMemoryFdKHR(handle, &memoryGetFdInfoKHR, &texture->sharedHandle));
 #endif
         }
 
@@ -4337,7 +4363,7 @@ namespace Alimer
             }
 
             VkDescriptorSetLayout newDescriptorSetLayout;
-            const VkResult result = vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &newDescriptorSetLayout);
+            const VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &newDescriptorSetLayout);
             if (result != VK_SUCCESS)
             {
                 LOGE("Vulkan: Failed to create DescriptorSetLayout, error: {}", VkResultToString(result));
@@ -4387,7 +4413,7 @@ namespace Alimer
             }
 
             VkPipelineLayout newPipelineLayout;
-            const VkResult result = vkCreatePipelineLayout(device, &createInfo, nullptr, &newPipelineLayout);
+            const VkResult result = vkCreatePipelineLayout(handle, &createInfo, nullptr, &newPipelineLayout);
             if (result != VK_SUCCESS)
             {
                 LOGE("Vulkan: Failed to create PipelineLayout, error: {}", VkResultToString(result));
@@ -4471,7 +4497,7 @@ namespace Alimer
             }
 
             VkSampler newSampler;
-            VkResult result = vkCreateSampler(device, &createInfo, nullptr, &newSampler);
+            VkResult result = vkCreateSampler(handle, &createInfo, nullptr, &newSampler);
             if (result != VK_SUCCESS)
             {
                 LOGE("Vulkan: Failed to create Sampler, error: {}", VkResultToString(result));
@@ -4505,7 +4531,7 @@ namespace Alimer
         poolInfo.pPoolSizes = poolSizes.data();
 
         VkDescriptorPool pool = VK_NULL_HANDLE;
-        VkResult result = vkCreateDescriptorPool(device, &poolInfo, nullptr, &pool);
+        VkResult result = vkCreateDescriptorPool(handle, &poolInfo, nullptr, &pool);
         if (result != VK_SUCCESS)
         {
             VK_LOG_ERROR(result, "Error when creating descriptor pool: {}");
@@ -4522,7 +4548,7 @@ namespace Alimer
         module->stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
         SpvReflectShaderModule reflectModule;
-        SpvReflectResult reflectResult = spvReflectCreateShaderModule(desc.bytecodeSize, desc.bytecode, &reflectModule);
+        SpvReflectResult reflectResult = spvReflectCreateShaderModule(desc.byteCodeSize, desc.byteCode, &reflectModule);
         if (reflectResult != SPV_REFLECT_RESULT_SUCCESS)
         {
             return nullptr;
@@ -4647,7 +4673,7 @@ namespace Alimer
         moduleInfo.codeSize = spvReflectGetCodeSize(&reflectModule);
         moduleInfo.pCode = spvReflectGetCode(&reflectModule);
 
-        VkResult result = vkCreateShaderModule(device, &moduleInfo, nullptr, &module->stageInfo.module);
+        VkResult result = vkCreateShaderModule(handle, &moduleInfo, nullptr, &module->stageInfo.module);
 
         if (result != VK_SUCCESS)
         {
@@ -4810,7 +4836,7 @@ namespace Alimer
             createInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
         }
 
-        VkResult result = vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &layout->handle);
+        VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &layout->handle);
         if (result != VK_SUCCESS)
         {
             return nullptr;
@@ -4856,7 +4882,7 @@ namespace Alimer
             createInfo.pPushConstantRanges = &layout->pushConstantRange;
         }
 
-        const VkResult result = vkCreatePipelineLayout(device, &createInfo, nullptr, &layout->handle);
+        const VkResult result = vkCreatePipelineLayout(handle, &createInfo, nullptr, &layout->handle);
         if (result != VK_SUCCESS)
         {
             return nullptr;
@@ -4902,13 +4928,13 @@ namespace Alimer
 
         //  Create DescriptorSet
         const uint32_t maxVariableArrayLength = 0;
-        VkResult result = AllocateDescriptorSet(device, descriptorSetPools.back(), vulkanLayout->handle, descriptorSet, maxVariableArrayLength);
+        VkResult result = AllocateDescriptorSet(handle, descriptorSetPools.back(), vulkanLayout->handle, descriptorSet, maxVariableArrayLength);
         // If we have run out of pool memory
         if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
         {
             // We need to allocate a new DescriptorPool and retry
             descriptorSetPools.emplace_back(CreateDescriptorSetPool());
-            result = AllocateDescriptorSet(device, descriptorSetPools.back(), vulkanLayout->handle, descriptorSet, maxVariableArrayLength);
+            result = AllocateDescriptorSet(handle, descriptorSetPools.back(), vulkanLayout->handle, descriptorSet, maxVariableArrayLength);
         }
         if (result != VK_SUCCESS)
         {
@@ -4930,11 +4956,43 @@ namespace Alimer
         return vulkanBindGroup;
     }
 
-    RHIPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
+    RHIComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDesc& desc)
     {
-        SharedPtr<VulkanPipeline> pipeline(new VulkanPipeline());
+        SharedPtr<VulkanComputePipeline> pipeline(new VulkanComputePipeline());
         pipeline->device = this;
-        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
+
+        VkPipelineShaderStageCreateInfo stage = StaticCast<VulkanShaderModule>(desc.shader)->stageInfo;
+        ALIMER_ASSERT(stage.stage == VK_SHADER_STAGE_COMPUTE_BIT);
+
+        const VkComputePipelineCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .flags = 0,
+            .stage = stage,
+            .layout = pipeline->layout->handle,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = -1,
+        };
+
+        VkResult result = vkCreateComputePipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create Compute Pipeline");
+            return nullptr;
+        }
+
+        if (desc.label)
+        {
+            pipeline->SetLabel(desc.label);
+        }
+
+        return pipeline;
+    }
+
+    RHIRenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
+    {
+        SharedPtr<VulkanRenderPipeline> pipeline(new VulkanRenderPipeline());
+        pipeline->device = this;
         pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
 
         // ShaderStages
@@ -5221,11 +5279,15 @@ namespace Alimer
         createInfo.basePipelineHandle = VK_NULL_HANDLE;
         createInfo.basePipelineIndex = -1;
 
-        VkResult result = vkCreateGraphicsPipelines(device, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
+        VkResult result = vkCreateGraphicsPipelines(handle,
+            pipelineCache,
+            1, &createInfo,
+            nullptr,
+            &pipeline->handle);
 
         if (result != VK_SUCCESS)
         {
-            LOGE("Vulkan: Failed to create graphics pipeline");
+            LOGE("Vulkan: Failed to create RenderPipeline");
             return nullptr;
         }
 
@@ -5237,44 +5299,37 @@ namespace Alimer
         return pipeline;
     }
 
-    RHIPipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDesc& desc)
+    RHIRayTracingPipelineRef VulkanDevice::CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc)
     {
-        SharedPtr<VulkanPipeline> pipeline(new VulkanPipeline());
+        SharedPtr<VulkanRayTracingPipeline> pipeline(new VulkanRayTracingPipeline());
         pipeline->device = this;
-        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-        pipeline->type = RHIPipeline::Type::Compute;
-        pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
+        //pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
 
-        VkPipelineShaderStageCreateInfo stage = StaticCast<VulkanShaderModule>(desc.shader)->stageInfo;
-        ALIMER_ASSERT(stage.stage == VK_SHADER_STAGE_COMPUTE_BIT);
+        Vector<VkPipelineShaderStageCreateInfo> stages;
+        Vector<VkRayTracingShaderGroupCreateInfoKHR> groups;
 
-        VkComputePipelineCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        createInfo.stage = stage;
-        createInfo.layout = pipeline->layout->handle;
-        VkResult result = vkCreateComputePipelines(device, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
+        const VkRayTracingPipelineCreateInfoKHR createInfo = {
+            .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
+            .stageCount = static_cast<uint32_t>(stages.size()),
+            .pStages = stages.data(),
+            .groupCount = static_cast<uint32_t>(groups.size()),
+            .pGroups = groups.data(),
+            .maxPipelineRayRecursionDepth = desc.maxRayRecursionDepth,
+            .layout = nullptr,
+        };
+        VkResult result = vkCreateRayTracingPipelinesKHR(handle,
+            VK_NULL_HANDLE,
+            pipelineCache,
+            1, &createInfo,
+            nullptr,
+            &pipeline->handle);
+
 
         if (result != VK_SUCCESS)
         {
-            VK_LOG_ERROR(result, "Failed to create Compute Pipeline");
+            LOGE("Vulkan: Failed to create RayTracingPipeline");
             return nullptr;
         }
-
-        if (desc.label)
-        {
-            pipeline->SetLabel(desc.label);
-        }
-
-        return pipeline;
-    }
-
-    RHIPipelineRef VulkanDevice::CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc)
-    {
-        SharedPtr<VulkanPipeline> pipeline(new VulkanPipeline());
-        pipeline->device = this;
-        pipeline->bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-        pipeline->type = RHIPipeline::Type::RayTracing;
-        pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
 
         if (desc.label)
         {
@@ -5339,8 +5394,8 @@ namespace Alimer
             }
         }
 
-        VkQueryPool handle = VK_NULL_HANDLE;
-        VkResult result = vkCreateQueryPool(device, &createInfo, nullptr, &handle);
+        VkQueryPool queryPool = VK_NULL_HANDLE;
+        VkResult result = vkCreateQueryPool(handle, &createInfo, nullptr, &queryPool);
         if (result != VK_SUCCESS)
         {
             return nullptr;
@@ -5349,7 +5404,7 @@ namespace Alimer
         SharedPtr<VulkanQueryHeap> resource(new VulkanQueryHeap());
         resource->device = this;
         resource->desc = desc;
-        resource->handle = handle;
+        resource->handle = queryPool;
         resource->queryResultSize = GetQueryResultSize(desc.type);
 
         if (desc.label)
@@ -5362,127 +5417,40 @@ namespace Alimer
 
     RHISwapChainRef VulkanDevice::CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc)
     {
-        SharedPtr<VulkanSwapChain> swapChain(new VulkanSwapChain(surface));
-        swapChain->device = this;
-
-        // Create surface first
-        VkResult result = VK_SUCCESS;
-
-        switch (surface->GetType())
-        {
-#if defined(_WIN32)
-            case RHISurface::Type::WindowsHWND:
-            {
-                VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-                surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-                surfaceCreateInfo.hinstance = GetModuleHandle(nullptr);
-                surfaceCreateInfo.hwnd = static_cast<HWND>(surface->GetHWND());
-
-                result = _adapter->factory->vkCreateWin32SurfaceKHR(_adapter->factory->handle,
-                    &surfaceCreateInfo,
-                    nullptr,
-                    &swapChain->vkSurface
-                );
-            }
-            break;
-#endif
-
-#if defined(__ANDROID__)
-            case RHISurface::Type::AndroidWindow:
-            {
-                VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
-                surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-                surfaceCreateInfo.window = surface->GetAndroidNativeWindow();
-
-                result = _adapter->factory->vkCreateAndroidSurfaceKHR(_adapter->factory->handle,
-                    &surfaceCreateInfo,
-                    nullptr,
-                    &swapChain->vkSurface
-                );
-            }
-            break;
-#endif
-
-#if defined(__APPLE__)
-            case RHISurface::Type::MetalLayer:
-            {
-                VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
-                surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
-                surfaceCreateInfo.pLayer = surface->GetMetalLayer();
-
-                result = _adapter->factory->vkCreateMetalSurfaceEXT(_adapter->factory->handle,
-                    &surfaceCreateInfo,
-                    nullptr,
-                    &swapChain->vkSurface
-                );
-            }
-            break;
-#endif
-
-#if ALIMER_PLATFORM_LINUX
-            case RHISurface::Type::XlibWindow:
-            {
-                //if (xcb_surface)
-                //{
-                //    VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
-                //    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-                //    surfaceCreateInfo.connection = xlibXcb.GetXCBConnection(static_cast<Display*>(surface->GetXDisplay()));
-                //    surfaceCreateInfo.window = (xcb_window_t)window;
-                //
-                //    result = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &swapChain->vkSurface);
-                //}
-                //else
-                //{
-                //    VkXlibSurfaceCreateInfoKHR  surfaceCreateInfo = {};
-                //    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-                //    surfaceCreateInfo.dpy = static_cast<Display*>(surface->GetXDisplay());
-                //    surfaceCreateInfo.window = surface->GetXWindow());
-                //
-                //    result = vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &swapChain->vkSurface);
-                //}
-            }
-            break;
-
-            case RHISurface::Type::WaylandSurface:
-            {
-                VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
-                surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-                surfaceCreateInfo.display = static_cast<struct wl_display*>(surface->GetWaylandDisplay());
-                surfaceCreateInfo.surface = static_cast<struct wl_surface*>(surface->GetWaylandSurface());
-
-                result = _adapter->factory->vkCreateWaylandSurfaceKHR(_adapter->factory->handle,
-                    &surfaceCreateInfo,
-                    nullptr,
-                    &swapChain->vkSurface
-                );
-            }
-            break;
-#endif
-
-            default:
-                ALIMER_UNREACHABLE();
-                return nullptr;
-        }
-
-        if (result != VK_SUCCESS)
-        {
-            VK_LOG_ERROR(result, "Failed to create surface");
-            return nullptr;
-        }
+        VulkanRHISurface* backendSurface = static_cast<VulkanRHISurface*>(surface);
+        const QueueFamilyIndices& queueFamilyIndices = _adapter->queueFamilyIndices;
 
         VkBool32 presentSupport = false;
-        result = _adapter->factory->vkGetPhysicalDeviceSurfaceSupportKHR(
-            _adapter->handle,
-            _adapter->queueFamilyIndices.familyIndices[ecast(QueueType::Graphics)],
-            swapChain->vkSurface,
-            &presentSupport);
+        uint32_t queuePresentSupport = 0;
+
+        for (auto& index : queueFamilyIndices.familyIndices)
+        {
+            if (index == VK_QUEUE_FAMILY_IGNORED)
+            {
+                continue;
+            }
+
+            if (_adapter->factory->vkGetPhysicalDeviceSurfaceSupportKHR(_adapter->handle,
+                index,
+                backendSurface->handle,
+                &presentSupport) == VK_SUCCESS
+                && presentSupport)
+            {
+                queuePresentSupport |= 1u << index;
+            }
+        }
 
         // Present family not found, we cannot create SwapChain
-        if (result != VK_SUCCESS || presentSupport == VK_FALSE)
+        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(QueueType::Graphics)])) == 0)
         {
+            LOGE("Vulkan: No presentation queue found for GPU.");
             return nullptr;
         }
 
+        SharedPtr<VulkanSwapChain> swapChain(new VulkanSwapChain());
+        swapChain->device = this;
+        swapChain->surface.Reset(backendSurface);
+        swapChain->queuePresentSupport = queuePresentSupport;
         swapChain->colorFormat = desc.colorFormat;
         swapChain->presentMode = desc.presentMode;
         UpdateSwapChain(swapChain.Get());
@@ -5497,18 +5465,18 @@ namespace Alimer
 
         VkResult result = VK_SUCCESS;
         VkSurfaceCapabilitiesKHR caps;
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_adapter->handle, swapChain->vkSurface, &caps));
+        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_adapter->handle, swapChain->surface->handle, &caps));
 
         uint32_t formatCount;
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(_adapter->handle, swapChain->vkSurface, &formatCount, nullptr));
+        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(_adapter->handle, swapChain->surface->handle, &formatCount, nullptr));
 
         std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(_adapter->handle, swapChain->vkSurface, &formatCount, swapchainFormats.data()));
+        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(_adapter->handle, swapChain->surface->handle, &formatCount, swapchainFormats.data()));
 
         uint32_t presentModeCount;
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(_adapter->handle, swapChain->vkSurface, &presentModeCount, nullptr));
+        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(_adapter->handle, swapChain->surface->handle, &presentModeCount, nullptr));
         std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(_adapter->handle, swapChain->vkSurface, &presentModeCount, swapchainPresentModes.data()));
+        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(_adapter->handle, swapChain->surface->handle, &presentModeCount, swapchainPresentModes.data()));
 
         VkSurfaceFormatKHR surfaceFormat = {};
         surfaceFormat.format = ToVkFormat(swapChain->colorFormat);
@@ -5586,7 +5554,7 @@ namespace Alimer
 
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = swapChain->vkSurface;
+        createInfo.surface = swapChain->surface->handle;
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -5610,16 +5578,16 @@ namespace Alimer
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = swapChain->handle;
 
-        VK_CHECK(vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain->handle));
+        VK_CHECK(vkCreateSwapchainKHR(handle, &createInfo, nullptr, &swapChain->handle));
 
         if (createInfo.oldSwapchain != VK_NULL_HANDLE)
         {
-            vkDestroySwapchainKHR(device, createInfo.oldSwapchain, nullptr);
+            vkDestroySwapchainKHR(handle, createInfo.oldSwapchain, nullptr);
         }
 
-        VK_CHECK(vkGetSwapchainImagesKHR(device, swapChain->handle, &imageCount, nullptr));
+        VK_CHECK(vkGetSwapchainImagesKHR(handle, swapChain->handle, &imageCount, nullptr));
         std::vector<VkImage> swapchainImages(imageCount);
-        VK_CHECK(vkGetSwapchainImagesKHR(device, swapChain->handle, &imageCount, swapchainImages.data()));
+        VK_CHECK(vkGetSwapchainImagesKHR(handle, swapChain->handle, &imageCount, swapchainImages.data()));
 
         swapChain->imageIndex = 0;
         swapChain->backbufferTextures.resize(imageCount);
@@ -5663,14 +5631,14 @@ namespace Alimer
         for (size_t i = 0; i < imageCount; ++i)
         {
             VK_CHECK(
-                vkCreateSemaphore(device, &semaphoreInfo, nullptr, &swapChain->acquireSemaphores.emplace_back())
+                vkCreateSemaphore(handle, &semaphoreInfo, nullptr, &swapChain->acquireSemaphores.emplace_back())
             );
         }
 
         for (size_t i = 0; i < imageCount; ++i)
         {
             VK_CHECK(
-                vkCreateSemaphore(device, &semaphoreInfo, nullptr, &swapChain->releaseSemaphores.emplace_back())
+                vkCreateSemaphore(handle, &semaphoreInfo, nullptr, &swapChain->releaseSemaphores.emplace_back())
             );
         }
     }
@@ -5707,23 +5675,13 @@ namespace Alimer
         }
     }
 
-    GraphicsContext* VulkanDevice::BeginGraphicsContext(const std::string& label)
-    {
-        return BeginCommandContext(QueueType::Graphics, label);
-    }
-
-    ComputeContext* VulkanDevice::BeginComputeContext(const std::string& label)
-    {
-        return BeginCommandContext(QueueType::Compute, label);
-    }
-
-    GraphicsContext* VulkanDevice::BeginCommandContext(QueueType queue, const std::string& label)
+    RHICommandBuffer* VulkanDevice::BeginCommandBuffer(QueueType queue, const std::string& label)
     {
         cmdBuffersLocker.lock();
         uint32_t index = cmdBuffersCount++;
         if (index >= commandBuffers.size())
         {
-            commandBuffers.push_back(std::make_unique<VulkanCommandContext>(this, queue, index));
+            commandBuffers.push_back(std::make_unique<VulkanRHICommandBuffer>(this, queue, index));
         }
         cmdBuffersLocker.unlock();
 
@@ -5791,17 +5749,17 @@ namespace Alimer
         }
     }
 
-    void VulkanDevice::SetObjectName(VkObjectType type, uint64_t handle, const char* label)
+    void VulkanDevice::SetObjectName(VkObjectType objectType, uint64_t objectHandle, const char* label)
     {
         if (!_adapter->debugUtils)
             return;
 
         VkDebugUtilsObjectNameInfoEXT nameInfo{};
         nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        nameInfo.objectType = type;
-        nameInfo.objectHandle = handle;
+        nameInfo.objectType = objectType;
+        nameInfo.objectHandle = objectHandle;
         nameInfo.pObjectName = label;
-        _adapter->factory->vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
+        _adapter->factory->vkSetDebugUtilsObjectNameEXT(handle, &nameInfo);
     }
 
     bool VulkanDevice::GetImageFormatProperties(const VkImageCreateInfo& createInfo, const void* pNext, VkImageFormatProperties2* properties2) const
@@ -5850,18 +5808,18 @@ namespace Alimer
         destroyMutex.lock();
         Destroy(destroyedAllocations, [&](auto& item) { vmaFreeMemory(allocator, item); });
         Destroy(destroyedImages, [&](auto& item) { vmaDestroyImage(allocator, item.first, item.second); });
-        Destroy(destroyedImageViews, [&](auto& item) { vkDestroyImageView(device, item, nullptr); });
+        Destroy(destroyedImageViews, [&](auto& item) { vkDestroyImageView(handle, item, nullptr); });
         Destroy(destroyedBuffers, [&](auto& item) { vmaDestroyBuffer(allocator, item.first, item.second); });
-        Destroy(destroyedBufferViews, [&](auto& item) { vkDestroyBufferView(device, item, nullptr); });
-        Destroy(destroyedShaderModules, [&](auto& item) { vkDestroyShaderModule(device, item, nullptr); });
-        Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(device, item, nullptr); });
-        Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(device, item, nullptr); });
-        Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(device, item, nullptr); });
-        Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(device, item, nullptr); });
-        Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(device, item, nullptr); });
-        Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(device, item, nullptr); });
-        Destroy(destroyedSurfaces, [&](auto& item) { _adapter->factory->vkDestroySurfaceKHR(_adapter->factory->handle, item, nullptr); });
-        Destroy(destroyedDescriptorSets, [&](auto& item) { vkFreeDescriptorSets(device, item.first, 1u, &item.second); });
+        Destroy(destroyedBufferViews, [&](auto& item) { vkDestroyBufferView(handle, item, nullptr); });
+        Destroy(destroyedShaderModules, [&](auto& item) { vkDestroyShaderModule(handle, item, nullptr); });
+        Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(handle, item, nullptr); });
+        Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
+        Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
+        Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
+        Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
+        Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(handle, item, nullptr); });
+        //Destroy(destroyedSurfaces, [&](auto& item) { _adapter->factory->vkDestroySurfaceKHR(_adapter->factory->handle, item, nullptr); });
+        Destroy(destroyedDescriptorSets, [&](auto& item) { vkFreeDescriptorSets(handle, item.first, 1u, &item.second); });
         destroyMutex.unlock();
     }
 
@@ -6099,7 +6057,7 @@ namespace Alimer
             case RHINativeHandleType::VK_PhysicalDevice:
                 return RHINativeHandle(_adapter->handle);
             case RHINativeHandleType::VK_Device:
-                return RHINativeHandle(device);
+                return RHINativeHandle(handle);
             default:
                 return nullptr;
         }
@@ -6186,12 +6144,12 @@ namespace Alimer
         device->vkQueueWaitIdle(device->queues[ecast(QueueType::Copy)].queue);
         for (auto& context : freeList)
         {
-            device->vkDestroyCommandPool(device->device, context.transferCommandPool, nullptr);
-            device->vkDestroyCommandPool(device->device, context.transitionCommandPool, nullptr);
-            device->vkDestroySemaphore(device->device, context.semaphores[0], nullptr);
-            device->vkDestroySemaphore(device->device, context.semaphores[1], nullptr);
-            device->vkDestroySemaphore(device->device, context.semaphores[2], nullptr);
-            device->vkDestroyFence(device->device, context.fence, nullptr);
+            device->vkDestroyCommandPool(device->handle, context.transferCommandPool, nullptr);
+            device->vkDestroyCommandPool(device->handle, context.transitionCommandPool, nullptr);
+            device->vkDestroySemaphore(device->handle, context.semaphores[0], nullptr);
+            device->vkDestroySemaphore(device->handle, context.semaphores[1], nullptr);
+            device->vkDestroySemaphore(device->handle, context.semaphores[2], nullptr);
+            device->vkDestroyFence(device->handle, context.fence, nullptr);
 
             context.uploadBuffer.Reset();
             context.uploadBufferData = nullptr;
@@ -6208,7 +6166,7 @@ namespace Alimer
         {
             if (freeList[i].uploadBufferSize >= size)
             {
-                if (device->vkGetFenceStatus(device->device, freeList[i].fence) == VK_SUCCESS)
+                if (device->vkGetFenceStatus(device->handle, freeList[i].fence) == VK_SUCCESS)
                 {
                     context = std::move(freeList[i]);
                     std::swap(freeList[i], freeList.back());
@@ -6226,30 +6184,30 @@ namespace Alimer
             poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(QueueType::Copy)];
-            VK_CHECK(device->vkCreateCommandPool(device->device, &poolCreateInfo, nullptr, &context.transferCommandPool));
+            VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transferCommandPool));
 
             poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(QueueType::Graphics)];
-            VK_CHECK(device->vkCreateCommandPool(device->device, &poolCreateInfo, nullptr, &context.transitionCommandPool));
+            VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transitionCommandPool));
 
             VkCommandBufferAllocateInfo commandBufferInfo = {};
             commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             commandBufferInfo.commandPool = context.transferCommandPool;
             commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             commandBufferInfo.commandBufferCount = 1u;
-            VK_CHECK(device->vkAllocateCommandBuffers(device->device, &commandBufferInfo, &context.transferCommandBuffer));
+            VK_CHECK(device->vkAllocateCommandBuffers(device->handle, &commandBufferInfo, &context.transferCommandBuffer));
 
             commandBufferInfo.commandPool = context.transitionCommandPool;
-            VK_CHECK(device->vkAllocateCommandBuffers(device->device, &commandBufferInfo, &context.transitionCommandBuffer));
+            VK_CHECK(device->vkAllocateCommandBuffers(device->handle, &commandBufferInfo, &context.transitionCommandBuffer));
 
             VkFenceCreateInfo fenceInfo = {};
             fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            VK_CHECK(device->vkCreateFence(device->device, &fenceInfo, nullptr, &context.fence));
+            VK_CHECK(device->vkCreateFence(device->handle, &fenceInfo, nullptr, &context.fence));
 
             VkSemaphoreCreateInfo semaphoreInfo = {};
             semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            VK_CHECK(device->vkCreateSemaphore(device->device, &semaphoreInfo, nullptr, &context.semaphores[0]));
-            VK_CHECK(device->vkCreateSemaphore(device->device, &semaphoreInfo, nullptr, &context.semaphores[1]));
-            VK_CHECK(device->vkCreateSemaphore(device->device, &semaphoreInfo, nullptr, &context.semaphores[2]));
+            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[0]));
+            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[1]));
+            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &context.semaphores[2]));
 
             context.uploadBufferSize = VmaNextPow2(size);
             context.uploadBufferSize = Max(context.uploadBufferSize, uint64_t(65536));
@@ -6265,8 +6223,8 @@ namespace Alimer
         }
 
         // Begin command list in valid state.
-        VK_CHECK(device->vkResetCommandPool(device->device, context.transferCommandPool, 0));
-        VK_CHECK(device->vkResetCommandPool(device->device, context.transitionCommandPool, 0));
+        VK_CHECK(device->vkResetCommandPool(device->handle, context.transferCommandPool, 0));
+        VK_CHECK(device->vkResetCommandPool(device->handle, context.transitionCommandPool, 0));
 
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -6274,7 +6232,7 @@ namespace Alimer
         beginInfo.pInheritanceInfo = nullptr;
         VK_CHECK(device->vkBeginCommandBuffer(context.transferCommandBuffer, &beginInfo));
         VK_CHECK(device->vkBeginCommandBuffer(context.transitionCommandBuffer, &beginInfo));
-        VK_CHECK(device->vkResetFences(device->device, 1, &context.fence));
+        VK_CHECK(device->vkResetFences(device->handle, 1, &context.fence));
 
         return context;
     }
@@ -6604,6 +6562,15 @@ namespace Alimer
         memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
         factory->vkGetPhysicalDeviceMemoryProperties2(handle, &memoryProperties2);
 
+        _properties.vendorID = properties2.properties.vendorID;
+        _properties.deviceID = properties2.properties.deviceID;
+        _properties.deviceName = properties2.properties.deviceName;
+        _properties.driverDescription = properties12.driverName;
+        if (properties12.driverInfo[0] != '\0')
+        {
+            _properties.driverDescription += std::string(": ") + properties12.driverInfo;
+        }
+
         switch (properties2.properties.deviceType)
         {
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
@@ -6626,10 +6593,27 @@ namespace Alimer
                 break;
         }
 
-        driverDescription = properties12.driverName;
-        if (properties12.driverInfo[0] != '\0')
+        static_assert(kUUIDSize == sizeof(properties11.deviceUUID));
+        memcpy(_properties.uuid, properties11.deviceUUID, kUUIDSize);
+
+        if (properties11.deviceLUIDValid)
         {
-            driverDescription += std::string(": ") + properties12.driverInfo;
+            static_assert(kLUIDSize == sizeof(properties11.deviceLUID));
+            memcpy(_properties.luid, properties11.deviceLUID, kLUIDSize);
+        }
+
+        // Go through the memory types to figure out the amount of VRAM on this physical device.
+        for (uint32_t heapIndex = 0; heapIndex < memoryProperties2.memoryProperties.memoryHeapCount; ++heapIndex)
+        {
+            VkMemoryHeap const& heap = memoryProperties2.memoryProperties.memoryHeaps[heapIndex];
+            if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+            {
+                _properties.videoMemorySize += heap.size;
+            }
+            else
+            {
+                _properties.systemMemorySize += heap.size;
+            }
         }
 
         // The environment can request to various options for depth-stencil formats that could be
@@ -6839,11 +6823,6 @@ namespace Alimer
             enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
         }
 
-        if (extensions.portabilitySubset)
-        {
-            enabledDeviceExtensions.push_back("VK_KHR_portability_subset");
-        }
-
         if (extensions.depthClipEnable)
         {
             enabledDeviceExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
@@ -7013,7 +6992,7 @@ namespace Alimer
         }
 #endif
 
-        SharedPtr<VulkanDevice> resultDevice(new VulkanDevice(this, device, desc));
+        SharedPtr<VulkanDevice> resultDevice(new VulkanDevice(this, device));
 
 #define VULKAN_DEVICE_FUNCTION(func) resultDevice->func = (PFN_##func) factory->vkGetDeviceProcAddr(device, #func);
 #include "RHI_Vulkan_Funcs.h"
@@ -7042,7 +7021,7 @@ namespace Alimer
             resultDevice->vkCmdPushDescriptorSet = (PFN_vkCmdPushDescriptorSet)factory->vkGetDeviceProcAddr(device, "vkCmdPushDescriptorSetKHR");
         }
 
-        resultDevice->Init();
+        resultDevice->Init(desc);
         return resultDevice;
     }
 
@@ -7190,28 +7169,28 @@ namespace Alimer
                 headless = true;
                 instanceExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
             }
-            else if (strcmp(availableExtension.extensionName, "VK_KHR_xcb_surface") == 0)
-            {
-                xcb_surface = true;
-            }
-            else if (strcmp(availableExtension.extensionName, "VK_KHR_xlib_surface") == 0)
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+            else if (strcmp(availableExtension.extensionName, VK_KHR_XLIB_SURFACE_EXTENSION_NAME) == 0)
             {
                 xlib_surface = true;
             }
-            else if (strcmp(availableExtension.extensionName, "VK_KHR_wayland_surface") == 0)
+#endif
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+            else if (strcmp(availableExtension.extensionName, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) == 0)
             {
                 wayland_surface = true;
             }
+#endif
         }
 
         instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
         // Enable surface extensions depending on os
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
         instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
         instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
         instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
@@ -7227,23 +7206,23 @@ namespace Alimer
             }
         }
 #else
-        if (xcb_surface)
-        {
-            instanceExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-        }
-        else
-        {
-            ALIMER_ASSERT(xlib_surface);
-            instanceExtensions.push_back("VK_KHR_xlib_surface");
-        }
 
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+        if (xlib_surface)
+        {
+            instanceExtensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+        }
+#endif /* defined(VK_USE_PLATFORM_XLIB_KHR) */
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
         if (wayland_surface)
         {
             instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
         }
 #endif
+#endif
 
-        if (desc.validationMode != ValidationMode::Disabled)
+        if (desc.validationMode != RHIValidationMode::Disabled)
         {
             // Determine the optimal validation layers to enable that are necessary for useful debugging
             std::vector<const char*> optimalValidationLyers = GetOptimalValidationLayers(availableInstanceLayers);
@@ -7251,7 +7230,7 @@ namespace Alimer
         }
 
         bool validationFeatures = false;
-        if (desc.validationMode == ValidationMode::GPU)
+        if (desc.validationMode == RHIValidationMode::GPU)
         {
             uint32_t layerInstanceExtensionCount;
             VK_CHECK(vkEnumerateInstanceExtensionProperties("VK_LAYER_KHRONOS_validation", &layerInstanceExtensionCount, nullptr));
@@ -7293,7 +7272,7 @@ namespace Alimer
 
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
 
-        if (desc.validationMode != ValidationMode::Disabled && debugUtils)
+        if (desc.validationMode != RHIValidationMode::Disabled && debugUtils)
         {
             debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
             debugUtilsCreateInfo.messageSeverity =
@@ -7304,7 +7283,7 @@ namespace Alimer
                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-            if (desc.validationMode == ValidationMode::Verbose)
+            if (desc.validationMode == RHIValidationMode::Verbose)
             {
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -7315,7 +7294,7 @@ namespace Alimer
         }
 
         VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
-        if (desc.validationMode == ValidationMode::GPU && validationFeatures)
+        if (desc.validationMode == RHIValidationMode::GPU && validationFeatures)
         {
             static const VkValidationFeatureEnableEXT enable_features[2] = {
                 VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
@@ -7336,7 +7315,7 @@ namespace Alimer
 #define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(handle, #fn);
 #include "RHI_Vulkan_Funcs.h"
 
-        if (desc.validationMode != ValidationMode::Disabled && debugUtils)
+        if (desc.validationMode != RHIValidationMode::Disabled && debugUtils)
         {
             result = vkCreateDebugUtilsMessengerEXT(handle, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger);
             if (result != VK_SUCCESS)
@@ -7443,6 +7422,12 @@ namespace Alimer
         }
         _adapters.clear();
 
+        for (auto& surface : destroyedSurfaces)
+        {
+            vkDestroySurfaceKHR(handle, surface, nullptr);
+        }
+        destroyedSurfaces.clear();
+
         if (debugUtilsMessenger != VK_NULL_HANDLE)
         {
             vkDestroyDebugUtilsMessengerEXT(handle, debugUtilsMessenger, nullptr);
@@ -7454,6 +7439,52 @@ namespace Alimer
             vkDestroyInstance(handle, nullptr);
             handle = VK_NULL_HANDLE;
         }
+    }
+
+    RHISurfaceRef VulkanRHIFactory::CreateSurface(void* window, void* display)
+    {
+        SharedPtr<VulkanRHISurface> surface(new VulkanRHISurface());
+        surface->factory = this;
+
+        VkResult result = VK_SUCCESS;
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+        HWND hwnd = (HWND)window;
+        ALIMER_ASSERT(IsWindow(hwnd));
+
+        const VkWin32SurfaceCreateInfoKHR createInfo = {
+            .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+            .pNext = nullptr,
+            .flags = 0,
+            .hinstance = GetModuleHandle(nullptr),
+            .hwnd = hwnd,
+        };
+        result = vkCreateWin32SurfaceKHR(handle, &createInfo, nullptr, &surface->handle);
+#elif defined(__ANDROID__)
+        const VkAndroidSurfaceCreateInfoKHR createInfo = {
+            .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+            .pNext = nullptr,
+            .flags = 0,
+            .window = (ANativeWindow*)window
+        };
+        result = vkCreateAndroidSurfaceKHR(handle, &createInfo, nullptr, &surface->handle);
+#elif defined(__APPLE__)
+        const VkMetalSurfaceCreateInfoEXT createInfo = {
+            .sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT,
+            .pNext = nullptr,
+            .flags = 0,
+            .pLayer = (CAMetalLayer*)window;
+        };
+
+        result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &surface->handle);
+#endif
+
+        if (result != VK_SUCCESS)
+        {
+            VK_LOG_ERROR(result, "Failed to create Vulkan surface.");
+            return nullptr;
+        }
+
+        return surface;
     }
 
     PhysicalDeviceExtensions VulkanRHIFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
@@ -7526,10 +7557,6 @@ namespace Alimer
             else if (strcmp(vk_extensions[i].extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0)
             {
                 extensions.deferredHostOperations = true;
-            }
-            else if (strcmp(vk_extensions[i].extensionName, "VK_KHR_portability_subset") == 0) // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-            {
-                extensions.portabilitySubset = true;
             }
             else if (strcmp(vk_extensions[i].extensionName, VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME) == 0)
             {
@@ -7612,7 +7639,7 @@ namespace Alimer
                 extensions.video.encode_h265 = true;
             }
 
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
             if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
             {
                 extensions.externalMemory = true;
@@ -7807,16 +7834,9 @@ namespace Alimer
 
     bool VulkanRHIFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
     {
-#if defined(_WIN32)
-        //PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
-        if (!vkGetPhysicalDeviceWin32PresentationSupportKHR)
-        {
-            LOGE("{} extension is not enabled in the Vulkan instance.", VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-            return false;
-        }
-
+#if defined(_WIVK_USE_PLATFORM_WIN32_KHRN32)
         return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
         return true;
 #elif defined(__APPLE__)
         return true;
