@@ -1,9 +1,9 @@
 <Project>
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
-    <ImGuiVersion>2.2.9</ImGuiVersion>
+    <ImGuiVersion>2.2.10-prerelease</ImGuiVersion>
     <SkiaSharpVersion>3.119.2-preview.1</SkiaSharpVersion>
-    <AvaloniaVersion>11.3.9</AvaloniaVersion>
+    <AvaloniaVersion>11.3.10</AvaloniaVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,12 +20,11 @@
     <PackageVersion Include="XenoAtom.Collections" Version="1.2.0" />
 
     <!-- Graphics -->
-    <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.5" />
-    <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.0.1" />
+    <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
     <PackageVersion Include="Vortice.Vulkan" Version="3.0.3" />
 
     <!-- Others -->
-    <PackageVersion Include="DotRecast.Recast" Version="2025.2.1" />
+    <PackageVersion Include="DotRecast.Recast" Version="2026.1.1" />
     
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />
     <PackageVersion Include="Hexa.NET.ImGuizmo" Version="$(ImGuiVersion)" />
@@ -36,7 +35,7 @@
     <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
-    <PackageVersion Include="SharpGLTF.Core" Version="1.0.5" />
+    <PackageVersion Include="SharpGLTF.Core" Version="1.0.6" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.22.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.5" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.1.1" />
@@ -56,7 +55,7 @@
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageVersion Include="NUnit" Version="4.4.0" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="5.2.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.0.1" />
   </ItemGroup>
 
 </Project>

@@ -33,13 +33,21 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     {
         switch (backendType)
         {
+#if !EXCLUDE_VULKAN_BACKEND
+            case GraphicsBackendType.Vulkan:
+                return Vulkan.VulkanGraphicsManager.IsSupported;
+#endif
+#if !EXCLUDE_D3D12_BACKEND
+            case GraphicsBackendType.D3D12:
+                return D3D12.D3D12GraphicsManager.IsSupported;
+#endif
 #if !EXCLUDE_METAL_BACKEND
             case GraphicsBackendType.Metal:
                 return Metal.MetalGraphicsManager.IsSupported;
 #endif
 
             default:
-                return agpuIsBackendSupport(backendType);
+                return false;
         }
     }
 
@@ -89,15 +97,6 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
         GraphicsManager? manager = default;
         switch (backend)
         {
-#if !EXCLUDE_METAL_BACKEND
-            case GraphicsBackendType.Metal:
-                if (Metal.MetalGraphicsManager.IsSupported)
-                {
-                    manager = new Metal.MetalGraphicsManager(in options);
-                }
-                break;
-#endif
-
 #if !EXCLUDE_VULKAN_BACKEND
             case GraphicsBackendType.Vulkan:
                 if (Vulkan.VulkanGraphicsManager.IsSupported)
@@ -107,8 +106,25 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
                 break;
 #endif
 
+#if !EXCLUDE_D3D12_BACKEND
+            case GraphicsBackendType.D3D12:
+                if (D3D12.D3D12GraphicsManager.IsSupported)
+                {
+                    manager = new D3D12.D3D12GraphicsManager(in options);
+                }
+                break;
+#endif
+
+#if !EXCLUDE_METAL_BACKEND
+            case GraphicsBackendType.Metal:
+                if (Metal.MetalGraphicsManager.IsSupported)
+                {
+                    manager = new Metal.MetalGraphicsManager(in options);
+                }
+                break;
+#endif
+
             default:
-                manager = new Native.NativeGraphicsManager(in options);
                 break;
         }
 

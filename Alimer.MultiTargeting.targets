@@ -8,6 +8,10 @@
   <ItemGroup Condition=" '$(_AlimerNoTargetPlatform)' == 'True' ">
     <None Remove="Platforms\Standard\**\*.cs" />
     <Compile Include="Platforms\Standard\**\*.cs" />
+    <None Remove="Platforms\Linux\**\*.cs" />
+    <Compile Include="Platforms\Linux\**\*.cs" />
+    <None Remove="Platforms\Apple\**\*.cs" />
+    <Compile Include="Platforms\Apple\**\*.cs" />
   </ItemGroup>
 
   <!-- Windows WPF -->

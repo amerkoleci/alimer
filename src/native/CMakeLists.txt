@@ -185,32 +185,8 @@ option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
 option(ALIMER_USE_SDL "Use SDL for desktop windows" ON)
 
 option(ALIMER_AUDIO "Enable Audio support" ON)
-option(ALIMER_GPU "Enable GPU support" ON)
 option(ALIMER_PHYSICS "Enable Physics support (using Jolt)" ON)
 option(ALIMER_IMAGE_KTX "Enable ktx support in image module" ON)
-
-# Determine available GPU backends
-if(EMSCRIPTEN)
-    set(ALIMER_GPU_HAS_D3D12 OFF)
-    set(ALIMER_GPU_HAS_VULKAN OFF)
-    set(ALIMER_GPU_HAS_WEBGPU ON) 
-elseif (WIN32)
-    set(ALIMER_GPU_HAS_D3D12 ON) 
-    set(ALIMER_GPU_HAS_VULKAN ON)
-    set(ALIMER_GPU_HAS_WEBGPU OFF) # Disable for now
-elseif(APPLE)
-    set(ALIMER_GPU_HAS_D3D12 OFF)
-    set(ALIMER_GPU_HAS_VULKAN OFF)
-    set(ALIMER_GPU_HAS_WEBGPU OFF)
-elseif(UNIX OR ANDROID)
-    set(ALIMER_GPU_HAS_D3D12 OFF)
-    set(ALIMER_GPU_HAS_VULKAN ON)
-    set(ALIMER_GPU_HAS_WEBGPU OFF)
-endif()
-
-cmake_dependent_option(ALIMER_GPU_VULKAN "Enable Vulkan GPU backend" ON "ALIMER_GPU_HAS_VULKAN" OFF)
-cmake_dependent_option(ALIMER_GPU_D3D12 "Enable D3D12 GPU backend" ON "ALIMER_GPU_HAS_D3D12" OFF)
-cmake_dependent_option(ALIMER_GPU_WEBGPU "Enable WebGPU GPU backend" ON "ALIMER_GPU_HAS_WEBGPU" OFF)
 
 # Set general compiler flags
 if (MSVC)
@@ -308,18 +284,6 @@ else ()
 endif ()
 
 message(STATUS "  Audio           ${ALIMER_AUDIO}")
-
-# GPU
-message(STATUS "  GPU             ${ALIMER_GPU}")
-if (ALIMER_GPU_VULKAN)
-    message(STATUS "      - Vulkan:      ALIMER_GPU_VULKAN")
-endif()
-if (ALIMER_GPU_D3D12)
-    message(STATUS "      - D3D12:       ALIMER_GPU_D3D12")
-endif ()
-if (ALIMER_GPU_WEBGPU)
-    message(STATUS "      - WebGPU:      ALIMER_GPU_WEBGPU")
-endif()
 
 message(STATUS "  Physics         ${ALIMER_PHYSICS}")
 message(STATUS "  Install         ${ALIMER_INSTALL}")

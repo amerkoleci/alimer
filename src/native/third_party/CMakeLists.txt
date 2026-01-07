@@ -102,7 +102,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.2.28
+        GIT_TAG release-3.4.0
         OPTIONS
             "SDL_SHARED OFF"
             "SDL_STATIC ON"
@@ -133,36 +133,35 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
-if (ALIMER_GPU_VULKAN)
-    # vulkan
-    add_library(vulkan INTERFACE)
-    set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
-    target_sources(vulkan INTERFACE 
-        ${VULKAN_INCLUDE_DIR}/vulkan/vulkan.h
-    )
-    target_include_directories(vulkan INTERFACE ${VULKAN_INCLUDE_DIR})
+# vulkan
+add_library(vulkan INTERFACE)
+set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
+target_sources(vulkan INTERFACE 
+    ${VULKAN_INCLUDE_DIR}/vulkan/vulkan.h
+)
+target_include_directories(vulkan INTERFACE ${VULKAN_INCLUDE_DIR})
 
-    # spirv_reflect
-    set(SPIRV_REFLECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect")
-    add_library(spirv_reflect STATIC 
-        "${SPIRV_REFLECT_DIR}/spirv_reflect.c"
-        "${SPIRV_REFLECT_DIR}/spirv_reflect.h"
-    )
-    set_target_properties(spirv_reflect PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    target_include_directories(spirv_reflect SYSTEM PUBLIC ${SPIRV_REFLECT_DIR})
-    set_target_properties(spirv_reflect PROPERTIES FOLDER "ThirdParty")
-endif()
+# spirv_reflect
+set(SPIRV_REFLECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect")
+add_library(spirv_reflect STATIC 
+    "${SPIRV_REFLECT_DIR}/spirv_reflect.c"
+    "${SPIRV_REFLECT_DIR}/spirv_reflect.h"
+)
+set_target_properties(spirv_reflect PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(spirv_reflect SYSTEM PUBLIC ${SPIRV_REFLECT_DIR})
+set_target_properties(spirv_reflect PROPERTIES FOLDER "ThirdParty")
 
-if (ALIMER_GPU_D3D12)
-    add_library(DirectX-Headers INTERFACE)
-    set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
-    target_sources(DirectX-Headers INTERFACE 
-        ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12.h
-        ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3dx12.h
-        ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12shader.h
-    )
-    target_include_directories(DirectX-Headers INTERFACE ${DIRECTX_HEADERS_INCLUDE_DIR})
+# DirectX-Headers
+add_library(DirectX-Headers INTERFACE)
+set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
+target_sources(DirectX-Headers INTERFACE 
+    ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12.h
+    ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3dx12.h
+    ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12shader.h
+)
+target_include_directories(DirectX-Headers INTERFACE ${DIRECTX_HEADERS_INCLUDE_DIR})
 
+if (WIN32 OR WINDOWS_STORE)
     # d3d12ma
     set(D3D12_DIR "${CMAKE_CURRENT_SOURCE_DIR}/D3D12MemoryAllocator")
     add_library(d3d12ma STATIC 
@@ -179,7 +178,7 @@ if(ALIMER_PHYSICS)
     CPMAddPackage(
         NAME JoltPhysics
         GITHUB_REPOSITORY jrouwe/JoltPhysics
-        GIT_TAG v5.4.0
+        GIT_TAG v5.5.0
         SOURCE_SUBDIR Build
         OPTIONS
             "OBJECT_LAYER_BITS 32"
