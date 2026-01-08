@@ -15,7 +15,7 @@ namespace Alimer.Assets.Graphics;
 /// <summary>
 /// Defines a <see cref="MeshAsset"/> importer.
 /// </summary>
-public sealed class MeshImporter : AssetImporter<MeshAsset>
+public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
 {
     private readonly Assimp _assImp;
     private static readonly PostProcessSteps s_postProcessSteps =
@@ -40,9 +40,9 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
         _assImp = Assimp.GetApi();
     }
 
-    public Task<MeshAsset> ImportGLTF(string source, IServiceRegistry services)
+    public Task<MeshAsset> ImportGLTF(MeshMetadata metadata)
     {
-        using FileStream stream = System.IO.File.OpenRead(source);
+        using FileStream stream = System.IO.File.OpenRead(metadata.FileFullPath);
         var gltf = GltfUtils.ParseGltf(stream);
 
 
@@ -128,7 +128,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
             }
         }
 
-        ModelRoot modelRoot = ModelRoot.Load(source);
+        ModelRoot modelRoot = ModelRoot.Load(metadata.FileFullPath);
 
         foreach (GLTFMaterial material in modelRoot.LogicalMaterials)
         {
@@ -197,7 +197,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
 
         MeshAsset asset = new()
         {
-            Source = source,
+            Source = metadata.FileFullPath,
             Data = new Rendering.MeshData()
             {
                 VertexCount = positions.Count,
@@ -284,9 +284,8 @@ public sealed class MeshImporter : AssetImporter<MeshAsset>
         return Task.FromResult(asset);
     }
 
-    public override Task<MeshAsset> Import(string source, IServiceRegistry services)
+    public override Task<MeshAsset> Import(MeshMetadata metadata)
     {
-        //GraphicsDevice device = services.GetService<GraphicsDevice>();
-        return ImportGLTF(source, services);
+        return ImportGLTF(metadata);
     }
 }

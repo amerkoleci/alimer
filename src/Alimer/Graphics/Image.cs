@@ -3,13 +3,14 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Alimer.Assets;
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
-public sealed unsafe class Image : DisposableObject
+public sealed unsafe class Image : Asset, IDisposable
 {
     private readonly MipMapDescription[] _mipmaps;
     private readonly ImageData[] _levels;
@@ -122,14 +123,12 @@ public sealed unsafe class Image : DisposableObject
         source.CopyTo(new Span<byte>(_data, source.Length));
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    public void Dispose()
     {
-        if (disposing)
+        if (_data != null)
         {
-            if (_data != null)
-            {
-                NativeMemory.Free(_data);
-            }
+            NativeMemory.Free(_data);
         }
     }
 

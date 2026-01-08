@@ -1,6 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 
@@ -21,16 +23,33 @@ public class TextureAsset : AssetWithSource
     /// </summary>
     public PixelFormat Format { get; set; } = PixelFormat.RGBA8Unorm;
 
-    public int Width { get; set; }
+    public required int Width { get; set; }
     public int Height { get; set; }
-    public byte[]? PixelData { get; set; }
+    public int DepthOrArrayLayers { get; set; } = 1;
+    public int MipLevels { get; set; } = 1;
+    public byte[]? Data { get; set; }
+
+    [SetsRequiredMembers]
+    public TextureAsset(int width, int height, PixelFormat format, Span<byte> data)
+    {
+        Width = width;
+        Height = height;
+        Format = format;
+        Data = data.ToArray();
+        //BytesPerPixel = format.GetBitsPerPixel() / 8;
+    }
+
+    public static TextureAsset Create<T>(int width, int height, PixelFormat format, Span<T> data)
+        where T : unmanaged
+    {
+        return new(width, height, format, MemoryMarshal.Cast<T, byte>(data));
+    }
 
     public Texture CreateRuntime(GraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
-        Guard.IsNotNull(PixelData, nameof(PixelData));
+        Guard.IsNotNull(Data, nameof(Data));
 
-        ReadOnlySpan<byte> span = PixelData!.AsSpan();
-        return device.CreateTexture2D(span, Format, (uint)Width, (uint)Height);
+        return device.CreateTexture2D(Data!, Format, (uint)Width, (uint)Height);
     }
 }

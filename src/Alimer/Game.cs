@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Audio;
-using Alimer.Content;
+using Alimer.Assets;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Input;
@@ -18,7 +18,7 @@ public abstract class Game : DisposableObject, IGame
 {
     private readonly GamePlatform _platform;
     private readonly ServiceRegistry _services;
-    private readonly ContentManager _content;
+    private readonly AssetManager _assets;
     private readonly Lock _tickLock = new();
     private readonly Stopwatch _stopwatch = new();
     private readonly GameTime _appTime = new();
@@ -34,7 +34,7 @@ public abstract class Game : DisposableObject, IGame
 
         _services = new();
         //Platform.ConfigureServices(services);
-        _content = new ContentManager(_services);
+        _assets = new AssetManager(_services);
         ConfigureServices(_services);
 
         GraphicsManagerOptions graphicsManagerOptions = new()
@@ -84,9 +84,9 @@ public abstract class Game : DisposableObject, IGame
     public IServiceRegistry Services => _services;
 
     /// <summary>
-    /// Gets the content manager.
+    /// Gets the <see cref="AssetManager"/> instance.
     /// </summary>
-    public IContentManager Content => _content;
+    public IAssetManager Assets => _assets;
 
     /// <summary>
     /// Gets the main window, automatically created or managed by the <see cref="GamePlatform"/> module.
@@ -153,7 +153,7 @@ public abstract class Game : DisposableObject, IGame
     public virtual void ConfigureServices(IServiceRegistry services)
     {
         services.AddService<IGame>(this);
-        services.AddService<IContentManager>(_content);
+        services.AddService<IAssetManager>(_assets);
     }
 
     public void Run()

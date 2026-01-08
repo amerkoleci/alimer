@@ -5,5 +5,7 @@ namespace Alimer.Assets;
 
 public interface IAssetImporter
 {
-    Task<Asset> Import(string source, IServiceRegistry services);
+    Type AssetMetadataType { get; }
+
+    Task<Asset> Import(AssetMetadata  metadata);
 }

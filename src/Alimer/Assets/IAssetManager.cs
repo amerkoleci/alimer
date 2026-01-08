@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Alimer.Content;
+namespace Alimer.Assets;
 
-public interface IContentManager
+public interface IAssetManager
 {
     
 }

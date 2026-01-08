@@ -7,13 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.Windows" PrivateAssets="compile" />
     <PackageReference Include="Vortice.SPIRV.Reflect" PrivateAssets="compile" />
     <PackageReference Include="Vortice.Dxc.Native" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\..\TerraFX.Interop.Windows.Shared\TerraFX.Interop.Windows.Shared.projitems" Label="Shared" />
 
 </Project>

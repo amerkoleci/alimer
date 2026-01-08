@@ -10,24 +10,22 @@ namespace Alimer.Assets.Graphics;
 /// <summary>
 /// Defines a <see cref="Texture"/> asset importer.
 /// </summary>
-public sealed class TextureImporter : AssetImporter<TextureAsset>
+public sealed class TextureImporter : AssetImporter<TextureAsset, TextureMetadata>
 {
-    public override Task<TextureAsset> Import(string source, IServiceRegistry services)
+    public override Task<TextureAsset> Import(TextureMetadata metadata)
     {
         //using Stream stream = await contentManager.FileProvider.OpenStreamAsync(Source, FileMode.Open, FileAccess.Read);
-        using Stream stream = File.Open(source, FileMode.Open, FileAccess.Read);
+        using Stream stream = File.Open(metadata.FileFullPath, FileMode.Open, FileAccess.Read);
+
         using SKBitmap bitmap = SKBitmap.Decode(stream);
 
         // Convert from BGRA8 to RGBA8
         using SKBitmap newBitmap = new(bitmap.Width, bitmap.Height, SKColorType.Rgba8888, bitmap.AlphaType);
         Guard.IsTrue(bitmap.CopyTo(newBitmap, SKColorType.Rgba8888));
 
-        TextureAsset asset = new()
+        TextureAsset asset = new(newBitmap.Width, newBitmap.Height, PixelFormat.RGBA8Unorm, newBitmap.Bytes)
         {
-            Source = source,
-            Width = newBitmap.Width,
-            Height = newBitmap.Height,
-            PixelData = newBitmap.Bytes
+            Source = metadata.FileFullPath,
         };
 
         return Task.FromResult(asset);

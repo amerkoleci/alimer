@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Content;
+using Alimer.Assets;
 
 namespace Alimer;
 
@@ -9,7 +9,7 @@ public interface IGame
 {
     IServiceRegistry Services { get; }
 
-    IContentManager Content { get; }
+    IAssetManager Assets { get; }
 
     /// <summary>
     /// Gets a value indicating whether application is running.

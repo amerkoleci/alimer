@@ -3,9 +3,21 @@
 
 namespace Alimer.Assets;
 
-public abstract class AssetImporter<T> : IAssetImporter where T : Asset
+public abstract class AssetImporter<T, TMetadata> : IAssetImporter
+    where T : Asset
+    where TMetadata : AssetMetadata
 {
-    public abstract Task<T> Import(string source, IServiceRegistry services);
+    public Type AssetMetadataType => typeof(TMetadata);
 
-    Task<Asset> IAssetImporter.Import(string source, IServiceRegistry services) => Import(source, services).ContinueWith(t => (Asset)t.Result);
+    public abstract Task<T> Import(TMetadata metadata);
+
+    Task<Asset> IAssetImporter.Import(AssetMetadata metadata)
+    {
+        if (metadata is not TMetadata typedMetadata)
+        {
+            throw new ArgumentException($"Invalid metadata type for {GetType()}, needs {typeof(TMetadata)}");
+        }
+
+        return Import(typedMetadata).ContinueWith(item => (Asset)item.Result);
+    }
 }

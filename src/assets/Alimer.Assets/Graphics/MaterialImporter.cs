@@ -8,7 +8,7 @@ namespace Alimer.Assets.Graphics;
 /// <summary>
 /// Defines a <see cref="MaterialAsset"/> importer.
 /// </summary>
-public sealed class MaterialImporter : AssetImporter<MaterialAsset>
+public sealed class MaterialImporter : AssetImporter<MaterialAsset, MaterialMetadata>
 {
     public Task<MaterialAsset> Import(SharpGLTF.Schema2.Material gltfMaterial, string source)
     {
@@ -20,11 +20,11 @@ public sealed class MaterialImporter : AssetImporter<MaterialAsset>
         return Task.FromResult(asset);
     }
 
-    public override Task<MaterialAsset> Import(string source, IServiceRegistry services)
+    public override Task<MaterialAsset> Import(MaterialMetadata metadata)
     {
         //GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
-        ModelRoot modelRoot = ModelRoot.Load(source);
+        ModelRoot modelRoot = ModelRoot.Load(metadata.FileFullPath);
 
-        return Import(modelRoot.LogicalMaterials[0], source);
+        return Import(modelRoot.LogicalMaterials[0], metadata.FileFullPath);
     }
 }

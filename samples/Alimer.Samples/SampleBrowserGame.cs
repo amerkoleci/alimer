@@ -25,8 +25,8 @@ public sealed class SampleBrowserGame : Game
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
-        _runningSample = new HelloWindowSample(Services, MainWindow);
-        //_runningSample = new DrawTriangleSample(Services, MainWindow);
+        //_runningSample = new HelloWindowSample(Services, MainWindow);
+        _runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
@@ -62,7 +62,7 @@ public sealed class SampleBrowserGame : Game
 
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
         //preferredGraphicsBackend = GraphicsBackendType.Metal;
 #endif
 

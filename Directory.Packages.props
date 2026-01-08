@@ -30,6 +30,9 @@
     <PackageVersion Include="Hexa.NET.ImGuizmo" Version="$(ImGuiVersion)" />
     <PackageVersion Include="Hexa.NET.ImNodes" Version="$(ImGuiVersion)" />
     <PackageVersion Include="Hexa.NET.ImPlot" Version="$(ImGuiVersion)" />
+
+    <!-- Tools -->
+    <PackageVersion Include="XenoAtom.CommandLine" Version="1.4.1" />
     
     <!-- Asset Pipeline -->
     <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />

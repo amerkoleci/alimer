@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Alimer.Assets</RootNamespace>
+    
+    <AssemblyName>alimer-assetc</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <PublishAot>false</PublishAot>
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <Description>This package is a command line tool for compling assets.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="XenoAtom.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.Assets\Alimer.Assets.csproj" />
+  </ItemGroup>
+
+</Project>

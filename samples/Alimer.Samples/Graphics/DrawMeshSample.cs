@@ -43,7 +43,11 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         //_texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "environment.hdr")));
 
         MeshImporter meshImporter = new();
-        MeshAsset meshAsset = meshImporter.Import(Path.Combine(meshesPath, "DamagedHelmet.glb"), Services).Result;
+        MeshMetadata meshMetadata = new()
+        {
+            FileFullPath = Path.Combine(meshesPath, "DamagedHelmet.glb")
+        };
+        MeshAsset meshAsset = meshImporter.Import(meshMetadata).Result;
 
         Span<VertexPositionNormalTexture> vertices = stackalloc VertexPositionNormalTexture[meshAsset.Data!.VertexCount];
         for (int i = 0; i < meshAsset.Data.VertexCount; i++)
