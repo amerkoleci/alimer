@@ -11,8 +11,8 @@ namespace Alimer;
 internal unsafe class NativePlatform : GamePlatform
 {
     private readonly NativeInput _input;
-    private readonly NativeWindow _window;
-    private readonly Dictionary<uint, NativeWindow> _idLookup = [];
+    private readonly Window _window;
+    private readonly Dictionary<uint, Window> _idLookup = [];
     private bool _exitRequested;
 
     public NativePlatform()
@@ -24,7 +24,7 @@ internal unsafe class NativePlatform : GamePlatform
         }
 
         _input = new NativeInput(this);
-        MainWindow = (_window = new NativeWindow(this, WindowFlags.Resizable));
+        MainWindow = (_window = new Window(this, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
     }
 
@@ -105,7 +105,7 @@ internal unsafe class NativePlatform : GamePlatform
 
     private void HandleWindowEvent(in WindowEvent evt)
     {
-        if (_idLookup.TryGetValue(evt.windowID, out NativeWindow? window))
+        if (_idLookup.TryGetValue(evt.windowID, out Window? window))
         {
             window.HandleEvent(evt);
         }

@@ -4,15 +4,13 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using Alimer.Numerics;
 
 namespace Alimer.Engine;
 
 [DefaultEntitySystem(typeof(TransformSystem))]
-public partial class TransformComponent : EntityComponent, IEnumerable<TransformComponent>, INotifyPropertyChanged
+public partial class TransformComponent : EntityComponent, IEnumerable<TransformComponent>
 {
     private Matrix4x4 _localMatrix = Matrix4x4.Identity;
     private Matrix4x4 _worldMatrix = Matrix4x4.Identity;
@@ -20,8 +18,6 @@ public partial class TransformComponent : EntityComponent, IEnumerable<Transform
     private Vector3 _position;
     private Quaternion _rotation = Quaternion.Identity;
     private Vector3 _scale = Vector3.One;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
 
     public IEnumerable<TransformComponent> Children
     {
@@ -60,14 +56,26 @@ public partial class TransformComponent : EntityComponent, IEnumerable<Transform
     public ref Matrix4x4 WorldMatrix => ref _worldMatrix;
 
     [JsonPropertyOrder(10)]
-    public Vector3 Position { get => _position; set => Set(ref _position, value); }
+    public Vector3 Position
+    {
+        get => _position;
+        set => _position = value;
+    }
 
     [JsonPropertyOrder(20)]
-    public Quaternion Rotation { get => _rotation; set => Set(ref _rotation, value); }
+    public Quaternion Rotation
+    {
+        get => _rotation;
+        set => _rotation = value;
+    }
 
     [JsonPropertyOrder(30)]
     [DefaultValue("1,1,1")]
-    public Vector3 Scale { get => _scale; set => Set(ref _scale, value); }
+    public Vector3 Scale
+    {
+        get => _scale;
+        set => _scale = value;
+    }
 
     [IgnoreDataMember]
     [JsonIgnore]
@@ -124,22 +132,5 @@ public partial class TransformComponent : EntityComponent, IEnumerable<Transform
 
             WorldMatrix = LocalMatrix * Parent.WorldMatrix;
         }
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string propertyName = "")
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private bool Set<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
-    {
-        if (!EqualityComparer<T>.Default.Equals(field, value))
-        {
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        return false;
     }
 }

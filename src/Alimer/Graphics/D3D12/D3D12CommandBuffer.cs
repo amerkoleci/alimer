@@ -351,9 +351,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public override void Present(SwapChain swapChain)
     {
-        var d3dSwapChain = (D3D12SwapChain)swapChain;
+        D3D12SwapChain d3dSwapChain = (D3D12SwapChain)swapChain;
         _queue.QueuePresent(d3dSwapChain);
     }
-
-
 }

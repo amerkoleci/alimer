@@ -5,17 +5,16 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace Alimer.Engine;
 
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChanged
+public partial class Entity 
 {
     private Entity? _parent;
     private string _name;
@@ -44,8 +43,6 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
         Components.Add(Transform);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
     [DataMember]
     [JsonPropertyOrder(0)]
     [Browsable(false)]
@@ -56,7 +53,7 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
     public string Name
     {
         get => _name;
-        set => Set(ref _name, value);
+        set => _name = value;
     }
 
     /// <summary>
@@ -91,31 +88,86 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
 
     public TransformComponent Transform { get; private set; }
 
-    public IEnumerator<EntityComponent> GetEnumerator() => Components.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public Entity Add(EntityComponent component)
+    /// <summary>
+    /// Adds the specified component to the entity and returns it.
+    /// </summary>
+    /// <typeparam name="T">The type of component to add. Must derive from EntityComponent.</typeparam>
+    /// <param name="component">The component instance to add to the entity. Cannot be null.</param>
+    /// <returns>The component that was added to the entity.</returns>
+    public EntityComponent AddComponent<T>(T component)
+        where T : EntityComponent
     {
         Components.Add(component);
-        return this;
+        return component;
     }
 
-    public T Add<T>() where T : EntityComponent, new()
+    /// <summary>
+    /// Adds a new component of the specified type to the entity and returns the instance.
+    /// </summary>
+    /// <typeparam name="T">The type of component to add. Must be a subclass of EntityComponent and have a parameterless constructor.</typeparam>
+    /// <returns>The newly created component of type T that was added to the entity.</returns>
+    public T AddComponent<T>()
+        where T : EntityComponent, new()
     {
         T component = new();
         Components.Add(component);
         return component;
     }
 
-    public T? Get<T>() where T : EntityComponent?
+    /// <summary>
+    /// Retrieves the first component of the specified type from the entity.
+    /// </summary>
+    /// <remarks>Use this method to access a specific type of component associated with the entity. If
+    /// multiple components of type T are present, only the first one found is returned.</remarks>
+    /// <typeparam name="T">The type of component to retrieve. Must derive from EntityComponent.</typeparam>
+    /// <returns>The first component of type T attached to the entity.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the entity does not contain a component of type T.</exception>
+    public T GetComponent<T>()
+        where T : EntityComponent
     {
-        return this.OfType<T>().FirstOrDefault();
+        foreach (EntityComponent component in Components)
+        {
+            if (component is T typedComponent)
+            {
+                return typedComponent;
+            }
+        }
+
+        throw new InvalidOperationException($"Entity does not have a component of type {typeof(T)}.");
     }
 
-    public T GetOrCreate<T>() where T : EntityComponent, new()
+    /// <summary>
+    /// Attempts to retrieve the first component of the specified type from the collection of components.
+    /// </summary>
+    /// <remarks>If multiple components of type T exist, only the first one encountered is returned. The
+    /// search includes derived types of T.</remarks>
+    /// <typeparam name="T">The type of component to search for. Must derive from EntityComponent.</typeparam>
+    /// <returns>The first component of type T if found; otherwise, null.</returns>
+    public T? TryGetComponent<T>()
+        where T : EntityComponent
     {
-        T? component = Get<T>();
+        foreach (EntityComponent component in Components)
+        {
+            if (component is T typedComponent)
+            {
+                return typedComponent;
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
+    /// Retrieves an existing component of the specified type from the entity, or creates and adds a new one if it does
+    /// not exist.
+    /// </summary>
+    /// <typeparam name="T">The type of component to retrieve or create. Must derive from EntityComponent and have a parameterless
+    /// constructor.</typeparam>
+    /// <returns>The existing component of type T if found; otherwise, a new instance of T that has been added to the entity.</returns>
+    public T GetOrCreateComponent<T>()
+        where T : EntityComponent, new()
+    {
+        T? component = GetComponent<T>();
 
         if (component is null)
         {
@@ -126,19 +178,55 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
         return component;
     }
 
-    public bool Remove<T>() where T : EntityComponent
+    /// <summary>
+    /// Determines whether the entity contains a component of the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type of component to search for. Must derive from EntityComponent.</typeparam>
+    /// <returns>true if a component of type T is attached to the entity; otherwise, false.</returns>
+	public bool HasComponent<T>()
+        where T : EntityComponent
     {
-        T? component = Get<T>();
-
-        if (component != null)
+        foreach (EntityComponent component in Components)
         {
-            return Components.Remove(component);
+            if (component is T typedComponent)
+            {
+                return true;
+            }
         }
 
         return false;
     }
 
-    public bool Remove(EntityComponent component)
+    /// <summary>
+    /// Removes the first component of the specified type from the entity.
+    /// </summary>
+    /// <remarks>If multiple components of type T are attached to the entity, only the first occurrence is
+    /// removed. No action is taken if no component of the specified type exists.</remarks>
+    /// <typeparam name="T">The type of component to remove. Must derive from EntityComponent.</typeparam>
+    /// <returns>true if a component of type T was found and removed; otherwise, false.</returns>
+    public bool RemoveComponent<T>()
+        where T : EntityComponent
+    {
+        for (int i = 0; i < Components.Count; i++)
+        {
+            EntityComponent component = Components[i];
+            if (component is T typedComponent)
+            {
+                //component.OnDetach();
+                Components.RemoveAt(i);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Removes the specified component from the entity.
+    /// </summary>
+    /// <param name="component">The component to remove from the entity. Cannot be null.</param>
+    /// <returns>true if the component was successfully removed; otherwise, false.</returns>
+    public bool RemoveComponent(EntityComponent component)
     {
         return Components.Remove(component);
     }
@@ -189,10 +277,7 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
 
         if (component is TransformComponent)
         {
-            if (Get<TransformComponent?>() is null)
-            {
-                throw new InvalidOperationException("An entity always has to have a transform component.");
-            }
+            throw new InvalidOperationException("An entity always has to have a transform component.");
         }
 
         component.Entity = null;
@@ -203,13 +288,13 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
-                foreach (Entity entity in e.NewItems!.Cast<Entity>())
+                foreach (Entity entity in e.NewItems!)
                 {
                     AddInternal(entity);
                 }
                 break;
             case NotifyCollectionChangedAction.Remove:
-                foreach (Entity entity in e.OldItems!.Cast<Entity>())
+                foreach (Entity entity in e.OldItems!)
                 {
                     RemoveInternal(entity);
                 }
@@ -222,35 +307,18 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
-                foreach (EntityComponent component in e.NewItems!.Cast<EntityComponent>())
+                foreach (EntityComponent component in e.NewItems!)
                 {
                     AddInternal(component);
                 }
                 break;
             case NotifyCollectionChangedAction.Remove:
-                foreach (EntityComponent component in e.OldItems!.Cast<EntityComponent>())
+                foreach (EntityComponent component in e.OldItems!)
                 {
                     RemoveInternal(component);
                 }
                 break;
         }
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string propertyName = "")
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private bool Set<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
-    {
-        if (!EqualityComparer<T>.Default.Equals(field, value))
-        {
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        return false;
     }
 
     /// <summary>
@@ -266,8 +334,8 @@ public partial class Entity : IEnumerable<EntityComponent>, INotifyPropertyChang
 
         public Entity? Parent => _entity.Transform.Parent?.Entity;
 
-        public Entity[] Children => _entity.Transform.Children.Select(x => x.Entity!).ToArray();
+        public Entity[] Children => [.. _entity.Transform.Children.Select(x => x.Entity!)];
 
-        public EntityComponent[] Components => _entity.Components.ToArray();
+        public EntityComponent[] Components => [.. _entity.Components];
     }
 }

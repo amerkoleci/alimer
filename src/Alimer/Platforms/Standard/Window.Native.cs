@@ -8,7 +8,7 @@ using Alimer.Utilities;
 
 namespace Alimer;
 
-internal unsafe class NativeWindow : Window
+partial class Window
 {
     private readonly NativePlatform _platform;
     private SizeI _clientSize;
@@ -17,7 +17,7 @@ internal unsafe class NativeWindow : Window
     private readonly nint _window;
     public readonly uint Id;
 
-    public NativeWindow(NativePlatform platform, WindowFlags flags)
+    internal unsafe Window(NativePlatform platform, WindowFlags flags)
     {
         _platform = platform;
         _title = "Alimer";
@@ -91,10 +91,10 @@ internal unsafe class NativeWindow : Window
     }
 
     /// <inheritdoc />
-    public override bool IsMinimized => _minimized;
+    public partial bool IsMinimized => _minimized;
 
     /// <inheritdoc />
-    public override bool IsFullscreen
+    public partial bool IsFullscreen
     {
         get => _isFullscreen;
         set
@@ -108,7 +108,7 @@ internal unsafe class NativeWindow : Window
     }
 
     /// <inheritdoc />
-    public override System.Drawing.PointF Position
+    public partial System.Drawing.PointF Position
     {
         get
         {
@@ -122,28 +122,19 @@ internal unsafe class NativeWindow : Window
     }
 
     /// <inheritdoc />
-    public override SizeI ClientSize => _clientSize;
-
-    /// <inheritdoc />
-    public override SwapChainSurfaceType Kind { get; }
-
-    /// <inheritdoc />
-    public override nint ContextHandle { get; }
-
-    /// <inheritdoc />
-    public override nint Handle { get; }
+    public partial SizeI ClientSize => _clientSize;
 
     public void Show()
     {
         alimerWindowShow(_window);
     }
 
-    protected override void SetTitle(string title)
+    private partial void SetTitle(string title)
     {
         alimerWindowSetTitle(_window, title);
     }
 
-    public void HandleEvent(in WindowEvent evt)
+    internal void HandleEvent(in WindowEvent evt)
     {
         switch (evt.type)
         {
@@ -189,5 +180,5 @@ internal unsafe class NativeWindow : Window
 
     [DllImport("kernel32", ExactSpelling = true)]
     //[SetsLastSystemError]
-    private static extern nint GetModuleHandleW(ushort* lpModuleName);
+    private static extern unsafe nint GetModuleHandleW(ushort* lpModuleName);
 }

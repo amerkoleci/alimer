@@ -4,6 +4,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using Alimer.Assets;
 using Alimer.Graphics;
 
 namespace Alimer;

@@ -9,16 +9,20 @@ namespace Alimer;
 /// <summary>
 /// Defines an application window.
 /// </summary>
-public abstract class Window : ISwapChainSurface
+public sealed partial class Window : ISwapChainSurface
 {
+    private string _title;
     public event EventHandler? SizeChanged;
 
-    protected string _title = string.Empty;
+    /// <summary>
+    /// Gets a value indicating whether the window is currently minimized.
+    /// </summary>
+    public partial bool IsMinimized { get; }
 
-    protected Window()
-    {
-
-    }
+    /// <summary>
+    /// Gets or sets a value indicating whether the application is displayed in fullscreen mode.
+    /// </summary>
+    public partial bool IsFullscreen { get; set; }
 
     /// <summary>
     /// Gets and sets the title of the window.
@@ -33,33 +37,26 @@ public abstract class Window : ISwapChainSurface
             if (_title != value)
             {
                 _title = value;
-                SetTitle(_title);
+                SetTitle(value);
             }
         }
     }
 
     #region ISwapChainSurface Members
     /// <inheritdoc />
-    public abstract SwapChainSurfaceType Kind { get; }
+    public SwapChainSurfaceType Kind { get; }
 
     /// <inheritdoc />
-    public abstract nint ContextHandle { get; }
+    public nint ContextHandle { get; }
 
     /// <inheritdoc />
-    public abstract nint Handle { get; }
+    public nint Handle { get; }
 
     /// <inheritdoc />
     SizeI ISwapChainSurface.Size => ClientSize;
     #endregion ISwapChainSurface Members
-
-    public abstract bool IsMinimized { get; }
-
-    /// <summary>
-    /// Gets or Sets whether the Window is in Fullscreen Mode
-    /// </summary>
-    public abstract bool IsFullscreen { get; set; }
-    public abstract System.Drawing.PointF Position { get; set; }
-    public abstract SizeI ClientSize { get; }
+    public partial System.Drawing.PointF Position { get; set; }
+    public partial SizeI ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
@@ -99,15 +96,15 @@ public abstract class Window : ISwapChainSurface
         }
     }
 
-    protected virtual void OnSizeChanged()
+    private void OnSizeChanged()
     {
         DepthStencilTexture?.Dispose();
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    protected abstract void SetTitle(string title);
+    private partial void SetTitle(string title);
 
-    protected internal void Destroy()
+    internal void Destroy()
     {
         DepthStencilTexture?.Dispose();
         SwapChain?.Dispose();

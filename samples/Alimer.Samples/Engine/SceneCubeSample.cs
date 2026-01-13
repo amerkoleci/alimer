@@ -26,7 +26,7 @@ public sealed class SceneCubeSample : SampleBase
 
         // Camera
         _cameraEntity = new();
-        _ = _cameraEntity.Add<CameraComponent>();
+        _cameraEntity.AddComponent<CameraComponent>();
         root.Children.Add(_cameraEntity);
 
         //var test = _cameraEntity.Serialize();
@@ -35,11 +35,11 @@ public sealed class SceneCubeSample : SampleBase
         RigidBodyComponent floorRigidBody = new()
         {
             ColliderShape = new BoxColliderShape(new Vector3(200.0f, 2.0f, 200.0f)),
-            MotionType = MotionType.Static
+            BodyType = RigidBodyType.Static
         };
 
         var floorEntity = new Entity("Floor", new Vector3(0.0f, -1.0f, 0.0f));
-        floorEntity.Add(floorRigidBody);
+        floorEntity.AddComponent(floorRigidBody);
         root.Children.Add(floorEntity);
 
         // Mesh
@@ -56,7 +56,8 @@ public sealed class SceneCubeSample : SampleBase
             Mesh = new Mesh(GraphicsDevice)
         };
 
-        _meshEntity.Add(meshComponent).Add(sphereRigidBody);
+        _meshEntity.AddComponent(meshComponent);
+        _meshEntity.AddComponent(sphereRigidBody);
         
         root.Children.Add(_meshEntity);
 
@@ -69,6 +70,6 @@ public sealed class SceneCubeSample : SampleBase
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
-        _meshEntity.Get<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
+        _meshEntity.GetComponent<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
     }
 }

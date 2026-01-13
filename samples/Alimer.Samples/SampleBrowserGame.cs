@@ -26,12 +26,12 @@ public sealed class SampleBrowserGame : Game
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
         //_runningSample = new HelloWindowSample(Services, MainWindow);
-        _runningSample = new DrawTriangleSample(Services, MainWindow);
+        //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
-        //_runningSample = new DrawMeshSample(Services, MainWindow);
+        _runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
@@ -60,6 +60,7 @@ public sealed class SampleBrowserGame : Game
     {
         GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default;
 
+        // D3D12 is broken ATM
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
         preferredGraphicsBackend = GraphicsBackendType.Vulkan;

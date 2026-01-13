@@ -10,25 +10,26 @@ namespace Alimer.Physics;
 
 public class RigidBodyComponent : PhysicsComponent
 {
-    private MotionType _motionType = MotionType.Dynamic;
     private ColliderShape? _shape;
-    private float _mass = 1.0f;
 
-    public MotionType MotionType
+    /// <summary>
+    /// Getrs or sets the body type
+    /// </summary>
+    public RigidBodyType BodyType
     {
-        get => _motionType;
+        get;
         set
         {
-            if (_motionType == value)
+            if (field == value)
                 return;
 
-            _motionType = value;
+            field = value;
             if (Handle.IsNotNull)
             {
-                //Handle.MotionType = value.ToJolt();
+                alimerPhysicsBodySetType(Handle, value);
             }
         }
-    }
+    } = RigidBodyType.Dynamic;
 
     public virtual ColliderShape? ColliderShape
     {
@@ -48,22 +49,17 @@ public class RigidBodyComponent : PhysicsComponent
 
     public float Mass
     {
-        get => _mass;
+        get;
         set
         {
-            if (value < 0.0f)
-            {
-                throw new InvalidOperationException("The mass of a RigidBody cannot be negative.");
-            }
-
-            _mass = value;
+            field = MathF.Max(value, 0.001f);
 
             // TODO: Update Jolt mass?
             if (Handle != null)
             {
             }
         }
-    }
+    } = 1.0f;
 
     /// <summary>
     /// Gets or sets the linear velocity.
@@ -136,7 +132,7 @@ public class RigidBodyComponent : PhysicsComponent
             position = translation,
             rotation = rotation
         };
-        bodyDesc.type = PhysicsBodyType.Dynamic;
+        bodyDesc.type = BodyType;
 
         Handle = alimerPhysicsBodyCreate(Simulation.World, in bodyDesc);
         BodyID = alimerPhysicsBodyGetID(Handle);

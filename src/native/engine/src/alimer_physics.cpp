@@ -61,17 +61,18 @@ namespace
 {
     static_assert(sizeof(JPH::Mat44) == sizeof(Matrix4x4));
 
-    constexpr JPH::EMotionType ToJolt(PhysicsBodyType value)
+    static constexpr PhysicsBodyType FromJolt(JPH::EMotionType value)
     {
         switch (value)
         {
-            case PhysicsBodyType_Kinematic:
-                return JPH::EMotionType::Kinematic;
-            case PhysicsBodyType_Dynamic:
-                return JPH::EMotionType::Dynamic;
-            case PhysicsBodyType_Static:
+            case JPH::EMotionType::Kinematic:
+                return PhysicsBodyType_Kinematic;
+            case JPH::EMotionType::Dynamic:
+                return PhysicsBodyType_Dynamic;
+
+            case JPH::EMotionType::Static:
             default:
-                return JPH::EMotionType::Static;
+                return PhysicsBodyType_Static;
         }
     }
 
@@ -94,6 +95,20 @@ namespace
     {
         JPH::Mat44 temp = value.Transposed();
         memcpy(result, &temp, sizeof(Matrix4x4));
+    }
+
+    constexpr JPH::EMotionType ToJolt(PhysicsBodyType value)
+    {
+        switch (value)
+        {
+            case PhysicsBodyType_Kinematic:
+                return JPH::EMotionType::Kinematic;
+            case PhysicsBodyType_Dynamic:
+                return JPH::EMotionType::Dynamic;
+            case PhysicsBodyType_Static:
+            default:
+                return JPH::EMotionType::Static;
+        }
     }
 
     static JPH::Vec3 ToJolt(const Vector3* value)
@@ -663,6 +678,8 @@ PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, Physi
 /* Body */
 void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc)
 {
+    memset(desc, 0, sizeof(PhysicsBodyDesc));
+
     desc->type = PhysicsBodyType_Dynamic;
     desc->mass = 1.0f;
     desc->linearDamping = 0.05f;
@@ -810,6 +827,18 @@ PhysicsWorld* alimerPhysicsBodyGetWorld(PhysicsBody* body)
 uint32_t alimerPhysicsBodyGetID(PhysicsBody* body)
 {
     return body->id.GetIndexAndSequenceNumber();
+}
+
+PhysicsBodyType alimerPhysicsBodyGetType(PhysicsBody* body)
+{
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    return FromJolt(bodyInterface.GetMotionType(body->id));
+}
+
+void alimerPhysicsBodySetType(PhysicsBody* body, PhysicsBodyType value)
+{
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.SetMotionType(body->id, ToJolt(value), JPH::EActivation::Activate);
 }
 
 void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform)

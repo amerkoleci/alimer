@@ -5,21 +5,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Alimer.Physics;
 
 namespace Alimer;
 
 unsafe partial class AlimerApi
 {
     #region Enums
-    public enum PhysicsBodyType
-    {
-        Static,
-        Kinematic,
-        Dynamic,
-
-        Count,
-    }
-
     public enum PhysicsShapeType
     {
         Box,
@@ -43,7 +35,7 @@ unsafe partial class AlimerApi
 
     public struct PhysicsBodyDesc
     {
-        public PhysicsBodyType type;
+        public RigidBodyType type;
         public PhysicsBodyTransform initialTransform;
         public float mass;
         public float linearDamping;
@@ -260,6 +252,12 @@ unsafe partial class AlimerApi
 
     [LibraryImport(LibraryName)]
     public static partial uint alimerPhysicsBodyGetID(PhysicsBody body);
+
+    [LibraryImport(LibraryName)]
+    public static partial RigidBodyType alimerPhysicsBodyGetType(PhysicsBody body);
+
+    [LibraryImport(LibraryName)]
+    public static partial void alimerPhysicsBodySetType(PhysicsBody body, RigidBodyType value);
 
     [LibraryImport(LibraryName)]
     public static partial void alimerPhysicsBodyGetTransform(PhysicsBody body, out PhysicsBodyTransform transform);

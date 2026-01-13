@@ -229,4 +229,11 @@ public static partial class MathUtilities
     {
         return ((value + alignment - 1) / alignment);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsNegativeOrNonFinite(double value)
+    {
+        ulong bits = BitConverter.DoubleToUInt64Bits(value);
+        return bits >= 0x7FF0_0000_0000_0000;
+    }
 }

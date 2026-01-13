@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Assets;
 using NUnit.Framework;
 
 namespace Alimer.Graphics.Tests;

@@ -107,8 +107,13 @@ ALIMER_API void alimerPhysicsBodyAddRef(PhysicsBody* body);
 ALIMER_API void alimerPhysicsBodyRelease(PhysicsBody* body);
 ALIMER_API bool alimerPhysicsBodyIsValid(PhysicsBody* body);
 ALIMER_API bool alimerPhysicsBodyIsActive(PhysicsBody* body);
+
 ALIMER_API PhysicsWorld* alimerPhysicsBodyGetWorld(PhysicsBody* body);
 ALIMER_API uint32_t alimerPhysicsBodyGetID(PhysicsBody* body);
+
+ALIMER_API PhysicsBodyType alimerPhysicsBodyGetType(PhysicsBody* body);
+ALIMER_API void alimerPhysicsBodySetType(PhysicsBody* body, PhysicsBodyType value);
+
 ALIMER_API void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform);
 ALIMER_API void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform* transform);
 ALIMER_API void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform);

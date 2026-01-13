@@ -108,7 +108,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
         _entities.Add(entity);
 
-        foreach (EntityComponent component in entity)
+        foreach (EntityComponent component in entity.Components)
         {
             AddComponent(component, entity);
         }
@@ -134,7 +134,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         entity.Components.CollectionChanged -= OnComponentsCollectionChanged;
         entity.Children.CollectionChanged -= OnChildrenCollectionChanged;
 
-        foreach (EntityComponent component in entity)
+        foreach (EntityComponent component in entity.Components)
         {
             RemoveComponent(component, entity);
         }

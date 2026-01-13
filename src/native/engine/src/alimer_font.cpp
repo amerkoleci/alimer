@@ -18,11 +18,11 @@ struct Font {
     int spaceAdvance;
 };
 
-Font* alimerFontCreateFromMemory(const void* data, size_t size)
+Font* alimerFontCreateFromMemory(const uint8_t* data, size_t size)
 {
     ALIMER_UNUSED(size);
 
-    int offset = stbtt_GetFontOffsetForIndex((const unsigned char*)data, 0);
+    int offset = stbtt_GetFontOffsetForIndex(data, 0);
     if (offset == -1)
     {
         alimerLogError(LogCategory_System, "Unable to parse Font File");
@@ -32,7 +32,7 @@ Font* alimerFontCreateFromMemory(const void* data, size_t size)
     Font* font = ALIMER_ALLOC(Font);
     ALIMER_ASSERT(font);
 
-    if (!stbtt_InitFont(&font->info, (const unsigned char*)data, offset))
+    if (!stbtt_InitFont(&font->info, data, offset))
     {
         alimerLogError(LogCategory_System, "Unable to parse Font File");
         alimerFree(font);
@@ -66,6 +66,11 @@ int alimerFontGetGlyphIndex(Font* font, int codepoint)
 float alimerFontGetScale(Font* font, float size)
 {
     return stbtt_ScaleForMappingEmToPixels(&font->info, size);
+}
+
+float alimerFontGetScalePixelHeight(Font* font, float height)
+{
+    return stbtt_ScaleForPixelHeight(&font->info, height);
 }
 
 float alimerFontGetKerning(Font* font, int glyph1, int glyph2, float scale)
