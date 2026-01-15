@@ -108,7 +108,7 @@ partial class Window
     }
 
     /// <inheritdoc />
-    public partial System.Drawing.PointF Position
+    public partial PointI Position
     {
         get
         {
@@ -117,7 +117,7 @@ partial class Window
         }
         set
         {
-            alimerWindowSetPosition(_window, (int)value.X, (int)value.Y);
+            alimerWindowSetPosition(_window, value.X, value.Y);
         }
     }
 

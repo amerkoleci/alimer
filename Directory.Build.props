@@ -4,6 +4,7 @@
     <AlimerRootDirectory>$(MSBuildThisFileDirectory)</AlimerRootDirectory>
     <AlimerSrcDirectory>$(MSBuildThisFileDirectory)src/</AlimerSrcDirectory>
     <AlimerNativeDirectory>$(MSBuildThisFileDirectory)native/</AlimerNativeDirectory>
+    <AlimerAssetsDirectory>$(MSBuildThisFileDirectory)assets/</AlimerAssetsDirectory>
   </PropertyGroup>
 
   <PropertyGroup>

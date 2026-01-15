@@ -54,8 +54,9 @@ public sealed partial class Window : ISwapChainSurface
 
     /// <inheritdoc />
     SizeI ISwapChainSurface.Size => ClientSize;
-    #endregion ISwapChainSurface Members
-    public partial System.Drawing.PointF Position { get; set; }
+    #endregion
+
+    public partial PointI Position { get; set; }
     public partial SizeI ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }

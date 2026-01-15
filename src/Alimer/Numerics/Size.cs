@@ -56,15 +56,6 @@ public partial struct Size
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref='Size'/> struct from the specified <see cref="System.Drawing.SizeF"/>.
-    /// </summary>
-    public Size(in System.Drawing.SizeF size)
-    {
-        Width = size.Width;
-        Height = size.Height;
-    }
-
-    /// <summary>
     /// Tests whether this <see cref='Size'/> has a <see cref='Size.Width'/> or a <see cref='Size.Height'/> of 0.
     /// </summary>
     [Browsable(false)]
@@ -197,20 +188,6 @@ public partial struct Size
     /// Converts the specified <see cref="Vector2"/> to a <see cref="Size"/>.
     /// </summary>
     public static explicit operator Size(in Vector2 vector) => new (vector);
-
-    /// <summary>
-    /// Performs an explicit conversion from <see cref="System.Drawing.SizeF"/> to <see cref="Size"/>.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the conversion.</returns>
-    public static explicit operator Size(in System.Drawing.SizeF size) => new(size);
-
-    /// <summary>
-    /// Performs an explicit conversion from <see cref="Size"/> to <see cref="System.Drawing.SizeF"/>.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the conversion.</returns>
-    public static explicit operator System.Drawing.SizeF(in Size value) => new(value.Width, value.Height);
 
     /// <inheritdoc/>
     public override readonly bool Equals([NotNullWhen(true)] object? obj) => obj is Size value && Equals(value);

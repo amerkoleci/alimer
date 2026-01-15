@@ -72,12 +72,12 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
 
     public void SetScissorRect(int width, int height)
     {
-        SetScissorRect(new System.Drawing.Rectangle(0, 0, width, height));
+        SetScissorRect(new RectI(width, height));
     }
 
     public void SetScissorRect(int x, int y, int width, int height)
     {
-        SetScissorRect(new System.Drawing.Rectangle(x, y, width, height));
+        SetScissorRect(new RectI(x, y, width, height));
     }
 
     public void SetBlendColor(float red, float green, float blue, float alpha)
@@ -191,7 +191,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     protected abstract void SetPipelineCore(RenderPipeline pipeline);
     public abstract void SetViewport(in Viewport viewport);
     public abstract void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0);
-    public abstract void SetScissorRect(in System.Drawing.Rectangle rect);
+    public abstract void SetScissorRect(in RectI rect);
     public abstract void SetStencilReference(uint reference);
     public abstract void SetBlendColor(in Color color);
     public abstract void SetShadingRate(ShadingRate rate);

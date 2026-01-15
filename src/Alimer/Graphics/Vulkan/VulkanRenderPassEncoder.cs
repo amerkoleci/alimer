@@ -231,7 +231,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdSetViewport(_commandBuffer.Handle, firstViewport: 0, 1, vkViewports);
     }
 
-    public override void SetScissorRect(in System.Drawing.Rectangle rect)
+    public override void SetScissorRect(in RectI rect)
     {
         VkRect2D vkRect = new(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height);
         _deviceApi.vkCmdSetScissor(_commandBuffer.Handle, 0, 1, &vkRect);

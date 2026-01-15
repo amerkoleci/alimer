@@ -283,7 +283,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->RSSetViewports((uint)count, d3d12Viewports);
     }
 
-    public override void SetScissorRect(in System.Drawing.Rectangle rect)
+    public override void SetScissorRect(in RectI rect)
     {
         RECT scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
         _commandBuffer.CommandList->RSSetScissorRects(1, &scissorRect);

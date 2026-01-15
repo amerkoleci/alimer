@@ -2,6 +2,14 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
 
+  <!-- Assets -->
+  <ItemGroup>
+    <None Include="$(AlimerAssetsDirectory)/**">
+      <Link>Assets\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <PropertyGroup>
     <_ShaderCompilerPath>$(AlimerSrcDirectory)assets/Alimer.ShaderCompiler/bin/$(Configuration)/net8.0/Alimer.ShaderCompiler.dll</_ShaderCompilerPath>
     <_ProcessDir>$(BaseIntermediateOutputPath)/CompiledShaders</_ProcessDir>

@@ -45,15 +45,6 @@ public partial struct SizeI
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref='SizeI'/> struct from the specified <see cref="System.Drawing.Size"/>.
-    /// </summary>
-    public SizeI(in System.Drawing.Size size)
-    {
-        Width = size.Width;
-        Height = size.Height;
-    }
-
-    /// <summary>
     /// Tests whether this <see cref='SizeI'/> has a <see cref='SizeI.Width'/> or a <see cref='SizeI.Height'/> of 0.
     /// </summary>
     [Browsable(false)]
@@ -73,21 +64,7 @@ public partial struct SizeI
     /// <summary>
     /// Converts the specified <see cref='SizeI'/> to a <see cref='Size'/>.
     /// </summary>
-    public static implicit operator Size(SizeI value) => new Size(value.Width, value.Height);
-
-    /// <summary>
-    /// Performs an explicit conversion from <see cref="System.Drawing.Size"/> to <see cref="SizeI"/>.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the conversion.</returns>
-    public static explicit operator SizeI(in System.Drawing.Size size) => new(size);
-
-    /// <summary>
-    /// Performs an explicit conversion from <see cref="SizeI"/> to <see cref="System.Drawing.Size"/>.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the conversion.</returns>
-    public static explicit operator System.Drawing.Size(in SizeI value) => new(value.Width, value.Height);
+    public static implicit operator Size(SizeI value) => new(value.Width, value.Height);
 
     /// <inheritdoc/>
     public override readonly bool Equals([NotNullWhen(true)] object? obj) => obj is SizeI value && Equals(value);

@@ -14,6 +14,7 @@ using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
 using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI;
 using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
@@ -41,6 +42,31 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 
         // Init features
         Features = new D3D12Features(device);
+
+        uint MaxNonSamplerDescriptors = 0;
+        uint MaxSamplerDescriptors = 0;
+        D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19 = default;
+        if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref options19)))
+        {
+            if (Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+            }
+            else if (Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_2)
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+            }
+            else
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+            }
+            MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+        }
+        else
+        {
+            MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
+            MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
+        }
 
         // Convert the adapter's D3D12 driver version to a readable string like "24.21.13.9793".
         string driverDescription = string.Empty;

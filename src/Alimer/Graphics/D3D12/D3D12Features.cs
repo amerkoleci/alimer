@@ -6,6 +6,7 @@ using static TerraFX.Interop.DirectX.D3D12_FEATURE;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
 using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
 using static TerraFX.Interop.DirectX.D3D_ROOT_SIGNATURE_VERSION;
+using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.Windows.E;
 using TerraFX.Interop.Windows;
 
@@ -37,7 +38,9 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS15 _options15;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS16 _options16;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS17 _options17;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS18 _options18;
 #endif
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS19 _options19;
 
     public D3D12Features(ID3D12Device* device)
     {
@@ -117,6 +120,17 @@ internal unsafe readonly struct D3D12Features
         }
 #endif
 
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref _options19).FAILED)
+        {
+            _options19 = new D3D12_FEATURE_DATA_D3D12_OPTIONS19
+            {
+                SupportedSampleCountsWithNoOutputs = 1,
+                MaxSamplerDescriptorHeapSize = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE,
+                MaxSamplerDescriptorHeapSizeWithStaticSamplers = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE,
+                MaxViewDescriptorHeapSize = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1
+            };
+        }
+
         if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).FAILED)
         {
             _gpuVASupport = default;
@@ -161,6 +175,7 @@ internal unsafe readonly struct D3D12Features
     public D3D_ROOT_SIGNATURE_VERSION RootSignatureHighestVersion { get; }
     public D3D_SHADER_MODEL HighestShaderModel { get; }
     public D3D12_TILED_RESOURCES_TIER TiledResourcesTier => _options.TiledResourcesTier;
+    public D3D12_RESOURCE_BINDING_TIER ResourceBindingTier => _options.ResourceBindingTier;
     public D3D12_CONSERVATIVE_RASTERIZATION_TIER ConservativeRasterizationTier => _options.ConservativeRasterizationTier;
     public bool DepthBoundsTestSupported => _options2.DepthBoundsTestSupported;
     public bool Native16BitShaderOpsSupported => _options4.Native16BitShaderOpsSupported;

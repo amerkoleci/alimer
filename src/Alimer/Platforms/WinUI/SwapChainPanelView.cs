@@ -49,9 +49,9 @@ internal unsafe class SwapChainPanelView : Window
     }
 
     /// <inheritdoc />
-    public override System.Drawing.PointF Position
+    public override PointI Position
     {
-        get => System.Drawing.PointF.Empty;
+        get => PointI.Empty;
         set
         {
         }
