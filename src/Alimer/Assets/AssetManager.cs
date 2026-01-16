@@ -5,14 +5,12 @@ namespace Alimer.Assets;
 
 public class AssetManager : DisposableObject, IAssetManager
 {
-    private readonly IServiceRegistry _services;
-
-    public AssetManager(IServiceRegistry services)
+    public AssetManager(string rootDirectory)
     {
-        ArgumentNullException.ThrowIfNull(services, nameof(services));
-
-        _services = services;
+        RootDirectory = rootDirectory;
     }
+
+    public string RootDirectory { get; } 
 
     protected override void Dispose(bool disposing)
     {

@@ -291,9 +291,9 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            QueryType.Occlusion or QueryType.BinaryOcclusion => VkQueryType.Occlusion,
-            QueryType.PipelineStatistics => VkQueryType.PipelineStatistics,
-            _ => VkQueryType.Timestamp,
+            QueryType.Occlusion => VK_QUERY_TYPE_OCCLUSION,
+            QueryType.PipelineStatistics => VK_QUERY_TYPE_PIPELINE_STATISTICS,
+            _ => VK_QUERY_TYPE_TIMESTAMP,
         };
     }
 

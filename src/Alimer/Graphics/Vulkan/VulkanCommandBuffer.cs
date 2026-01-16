@@ -350,7 +350,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
     public void SetPushConstants(uint pushConstantIndex, void* data, int size)
     {
-        Debug.Assert(size <= _queue.VkDevice.Adapter.Limits.MaxPushConstantsSize);
+        Debug.Assert(size <= _queue.VkDevice.Limits.MaxPushConstantsSize);
         Debug.Assert(_currentPipelineLayout != null);
 
         ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);

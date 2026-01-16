@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
+using Alimer.Assets;
 using Alimer.Graphics;
 using Alimer.Shaders;
 
@@ -15,6 +16,7 @@ public abstract class GraphicsSampleBase : SampleBase
         Services = services;
         GraphicsManager = services.GetService<GraphicsManager>();
         GraphicsDevice = services.GetService<GraphicsDevice>();
+        AssetManager = services.GetService<IAssetManager>();
         MainWindow = mainWindow;
     }
 
@@ -22,6 +24,7 @@ public abstract class GraphicsSampleBase : SampleBase
 
     public GraphicsManager GraphicsManager { get; }
     public GraphicsDevice GraphicsDevice { get; }
+    public IAssetManager AssetManager { get; }
     public Window MainWindow { get; }
     public PixelFormat[] ColorFormats => [MainWindow.ColorFormat];
     public PixelFormat DepthStencilFormat => MainWindow.DepthStencilFormat;

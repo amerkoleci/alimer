@@ -36,15 +36,6 @@ public abstract class GraphicsAdapter
     public abstract GraphicsAdapterType Type { get; }
 
     /// <summary>
-    /// Get the device limits.
-    /// </summary>
-    public abstract GraphicsDeviceLimits Limits { get; }
-
-    public abstract bool QueryFeatureSupport(Feature feature);
-    public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
-    //public abstract bool QueryVertexFormatSupport(VertexFormat format);
-
-    /// <summary>
     /// Creates a new <see cref="GraphicsDevice"/> with the default options.
     /// </summary>
     /// <returns></returns>

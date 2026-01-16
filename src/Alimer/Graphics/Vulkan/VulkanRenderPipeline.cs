@@ -239,7 +239,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
             blendAttachmentStates[renderingInfo.colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
             blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
 
-            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.VkAdapter.ToVkFormat(description.ColorFormats[i]);
+            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.ToVkFormat(description.ColorFormats[i]);
             renderingInfo.colorAttachmentCount++;
         }
 
@@ -256,7 +256,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         blendState.blendConstants[3] = 0.0f;
 
         renderingInfo.pColorAttachmentFormats = pColorAttachmentFormats;
-        renderingInfo.depthAttachmentFormat = _device.VkAdapter.ToVkFormat(description.DepthStencilFormat);
+        renderingInfo.depthAttachmentFormat = _device.ToVkFormat(description.DepthStencilFormat);
         if (!description.DepthStencilFormat.IsDepthOnlyFormat())
         {
             renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;

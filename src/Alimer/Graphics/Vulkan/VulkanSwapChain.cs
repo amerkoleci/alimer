@@ -152,7 +152,7 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         VkSurfaceFormatKHR surfaceFormat = new()
         {
-            format = _device.VkAdapter.ToVkFormat(ColorFormat),
+            format = _device.ToVkFormat(ColorFormat),
             colorSpace = VkColorSpaceKHR.SrgbNonLinear
         };
         bool valid = false;

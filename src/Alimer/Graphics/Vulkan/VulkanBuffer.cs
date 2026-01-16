@@ -266,7 +266,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VkObjectType.Buffer, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_BUFFER, _handle, newLabel);
     }
 
     /// <inheitdoc />

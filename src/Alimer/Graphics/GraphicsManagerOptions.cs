@@ -7,7 +7,6 @@ public struct GraphicsManagerOptions
 {
     public GraphicsBackendType PreferredBackend { get; set; } = GraphicsBackendType.Default;
     public GraphicsValidationMode ValidationMode { get; set; } = GraphicsValidationMode.Disabled;
-    public string? Label { get; set; }
 
     public GraphicsManagerOptions()
     {

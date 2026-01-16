@@ -157,12 +157,12 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
 
             VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = new();
 
-            Utf8ReadOnlyString pApplicationName = Label.GetUtf8Span();
+            //Utf8ReadOnlyString pApplicationName = Label.GetUtf8Span();
             Utf8ReadOnlyString pEngineName = "Alimer"u8;
 
             VkApplicationInfo appInfo = new()
             {
-                pApplicationName = pApplicationName,
+                pApplicationName = default,
                 applicationVersion = new VkVersion(1, 0, 0),
                 pEngineName = pEngineName,
                 engineVersion = new VkVersion(1, 0, 0),

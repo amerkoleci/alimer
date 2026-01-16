@@ -22,7 +22,7 @@ internal unsafe class VulkanTexture : Texture
         : base(descriptor)
     {
         _device = device;
-        VkFormat = device.VkAdapter.ToVkFormat(descriptor.Format);
+        VkFormat = device.ToVkFormat(descriptor.Format);
         bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
         VkImageCreateFlags flags = VkImageCreateFlags.None;
         VkImageType imageType = descriptor.Dimension.ToVk();
@@ -384,7 +384,7 @@ internal unsafe class VulkanTexture : Texture
     {
         _device = device;
         _handle = existingTexture;
-        VkFormat = device.VkAdapter.ToVkFormat(description.Format);
+        VkFormat = device.ToVkFormat(description.Format);
 
 
         if (!string.IsNullOrEmpty(description.Label))

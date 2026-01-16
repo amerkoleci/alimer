@@ -5,7 +5,7 @@ using Alimer.Graphics;
 
 namespace Alimer.RHI;
 
-public abstract class Sampler : GraphicsResource
+public abstract class Sampler : RHIObject
 {
     protected Sampler(in SamplerDescriptor description)
         : base(description.Label)

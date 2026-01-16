@@ -9,7 +9,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a Graphics buffer.
 /// </summary>
-public abstract unsafe class GraphicsBuffer : GraphicsResource
+public abstract unsafe class GraphicsBuffer : RHIObject
 {
     protected GraphicsBuffer(in BufferDescription description)
         : base(description.Label)

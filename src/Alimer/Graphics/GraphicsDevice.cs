@@ -9,23 +9,45 @@ using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsDevice : GraphicsObjectBase
+public abstract unsafe class GraphicsDevice : DisposableObject
 {
+    private string? _label;
     protected uint _frameIndex = 0;
     protected ulong _frameCount = 0;
-    protected readonly ConcurrentQueue<Tuple<GraphicsObject, ulong>> _deferredDestroyObjects = new();
+    protected readonly ConcurrentQueue<Tuple<RHIObject, ulong>> _deferredDestroyObjects = new();
     protected bool _shuttingDown;
 
     public GraphicsDevice(in GraphicsDeviceDescription description)
-        : base(description.Label)
     {
+        _label = description.Label;
         MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, Constants.DefaultMaxFramesInFlight), 3u);
+    }
+
+    /// <summary>
+    /// Gets or sets the label that identifies this object.
+    /// </summary>
+    public string? Label
+    {
+        get => _label;
+        set
+        {
+            if (_label == value)
+                return;
+
+            _label = value;
+            OnLabelChanged(value);
+        }
     }
 
     /// <summary>
     /// Get the <see cref="GraphicsAdapter"/> object that created this object.
     /// </summary>
     public abstract GraphicsAdapter Adapter { get; }
+
+    /// <summary>
+    /// Get the device limits.
+    /// </summary>
+    public abstract GraphicsDeviceLimits Limits { get; }
 
     /// <summary>
     /// Gets the maximum number of frames that can be processed concurrently.
@@ -37,7 +59,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     public CommandQueue GraphicsCommandQueue
     {
-        get => field ??= GetCommandQueue(CommandQueueType.Graphics);
+        get => field ??= GetCommandQueue(CommandQueueType.Graphics)!;
     }
 
     /// <summary>
@@ -45,7 +67,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     public CommandQueue ComputeCommandQueue
     {
-        get => field ??= GetCommandQueue(CommandQueueType.Compute);
+        get => field ??= GetCommandQueue(CommandQueueType.Compute)!;
     }
 
     /// <summary>
@@ -62,6 +84,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// Gets the current frame index.
     /// </summary>
     public uint FrameIndex => _frameIndex;
+
+    public abstract bool QueryFeatureSupport(Feature feature);
+    public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
+    //public abstract bool QueryVertexFormatSupport(VertexFormat format);
 
     /// <summary>
     /// Get command queue of the specified type.
@@ -92,7 +118,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     {
         while (!_deferredDestroyObjects.IsEmpty)
         {
-            if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item)
+            if (_deferredDestroyObjects.TryPeek(out Tuple<RHIObject, ulong>? item)
                 && (force || item.Item2 + MaxFramesInFlight < _frameCount))
             {
                 if (_deferredDestroyObjects.TryDequeue(out item))
@@ -107,7 +133,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
     }
 
-    internal void QueueDestroy(GraphicsObject @object)
+    internal void QueueDestroy(RHIObject @object)
     {
         if (_shuttingDown)
         {
@@ -147,13 +173,13 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
 #if VALIDATE_USAGE
         if ((description.Usage & BufferUsage.Predication) != 0 &&
-            !Adapter.QueryFeatureSupport(Feature.Predication))
+            !QueryFeatureSupport(Feature.Predication))
         {
             throw new GraphicsException($"Buffer cannot be created with {BufferUsage.Predication} usage as adapter doesn't support it");
         }
 
         if ((description.Usage & BufferUsage.RayTracing) != 0 &&
-            !Adapter.QueryFeatureSupport(Feature.RayTracing))
+            !QueryFeatureSupport(Feature.RayTracing))
         {
             throw new GraphicsException($"Buffer cannot be created with {BufferUsage.RayTracing} usage as adapter doesn't support it");
         }
@@ -238,7 +264,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         if (descriptor.ReductionType == SamplerReductionType.Minimum ||
             descriptor.ReductionType == SamplerReductionType.Maximum)
         {
-            if (Adapter.QueryFeatureSupport(Feature.SamplerMinMax))
+            if (QueryFeatureSupport(Feature.SamplerMinMax))
             {
                 throw new GraphicsException($"{nameof(Feature.SamplerMinMax)} feature is not supported");
             }
@@ -300,8 +326,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateComputePipelineCore(in descriptor);
     }
 
-    public QueryHeap CreateQueryHeap(in QueryHeapDescription descriptor)
+    public QueryHeap CreateQueryHeap(in QueryHeapDescriptor descriptor)
     {
+        Guard.IsTrue(descriptor.Count > 0 && descriptor.Count < Constants.QuerySetMaxQueries);
+
         return CreateQueryHeapCore(descriptor);
     }
 
@@ -328,6 +356,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
     protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);
-    protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription descriptor);
+    protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor);
     protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription descriptor);
+
+    protected virtual void OnLabelChanged(string? newLabel)
+    {
+    }
 }

@@ -6,10 +6,9 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsManager : GraphicsObjectBase
+public abstract unsafe class GraphicsManager : DisposableObject
 {
     protected GraphicsManager(in GraphicsManagerOptions options)
-        : base(options.Label)
     {
         ValidationMode = options.ValidationMode;
     }
@@ -23,6 +22,10 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     /// Get the validation mode.
     /// </summary>
     public GraphicsValidationMode ValidationMode { get; }
+
+    protected virtual void OnLabelChanged(string? newLabel)
+    {
+    }
 
     /// <summary>
     /// Gets the list of available <see cref="GraphicsAdapter"/>.

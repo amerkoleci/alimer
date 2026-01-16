@@ -34,7 +34,7 @@ public abstract class Game : DisposableObject, IGame
 
         _services = new();
         //Platform.ConfigureServices(services);
-        _assets = new AssetManager(_services);
+        _assets = new AssetManager(Path.Combine(AppContext.BaseDirectory, "Assets"));
         ConfigureServices(_services);
 
         GraphicsManagerOptions graphicsManagerOptions = new()

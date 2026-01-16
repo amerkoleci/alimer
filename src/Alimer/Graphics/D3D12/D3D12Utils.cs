@@ -128,48 +128,6 @@ internal static unsafe class D3D12Utils
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_QUERY_HEAP_TYPE ToD3D12(this QueryType value)
-    {
-        return value switch
-        {
-            QueryType.Timestamp => D3D12_QUERY_HEAP_TYPE_TIMESTAMP,
-            QueryType.PipelineStatistics => D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS,
-            _ => D3D12_QUERY_HEAP_TYPE_OCCLUSION,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_QUERY_TYPE ToD3D12QueryType(this QueryType value)
-    {
-        return value switch
-        {
-            QueryType.Occlusion => D3D12_QUERY_TYPE_OCCLUSION,
-            QueryType.BinaryOcclusion => D3D12_QUERY_TYPE_BINARY_OCCLUSION,
-            QueryType.Timestamp => D3D12_QUERY_TYPE_TIMESTAMP,
-            QueryType.PipelineStatistics => D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
-            _ => D3D12_QUERY_TYPE_OCCLUSION,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetQueryResultSize(this QueryType type)
-    {
-        switch (type)
-        {
-            case QueryType.Occlusion:
-            case QueryType.BinaryOcclusion:
-            case QueryType.Timestamp:
-                return sizeof(ulong);
-
-            case QueryType.PipelineStatistics:
-                return sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
-
-            default:
-                return 0;
-        }
-    }
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_FILL_MODE ToD3D12(this FillMode value)

@@ -5,5 +5,5 @@ namespace Alimer.Assets;
 
 public interface IAssetManager
 {
-    
+    public string RootDirectory { get; }
 }

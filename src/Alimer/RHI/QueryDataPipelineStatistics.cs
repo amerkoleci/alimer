@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Alimer.Graphics;
+namespace Alimer.RHI;
 
 /// <summary>
 /// GPU pipeline statistics obtain by using a `<see cref="QueryType.PipelineStatistics"/>` query.
@@ -19,6 +19,8 @@ public readonly record struct QueryDataPipelineStatistics
     public ulong HullShaderInvocations { get; init; }
     public ulong DomainShaderInvocations { get; init; }
     public ulong ComputeShaderInvocations { get; init; }
-    public ulong AmplificationShaderInvocations { get; init; }
-    public ulong MeshShaderInvocations { get; init; }
+    // If "features.meshShaderPipelineStats"
+    //public ulong MeshControlShaderInvocations { get; init; }
+    //public ulong MeshEvaluationShaderInvocations { get; init; }
+    //public ulong MeshEvaluationShaderInvocations { get; init; }
 }

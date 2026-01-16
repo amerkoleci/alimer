@@ -3,10 +3,11 @@
 
 using System.Diagnostics;
 using Alimer.Assets;
+using Alimer.RHI;
 
 namespace Alimer.Graphics;
 
-public abstract class Texture : GraphicsResource
+public abstract class Texture : RHIObject
 {
     protected readonly TextureLayout[] _subresourceLayouts;
 

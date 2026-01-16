@@ -3,8 +3,11 @@
 
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.Windows.Windows;
+using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
 using TerraFX.Interop.Windows;
 using TerraFX.Interop.DirectX;
+using Alimer.RHI;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -13,14 +16,47 @@ internal unsafe class D3D12QueryHeap : QueryHeap
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12QueryHeap> _handle;
 
-    public D3D12QueryHeap(D3D12GraphicsDevice device, in QueryHeapDescription descriptor)
+    public D3D12QueryHeap(D3D12GraphicsDevice device, in QueryHeapDescriptor descriptor)
         : base(descriptor)
     {
         _device = device;
+        D3D12_QUERY_HEAP_TYPE queryHeapType = 0;
+
+        switch (descriptor.Type)
+        {
+            case QueryType.Occlusion:
+                queryHeapType = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+                BackendQueryType = D3D12_QUERY_TYPE_OCCLUSION;
+                QueryResultSize = sizeof(ulong);
+                break;
+            case QueryType.Timestamp:
+                queryHeapType = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+                BackendQueryType = D3D12_QUERY_TYPE_TIMESTAMP;
+                QueryResultSize = sizeof(ulong);
+                break;
+
+            case QueryType.PipelineStatistics:
+                if (_device.DxAdapter.Features.MeshShaderPipelineStatsSupported)
+                {
+                    queryHeapType = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS1;
+                    QueryResultSize = (uint)sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS1);
+                    BackendQueryType = D3D12_QUERY_TYPE_PIPELINE_STATISTICS1;
+                }
+                else
+                {
+                    queryHeapType = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+                    QueryResultSize = (uint)sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
+                    BackendQueryType = D3D12_QUERY_TYPE_PIPELINE_STATISTICS;
+                }
+
+                break;
+        }
+
+
         D3D12_QUERY_HEAP_DESC heapDesc = new()
         {
-            Type = descriptor.Type.ToD3D12(),
-            Count = (uint)descriptor.Count,
+            Type = queryHeapType,
+            Count = descriptor.Count,
             NodeMask = 0u
         };
         HRESULT hr = device.Device->CreateQueryHeap(&heapDesc, __uuidof<ID3D12QueryHeap>(), (void**)_handle.GetAddressOf());
@@ -34,26 +70,16 @@ internal unsafe class D3D12QueryHeap : QueryHeap
         {
             OnLabelChanged(descriptor.Label!);
         }
-
-        switch(descriptor.Type)
-        {
-            case QueryType.Occlusion:
-            case QueryType.BinaryOcclusion:
-            case QueryType.Timestamp:
-                QueryResultSize = sizeof(ulong);
-                break;
-
-            case QueryType.PipelineStatistics:
-                QueryResultSize = sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
-                break;
-        }
     }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
     public ID3D12QueryHeap* Handle => _handle;
-    public int QueryResultSize { get; }
+    public D3D12_QUERY_TYPE BackendQueryType { get; }
+
+    /// <inheritdoc />
+    public override uint QueryResultSize { get; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="D3D12QueryHeap" /> class.
