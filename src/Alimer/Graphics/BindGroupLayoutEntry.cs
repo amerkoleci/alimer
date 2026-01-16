@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.RHI;
+
 namespace Alimer.Graphics;
 
 /// <summary>
@@ -22,7 +24,7 @@ public readonly record struct BindGroupLayoutEntry
         Sampler = sampler;
     }
 
-    public BindGroupLayoutEntry(SamplerDescription staticSampler, uint binding, ShaderStages visibility = ShaderStages.All)
+    public BindGroupLayoutEntry(SamplerDescriptor staticSampler, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
         Visibility = visibility;
@@ -60,7 +62,7 @@ public readonly record struct BindGroupLayoutEntry
 
     public SamplerBindingLayout Sampler { get; init; }
 
-    public SamplerDescription? StaticSampler { get; init; }
+    public SamplerDescriptor? StaticSampler { get; init; }
 
     public TextureBindingLayout Texture { get; init; }
     public StorageTextureBindingLayout StorageTexture { get; init; }

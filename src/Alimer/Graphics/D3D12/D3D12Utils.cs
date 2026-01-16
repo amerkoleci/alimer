@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
+using Alimer.RHI;
 using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.D3D12;
@@ -396,18 +397,18 @@ internal static unsafe class D3D12Utils
         }
     }
 
-    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescription description)
+    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescriptor descriptor)
     {
-        D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
-        D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
-        D3D12_FILTER_TYPE mipmapFilter = description.MipFilter.ToD3D12();
+        D3D12_FILTER_TYPE minFilter = descriptor.MinFilter.ToD3D12();
+        D3D12_FILTER_TYPE magFilter = descriptor.MagFilter.ToD3D12();
+        D3D12_FILTER_TYPE mipmapFilter = descriptor.MipFilter.ToD3D12();
 
-        D3D12_FILTER_REDUCTION_TYPE reductionType = description.ReductionType.ToD3D12();
+        D3D12_FILTER_REDUCTION_TYPE reductionType = descriptor.ReductionType.ToD3D12();
 
         D3D12_SAMPLER_DESC desc = new();
 
         // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
-        desc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), D3D12_DEFAULT_MAX_ANISOTROPY);
+        desc.MaxAnisotropy = Math.Min(Math.Max(descriptor.MaxAnisotropy, 1u), D3D12_DEFAULT_MAX_ANISOTROPY);
         if (desc.MaxAnisotropy > 1)
         {
             desc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
@@ -417,21 +418,21 @@ internal static unsafe class D3D12Utils
             desc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reductionType);
         }
 
-        desc.AddressU = description.AddressModeU.ToD3D12();
-        desc.AddressV = description.AddressModeV.ToD3D12();
-        desc.AddressW = description.AddressModeW.ToD3D12();
+        desc.AddressU = descriptor.AddressModeU.ToD3D12();
+        desc.AddressV = descriptor.AddressModeV.ToD3D12();
+        desc.AddressW = descriptor.AddressModeW.ToD3D12();
         desc.MipLODBias = 0.0f;
-        if (description.CompareFunction != CompareFunction.Never)
+        if (descriptor.CompareFunction != CompareFunction.Never)
         {
-            desc.ComparisonFunc = description.CompareFunction.ToD3D12();
+            desc.ComparisonFunc = descriptor.CompareFunction.ToD3D12();
         }
         else
         {
             desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         }
-        desc.MinLOD = description.LodMinClamp;
-        desc.MaxLOD = description.LodMaxClamp;
-        switch (description.BorderColor)
+        desc.MinLOD = descriptor.LodMinClamp;
+        desc.MaxLOD = descriptor.LodMaxClamp;
+        switch (descriptor.BorderColor)
         {
             case SamplerBorderColor.FloatOpaqueBlack:
             case SamplerBorderColor.UintOpaqueBlack:
@@ -462,10 +463,10 @@ internal static unsafe class D3D12Utils
 
     public static D3D12_STATIC_SAMPLER_DESC ToD3D12StaticSamplerDesc(
         uint shaderRegister,
-        in SamplerDescription description,
+        in SamplerDescriptor descriptor,
         D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, uint registerSpace = 0u)
     {
-        D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc(in description);
+        D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc(in descriptor);
 
         D3D12_STATIC_SAMPLER_DESC staticDesc = new()
         {
@@ -481,7 +482,7 @@ internal static unsafe class D3D12Utils
             ShaderRegister = shaderRegister,
             RegisterSpace = registerSpace,
             ShaderVisibility = shaderVisibility,
-            BorderColor = description.BorderColor switch
+            BorderColor = descriptor.BorderColor switch
             {
                 SamplerBorderColor.FloatOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
                 SamplerBorderColor.UintOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT,

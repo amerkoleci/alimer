@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.RHI;
 using TerraFX.Interop.DirectX;
 
 namespace Alimer.Graphics.D3D12;
@@ -10,7 +11,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12_SAMPLER_DESC _desc;
 
-    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
+    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescriptor description)
         : base(description)
     {
         _device = device;

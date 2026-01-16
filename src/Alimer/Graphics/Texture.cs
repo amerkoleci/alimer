@@ -10,7 +10,7 @@ public abstract class Texture : GraphicsResource
 {
     protected readonly TextureLayout[] _subresourceLayouts;
 
-    protected Texture(in TextureDescription description)
+    protected Texture(in TextureDescriptor description)
         : base(description.Label)
     {
         Dimension = description.Dimension;
@@ -19,10 +19,9 @@ public abstract class Texture : GraphicsResource
         Height = description.Height;
         Depth = (description.Dimension == TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1;
         ArrayLayers = (description.Dimension != TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1;
-        MipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1) : description.MipLevelCount;
+        MipLevelCount = description.MipLevelCount == 0 ? GraphicsUtilities.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1) : description.MipLevelCount;
         SampleCount = description.SampleCount;
         Usage = description.Usage;
-        CpuAccess = description.CpuAccess;
 
         uint numSubResources = MipLevelCount * description.DepthOrArrayLayers;
         _subresourceLayouts = new TextureLayout[numSubResources];
@@ -72,11 +71,6 @@ public abstract class Texture : GraphicsResource
     /// Gets the texture sample count.
     /// </summary>
     public TextureSampleCount SampleCount { get; }
-
-    /// <summary>
-    /// Gets the CPU access of the texure.
-    /// </summary>
-    public CpuAccessMode CpuAccess { get; }
 
     /// <summary>
     /// Get a mip-level width.

@@ -11,6 +11,7 @@ using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.Windows.E;
+using Alimer.RHI;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -56,7 +57,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         D3D12_BARRIER_LAYOUT initialLayout = D3D12_BARRIER_LAYOUT_UNDEFINED;
         D3D12_RESOURCE_STATES initialStateLegacy = D3D12_RESOURCE_STATE_COMMON;
 
-        if (description.CpuAccess == CpuAccessMode.Read)
+        if (description.CpuAccess == MemoryType.Readback)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
             resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
@@ -64,7 +65,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
             initialStateLegacy = D3D12_RESOURCE_STATE_COPY_DEST;
             ImmutableState = true;
         }
-        else if (description.CpuAccess == CpuAccessMode.Write)
+        else if (description.CpuAccess == MemoryType.Upload)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
             initialStateLegacy = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -124,13 +125,13 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         GpuAddress = _handle.Get()->GetGPUVirtualAddress();
         AllocatedSize = allocatedSize;
 
-        if (description.CpuAccess == CpuAccessMode.Read)
+        if (description.CpuAccess == MemoryType.Readback)
         {
             void* mappedData;
             ThrowIfFailed(_handle.Get()->Map(0, null, &mappedData));
             pMappedData = mappedData;
         }
-        else if (description.CpuAccess == CpuAccessMode.Write)
+        else if (description.CpuAccess == MemoryType.Upload)
         {
             D3D12_RANGE readRange = default;
             void* mappedData;
@@ -143,7 +144,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         {
             D3D12UploadContext context = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+            if (description.CpuAccess == MemoryType.Upload)
             {
                 mappedData = pMappedData;
             }
@@ -189,7 +190,8 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     public ID3D12Resource* Handle => _handle;
     public bool ImmutableState { get; }
 
-    public ulong GpuAddress { get; }
+    /// <inheritdoc />
+    public override GPUAddress GpuAddress { get; }
     public ulong AllocatedSize { get; }
 
     /// <inheitdoc />

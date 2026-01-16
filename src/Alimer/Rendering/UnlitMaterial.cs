@@ -3,6 +3,7 @@
 
 using Alimer.Graphics;
 using Alimer.Numerics;
+using Alimer.RHI;
 
 namespace Alimer.Rendering;
 

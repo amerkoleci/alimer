@@ -89,7 +89,7 @@ public sealed partial class Window : ISwapChainSurface
 
         if (DepthStencilFormat != PixelFormat.Undefined)
         {
-            TextureDescription depthStencilTextureDesc = TextureDescription.Texture2D(DepthStencilFormat,
+            TextureDescriptor depthStencilTextureDesc = TextureDescriptor.Texture2D(DepthStencilFormat,
                 (uint)ClientSize.Width, (uint)ClientSize.Height,
                 usage: TextureUsage.RenderTarget
                 );

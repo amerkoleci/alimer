@@ -1,12 +1,12 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.CompilerServices;
-using Alimer.Utilities;
+using Alimer.RHI;
 using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using XenoAtom.Collections;
 using static Alimer.Graphics.Vulkan.Vma;
+using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
@@ -31,7 +31,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VmaAllocation _nullImageAllocation2D = VmaAllocation.Null;
     private readonly VmaAllocation _nullImageAllocation3D = VmaAllocation.Null;
 
-    private readonly Dictionary<SamplerDescription, VkSampler> _samplerCache = [];
+    private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = [];
 
     private readonly VkBuffer _nullBuffer = default;
     private readonly VkBufferView _nullBufferView = default;
@@ -634,7 +634,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageInfo.usage = VkImageUsageFlags.Sampled | VkImageUsageFlags.Storage;
             imageInfo.flags = 0;
 
-            allocInfo.usage = VmaMemoryUsage.GpuOnly;
+            allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
             imageInfo.imageType = VkImageType.Image1D;
             vmaCreateImage(_allocator, &imageInfo, &allocInfo, out _nullImage1D, out _nullImageAllocation1D).CheckResult();
@@ -723,7 +723,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageViewInfo.viewType = VkImageViewType.Image3D;
             _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).CheckResult();
 
-            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescription());
+            _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
         TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
@@ -1001,12 +1001,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData)
     {
-        return new VulkanTexture(this, description, initialData);
+        return new VulkanTexture(this, descriptor, initialData);
     }
 
-    public VkSampler GetOrCreateVulkanSampler(in SamplerDescription description)
+    public VkSampler GetOrCreateVulkanSampler(in SamplerDescriptor description)
     {
         if (!_samplerCache.TryGetValue(description, out VkSampler sampler))
         {
@@ -1081,9 +1081,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    protected override Sampler CreateSamplerCore(in SamplerDescriptor descriptor)
     {
-        return new VulkanSampler(this, description);
+        return new VulkanSampler(this, descriptor);
     }
 
     /// <inheritdoc />

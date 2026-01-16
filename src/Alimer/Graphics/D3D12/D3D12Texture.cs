@@ -34,7 +34,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescription description, TextureData* initialData)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
         : base(description)
     {
         _device = device;
@@ -244,11 +244,13 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
             D3D12UploadContext uploadContext = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+#if TEXTURE_STAGING
+            if (description.CpuAccess == MemoryType.Write)
             {
                 mappedData = pMappedData;
             }
             else
+#endif
             {
                 uploadContext = _device.Allocate(allocatedSize);
                 mappedData = uploadContext.UploadBuffer.pMappedData;
@@ -289,7 +291,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         SetTextureLayout(initialLayout);
     }
 
-    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescription description)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description)
         : base(description)
     {
         _device = device;

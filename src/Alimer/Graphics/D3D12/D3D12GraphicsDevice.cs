@@ -20,6 +20,7 @@ using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
 using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Graphics.D3D12.D3D12MA.ALLOCATOR_FLAGS;
 using Alimer.Utilities;
+using Alimer.RHI;
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
@@ -474,15 +475,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData)
     {
         return new D3D12Texture(this, description, initialData);
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    protected override Sampler CreateSamplerCore(in SamplerDescriptor descriptor)
     {
-        return new D3D12Sampler(this, description);
+        return new D3D12Sampler(this, descriptor);
     }
 
     /// <inheritdoc />

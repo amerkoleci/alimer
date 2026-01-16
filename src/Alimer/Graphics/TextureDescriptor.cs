@@ -6,7 +6,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="Texture"/>.
 /// </summary>
-public record struct TextureDescription
+public record struct TextureDescriptor
 {
     /// <summary>
     /// Gets the dimension of <see cref="Texture"/>
@@ -49,16 +49,11 @@ public record struct TextureDescription
     public TextureSampleCount SampleCount = TextureSampleCount.Count1;
 
     /// <summary>
-    /// CPU access of the <see cref="Texture"/>.
-    /// </summary>
-    public CpuAccessMode CpuAccess = CpuAccessMode.None;
-
-    /// <summary>
     /// Gets or sets the label of <see cref="Texture"/>.
     /// </summary>
     public string? Label;
 
-    public TextureDescription(
+    public TextureDescriptor(
         TextureDimension dimension,
         PixelFormat format,
         uint width,
@@ -66,8 +61,7 @@ public record struct TextureDescription
         uint depthOrArrayLayers,
         uint mipLevelCount = 1,
         TextureUsage usage = TextureUsage.ShaderRead,
-        TextureSampleCount sampleCount = TextureSampleCount.Count1,
-        CpuAccessMode access = CpuAccessMode.None)
+        TextureSampleCount sampleCount = TextureSampleCount.Count1)
     {
         Dimension = dimension;
         Format = format;
@@ -77,16 +71,14 @@ public record struct TextureDescription
         MipLevelCount = mipLevelCount;
         SampleCount = sampleCount;
         Usage = usage;
-        CpuAccess = access;
     }
 
-    public static TextureDescription Texture1D(
+    public static TextureDescriptor Texture1D(
         PixelFormat format,
         uint width,
         uint mipLevelCount = 1,
         uint arrayLayers = 1,
-        TextureUsage usage = TextureUsage.ShaderRead,
-        CpuAccessMode access = CpuAccessMode.None)
+        TextureUsage usage = TextureUsage.ShaderRead)
     {
         return new(
             TextureDimension.Texture1D,
@@ -96,19 +88,17 @@ public record struct TextureDescription
             arrayLayers,
             mipLevelCount,
             usage,
-            TextureSampleCount.Count1,
-            access);
+            TextureSampleCount.Count1);
     }
 
-    public static TextureDescription Texture2D(
+    public static TextureDescriptor Texture2D(
         PixelFormat format,
         uint width,
         uint height,
         uint mipLevelCount = 1,
         uint arrayLayers = 1,
         TextureUsage usage = TextureUsage.ShaderRead,
-        TextureSampleCount sampleCount = TextureSampleCount.Count1,
-        CpuAccessMode access = CpuAccessMode.None)
+        TextureSampleCount sampleCount = TextureSampleCount.Count1)
     {
         return new(
             TextureDimension.Texture2D,
@@ -118,18 +108,16 @@ public record struct TextureDescription
             arrayLayers,
             mipLevelCount,
             usage,
-            sampleCount,
-            access);
+            sampleCount);
     }
 
-    public static TextureDescription Texture3D(
+    public static TextureDescriptor Texture3D(
         PixelFormat format,
         uint width,
         uint height,
         uint depth,
         uint mipLevelCount = 1,
-        TextureUsage usage = TextureUsage.ShaderRead,
-        CpuAccessMode access = CpuAccessMode.None)
+        TextureUsage usage = TextureUsage.ShaderRead)
     {
         return new(
             TextureDimension.Texture3D,
@@ -139,17 +127,15 @@ public record struct TextureDescription
             depth,
             mipLevelCount,
             usage,
-            TextureSampleCount.Count1,
-            access);
+            TextureSampleCount.Count1);
     }
 
-    public static TextureDescription TextureCube(
+    public static TextureDescriptor TextureCube(
         PixelFormat format,
         uint size,
         uint mipLevelCount = 1,
         uint arrayLayers = 1,
-        TextureUsage usage = TextureUsage.ShaderRead,
-        CpuAccessMode access = CpuAccessMode.None)
+        TextureUsage usage = TextureUsage.ShaderRead)
     {
         return new(
             TextureDimension.Texture2D,
@@ -159,7 +145,6 @@ public record struct TextureDescription
             arrayLayers * 6,
             mipLevelCount,
             usage,
-            TextureSampleCount.Count1,
-            access);
+            TextureSampleCount.Count1);
     }
 }

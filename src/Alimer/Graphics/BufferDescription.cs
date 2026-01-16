@@ -14,7 +14,7 @@ public readonly record struct BufferDescription
     public BufferDescription(
         ulong size,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
-        CpuAccessMode access = CpuAccessMode.None,
+        MemoryType access = MemoryType.Private,
         string? label = default)
     {
         Usage = usage;
@@ -34,9 +34,9 @@ public readonly record struct BufferDescription
     public BufferUsage Usage { get; init; } = BufferUsage.ShaderReadWrite;
 
     /// <summary>
-    /// Gets or Sets the CPU access of the <see cref="Buffer"/>.
+    /// Gets or Sets the CPU access of the <see cref="GraphicsBuffer"/>.
     /// </summary>
-    public CpuAccessMode CpuAccess { get; init; } = CpuAccessMode.None;
+    public MemoryType CpuAccess { get; init; } = MemoryType.Private;
 
     /// <summary>
     /// Gets or sets the label of <see cref="Buffer"/>.

@@ -25,7 +25,7 @@ public sealed unsafe class Image : Asset, IDisposable
         Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1);
 
         Description = description;
-        MipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1u) : description.MipLevelCount;
+        MipLevelCount = description.MipLevelCount == 0 ? GraphicsUtilities.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1u) : description.MipLevelCount;
         _mipmaps = new MipMapDescription[MipLevelCount];
 
         uint levelsCount = 0;

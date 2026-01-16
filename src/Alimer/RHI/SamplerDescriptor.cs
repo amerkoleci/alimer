@@ -1,35 +1,35 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Alimer.Graphics;
+namespace Alimer.RHI;
 
 /// <summary>
 /// Structure that describes the <see cref="Sampler"/>.
 /// </summary>
-public record struct SamplerDescription
+public record struct SamplerDescriptor
 {
-    public static SamplerDescription Default => new();
-    public static SamplerDescription PointWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat);
-    public static SamplerDescription PointClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge);
-    public static SamplerDescription PointMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat);
+    public static SamplerDescriptor Default => new();
+    public static SamplerDescriptor PointWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat);
+    public static SamplerDescriptor PointClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge);
+    public static SamplerDescriptor PointMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat);
 
-    public static SamplerDescription LinearWrap => new(SamplerMinMagFilter.Linear, SamplerAddressMode.Repeat);
-    public static SamplerDescription LinearClamp => new(SamplerMinMagFilter.Linear, SamplerAddressMode.ClampToEdge);
-    public static SamplerDescription LinearMirror => new(SamplerMinMagFilter.Linear, SamplerAddressMode.MirrorRepeat);
+    public static SamplerDescriptor LinearWrap => new(SamplerMinMagFilter.Linear, SamplerAddressMode.Repeat);
+    public static SamplerDescriptor LinearClamp => new(SamplerMinMagFilter.Linear, SamplerAddressMode.ClampToEdge);
+    public static SamplerDescriptor LinearMirror => new(SamplerMinMagFilter.Linear, SamplerAddressMode.MirrorRepeat);
 
-    public static SamplerDescription AnisotropicWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat, 16);
-    public static SamplerDescription AnisotropicClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge, 16);
-    public static SamplerDescription AnisotropicMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat, 16);
+    public static SamplerDescriptor AnisotropicWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat, 16);
+    public static SamplerDescriptor AnisotropicClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge, 16);
+    public static SamplerDescriptor AnisotropicMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat, 16);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SamplerDescription"/> struct with default values.
+    /// Initializes a new instance of the <see cref="SamplerDescriptor"/> struct with default values.
     /// </summary>
-    public SamplerDescription()
+    public SamplerDescriptor()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SamplerDescription"/> struct.
+    /// Initializes a new instance of the <see cref="SamplerDescriptor"/> struct.
     /// </summary>
     /// <param name="minFilter">The min filter.</param>
     /// <param name="magFilter">The mag filter.</param>
@@ -42,7 +42,7 @@ public record struct SamplerDescription
     /// <param name="borderColor">Border color to use if <see cref="SamplerAddressMode.ClampToBorder"/> is specified for AddressU, AddressV, or AddressW.</param>
     /// <param name="lodMinClamp">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
     /// <param name="lodMaxClamp">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This value must be greater than or equal to MinLOD. </param>
-    public SamplerDescription(
+    public SamplerDescriptor(
         SamplerMinMagFilter minFilter,
         SamplerMinMagFilter magFilter,
         SamplerMipFilter mipFilter,
@@ -70,12 +70,12 @@ public record struct SamplerDescription
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SamplerDescription"/> struct.
+    /// Initializes a new instance of the <see cref="SamplerDescriptor"/> struct.
     /// </summary>
     /// <param name="filter">The min, mag and mip filter.</param>
     /// <param name="addressMode">Method to use for resolving a u,v and w texture coordinate that is outside the 0 to 1 range.</param>
     /// <param name="maxAnisotropy">The number of samples that can be taken to improve the quality of sample footprints that are anisotropic. Valid values are between 1 and 16.</param>
-    private SamplerDescription(SamplerMinMagFilter filter, SamplerAddressMode addressMode, ushort maxAnisotropy = 1)
+    private SamplerDescriptor(SamplerMinMagFilter filter, SamplerAddressMode addressMode, ushort maxAnisotropy = 1)
     {
         MinFilter = filter;
         MagFilter = filter;

@@ -30,7 +30,7 @@ public abstract class GraphicsSampleBase : SampleBase
 
     protected GraphicsBuffer CreateBuffer<T>(List<T> initialData,
        BufferUsage usage = BufferUsage.ShaderReadWrite,
-       CpuAccessMode cpuAccess = CpuAccessMode.None)
+       MemoryType cpuAccess = MemoryType.Private)
        where T : unmanaged
     {
         Span<T> dataSpan = CollectionsMarshal.AsSpan(initialData);

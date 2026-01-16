@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.RHI;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
@@ -31,7 +32,12 @@ public abstract unsafe class GraphicsBuffer : GraphicsResource
     /// <summary>
     /// Getsthe CPU access of the <see cref="Buffer"/>.
     /// </summary>
-    public CpuAccessMode CpuAccess { get; }
+    public MemoryType CpuAccess { get; }
+
+    /// <summary>
+    /// Gets the GPU virtual address associated with this resource.
+    /// </summary>
+    public abstract GPUAddress GpuAddress { get; }
 
     public BufferStates CurrentState { get; internal set; }
 
@@ -47,7 +53,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsResource
     public void SetData<T>(Span<T> data, int offsetInBytes = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(CpuAccess == CpuAccessMode.Write);
+        Guard.IsTrue(CpuAccess == MemoryType.Upload);
 
         fixed (T* dataPtr = data)
         {
@@ -67,7 +73,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsResource
     public void GetData<T>(ref T data, int offsetInBytes = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(CpuAccess != CpuAccessMode.None);
+        Guard.IsTrue(CpuAccess != MemoryType.Private);
 
         fixed (T* destPtr = &data)
         {

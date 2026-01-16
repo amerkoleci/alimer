@@ -8,6 +8,7 @@ using System.Diagnostics;
 using static Alimer.Utilities.MemoryUtilities;
 using static Alimer.Utilities.MarshalUtilities;
 using Alimer.Utilities;
+using Alimer.RHI;
 
 namespace Alimer.Graphics.Vulkan;
 

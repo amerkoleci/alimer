@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Alimer.RHI;
 using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;

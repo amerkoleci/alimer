@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
+using Alimer.RHI;
 
 namespace Alimer.Samples.Graphics;
 
@@ -62,9 +63,9 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Data.Indices!.AsSpan(), BufferUsage.Index));
         _indexCount = (uint)meshAsset.Data!.Indices.Length;
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
+        _sampler = ToDispose(GraphicsDevice.CreateSampler(SamplerDescriptor.Default));
 
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)

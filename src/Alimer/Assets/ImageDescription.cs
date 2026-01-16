@@ -120,25 +120,4 @@ public record struct ImageDescription
             arrayLayers * 6,
             mipLevelCount);
     }
-
-    public static uint GetMipLevelCount(uint width, uint height, uint depth = 1, uint minDimension = 1, uint requiredAlignment = 1u)
-    {
-        uint mipLevelCount = 1;
-        while (width > minDimension || height > minDimension || depth > minDimension)
-        {
-            width = Math.Max(minDimension, width >> 1);
-            height = Math.Max(minDimension, height >> 1);
-            depth = Math.Max(minDimension, depth >> 1);
-            if (MathUtilities.AlignUp(width, requiredAlignment) != width
-                || MathUtilities.AlignUp(height, requiredAlignment) != height
-                || MathUtilities.AlignUp(depth, requiredAlignment) != depth)
-            {
-                break;
-            }
-
-            mipLevelCount++;
-        }
-
-        return mipLevelCount;
-    }
 }

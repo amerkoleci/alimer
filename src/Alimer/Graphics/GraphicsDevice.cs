@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using Alimer.RHI;
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 
@@ -129,7 +130,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public GraphicsBuffer CreateBuffer(ulong size,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
-        CpuAccessMode cpuAccess = CpuAccessMode.None,
+        MemoryType cpuAccess = MemoryType.Private,
         string? label = default)
     {
         return CreateBuffer(new BufferDescription(size, usage, cpuAccess, label), (void*)null);
@@ -173,7 +174,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public GraphicsBuffer CreateBuffer<T>(Span<T> initialData,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
-        CpuAccessMode cpuAccess = CpuAccessMode.None,
+        MemoryType cpuAccess = MemoryType.Private,
         string? label = default)
         where T : unmanaged
     {
@@ -186,7 +187,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public GraphicsBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
-        CpuAccessMode cpuAccess = CpuAccessMode.None,
+        MemoryType cpuAccess = MemoryType.Private,
         string? label = default)
         where T : unmanaged
     {
@@ -207,35 +208,35 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         )
         where T : unmanaged
     {
-        Guard.IsTrue(format != PixelFormat.Undefined, nameof(TextureDescription.Format));
-        Guard.IsGreaterThanOrEqualTo(width, 1, nameof(TextureDescription.Width));
-        Guard.IsGreaterThanOrEqualTo(height, 1, nameof(TextureDescription.Height));
-        Guard.IsGreaterThanOrEqualTo(arrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
+        Guard.IsTrue(format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
+        Guard.IsGreaterThanOrEqualTo(width, 1, nameof(TextureDescriptor.Width));
+        Guard.IsGreaterThanOrEqualTo(height, 1, nameof(TextureDescriptor.Height));
+        Guard.IsGreaterThanOrEqualTo(arrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
 
         fixed (T* initialDataPtr = initialData)
         {
             PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
             TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
 
-            return CreateTextureCore(TextureDescription.Texture2D(format, width, height, mipLevelCount, arrayLayers, usage), &initData);
+            return CreateTextureCore(TextureDescriptor.Texture2D(format, width, height, mipLevelCount, arrayLayers, usage), &initData);
         }
     }
 
-    public Texture CreateTexture(in TextureDescription description)
+    public Texture CreateTexture(in TextureDescriptor description)
     {
-        Guard.IsTrue(description.Format != PixelFormat.Undefined, nameof(TextureDescription.Format));
-        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));
-        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescription.Width));
-        Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescription.Height));
-        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescription.DepthOrArrayLayers));
+        Guard.IsTrue(description.Format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
+        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescriptor.Width));
+        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescriptor.Width));
+        Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescriptor.Height));
+        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
 
         return CreateTextureCore(description, default);
     }
 
-    public Sampler CreateSampler(in SamplerDescription description)
+    public Sampler CreateSampler(in SamplerDescriptor descriptor)
     {
-        if (description.ReductionType == SamplerReductionType.Minimum ||
-            description.ReductionType == SamplerReductionType.Maximum)
+        if (descriptor.ReductionType == SamplerReductionType.Minimum ||
+            descriptor.ReductionType == SamplerReductionType.Maximum)
         {
             if (Adapter.QueryFeatureSupport(Feature.SamplerMinMax))
             {
@@ -243,7 +244,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             }
         }
 
-        return CreateSamplerCore(description);
+        return CreateSamplerCore(descriptor);
     }
 
     public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescription description)
@@ -320,13 +321,13 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
     protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData);
-    protected abstract unsafe Texture CreateTextureCore(in TextureDescription description, TextureData* initialData);
-    protected abstract Sampler CreateSamplerCore(in SamplerDescription description);
-    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
-    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);
-    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
+    protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
+    protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
+    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription descriptor);
+    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription descriptor);
+    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
     protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescription descriptor);
-    protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description);
+    protected abstract SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription descriptor);
 }

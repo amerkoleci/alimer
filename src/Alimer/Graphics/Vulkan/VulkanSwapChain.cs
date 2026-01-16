@@ -287,7 +287,7 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         for (int i = 0; i < actualImageCount; i++)
         {
-            TextureDescription description = TextureDescription.Texture2D(
+            TextureDescriptor description = TextureDescriptor.Texture2D(
                 PixelFormat.BGRA8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,

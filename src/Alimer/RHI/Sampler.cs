@@ -1,11 +1,13 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-namespace Alimer.Graphics;
+using Alimer.Graphics;
+
+namespace Alimer.RHI;
 
 public abstract class Sampler : GraphicsResource
 {
-    protected Sampler(in SamplerDescription description)
+    protected Sampler(in SamplerDescriptor description)
         : base(description.Label)
     {
         MinFilter = description.MinFilter;

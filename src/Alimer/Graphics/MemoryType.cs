@@ -6,9 +6,18 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Describes the CPU access for <see cref="GraphicsBuffer"/> and <see cref="Texture"/>.
 /// </summary>
-public enum CpuAccessMode
+public enum MemoryType
 {
-    None = 0,
-    Write,
-    Read,
+    /// <summary>
+    /// CPU no access, GPU read/write
+    /// </summary>
+    Private = 0,
+    /// <summary>
+    /// CPU write, GPU read
+    /// </summary>
+    Upload,
+    /// <summary>
+    /// CPU read, GPU write
+    /// </summary>
+    Readback
 }
