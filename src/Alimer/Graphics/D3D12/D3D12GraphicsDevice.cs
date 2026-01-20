@@ -468,19 +468,19 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescription description, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor description, void* initialData)
     {
         return new D3D12Buffer(this, description, initialData);
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescription description, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData)
     {
         return new D3D12Texture(this, description, initialData);
     }
 
     /// <inheritdoc />
-    protected override Sampler CreateSamplerCore(in SamplerDescription description)
+    protected override Sampler CreateSamplerCore(in SamplerDescriptor description)
     {
         return new D3D12Sampler(this, description);
     }
@@ -516,15 +516,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescription description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor description)
     {
         return new D3D12QueryHeap(this, description);
     }
 
     /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(ISwapChainSurface surface, in SwapChainDescription description)
+    protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor)
     {
-        return new D3D12SwapChain(this, surface, description);
+        return new D3D12SwapChain(this, descriptor);
     }
 
     /// <inheritdoc />

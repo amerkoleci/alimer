@@ -2,12 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanSwapChain : SwapChain
+internal unsafe partial class VulkanSwapChain : SwapChain
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly VkSurfaceKHR _surface;
@@ -19,8 +20,8 @@ internal unsafe class VulkanSwapChain : SwapChain
     private VulkanTexture[]? _backbufferTextures;
     public readonly object LockObject = new();
 
-    public VulkanSwapChain(VulkanGraphicsDevice device, ISwapChainSurface surfaceSource, in SwapChainDescription descriptor)
-        : base(surfaceSource, descriptor)
+    public VulkanSwapChain(VulkanGraphicsDevice device, in SwapChainDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
 
@@ -34,74 +35,63 @@ internal unsafe class VulkanSwapChain : SwapChain
         VkSurfaceKHR CreateVkSurface()
         {
             VkSurfaceKHR surface = VkSurfaceKHR.Null;
-            switch (surfaceSource.Kind)
+            switch (Surface)
             {
-                case SwapChainSurfaceType.Win32:
+                case Win32SwapChainSurface win32Surface:
                 {
                     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        hinstance = surfaceSource.ContextHandle,
-                        hwnd = surfaceSource.Handle
+                        hinstance = Win32Native.GetModuleHandleW(null),
+                        hwnd = win32Surface.Hwnd
                     };
                     instanceApi.vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
-                case SwapChainSurfaceType.Android:
+                case AndroidSwapChainSurface androidSurface:
                 {
                     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        window = surfaceSource.Handle,
+                        window = androidSurface.Window,
                     };
                     instanceApi.vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
-                case SwapChainSurfaceType.Wayland:
+                case WaylandSwapChainSurface waylandSurface:
                 {
                     VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        display = surfaceSource.ContextHandle,
-                        surface = surfaceSource.Handle,
+                        display = waylandSurface.Display,
+                        surface = waylandSurface.Surface,
                     };
                     instanceApi.vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
-                case SwapChainSurfaceType.Xcb:
-                {
-                    VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = new()
-                    {
-                        connection = surfaceSource.ContextHandle,
-                        window = (uint)(nuint)surfaceSource.Handle,
-                    };
-                    instanceApi.vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
-                    break;
-                }
-
-                case SwapChainSurfaceType.Xlib:
+                case XlibSwapChainSurface xlibSurface:
                 {
                     VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
-                        dpy = surfaceSource.ContextHandle,
-                        window = (nuint)surfaceSource.Handle,
+                        dpy = xlibSurface.Display,
+                        window = xlibSurface.Window,
                     };
                     instanceApi.vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
-                case SwapChainSurfaceType.MetalLayer:
+                case MetalLayerChainSurface metalLayerSurface:
                 {
                     VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = new()
                     {
-                        pLayer = surfaceSource.Handle,
+                        pLayer = metalLayerSurface.Layer,
                     };
                     instanceApi.vkCreateMetalSurfaceEXT(instance, &surfaceCreateInfo, null, &surface).CheckResult();
                     break;
                 }
 
                 default:
-                    throw new GraphicsException($"Vulkan: Invalid kind for surface: {surfaceSource.Kind}");
+                    throw new GraphicsException($"Vulkan: Invalid kind for surface: {Surface.Kind}");
             }
 
             VkBool32 presentSupport = false;
@@ -179,13 +169,13 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         VkExtent2D swapChainExtent = default;
         if (caps.currentExtent.width != 0xFFFFFFFF &&
-            caps.currentExtent.width != 0xFFFFFFFF)
+            caps.currentExtent.height != 0xFFFFFFFF)
         {
             swapChainExtent = caps.currentExtent;
         }
         else
         {
-            swapChainExtent = new((uint)DrawableSize.Width, (uint)DrawableSize.Height);
+            swapChainExtent = new(Width, Height);
             swapChainExtent.width = Math.Max(caps.minImageExtent.width, Math.Min(caps.maxImageExtent.width, swapChainExtent.width));
             swapChainExtent.height = Math.Max(caps.minImageExtent.height, Math.Min(caps.maxImageExtent.height, swapChainExtent.height));
         }
@@ -287,7 +277,7 @@ internal unsafe class VulkanSwapChain : SwapChain
 
         for (int i = 0; i < actualImageCount; i++)
         {
-            TextureDescription description = TextureDescription.Texture2D(
+            TextureDescriptor description = TextureDescriptor.Texture2D(
                 PixelFormat.BGRA8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,
@@ -382,4 +372,12 @@ internal unsafe class VulkanSwapChain : SwapChain
     {
         _acquireSemaphoreIndex = (_acquireSemaphoreIndex + 1) % (uint)_acquireSemaphores!.Length;
     }
+
+}
+
+internal static partial class Win32Native
+{
+    [LibraryImport("kernel32")]
+    //[SetsLastSystemError]
+    public static unsafe partial nint GetModuleHandleW(ushort* lpModuleName);
 }

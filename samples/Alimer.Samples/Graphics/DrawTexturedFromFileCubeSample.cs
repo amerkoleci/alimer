@@ -35,12 +35,12 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
         _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(SamplerDescription.Default));
+        _sampler = ToDispose(GraphicsDevice.CreateSampler(SamplerDescriptor.Default));
 
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
@@ -108,7 +108,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         //context.SetPushConstants(0, worldViewProjection);
 
         renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
         renderPassEncoder.DrawIndexed(36);
         renderPassEncoder.EndEncoding();
     }

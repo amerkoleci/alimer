@@ -5,31 +5,34 @@ namespace Alimer.Graphics;
 
 public abstract class SwapChain : GraphicsObject
 {
-    public SwapChain(ISwapChainSurface surface, in SwapChainDescription description)
-        : base(description.Label)
+    public SwapChain(in SwapChainDescriptor descriptor)
+        : base(descriptor.Label)
     {
-        Surface = surface;
-        Surface.SizeChanged += OnSurfaceSizeChanged;
-        ColorFormat = description.Format;
-        PresentMode = description.PresentMode;
-        IsFullscreen = description.IsFullscreen;
+        Surface = descriptor.Surface;
+        Width = descriptor.Width;
+        Height = descriptor.Height;
+        ColorFormat = descriptor.Format;
+        PresentMode = descriptor.PresentMode;
     }
 
-    public ISwapChainSurface Surface { get; }
+    public SwapChainSurface Surface { get; }
 
+    public uint Width { get; private set; }
+    public uint Height { get; private set; }
     public PixelFormat ColorFormat { get; protected set; }
     public PresentMode PresentMode { get; }
-    public bool IsFullscreen { get; protected set; }
 
-    public bool AutoResizeDrawable { get; set; } = true;
-    public SizeI DrawableSize => Surface.Size;
+    public void Resize(uint width, uint height)
+    {
+        if (Width == width && Height == height)
+            return;
+
+        ResizeBackBuffer();
+        Width = width;
+        Height = height;
+    }
 
     protected abstract void ResizeBackBuffer();
-
-    private void OnSurfaceSizeChanged(object? sender, EventArgs eventArgs)
-    {
-        ResizeBackBuffer();
-    }
 
     public abstract Texture? GetCurrentTexture();
 }

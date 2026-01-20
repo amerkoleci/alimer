@@ -9,10 +9,15 @@ namespace Alimer;
 /// <summary>
 /// Defines an application window.
 /// </summary>
-public sealed partial class Window : ISwapChainSurface
+public sealed partial class Window 
 {
     private string _title;
     public event EventHandler? SizeChanged;
+
+    /// <summary>
+    /// Gets the swap chain surface associated with this instance.
+    /// </summary>
+    public partial SwapChainSurface Surface { get; }
 
     /// <summary>
     /// Gets a value indicating whether the window is currently minimized.
@@ -42,27 +47,11 @@ public sealed partial class Window : ISwapChainSurface
         }
     }
 
-    #region ISwapChainSurface Members
-    /// <inheritdoc />
-    public SwapChainSurfaceType Kind { get; }
-
-    /// <inheritdoc />
-    public nint ContextHandle { get; }
-
-    /// <inheritdoc />
-    public nint Handle { get; }
-
-    /// <inheritdoc />
-    SizeI ISwapChainSurface.Size => ClientSize;
-    #endregion
-
     public partial PointI Position { get; set; }
     public partial SizeI ClientSize { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
-    public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
-    public Texture? DepthStencilTexture { get; private set; }
 
     /// <summary>
     /// Gets the view aspect ratio.
@@ -83,23 +72,14 @@ public sealed partial class Window : ISwapChainSurface
 
     public void CreateSwapChain(GraphicsDevice device)
     {
-        SwapChainDescription description = new(ColorFormat);
-        SwapChain = device.CreateSwapChain(this, description);
+        SwapChainDescriptor description = new(Surface, (uint)ClientSize.Width, (uint)ClientSize.Height, ColorFormat);
+        SwapChain = device.CreateSwapChain(description);
         ColorFormat = SwapChain.ColorFormat;
 
-        if (DepthStencilFormat != PixelFormat.Undefined)
-        {
-            TextureDescription depthStencilTextureDesc = TextureDescription.Texture2D(DepthStencilFormat,
-                (uint)ClientSize.Width, (uint)ClientSize.Height,
-                usage: TextureUsage.RenderTarget
-                );
-            DepthStencilTexture = device.CreateTexture(in depthStencilTextureDesc);
-        }
     }
 
     private void OnSizeChanged()
     {
-        DepthStencilTexture?.Dispose();
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -107,7 +87,6 @@ public sealed partial class Window : ISwapChainSurface
 
     internal void Destroy()
     {
-        DepthStencilTexture?.Dispose();
         SwapChain?.Dispose();
     }
 }

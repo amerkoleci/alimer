@@ -62,9 +62,9 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Data.Indices!.AsSpan(), BufferUsage.Index));
         _indexCount = (uint)meshAsset.Data!.Indices.Length;
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescription()));
+        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
 
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
@@ -134,7 +134,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         //context.SetPushConstants(0, worldViewProjection);
 
         renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
         renderPassEncoder.DrawIndexed(_indexCount);
         renderPassEncoder.EndEncoding();
     }

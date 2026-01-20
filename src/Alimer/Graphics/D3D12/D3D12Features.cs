@@ -23,11 +23,11 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS5 _options5;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS6 _options6;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS7 _options7;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS8 _options8;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS9 _options9;
     private readonly D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT _gpuVASupport;
     private readonly D3D12_FEATURE_DATA_ARCHITECTURE1[] _architecture1;
 #if TODO
-    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS8 _options8;
-    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS9 _options9;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS10 _options10;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS11 _options11;
 #endif
@@ -85,7 +85,6 @@ internal unsafe readonly struct D3D12Features
             _options7 = default;
         }
 
-#if TODO
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, ref _options8).FAILED)
         {
             _options8 = default;
@@ -96,6 +95,7 @@ internal unsafe readonly struct D3D12Features
             _options9 = default;
         }
 
+#if TODO
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, ref _options10).FAILED)
         {
             _options10 = default;
@@ -192,6 +192,8 @@ internal unsafe readonly struct D3D12Features
 
     public D3D12_MESH_SHADER_TIER MeshShaderTier => _options7.MeshShaderTier;
     public D3D12_SAMPLER_FEEDBACK_TIER SamplerFeedbackTier => _options7.SamplerFeedbackTier;
+    public bool UnalignedBlockTexturesSupported => _options8.UnalignedBlockTexturesSupported;
+    public bool MeshShaderPipelineStatsSupported => _options9.MeshShaderPipelineStatsSupported;
     public bool EnhancedBarriersSupported => _options12.EnhancedBarriersSupported;
 
     private static D3D_FEATURE_LEVEL QueryHighestFeatureLevel(ID3D12Device* device)

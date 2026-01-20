@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines a <see cref="ISwapChainSurface"/> type.
+/// Defines a <see cref="SwapChainSurface"/> type.
 /// </summary>
 public enum SwapChainSurfaceType
 {
@@ -16,9 +16,6 @@ public enum SwapChainSurfaceType
 
     /// <summary>Defines a Wayland based graphics surface.</summary>
     Wayland,
-
-    /// <summary>Defines an XCB based graphics surface.</summary>
-    Xcb,
 
     /// <summary>Defines an Xlib based graphics surface.</summary>
     Xlib,

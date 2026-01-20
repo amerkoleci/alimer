@@ -10,7 +10,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12_SAMPLER_DESC _desc;
 
-    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescription description)
+    public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescriptor description)
         : base(description)
     {
         _device = device;

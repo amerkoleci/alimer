@@ -19,6 +19,8 @@ public readonly record struct QueryDataPipelineStatistics
     public ulong HullShaderInvocations { get; init; }
     public ulong DomainShaderInvocations { get; init; }
     public ulong ComputeShaderInvocations { get; init; }
-    public ulong AmplificationShaderInvocations { get; init; }
-    public ulong MeshShaderInvocations { get; init; }
+    // If "features.meshShaderPipelineStats"
+    //public ulong MeshControlShaderInvocations { get; init; }
+    //public ulong MeshEvaluationShaderInvocations { get; init; }
+    //public ulong MeshEvaluationShaderInvocations { get; init; }
 }

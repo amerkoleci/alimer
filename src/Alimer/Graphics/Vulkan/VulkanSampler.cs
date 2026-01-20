@@ -10,15 +10,15 @@ internal unsafe class VulkanSampler : Sampler
 {
     private readonly VulkanGraphicsDevice _device;
 
-    public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescription description)
-        : base(description)
+    public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
-        Handle = device.GetOrCreateVulkanSampler(in description);
+        Handle = device.GetOrCreateVulkanSampler(in descriptor);
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
     }
 

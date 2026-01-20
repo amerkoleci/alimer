@@ -29,19 +29,19 @@ internal unsafe class D3D12SwapChain : SwapChain
     private uint _syncInterval = 1;
     private uint _presentFlags = 0;
 
-    public D3D12SwapChain(D3D12GraphicsDevice device, ISwapChainSurface surface, in SwapChainDescription description)
-        : base(surface, description)
+    public D3D12SwapChain(D3D12GraphicsDevice device, in SwapChainDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = new()
         {
-            Width = (uint)surface.PixelWidth,
-            Height = (uint)surface.PixelHeight,
-            Format = description.Format.ToDxgiSwapChainFormat(),
+            Width = descriptor.Width,
+            Height = descriptor.Height,
+            Format = descriptor.Format.ToDxgiSwapChainFormat(),
             Stereo = false,
             SampleDesc = new(1, 0),
             BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            BufferCount = PresentModeToBufferCount(description.PresentMode),
+            BufferCount = PresentModeToBufferCount(descriptor.PresentMode),
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
@@ -49,17 +49,17 @@ internal unsafe class D3D12SwapChain : SwapChain
         };
 
         using ComPtr<IDXGISwapChain1> tempSwapChain = default;
-        switch (surface.Kind)
+        switch (Surface)
         {
-            case SwapChainSurfaceType.Win32:
+            case Win32SwapChainSurface win32Surface:
                 DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = new()
                 {
-                    Windowed = !description.IsFullscreen
+                    Windowed = true
                 };
 
                 ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForHwnd(
                     (IUnknown*)device.D3D12GraphicsQueue,
-                    (HWND)surface.Handle,
+                    (HWND)win32Surface.Hwnd,
                     &swapChainDesc,
                     &fsSwapChainDesc,
                     null,
@@ -67,11 +67,11 @@ internal unsafe class D3D12SwapChain : SwapChain
                     );
 
                 // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                ThrowIfFailed(device.DxAdapter.DxManager.Handle->MakeWindowAssociation((HWND)surface.Handle, DXGI_MWA_NO_ALT_ENTER));
+                ThrowIfFailed(device.DxAdapter.DxManager.Handle->MakeWindowAssociation((HWND)win32Surface.Hwnd, DXGI_MWA_NO_ALT_ENTER));
                 ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
                 break;
 
-            case SwapChainSurfaceType.SwapChainPanel:
+            case SwapChainPanelChainSurface swapChainPanelSurface:
             {
                 ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
                     (IUnknown*)device.D3D12GraphicsQueue,
@@ -85,7 +85,7 @@ internal unsafe class D3D12SwapChain : SwapChain
                 {
                     using ComPtr<IUnknown> swapChainPanel = default;
                     //swapChainPanel.Attach((IUnknown*)((IWinRTObject)swapChainPanelSurface.Panel).NativeObject.GetRef());
-                    swapChainPanel.Attach((IUnknown*)surface.Handle);
+                    swapChainPanel.Attach((IUnknown*)swapChainPanelSurface.SwapChainPanel);
 
 
                     ThrowIfFailed(swapChainPanel.CopyTo(
@@ -107,6 +107,12 @@ internal unsafe class D3D12SwapChain : SwapChain
 
             default:
                 throw new GraphicsException("Surface not supported");
+        }
+
+
+        if (!string.IsNullOrEmpty(descriptor.Label))
+        {
+            OnLabelChanged(descriptor.Label!);
         }
 
         AfterReset();
@@ -132,7 +138,7 @@ internal unsafe class D3D12SwapChain : SwapChain
         _backbufferTextures = new D3D12Texture[swapChainDesc.BufferCount];
         for (uint i = 0; i < swapChainDesc.BufferCount; ++i)
         {
-            TextureDescription description = TextureDescription.Texture2D(
+            TextureDescriptor description = TextureDescriptor.Texture2D(
                 ColorFormat,
                 swapChainDesc.Width,
                 swapChainDesc.Height,

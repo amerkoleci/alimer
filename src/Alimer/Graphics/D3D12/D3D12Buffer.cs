@@ -21,7 +21,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     private readonly nint _allocation;
     public readonly void* pMappedData;
 
-    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescription description, void* initialData)
+    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescriptor description, void* initialData)
         : base(description)
     {
         _device = device;
@@ -56,7 +56,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         D3D12_BARRIER_LAYOUT initialLayout = D3D12_BARRIER_LAYOUT_UNDEFINED;
         D3D12_RESOURCE_STATES initialStateLegacy = D3D12_RESOURCE_STATE_COMMON;
 
-        if (description.CpuAccess == CpuAccessMode.Read)
+        if (description.MemoryType == MemoryType.Readback)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
             resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
@@ -64,7 +64,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
             initialStateLegacy = D3D12_RESOURCE_STATE_COPY_DEST;
             ImmutableState = true;
         }
-        else if (description.CpuAccess == CpuAccessMode.Write)
+        else if (description.MemoryType == MemoryType.Upload)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
             initialStateLegacy = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -124,13 +124,13 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         GpuAddress = _handle.Get()->GetGPUVirtualAddress();
         AllocatedSize = allocatedSize;
 
-        if (description.CpuAccess == CpuAccessMode.Read)
+        if (description.MemoryType == MemoryType.Readback)
         {
             void* mappedData;
             ThrowIfFailed(_handle.Get()->Map(0, null, &mappedData));
             pMappedData = mappedData;
         }
-        else if (description.CpuAccess == CpuAccessMode.Write)
+        else if (description.MemoryType == MemoryType.Upload)
         {
             D3D12_RANGE readRange = default;
             void* mappedData;
@@ -143,7 +143,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         {
             D3D12UploadContext context = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+            if (description.MemoryType == MemoryType.Upload)
             {
                 mappedData = pMappedData;
             }
@@ -171,7 +171,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
         }
     }
 
-    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescription descriptor)
+    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescriptor descriptor)
         : base(descriptor)
     {
         _device = device;
@@ -189,7 +189,9 @@ internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
     public ID3D12Resource* Handle => _handle;
     public bool ImmutableState { get; }
 
-    public ulong GpuAddress { get; }
+    /// <inheritdoc />
+    public override GPUAddress GpuAddress { get; }
+
     public ulong AllocatedSize { get; }
 
     /// <inheitdoc />

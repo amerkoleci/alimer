@@ -100,7 +100,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
 
             context.UploadBufferSize = Math.Max(BitOperations.RoundUpToPowerOf2(stagingSize), 65536);
 
-            BufferDescription uploadBufferDesc = new(context.UploadBufferSize, BufferUsage.None, CpuAccessMode.Write, "CopyAllocator::UploadBuffer");
+            BufferDescriptor uploadBufferDesc = new(context.UploadBufferSize, BufferUsage.None, MemoryType.Upload, "CopyAllocator::UploadBuffer");
             context.UploadBuffer = (D3D12Buffer)_device.CreateBuffer(in uploadBufferDesc);
         }
 

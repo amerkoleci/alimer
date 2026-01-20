@@ -11,56 +11,37 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     private readonly VulkanGraphicsDevice _device;
     private readonly VkQueryPool _handle = VkQueryPool.Null;
 
-    public VulkanQueryHeap(VulkanGraphicsDevice device, in QueryHeapDescription description)
-        : base(description)
+    public VulkanQueryHeap(VulkanGraphicsDevice device, in QueryHeapDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
         VkQueryPoolCreateInfo createInfo = new()
         {
-            queryType = description.Type.ToVk(),
-            queryCount = (uint)description.Count
+            queryType = descriptor.Type.ToVk(),
+            queryCount = descriptor.Count
         };
 
-        if (description.Type == QueryType.PipelineStatistics)
+        if (descriptor.Type == QueryType.PipelineStatistics)
         {
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.InputAssemblyVertices) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.InputAssemblyVertices;
+            VkQueryPipelineStatisticFlags pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT
+                | VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
 
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.InputAssemblyPrimitives) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.InputAssemblyPrimitives;
+            // TODO:
+            if (_device.VkAdapter.Extensions.MeshShader)
+            {
+                //pipelineStatistics |= VK_QUERY_PIPELINE_STATISTIC_TASK_SHADER_INVOCATIONS_BIT_EXT | VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT;
+            }
 
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.VertexShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.VertexShaderInvocations;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.GeometryShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.GeometryShaderInvocations;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.GeometryShaderPrimitives) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.GeometryShaderPrimitives;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.ClippingInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.ClippingInvocations;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.ClippingPrimitives) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.ClippingPrimitives;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.PixelShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.FragmentShaderInvocations;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.HullShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.TessellationControlShaderPatches;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.DomainShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.TessellationEvaluationShaderInvocations;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.ComputeShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.ComputeShaderInvocations;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.AmplificationShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.TaskShaderInvocationsEXT;
-
-            if ((description.PipelineStatistics & QueryPipelineStatisticFlags.MeshShaderInvocations) != 0)
-                createInfo.pipelineStatistics |= VkQueryPipelineStatisticFlags.MeshShaderInvocationsEXT;
+            createInfo.pipelineStatistics = pipelineStatistics;
         }
 
         VkResult result = _device.DeviceApi.vkCreateQueryPool(device.Handle, &createInfo, null, out _handle);
@@ -70,14 +51,20 @@ internal unsafe class VulkanQueryHeap : QueryHeap
             return;
         }
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
+
+        QueryResultSize = (uint)((descriptor.Type == QueryType.PipelineStatistics ? (_device.VkAdapter.Extensions.MeshShader ? 13 : 11) : 1) * sizeof(ulong));
     }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
+
+    /// <inheritdoc />
+    public override uint QueryResultSize { get; }
+
     public VkQueryPool Handle => _handle;
 
     /// <summary>

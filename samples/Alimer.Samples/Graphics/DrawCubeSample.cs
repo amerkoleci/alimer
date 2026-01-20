@@ -35,8 +35,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
         _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
 
-        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, CpuAccessMode.Write));
-        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, CpuAccessMode.Write));
+        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, MemoryType.Upload));
 
         _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex)
@@ -112,7 +112,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         renderPassEncoder.SetBindGroup(1, _bindGroup1);
 
         renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexType.Uint16);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
         renderPassEncoder.DrawIndexed(36);
         renderPassEncoder.EndEncoding();
     }

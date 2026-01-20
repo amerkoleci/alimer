@@ -4,6 +4,7 @@
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static Alimer.Graphics.Constants;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE_COMBINER;
@@ -333,14 +334,14 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _vboViews[slot].StrideInBytes = 0;
     }
 
-    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
+    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0)
     {
         D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
 
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = d3d12Buffer.GpuAddress + offset;
         view.SizeInBytes = (uint)(d3d12Buffer.Size - offset);
-        view.Format = indexType.ToDxgiFormat();
+        view.Format = (format == IndexFormat.UInt16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         _commandBuffer.CommandList->IASetIndexBuffer(&view);
     }
 

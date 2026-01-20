@@ -654,67 +654,92 @@ void alimerWindowFocus(Window* window)
     SDL_RaiseWindow(window->handle);
 }
 
-#if defined(ALIMER_GPU)
-GPUSurfaceHandle* alimerWindowCreateSurfaceHandle(Window* window)
-{
-    SDL_PropertiesID props = SDL_GetWindowProperties(window->handle);
-
-#if defined(SDL_PLATFORM_WIN32)
-    return agpuSurfaceHandleCreateFromWin32(
-        SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)
-    );
-#elif defined(SDL_PLATFORM_MACOS)
-    //NSWindow* nswindow = (__bridge NSWindow*)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
-#elif defined(SDL_PLATFORM_LINUX)
-    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
-    {
-    }
-    else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
-    {
-
-    }
-    return nullptr;
-#elif defined(SDL_PLATFORM_IOS)
-    //UIWindow* uiwindow = (__bridge UIWindow*)SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER, NULL);
-#else
-    return nullptr;
-#endif
-}
-#endif
-
-void* alimerWindowGetNativeHandle(Window* window)
+void* alimerGetWin32Window(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
 #if defined(SDL_PLATFORM_WIN32)
-    return SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-#elif defined(SDL_PLATFORM_MACOS) && defined(TODO)
-    NSWindow* ns_window = (__bridge NSWindow*)SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
-    //[ns_window.contentView setWantsLayer : YES] ;
-    //id metal_layer = [CAMetalLayer layer];
-    //[ns_window.contentView setLayer : metal_layer] ;
-    return ns_window;
-#elif defined(SDL_PLATFORM_LINUX) && defined(TODO)
-    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
+    return SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#else
+    alimerLogError(LogCategory_Platform, "alimerGetWin32Window is only supported on Windows platform.");
+#endif
+
+    return nullptr;
+}
+
+void* alimerGetCocoaWindow(Window* window)
+{
+    ALIMER_ASSERT(window != nullptr);
+
+#if defined(SDL_PLATFORM_MACOS)
+    return SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+#else
+    alimerLogError(LogCategory_Platform, "alimerGetCocoaWindow is only supported on macOS platform.");
+#endif
+
+    return nullptr;
+}
+
+void* alimerGetWaylandDisplay(Window* window)
+{
+    ALIMER_ASSERT(window != nullptr);
+
+#if defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
     {
-        Display* xdisplay = (Display*)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, NULL);
-        Window xwindow = (Window)SDL_GetNumberProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
-        if (xdisplay && xwindow)
-        {
-        }
-    }
-    else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
-    {
-        struct wl_display* display = (struct wl_display*)SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, NULL);
-        struct wl_surface* surface = (struct wl_surface*)SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, NULL);
-        if (display && surface)
-        {
-            surface = RHISurface::CreateWayland(display, surface);
-        }
+        return SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
     }
 #else
-    return nullptr;
+    alimerLogError(LogCategory_Platform, "alimerGetWaylandDisplay: Current video driver is not Wayland.");
 #endif
+
+    return nullptr;
+}
+
+void* alimerGetWaylandSurface(Window* window)
+{
+#if defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
+    {
+        return SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
+    }
+#else
+    alimerLogError(LogCategory_Platform, "alimerGetWaylandSurface is only supported on Linux platform.");
+#endif
+
+    return nullptr;
+}
+
+void* alimerGetX11Display(Window* window)
+{
+    ALIMER_ASSERT(window != nullptr);
+
+#if defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
+    {
+        return SDL_GetPointerProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
+    }
+#else
+    alimerLogError(LogCategory_Platform, "alimerGetX11Display is only supported on Linux platform.");
+#endif
+
+    return nullptr;
+}
+
+uint64_t alimerGetX11Window(Window* window)
+{
+    ALIMER_ASSERT(window != nullptr);
+
+#if defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
+    {
+        return SDL_GetNumberProperty(SDL_GetWindowProperties(window->handle), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+    }
+#else
+    alimerLogError(LogCategory_Platform, "alimerGetX11Window is only supported on Linux platform.");
+#endif
+
+    return 0;
 }
 
 /* Clipboard */

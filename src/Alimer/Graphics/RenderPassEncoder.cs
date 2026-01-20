@@ -11,7 +11,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     protected ShadingRate _currentShadingRate = ShadingRate.Invalid;
 #if VALIDATE_USAGE
     private GraphicsBuffer? _indexBuffer;
-    private IndexType _indexType;
+    private IndexFormat _indexFormat;
 #endif
 
     protected RenderPassEncoder()
@@ -25,7 +25,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
 
 #if VALIDATE_USAGE
         _indexBuffer = default;
-        _indexType = IndexType.Uint16;
+        _indexFormat = IndexFormat.UInt16;
 #endif
     }
 
@@ -49,7 +49,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         SetVertexBufferCore(slot, buffer, offset);
     }
 
-    public void SetIndexBuffer(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0)
+    public void SetIndexBuffer(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0)
     {
 #if VALIDATE_USAGE
         if ((buffer.Usage & BufferUsage.Index) == 0)
@@ -59,10 +59,10 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         }
 
         _indexBuffer = buffer;
-        _indexType = indexType;
+        _indexFormat = format;
 #endif
 
-        SetIndexBufferCore(buffer, indexType, offset);
+        SetIndexBufferCore(buffer, format, offset);
     }
 
     public void SetViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f)
@@ -205,7 +205,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     }
 
     protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
-    protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexType indexType, ulong offset = 0);
+    protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0);
     protected abstract void SetDepthBoundsCore(float minBounds, float maxBounds);
 
     protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
@@ -228,7 +228,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
             throw new GraphicsException($"An index buffer must be bound before {nameof(CommandBuffer)}.{nameof(DrawIndexed)} can be called.");
         }
 
-        ulong indexFormatSize = _indexType == IndexType.Uint16 ? 2u : 4u;
+        ulong indexFormatSize = _indexFormat == IndexFormat.UInt16 ? 2u : 4u;
         ulong bytesNeeded = indexCount * indexFormatSize;
         if (_indexBuffer.Size < bytesNeeded)
         {

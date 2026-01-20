@@ -5,6 +5,8 @@ using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using System.Runtime.CompilerServices;
 using static Alimer.Graphics.Vulkan.Vma;
+using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
+using static Alimer.Graphics.Vulkan.VmaAllocationCreateFlags;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -16,9 +18,8 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
     public readonly void* pMappedData;
     private readonly ulong _mappedSize;
-    private ulong _gpuAddress;
 
-    public VulkanBuffer(VulkanGraphicsDevice device, in BufferDescription description, void* initialData)
+    public VulkanBuffer(VulkanGraphicsDevice device, in BufferDescriptor description, void* initialData)
         : base(description)
     {
         _device = device;
@@ -29,54 +30,53 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         {
             flags = 0,
             size = description.Size,
-            usage = VkBufferUsageFlags.None
+            usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
         };
 
         if ((description.Usage & BufferUsage.Vertex) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.VertexBuffer;
             needBufferDeviceAddress = true;
+            createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         }
 
         if ((description.Usage & BufferUsage.Index) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.IndexBuffer;
             needBufferDeviceAddress = true;
+            createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         }
 
         if ((description.Usage & BufferUsage.Constant) != 0)
         {
             createInfo.size = MathUtilities.AlignUp(description.Size, device.VkAdapter.Properties2.properties.limits.minUniformBufferOffsetAlignment);
-            createInfo.usage |= VkBufferUsageFlags.UniformBuffer;
+            createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
 
         if ((description.Usage & BufferUsage.ShaderRead) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.StorageBuffer; // read only ByteAddressBuffer is also storage buffer
-            createInfo.usage |= VkBufferUsageFlags.UniformTexelBuffer;
+            // Read only ByteAddressBuffer is also storage buffer
+            createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
         }
         if ((description.Usage & BufferUsage.ShaderWrite) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.StorageBuffer;
-            createInfo.usage |= VkBufferUsageFlags.StorageTexelBuffer;
+            createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
         }
         if ((description.Usage & BufferUsage.Indirect) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.IndirectBuffer;
             needBufferDeviceAddress = true;
+            createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         }
 
         if ((description.Usage & BufferUsage.Predication) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.ConditionalRenderingEXT;
+            createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
         }
 
         if ((description.Usage & BufferUsage.RayTracing) != 0)
         {
-            createInfo.usage |= VkBufferUsageFlags.AccelerationStructureStorageKHR;
-            createInfo.usage |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyKHR;
-            createInfo.usage |= VkBufferUsageFlags.ShaderBindingTableKHR;
             needBufferDeviceAddress = true;
+            createInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+            createInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+            createInfo.usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
         }
 
         // VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT require bufferDeviceAddress enabled.
@@ -90,27 +90,23 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         device.FillBufferSharingIndices(ref createInfo, sharingIndices);
 
         // TODO: Add sparse buffer support
-        VmaAllocationCreateFlags allocationCreateFlags = VmaAllocationCreateFlags.None;
+        VmaAllocationCreateFlags allocationCreateFlags = 0;
 
-        if (description.CpuAccess == CpuAccessMode.Read)
+        if (description.MemoryType == MemoryType.Readback)
         {
             createInfo.usage |= VkBufferUsageFlags.TransferDst;
-            allocationCreateFlags = VmaAllocationCreateFlags.HostAccessRandom | VmaAllocationCreateFlags.Mapped;
+            allocationCreateFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
-        else if (description.CpuAccess == CpuAccessMode.Write)
+        else if (description.MemoryType == MemoryType.Upload)
         {
-            createInfo.usage |= VkBufferUsageFlags.TransferSrc;
-            allocationCreateFlags = VmaAllocationCreateFlags.HostAccessSequentialWrite | VmaAllocationCreateFlags.Mapped;
-        }
-        else
-        {
-            createInfo.usage |= VkBufferUsageFlags.TransferSrc | VkBufferUsageFlags.TransferDst;
+            createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            allocationCreateFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
 
         VmaAllocationCreateInfo memoryInfo = new()
         {
             flags = allocationCreateFlags,
-            usage = VmaMemoryUsage.Auto,
+            usage = VMA_MEMORY_USAGE_AUTO,
         };
         VmaAllocationInfo allocationInfo;
         VkResult result = vmaCreateBuffer(device.Allocator, &createInfo, &memoryInfo, out _handle, out _allocation, &allocationInfo);
@@ -126,19 +122,19 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             OnLabelChanged(description.Label!);
         }
 
-        if ((memoryInfo.flags & VmaAllocationCreateFlags.Mapped) != 0)
+        if ((memoryInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT) != 0)
         {
             pMappedData = allocationInfo.pMappedData;
             _mappedSize = allocationInfo.size;
         }
 
-        if ((createInfo.usage & VkBufferUsageFlags.ShaderDeviceAddress) != 0)
+        if ((createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) != 0)
         {
             VkBufferDeviceAddressInfo info = new()
             {
                 buffer = _handle
             };
-            _gpuAddress = _device.DeviceApi.vkGetBufferDeviceAddress(device.Handle, &info);
+            GpuAddress = _device.DeviceApi.vkGetBufferDeviceAddress(device.Handle, &info);
         }
 
         // Issue data copy on request
@@ -146,7 +142,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         {
             VulkanUploadContext context = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+            if (description.MemoryType == MemoryType.Upload)
             {
                 mappedData = this.pMappedData;
             }
@@ -240,7 +236,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         }
     }
 
-    public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in BufferDescription descriptor)
+    public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in BufferDescriptor descriptor)
         : base(descriptor)
     {
         _device = device;
@@ -254,6 +250,9 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
+
+    /// <inheritdoc />
+    public override GPUAddress GpuAddress { get; }
 
     public VkBuffer Handle => _handle;
 

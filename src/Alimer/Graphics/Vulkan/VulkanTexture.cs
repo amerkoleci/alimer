@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Alimer.Graphics.Vulkan.Vma;
 
 namespace Alimer.Graphics.Vulkan;
@@ -17,7 +18,7 @@ internal unsafe class VulkanTexture : Texture
     private VkImage _handle = VkImage.Null;
     private VmaAllocation _allocation;
 
-    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescription description, TextureData* initialData)
+    public VulkanTexture(VulkanGraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
         : base(description)
     {
         _device = device;
@@ -183,7 +184,7 @@ internal unsafe class VulkanTexture : Texture
 
         VmaAllocationCreateInfo memoryInfo = new()
         {
-            usage = VmaMemoryUsage.Auto,
+            usage = VMA_MEMORY_USAGE_AUTO,
         };
         VmaAllocationInfo allocationInfo;
         VkResult result = vmaCreateImage(_device.Allocator, &imageInfo, &memoryInfo, out _handle, out _allocation, &allocationInfo);
@@ -216,7 +217,7 @@ internal unsafe class VulkanTexture : Texture
 
             VulkanUploadContext context = default;
             void* mappedData = null;
-            if (description.CpuAccess == CpuAccessMode.Write)
+            if (description.MemoryType == MemoryType.Upload)
             {
                 //mappedData = texture->mapped_data;
             }
@@ -376,7 +377,7 @@ internal unsafe class VulkanTexture : Texture
         }
     }
 
-    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescription description)
+    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescriptor description)
         : base(description)
     {
         _device = device;

@@ -9,13 +9,15 @@ namespace Alimer.Samples;
 
 public abstract class GraphicsSampleBase : SampleBase
 {
-    protected GraphicsSampleBase(string name, IServiceRegistry services, Window mainWindow)
+    protected GraphicsSampleBase(string name, IServiceRegistry services, Window mainWindow, PixelFormat depthStencilFormat = PixelFormat.Depth32Float)
         : base(name)
     {
         Services = services;
         GraphicsManager = services.GetService<GraphicsManager>();
         GraphicsDevice = services.GetService<GraphicsDevice>();
         MainWindow = mainWindow;
+        DepthStencilFormat = depthStencilFormat;
+        Resize();
     }
 
     public IServiceRegistry Services { get; }
@@ -24,13 +26,25 @@ public abstract class GraphicsSampleBase : SampleBase
     public GraphicsDevice GraphicsDevice { get; }
     public Window MainWindow { get; }
     public PixelFormat[] ColorFormats => [MainWindow.ColorFormat];
-    public PixelFormat DepthStencilFormat => MainWindow.DepthStencilFormat;
-    public Texture? DepthStencilTexture => MainWindow.DepthStencilTexture;
+    public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
+    public Texture? DepthStencilTexture { get; private set; }
     public float AspectRatio => MainWindow.AspectRatio;
+
+    protected void Resize()
+    {
+        if (DepthStencilFormat != PixelFormat.Undefined)
+        {
+            TextureDescriptor depthStencilTextureDesc = TextureDescriptor.Texture2D(DepthStencilFormat,
+                (uint)MainWindow.ClientSize.Width, (uint)MainWindow.ClientSize.Height,
+                usage: TextureUsage.RenderTarget
+                );
+            DepthStencilTexture = ToDispose(GraphicsDevice.CreateTexture(in depthStencilTextureDesc));
+        }
+    }
 
     protected GraphicsBuffer CreateBuffer<T>(List<T> initialData,
        BufferUsage usage = BufferUsage.ShaderReadWrite,
-       CpuAccessMode cpuAccess = CpuAccessMode.None)
+       MemoryType cpuAccess = MemoryType.Private)
        where T : unmanaged
     {
         Span<T> dataSpan = CollectionsMarshal.AsSpan(initialData);

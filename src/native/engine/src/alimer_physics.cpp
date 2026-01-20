@@ -23,6 +23,8 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "Jolt/Physics/Collision/Shape/CylinderShape.h"
 #include "Jolt/Physics/Collision/Shape/MutableCompoundShape.h"
+#include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
+#include "Jolt/Physics/Collision/Shape/MeshShape.h"
 #include "Jolt/Physics/Collision/PhysicsMaterialSimple.h"
 
 // STL includes
@@ -109,6 +111,11 @@ namespace
             default:
                 return JPH::EMotionType::Static;
         }
+    }
+
+    static JPH::Float3 ToJoltFloat3(const Vector3& value)
+    {
+        return JPH::Float3(value.x, value.y, value.z);
     }
 
     static JPH::Vec3 ToJolt(const Vector3* value)
@@ -586,7 +593,7 @@ float alimerPhysicsShapeGetMass(PhysicsShape* shape)
     return properties.mMass;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateBox(const Vector3* size, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsCreateBoxShape(const Vector3* size, PhysicsMaterial* material)
 {
     JPH_ASSERT(size);
     JPH_ASSERT(size->x > 0.f && size->y > 0.f && size->z > 0.f);
@@ -611,7 +618,7 @@ PhysicsShape* alimerPhysicsShapeCreateBox(const Vector3* size, PhysicsMaterial* 
     return shape;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* material)
 {
     JPH_ASSERT(radius > 0.f);
 
@@ -631,7 +638,7 @@ PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* mate
     return shape;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, PhysicsMaterial* material)
 {
     JPH::CapsuleShapeSettings settings(
         std::max(0.01f, height) * 0.5f,
@@ -652,7 +659,7 @@ PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, Physic
     return shape;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, PhysicsMaterial* material)
 {
     JPH::CylinderShapeSettings settings(
         std::max(0.01f, height) * 0.5f,
@@ -671,6 +678,78 @@ PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, Physi
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Cylinder;
+    shape->handle = shapeResult.Get();
+    return shape;
+}
+
+PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vector3* points, uint32_t pointsCount, PhysicsMaterial* material)
+{
+    JPH::Array<JPH::Vec3> joltPoints;
+    joltPoints.reserve(pointsCount);
+
+    for (uint32_t i = 0; i < pointsCount; i++)
+    {
+        joltPoints.push_back(ToJolt(&points[i]));
+    }
+
+    JPH::ConvexHullShapeSettings settings(
+        joltPoints,
+        JPH::cDefaultConvexRadius,
+        material != nullptr ? material->handle : nullptr
+    );
+
+    settings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        //alimerLogError(LogCategory_Physics, "Jolt: CreateCylinder failed with %s", shapeResult.GetError().c_str());
+        return nullptr;
+    }
+
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_ConvexHull;
+    shape->handle = shapeResult.Get();
+    return shape;
+}
+
+PhysicsShape* alimerPhysicsCreateMeshShape(const Vector3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
+{
+    JPH::VertexList joltVertices;
+    JPH::IndexedTriangleList joltTriangles;
+
+    const size_t triangleCount = indicesCount / 3;
+
+    joltVertices.reserve(verticesCount);
+    joltTriangles.resize(triangleCount);
+
+    for (uint32_t i = 0; i < verticesCount; ++i)
+    {
+        joltVertices.push_back(ToJoltFloat3(vertices[i]));
+    }
+
+    for (size_t i = 0; i < triangleCount; i++)
+    {
+        joltTriangles[i].mIdx[0] = indices[(i * 3)];
+        joltTriangles[i].mIdx[1] = indices[(i * 3 + 1)];
+        joltTriangles[i].mIdx[2] = indices[(i * 3 + 2)];
+        joltTriangles[i].mMaterialIndex = 0;
+        joltTriangles[i].mUserData = 0;
+    }
+
+    JPH::MeshShapeSettings settings(joltVertices, joltTriangles);
+
+    settings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        //alimerLogError(LogCategory_Physics, "Jolt: CreateCylinder failed with %s", shapeResult.GetError().c_str());
+        return nullptr;
+    }
+
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_Mesh;
     shape->handle = shapeResult.Get();
     return shape;
 }
@@ -811,14 +890,6 @@ bool alimerPhysicsBodyIsValid(PhysicsBody* body)
     return body && body->handle != nullptr;
 }
 
-bool alimerPhysicsBodyIsActive(PhysicsBody* body)
-{
-    JPH_ASSERT(!body->id.IsInvalid());
-
-    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
-    return bodyInterface.IsActive(body->id);
-}
-
 PhysicsWorld* alimerPhysicsBodyGetWorld(PhysicsBody* body)
 {
     return body->world;
@@ -870,6 +941,30 @@ void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
     FromJolt(joltTransform, transform);
 }
 
+bool alimerPhysicsBodyIsActive(PhysicsBody* body)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    return bodyInterface.IsActive(body->id);
+}
+
+void alimerPhysicsBodyActivateBody(PhysicsBody* body)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.ActivateBody(body->id);
+}
+
+void alimerPhysicsBodyDeactivateBody(PhysicsBody* body)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.DeactivateBody(body->id);
+}
+
 void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vector3* velocity)
 {
     JPH_ASSERT(!body->id.IsInvalid());
@@ -900,6 +995,37 @@ void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vector3* veloc
 
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     bodyInterface.SetAngularVelocity(body->id, ToJolt(velocity));
+}
+
+void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vector3* force)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddForce(body->id, ToJolt(force), JPH::EActivation::Activate);
+}
+
+void alimerPhysicsBodyAddForceAtPosition(PhysicsBody* body, const Vector3* force, const Vector3* position)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddForce(body->id, ToJolt(force), ToJolt(position), JPH::EActivation::Activate);
+}
+
+void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vector3* torque)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddTorque(body->id, ToJolt(torque), JPH::EActivation::Activate);
+}
+
+void alimerPhysicsBodyAddForceAndTorque(PhysicsBody* body, const Vector3* force, const Vector3* torque)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddForceAndTorque(body->id, ToJolt(force), ToJolt(torque), JPH::EActivation::Activate);
 }
 
 #endif /* defined(ALIMER_PHYSICS) */

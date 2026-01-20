@@ -6,25 +6,25 @@ using Alimer.Assets;
 
 namespace Alimer.Graphics;
 
-public abstract class Texture : GraphicsResource
+public abstract class Texture : GraphicsObject
 {
     protected readonly TextureLayout[] _subresourceLayouts;
 
-    protected Texture(in TextureDescription description)
-        : base(description.Label)
+    protected Texture(in TextureDescriptor descriptor)
+        : base(descriptor.Label)
     {
-        Dimension = description.Dimension;
-        Format = description.Format;
-        Width = description.Width;
-        Height = description.Height;
-        Depth = (description.Dimension == TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1;
-        ArrayLayers = (description.Dimension != TextureDimension.Texture3D) ? description.DepthOrArrayLayers : 1;
-        MipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1) : description.MipLevelCount;
-        SampleCount = description.SampleCount;
-        Usage = description.Usage;
-        CpuAccess = description.CpuAccess;
+        Dimension = descriptor.Dimension;
+        Format = descriptor.Format;
+        Width = descriptor.Width;
+        Height = descriptor.Height;
+        Depth = (descriptor.Dimension == TextureDimension.Texture3D) ? descriptor.DepthOrArrayLayers : 1;
+        ArrayLayers = (descriptor.Dimension != TextureDimension.Texture3D) ? descriptor.DepthOrArrayLayers : 1;
+        MipLevelCount = descriptor.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1) : descriptor.MipLevelCount;
+        SampleCount = descriptor.SampleCount;
+        Usage = descriptor.Usage;
+        MemoryType = descriptor.MemoryType;
 
-        uint numSubResources = MipLevelCount * description.DepthOrArrayLayers;
+        uint numSubResources = MipLevelCount * descriptor.DepthOrArrayLayers;
         _subresourceLayouts = new TextureLayout[numSubResources];
     }
 
@@ -74,9 +74,9 @@ public abstract class Texture : GraphicsResource
     public TextureSampleCount SampleCount { get; }
 
     /// <summary>
-    /// Gets the CPU access of the texure.
+    /// Gets the memory type of the texure.
     /// </summary>
-    public CpuAccessMode CpuAccess { get; }
+    public MemoryType MemoryType { get; }
 
     /// <summary>
     /// Get a mip-level width.

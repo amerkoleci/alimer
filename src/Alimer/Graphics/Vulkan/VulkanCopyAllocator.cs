@@ -76,7 +76,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
             context.UploadBufferSize = BitOperations.RoundUpToPowerOf2(size);
             context.UploadBufferSize = Math.Max(context.UploadBufferSize, 65536);
 
-            BufferDescription uploadBufferDesc = new(context.UploadBufferSize, BufferUsage.None, CpuAccessMode.Write, "CopyAllocator::UploadBuffer");
+            BufferDescriptor uploadBufferDesc = new(context.UploadBufferSize, BufferUsage.None, MemoryType.Upload, "CopyAllocator::UploadBuffer");
             context.UploadBuffer = (VulkanBuffer)_device.CreateBuffer(in uploadBufferDesc);
         }
 

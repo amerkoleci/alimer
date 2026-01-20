@@ -11,6 +11,7 @@ namespace Alimer;
 partial class Window
 {
     private readonly NativePlatform _platform;
+    private readonly SwapChainSurface _surface;
     private SizeI _clientSize;
     private bool _minimized;
     private bool _isFullscreen;
@@ -41,20 +42,26 @@ partial class Window
         alimerWindowGetSizeInPixels(_window, out int width, out int height);
         _clientSize = new(width, height);
 
+        // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
+        // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
+
         // Native handle
         if (OperatingSystem.IsWindows())
         {
-            Kind = SwapChainSurfaceType.Win32;
-            ContextHandle = GetModuleHandleW(null);
-            Handle = alimerWindowGetNativeHandle(_window);
+            _surface = SwapChainSurface.CreateWin32(alimerWindowGetNativeHandle(_window));
         }
-#if TODO
         else if (OperatingSystem.IsAndroid())
         {
-            Kind = SwapChainSurfaceType.Android;
-            ContextHandle = 0;
-            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, IntPtr.Zero);
+            // TODO
+            //Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, IntPtr.Zero);
+            throw new PlatformNotSupportedException();
         }
+        else
+        {
+            throw new PlatformNotSupportedException();
+        }
+#if TODO
+        
         else if (OperatingSystem.IsIOS())
         {
             Kind = SwapChainSurfaceType.MetalLayer;
@@ -89,6 +96,9 @@ partial class Window
         } 
 #endif
     }
+
+    /// <inheritdoc />
+    public partial SwapChainSurface Surface => _surface;
 
     /// <inheritdoc />
     public partial bool IsMinimized => _minimized;
@@ -177,8 +187,4 @@ partial class Window
             OnSizeChanged();
         }
     }
-
-    [DllImport("kernel32", ExactSpelling = true)]
-    //[SetsLastSystemError]
-    private static extern unsafe nint GetModuleHandleW(ushort* lpModuleName);
 }

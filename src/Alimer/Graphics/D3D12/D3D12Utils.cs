@@ -15,8 +15,6 @@ using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_FILL_MODE;
 using static TerraFX.Interop.DirectX.D3D12_FILTER_REDUCTION_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_FILTER_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
@@ -126,49 +124,6 @@ internal static unsafe class D3D12Utils
                 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_QUERY_HEAP_TYPE ToD3D12(this QueryType value)
-    {
-        return value switch
-        {
-            QueryType.Timestamp => D3D12_QUERY_HEAP_TYPE_TIMESTAMP,
-            QueryType.PipelineStatistics => D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS,
-            _ => D3D12_QUERY_HEAP_TYPE_OCCLUSION,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_QUERY_TYPE ToD3D12QueryType(this QueryType value)
-    {
-        return value switch
-        {
-            QueryType.Occlusion => D3D12_QUERY_TYPE_OCCLUSION,
-            QueryType.BinaryOcclusion => D3D12_QUERY_TYPE_BINARY_OCCLUSION,
-            QueryType.Timestamp => D3D12_QUERY_TYPE_TIMESTAMP,
-            QueryType.PipelineStatistics => D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
-            _ => D3D12_QUERY_TYPE_OCCLUSION,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetQueryResultSize(this QueryType type)
-    {
-        switch (type)
-        {
-            case QueryType.Occlusion:
-            case QueryType.BinaryOcclusion:
-            case QueryType.Timestamp:
-                return sizeof(ulong);
-
-            case QueryType.PipelineStatistics:
-                return sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
-
-            default:
-                return 0;
-        }
-    }
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_FILL_MODE ToD3D12(this FillMode value)
@@ -396,7 +351,7 @@ internal static unsafe class D3D12Utils
         }
     }
 
-    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescription description)
+    public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescriptor description)
     {
         D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
         D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
@@ -462,7 +417,7 @@ internal static unsafe class D3D12Utils
 
     public static D3D12_STATIC_SAMPLER_DESC ToD3D12StaticSamplerDesc(
         uint shaderRegister,
-        in SamplerDescription description,
+        in SamplerDescriptor description,
         D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, uint registerSpace = 0u)
     {
         D3D12_SAMPLER_DESC samplerDesc = ToD3D12SamplerDesc(in description);

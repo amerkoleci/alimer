@@ -111,18 +111,6 @@ internal static unsafe class D3DUtils
         }
     }
 
-    public static DXGI_FORMAT ToDxgiFormat(this IndexType indexType)
-    {
-        switch (indexType)
-        {
-            case IndexType.Uint16: return DXGI_FORMAT_R16_UINT;
-            case IndexType.Uint32: return DXGI_FORMAT_R32_UINT;
-
-            default:
-                return DXGI_FORMAT_UNKNOWN;
-        }
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value, uint patchControlPoints = 1u)
     {

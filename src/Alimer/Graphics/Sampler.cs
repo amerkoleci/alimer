@@ -3,9 +3,9 @@
 
 namespace Alimer.Graphics;
 
-public abstract class Sampler : GraphicsResource
+public abstract class Sampler : GraphicsObject
 {
-    protected Sampler(in SamplerDescription description)
+    protected Sampler(in SamplerDescriptor description)
         : base(description.Label)
     {
         MinFilter = description.MinFilter;

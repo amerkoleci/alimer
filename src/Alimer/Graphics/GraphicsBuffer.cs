@@ -8,14 +8,14 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a Graphics buffer.
 /// </summary>
-public abstract unsafe class GraphicsBuffer : GraphicsResource
+public abstract unsafe class GraphicsBuffer : GraphicsObject
 {
-    protected GraphicsBuffer(in BufferDescription description)
-        : base(description.Label)
+    protected GraphicsBuffer(in BufferDescriptor descriptor)
+        : base(descriptor.Label)
     {
-        Size = description.Size;
-        Usage = description.Usage;
-        CpuAccess = description.CpuAccess;
+        Size = descriptor.Size;
+        Usage = descriptor.Usage;
+        MemoryType = descriptor.MemoryType;
     }
 
     /// <summary>
@@ -29,9 +29,14 @@ public abstract unsafe class GraphicsBuffer : GraphicsResource
     public BufferUsage Usage { get; }
 
     /// <summary>
-    /// Getsthe CPU access of the <see cref="Buffer"/>.
+    /// Gets the memory type of this buffer.
     /// </summary>
-    public CpuAccessMode CpuAccess { get; }
+    public MemoryType MemoryType { get; }
+
+    /// <summary>
+    /// Gets the GPU virtual address associated with this resource.
+    /// </summary>
+    public abstract GPUAddress GpuAddress { get; }
 
     public BufferStates CurrentState { get; internal set; }
 
@@ -47,7 +52,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsResource
     public void SetData<T>(Span<T> data, int offsetInBytes = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(CpuAccess == CpuAccessMode.Write);
+        Guard.IsTrue(MemoryType == MemoryType.Upload);
 
         fixed (T* dataPtr = data)
         {
@@ -67,7 +72,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsResource
     public void GetData<T>(ref T data, int offsetInBytes = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(CpuAccess != CpuAccessMode.None);
+        Guard.IsTrue(MemoryType != MemoryType.Private);
 
         fixed (T* destPtr = &data)
         {
