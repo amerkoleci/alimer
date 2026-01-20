@@ -27,22 +27,19 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
         PipelineLayoutDescription pipelineLayoutDescription = new();
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        ShaderStageDescription vertexShader = CompileShader("Triangle.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("Triangle.hlsl", "fragmentMain", ShaderStages.Fragment);
-
-        var shaderStages = new ShaderStageDescription[2]
-        {
-            vertexShader,
-            fragmentShader,
-        };
+        using ShaderModule vertexShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            Label = "RenderPipeline"
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
     }

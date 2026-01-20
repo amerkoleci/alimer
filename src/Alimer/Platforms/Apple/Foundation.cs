@@ -103,3 +103,26 @@ internal readonly partial struct NSArray : IDisposable, IEquatable<NSArray>
     public override readonly int GetHashCode() => Handle.GetHashCode();
     private readonly string DebuggerDisplay => $"{nameof(NSArray)} [0x{Handle:X}]";
 }
+
+
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
+internal readonly partial struct NSObject : IDisposable
+{
+    #region Selectors
+    private static  Selector s_sel_isKindOfClass => "isKindOfClass:";
+    #endregion
+
+    public NSObject(nint handle) => Handle = handle;
+
+    public void Dispose()
+    {
+        objc_msgSend(Handle, Selectors.Release);
+    }
+
+    public nint Handle { get; }
+
+    public static implicit operator NSObject(nint handle) => new(handle);
+    public static implicit operator nint(NSObject value) => value.Handle;
+
+    public Bool8 IsKindOfClass(nint @class) => bool_objc_msgSend(Handle, s_sel_isKindOfClass, @class);
+}

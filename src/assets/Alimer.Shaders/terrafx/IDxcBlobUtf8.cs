@@ -77,9 +77,9 @@ internal unsafe partial struct IDxcBlobUtf8 : IDxcBlobUtf8.Interface, INativeGui
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
     [return: NativeTypeName("LPCSTR")]
-    public sbyte* GetStringPointer()
+    public byte* GetStringPointer()
     {
-        return ((delegate* unmanaged[MemberFunction]<IDxcBlobUtf8*, sbyte*>)(lpVtbl[6]))((IDxcBlobUtf8*)Unsafe.AsPointer(ref this));
+        return ((delegate* unmanaged[MemberFunction]<IDxcBlobUtf8*, byte*>)(lpVtbl[6]))((IDxcBlobUtf8*)Unsafe.AsPointer(ref this));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,7 +94,7 @@ internal unsafe partial struct IDxcBlobUtf8 : IDxcBlobUtf8.Interface, INativeGui
     {
         [VtblIndex(6)]
         [return: NativeTypeName("LPCSTR")]
-        sbyte* GetStringPointer();
+        byte* GetStringPointer();
 
         [VtblIndex(7)]
         [return: NativeTypeName("SIZE_T")]

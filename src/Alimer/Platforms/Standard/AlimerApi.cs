@@ -270,7 +270,18 @@ partial class AlimerApi
     public static partial void alimerWindowFocus(nint window);
 
     [LibraryImport(LibraryName)]
-    public static partial nint alimerWindowGetNativeHandle(nint window);
+    public static partial nint alimerGetWin32Window(nint window);
+
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerGetCocoaWindow(nint window);
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerGetWaylandDisplay(nint window);
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerGetWaylandSurface(nint window);
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerGetX11Display(nint window);
+    [LibraryImport(LibraryName)]
+    public static partial ulong alimerGetX11Window(nint window);
     #endregion
 
     #region Clipboard

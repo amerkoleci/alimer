@@ -3,6 +3,9 @@
 
 namespace Alimer.Graphics;
 
+/// <summary>
+/// Primitive topology for vertex assembly.
+/// </summary>
 public enum PrimitiveTopology
 {
     PointList,
@@ -10,7 +13,6 @@ public enum PrimitiveTopology
     LineStrip,
     TriangleList,
     TriangleStrip,
-    PatchList,
 
     Count
 }

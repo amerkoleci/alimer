@@ -178,11 +178,6 @@ internal static unsafe class D3D12Utils
         {
             case ShaderStages.Vertex:
                 return D3D12_SHADER_VISIBILITY_VERTEX;
-            case ShaderStages.Hull:
-                return D3D12_SHADER_VISIBILITY_HULL;
-            case ShaderStages.Domain:
-                return D3D12_SHADER_VISIBILITY_DOMAIN;
-            case ShaderStages.Geometry:
                 return D3D12_SHADER_VISIBILITY_GEOMETRY;
             case ShaderStages.Fragment:
                 return D3D12_SHADER_VISIBILITY_PIXEL;

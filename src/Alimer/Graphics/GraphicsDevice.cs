@@ -15,11 +15,17 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected readonly ConcurrentQueue<Tuple<GraphicsObject, ulong>> _deferredDestroyObjects = new();
     protected bool _shuttingDown;
 
-    public GraphicsDevice(in GraphicsDeviceDescription description)
+    public GraphicsDevice(GraphicsBackendType backend, in GraphicsDeviceDescription description)
         : base(description.Label)
     {
+        Backend = backend;
         MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, Constants.DefaultMaxFramesInFlight), 3u);
     }
+
+    /// <summary>
+    /// Get the type of the graphics backend.
+    /// </summary>
+    public GraphicsBackendType Backend { get; }
 
     /// <summary>
     /// Get the <see cref="GraphicsAdapter"/> object that created this object.
@@ -30,6 +36,11 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// Gets the maximum number of frames that can be processed concurrently.
     /// </summary>
     public uint MaxFramesInFlight { get; }
+
+    /// <summary>
+    /// Get the device limits.
+    /// </summary>
+    public abstract GraphicsDeviceLimits Limits { get; }
 
     /// <summary>
     /// Gets the graphics command queue used to submit rendering commands to the GPU.
@@ -283,18 +294,48 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreatePipelineLayout(new PipelineLayoutDescription(bindGroupLayouts));
     }
 
+    public ShaderModule CreateShaderModule(in ShaderModuleDescriptor descriptor)
+    {
+        Guard.IsTrue(descriptor.Stage != ShaderStages.None, nameof(ShaderModuleDescriptor.Stage));
+        Guard.IsFalse(descriptor.ByteCode.IsEmpty, nameof(ShaderModuleDescriptor.ByteCode));
+
+        return CreateShaderModuleCore(in descriptor);
+    }
+
     public RenderPipeline CreateRenderPipeline(in RenderPipelineDescriptor descriptor)
     {
-        Guard.IsGreaterThanOrEqualTo(descriptor.ShaderStages.Length, 1, nameof(RenderPipelineDescriptor.ShaderStages));
+        // Vertex shader is necessary when not using mesh shaders
+        if (descriptor.VertexShader is null)
+        {
+            if (descriptor.MeshShader == null)
+            {
+                throw new GraphicsException($"{nameof(RenderPipelineDescriptor.MeshShader)} is required when creating mesh pipeline");
+            }
+
+            Guard.IsTrue(descriptor.MeshShader.Stage == ShaderStages.Mesh, nameof(RenderPipelineDescriptor.MeshShader));
+
+            if (descriptor.AmplificationShader is not null)
+            {
+                Guard.IsTrue(descriptor.AmplificationShader.Stage == ShaderStages.Amplification, nameof(RenderPipelineDescriptor.AmplificationShader));
+            }
+        }
+        else
+        {
+            Guard.IsTrue(descriptor.VertexShader.Stage == ShaderStages.Vertex, nameof(RenderPipelineDescriptor.VertexShader));
+        }
+
+        if (descriptor.FragmentShader is not null)
+        {
+            Guard.IsTrue(descriptor.FragmentShader.Stage == ShaderStages.Fragment, nameof(RenderPipelineDescriptor.FragmentShader));
+        }
 
         return CreateRenderPipelineCore(in descriptor);
     }
 
     public ComputePipeline CreateComputePipeline(in ComputePipelineDescriptor descriptor)
     {
+        Guard.IsNotNull(descriptor.ComputeShader, nameof(ComputePipelineDescriptor.ComputeShader));
         Guard.IsTrue(descriptor.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescriptor.ComputeShader));
-        Guard.IsNotNull(descriptor.ComputeShader.ByteCode, nameof(ComputePipelineDescriptor.ComputeShader.ByteCode));
-        Guard.IsGreaterThan(descriptor.ComputeShader.ByteCode!.Length, 0);
 
         return CreateComputePipelineCore(in descriptor);
     }
@@ -324,12 +365,13 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
-    protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescriptor description, void* initialData);
-    protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData);
+    protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
+    protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
-    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description);
-    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description);
-    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description);
+    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription descridescriptorption);
+    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription descriptor);
+    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor);
+    protected abstract ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
     protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor);

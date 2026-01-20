@@ -35,22 +35,19 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         };
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        ShaderStageDescription vertexShader = CompileShader("Triangle.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("Triangle.hlsl", "fragmentMain", ShaderStages.Fragment);
+        using ShaderModule vertexShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
 
-        var shaderStages = new ShaderStageDescription[2]
-        {
-            vertexShader,
-            fragmentShader,
-        };
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
             Label = "RenderPipeline"
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));

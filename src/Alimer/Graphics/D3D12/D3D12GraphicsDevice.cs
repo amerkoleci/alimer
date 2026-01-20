@@ -14,8 +14,10 @@ using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
 using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
+using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
+using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
 using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.DXGI;
+using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
 using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Graphics.D3D12.D3D12MA.ALLOCATOR_FLAGS;
@@ -29,6 +31,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
     private readonly nint _memoryAllocator;
+    private readonly GraphicsDeviceLimits _limits;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
@@ -46,7 +49,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly nint _winPixEventRuntimeDLL;
 
     public D3D12GraphicsDevice(D3D12GraphicsAdapter adapter, in GraphicsDeviceDescription description)
-        : base(description)
+        : base(GraphicsBackendType.D3D12, in description)
     {
         _adapter = adapter;
 
@@ -172,6 +175,70 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 
+        // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
+        // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
+        const uint kMaxRootSignatureSize = 64u;
+
+        _limits = new GraphicsDeviceLimits
+        {
+            MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
+            MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
+            MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
+            MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
+            MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
+            MaxBindGroups = kMaxRootSignatureSize,
+            //MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+            //UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
+            //UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+            MinConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
+            MaxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+            MinStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
+            MaxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+
+            TextureRowPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
+            TextureDepthPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+
+            MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
+            MaxPushConstantsSize = sizeof(uint) * kMaxRootSignatureSize / 1,
+
+            MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
+            MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
+
+            // Slot values can be 0-15, inclusive:
+            // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
+            MaxVertexBuffers = 16,
+            MaxVertexAttributes = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
+            MaxVertexBufferArrayStride = D3D12_SO_BUFFER_MAX_STRIDE_IN_BYTES,
+
+            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
+            // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
+            // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
+            MaxComputeWorkgroupStorageSize = 32768,
+
+            MaxComputeInvocationsPerWorkGroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
+
+            // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
+            MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
+            MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
+            MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
+            // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
+            MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+        };
+
+        if (_adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
+        {
+            _limits.VariableRateShadingTileSize = _adapter.Features.ShadingRateImageTileSize;
+        }
+
+        if (_adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
+        {
+            _limits.RayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
+            _limits.RayTracingShaderTableAligment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
+            _limits.RayTracingShaderTableMaxStride = ulong.MaxValue;
+            _limits.RayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
+            _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
+        }
+
         // Create command queue's
         CommandQueueType supportedQueueCount = supportVideoDevice ? CommandQueueType.Count : CommandQueueType.VideoDecode;
         for (int i = 0; i < (int)supportedQueueCount; i++)
@@ -266,6 +333,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     /// <inheritdoc />
     public override GraphicsAdapter Adapter => _adapter;
+
+    /// <inheritdoc />
+    public override GraphicsDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }
@@ -468,15 +538,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor description, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
     {
-        return new D3D12Buffer(this, description, initialData);
+        return new D3D12Buffer(this, descriptor, initialData);
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData)
     {
-        return new D3D12Texture(this, description, initialData);
+        return new D3D12Texture(this, descriptor, initialData);
     }
 
     /// <inheritdoc />
@@ -504,9 +574,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor description)
+    protected override ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor)
     {
-        return new D3D12RenderPipeline(this, description);
+        return new D3D12ShaderModule(this, descriptor);
+    }
+
+    /// <inheritdoc />
+    protected override RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor)
+    {
+        return new D3D12RenderPipeline(this, descriptor);
     }
 
     /// <inheritdoc />
@@ -516,9 +592,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor description)
+    protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor)
     {
-        return new D3D12QueryHeap(this, description);
+        return new D3D12QueryHeap(this, descriptor);
     }
 
     /// <inheritdoc />

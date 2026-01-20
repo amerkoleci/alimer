@@ -25,15 +25,12 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     public static bool IsSupported => s_isSupported.Value;
 
     /// <inheritdoc/>
-    public override GraphicsBackendType BackendType => GraphicsBackendType.Vulkan;
-
-    /// <inheritdoc/>
     public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
 
     public VulkanGraphicsManager(in GraphicsManagerOptions options)
         : base(in options)
     {
-        VkResult result = VkResult.Success;
+        VkResult result = VK_SUCCESS;
 
         // Create instance first.
         {

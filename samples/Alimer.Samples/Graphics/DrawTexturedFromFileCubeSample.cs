@@ -60,23 +60,19 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
-        ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("TexturedCube.hlsl", "fragmentMain", ShaderStages.Fragment);
-
-        var shaderStages = new ShaderStageDescription[2]
-        {
-            vertexShader,
-            fragmentShader,
-        };
+        using ShaderModule vertexShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
             new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
-            Label = "RenderPipeline"
+            Label = "RenderPipeline",
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
 

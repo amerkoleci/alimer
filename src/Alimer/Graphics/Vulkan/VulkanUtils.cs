@@ -209,8 +209,8 @@ internal static unsafe class VulkanUtils
             case VertexFormat.Int4: return VkFormat.R32G32B32A32Sint;
 
             //case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
-            case VertexFormat.Unorm10_10_10_2:      return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-            case VertexFormat.Unorm8x4BGRA:         return VK_FORMAT_B8G8R8A8_UNORM;
+            case VertexFormat.Unorm10_10_10_2: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+            case VertexFormat.Unorm8x4BGRA: return VK_FORMAT_B8G8R8A8_UNORM;
             //case VertexFormat.RG11B10Float:         return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
             //case VertexFormat.RGB9E5Float:          return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
@@ -322,23 +322,16 @@ internal static unsafe class VulkanUtils
     public static VkShaderStageFlags ToVk(this ShaderStages stage)
     {
         if (stage == ShaderStages.All)
-            return VkShaderStageFlags.All;
+            return VK_SHADER_STAGE_ALL;
 
+#if RAYTRACING
         if ((stage & ShaderStages.Library) != 0)
-            return VkShaderStageFlags.All;
+            return VK_SHADER_STAGE_ALL;
+#endif
 
         VkShaderStageFlags result = VkShaderStageFlags.None;
         if ((stage & ShaderStages.Vertex) != 0)
-            result |= VkShaderStageFlags.Vertex;
-
-        if ((stage & ShaderStages.Hull) != 0)
-            result |= VkShaderStageFlags.TessellationControl;
-
-        if ((stage & ShaderStages.Domain) != 0)
-            result |= VkShaderStageFlags.TessellationEvaluation;
-
-        if ((stage & ShaderStages.Geometry) != 0)
-            result |= VkShaderStageFlags.Geometry;
+            result |= VK_SHADER_STAGE_VERTEX_BIT;
 
         if ((stage & ShaderStages.Fragment) != 0)
             result |= VkShaderStageFlags.Fragment;
@@ -358,16 +351,14 @@ internal static unsafe class VulkanUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkPrimitiveTopology ToVk(this PrimitiveTopology type)
     {
-        switch (type)
+        return type switch
         {
-            case PrimitiveTopology.PointList: return VkPrimitiveTopology.PointList;
-            case PrimitiveTopology.LineList: return VkPrimitiveTopology.LineList;
-            case PrimitiveTopology.LineStrip: return VkPrimitiveTopology.LineStrip;
-            case PrimitiveTopology.TriangleStrip: return VkPrimitiveTopology.TriangleStrip;
-            case PrimitiveTopology.PatchList: return VkPrimitiveTopology.PatchList;
-            default:
-                return VkPrimitiveTopology.TriangleList;
-        }
+            PrimitiveTopology.PointList => VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
+            PrimitiveTopology.LineList => VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+            PrimitiveTopology.LineStrip => VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
+            PrimitiveTopology.TriangleStrip => VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+            _ => VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -551,7 +542,7 @@ internal static unsafe class VulkanUtils
         new(BufferStates.IndexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT),
         new(BufferStates.ConstantBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_UNIFORM_READ_BIT),
         new(BufferStates.Predication, VK_PIPELINE_STAGE_2_CONDITIONAL_RENDERING_BIT_EXT, VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT),
-            #if TODO
+#if TODO
             { ResourceStates::IndirectArgument, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT },
             { ResourceStates::StreamOut, VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT, VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT },
             { ResourceStates::AccelerationStructureRead, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR },
@@ -559,7 +550,7 @@ internal static unsafe class VulkanUtils
             { ResourceStates::AccelerationStructureBuildInput, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR},
             { ResourceStates::OpacityMicromapWrite, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT },
             { ResourceStates::OpacityMicromapBuildInput, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_SHADER_READ_BIT },
-             #endif // TODO        
+#endif // TODO        
     ];
 
     public static VkImageLayoutMapping ConvertImageLayout(TextureLayout layout, bool depthOnlyFormat)

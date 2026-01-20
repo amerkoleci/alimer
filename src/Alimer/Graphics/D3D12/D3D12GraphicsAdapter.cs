@@ -26,7 +26,6 @@ namespace Alimer.Graphics.D3D12;
 internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 {
     private readonly ComPtr<IDXGIAdapter1> _handle;
-    private readonly GraphicsDeviceLimits _limits;
     private readonly bool _featureBGRA8UnormStorage;
 
     public D3D12GraphicsAdapter(
@@ -98,67 +97,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             Type = Features.UMA() ? GraphicsAdapterType.IntegratedGpu : GraphicsAdapterType.DiscreteGpu;
         }
 
-        // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
-        // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
-        const uint kMaxRootSignatureSize = 64u;
-
-        _limits = new GraphicsDeviceLimits
-        {
-            MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
-            MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
-            MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
-            MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
-            MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-            MaxBindGroups = kMaxRootSignatureSize,
-            //MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
-            //UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
-            //UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
-            MinConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
-            MaxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
-            MinStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
-            MaxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
-
-            MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
-            MaxPushConstantsSize = sizeof(uint) * kMaxRootSignatureSize / 1,
-
-            MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
-            MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-
-            // Slot values can be 0-15, inclusive:
-            // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
-            MaxVertexBuffers = 16,
-            MaxVertexAttributes = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
-            MaxVertexBufferArrayStride = D3D12_SO_BUFFER_MAX_STRIDE_IN_BYTES,
-
-            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
-            // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
-            // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
-            MaxComputeWorkgroupStorageSize = 32768,
-
-            MaxComputeInvocationsPerWorkGroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
-
-            // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
-            MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
-            MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
-            MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
-            // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
-            MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-        };
-
-        if (Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
-        {
-            _limits.VariableRateShadingTileSize = Features.ShadingRateImageTileSize;
-        }
-
-        if (Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
-        {
-            _limits.RayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
-            _limits.RayTracingShaderTableAligment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
-            _limits.RayTracingShaderTableMaxStride = ulong.MaxValue;
-            _limits.RayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
-            _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
-        }
-
         D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
         bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
         HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
@@ -167,21 +105,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         {
             _featureBGRA8UnormStorage = true;
         }
-
-        //if (_features.IndependentFrontAndBackStencilRefMaskSupported() == TRUE)
-        //{
-        //    LOGD("D3D12: IndependentFrontAndBackStencilRefMaskSupported supported");
-        //}
-        //
-        //if (_features.DynamicDepthBiasSupported() == TRUE)
-        //{
-        //    LOGD("D3D12: DynamicDepthBiasSupported supported");
-        //}
-        //
-        //if (d3dFeatures.GPUUploadHeapSupported() == TRUE)
-        //{
-        //    LOGD("D3D12: GPUUploadHeapSupported supported");
-        //}
     }
 
     public D3D12GraphicsManager DxManager => (D3D12GraphicsManager)base.Manager;
@@ -202,9 +125,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
     public override GraphicsAdapterType Type { get; }
 
     /// <inheritdoc />
-    public override GraphicsDeviceLimits Limits => _limits;
-
-    /// <inheritdoc />
     public override bool QueryFeatureSupport(Feature feature)
     {
         switch (feature)
@@ -215,7 +135,6 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             case Feature.PipelineStatisticsQuery:
             case Feature.TextureCompressionBC:
             case Feature.IndirectFirstInstance:
-            case Feature.TessellationShader:
             case Feature.SamplerClampToBorder:
             case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:

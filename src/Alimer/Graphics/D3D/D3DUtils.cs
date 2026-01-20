@@ -112,18 +112,8 @@ internal static unsafe class D3DUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value, uint patchControlPoints = 1u)
+    public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value)
     {
-        if (value == PrimitiveTopology.PatchList)
-        {
-            if (patchControlPoints == 0 || patchControlPoints > 32)
-            {
-                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-            }
-
-            return (D3D_PRIMITIVE_TOPOLOGY)((uint)D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (patchControlPoints - 1));
-        }
-
         return value switch
         {
             PrimitiveTopology.PointList => D3D_PRIMITIVE_TOPOLOGY_POINTLIST,

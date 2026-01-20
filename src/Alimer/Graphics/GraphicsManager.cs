@@ -15,11 +15,6 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     }
 
     /// <summary>
-    /// Get the type of the graphics backend.
-    /// </summary>
-    public abstract GraphicsBackendType BackendType { get; }
-
-    /// <summary>
     /// Get the validation mode.
     /// </summary>
     public GraphicsValidationMode ValidationMode { get; }

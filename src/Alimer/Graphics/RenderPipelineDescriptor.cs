@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
@@ -8,64 +9,59 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="RenderPipeline"/>.
 /// </summary>
-public readonly record struct RenderPipelineDescriptor
+public  record struct RenderPipelineDescriptor
 {
+    /// <summary>
+    /// Gets or sets the label of <see cref="RenderPipeline"/>.
+    /// </summary>
+    public string? Label;
+
+    public PipelineLayout Layout;
+    public ShaderModule? VertexShader;
+    public ShaderModule? FragmentShader;
+    public ShaderModule? AmplificationShader;
+    public ShaderModule? MeshShader;
+
+    public VertexBufferLayout[] VertexBufferLayouts;
+
+    public BlendState BlendState;
+
+    public RasterizerState RasterizerState;
+
+    public DepthStencilState DepthStencilState;
+
+    public PrimitiveTopology PrimitiveTopology;
+
+    public PixelFormat[] ColorFormats;
+    public PixelFormat DepthStencilFormat = PixelFormat.Undefined;
+
+    public TextureSampleCount SampleCount = TextureSampleCount.Count1;
+
     public RenderPipelineDescriptor(
-        PipelineLayout layout, 
-        ShaderStageDescription[] shaderStages, 
-        PixelFormat[] colorFormats, 
+        PipelineLayout layout,
+        PixelFormat[] colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
-        : this(layout, shaderStages, [], colorFormats, depthStencilFormat)
+        : this(layout, [], colorFormats, depthStencilFormat)
     {
     }
 
     public RenderPipelineDescriptor(
-        PipelineLayout layout, 
-        ShaderStageDescription[] shaderStages, 
-        VertexBufferLayout[] vertexBufferLayouts, 
+        PipelineLayout layout,
+        VertexBufferLayout[] vertexBufferLayouts,
         PixelFormat[] colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
     {
         Guard.IsNotNull(layout, nameof(layout));
-        Guard.IsNotNull(shaderStages, nameof(shaderStages));
 
         Layout = layout;
-        ShaderStages = shaderStages;
         VertexBufferLayouts = vertexBufferLayouts;
 
         BlendState = BlendState.Opaque;
         RasterizerState = RasterizerState.CullBack;
         DepthStencilState = DepthStencilState.DepthDefault;
         PrimitiveTopology = PrimitiveTopology.TriangleList;
-        PatchControlPoints = 0;
         ColorFormats = colorFormats;
         DepthStencilFormat = depthStencilFormat;
         SampleCount = TextureSampleCount.Count1;
     }
-
-    public PipelineLayout Layout { get; init; }
-
-    public ShaderStageDescription[] ShaderStages { get; init; }
-
-    public VertexBufferLayout[] VertexBufferLayouts { get; init; }
-
-    public BlendState BlendState { get; init; }
-
-    public RasterizerState RasterizerState { get; init; }
-
-    public DepthStencilState DepthStencilState { get; init; }
-
-    public PrimitiveTopology PrimitiveTopology { get; init; }
-
-    public uint PatchControlPoints { get; init; } = 1u;
-
-    public PixelFormat[] ColorFormats { get; init; }
-    public PixelFormat DepthStencilFormat  { get; init; } = PixelFormat.Undefined;
-
-    public TextureSampleCount SampleCount { get; init; } = 0;
-
-    /// <summary>
-    /// Gets or sets the label of <see cref="RenderPipeline"/>.
-    /// </summary>
-    public string? Label { get; init; }
 }

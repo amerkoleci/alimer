@@ -18,6 +18,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly uint[] _queueFamilyIndices;
     private readonly uint[] _queueIndices;
     private readonly uint[] _queueCounts;
+    private readonly GraphicsDeviceLimits _limits;
 
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
     private readonly VkDevice _handle = VkDevice.Null;
@@ -47,7 +48,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkSampler _nullSampler = default;
 
     public VulkanGraphicsDevice(VulkanGraphicsAdapter adapter, in GraphicsDeviceDescription description)
-        : base(description)
+        : base(GraphicsBackendType.Vulkan, description)
     {
         _adapter = adapter;
         _physicalDevice = adapter.Handle;
@@ -725,6 +726,54 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
+        // TODO: Rest of limits
+        VkPhysicalDeviceProperties2 properties2 = _adapter.Properties2;
+        VkPhysicalDeviceLimits vkLimits = properties2.properties.limits;
+
+        // VUID-VkCopyBufferToImageInfo2-dstImage-07975: If "dstImage" does not have either a depth/stencil format or a multi-planar format,
+        //      "bufferOffset" must be a multiple of the texel block size
+        // VUID-VkCopyBufferToImageInfo2-dstImage-07978: If "dstImage" has a depth/stencil format,
+        //      "bufferOffset" must be a multiple of 4
+        // Least Common Multiple stride across all formats: 1, 2, 4, 8, 16 // TODO: rarely used "12" fucks up the beauty of power-of-2 numbers, such formats must be avoided!
+        const uint leastCommonMultipleStrideAccrossAllFormats = 16;
+
+        _limits = new GraphicsDeviceLimits
+        {
+            MaxTextureDimension1D = vkLimits.maxImageDimension1D,
+            MaxTextureDimension2D = vkLimits.maxImageDimension2D,
+            MaxTextureDimension3D = vkLimits.maxImageDimension3D,
+            MaxTextureDimensionCube = vkLimits.maxImageDimensionCube,
+            MaxTextureArrayLayers = vkLimits.maxImageArrayLayers,
+            MaxBindGroups = vkLimits.maxBoundDescriptorSets,
+            MinConstantBufferOffsetAlignment = (uint)vkLimits.minUniformBufferOffsetAlignment,
+            MaxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange,
+            MinStorageBufferOffsetAlignment = (uint)properties2.properties.limits.minStorageBufferOffsetAlignment,
+            MaxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange,
+
+            TextureRowPitchAlignment = (uint)vkLimits.optimalBufferCopyRowPitchAlignment,
+            TextureDepthPitchAlignment = MathUtilities.LeastCommonMultiple((uint)vkLimits.optimalBufferCopyOffsetAlignment, leastCommonMultipleStrideAccrossAllFormats),
+
+            MaxBufferSize = _adapter.Properties13.maxBufferSize,
+            MaxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize,
+            MaxColorAttachments = properties2.properties.limits.maxColorAttachments,
+            MaxViewports = properties2.properties.limits.maxViewports,
+
+            MaxVertexBuffers = properties2.properties.limits.maxVertexInputBindings,
+            MaxVertexAttributes = properties2.properties.limits.maxVertexInputAttributes,
+            MaxVertexBufferArrayStride = properties2.properties.limits.maxVertexInputBindingStride,
+
+            MaxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize,
+            MaxComputeInvocationsPerWorkGroup = properties2.properties.limits.maxComputeWorkGroupInvocations,
+            MaxComputeWorkGroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0],
+            MaxComputeWorkGroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1],
+            MaxComputeWorkGroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2],
+            MaxComputeWorkGroupsPerDimension = Math.Min(Math.Min(
+                properties2.properties.limits.maxComputeWorkGroupCount[0],
+                properties2.properties.limits.maxComputeWorkGroupCount[1]),
+                properties2.properties.limits.maxComputeWorkGroupCount[2]
+            )
+        };
+
         TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
 
         void AddToFeatureChain(void* next)
@@ -737,6 +786,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     /// <inheritdoc />
     public override GraphicsAdapter Adapter => _adapter;
+
+    /// <inheritdoc />
+    public override GraphicsDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }
@@ -1101,6 +1153,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription description)
     {
         return new VulkanPipelineLayout(this, description);
+    }
+
+    /// <inheritdoc />
+    protected override ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor)
+    {
+        return new VulkanShaderModule(this, descriptor);
     }
 
     /// <inheritdoc />

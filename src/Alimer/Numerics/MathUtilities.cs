@@ -98,6 +98,34 @@ public static partial class MathUtilities
     /// <returns><c>true</c> if the specified value is close to one (1.0f); otherwise, <c>false</c>.</returns>
     public static bool IsOne(float a) => IsZero(a - 1.0f);
 
+    /// <summary>
+    /// Calculates the greatest common divisor (GCD) of two unsigned integers using Euclidean algorithm.
+    /// </summary>
+    public static uint GreatestCommonDivisor(uint a, uint b)
+    {
+        while (b != 0)
+        {
+            uint temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+
+    /// <summary>
+    /// Calculates the least common multiple (LCM) of two unsigned integers.
+    /// Equivalent to std::lcm from C++ &lt;numeric&gt;.
+    /// </summary>
+    public static uint LeastCommonMultiple(uint a, uint b)
+    {
+        if (a == 0 || b == 0)
+            return 0;
+
+        // LCM(a, b) = (a * b) / GCD(a, b)
+        // Rewritten as (a / GCD(a, b)) * b to avoid overflow
+        return (a / GreatestCommonDivisor(a, b)) * b;
+    }
+
     /// <summary>Determines whether a given value is a power of two.</summary>
     /// <param name="value">The value to check.</param>
     /// <returns><c>true</c> if <paramref name="value" /> is a power of two; otherwise, <c>false</c>.</returns>

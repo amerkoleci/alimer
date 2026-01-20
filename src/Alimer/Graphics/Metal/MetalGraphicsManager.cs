@@ -19,9 +19,6 @@ internal class MetalGraphicsManager : GraphicsManager
     public static bool IsSupported => s_isSupported.Value;
 
     /// <inheritdoc/>
-    public override GraphicsBackendType BackendType => GraphicsBackendType.Metal;
-
-    /// <inheritdoc/>
     public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
 
     public MetalGraphicsManager(in GraphicsManagerOptions options)

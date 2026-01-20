@@ -25,7 +25,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     private readonly uint[] _strides = new uint[MaxVertexBufferBindings];
 
     public D3D12RenderPipeline(D3D12GraphicsDevice device, in RenderPipelineDescriptor descriptor)
-        : base( descriptor.Label)
+        : base(descriptor.Label)
     {
         _device = device;
         D3DLayout = (D3D12PipelineLayout)descriptor.Layout;
@@ -34,38 +34,24 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         stream.stream1.pRootSignature = D3DLayout.Handle;
 
         // ShaderStages
-        int shaderStageCount = descriptor.ShaderStages.Length;
-        void** shaderStageBytecodes = stackalloc void*[shaderStageCount];
-
-        for (int i = 0; i < shaderStageCount; i++)
+        // Mesh Pipeline (D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
+        if (descriptor.MeshShader is not null)
         {
-            ref ShaderStageDescription shaderDesc = ref descriptor.ShaderStages[i];
-            shaderStageBytecodes[i] = Unsafe.AsPointer(ref shaderDesc.ByteCode[0]);
+            stream.stream2.MS = new(((D3D12ShaderModule)descriptor.MeshShader).ByteCode);
 
-            switch (shaderDesc.Stage)
+            if (descriptor.AmplificationShader != null)
             {
-                case ShaderStages.Vertex:
-                    stream.stream1.VS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
-                case ShaderStages.Hull:
-                    stream.stream1.HS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
-                case ShaderStages.Domain:
-                    stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
-                case ShaderStages.Geometry:
-                    stream.stream1.DS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
-                case ShaderStages.Fragment:
-                    stream.stream1.PS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
-                case ShaderStages.Amplification:
-                    stream.stream2.AS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
-                case ShaderStages.Mesh:
-                    stream.stream2.MS = new(shaderStageBytecodes[i], (nuint)shaderDesc.ByteCode.Length);
-                    break;
+                stream.stream2.AS = new(((D3D12ShaderModule)descriptor.AmplificationShader).ByteCode);
             }
+        }
+        else
+        {
+            stream.stream1.VS = new(((D3D12ShaderModule)descriptor.VertexShader!).ByteCode);
+        }
+
+        if (descriptor.FragmentShader != null)
+        {
+            stream.stream1.PS = ((D3D12ShaderModule)descriptor.FragmentShader).ByteCode;
         }
 
         stream.stream1.BlendState = D3D12_BLEND_DESC.DEFAULT;
@@ -158,9 +144,9 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             case PrimitiveTopology.TriangleStrip:
                 stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
                 break;
-            case PrimitiveTopology.PatchList:
-                stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-                break;
+                //case PrimitiveTopology.PatchList:
+                //    stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+                //    break;
         }
 
         // Color Attachments + RTV
@@ -170,7 +156,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 
         stream.stream1.RTVFormats = RTVFormats;
         stream.stream1.DSVFormat = (DXGI_FORMAT)descriptor.DepthStencilFormat.ToDxgiFormat();
-        stream.stream1.SampleDesc = new(1, 0);
+        stream.stream1.SampleDesc = new(new DXGI_SAMPLE_DESC(1, 0));
         stream.stream1.NodeMask = 0;
 
         D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
@@ -190,7 +176,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             return;
         }
 
-        D3DPrimitiveTopology = descriptor.PrimitiveTopology.ToD3DPrimitiveTopology(descriptor.PatchControlPoints);
+        D3DPrimitiveTopology = descriptor.PrimitiveTopology.ToD3DPrimitiveTopology();
     }
 
     /// <inheritdoc />
@@ -232,9 +218,6 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         public CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
         public CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
         public CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-        public CD3DX12_PIPELINE_STATE_STREAM_HS HS;
-        public CD3DX12_PIPELINE_STATE_STREAM_DS DS;
-        public CD3DX12_PIPELINE_STATE_STREAM_GS GS;
         public CD3DX12_PIPELINE_STATE_STREAM_PS PS;
         public CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
         public CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
@@ -252,9 +235,6 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             IBStripCutValue = new();
             PrimitiveTopologyType = new();
             VS = new();
-            HS = new();
-            DS = new();
-            GS = new();
             PS = new();
         }
     }

@@ -27,28 +27,26 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     {
         _device = device;
         D3DLayout = (D3D12PipelineLayout)descriptor.Layout;
+        D3D12ShaderModule computeShader = (D3D12ShaderModule)descriptor.ComputeShader;
 
-        fixed (byte* pByteCode = descriptor.ComputeShader.ByteCode)
+        ComputePipelineStateStream stream = new()
         {
-            ComputePipelineStateStream stream = new()
-            {
-                pRootSignature = D3DLayout.Handle,
-                CS = new(pByteCode, (nuint)descriptor.ComputeShader.ByteCode.Length),
-                NodeMask = 0
-            };
+            pRootSignature = D3DLayout.Handle,
+            CS = new(computeShader.ByteCode),
+            NodeMask = 0
+        };
 
-            D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
-            {
-                pPipelineStateSubobjectStream = &stream,
-                SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
-            };
+        D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
+        {
+            pPipelineStateSubobjectStream = &stream,
+            SizeInBytes = (nuint)sizeof(ComputePipelineStateStream)
+        };
 
-            HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), (void**)_handle.GetAddressOf());
-            if (hr.FAILED)
-            {
-                Log.Error("D3D12: Failed to create Compute Pipeline.");
-                return;
-            }
+        HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), (void**)_handle.GetAddressOf());
+        if (hr.FAILED)
+        {
+            Log.Error("D3D12: Failed to create Compute Pipeline.");
+            return;
         }
     }
 

@@ -7,16 +7,16 @@ namespace Alimer.Graphics.Tests;
 
 public static class TestUtilities
 {
-    public static ShaderStageDescription CompileShader(string fileName, string entryPoint, GraphicsBackendType backendType, ShaderStages stage)
+    public static ShaderModule CompileShader(GraphicsDevice device, string fileName, ShaderStages stage, Utf8String entryPoint)
     {
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));
 
         ShaderCompilationOptions options = new()
         {
-            ShaderFormat = backendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL,
+            ShaderFormat = device.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL,
             ShaderStage = stage,
-            EntryPoint = entryPoint,
+            EntryPoint = entryPoint.ToString()!,
 #if DEBUG
             Debug = true,
 #endif
@@ -28,6 +28,7 @@ public static class TestUtilities
             throw new GraphicsException(result.ErrorMessage);
         }
 
-        return new ShaderStageDescription(stage, result.GetByteCode().ToArray(), entryPoint);
+        ShaderModuleDescriptor descriptor = new(stage, result.GetByteCode(), entryPoint);
+        return device.CreateShaderModule(in descriptor);
     }
 }

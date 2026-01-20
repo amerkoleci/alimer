@@ -15,6 +15,16 @@ internal readonly partial struct ObjectiveCClass : IEquatable<ObjectiveCClass>
         Handle = handle;
     }
 
+    public ObjectiveCClass(ReadOnlySpan<byte> name)
+    {
+        Handle = ObjectiveC.objc_getClass(name);
+
+        if (Handle == 0)
+        {
+            throw new InvalidOperationException($"Failed to get class {new Utf8ReadOnlyString(name).ToString()}!");
+        }
+    }
+
     public ObjectiveCClass(string name)
     {
         Handle = ObjectiveC.objc_getClass(name);
@@ -24,6 +34,7 @@ internal readonly partial struct ObjectiveCClass : IEquatable<ObjectiveCClass>
             throw new InvalidOperationException($"Failed to get class {name}!");
         }
     }
+
     public nint Handle { get; }
     public readonly bool IsNull => Handle == 0;
     public readonly bool IsNotNull => Handle != 0;

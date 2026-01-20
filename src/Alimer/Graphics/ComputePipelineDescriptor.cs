@@ -1,31 +1,31 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes a compute <see cref="RenderPipeline"/>.
+/// Structure that describes a compute <see cref="ComputePipeline"/>.
 /// </summary>
-public readonly record struct ComputePipelineDescriptor
+public record struct ComputePipelineDescriptor
 {
-    public ComputePipelineDescriptor(PipelineLayout layout, ShaderStageDescription computeShader)
-    {
-        Guard.IsNotNull(layout, nameof(layout));
-        Guard.IsNotNull(computeShader.ByteCode, nameof(computeShader.ByteCode));
-        Guard.IsTrue(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
-
-        Layout = layout;
-        ComputeShader = computeShader;
-    }
-
-    public PipelineLayout Layout { get; init; }
-
-    public ShaderStageDescription ComputeShader { get; init; }
+    public required ShaderModule ComputeShader;
+    public PipelineLayout Layout;
 
     /// <summary>
-    /// Gets or sets the label of <see cref="RenderPipeline"/>.
+    /// Gets or sets the label of <see cref="ComputePipeline"/>.
     /// </summary>
-    public string? Label { get; init; }
+    public string? Label;
+
+    [SetsRequiredMembers]
+    public ComputePipelineDescriptor(ShaderModule computeShader, PipelineLayout layout)
+    {
+        Guard.IsTrue(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
+        Guard.IsNotNull(layout, nameof(layout));
+
+        ComputeShader = computeShader;
+        Layout = layout;
+    }
 }

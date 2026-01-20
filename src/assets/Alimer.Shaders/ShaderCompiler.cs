@@ -235,15 +235,16 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcBlobUtf8> errors = default;
         results.Get()->GetOutput(DXC_OUT_ERRORS,
             __uuidof<IDxcBlobUtf8>(),
-            (void**)errors.GetAddressOf(),  
+            (void**)errors.GetAddressOf(),
             null
             );
         // Note that d3dcompiler would return null if no errors or warnings are present.
         // IDxcCompiler3::Compile will always return an error buffer, but its length
         // will be zero if there are no warnings or errors.
+        string? warningAndErrors = default;
         if (errors.Get() is not null && errors.Get()->GetStringLength() != 0)
         {
-            //string warningAndErrors = StringUtilities.GetString(errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength())!;
+            warningAndErrors = new Utf8String(errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength()).ToString()!;
             //Log.Warn"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
         }
 
@@ -252,7 +253,7 @@ public sealed unsafe partial class ShaderCompiler
         results.Get()->GetStatus(&hrStatus);
         if (hrStatus.FAILED)
         {
-            return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus}");
+            return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus} -> {warningAndErrors}");
         }
 
         using ComPtr<IDxcBlob> byteCode = default;
@@ -364,7 +365,7 @@ public sealed unsafe partial class ShaderCompiler
         }
         else
         {
-            ReadOnlySpan<byte> bytecode = new (byteCode.Get()->GetBufferPointer(), (int)byteCode.Get()->GetBufferSize());
+            ReadOnlySpan<byte> bytecode = new(byteCode.Get()->GetBufferPointer(), (int)byteCode.Get()->GetBufferSize());
 
             // Use SpirvReflect for reflection
             SpvReflectShaderModule module = default;
@@ -437,15 +438,6 @@ public sealed unsafe partial class ShaderCompiler
             case ShaderStages.Vertex:
                 return $"vs_{model}";
 
-            case ShaderStages.Hull:
-                return $"hs_{model}";
-
-            case ShaderStages.Domain:
-                return $"ds_{model}";
-
-            case ShaderStages.Geometry:
-                return $"gs_{model}";
-
             case ShaderStages.Fragment:
                 return $"ps_{model}";
 
@@ -459,7 +451,7 @@ public sealed unsafe partial class ShaderCompiler
                 return $"as_{model}";
 
             default:
-            case ShaderStages.Library:
+            //case ShaderStages.Library:
                 return $"lib_{model}";
         }
     }

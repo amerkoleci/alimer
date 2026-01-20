@@ -12,6 +12,11 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
     public PhysicsSystem()
         : base(typeof(TransformComponent))
     {
+        PhysicsConfig config = default;
+        if (alimerPhysicsInit(in config) == false)
+        {
+            throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
+        }
     }
 
     public PhysicsSimulation Simulation { get; } = new();
@@ -63,12 +68,6 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
     [ModuleInitializer]
     public static void Initialize()
     {
-        PhysicsConfig config = default;
-        if (alimerPhysicsInit(in config) == false)
-        {
-            throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
-        }
-
         EntityManager.RegisterSystemFactory<PhysicsSystem>();
     }
 #pragma warning restore CA2255

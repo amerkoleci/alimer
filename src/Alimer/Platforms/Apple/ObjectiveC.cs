@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
@@ -28,6 +29,9 @@ internal static unsafe partial class ObjectiveC
     public static partial nint objc_getClass(string name);
 
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial nint objc_getClass(ReadOnlySpan<byte> name);
+
+    [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
     public static partial nint class_getProperty(ObjectiveCClass @class, string name);
 
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
@@ -36,6 +40,12 @@ internal static unsafe partial class ObjectiveC
     #region MessageSend
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial void objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, [MarshalAs(UnmanagedType.U1)] bool value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, nint value);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector);
@@ -67,6 +77,12 @@ internal static unsafe partial class ObjectiveC
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector, nint a, nuint b);
+
+    public static T objc_msgSend<T>(nint receiver, Selector selector) where T : struct
+    {
+        nint value = IntPtr_objc_msgSend(receiver, selector);
+        return Unsafe.AsRef<T>(&value);
+    }
     #endregion
 
     public static void retain(nint receiver) => objc_msgSend(receiver, Selectors.Retain);

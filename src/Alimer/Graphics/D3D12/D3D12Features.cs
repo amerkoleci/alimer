@@ -32,8 +32,8 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS11 _options11;
 #endif
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS12 _options12;
-#if TODO
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS13 _options13;
+#if TODO
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS14 _options14;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS15 _options15;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS16 _options16;
@@ -113,12 +113,10 @@ internal unsafe readonly struct D3D12Features
             _options12.MSPrimitivesPipelineStatisticIncludesCulledPrimitives = D3D12_TRI_STATE.D3D12_TRI_STATE_UNKNOWN;
         }
 
-#if TODO
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).FAILED)
         {
             _options13 = default;
         }
-#endif
 
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref _options19).FAILED)
         {
@@ -195,6 +193,13 @@ internal unsafe readonly struct D3D12Features
     public bool UnalignedBlockTexturesSupported => _options8.UnalignedBlockTexturesSupported;
     public bool MeshShaderPipelineStatsSupported => _options9.MeshShaderPipelineStatsSupported;
     public bool EnhancedBarriersSupported => _options12.EnhancedBarriersSupported;
+
+    public bool UnrestrictedBufferTextureCopyPitchSupported => _options13.UnrestrictedBufferTextureCopyPitchSupported;
+    public bool UnrestrictedVertexElementAlignmentSupported => _options13.UnrestrictedVertexElementAlignmentSupported;
+    public bool InvertedViewportHeightFlipsYSupported => _options13.InvertedViewportHeightFlipsYSupported;
+    public bool InvertedViewportDepthFlipsZSupported => _options13.InvertedViewportDepthFlipsZSupported;
+    public bool TextureCopyBetweenDimensionsSupported => _options13.TextureCopyBetweenDimensionsSupported;
+    public bool AlphaBlendFactorSupported => _options13.AlphaBlendFactorSupported;
 
     private static D3D_FEATURE_LEVEL QueryHighestFeatureLevel(ID3D12Device* device)
     {

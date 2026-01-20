@@ -86,23 +86,20 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
-        ShaderStageDescription vertexShader = CompileShader("TexturedCube.hlsl", "vertexMain", ShaderStages.Vertex);
-        ShaderStageDescription fragmentShader = CompileShader("TexturedCube.hlsl", "fragmentMain", ShaderStages.Fragment);
+        using ShaderModule vertexShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
 
-        var shaderStages = new ShaderStageDescription[2]
-        {
-            vertexShader,
-            fragmentShader,
-        };
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
-            Label = "RenderPipeline"
+            Label = "RenderPipeline",
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
 

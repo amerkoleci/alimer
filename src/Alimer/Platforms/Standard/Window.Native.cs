@@ -5,6 +5,8 @@ using Alimer.Graphics;
 using System.Runtime.InteropServices;
 using static Alimer.AlimerApi;
 using Alimer.Utilities;
+using CommunityToolkit.Diagnostics;
+using Alimer.Platforms.Apple;
 
 namespace Alimer;
 
@@ -48,7 +50,7 @@ partial class Window
         // Native handle
         if (OperatingSystem.IsWindows())
         {
-            _surface = SwapChainSurface.CreateWin32(alimerWindowGetNativeHandle(_window));
+            _surface = SwapChainSurface.CreateWin32(alimerGetWin32Window(_window));
         }
         else if (OperatingSystem.IsAndroid())
         {
@@ -56,45 +58,44 @@ partial class Window
             //Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, IntPtr.Zero);
             throw new PlatformNotSupportedException();
         }
-        else
+        else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
-            throw new PlatformNotSupportedException();
-        }
-#if TODO
-        
-        else if (OperatingSystem.IsIOS())
-        {
-            Kind = SwapChainSurfaceType.MetalLayer;
-            ContextHandle = 0;
-            // the (__unsafe_unretained) UIWindow associated with the window
-            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER, IntPtr.Zero);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Kind = SwapChainSurfaceType.MetalLayer;
-            ContextHandle = 0;
-            // the (__unsafe_unretained) NSWindow associated with the window
-            Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, IntPtr.Zero);
+            NSWindow nswindow = alimerGetCocoaWindow(_window);
+
+            NSView contentView = nswindow.contentView;
+
+            if (!CAMetalLayer.TryCast(contentView.layer, out CAMetalLayer metalLayer))
+            {
+                metalLayer = CAMetalLayer.New();
+                contentView.wantsLayer = true;
+                contentView.layer = metalLayer;
+            }
+
+            _surface = SwapChainSurface.CreateMetalLayer(metalLayer.Handle);
         }
         else if (OperatingSystem.IsLinux())
         {
-            if (SDL_GetCurrentVideoDriver() == "wayland")
+            nint wayland_display = alimerGetWaylandDisplay(_window);
+            nint wayland_surface = alimerGetWaylandSurface(_window);
+
+            if (wayland_display != 0 && wayland_surface != 0)
             {
-                // Wayland
-                Kind = SwapChainSurfaceType.Wayland;
-                ContextHandle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, IntPtr.Zero);
-                Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, IntPtr.Zero);
+                _surface = SwapChainSurface.CreateWayland(wayland_display, wayland_surface);
             }
             else
             {
                 // X11
-                Kind = SwapChainSurfaceType.Xlib;
-                ContextHandle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, IntPtr.Zero);
-                Handle = new IntPtr(SDL_GetNumberProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0));
-            }
+                nint x11_display = alimerGetX11Display(_window);
+                ulong x11_window = alimerGetX11Window(_window);
+                Guard.IsTrue(x11_display != 0 && x11_window != 0, "Failed to get X11 window information.");
 
-        } 
-#endif
+                _surface = SwapChainSurface.CreateXlib(x11_display, x11_window);
+            }
+        }
+        else
+        {
+            throw new PlatformNotSupportedException();
+        }
     }
 
     /// <inheritdoc />

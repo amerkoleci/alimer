@@ -11,15 +11,15 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <_ShaderCompilerPath>$(AlimerSrcDirectory)assets/Alimer.ShaderCompiler/bin/$(Configuration)/net8.0/Alimer.ShaderCompiler.dll</_ShaderCompilerPath>
-    <_ProcessDir>$(BaseIntermediateOutputPath)/CompiledShaders</_ProcessDir>
+    <_ShaderCompilerPath>$(AlimerRootDirectory)artifacts\bin\Alimer.ShaderCompiler\$(Configuration)_net10.0\Alimer.ShaderCompiler.dll</_ShaderCompilerPath>
+    <_ProcessDir>$(BaseIntermediateOutputPath)CompiledShaders</_ProcessDir>
   </PropertyGroup>
 
   <Target Name="ProcessShaders" AfterTargets="AssignTargetPaths" Condition="'@(Shader)' != ''">
     <PropertyGroup>
       <_Command>dotnet $(_ShaderCompilerPath)</_Command>
       <_Command>$(_Command) $(_ProcessDir)</_Command>
-      <_Command>$(_Command) @(Shader->'%(Identity)', ' ')</_Command>
+      <_Command>$(_Command) @(Shader->'%(FullPath)', ' ')</_Command>
     </PropertyGroup>
     <Message Importance="high" Text="Executing: $(_Command)" />
     <Exec Command="$(_Command)" />

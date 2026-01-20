@@ -59,25 +59,21 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0, _bindGroupLayout1));
 
         Dictionary<string, string> vsDefines = new() { { "VERTEX_COLOR", "0" } };
-        ShaderStageDescription vertexShader = CompileShader("Cube", "vertexMain", ShaderStages.Vertex, vsDefines);
-        ShaderStageDescription fragmentShader = CompileShader("Cube", "fragmentMain", ShaderStages.Fragment, vsDefines);
+        using ShaderModule vertexShader = CompileShaderModule("Cube", ShaderStages.Vertex, "vertexMain"u8, vsDefines);
+        using ShaderModule fragmentShader = CompileShaderModule("Cube", ShaderStages.Fragment, "fragmentMain"u8, vsDefines);
 
         //ShaderStageDescription vertexShader = LoadShader("Cube", ShaderStages.Vertex, "vertexMain");
         //ShaderStageDescription fragmentShader = LoadShader("Cube", ShaderStages.Fragment, "fragmentMain");
-
-        var shaderStages = new ShaderStageDescription[2]
-        {
-            vertexShader,
-            fragmentShader,
-        };
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, shaderStages, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
             Label = "RenderPipeline"
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));

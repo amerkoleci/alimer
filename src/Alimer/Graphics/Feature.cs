@@ -17,7 +17,6 @@ public enum Feature
     RG11B10UfloatRenderable,
     BGRA8UnormStorage,
 
-    TessellationShader,
     DepthBoundsTest,
     SamplerClampToBorder,
     SamplerMirrorClampToEdge,

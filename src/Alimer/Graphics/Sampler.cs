@@ -5,21 +5,21 @@ namespace Alimer.Graphics;
 
 public abstract class Sampler : GraphicsObject
 {
-    protected Sampler(in SamplerDescriptor description)
-        : base(description.Label)
+    protected Sampler(in SamplerDescriptor descriptor)
+        : base(descriptor.Label)
     {
-        MinFilter = description.MinFilter;
-        MagFilter = description.MagFilter;
-        MipFilter = description.MipFilter;
-        AddressModeU = description.AddressModeU;
-        AddressModeV = description.AddressModeV;
-        AddressModeW = description.AddressModeW;
-        LodMinClamp = description.LodMinClamp;
-        LodMaxClamp = description.LodMaxClamp;
-        CompareFunction = description.CompareFunction;
-        MaxAnisotropy = description.MaxAnisotropy;
-        ReductionType = description.ReductionType;
-        BorderColor = description.BorderColor;
+        MinFilter = descriptor.MinFilter;
+        MagFilter = descriptor.MagFilter;
+        MipFilter = descriptor.MipFilter;
+        AddressModeU = descriptor.AddressModeU;
+        AddressModeV = descriptor.AddressModeV;
+        AddressModeW = descriptor.AddressModeW;
+        LodMinClamp = descriptor.LodMinClamp;
+        LodMaxClamp = descriptor.LodMaxClamp;
+        CompareFunction = descriptor.CompareFunction;
+        MaxAnisotropy = descriptor.MaxAnisotropy;
+        ReductionType = descriptor.ReductionType;
+        BorderColor = descriptor.BorderColor;
     }
 
     /// <summary>

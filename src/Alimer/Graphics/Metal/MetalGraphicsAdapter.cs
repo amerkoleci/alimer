@@ -8,7 +8,6 @@ namespace Alimer.Graphics.Metal;
 internal class MetalGraphicsAdapter : GraphicsAdapter
 {
     public readonly MTLDevice Device;
-    private readonly GraphicsDeviceLimits _limits;
 
     public MetalGraphicsAdapter(MetalGraphicsManager manager, MTLDevice device)
         : base(manager)
@@ -25,8 +24,6 @@ internal class MetalGraphicsAdapter : GraphicsAdapter
     public override uint DeviceId => throw new NotImplementedException();
 
     public override GraphicsAdapterType Type { get; }
-
-    public override GraphicsDeviceLimits Limits => _limits;
 
     public override bool QueryFeatureSupport(Feature feature) => throw new NotImplementedException();
     public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) => throw new NotImplementedException();

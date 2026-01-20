@@ -13,13 +13,14 @@ public struct GraphicsDeviceLimits
     public uint MaxBindGroups;
     //public uint MaxTexelBufferDimension2D;
 
-    //public uint UploadBufferTextureRowAlignment;
-    //public uint UploadBufferTextureSliceAlignment;
     public uint MinConstantBufferOffsetAlignment;
     public uint MaxConstantBufferBindingSize;
 
     public uint MinStorageBufferOffsetAlignment;
     public uint MaxStorageBufferBindingSize;
+
+    public uint TextureRowPitchAlignment;
+    public uint TextureDepthPitchAlignment;
 
     public ulong MaxBufferSize;
     public uint MaxPushConstantsSize;

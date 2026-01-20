@@ -20,7 +20,9 @@ class Program
         //    Directory.CreateDirectory(outputDirectory);
         //}
 
-        for (int i = 1; i < args.Length; i++)
+        string includeDirectory = args[1];
+
+        for (int i = 2; i < args.Length; i++)
         {
             string arg = args[i];
 

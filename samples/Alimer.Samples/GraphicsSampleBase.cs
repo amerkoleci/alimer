@@ -64,22 +64,24 @@ public abstract class GraphicsSampleBase : SampleBase
         }
     }
 
-    protected ShaderStageDescription LoadShader(string name, ShaderStages stage, string entryPoint)
+    protected ShaderModule LoadShader(string name, ShaderStages stage, Utf8String entryPoint)
     {
-        string shaderFormat = GraphicsManager.BackendType == GraphicsBackendType.Vulkan ? "spirv" : "dxil";
+        string shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? "spirv" : "dxil";
 
         string entryName = $"{name}_{entryPoint}_{shaderFormat}.bin";
         byte[] bytecode = ReadEmbeddedAssetBytes(entryName);
-        return new ShaderStageDescription(stage, bytecode, entryPoint);
+
+        ShaderModuleDescriptor descriptor = new(stage, bytecode, entryPoint);
+        return GraphicsDevice.CreateShaderModule(in descriptor);
     }
 
-    protected ShaderStageDescription CompileShader(
+    protected ShaderModule CompileShaderModule(
         string fileName,
-        string entryPoint,
         ShaderStages stage,
+        Utf8String entryPoint,
         Dictionary<string, string>? defines = default)
     {
-        ShaderFormat shaderFormat = GraphicsManager.BackendType == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
+        ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".hlsl");
@@ -90,7 +92,7 @@ public abstract class GraphicsSampleBase : SampleBase
             SourceFileName = shaderSourceFileName,
             ShaderFormat = shaderFormat,
             ShaderStage = stage,
-            EntryPoint = entryPoint,
+            EntryPoint = entryPoint.ToString()!,
             IncludeDirs =
             {
                 shadersPath
@@ -111,6 +113,7 @@ public abstract class GraphicsSampleBase : SampleBase
             throw new GraphicsException(result.ErrorMessage);
         }
 
-        return new ShaderStageDescription(stage, result.GetByteCode().ToArray(), entryPoint);
+        ShaderModuleDescriptor descriptor = new(stage, result.GetByteCode(), entryPoint);
+        return GraphicsDevice.CreateShaderModule(in descriptor);
     }
 }

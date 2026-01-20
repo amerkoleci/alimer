@@ -22,20 +22,12 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
         _device = device;
         VkLayout = (VulkanPipelineLayout)descriptor.Layout;
 
-        Utf8String entryPoint = new(VkStringInterop.ConvertToUnmanaged(descriptor.ComputeShader.EntryPoint));
-
         VkPipelineShaderStageCreateInfo stage = new()
         {
-            stage = VkShaderStageFlags.Compute,
-            pName = entryPoint
+            stage = VK_SHADER_STAGE_COMPUTE_BIT,
+            module = ((VulkanShaderModule)descriptor.ComputeShader).Handle,
+            pName = (byte*)descriptor.ComputeShader.EntryPoint
         };
-
-        VkResult result = _device.DeviceApi.vkCreateShaderModule(device.Handle, descriptor.ComputeShader.ByteCode, null, out stage.module);
-        if (result != VkResult.Success)
-        {
-            Log.Error("Failed to create a pipeline shader module");
-            return;
-        }
 
         VkComputePipelineCreateInfo createInfo = new()
         {
@@ -46,12 +38,14 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
         };
 
         VkPipeline pipeline;
-        result = _device.DeviceApi.vkCreateComputePipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        VkResult result = _device.DeviceApi.vkCreateComputePipelines(device.Handle,
+            device.PipelineCache,
+            1, &createInfo,
+            null,
+            &pipeline
+            );
 
-        // Delete shader module.
-        _device.DeviceApi.vkDestroyShaderModule(device.Handle, stage.module);
-
-        if (result != VkResult.Success)
+        if (result != VK_SUCCESS)
         {
             Log.Error("Vulkan: Failed to create Compute Pipeline.");
             return;
@@ -77,7 +71,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanRenderPipeline" /> class.
     /// </summary>
-    ~VulkanComputePipeline () => Dispose(disposing: false);
+    ~VulkanComputePipeline() => Dispose(disposing: false);
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)

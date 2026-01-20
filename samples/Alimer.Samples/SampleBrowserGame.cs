@@ -36,7 +36,7 @@ public sealed class SampleBrowserGame : Game
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
 
-        MainWindow.Title = $"{_runningSample.Name} - {GraphicsManager.BackendType}";
+        MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
     protected override void Dispose(bool disposing)

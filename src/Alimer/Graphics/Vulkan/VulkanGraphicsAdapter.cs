@@ -367,41 +367,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Debug.Assert(SupportsD24S8 || SupportsD32S8);
 
 
-        _limits = new GraphicsDeviceLimits
-        {
-            MaxTextureDimension1D = properties2.properties.limits.maxImageDimension1D,
-            MaxTextureDimension2D = properties2.properties.limits.maxImageDimension2D,
-            MaxTextureDimension3D = properties2.properties.limits.maxImageDimension3D,
-            MaxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube,
-            MaxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers,
-            MaxBindGroups = properties2.properties.limits.maxBoundDescriptorSets,
-            MinConstantBufferOffsetAlignment = (uint)properties2.properties.limits.minUniformBufferOffsetAlignment,
-            MaxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange,
-            MinStorageBufferOffsetAlignment = (uint)properties2.properties.limits.minStorageBufferOffsetAlignment,
-            MaxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange,
-            MaxBufferSize = properties13.maxBufferSize,
-            MaxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize,
-            MaxColorAttachments = properties2.properties.limits.maxColorAttachments,
-            MaxViewports = properties2.properties.limits.maxViewports,
-
-            MaxVertexBuffers = properties2.properties.limits.maxVertexInputBindings,
-            MaxVertexAttributes = properties2.properties.limits.maxVertexInputAttributes,
-            MaxVertexBufferArrayStride = properties2.properties.limits.maxVertexInputBindingStride,
-
-            MaxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize,
-            MaxComputeInvocationsPerWorkGroup = properties2.properties.limits.maxComputeWorkGroupInvocations,
-            MaxComputeWorkGroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0],
-            MaxComputeWorkGroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1],
-            MaxComputeWorkGroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2],
-            MaxComputeWorkGroupsPerDimension = Math.Min(Math.Min(
-                properties2.properties.limits.maxComputeWorkGroupCount[0],
-                properties2.properties.limits.maxComputeWorkGroupCount[1]),
-                properties2.properties.limits.maxComputeWorkGroupCount[2]
-            )
-        };
-
-        // TODO: Rest of limits
-
         void AddToFeatureChain(void* next)
         {
             VkBaseOutStructure* n = (VkBaseOutStructure*)next;
@@ -436,9 +401,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
     /// <inheritdoc />
     public override GraphicsAdapterType Type { get; }
-
-    /// <inheritdoc />
-    public override GraphicsDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override bool QueryFeatureSupport(Feature feature)
@@ -492,9 +454,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
                     return true;
                 }
                 return false;
-
-            case Feature.TessellationShader:
-                return Features2.features.tessellationShader;
 
             case Feature.DepthBoundsTest:
                 return Features2.features.depthBounds;
