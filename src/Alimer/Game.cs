@@ -278,7 +278,7 @@ public abstract class Game : DisposableObject, IGame
 
                 // Begin rendering commands
                 CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer(CommandQueueType.Graphics, "Frame"u8);
-                Texture? swapChainTexture = MainWindow.SwapChain!.GetCurrentTexture();
+                Texture? swapChainTexture = MainWindow.SwapChain!.AcquireNextTexture();
                 if (swapChainTexture is not null)
                 {
                     Draw(commandBuffer, swapChainTexture, _appTime);
@@ -287,7 +287,7 @@ public abstract class Game : DisposableObject, IGame
                 commandBuffer.Present(MainWindow.SwapChain!);
 
                 // Execute 
-                GraphicsDevice.GraphicsCommandQueue.Execute(commandBuffer);
+                GraphicsDevice.GraphicsQueue.Execute(commandBuffer);
             }
             finally
             {

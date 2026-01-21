@@ -303,7 +303,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
     public override void SetShadingRate(ShadingRate rate)
     {
-        if (_commandBuffer.D3DDevice.Adapter.QueryFeatureSupport(Feature.VariableRateShading)
+        if (_commandBuffer.D3DDevice.QueryFeatureSupport(Feature.VariableRateShading)
             && _currentShadingRate != rate)
         {
             _currentShadingRate = rate;

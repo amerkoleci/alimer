@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
@@ -45,17 +46,36 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <summary>
     /// Gets the graphics command queue used to submit rendering commands to the GPU.
     /// </summary>
-    public CommandQueue GraphicsCommandQueue
+    [NotNull]
+    public CommandQueue GraphicsQueue
     {
-        get => field ??= GetCommandQueue(CommandQueueType.Graphics);
+        get => field ??= GetCommandQueue(CommandQueueType.Graphics)!;
     }
 
     /// <summary>
     /// Gets the command queue used for compute operations on the device.
     /// </summary>
-    public CommandQueue ComputeCommandQueue
+    [NotNull]
+    public CommandQueue ComputeQueue
     {
-        get => field ??= GetCommandQueue(CommandQueueType.Compute);
+        get => field ??= GetCommandQueue(CommandQueueType.Compute)!;
+    }
+
+    /// <summary>
+    /// Gets the command queue used for copy operations.
+    /// </summary>
+    [NotNull]
+    public CommandQueue CopyQueue
+    {
+        get => field ??= GetCommandQueue(CommandQueueType.Copy)!;
+    }
+
+    /// <summary>
+    /// Gets the command queue used for video decode operations, if available.
+    /// </summary>
+    public CommandQueue? VideoDecodeQueue
+    {
+        get => field ??= GetCommandQueue(CommandQueueType.VideoDecode);
     }
 
     /// <summary>
@@ -72,6 +92,9 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// Gets the current frame index.
     /// </summary>
     public uint FrameIndex => _frameIndex;
+
+    public abstract bool QueryFeatureSupport(Feature feature);
+    public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
 
     /// <summary>
     /// Get command queue of the specified type.
@@ -157,13 +180,13 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
 #if VALIDATE_USAGE
         if ((description.Usage & BufferUsage.Predication) != 0 &&
-            !Adapter.QueryFeatureSupport(Feature.Predication))
+            !QueryFeatureSupport(Feature.Predication))
         {
             throw new GraphicsException($"Buffer cannot be created with {BufferUsage.Predication} usage as adapter doesn't support it");
         }
 
         if ((description.Usage & BufferUsage.RayTracing) != 0 &&
-            !Adapter.QueryFeatureSupport(Feature.RayTracing))
+            !QueryFeatureSupport(Feature.RayTracing))
         {
             throw new GraphicsException($"Buffer cannot be created with {BufferUsage.RayTracing} usage as adapter doesn't support it");
         }
@@ -245,10 +268,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public Sampler CreateSampler(in SamplerDescriptor descriptor)
     {
-        if (descriptor.ReductionType == SamplerReductionType.Minimum ||
-            descriptor.ReductionType == SamplerReductionType.Maximum)
+        if (descriptor.ReductionType == SamplerReductionType.Minimum
+            || descriptor.ReductionType == SamplerReductionType.Maximum)
         {
-            if (Adapter.QueryFeatureSupport(Feature.SamplerMinMax))
+            if (QueryFeatureSupport(Feature.SamplerMinMax))
             {
                 throw new GraphicsException($"{nameof(Feature.SamplerMinMax)} feature is not supported");
             }

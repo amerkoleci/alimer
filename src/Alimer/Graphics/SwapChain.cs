@@ -34,5 +34,10 @@ public abstract class SwapChain : GraphicsObject
 
     protected abstract void ResizeBackBuffer();
 
-    public abstract Texture? GetCurrentTexture();
+    /// <summary>
+    /// Acquires the next available texture for rendering or processing operations.
+    /// </summary>
+    /// <returns>A <see cref="Texture"/> object representing the next available texture, or <see langword="null"/> if no texture
+    /// is currently available.</returns>
+    public abstract Texture? AcquireNextTexture();
 }

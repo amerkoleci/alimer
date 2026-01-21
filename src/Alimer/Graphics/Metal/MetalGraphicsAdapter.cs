@@ -25,7 +25,5 @@ internal class MetalGraphicsAdapter : GraphicsAdapter
 
     public override GraphicsAdapterType Type { get; }
 
-    public override bool QueryFeatureSupport(Feature feature) => throw new NotImplementedException();
-    public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) => throw new NotImplementedException();
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => throw new NotImplementedException();
 }

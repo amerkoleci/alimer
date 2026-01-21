@@ -215,7 +215,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
             blendAttachmentStates[renderingInfo.colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
             blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
 
-            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.VkAdapter.ToVkFormat(descriptor.ColorFormats[i]);
+            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.ToVkFormat(descriptor.ColorFormats[i]);
             renderingInfo.colorAttachmentCount++;
         }
 

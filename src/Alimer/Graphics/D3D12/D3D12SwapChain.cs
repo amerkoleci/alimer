@@ -189,7 +189,7 @@ internal unsafe class D3D12SwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    public override Texture? GetCurrentTexture()
+    public override Texture? AcquireNextTexture()
     {
         uint backBufferIndex = _handle.Get()->GetCurrentBackBufferIndex();
         return _backbufferTextures![backBufferIndex];

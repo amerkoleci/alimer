@@ -35,10 +35,6 @@ public abstract class GraphicsAdapter
     /// </summary>
     public abstract GraphicsAdapterType Type { get; }
 
-    public abstract bool QueryFeatureSupport(Feature feature);
-    public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
-    //public abstract bool QueryVertexFormatSupport(VertexFormat format);
-
     /// <summary>
     /// Creates a new <see cref="GraphicsDevice"/> with the default options.
     /// </summary>

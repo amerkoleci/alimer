@@ -360,11 +360,11 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     {
         string message = VkStringInterop.ConvertToManaged(pCallbackData->pMessage)!;
 
-        if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Error)
+        if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)
         {
             Log.Error($"[Vulkan]: {messageTypes}: {messageSeverity} - {message}");
         }
-        else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.Warning)
+        else if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0)
         {
             Log.Warn($"[Vulkan]: {messageTypes}: {messageSeverity} - {message}");
         }

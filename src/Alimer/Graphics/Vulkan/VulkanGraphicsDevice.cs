@@ -893,6 +893,214 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    public override bool QueryFeatureSupport(Feature feature)
+    {
+        switch (feature)
+        {
+            case Feature.Depth32FloatStencil8:
+                return _adapter.SupportsD32S8;
+
+            case Feature.TimestampQuery:
+                return _adapter.Properties2.properties.limits.timestampComputeAndGraphics == true;
+
+            case Feature.PipelineStatisticsQuery:
+                return _adapter.Features2.features.pipelineStatisticsQuery == true;
+
+            case Feature.TextureCompressionBC:
+                return _adapter.Features2.features.textureCompressionBC == true;
+
+            case Feature.TextureCompressionETC2:
+                return _adapter.Features2.features.textureCompressionETC2 == true;
+
+            case Feature.TextureCompressionASTC:
+                return _adapter.Features2.features.textureCompressionASTC_LDR == true;
+
+            case Feature.TextureCompressionASTC_HDR:
+                return _adapter.Features13.textureCompressionASTC_HDR == true
+                    || _adapter.AstcHdrFeatures.textureCompressionASTC_HDR == true;
+
+            case Feature.IndirectFirstInstance:
+                return _adapter.Features2.features.drawIndirectFirstInstance == true;
+
+            case Feature.ShaderFloat16:
+                // VK_KHR_16bit_storage core in 1.1
+                // VK_KHR_shader_float16_int8 core in 1.2
+                return true;
+
+            case Feature.RG11B10UfloatRenderable:
+                InstanceApi.vkGetPhysicalDeviceFormatProperties(_adapter.Handle, VkFormat.B10G11R11UfloatPack32, out VkFormatProperties rg11b10Properties);
+                if ((rg11b10Properties.optimalTilingFeatures & (VkFormatFeatureFlags.ColorAttachment | VkFormatFeatureFlags.ColorAttachmentBlend)) != 0u)
+                {
+                    return true;
+                }
+
+                return false;
+
+            case Feature.BGRA8UnormStorage:
+                VkFormatProperties bgra8unormProperties;
+                InstanceApi.vkGetPhysicalDeviceFormatProperties(_adapter.Handle, VkFormat.B8G8R8A8Unorm, &bgra8unormProperties);
+                if ((bgra8unormProperties.optimalTilingFeatures & VkFormatFeatureFlags.StorageImage) != 0)
+                {
+                    return true;
+                }
+                return false;
+
+            case Feature.DepthBoundsTest:
+                return _adapter.Features2.features.depthBounds;
+
+            case Feature.SamplerClampToBorder:
+                return true;
+
+            case Feature.SamplerMirrorClampToEdge:
+                return _adapter.Features12.samplerMirrorClampToEdge;
+
+            case Feature.SamplerMinMax:
+                return _adapter.Features12.samplerFilterMinmax;
+
+#if TODO
+            case Feature.DepthResolveMinMax:
+                return DepthResolveMinMax;
+
+            case Feature.StencilResolveMinMax:
+                return StencilResolveMinMax;
+
+            case Feature.CacheCoherentUMA:
+                if (_memoryProperties2.memoryProperties.memoryHeapCount == 1u &&
+                    _memoryProperties2.memoryProperties.memoryHeaps[0].flags.HasFlag(VkMemoryHeapFlags.DeviceLocal))
+                {
+                    return true;
+                }
+
+                return false;
+
+#endif
+            case Feature.Predication:
+                return _adapter.ConditionalRenderingFeatures.conditionalRendering;
+
+            case Feature.DescriptorIndexing:
+                //Guard.IsTrue(PhysicalDeviceFeatures1_2.runtimeDescriptorArray);
+                //Guard.IsTrue(PhysicalDeviceFeatures1_2.descriptorBindingPartiallyBound);
+                //Guard.IsTrue(PhysicalDeviceFeatures1_2.descriptorBindingVariableDescriptorCount);
+                //Guard.IsTrue(PhysicalDeviceFeatures1_2.shaderSampledImageArrayNonUniformIndexing);
+                return _adapter.Features12.descriptorIndexing;
+
+            case Feature.VariableRateShading:
+                return _adapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate;
+
+            case Feature.VariableRateShadingTier2:
+                return _adapter.FragmentShadingRateFeatures.attachmentFragmentShadingRate;
+
+            case Feature.RayTracing:
+                return _adapter.Features12.bufferDeviceAddress
+                    && _adapter.AccelerationStructureFeatures.accelerationStructure
+                    && _adapter.RayTracingPipelineFeatures.rayTracingPipeline;
+
+            case Feature.RayTracingTier2:
+                return _adapter.RayQueryFeatures.rayQuery && QueryFeatureSupport(Feature.RayTracing);
+
+            case Feature.MeshShader:
+                return _adapter.MeshShaderFeatures.meshShader && _adapter.MeshShaderFeatures.taskShader;
+
+            default:
+                return false;
+        }
+    }
+
+    /// <inheritdoc />
+    public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format)
+    {
+        VkFormat vkFormat = ToVkFormat(format);
+        if (vkFormat == VK_FORMAT_UNDEFINED)
+            return PixelFormatSupport.None;
+
+        VkFormatProperties2 props = new();
+        InstanceApi.vkGetPhysicalDeviceFormatProperties2(_adapter.Handle, vkFormat, &props);
+
+        VkFormatFeatureFlags transferBits = VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+
+        PixelFormatSupport result = PixelFormatSupport.None;
+        if ((props.formatProperties.optimalTilingFeatures & transferBits) != 0)
+            result |= PixelFormatSupport.Texture;
+
+        if ((props.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0)
+            result |= PixelFormatSupport.DepthStencil;
+
+        if ((props.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT) != 0)
+            result |= PixelFormatSupport.RenderTarget;
+
+        if ((props.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT) != 0)
+            result |= PixelFormatSupport.Blendable;
+
+        if (props.formatProperties.optimalTilingFeatures.HasFlag(VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+            || props.formatProperties.bufferFeatures.HasFlag(VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT))
+        {
+            result |= PixelFormatSupport.ShaderLoad;
+        }
+
+        if (props.formatProperties.optimalTilingFeatures.HasFlag(VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+            result |= PixelFormatSupport.ShaderSample;
+
+        if (props.formatProperties.optimalTilingFeatures.HasFlag(VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
+            || props.formatProperties.bufferFeatures.HasFlag(VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT))
+        {
+            result |= PixelFormatSupport.ShaderUavLoad;
+            result |= PixelFormatSupport.ShaderUavStore;
+        }
+
+        if (props.formatProperties.optimalTilingFeatures.HasFlag(VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT)
+            || props.formatProperties.bufferFeatures.HasFlag(VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT))
+        {
+            result |= PixelFormatSupport.ShaderAtomic;
+        }
+
+#if TODO
+        // Ensure that the handle type is supported.
+        VkImageFormatProperties2 props2 = { };
+        props2.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
+        if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_1D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, 0, nullptr, &props2))
+        {
+            // Texture1D/Texture1DArray
+        }
+
+        if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, 0, nullptr, &props2))
+        {
+            // Texture2D/Texture2DArray
+        }
+
+        if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_3D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, 0, nullptr, &props2))
+        {
+            // Texture3D
+        }
+
+        if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, nullptr, &props2))
+        {
+            // TextureCube/TextureCubeArray
+        }
+
+        props2 = new();
+        TextureSampleCount supportedSampleCount = TextureSampleCount.Count1;
+        if (format.IsDepthStencilFormat())
+        {
+            if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, nullptr, &props2))
+            {
+                supportedSampleCount = static_cast<TextureSampleCount>(props2.imageFormatProperties.sampleCounts);
+            }
+        }
+        else
+        {
+            if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT, 0, nullptr, &props2))
+            {
+                supportedSampleCount = static_cast<TextureSampleCount>(props2.imageFormatProperties.sampleCounts);
+            }
+        } 
+#endif
+
+        return result;
+    }
+
+    public VkFormat ToVkFormat(PixelFormat format) => _adapter.ToVkFormat(format);
+
+    /// <inheritdoc />
     public override CommandQueue GetCommandQueue(CommandQueueType type) => _queues[(int)type];
 
     /// <inheritdoc />

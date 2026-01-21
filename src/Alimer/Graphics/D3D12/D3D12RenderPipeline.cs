@@ -70,7 +70,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         rasterizerState.ForcedSampleCount = 0;
         rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
         if (descriptor.RasterizerState.ConservativeRaster &&
-            device.Adapter.QueryFeatureSupport(Feature.ConservativeRasterization))
+            device.QueryFeatureSupport(Feature.ConservativeRasterization))
         {
             rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
         }
@@ -164,7 +164,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             pPipelineStateSubobjectStream = &stream,
             SizeInBytes = (nuint)sizeof(GraphicsPipelineStateStream1)
         };
-        if (device.Adapter.QueryFeatureSupport(Feature.MeshShader))
+        if (device.QueryFeatureSupport(Feature.MeshShader))
         {
             streamDesc.SizeInBytes += (nuint)sizeof(GraphicsPipelineStateStream2);
         }

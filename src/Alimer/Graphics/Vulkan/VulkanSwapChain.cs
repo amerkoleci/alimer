@@ -113,14 +113,13 @@ internal unsafe partial class VulkanSwapChain : SwapChain
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
-    public VkFormat VkFormat { get; }
     public VkSwapchainKHR Handle => _handle;
     public uint AcquireSemaphoreIndex => _acquireSemaphoreIndex;
-    public VkSemaphore AcquireSemaphore => _acquireSemaphores[_acquireSemaphoreIndex]!;
-    public VkSemaphore ReleaseSemaphore => _releaseSemaphores[_imageIndex];
+    public VkSemaphore AcquireSemaphore => _acquireSemaphores![_acquireSemaphoreIndex];
+    public VkSemaphore ReleaseSemaphore => _releaseSemaphores![_imageIndex];
     public uint ImageIndex => _imageIndex;
-    public bool NeedAcquire { get; set; }
     public VulkanTexture CurrentTexture => _backbufferTextures![_imageIndex];
+    public bool NeedAcquire { get; set; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="VulkanSwapChain" /> class.
@@ -334,14 +333,15 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    public override Texture? GetCurrentTexture()
+    public override Texture? AcquireNextTexture()
     {
         if (!NeedAcquire)
         {
-            return _backbufferTextures![ImageIndex];
+            Log.Error("Cannot acquire texture before being submitted to command queue.");
+            return default;
         }
 
-        VkResult result = VkResult.Success;
+        VkResult result = VK_SUCCESS;
         lock (LockObject)
         {
             result = _device.DeviceApi.vkAcquireNextImageKHR(
@@ -353,26 +353,26 @@ internal unsafe partial class VulkanSwapChain : SwapChain
                 out _imageIndex);
         }
 
-        if (result != VkResult.Success)
+        if (result != VK_SUCCESS)
         {
             // Handle outdated error in acquire
-            if (result == VkResult.SuboptimalKHR || result == VkResult.ErrorOutOfDateKHR)
+            if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
             {
-                Device.WaitIdle();
+                //Device.WaitIdle();
                 //_queue.Device.UpdateSwapChain(vulkanSwapChain);
-                return GetCurrentTexture();
+                //return AcquireNextTexture();
+                return default;
             }
         }
 
         NeedAcquire = false;
-        return CurrentTexture;
+        return _backbufferTextures![_imageIndex];
     }
 
     public void AdvanceFrame()
     {
         _acquireSemaphoreIndex = (_acquireSemaphoreIndex + 1) % (uint)_acquireSemaphores!.Length;
     }
-
 }
 
 internal static partial class Win32Native

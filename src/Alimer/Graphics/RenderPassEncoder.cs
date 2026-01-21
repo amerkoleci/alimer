@@ -198,8 +198,10 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
 
     public void SetDepthBounds(float minBounds, float maxBounds)
     {
-        if (!Device.Adapter.QueryFeatureSupport(Feature.DepthBoundsTest))
+        if (!Device.QueryFeatureSupport(Feature.DepthBoundsTest))
+        {
             throw new GraphicsException($"{nameof(Feature.DepthBoundsTest)} feature is not supported");
+        }
 
         SetDepthBoundsCore(minBounds, maxBounds);
     }
@@ -242,7 +244,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     [Conditional("VALIDATE_USAGE")]
     private void PreDispatchMeshValidation()
     {
-        if (!Device.Adapter.QueryFeatureSupport(Feature.MeshShader))
+        if (!Device.QueryFeatureSupport(Feature.MeshShader))
         {
             throw new GraphicsException($"Device doesn't support Feature.MeshShader.");
         }

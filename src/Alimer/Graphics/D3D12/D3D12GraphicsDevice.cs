@@ -6,9 +6,16 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
+using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
+using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
+using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT2;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
@@ -16,6 +23,7 @@ using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
+using static TerraFX.Interop.DirectX.D3D12_FEATURE;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
@@ -175,70 +183,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 
-        // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
-        // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
-        const uint kMaxRootSignatureSize = 64u;
-
-        _limits = new GraphicsDeviceLimits
-        {
-            MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
-            MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
-            MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
-            MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
-            MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-            MaxBindGroups = kMaxRootSignatureSize,
-            //MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
-            //UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
-            //UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
-            MinConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
-            MaxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
-            MinStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
-            MaxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
-
-            TextureRowPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
-            TextureDepthPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
-
-            MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
-            MaxPushConstantsSize = sizeof(uint) * kMaxRootSignatureSize / 1,
-
-            MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
-            MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
-
-            // Slot values can be 0-15, inclusive:
-            // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
-            MaxVertexBuffers = 16,
-            MaxVertexAttributes = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
-            MaxVertexBufferArrayStride = D3D12_SO_BUFFER_MAX_STRIDE_IN_BYTES,
-
-            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
-            // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
-            // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
-            MaxComputeWorkgroupStorageSize = 32768,
-
-            MaxComputeInvocationsPerWorkGroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
-
-            // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
-            MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
-            MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
-            MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
-            // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
-            MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-        };
-
-        if (_adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
-        {
-            _limits.VariableRateShadingTileSize = _adapter.Features.ShadingRateImageTileSize;
-        }
-
-        if (_adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
-        {
-            _limits.RayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
-            _limits.RayTracingShaderTableAligment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
-            _limits.RayTracingShaderTableMaxStride = ulong.MaxValue;
-            _limits.RayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
-            _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
-        }
-
         // Create command queue's
         CommandQueueType supportedQueueCount = supportVideoDevice ? CommandQueueType.Count : CommandQueueType.VideoDecode;
         for (int i = 0; i < (int)supportedQueueCount; i++)
@@ -324,6 +268,97 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             //PIXBeginEventOnCommandList = (PFN_PIXBeginEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXBeginEventOnCommandList");
             //PIXEndEventOnCommandList = (PFN_PIXEndEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXEndEventOnCommandList");
             //PIXSetMarkerOnCommandList = (PFN_PIXSetMarkerOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXSetMarkerOnCommandList");
+        }
+
+
+
+        // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
+        // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
+        const uint kMaxRootSignatureSize = 64u;
+
+        _limits = new GraphicsDeviceLimits
+        {
+            MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
+            MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
+            MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
+            MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
+            MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
+            MaxBindGroups = kMaxRootSignatureSize,
+            //MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+            //UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
+            //UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+            MinConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
+            MaxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
+            MinStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
+            MaxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+
+            TextureRowPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
+            TextureDepthPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+
+            MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
+            MaxPushConstantsSize = sizeof(uint) * kMaxRootSignatureSize / 1,
+
+            MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
+            MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
+
+            // Slot values can be 0-15, inclusive:
+            // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
+            MaxVertexBuffers = 16,
+            MaxVertexAttributes = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
+            MaxVertexBufferArrayStride = D3D12_SO_BUFFER_MAX_STRIDE_IN_BYTES,
+
+            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
+            // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
+            // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
+            MaxComputeWorkgroupStorageSize = 32768,
+
+            MaxComputeInvocationsPerWorkGroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP,
+
+            // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
+            MaxComputeWorkGroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X,
+            MaxComputeWorkGroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y,
+            MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
+            // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
+            MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+        };
+
+        if (_adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
+        {
+            _limits.VariableRateShadingTileSize = _adapter.Features.ShadingRateImageTileSize;
+        }
+
+        if (_adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
+        {
+            _limits.RayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
+            _limits.RayTracingShaderTableAligment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
+            _limits.RayTracingShaderTableMaxStride = ulong.MaxValue;
+            _limits.RayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
+            _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
+        }
+
+        uint MaxNonSamplerDescriptors = 0;
+        uint MaxSamplerDescriptors = 0;
+        D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19 = default;
+        if (FAILED(_device.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref options19)))
+        {
+            if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+            }
+            else if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_2)
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+            }
+            else
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+            }
+            MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+        }
+        else
+        {
+            MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
+            MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
         }
 
         ulong timestampFrequency;
@@ -468,6 +503,143 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public void OnDeviceRemoved()
     {
 
+    }
+
+    /// <inheritdoc />
+    public override bool QueryFeatureSupport(Feature feature)
+    {
+        switch (feature)
+        {
+            // Always supported features
+            case Feature.Depth32FloatStencil8:
+            case Feature.TimestampQuery:
+            case Feature.PipelineStatisticsQuery:
+            case Feature.TextureCompressionBC:
+            case Feature.IndirectFirstInstance:
+            case Feature.SamplerClampToBorder:
+            case Feature.SamplerMirrorClampToEdge:
+            case Feature.DepthResolveMinMax:
+            case Feature.StencilResolveMinMax:
+            case Feature.Predication:
+                return true;
+
+            // Always unsupported features
+            case Feature.TextureCompressionETC2:
+            case Feature.TextureCompressionASTC:
+            case Feature.TextureCompressionASTC_HDR:
+                return false;
+
+            case Feature.ShaderFloat16:
+                //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
+                return _adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_2 && _adapter.Features.Native16BitShaderOpsSupported;
+
+            case Feature.RG11B10UfloatRenderable:
+                return true;
+
+            case Feature.BGRA8UnormStorage:
+                D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
+                bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+                HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+                if (hr.SUCCEEDED &&
+                    (bgra8unormFormatInfo.Support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0)
+                {
+                    return true;
+                }
+                return false;
+
+            case Feature.DepthBoundsTest:
+                return _adapter.Features.DepthBoundsTestSupported;
+
+            case Feature.SamplerMinMax:
+                if (_adapter.Features.TiledResourcesTier >= D3D12_TILED_RESOURCES_TIER_2)
+                {
+                    // Tier 2 for tiled resources
+                    // https://learn.microsoft.com/en-us/windows/win32/direct3d11/tiled-resources-texture-sampling-features
+                }
+
+                return (_adapter.Features.MaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
+
+            case Feature.ConservativeRasterization:
+                return _adapter.Features.ConservativeRasterizationTier != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED;
+
+            case Feature.CacheCoherentUMA:
+                return _adapter.Features.CacheCoherentUMA();
+
+            case Feature.DescriptorIndexing:
+                return true;
+
+            case Feature.VariableRateShading:
+                return _adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1;
+
+            case Feature.VariableRateShadingTier2:
+                return _adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2;
+
+            case Feature.RayTracing:
+                return _adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0;
+
+            case Feature.RayTracingTier2:
+                return _adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_1;
+
+            case Feature.MeshShader:
+                return _adapter.Features.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1;
+
+            default:
+                return false;
+        }
+    }
+
+    /// <inheritdoc />
+    public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format)
+    {
+        // TODO:
+        PixelFormatSupport result = PixelFormatSupport.None;
+        DXGI_FORMAT dxgiFormat = (DXGI_FORMAT)format.ToDxgiFormat();
+        if (dxgiFormat == DXGI_FORMAT_UNKNOWN)
+            return result;
+
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT featureData = new()
+        {
+            Format = dxgiFormat
+        };
+        HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, ref featureData);
+        if (FAILED(hr))
+            return result;
+
+        if (featureData.Support1.HasFlag(D3D12_FORMAT_SUPPORT1_TEXTURE1D | D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TEXTURE3D | D3D12_FORMAT_SUPPORT1_TEXTURECUBE))
+            result |= PixelFormatSupport.Texture;
+        if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0)
+            result |= PixelFormatSupport.DepthStencil;
+        if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0)
+            result |= PixelFormatSupport.RenderTarget;
+        if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_BLENDABLE) != 0)
+            result |= PixelFormatSupport.Blendable;
+
+        if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_LOAD) != 0)
+            result |= PixelFormatSupport.ShaderLoad;
+        if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE) != 0)
+            result |= PixelFormatSupport.ShaderSample;
+        if ((featureData.Support2 & D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_ADD) != 0)
+            result |= PixelFormatSupport.ShaderAtomic;
+        if ((featureData.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) != 0)
+            result |= PixelFormatSupport.ShaderUavLoad;
+        if ((featureData.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0)
+            result |= PixelFormatSupport.ShaderUavStore;
+
+        TextureSampleCount supportedSampleCount = TextureSampleCount.Count1;
+        for (uint sampleCount = 1; sampleCount <= D3D12_MAX_MULTISAMPLE_SAMPLE_COUNT; sampleCount *= 2)
+        {
+            D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS featureDataQualityLevels = new()
+            {
+                Format = dxgiFormat,
+                SampleCount = sampleCount
+            };
+
+            hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, ref featureDataQualityLevels);
+            if (SUCCEEDED(hr) && featureDataQualityLevels.NumQualityLevels > 0)
+                supportedSampleCount |= (TextureSampleCount)sampleCount;
+        }
+
+        return result;
     }
 
     public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
