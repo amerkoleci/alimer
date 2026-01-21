@@ -1,8 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#if defined(ALIMER_PHYSICS)
-#include "alimer_internal.h"
+//#include "alimer_internal.h"
 #include "alimer_physics.h"
 #include <Jolt/Core/Core.h>
 
@@ -28,6 +27,7 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/Collision/PhysicsMaterialSimple.h"
 
 // STL includes
+#include <iostream>
 #include <cstdarg>
 
 JPH_SUPPRESS_WARNING_POP
@@ -41,7 +41,9 @@ static void TraceImpl(const char* fmt, ...)
     vsnprintf(buffer, sizeof(buffer), fmt, list);
     va_end(list);
 
-    alimerLogTrace(LogCategory_Physics, "%s", buffer);
+    // Print to the TTY
+    std::cout << buffer << std::endl;
+    //alimerLogTrace(LogCategory_Physics, "%s", buffer);
 }
 
 #ifdef JPH_ENABLE_ASSERTS
@@ -378,7 +380,7 @@ struct PhysicsShape final
 
 bool alimerPhysicsInit(const PhysicsConfig* config)
 {
-    ALIMER_ASSERT(config);
+    JPH_ASSERT(config);
 
     if (physics_state.initialized)
         return true;
@@ -430,7 +432,7 @@ void alimerPhysicsShutdown(void)
 
 PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* config)
 {
-    ALIMER_ASSERT(config);
+    JPH_ASSERT(config);
 
     PhysicsWorld* world = new PhysicsWorld();
     world->refCount.store(1);
@@ -453,7 +455,7 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* config)
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
-        alimerLogError(LogCategory_Physics, "Jolt: CreateBox failed with %s", shapeResult.GetError().c_str());
+        //alimerLogError(LogCategory_Physics, "Jolt: CreateBox failed with %s", shapeResult.GetError().c_str());
         return nullptr;
     }
 
@@ -606,7 +608,7 @@ PhysicsShape* alimerPhysicsCreateBoxShape(const Vector3* size, PhysicsMaterial* 
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
-        alimerLogError(LogCategory_Physics, "Physics: CreateBox failed with %s", shapeResult.GetError().c_str());
+        //alimerLogError(LogCategory_Physics, "Physics: CreateBox failed with %s", shapeResult.GetError().c_str());
         return nullptr;
     }
 
@@ -627,7 +629,7 @@ PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* mate
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
-        alimerLogError(LogCategory_Physics, "Physics: CreateSphere failed with %s", shapeResult.GetError().c_str());
+        //alimerLogError(LogCategory_Physics, "Physics: CreateSphere failed with %s", shapeResult.GetError().c_str());
         return nullptr;
     }
 
@@ -648,7 +650,7 @@ PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, Physic
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
-        alimerLogError(LogCategory_Physics, "Physics: CreateCapsule failed with %s", shapeResult.GetError().c_str());
+        //alimerLogError(LogCategory_Physics, "Physics: CreateCapsule failed with %s", shapeResult.GetError().c_str());
         return nullptr;
     }
 
@@ -783,7 +785,7 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
         {
             if (desc->shapes[i]->body)
             {
-                alimerLogError(LogCategory_Physics, "PhysicsShape is already attached to another body");
+                //alimerLogError(LogCategory_Physics, "PhysicsShape is already attached to another body");
                 return nullptr;
             }
         }
@@ -793,7 +795,7 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
     const uint32_t limit = world->system.GetMaxBodies();
     if (count >= limit)
     {
-        alimerLogError(LogCategory_Physics, "Too many bodies, limit %s reached!", limit);
+        //alimerLogError(LogCategory_Physics, "Too many bodies, limit %s reached!", limit);
         return nullptr;
     }
 
@@ -1027,5 +1029,3 @@ void alimerPhysicsBodyAddForceAndTorque(PhysicsBody* body, const Vector3* force,
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     bodyInterface.AddForceAndTorque(body->id, ToJolt(force), ToJolt(torque), JPH::EActivation::Activate);
 }
-
-#endif /* defined(ALIMER_PHYSICS) */

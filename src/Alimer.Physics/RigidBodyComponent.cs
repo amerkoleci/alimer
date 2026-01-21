@@ -8,7 +8,7 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Physics;
 
-public class RigidBodyComponent : PhysicsComponent
+public partial class RigidBodyComponent : PhysicsComponent
 {
     private ColliderShape? _shape;
 

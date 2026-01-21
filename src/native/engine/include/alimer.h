@@ -478,45 +478,11 @@ static const WindowFlags WindowFlags_Maximized = 0x0000000000000010;
 static const WindowFlags WindowFlags_AlwaysOnTop = 0x0000000000000020;
 
 /* Structs */
-typedef struct Vector2 {
-    float x;
-    float y;
-} Vector2;
-
 typedef struct Vector3 {
     float x;
     float y;
     float z;
 } Vector3;
-
-typedef struct Vector4 {
-    float x;
-    float y;
-    float z;
-    float w;
-} Vector4;
-
-typedef struct Quaternion {
-    float x;
-    float y;
-    float z;
-    float w;
-} Quaternion;
-
-typedef struct Color {
-    float r;
-    float g;
-    float b;
-    float a;
-} Color;
-
-/// 4x4 row-major matrix: 32 bit floating point components
-typedef struct Matrix4x4 {
-    float m11, m12, m13, m14;
-    float m21, m22, m23, m24;
-    float m31, m32, m33, m34;
-    float m41, m42, m43, m44;
-} Matrix4x4;
 
 typedef struct PixelFormatInfo {
     PixelFormat format;

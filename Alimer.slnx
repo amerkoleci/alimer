@@ -36,6 +36,7 @@
   <Project Path="src/Alimer.ImGui/Alimer.ImGui.csproj" />
   <Project Path="src/Alimer.Native/Alimer.Native.csproj" />
   <Project Path="src/Alimer.Navigation/Alimer.Navigation.csproj" />
+  <Project Path="src/Alimer.Physics/Alimer.Physics.csproj" />
   <Project Path="src/Alimer.SourceGenerators/Alimer.SourceGenerators.csproj" />
   <Project Path="src/Alimer.UI/Alimer.UI.csproj" />
   <Project Path="src/Alimer/Alimer.csproj" />

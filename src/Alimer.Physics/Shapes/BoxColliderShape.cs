@@ -1,16 +1,21 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Numerics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Physics;
 
-public class CapsuleColliderShape : ColliderShape
+public class BoxColliderShape : ColliderShape
 {
-    public CapsuleColliderShape(float height, float radius)
+    public BoxColliderShape(in Vector3 size)
     {
-        Handle = alimerPhysicsShapeCreateCapsule(height, radius, PhysicsMaterial.Null);
+        Size = size;
+
+        Handle = alimerPhysicsCreateBoxShape(size, PhysicsMaterial.Null);
     }
+
+    public Vector3 Size { get; }
 
     internal override PhysicsShape Handle { get; }
 }

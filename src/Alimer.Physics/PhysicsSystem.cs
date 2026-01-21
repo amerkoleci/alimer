@@ -9,14 +9,9 @@ namespace Alimer.Physics;
 
 public class PhysicsSystem : EntitySystem<PhysicsComponent>
 {
-    public PhysicsSystem()
+    public PhysicsSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
     {
-        PhysicsConfig config = default;
-        if (alimerPhysicsInit(in config) == false)
-        {
-            throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
-        }
     }
 
     public PhysicsSimulation Simulation { get; } = new();
@@ -66,9 +61,14 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
 
 #pragma warning disable CA2255
     [ModuleInitializer]
-    public static void Initialize()
+    public static void Register()
     {
-        EntityManager.RegisterSystemFactory<PhysicsSystem>();
+        PhysicsConfig config = default;
+        if (alimerPhysicsInit(in config) == false)
+        {
+            throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
+        }
     }
 #pragma warning restore CA2255
 }
+

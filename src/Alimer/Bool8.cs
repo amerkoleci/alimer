@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Alimer;
 
-internal readonly partial struct Bool8(byte value) : IComparable, IComparable<Bool8>, IEquatable<Bool8>
+public readonly partial struct Bool8(byte value) : IComparable, IComparable<Bool8>, IEquatable<Bool8>
 {
     public readonly byte Value = value;
 

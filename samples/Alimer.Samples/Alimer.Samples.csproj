@@ -25,9 +25,6 @@
   </ItemGroup>
 
   <!-- Assets-->
-  <ItemGroup>
-    <!--<Shader Include="Assets\Shaders\*.hlsl" />-->
-  </ItemGroup>
   
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
@@ -35,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Alimer.ImGui\Alimer.ImGui.csproj" />
+    <ProjectReference Include="..\..\src\Alimer.Physics\Alimer.Physics.csproj" />
     <ProjectReference Include="..\..\src\Alimer.UI\Alimer.UI.csproj" />
     <ProjectReference Include="..\..\src\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>

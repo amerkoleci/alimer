@@ -14,7 +14,10 @@ function(add_sample SAMPLE_NAME)
     else ()
     	add_executable(${SAMPLE_NAME} ${SOURCE_FILES})
     endif ()
-    target_link_libraries(${SAMPLE_NAME} alimer_native)
+    target_link_libraries(${SAMPLE_NAME}
+        alimer_native
+        alimer_physics
+    )
 
     set_target_properties(${SAMPLE_NAME} PROPERTIES
         COMPILE_WARNING_AS_ERROR ON

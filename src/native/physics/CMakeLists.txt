@@ -11,19 +11,10 @@ macro(group_sources)
 endmacro()
 
 # Setup library
-set(TARGET_NAME alimer_native)
+set(TARGET_NAME alimer_physics)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
-	include/alimer_platform.h
-    include/alimer.h
-    include/alimer_image.h
-    include/alimer_font.h
-    include/alimer_scene.h
-	src/alimer_internal.h
-    src/alimer.cpp
-    src/alimer_log.cpp
-    src/alimer_image.cpp
-    src/alimer_font.cpp
-    src/alimer_scene.cpp
+	include/alimer_physics.h
+    src/alimer_physics.cpp
 )
 
 group_sources()
@@ -65,73 +56,7 @@ elseif(ANDROID)
     target_link_options(${TARGET_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
 endif ()
 
-target_link_libraries(${TARGET_NAME} PRIVATE
-    stb
-)
-
-if (ALIMER_IMAGE_KTX)
-    target_link_libraries(${TARGET_NAME} PRIVATE
-        ktx
-    )
-
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMAGE_KTX)
-endif ()
-
-if (EMSCRIPTEN)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_platform_sdl.cpp
-    )
-
-    set_target_properties(${TARGET_NAME} PROPERTIES ENABLE_EXPORTS ON)
-    target_link_options(${TARGET_NAME} PUBLIC
-        "-Os"
-        "-sUSE_SDL=3"
-        "-sFORCE_FILESYSTEM=1"
-    )
-
-     # Handle WebGPU symbols
-    target_link_options(${TARGET_NAME} PUBLIC -sUSE_WEBGPU)
-
-    # Enable the use of emscripten_sleep()
-	target_link_options(${TARGET_NAME} PUBLIC -sASYNCIFY)
-elseif (ALIMER_USE_SDL)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_platform_sdl.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
-endif()
-
-if (NOT EMSCRIPTEN)
-    # Do we support Vulkan on Apple?
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_vma_exports.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE vulkan spirv_reflect)
-endif()
-
-if(EMSCRIPTEN)
-elseif (WIN32)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_d3d12ma_exports.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE
-        d3d12ma
-    )
-elseif(APPLE)
-elseif(UNIX OR ANDROID)
-endif()
-
-if (ALIMER_AUDIO)
-    target_sources(${TARGET_NAME} PRIVATE
-        include/alimer_audio.h
-        src/alimer_audio.cpp
-    )
-
-    target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_AUDIO)
-endif()
+target_link_libraries(${TARGET_NAME} PRIVATE Jolt)
 
 # Install
 if (ALIMER_INSTALL)

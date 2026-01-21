@@ -27,6 +27,11 @@
       <Pack>True</Pack>
       <Visible>False</Visible>
     </None>
+    <None Include="$(AlimerNativeDirectory)win-x64\alimer_physics.dll">
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
     <None Include="$(AlimerNativeDirectory)win-arm64\alimer_native.dll">
       <PackagePath>runtimes\win-arm64\native</PackagePath>
       <Pack>True</Pack>
