@@ -41,7 +41,7 @@ public struct ShaderCompilationOptions
     public bool Debug { get; set; }
     public bool AllResourcesBound { get; set; }
 
-    public bool PackMatrixRowMajor { get; set; }
+    public bool PackMatrixRowMajor { get; set; } = true;
     public bool PackMatrixColumnMajor { get; set; }
 
     public bool StripReflection { get; set; } = true;
@@ -55,12 +55,12 @@ public struct ShaderCompilationOptions
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources
     /// </summary>
-    public uint ShiftSpaceCount { get; init; } = 8;
+    public uint ShiftSpaceCount { get; set; } = 8;
 
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources
     /// </summary>
-    public uint SpirvBShift { get; init; } = 0;
+    public uint SpirvBShift { get; set; } = 0;
 
     /// <summary>
     /// SPIRV: register shift for texture (t#) resources

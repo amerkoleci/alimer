@@ -47,6 +47,7 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 /* Bindless */
 // TODO: Allow engine side static sampler configuration and remove definitions in code
 
+#if defined(ALIMER_BINDLESS)
 #ifdef __spirv__
 /* VkDescriptorType */
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
@@ -61,5 +62,6 @@ SamplerState    bindlessSamplers[]      : register(space1000);
 Texture2D       bindlessTexture2D[]     : register(space1001);
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
 #endif
+#endif /* defined(ALIMER_BINDLESS)  */
 
 #endif // _ALIMER_SHADER__

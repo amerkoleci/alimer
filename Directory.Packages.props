@@ -42,6 +42,7 @@
     <PackageVersion Include="Silk.NET.Assimp" Version="2.22.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.5" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.1.1" />
+    <PackageVersion Include="Slangc.NET" Version="2026.1.0" />
 
     <!-- Editor -->
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />

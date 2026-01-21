@@ -4,7 +4,7 @@ struct VertexInput {
     float3 Position : ATTRIBUTE0;
     float3 Normal   : ATTRIBUTE1;
     float2 TexCoord : ATTRIBUTE2;
-#if VERTEX_COLOR
+#ifdef VERTEX_COLOR
     float4 Color    : ATTRIBUTE3;
 #endif
 };
@@ -26,18 +26,25 @@ struct DrawData2
     float4 color;
 };
 
-//PUSH_CONSTANT(DrawData, draw, 0);
+#if defined(ALIMER_SPIRV)
+sdasd
+#elif defined(ALIMER_DXIL)
+sdasd
+#endif
+
+//ALIMER_PUSH_CONSTANTS(DrawData, draw);
 ConstantBuffer<DrawData> draw : register(b0, space0);
 //ConstantBuffer<DrawData2> draw2 : register(b0, space1);
 ConstantBuffer<DrawData2> draw2 : register(b0, space1);
 
+[shader("vertex")]
 VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 {
     VertexOutput output;
     output.Position = mul(float4(input.Position, 1.0f), draw.worldMatrix);
     output.Normal = input.Normal;
     output.TexCoord = input.TexCoord;
-#if VERTEX_COLOR
+#ifdef VERTEX_COLOR
     output.Color = input.Color;
 #else
     output.Color = float4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -45,6 +52,7 @@ VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint 
     return output;
 }
 
+[shader("pixel")]
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
     return float4(input.Normal, 1.0f) * input.Color * draw2.color;

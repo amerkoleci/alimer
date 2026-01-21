@@ -2,8 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
+using Alimer.Assets;
 using Alimer.Graphics;
 using Alimer.Shaders;
+using Slangc.NET;
 
 namespace Alimer.Samples;
 
@@ -15,6 +17,7 @@ public abstract class GraphicsSampleBase : SampleBase
         Services = services;
         GraphicsManager = services.GetService<GraphicsManager>();
         GraphicsDevice = services.GetService<GraphicsDevice>();
+        AssetManager = services.GetService<IAssetManager>();
         MainWindow = mainWindow;
         DepthStencilFormat = depthStencilFormat;
         Resize();
@@ -24,6 +27,7 @@ public abstract class GraphicsSampleBase : SampleBase
 
     public GraphicsManager GraphicsManager { get; }
     public GraphicsDevice GraphicsDevice { get; }
+    public IAssetManager AssetManager { get; }
     public Window MainWindow { get; }
     public PixelFormat[] ColorFormats => [MainWindow.ColorFormat];
     public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
@@ -114,6 +118,97 @@ public abstract class GraphicsSampleBase : SampleBase
         }
 
         ShaderModuleDescriptor descriptor = new(stage, result.GetByteCode(), entryPoint);
+        return GraphicsDevice.CreateShaderModule(in descriptor);
+    }
+
+    protected ShaderModule CompileShaderModuleNew(
+        string fileName,
+        ShaderStages stage,
+        Utf8String entryPoint,
+        Dictionary<string, string>? defines = default,
+        string[]? searchPaths = null)
+    {
+        // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html
+        string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
+        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".slang");
+
+        // TODO: ShaderLibrary (without -entry and -stage)
+        List<string> arguments =
+        [
+            shaderSourceFileName,
+            "-entry", entryPoint.ToString()!,
+            "-stage", stage.ToString().ToLowerInvariant(),
+            "-matrix-layout-row-major",
+            "-preserve-params"
+        ];
+
+        if (defines is not null)
+        {
+            foreach (KeyValuePair<string, string> definePair in defines)
+            {
+                arguments.AddRange(["-D", $"{definePair.Key}={definePair.Value}"]);
+            }
+        }
+
+        if (searchPaths is not null)
+        {
+            foreach (string path in searchPaths)
+            {
+                arguments.AddRange(["-I", path]);
+            }
+        }
+
+
+        switch (GraphicsDevice.Backend)
+        {
+            case GraphicsBackendType.D3D12:
+                arguments.AddRange(["-profile", "sm_6_6", "-target", "dxil"]);
+                break;
+
+            case GraphicsBackendType.Metal:
+                arguments.AddRange(["-target", "metal"]);
+                break;
+
+            case GraphicsBackendType.Vulkan:
+                arguments.AddRange(["-fvk-use-dx-layout", "-fvk-use-dx-position-w", "-fvk-use-entrypoint-name", "-target", "spirv"]);
+
+
+
+                const uint ShiftSpaceCount = 8;
+
+                const uint SpirvBShift = 0;
+                const uint SpirvTShift = 100;
+
+                const uint SpirvUShift = 200;
+                const uint SpirvSShift = 300;
+
+                for (int space = 0; space < ShiftSpaceCount; space++)
+                {
+                    arguments.Add("-fvk-b-shift");
+                    arguments.Add($"{SpirvBShift}");
+                    arguments.Add($"{space}");
+
+                    arguments.Add("-fvk-t-shift");
+                    arguments.Add($"{SpirvTShift}");
+                    arguments.Add($"{space}");
+
+                    arguments.Add("-fvk-u-shift");
+                    arguments.Add($"{SpirvUShift}");
+                    arguments.Add($"{space}");
+
+                    arguments.Add("-fvk-s-shift");
+                    arguments.Add($"{SpirvSShift}");
+                    arguments.Add($"{space}");
+                }
+                break;
+        }
+
+        byte[] bytecode = SlangCompiler.CompileWithReflection([.. arguments], out SlangReflection reflection);
+        //var result = SlangCompiler.Compile([.. arguments]);
+
+        reflection.Deserialize();
+
+        ShaderModuleDescriptor descriptor = new(stage, bytecode, entryPoint);
         return GraphicsDevice.CreateShaderModule(in descriptor);
     }
 }
