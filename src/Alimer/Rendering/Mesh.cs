@@ -1,7 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Buffers.Binary;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 
@@ -12,36 +15,37 @@ public sealed partial class Mesh : DisposableObject
     private readonly List<SubMesh> _subMeshes = [];
     private BoundingBox _bounds;
     private bool _boundsDirty = true;
-    private VertexBufferLayout _layout;
+    private MeshVertexBufferLayout _layout;
+    private readonly VertexBuffer _vertexBuffer;
+    private readonly IndexBuffer _indexBuffer;
+    private GraphicsBuffer? _gpuVertexBuffer;
+    private GraphicsBuffer? _gpuIndexBuffer;
 
-    public Mesh(GraphicsDevice device, uint vertexCount, params VertexAttribute[] attributes)
+    public Mesh()
     {
-        Guard.IsNotNull(device, nameof(device));
-
-        Device = device;
-        VertexCount = vertexCount;
-        _layout = new VertexBufferLayout(attributes);
+        _vertexBuffer = new VertexBuffer();
+        _indexBuffer = new IndexBuffer();
     }
-
-    public GraphicsDevice Device { get; }
 
     /// <summary>
     /// The number of vertices in the vertex buffers.
     /// </summary>
-    public uint VertexCount { get; }
+    public int VertexCount => _vertexBuffer.ElementCount;
 
     /// <summary>
     /// Gets the size, in bytes, of a single vertex element in the layout.
     /// </summary>
-    public uint VertexStride => _layout.Stride;
+    public int VertexStride => _layout.Stride;
+
+    public MeshVertexBufferLayout Layout => _layout;
+
+    public IndexFormat IndexFormat => _indexBuffer.IndexFormat;
 
     /// <summary>
     /// Gets the collection of sub-meshes that make up this mesh.
     /// </summary>
     public IReadOnlyList<SubMesh> SubMeshes => _subMeshes;
 
-    public VertexBufferLayout Layout => _layout;
-    public IndexFormat IndexFormat { get; private set; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="Mesh" /> class.
@@ -53,21 +57,62 @@ public sealed partial class Mesh : DisposableObject
     {
         if (disposing)
         {
+            DestroyGpuData();
         }
     }
 
-    public void SetPositions(ReadOnlySpan<Vector3> positions, uint vertexCount)
+    #region Gpu
+    public unsafe void CreateGpuData(GraphicsDevice device, bool clearCpuData = true)
     {
+        Guard.IsNotNull(device, nameof(device));
 
+        DestroyGpuData();
+
+        // Subset maps a part of the mesh to a material:
+        if (_subMeshes.Count == 0)
+        {
+            _ = AddSubMesh(0, _indexBuffer.ElementCount);
+        }
+
+        ulong vertexBufferSize = (ulong)(_vertexBuffer.ElementCount * _layout.Stride);
+        ulong indexBufferSize = (ulong)(_indexBuffer.ElementCount * _indexBuffer.ElementSize);
+        BufferDescriptor vertexBufferDesc = new(vertexBufferSize, BufferUsage.Vertex | BufferUsage.ShaderRead);
+        BufferDescriptor indexBufferDesc = new(indexBufferSize, BufferUsage.Index | BufferUsage.ShaderRead);
+
+        _gpuVertexBuffer = device.CreateBuffer(vertexBufferDesc, _vertexBuffer.GetRawData());
+        _gpuIndexBuffer = device.CreateBuffer(indexBufferDesc, _indexBuffer.GetRawData());
+
+        if (clearCpuData)
+        {
+            ClearCpuData();
+        }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="indexStart"></param>
-    /// <param name="indexCount"></param>
-    /// <param name="materialIndex"></param>
-    /// <returns></returns>
+    private void DestroyGpuData()
+    {
+        _gpuVertexBuffer?.Dispose();
+        _gpuIndexBuffer?.Dispose();
+    }
+
+    private void ClearCpuData()
+    {
+        _vertexBuffer.Clear();
+        _indexBuffer.Clear();
+    }
+
+    public void Draw(RenderPassEncoder encoder, uint instanceCount = 1)
+    {
+        Guard.IsNotNull(encoder, nameof(encoder));
+
+        encoder.SetVertexBuffer(0, _gpuVertexBuffer!);
+        encoder.SetIndexBuffer(_gpuIndexBuffer!, IndexFormat);
+        foreach (SubMesh subMesh in _subMeshes)
+        {
+            encoder.DrawIndexed((uint)subMesh.IndexCount, instanceCount, (uint)subMesh.IndexStart, 0, 0);
+        }
+    }
+    #endregion
+
     public SubMesh AddSubMesh(int indexStart, int indexCount, int materialIndex = 0)
     {
         SubMesh subMesh = new(this, indexStart, indexCount, materialIndex);
@@ -75,11 +120,242 @@ public sealed partial class Mesh : DisposableObject
         return subMesh;
     }
 
-    public class VertexBuffer
+    public void SetPositions(ReadOnlySpan<Vector3> positions)
     {
-        public VertexBuffer(uint vertex)
-        {
+    }
 
+    public void SetVertices<T>(ReadOnlySpan<T> vertices, int vertexCount = 0)
+        where T : unmanaged, IMeshVertex
+    {
+        _layout = new MeshVertexBufferLayout(default(T).VertexAttributes);
+        _vertexBuffer.SetData(vertices, vertexCount);
+    }
+
+    public void GetVertices<T>(Span<T> vertices)
+        where T : unmanaged, IMeshVertex
+    {
+        _vertexBuffer.GetData(vertices);
+    }
+
+    public void GetIndices(Span<ushort> indices)
+    {
+        _indexBuffer.GetData(indices);
+    }
+
+    public void GetIndices(Span<uint> indices)
+    {
+        _indexBuffer.GetData(indices);
+    }
+
+    public void SetIndices(ReadOnlySpan<ushort> indices, int indexCount = 0)
+    {
+        _indexBuffer.SetData(indices, indexCount);
+    }
+
+    public void SetIndices(ReadOnlySpan<uint> indices, int indexCount = 0)
+    {
+        _indexBuffer.SetData(indices, indexCount);
+    }
+
+    public unsafe class CpuBuffer
+    {
+        protected byte* _data;
+
+        /// <summary>
+        /// Number of elements in the buffer.
+        /// </summary>
+        public int ElementCount { get; private set; }
+
+        /// <summary>
+        /// Size of a single element in the buffer.
+        /// </summary>
+        public int ElementSize { get; private set; }
+
+        //public int MemorySize => ElementCount * ElementSize;
+        public int MemorySize { get; private set; }
+
+        public void Clear()
+        {
+            if (_data != null)
+            {
+                NativeMemory.Free(_data);
+                _data = null;
+            }
+
+            ElementCount = 0;
+            MemorySize = 0;
+        }
+
+
+        public void Resize(int elementCount, int elementSize)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(elementCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(elementSize);
+
+            if (ElementCount == elementCount
+                && ElementSize == elementSize)
+            {
+                return;
+            }
+
+            ElementCount = elementCount;
+            ElementSize = elementSize;
+
+            int newSize = ElementCount * ElementSize;
+            if (_data == null || MemorySize < newSize)
+            {
+                byte* newData = (byte*)NativeMemory.Alloc((uint)newSize);
+                if (_data != null)
+                {
+                    NativeMemory.Copy(_data, newData, (uint)newSize);
+                    NativeMemory.Free(_data);
+                }
+
+                _data = newData;
+                MemorySize = newSize;
+            }
+        }
+
+        public byte* GetRawData() => _data;
+    }
+
+    public unsafe class VertexBuffer : CpuBuffer
+    {
+        public void SetData<T>(ReadOnlySpan<T> source, int vertexCount)
+            where T : unmanaged, IMeshVertex
+        {
+            if (vertexCount == 0)
+                vertexCount = source.Length;
+
+            Resize(vertexCount, sizeof(T));
+            source.CopyTo(new Span<T>(_data, vertexCount));
+        }
+
+
+        public void GetData<T>(Span<T> destination)
+            where T : unmanaged, IMeshVertex
+        {
+            Guard.IsTrue(sizeof(T) == ElementSize, nameof(T), "Size of T must match the element size of the vertex buffer.");
+            new Span<T>(_data, destination.Length).CopyTo(destination);
+        }
+    }
+
+    public unsafe class IndexBuffer : CpuBuffer
+    {
+        public IndexFormat IndexFormat => ElementSize == 4 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+
+        public void SetData(ReadOnlySpan<ushort> source, int indexCount = 0)
+        {
+            if (indexCount == 0)
+                indexCount = source.Length;
+
+            Resize(indexCount, 2);
+            fixed (ushort* sourcePtr = source)
+            {
+                NativeMemory.Copy(sourcePtr, _data, (uint)(indexCount * 2));
+            }
+        }
+
+        public void SetData(ReadOnlySpan<uint> source, int indexCount = 0)
+        {
+            if (indexCount == 0)
+                indexCount = source.Length;
+
+            Resize(indexCount, 4);
+            fixed (uint* sourcePtr = source)
+            {
+                NativeMemory.Copy(sourcePtr, _data, (uint)(indexCount * 4));
+            }
+        }
+
+        public void GetData(Span<ushort> data)
+        {
+            fixed (ushort* dataPtr = data)
+            {
+                switch (IndexFormat)
+                {
+                    case IndexFormat.UInt16:
+                        NativeMemory.Copy(_data, dataPtr, (uint)(data.Length * sizeof(ushort)));
+                        break;
+                    case IndexFormat.UInt32:
+                        for (int i = 0; i < data.Length; i++)
+                        {
+                            uint value = 0;
+                            NativeMemory.Copy(&_data[i * 4], &value, 4u);
+                            dataPtr[i] = (ushort)value;
+                        }
+                        break;
+                }
+            }
+        }
+
+        public void GetData(Span<uint> data)
+        {
+            fixed (uint* dataPtr = data)
+            {
+                switch (IndexFormat)
+                {
+                    case IndexFormat.UInt16:
+                        for (int i = 0; i < data.Length; i++)
+                        {
+                            ushort value = 0;
+                            NativeMemory.Copy(&_data[i * 2], &value, 2u);
+                            dataPtr[i] = value;
+                        }
+
+                        break;
+                    case IndexFormat.UInt32:
+                        NativeMemory.Copy(_data, dataPtr, (uint)(data.Length * sizeof(uint)));
+                        break;
+                }
+            }
+        }
+
+        public void SetIndex(int index, uint value)
+        {
+            if (index >= ElementCount)
+                return;
+
+            int offset = index * ElementSize;
+
+            switch (IndexFormat)
+            {
+                case IndexFormat.UInt16:
+                    NativeMemory.Copy(&value, &_data[offset], 2u);
+                    break;
+                case IndexFormat.UInt32:
+                    NativeMemory.Copy(&value, &_data[offset], 4u);
+                    break;
+            }
+        }
+
+        public uint GetIndex(int index)
+        {
+            if (index >= ElementCount)
+                return 0;
+
+            int size = ElementSize;
+            int offset = index * size;
+
+            switch (IndexFormat)
+            {
+                case IndexFormat.UInt16:
+                {
+                    ushort value = 0;
+                    NativeMemory.Copy(&_data[offset], &value, 2u);
+                    return value;
+                }
+
+                case IndexFormat.UInt32:
+                {
+                    uint value = 0;
+                    NativeMemory.Copy(&_data[offset], &value, 4u);
+                    return value;
+                }
+
+                default:
+                    throw new InvalidOperationException("Unknown index format.");
+            }
         }
     }
 }

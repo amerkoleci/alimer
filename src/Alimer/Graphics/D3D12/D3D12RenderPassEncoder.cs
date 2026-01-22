@@ -123,7 +123,6 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
             DSV.cpuDescriptor = texture.GetDSV(mipLevel, slice/*, attachment.depthReadOnly, attachment.stencilReadOnly*/);
             DSV.DepthBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
-            DSV.StencilBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
 
             switch (attachment.DepthLoadAction)
             {
@@ -154,6 +153,8 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
             if (!texture.Format.IsDepthOnlyFormat())
             {
+                DSV.StencilBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
+
                 switch (attachment.StencilLoadAction)
                 {
                     default:

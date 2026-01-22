@@ -26,7 +26,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 
-        ReadOnlySpan<ushort> indexData = stackalloc ushort[6] { 0, 1, 2, 0, 2, 3 };
+        ReadOnlySpan<ushort> indexData = [0, 1, 2, 0, 2, 3];
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, BufferUsage.Index));
 
         PipelineLayoutDescription pipelineLayoutDescription = new()
@@ -35,8 +35,8 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         };
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        using ShaderModule vertexShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModuleNew("Triangle", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModuleNew("Triangle", ShaderStages.Fragment, "fragmentMain"u8);
 
 
         var vertexBufferLayout = new VertexBufferLayout[1]

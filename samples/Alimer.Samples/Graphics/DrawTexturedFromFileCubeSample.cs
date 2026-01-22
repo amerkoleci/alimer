@@ -33,7 +33,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
     public DrawTexturedFromFileCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube from file", services, mainWindow)
     {
-        Mesh cube = Mesh.CreateCube(GraphicsDevice, 5.0f);
+        Mesh cube = Mesh.CreateCube(5.0f);
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
         _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));

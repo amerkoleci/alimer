@@ -28,9 +28,9 @@ public sealed class SampleBrowserGame : Game
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
-        //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
+        _runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
-        _runningSample = new DrawMeshSample(Services, MainWindow);
+        //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);

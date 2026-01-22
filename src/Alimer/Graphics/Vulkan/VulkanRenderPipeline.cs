@@ -149,7 +149,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         }
 
         rasterizationState.cullMode = descriptor.RasterizerState.CullMode.ToVk();
-        rasterizationState.frontFace = descriptor.RasterizerState.FrontFace.ToVk(); ;
+        rasterizationState.frontFace = descriptor.RasterizerState.FrontFace.ToVk();
         // Can be managed by command buffer
         rasterizationState.depthBiasEnable = descriptor.RasterizerState.DepthBias != 0.0f || descriptor.RasterizerState.DepthBiasSlopeScale != 0.0f;
         rasterizationState.depthBiasConstantFactor = descriptor.RasterizerState.DepthBias;

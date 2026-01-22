@@ -104,7 +104,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             D3D12_RASTERIZER_DESC1 rasterizerState = D3D12_RASTERIZER_DESC1.DEFAULT;
             rasterizerState.FillMode = descriptor.RasterizerState.FillMode.ToD3D12();
             rasterizerState.CullMode = descriptor.RasterizerState.CullMode.ToD3D12();
-            rasterizerState.FrontCounterClockwise = (descriptor.RasterizerState.FrontFace == FrontFace.CounterClockwise) ? TRUE : FALSE;
+            rasterizerState.FrontCounterClockwise = FALSE; // (descriptor.RasterizerState.FrontFace == FrontFace.CounterClockwise) ? TRUE : FALSE;
             rasterizerState.DepthBias = descriptor.RasterizerState.DepthBias;
             rasterizerState.DepthBiasClamp = descriptor.RasterizerState.DepthBiasClamp;
             rasterizerState.SlopeScaledDepthBias = descriptor.RasterizerState.DepthBiasSlopeScale;
@@ -164,9 +164,11 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             NumRenderTargets = 0
         };
 
-        D3D12_BLEND_DESC blendState = new();
-        blendState.AlphaToCoverageEnable = descriptor.BlendState.AlphaToCoverageEnabled ? TRUE : FALSE;
-        blendState.IndependentBlendEnable = descriptor.BlendState.IndependentBlendEnable ? TRUE : FALSE;
+        D3D12_BLEND_DESC blendState = new()
+        {
+            AlphaToCoverageEnable = descriptor.BlendState.AlphaToCoverageEnabled ? TRUE : FALSE,
+            IndependentBlendEnable = descriptor.BlendState.IndependentBlendEnable ? TRUE : FALSE
+        };
         for (int i = 0; i < descriptor.ColorFormats.Length; i++)
         {
             if (descriptor.ColorFormats[i] == PixelFormat.Undefined)

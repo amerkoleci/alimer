@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
+using Alimer.Rendering;
 using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;
@@ -12,8 +13,7 @@ namespace Alimer.Samples.Graphics;
 [Description("Graphics - Draw Textured Cube")]
 public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 {
-    private readonly GraphicsBuffer _vertexBuffer;
-    private readonly GraphicsBuffer _indexBuffer;
+    private readonly Mesh _cubeMesh;
     private readonly GraphicsBuffer _constantBuffer;
     private readonly Texture _texture;
     private readonly Sampler _sampler;
@@ -32,9 +32,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
     public DrawTexturedCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube", services, mainWindow)
     {
-        var data = MeshUtilities.CreateCube(5.0f);
-        _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
-        _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
+        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        _cubeMesh.CreateGpuData(GraphicsDevice);
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
@@ -80,8 +79,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
-        using ShaderModule vertexShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Fragment, "fragmentMain"u8);
 
 
         var vertexBufferLayout = new VertexBufferLayout[1]
@@ -124,9 +123,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         renderPassEncoder.SetBindGroup(1, _materialBindGroup);
         //context.SetPushConstants(0, worldViewProjection);
 
-        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-        renderPassEncoder.DrawIndexed(36);
+        _cubeMesh.Draw(renderPassEncoder);
+
         renderPassEncoder.EndEncoding();
     }
 }

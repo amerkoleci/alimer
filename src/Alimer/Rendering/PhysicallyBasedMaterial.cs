@@ -10,17 +10,17 @@ namespace Alimer.Rendering;
 /// <summary>
 /// Standard PBR material.
 /// </summary>
-public sealed class StandardMaterial : UnlitMaterial
+public sealed class PhysicallyBasedMaterial : UnlitMaterial
 {
-    public StandardMaterial(GraphicsDevice device)
+    public PhysicallyBasedMaterial(GraphicsDevice device)
         : base(device)
     {
     }
 
     /// <summary>
-    /// Finalizes an instance of the <see cref="StandardMaterial" /> class.
+    /// Finalizes an instance of the <see cref="PhysicallyBasedMaterial" /> class.
     /// </summary>
-    ~StandardMaterial() => Dispose(disposing: false);
+    ~PhysicallyBasedMaterial() => Dispose(disposing: false);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
