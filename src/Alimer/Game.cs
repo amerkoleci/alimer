@@ -36,6 +36,7 @@ public abstract class Game : DisposableObject, IGame
         //Platform.ConfigureServices(services);
         _assets = new AssetManager(_services);
         ConfigureServices(_services);
+        Input = new InputManager(_platform.InputConfiguration);
 
         GraphicsManagerOptions graphicsManagerOptions = new()
         {
@@ -58,8 +59,8 @@ public abstract class Game : DisposableObject, IGame
         AudioDeviceOptions audioOptions = new();
         AudioDevice = AudioDevice.Create(in audioOptions);
 
+        _services.AddService(Input);
         _services.AddService(GraphicsManager);
-        _services.AddService(GraphicsAdapter);
         _services.AddService(GraphicsDevice);
         _services.AddService(AudioDevice);
         _services.AddService(MainWindow);
@@ -94,9 +95,9 @@ public abstract class Game : DisposableObject, IGame
     public Window MainWindow => _platform.MainWindow;
 
     /// <summary>
-    /// Gets the system input, created by the <see cref="GamePlatform"/> module.
+    /// Gets the input manager.
     /// </summary>
-    public InputManager Input => _platform.Input;
+    public InputManager Input { get; }
 
     /// <summary>
     /// Gets the <see cref="Graphics.GraphicsManager"/> created by the application.
@@ -272,6 +273,8 @@ public abstract class Game : DisposableObject, IGame
                 TimeSpan elapsedTime = _stopwatch.Elapsed - Time.Total;
                 _appTime.Update(_stopwatch.Elapsed, elapsedTime);
 
+                // Update input first
+                Input.Update();
                 Update(_appTime);
 
                 BeginDraw();

@@ -11,13 +11,13 @@ public static partial class Clipboard
     /// <summary>
     /// Gets a value indicating whether there is any text on the clipboard.
     /// </summary>
-    public static bool HasText => PlatformHasText();
+    public static partial bool HasText { get; }
 
     /// <summary>
     /// Returns any text that is on the clipboard.
     /// </summary>
     /// <returns>Text content that is on the clipboard, or <see langword="null"/> if there is none.</returns>
-    public static Task<string?> GetTextAsync() => PlatformGetTextAsync();
+    public static partial string? GetText();
 
     /// <summary>
     /// Sets the contents of the clipboard to be the specified text.
@@ -25,5 +25,5 @@ public static partial class Clipboard
     /// <param name="text">The text to put on the clipboard.</param>
     /// <returns>A <see cref="Task"/> object with the current status of the asynchronous operation.</returns>
     /// <remarks>This method returns immediately and does not guarentee that the text is on the clipboard by the time this method returns.</remarks>
-    public static Task SetTextAsync(string? text) => PlatformSetTextAsync(text);
+    public static partial void SetText(string? text);
 }

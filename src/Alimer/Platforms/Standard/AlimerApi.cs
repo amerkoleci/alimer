@@ -91,7 +91,7 @@ partial class AlimerApi
     public struct KeyEvent
     {
         public uint windowID;
-        public KeyboardKey key;
+        public Keys key;
         public Bool8 alt;
         public Bool8 ctrl;
         public Bool8 shift;

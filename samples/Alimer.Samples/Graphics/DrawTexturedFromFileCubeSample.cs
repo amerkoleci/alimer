@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
+using Alimer.Input;
+using Alimer.Rendering;
 
 namespace Alimer.Samples.Graphics;
 
@@ -31,6 +33,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
     public DrawTexturedFromFileCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube from file", services, mainWindow)
     {
+        Mesh cube = Mesh.CreateCube(GraphicsDevice, 5.0f);
         var data = MeshUtilities.CreateCube(5.0f);
         _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
         _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
@@ -51,7 +54,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         // Material
         _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStages.Fragment) 
+            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStages.Fragment)
             ));
         _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
             new BindGroupEntry(0, _texture),
@@ -77,6 +80,14 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
 
         _clock = Stopwatch.StartNew();
+    }
+
+    public override void Update(GameTime time)
+    {
+        if (Input.IsKeyPressed(Keys.A))
+        {
+            Log.Info("A key was pressed.");
+        }
     }
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)

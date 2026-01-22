@@ -116,6 +116,12 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         if (Handle.IsNull)
             return;
 
+        // Metal4
+        //commandQueue.waitForDrawable(drawable)
+        //commandQueue.commit([commandBuffer])
+        //commandQueue.signalDrawable(drawable)
+        //drawable.present()
+
         lock (LockObject)
         {
             uint waitSemaphoreInfoCount = (uint)_presentSwapChains.Count;

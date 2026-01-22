@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using Alimer.Assets;
 using Alimer.Graphics;
+using Alimer.Input;
 using Alimer.Shaders;
 using Slangc.NET;
 
@@ -18,6 +19,7 @@ public abstract class GraphicsSampleBase : SampleBase
         GraphicsManager = services.GetService<GraphicsManager>();
         GraphicsDevice = services.GetService<GraphicsDevice>();
         AssetManager = services.GetService<IAssetManager>();
+        Input = services.GetService<InputManager>();
         MainWindow = mainWindow;
         DepthStencilFormat = depthStencilFormat;
         Resize();
@@ -27,12 +29,13 @@ public abstract class GraphicsSampleBase : SampleBase
 
     public GraphicsManager GraphicsManager { get; }
     public GraphicsDevice GraphicsDevice { get; }
-    public IAssetManager AssetManager { get; }
     public Window MainWindow { get; }
     public PixelFormat[] ColorFormats => [MainWindow.ColorFormat];
     public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;
     public Texture? DepthStencilTexture { get; private set; }
     public float AspectRatio => MainWindow.AspectRatio;
+    public InputManager Input { get; }
+    public IAssetManager AssetManager { get; }
 
     protected void Resize()
     {

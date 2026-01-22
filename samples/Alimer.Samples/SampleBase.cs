@@ -30,6 +30,11 @@ public abstract class SampleBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public virtual void Update(GameTime time)
+    {
+    }
+
+
     public virtual void Draw(CommandBuffer context, Texture outputTexture)
     {
 

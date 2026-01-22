@@ -28,10 +28,4 @@ public static partial class PlatformInfo
     public static string DeviceFamily { get; }
 
     public static Architecture ProcessArchitecture { get; private set; } = RuntimeInformation.ProcessArchitecture;
-
-    /// <summary><c>true</c> if the current running in a 32-bit process; otherwise, <c>false</c>.</summary>
-    public static readonly bool Is32BitProcess = Unsafe.SizeOf<nuint>() == 4;
-
-    /// <summary><c>true</c> if the current running in a 64-bit process; otherwise, <c>false</c>.</summary>
-    public static readonly bool Is64BitProcess = Unsafe.SizeOf<nuint>() == 8;
 }

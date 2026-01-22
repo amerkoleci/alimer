@@ -3,7 +3,7 @@
 
 namespace Alimer.Input;
 
-public enum KeyboardKey
+public enum Keys
 {
     None = 0,
 

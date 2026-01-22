@@ -22,9 +22,9 @@ internal abstract partial class GamePlatform : DisposableObject
     public abstract Window MainWindow { get; }
 
     /// <summary>
-    /// Gets the input manager.
+    /// Gets the input configuration.
     /// </summary>
-    public abstract InputManager Input { get; }
+    public abstract IInputSourceConfiguration InputConfiguration { get; }
 
     protected GamePlatform()
     {

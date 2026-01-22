@@ -7,19 +7,15 @@ namespace Alimer.Input;
 
 partial class Clipboard
 {
-    public static bool PlatformHasText()
+    public static partial bool HasText => alimerHasClipboardText();
+
+    public static partial string? GetText()
     {
-        return alimerHasClipboardText();
+        return alimerClipboardGetText();
     }
 
-    public static Task<string?> PlatformGetTextAsync()
-    {
-        return Task.FromResult(alimerClipboardGetText());
-    }
-
-    public static Task PlatformSetTextAsync(string? text)
+    public static partial void SetText(string? text)
     {
         alimerClipboardSetText(text);
-        return Task.CompletedTask;
     }
 }

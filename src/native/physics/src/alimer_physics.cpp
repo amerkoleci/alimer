@@ -154,8 +154,24 @@ namespace BroadPhaseLayers
     static constexpr uint32_t NUM_LAYERS(2);
 }
 
+class AlimerPhysicsMaterial final : public JPH::PhysicsMaterialSimple
+{
+public:
+    float friction;
+    float restitution;
+
+    AlimerPhysicsMaterial() = default;
+
+    AlimerPhysicsMaterial(const std::string_view& name, JPH::ColorArg color, float friction_, float restitution_)
+        : JPH::PhysicsMaterialSimple(name, color)
+        , friction(friction_)
+        , restitution(restitution_)
+    {
+    }
+};
+
 /// Class that determines if two object layers can collide
-class JoltObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
+class AlimerObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
 {
 public:
     bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
@@ -270,9 +286,9 @@ private:
         }
         else
         {
-            //const auto* phyMaterial = static_cast<const PhysicsMaterial3D*>(material);
-            //outFriction = phyMaterial->Friction;
-            //outRestitution = phyMaterial->Restitution;
+            const auto* engineMaterial = static_cast<const AlimerPhysicsMaterial*>(material);
+            outFriction = engineMaterial->friction;
+            outRestitution = engineMaterial->restitution;
         }
     }
 
@@ -291,13 +307,6 @@ private:
     }
 
 public:
-    JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2, JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override
-    {
-        //ALIMER_PROFILE_SCOPE();
-
-        return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
-    }
-
     void OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
     {
         // TODO: Triggers
@@ -320,21 +329,6 @@ public:
     }
 };
 
-class AlimerPhysicsMaterial : public JPH::PhysicsMaterialSimple
-{
-public:
-    float friction;
-    float restitution;
-
-    AlimerPhysicsMaterial() = default;
-
-    AlimerPhysicsMaterial(const std::string_view& name, JPH::ColorArg color, float friction_, float restitution_)
-        : JPH::PhysicsMaterialSimple(name, color)
-        , friction(friction_)
-        , restitution(restitution_)
-    {
-    }
-};
 
 static struct
 {
@@ -346,7 +340,7 @@ static struct
 struct PhysicsWorld final
 {
     std::atomic_uint32_t                refCount;
-    JoltObjectLayerPairFilter           objectLayerFilter;
+    AlimerObjectLayerPairFilter         objectLayerFilter;
     JoltBroadPhaseLayerInterface	    broadPhaseLayerInterface;
     JoltObjectVsBroadPhaseLayerFilter   objectVsBroadPhaseLayerFilter;
     JPH::PhysicsSystem                  system;

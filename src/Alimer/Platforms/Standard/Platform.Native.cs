@@ -23,13 +23,13 @@ internal unsafe class NativePlatform : GamePlatform
             throw new InvalidOperationException($"Failed to initialise platform layer");
         }
 
-        _input = new NativeInput(this);
+        _input = new NativeInput();
         MainWindow = (_window = new Window(this, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
     }
 
     // <inheritdoc />
-    public override InputManager Input => _input;
+    public override IInputSourceConfiguration InputConfiguration => _input;
 
     // <inheritdoc />
     public override bool SupportsMultipleViews => true;
@@ -93,6 +93,10 @@ internal unsafe class NativePlatform : GamePlatform
                 break;
             case EventType.Window:
                 HandleWindowEvent(in evt.window);
+                break;
+            case EventType.KeyDown:
+            case EventType.KeyUp:
+                _input.HandleKeyEvent(in evt.key, evt.type == EventType.KeyDown);
                 break;
         }
     }

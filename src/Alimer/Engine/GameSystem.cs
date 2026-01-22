@@ -15,7 +15,7 @@ public abstract class GameSystem : IGameSystem
     {
     }
 
-    public virtual void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
+    public virtual void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
     {
     }
 

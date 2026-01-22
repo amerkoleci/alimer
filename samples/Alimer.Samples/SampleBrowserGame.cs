@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Net;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Samples.Graphics;
@@ -30,11 +31,11 @@ public sealed class SampleBrowserGame : Game
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
-        //_runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
+        _runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
-        _runningSample = new SceneCubeSample(Services);
+        //_runningSample = new SceneCubeSample(Services);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
@@ -47,6 +48,13 @@ public sealed class SampleBrowserGame : Game
         }
 
         base.Dispose(disposing);
+    }
+
+    protected override void Update(GameTime time)
+    {
+        base.Update(time);
+
+        _runningSample.Update(time);
     }
 
     protected override void Draw(CommandBuffer renderContext, Texture outputTexture, GameTime time)
