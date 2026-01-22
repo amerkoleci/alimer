@@ -4,10 +4,14 @@
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.D3D_PRIMITIVE_TOPOLOGY;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_ACCESS;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_SYNC;
+using static TerraFX.Interop.DirectX.D3D12_BLEND;
+using static TerraFX.Interop.DirectX.D3D12_BLEND_OP;
+using static TerraFX.Interop.DirectX.D3D12_COLOR_WRITE_ENABLE;
 using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_COMPARISON_FUNC;
 using static TerraFX.Interop.DirectX.D3D12_CULL_MODE;
@@ -20,13 +24,145 @@ using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_STATIC_BORDER_COLOR;
+using static TerraFX.Interop.DirectX.D3D12_STENCIL_OP;
 using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
 using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 
 namespace Alimer.Graphics.D3D12;
 
 internal static unsafe class D3D12Utils
 {
+    public static DXGI_FORMAT ToDxgiFormat(this VertexFormat format)
+    {
+        return format switch
+        {
+            VertexFormat.UByte2 => DXGI_FORMAT_R8G8_UINT,
+            VertexFormat.UByte4 => DXGI_FORMAT_R8G8B8A8_UINT,
+            VertexFormat.Byte2 => DXGI_FORMAT_R8G8_SINT,
+            VertexFormat.Byte4 => DXGI_FORMAT_R8G8B8A8_SINT,
+            VertexFormat.UByte2Normalized => DXGI_FORMAT_R8G8_UNORM,
+            VertexFormat.UByte4Normalized => DXGI_FORMAT_R8G8B8A8_UNORM,
+            VertexFormat.Byte2Normalized => DXGI_FORMAT_R8G8_SNORM,
+            VertexFormat.Byte4Normalized => DXGI_FORMAT_R8G8B8A8_SNORM,
+            VertexFormat.UShort2 => DXGI_FORMAT_R16G16_UINT,
+            VertexFormat.UShort4 => DXGI_FORMAT_R16G16B16A16_UINT,
+            VertexFormat.Short2 => DXGI_FORMAT_R16G16_SINT,
+            VertexFormat.Short4 => DXGI_FORMAT_R16G16B16A16_SINT,
+            VertexFormat.UShort2Normalized => DXGI_FORMAT_R16G16_UNORM,
+            VertexFormat.UShort4Normalized => DXGI_FORMAT_R16G16B16A16_UNORM,
+            VertexFormat.Short2Normalized => DXGI_FORMAT_R16G16_SNORM,
+            VertexFormat.Short4Normalized => DXGI_FORMAT_R16G16B16A16_SNORM,
+            VertexFormat.Half2 => DXGI_FORMAT_R16G16_FLOAT,
+            VertexFormat.Half4 => DXGI_FORMAT_R16G16B16A16_FLOAT,
+            VertexFormat.Float => DXGI_FORMAT_R32_FLOAT,
+            VertexFormat.Float2 => DXGI_FORMAT_R32G32_FLOAT,
+            VertexFormat.Float3 => DXGI_FORMAT_R32G32B32_FLOAT,
+            VertexFormat.Float4 => DXGI_FORMAT_R32G32B32A32_FLOAT,
+            VertexFormat.UInt => DXGI_FORMAT_R32_UINT,
+            VertexFormat.UInt2 => DXGI_FORMAT_R32G32_UINT,
+            VertexFormat.UInt3 => DXGI_FORMAT_R32G32B32_UINT,
+            VertexFormat.UInt4 => DXGI_FORMAT_R32G32B32A32_UINT,
+            VertexFormat.Int => DXGI_FORMAT_R32_SINT,
+            VertexFormat.Int2 => DXGI_FORMAT_R32G32_SINT,
+            VertexFormat.Int3 => DXGI_FORMAT_R32G32B32_SINT,
+            VertexFormat.Int4 => DXGI_FORMAT_R32G32B32A32_SINT,
+            VertexFormat.Unorm10_10_10_2 => DXGI_FORMAT_R10G10B10A2_UNORM,
+            VertexFormat.Unorm8x4BGRA => DXGI_FORMAT_B8G8R8A8_UNORM,
+            //case VertexFormat.RG11B10Float:     return DXGI_FORMAT_R11G11B10_FLOAT;
+            //case VertexFormat.RGB9E5Float:      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+            _ => DXGI_FORMAT_UNKNOWN,
+        };
+    }
+
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DXGI_FORMAT GetTypelessFormatFromDepthFormat(this PixelFormat format)
+    {
+        switch (format)
+        {
+            //case PixelFormat.Stencil8:
+            //    return DxgiFormat.R24G8Typeless;
+            case PixelFormat.Depth16Unorm:
+                return DXGI_FORMAT_R16_TYPELESS;
+
+            case PixelFormat.Depth32Float:
+                return DXGI_FORMAT_R32_TYPELESS;
+
+            case PixelFormat.Depth24UnormStencil8:
+                return DXGI_FORMAT_R24G8_TYPELESS;
+            case PixelFormat.Depth32FloatStencil8:
+                return DXGI_FORMAT_R32G8X24_TYPELESS;
+
+            default:
+                Guard.IsFalse(format.IsDepthFormat(), nameof(format));
+                return (DXGI_FORMAT)format.ToDxgiFormat();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DXGI_FORMAT ToDxgiSwapChainFormat(this PixelFormat format)
+    {
+        // FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
+        return format switch
+        {
+            PixelFormat.RGBA16Float => DXGI_FORMAT_R16G16B16A16_FLOAT,
+            PixelFormat.BGRA8Unorm or PixelFormat.BGRA8UnormSrgb => DXGI_FORMAT_B8G8R8A8_UNORM,
+            PixelFormat.RGBA8Unorm or PixelFormat.RGBA8UnormSrgb => DXGI_FORMAT_R8G8B8A8_UNORM,
+            PixelFormat.RGB10A2Unorm => DXGI_FORMAT_R10G10B10A2_UNORM,
+            _ => DXGI_FORMAT_B8G8R8A8_UNORM,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(this PrimitiveTopology value)
+    {
+        return value switch
+        {
+            PrimitiveTopology.PointList => D3D_PRIMITIVE_TOPOLOGY_POINTLIST,
+            PrimitiveTopology.LineList => D3D_PRIMITIVE_TOPOLOGY_LINELIST,
+            PrimitiveTopology.LineStrip => D3D_PRIMITIVE_TOPOLOGY_LINESTRIP,
+            PrimitiveTopology.TriangleList => D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+            PrimitiveTopology.TriangleStrip => D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
+            _ => D3D_PRIMITIVE_TOPOLOGY_UNDEFINED,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint ToSampleCount(this TextureSampleCount sampleCount)
+    {
+        return sampleCount switch
+        {
+            TextureSampleCount.Count1 => 1,
+            TextureSampleCount.Count2 => 2,
+            TextureSampleCount.Count4 => 4,
+            TextureSampleCount.Count8 => 8,
+            TextureSampleCount.Count16 => 16,
+            TextureSampleCount.Count32 => 32,
+            _ => 1,
+        };
+    }
+
+    public static uint PresentModeToBufferCount(this PresentMode mode)
+    {
+        return mode switch
+        {
+            PresentMode.Immediate or PresentMode.Fifo => 2,
+            PresentMode.Mailbox => 3,
+            _ => 2,
+        };
+    }
+
+    public static uint PresentModeToSyncInterval(PresentMode mode)
+    {
+        return mode switch
+        {
+            PresentMode.Immediate or PresentMode.Mailbox => 0u,
+            _ => 1u,
+        };
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_COMMAND_LIST_TYPE ToD3D12(this CommandQueueType queue)
     {
@@ -107,22 +243,15 @@ internal static unsafe class D3D12Utils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_TEXTURE_ADDRESS_MODE ToD3D12(this SamplerAddressMode filter)
     {
-        switch (filter)
+        return filter switch
         {
-            case SamplerAddressMode.Repeat:
-                return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-            case SamplerAddressMode.MirrorRepeat:
-                return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-            case SamplerAddressMode.ClampToEdge:
-                return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-            case SamplerAddressMode.ClampToBorder:
-                return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            case SamplerAddressMode.MirrorClampToEdge:
-                return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
-
-            default:
-                return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        }
+            SamplerAddressMode.Repeat => D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            SamplerAddressMode.MirrorRepeat => D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+            SamplerAddressMode.ClampToEdge => D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+            SamplerAddressMode.ClampToBorder => D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+            SamplerAddressMode.MirrorClampToEdge => D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE,
+            _ => D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -147,25 +276,132 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_BLEND ToD3D12(this BlendFactor value, bool alpha)
+    {
+        if (alpha)
+        {
+            switch (value)
+            {
+                case BlendFactor.SourceColor:
+                    return D3D12_BLEND_SRC_ALPHA;
+                case BlendFactor.OneMinusSourceColor:
+                    return D3D12_BLEND_INV_SRC_ALPHA;
+                case BlendFactor.DestinationColor:
+                    return D3D12_BLEND_DEST_ALPHA;
+                case BlendFactor.OneMinusDestinationColor:
+                    return D3D12_BLEND_INV_DEST_ALPHA;
+                case BlendFactor.Source1Color:
+                    return D3D12_BLEND_SRC1_ALPHA;
+                case BlendFactor.OneMinusSource1Color:
+                    return D3D12_BLEND_INV_SRC1_ALPHA;
+                // Other blend factors translate to the same D3D12 enum as the color blend factors.
+                default:
+                    break;
+            }
+        }
+
+        return value switch
+        {
+            BlendFactor.Zero => D3D12_BLEND_ZERO,
+            BlendFactor.One => D3D12_BLEND_ONE,
+            BlendFactor.SourceColor => D3D12_BLEND_SRC_COLOR,
+            BlendFactor.OneMinusSourceColor => D3D12_BLEND_INV_SRC_COLOR,
+            BlendFactor.SourceAlpha => D3D12_BLEND_SRC_ALPHA,
+            BlendFactor.OneMinusSourceAlpha => D3D12_BLEND_INV_SRC_ALPHA,
+            BlendFactor.DestinationColor => D3D12_BLEND_DEST_COLOR,
+            BlendFactor.OneMinusDestinationColor => D3D12_BLEND_INV_DEST_COLOR,
+            BlendFactor.DestinationAlpha => D3D12_BLEND_DEST_ALPHA,
+            BlendFactor.OneMinusDestinationAlpha => D3D12_BLEND_INV_DEST_ALPHA,
+            BlendFactor.SourceAlphaSaturate => D3D12_BLEND_SRC_ALPHA_SAT,
+            BlendFactor.BlendColor => D3D12_BLEND_BLEND_FACTOR,
+            BlendFactor.OneMinusBlendColor => D3D12_BLEND_INV_BLEND_FACTOR,
+            BlendFactor.BlendAlpha => D3D12_BLEND_ALPHA_FACTOR,
+            BlendFactor.OneMinusBlendAlpha => D3D12_BLEND_INV_ALPHA_FACTOR,
+            BlendFactor.Source1Color => D3D12_BLEND_SRC1_COLOR,
+            BlendFactor.OneMinusSource1Color => D3D12_BLEND_INV_SRC1_COLOR,
+            BlendFactor.Source1Alpha => D3D12_BLEND_SRC1_ALPHA,
+            BlendFactor.OneMinusSource1Alpha => D3D12_BLEND_INV_SRC1_ALPHA,
+            _ => D3D12_BLEND_ZERO,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_BLEND_OP ToD3D12(this BlendOperation operation)
+    {
+        return operation switch
+        {
+            BlendOperation.Add => D3D12_BLEND_OP_ADD,
+            BlendOperation.Subtract => D3D12_BLEND_OP_SUBTRACT,
+            BlendOperation.ReverseSubtract => D3D12_BLEND_OP_REV_SUBTRACT,
+            BlendOperation.Min => D3D12_BLEND_OP_MIN,
+            BlendOperation.Max => D3D12_BLEND_OP_MAX,
+            _ => D3D12_BLEND_OP_ADD,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_COLOR_WRITE_ENABLE ToD3D12(this ColorWriteMask value)
+    {
+        D3D12_COLOR_WRITE_ENABLE result = 0;
+
+        if ((value & ColorWriteMask.Red) != 0)
+            result |= D3D12_COLOR_WRITE_ENABLE_RED;
+
+        if ((value & ColorWriteMask.Green) != 0)
+            result |= D3D12_COLOR_WRITE_ENABLE_GREEN;
+
+        if ((value & ColorWriteMask.Blue) != 0)
+            result |= D3D12_COLOR_WRITE_ENABLE_BLUE;
+
+        if ((value & ColorWriteMask.Alpha) != 0)
+            result |= D3D12_COLOR_WRITE_ENABLE_ALPHA;
+
+        return result;
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12_STENCIL_OP ToD3D12(this StencilOperation value)
+    {
+        return value switch
+        {
+            StencilOperation.Keep => D3D12_STENCIL_OP_KEEP,
+            StencilOperation.Zero => D3D12_STENCIL_OP_ZERO,
+            StencilOperation.Replace => D3D12_STENCIL_OP_REPLACE,
+            StencilOperation.Invert => D3D12_STENCIL_OP_INVERT,
+            StencilOperation.IncrementClamp => D3D12_STENCIL_OP_INCR_SAT,
+            StencilOperation.DecrementClamp => D3D12_STENCIL_OP_DECR_SAT,
+            StencilOperation.IncrementWrap => D3D12_STENCIL_OP_INCR,
+            StencilOperation.DecrementWrap => D3D12_STENCIL_OP_DECR,
+            _ => D3D12_STENCIL_OP_KEEP,
+        };
+    }
+
+    public static D3D12_DEPTH_STENCILOP_DESC ToD3D12(this in StencilFaceState state)
+    {
+        return new D3D12_DEPTH_STENCILOP_DESC()
+        {
+            StencilFailOp = state.FailOperation.ToD3D12(),
+            StencilDepthFailOp = state.DepthFailOperation.ToD3D12(),
+            StencilPassOp = state.PassOperation.ToD3D12(),
+            StencilFunc = state.CompareFunction.ToD3D12()
+        };
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_SHADING_RATE ToD3D12(this ShadingRate value)
     {
-        switch (value)
+        return value switch
         {
-            case ShadingRate.Rate1x2:
-                return D3D12_SHADING_RATE_1X1;
-            case ShadingRate.Rate2x1:
-                return D3D12_SHADING_RATE_2X1;
-            case ShadingRate.Rate2x2:
-                return D3D12_SHADING_RATE_2X2;
-            case ShadingRate.Rate2x4:
-                return D3D12_SHADING_RATE_2X4;
-            case ShadingRate.Rate4x2:
-                return D3D12_SHADING_RATE_4X2;
-            case ShadingRate.Rate4x4:
-                return D3D12_SHADING_RATE_4X4;
-            default:
-                return D3D12_SHADING_RATE_1X1;
-        }
+            ShadingRate.Rate1x2 => D3D12_SHADING_RATE_1X1,
+            ShadingRate.Rate2x1 => D3D12_SHADING_RATE_2X1,
+            ShadingRate.Rate2x2 => D3D12_SHADING_RATE_2X2,
+            ShadingRate.Rate2x4 => D3D12_SHADING_RATE_2X4,
+            ShadingRate.Rate4x2 => D3D12_SHADING_RATE_4X2,
+            ShadingRate.Rate4x4 => D3D12_SHADING_RATE_4X4,
+            _ => D3D12_SHADING_RATE_1X1,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -174,21 +410,14 @@ internal static unsafe class D3D12Utils
         if (stage == ShaderStages.All)
             return D3D12_SHADER_VISIBILITY_ALL;
 
-        switch (stage)
+        return stage switch
         {
-            case ShaderStages.Vertex:
-                return D3D12_SHADER_VISIBILITY_VERTEX;
-                return D3D12_SHADER_VISIBILITY_GEOMETRY;
-            case ShaderStages.Fragment:
-                return D3D12_SHADER_VISIBILITY_PIXEL;
-            case ShaderStages.Amplification:
-                return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
-            case ShaderStages.Mesh:
-                return D3D12_SHADER_VISIBILITY_MESH;
-
-            default:
-                return D3D12_SHADER_VISIBILITY_ALL;
-        }
+            ShaderStages.Vertex => D3D12_SHADER_VISIBILITY_VERTEX,
+            ShaderStages.Fragment => D3D12_SHADER_VISIBILITY_PIXEL,
+            ShaderStages.Amplification => D3D12_SHADER_VISIBILITY_AMPLIFICATION,
+            ShaderStages.Mesh => D3D12_SHADER_VISIBILITY_MESH,
+            _ => D3D12_SHADER_VISIBILITY_ALL,
+        };
     }
 
     public static D3D12TextureLayoutMapping ConvertTextureLayout(TextureLayout layout)
@@ -259,30 +488,30 @@ internal static unsafe class D3D12Utils
                     );
 
             case TextureLayout.DepthRead:
-            return new(
-                D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ,
-                D3D12_BARRIER_SYNC_DEPTH_STENCIL,
-                D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ
-                );
+                return new(
+                    D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ,
+                    D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                    D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ
+                    );
 
             case TextureLayout.Present:
-            return new(
-                D3D12_BARRIER_LAYOUT_PRESENT,
-                D3D12_BARRIER_SYNC_ALL,
-                D3D12_BARRIER_ACCESS_COMMON
-                );
+                return new(
+                    D3D12_BARRIER_LAYOUT_PRESENT,
+                    D3D12_BARRIER_SYNC_ALL,
+                    D3D12_BARRIER_ACCESS_COMMON
+                    );
 
             case TextureLayout.ShadingRateSurface:
-            return new(
-                D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE,
-                D3D12_BARRIER_SYNC_PIXEL_SHADING,
-                D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
-                );
+                return new(
+                    D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE,
+                    D3D12_BARRIER_SYNC_PIXEL_SHADING,
+                    D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
+                    );
 
             default:
 
                 return ThrowHelper.ThrowArgumentException<D3D12TextureLayoutMapping>();
-    }
+        }
     }
 
     public static D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(TextureLayout layout)

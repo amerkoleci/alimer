@@ -78,68 +78,7 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct GraphicsPipelineStateStream1
-    {
-        public CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
-        public CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-        public CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE IBStripCutValue;
-        public CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-        public CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-        public CD3DX12_PIPELINE_STATE_STREAM_HS HS;
-        public CD3DX12_PIPELINE_STATE_STREAM_DS DS;
-        public CD3DX12_PIPELINE_STATE_STREAM_GS GS;
-        public CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-        public CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC BlendState;
-        public CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1 DepthStencilState;
-        public CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-        public CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterizerState;
-        public CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-        public CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
-        public CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK SampleMask;
-        public CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK NodeMask;
-
-        public GraphicsPipelineStateStream1()
-        {
-            pRootSignature = new();
-            InputLayout = new();
-            IBStripCutValue = new();
-            PrimitiveTopologyType = new();
-            VS = new();
-            HS = new();
-            DS = new();
-            GS = new();
-            PS = new();
-        }
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct GraphicsPipelineStateStream2
-    {
-        public CD3DX12_PIPELINE_STATE_STREAM_AS AS;
-        public CD3DX12_PIPELINE_STATE_STREAM_MS MS;
-
-        public GraphicsPipelineStateStream2()
-        {
-            AS = new();
-            MS = new();
-        }
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct GraphicsPipelineStateStream
-    {
-        public GraphicsPipelineStateStream1 stream1;
-        public GraphicsPipelineStateStream2 stream2;
-
-        public GraphicsPipelineStateStream()
-        {
-            stream1 = new();
-            stream2 = new();
-        }
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ComputePipelineStateStream
+    struct ComputePipelineStateStream
     {
         public CD3DX12_PIPELINE_STATE_STREAM_NODE_MASK NodeMask;
         public CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;

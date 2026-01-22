@@ -351,7 +351,9 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public override void Present(SwapChain swapChain)
     {
-        D3D12SwapChain d3dSwapChain = (D3D12SwapChain)swapChain;
-        _queue.QueuePresent(d3dSwapChain);
+        D3D12SwapChain backendSwapChain = (D3D12SwapChain)swapChain;
+        //TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present, 0, 1, 0, 1);
+        TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present);
+        _queue.QueuePresent(backendSwapChain);
     }
 }

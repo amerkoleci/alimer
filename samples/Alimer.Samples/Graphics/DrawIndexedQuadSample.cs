@@ -19,10 +19,10 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         : base("Graphics - DrawIndexed Quad", services, mainWindow)
     {
         ReadOnlySpan<VertexPositionColor> vertexData = [
-            new(new Vector3(-0.5f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
-            new(new Vector3(0.5f, 0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
-            new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
-            new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)),
+            new(new Vector3(-0.5f, 0.5f, 0.5f), Colors.Red),
+            new(new Vector3(0.5f, 0.5f, 0.5f), Colors.Lime),
+            new(new Vector3(0.5f, -0.5f, 0.5f), Colors.Blue),
+            new(new Vector3(-0.5f, -0.5f, 0.5f), Colors.Yellow),
         ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 

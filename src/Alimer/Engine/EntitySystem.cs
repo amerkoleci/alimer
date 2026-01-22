@@ -68,7 +68,7 @@ public abstract class EntitySystem<TComponent> : EntitySystem where TComponent :
     {
     }
 
-    protected HashSet<TComponent> Components { get; } = new HashSet<TComponent>();
+    protected HashSet<TComponent> Components { get; } = [];
 
     public override void ProcessEntityComponent(EntityComponent component, Entity entity, bool forceRemove)
     {
@@ -102,7 +102,7 @@ public abstract class EntitySystem<TComponent> : EntitySystem where TComponent :
     {
         if (RequiredComponentTypes.Count == 0) return true;
 
-        List<Type> remainingRequiredTypes = new(RequiredComponentTypes);
+        List<Type> remainingRequiredTypes = [.. RequiredComponentTypes];
 
         foreach (EntityComponent component in entity.Components)
         {

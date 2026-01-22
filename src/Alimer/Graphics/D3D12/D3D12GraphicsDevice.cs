@@ -642,6 +642,27 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         return result;
     }
 
+    /// <inheritdoc />
+    public override bool QueryVertexFormatSupport(VertexFormat format)
+    {
+        DXGI_FORMAT dxgiFormat = format.ToDxgiFormat();
+        if (dxgiFormat == DXGI_FORMAT_UNKNOWN)
+            return false;
+
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT featureData = new()
+        {
+            Format = dxgiFormat
+        };
+        HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, ref featureData);
+        if (FAILED(hr))
+            return false;
+
+        if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_IA_VERTEX_BUFFER) != 0)
+            return true;
+
+        return false;
+    }
+
     public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
     public void Submit(in D3D12UploadContext context) => _copyAllocator.Submit(in context);
 

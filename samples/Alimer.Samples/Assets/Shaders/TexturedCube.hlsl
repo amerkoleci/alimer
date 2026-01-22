@@ -35,7 +35,7 @@ Texture2D<float4> baseColorTexture : register(t0, space1);
 VertexOutput vertexMain(in VertexInput input)
 {
     VertexOutput output;
-    output.Position = mul(draw.worldMatrix, float4(input.Position, 1.0f));
+    output.Position = mul(float4(input.Position, 1.0f), draw.worldMatrix);
     output.Normal = input.Normal;
     output.texcoord = input.texcoord;
 #if defined(VERTEX_COLOR)

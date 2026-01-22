@@ -19,7 +19,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
 
     public void Dispose()
     {
-        _device.DeviceApi.vkQueueWaitIdle(_device.CopyQueue.Handle);
+        _device.DeviceApi.vkQueueWaitIdle(_device.VkCopyQueue.Handle);
         foreach (VulkanUploadContext context in _freelist)
         {
             _device.DeviceApi.vkDestroyCommandPool(_device.Handle, context.TransferCommandPool, null);
@@ -101,23 +101,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         _device.DeviceApi.vkEndCommandBuffer(context.TransferCommandBuffer).CheckResult();
         _device.DeviceApi.vkEndCommandBuffer(context.TransitionCommandBuffer).CheckResult();
 
-        if (_device.VkAdapter.Features13.synchronization2 == true)
-        {
-            SubmitSynchronization2(in context);
-        }
-        else
-        {
-            SubmitLegacy(in context);
-        }
 
-        lock (_freelist)
-        {
-            _freelist.Add(context);
-        }
-    }
-
-    private void SubmitSynchronization2(in VulkanUploadContext context)
-    {
         // Copy queue first
         {
             VkCommandBufferSubmitInfo commandBufferSubmitInfo = new()
@@ -139,9 +123,9 @@ internal unsafe class VulkanCopyAllocator : IDisposable
                 pSignalSemaphoreInfos = &signalSemaphoreInfo
             };
 
-            lock (_device.CopyQueue.LockObject)
+            lock (_device.VkCopyQueue.LockObject)
             {
-                _device.DeviceApi.vkQueueSubmit2(_device.CopyQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
+                _device.DeviceApi.vkQueueSubmit2(_device.VkCopyQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -163,7 +147,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
             signalSemaphoreInfos[1] = new();
 
             signalSemaphoreInfos[0].semaphore = context.Semaphores[1]; // Signal for compute queue
-            signalSemaphoreInfos[0].stageMask = VkPipelineStageFlags2.AllCommands; 
+            signalSemaphoreInfos[0].stageMask = VkPipelineStageFlags2.AllCommands;
 
             VkSubmitInfo2 submitInfo = new()
             {
@@ -182,9 +166,9 @@ internal unsafe class VulkanCopyAllocator : IDisposable
                 submitInfo.signalSemaphoreInfoCount = 2;
             }
 
-            lock (_device.GraphicsQueue.LockObject)
+            lock (_device.VkGraphicsQueue.LockObject)
             {
-                _device.DeviceApi.vkQueueSubmit2(_device.GraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
+                _device.DeviceApi.vkQueueSubmit2(_device.VkGraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -207,9 +191,9 @@ internal unsafe class VulkanCopyAllocator : IDisposable
                 pSignalSemaphoreInfos = null
             };
 
-            lock (_device.VideoDecodeQueue!.LockObject)
+            lock (_device.VkVideoDecodeQueue!.LockObject)
             {
-                _device.DeviceApi.vkQueueSubmit2(_device.VideoDecodeQueue!.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
+                _device.DeviceApi.vkQueueSubmit2(_device.VkVideoDecodeQueue!.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
             }
         }
 
@@ -232,118 +216,15 @@ internal unsafe class VulkanCopyAllocator : IDisposable
                 pSignalSemaphoreInfos = null
             };
 
-            lock (_device.ComputeQueue.LockObject)
+            lock (_device.VkComputeQueue.LockObject)
             {
-                _device.DeviceApi.vkQueueSubmit2(_device.ComputeQueue.Handle, 1, &submitInfo, context.Fence).CheckResult();
-            }
-        }
-    }
-
-    private void SubmitLegacy(in VulkanUploadContext context)
-    {
-        VkCommandBufferSubmitInfo cbSubmitInfo = new();
-
-        VkSemaphoreSubmitInfo* signalSemaphoreInfos = stackalloc VkSemaphoreSubmitInfo[2];
-        signalSemaphoreInfos[0] = new();
-        signalSemaphoreInfos[1] = new();
-
-        // Copy queue first
-        {
-            VkCommandBuffer commandBuffer = context.TransferCommandBuffer;
-            VkSemaphore semaphore = context.Semaphores[0]; // signal for graphics queue
-
-            VkSubmitInfo submitInfo = new()
-            {
-                commandBufferCount = 1,
-                pCommandBuffers = &commandBuffer,
-                signalSemaphoreCount = 1,
-                pSignalSemaphores = &semaphore
-            };
-
-            lock (_device.CopyQueue.LockObject)
-            {
-                _device.DeviceApi.vkQueueSubmit(_device.CopyQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
+                _device.DeviceApi.vkQueueSubmit2(_device.VkComputeQueue.Handle, 1, &submitInfo, context.Fence).CheckResult();
             }
         }
 
+        lock (_freelist)
         {
-            VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
-            {
-                semaphore = context.Semaphores[0], // Wait for copy queue
-                stageMask = VkPipelineStageFlags2.AllCommands
-            };
-
-            cbSubmitInfo.commandBuffer = context.TransitionCommandBuffer;
-            signalSemaphoreInfos[0].semaphore = context.Semaphores[1]; // signal for compute queue
-            signalSemaphoreInfos[0].stageMask = VkPipelineStageFlags2.AllCommands; // signal for compute queue
-
-            VkSubmitInfo2 submitInfo = new()
-            {
-                waitSemaphoreInfoCount = 1,
-                pWaitSemaphoreInfos = &waitSemaphoreInfo,
-                commandBufferInfoCount = 1,
-                pCommandBufferInfos = &cbSubmitInfo,
-                pSignalSemaphoreInfos = signalSemaphoreInfos
-            };
-
-            //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
-            //{
-            //    signalSemaphoreInfos[1].semaphore = cmd.semaphores[2]; // signal for video decode queue
-            //    signalSemaphoreInfos[1].stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT; // signal for video decode queue
-            //    submitInfo.signalSemaphoreInfoCount = 2;
-            //}
-            //else
-            {
-                submitInfo.signalSemaphoreInfoCount = 1;
-            }
-
-            lock (_device.GraphicsQueue.LockObject)
-            {
-                _device.DeviceApi.vkQueueSubmit2(_device.GraphicsQueue.Handle, 1, &submitInfo, VkFence.Null).CheckResult();
-            }
-        }
-
-        // VideoDecode
-        //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
-        //{
-        //    waitSemaphoreInfo.semaphore = cmd.semaphores[2]; // wait for graphics queue
-        //    waitSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-        //
-        //    submitInfo.waitSemaphoreInfoCount = 1;
-        //    submitInfo.pWaitSemaphoreInfos = &waitSemaphoreInfo;
-        //    submitInfo.commandBufferInfoCount = 0;
-        //    submitInfo.pCommandBufferInfos = nullptr;
-        //    submitInfo.signalSemaphoreInfoCount = 0;
-        //    submitInfo.pSignalSemaphoreInfos = nullptr;
-        //
-        //    std::scoped_lock lock (device->queues[QUEUE_VIDEO_DECODE].locker) ;
-        //    res = vkQueueSubmit2(device->queues[QUEUE_VIDEO_DECODE].queue, 1, &submitInfo, VK_NULL_HANDLE);
-        //    assert(res == VK_SUCCESS);
-        //}
-
-        // This must be final submit in this function because it will also signal a fence for state tracking by CPU!
-        // Note: Final submit also signals fence
-        {
-            VkSemaphoreSubmitInfo waitSemaphoreInfo = new()
-            {
-                semaphore = context.Semaphores[1], // Wait for graphics queue
-                stageMask = VkPipelineStageFlags2.AllCommands
-            };
-
-            VkSubmitInfo2 submitInfo = new()
-            {
-                waitSemaphoreInfoCount = 1,
-                pWaitSemaphoreInfos = &waitSemaphoreInfo,
-                commandBufferInfoCount = 0,
-                pCommandBufferInfos = null,
-                signalSemaphoreInfoCount = 0,
-                pSignalSemaphoreInfos = null
-            };
-
-            lock (_device.ComputeQueue.LockObject)
-            {
-                _device.DeviceApi.vkQueueSubmit2(_device.ComputeQueue.Handle, 1, &submitInfo, context.Fence).CheckResult();
-            }
+            _freelist.Add(context);
         }
     }
 }

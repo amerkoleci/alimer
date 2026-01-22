@@ -11,7 +11,7 @@ namespace Alimer.Graphics.Vulkan;
 internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 {
     public readonly VkQueue Handle;
-    public readonly object LockObject = new();
+    public readonly Lock LockObject = new();
     private readonly VkSemaphore _semaphore = VkSemaphore.Null;
     private readonly VkFence[] _frameFences;
 
@@ -86,7 +86,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         _presentSwapChains.Clear();
     }
 
-    public override void Execute(IEnumerable<CommandBuffer> commandBuffers, bool waitForCompletion = false)
+    public override void Execute(Span<CommandBuffer> commandBuffers, bool waitForCompletion = false)
     {
         foreach (VulkanCommandBuffer commandBuffer in commandBuffers)
         {

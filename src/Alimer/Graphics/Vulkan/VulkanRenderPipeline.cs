@@ -1,13 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Vulkan;
-using static Vortice.Vulkan.Vulkan;
-using static Alimer.Graphics.Constants;
 using System.Diagnostics;
-using static Alimer.Utilities.MemoryUtilities;
-using static Alimer.Utilities.MarshalUtilities;
-using Alimer.Utilities;
+using Vortice.Vulkan;
+using static Alimer.Graphics.Constants;
+using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -23,7 +20,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         VkLayout = (VulkanPipelineLayout)descriptor.Layout;
 
         // ShaderStages
-        int shaderStageCount = 0;
+        uint shaderStageCount = 0;
         // Mesh Pipeline (D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
         VkPipelineShaderStageCreateInfo* shaderStages = stackalloc VkPipelineShaderStageCreateInfo[3];
         if (descriptor.MeshShader is not null)
@@ -46,8 +43,8 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         }
 
         // VertexInputState
-        int vertexBufferLayoutsCount = 0;
-        int vertexAttributesCount = 0;
+        uint vertexBufferLayoutsCount = 0;
+        uint vertexAttributesCount = 0;
         VkVertexInputBindingDescription* vertexBindings = stackalloc VkVertexInputBindingDescription[descriptor.VertexBufferLayouts.Length];
         VkVertexInputAttributeDescription* vertexAttributes = stackalloc VkVertexInputAttributeDescription[MaxVertexAttributes];
 
@@ -77,25 +74,22 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
 
         VkPipelineVertexInputStateCreateInfo vertexInputState = new()
         {
-            vertexBindingDescriptionCount = (uint)vertexBufferLayoutsCount,
+            vertexBindingDescriptionCount = vertexBufferLayoutsCount,
             pVertexBindingDescriptions = vertexBindings,
-            vertexAttributeDescriptionCount = (uint)vertexAttributesCount,
+            vertexAttributeDescriptionCount = vertexAttributesCount,
             pVertexAttributeDescriptions = vertexAttributes
         };
 
         // InputAssemblyState
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = new();
-        inputAssemblyState.topology = descriptor.PrimitiveTopology.ToVk();
-        switch (descriptor.PrimitiveTopology)
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = new()
         {
-            case PrimitiveTopology.LineStrip:
-            case PrimitiveTopology.TriangleStrip:
-                inputAssemblyState.primitiveRestartEnable = true;
-                break;
-            default:
-                inputAssemblyState.primitiveRestartEnable = false;
-                break;
-        }
+            topology = descriptor.PrimitiveTopology.ToVk(),
+            primitiveRestartEnable = descriptor.PrimitiveTopology switch
+            {
+                PrimitiveTopology.LineStrip or PrimitiveTopology.TriangleStrip => true,
+                _ => false,
+            }
+        };
 
         // ViewportState
         VkPipelineViewportStateCreateInfo viewportState = new()
@@ -114,32 +108,53 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         void** tail = &rasterizationState.pNext;
         if (device.VkAdapter.DepthClipEnableFeatures.depthClipEnable)
         {
-            rasterizationState.depthClampEnable = true;
             depthClipStateInfo.depthClipEnable = descriptor.RasterizerState.DepthClipMode == DepthClipMode.Clip;
 
+            rasterizationState.depthClampEnable = true;
+            rasterizationState.pNext = &depthClipStateInfo;
+
+            // Requires {}
             *tail = &depthClipStateInfo;
             tail = &depthClipStateInfo.pNext;
         }
 
         VkPipelineRasterizationConservativeStateCreateInfoEXT rasterizationConservativeState = new();
-        if (descriptor.RasterizerState.ConservativeRaster)
+        if (descriptor.RasterizerState.ConservativeRasterEnable)
         {
             rasterizationConservativeState.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
-            rasterizationConservativeState.extraPrimitiveOverestimationSize = 0.0f;
+            //rasterizationConservativeState.extraPrimitiveOverestimationSize = 0.0f;
 
             *tail = &rasterizationConservativeState;
             tail = &rasterizationConservativeState.pNext;
         }
 
         rasterizationState.rasterizerDiscardEnable = false;
-        rasterizationState.polygonMode = VkPolygonMode.Fill; // ToVk(features2, desc.rasterizerState.fillMode);
+
+        switch (descriptor.RasterizerState.FillMode)
+        {
+            default:
+            case FillMode.Solid:
+                rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+                break;
+
+            case FillMode.Wireframe:
+                if (!_device.VkAdapter.Features2.features.fillModeNonSolid)
+                {
+                    Log.Warn("Vulkan: Wireframe fill mode is being used but it's not supported on this device");
+                    rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+                }
+
+                rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+                break;
+        }
+
         rasterizationState.cullMode = descriptor.RasterizerState.CullMode.ToVk();
-        rasterizationState.frontFace = (descriptor.RasterizerState.FrontFace == FrontFace.Clockwise) ? VkFrontFace.Clockwise : VkFrontFace.CounterClockwise;
+        rasterizationState.frontFace = descriptor.RasterizerState.FrontFace.ToVk(); ;
         // Can be managed by command buffer
-        //rasterizationState.depthBiasEnable = desc.rasterizerState.depthBias != 0.0f || desc.rasterizerState.slopeScaledDepthBias != 0.0f;
-        //rasterizationState.depthBiasConstantFactor = desc.rasterizerState.depthBias;
-        //rasterizationState.depthBiasClamp = desc.rasterizerState.depthBiasClamp;
-        //rasterizationState.depthBiasSlopeFactor = desc.rasterizerState.slopeScaledDepthBias;
+        rasterizationState.depthBiasEnable = descriptor.RasterizerState.DepthBias != 0.0f || descriptor.RasterizerState.DepthBiasSlopeScale != 0.0f;
+        rasterizationState.depthBiasConstantFactor = descriptor.RasterizerState.DepthBias;
+        rasterizationState.depthBiasClamp = descriptor.RasterizerState.DepthBiasClamp;
+        rasterizationState.depthBiasSlopeFactor = descriptor.RasterizerState.DepthBiasSlopeScale;
         rasterizationState.lineWidth = 1.0f;
 
         // MultisampleState
@@ -149,7 +164,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         };
 
         Debug.Assert((int)multisampleState.rasterizationSamples <= 32);
-        if (multisampleState.rasterizationSamples > VkSampleCountFlags.Count1)
+        if (multisampleState.rasterizationSamples > VK_SAMPLE_COUNT_1_BIT)
         {
             multisampleState.alphaToCoverageEnable = descriptor.BlendState.AlphaToCoverageEnabled;
             multisampleState.alphaToOneEnable = false;
@@ -160,42 +175,49 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         multisampleState.pSampleMask = &sampleMask;
 
         // DepthStencilState
-        VkPipelineDepthStencilStateCreateInfo depthStencilState = new()
+        VkPipelineDepthStencilStateCreateInfo depthStencilState = default;
+        if (descriptor.DepthStencilFormat != PixelFormat.Undefined)
         {
-            depthTestEnable = (descriptor.DepthStencilState.DepthCompare != CompareFunction.Always || descriptor.DepthStencilState.DepthWriteEnabled),
-            depthWriteEnable = descriptor.DepthStencilState.DepthWriteEnabled,
-            depthCompareOp = descriptor.DepthStencilState.DepthCompare.ToVk(),
-            minDepthBounds = 0.0f,
-            maxDepthBounds = 1.0f
-        };
-        if (_device.VkAdapter.Features2.features.depthBounds)
-        {
-            depthStencilState.depthBoundsTestEnable = descriptor.DepthStencilState.DepthBoundsTestEnable;
-        }
-        else
-        {
-            depthStencilState.depthBoundsTestEnable = false;
-        }
+            depthStencilState = new()
+            {
+                depthTestEnable = (descriptor.DepthStencilState.DepthCompare != CompareFunction.Always || descriptor.DepthStencilState.DepthWriteEnabled),
+                depthWriteEnable = descriptor.DepthStencilState.DepthWriteEnabled,
+                depthCompareOp = descriptor.DepthStencilState.DepthCompare.ToVk(),
+                minDepthBounds = 0.0f,
+                maxDepthBounds = 1.0f
+            };
+            if (_device.VkAdapter.Features2.features.depthBounds)
+            {
+                depthStencilState.depthBoundsTestEnable = descriptor.DepthStencilState.DepthBoundsTestEnable;
+            }
+            else
+            {
+                depthStencilState.depthBoundsTestEnable = false;
+            }
 
-        //depthStencilState.stencilTestEnable = StencilTestEnabled(&desc.depthStencilState) ? VK_TRUE : VK_FALSE;
-        //depthStencilState.front.failOp = ToVk(desc.depthStencilState.frontFace.failOp);
-        //depthStencilState.front.passOp = ToVk(desc.depthStencilState.frontFace.passOp);
-        //depthStencilState.front.depthFailOp = ToVk(desc.depthStencilState.frontFace.depthFailOp);
-        //depthStencilState.front.compareOp = ToVk(desc.depthStencilState.frontFace.compareFunc);
-        //depthStencilState.front.compareMask = desc.depthStencilState.stencilReadMask;
-        //depthStencilState.front.writeMask = desc.depthStencilState.stencilWriteMask;
-        //depthStencilState.front.reference = 0;
-        //
-        //depthStencilState.back.failOp = ToVk(desc.depthStencilState.backFace.failOp);
-        //depthStencilState.back.passOp = ToVk(desc.depthStencilState.backFace.passOp);
-        //depthStencilState.back.depthFailOp = ToVk(desc.depthStencilState.backFace.depthFailOp);
-        //depthStencilState.back.compareOp = ToVk(desc.depthStencilState.backFace.compareFunc);
-        //depthStencilState.back.compareMask = desc.depthStencilState.stencilReadMask;
-        //depthStencilState.back.writeMask = desc.depthStencilState.stencilWriteMask;
-        //depthStencilState.back.reference = 0;
+            StencilFaceState stencilFront = descriptor.DepthStencilState.StencilFront;
+            depthStencilState.stencilTestEnable = GraphicsUtilities.StencilTestEnabled(descriptor.DepthStencilState);
+            depthStencilState.front.failOp = stencilFront.FailOperation.ToVk();
+            depthStencilState.front.passOp = stencilFront.PassOperation.ToVk();
+            depthStencilState.front.depthFailOp = stencilFront.DepthFailOperation.ToVk();
+            depthStencilState.front.compareOp = stencilFront.CompareFunction.ToVk();
+            depthStencilState.front.compareMask = descriptor.DepthStencilState.StencilReadMask;
+            depthStencilState.front.writeMask = descriptor.DepthStencilState.StencilWriteMask;
+            depthStencilState.front.reference = 0;
+
+
+            StencilFaceState stencilBack = descriptor.DepthStencilState.StencilBack;
+            depthStencilState.back.failOp = stencilBack.FailOperation.ToVk();
+            depthStencilState.back.passOp = stencilBack.PassOperation.ToVk();
+            depthStencilState.back.depthFailOp = stencilBack.DepthFailOperation.ToVk();
+            depthStencilState.back.compareOp = stencilBack.CompareFunction.ToVk();
+            depthStencilState.back.compareMask = descriptor.DepthStencilState.StencilReadMask;
+            depthStencilState.back.writeMask = descriptor.DepthStencilState.StencilWriteMask;
+            depthStencilState.back.reference = 0;
+        }
 
         // BlendState
-        VkPipelineRenderingCreateInfo renderingInfo = new();
+        uint colorAttachmentCount = 0;
         VkFormat* pColorAttachmentFormats = stackalloc VkFormat[descriptor.ColorFormats.Length];
         VkPipelineColorBlendAttachmentState* blendAttachmentStates = stackalloc VkPipelineColorBlendAttachmentState[descriptor.ColorFormats.Length];
 
@@ -204,26 +226,30 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
             if (descriptor.ColorFormats[i] == PixelFormat.Undefined)
                 continue;
 
-            ref readonly RenderTargetBlendState attachment = ref descriptor.BlendState.RenderTargets[i];
+            int attachmentIndex = 0;
+            if (descriptor.BlendState.IndependentBlendEnable)
+                attachmentIndex = i;
 
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].blendEnable = GraphicsUtilities.BlendEnabled(in attachment);
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].srcColorBlendFactor = attachment.SourceColorBlendFactor.ToVk();
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].dstColorBlendFactor = attachment.DestinationColorBlendFactor.ToVk();
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].colorBlendOp = attachment.ColorBlendOperation.ToVk();
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].srcAlphaBlendFactor = attachment.SourceAlphaBlendFactor.ToVk();
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].dstAlphaBlendFactor = attachment.DestinationAlphaBlendFactor.ToVk();
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
-            blendAttachmentStates[renderingInfo.colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
+            ref readonly RenderTargetBlendState attachment = ref descriptor.BlendState.RenderTargets[attachmentIndex];
 
-            pColorAttachmentFormats[renderingInfo.colorAttachmentCount] = _device.ToVkFormat(descriptor.ColorFormats[i]);
-            renderingInfo.colorAttachmentCount++;
+            blendAttachmentStates[colorAttachmentCount].blendEnable = GraphicsUtilities.BlendEnabled(in attachment);
+            blendAttachmentStates[colorAttachmentCount].srcColorBlendFactor = attachment.SourceColorBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].dstColorBlendFactor = attachment.DestinationColorBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].colorBlendOp = attachment.ColorBlendOperation.ToVk();
+            blendAttachmentStates[colorAttachmentCount].srcAlphaBlendFactor = attachment.SourceAlphaBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].dstAlphaBlendFactor = attachment.DestinationAlphaBlendFactor.ToVk();
+            blendAttachmentStates[colorAttachmentCount].alphaBlendOp = attachment.AlphaBlendOperation.ToVk();
+            blendAttachmentStates[colorAttachmentCount].colorWriteMask = attachment.ColorWriteMask.ToVk();
+
+            pColorAttachmentFormats[colorAttachmentCount] = _device.ToVkFormat(descriptor.ColorFormats[i]);
+            colorAttachmentCount++;
         }
 
         VkPipelineColorBlendStateCreateInfo blendState = new()
         {
             logicOpEnable = false,
-            logicOp = VkLogicOp.Clear,
-            attachmentCount = renderingInfo.colorAttachmentCount,
+            logicOp = VK_LOGIC_OP_CLEAR,
+            attachmentCount = colorAttachmentCount,
             pAttachments = blendAttachmentStates
         };
         blendState.blendConstants[0] = 0.0f;
@@ -231,44 +257,21 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         blendState.blendConstants[2] = 0.0f;
         blendState.blendConstants[3] = 0.0f;
 
-        renderingInfo.pColorAttachmentFormats = pColorAttachmentFormats;
-        renderingInfo.depthAttachmentFormat = _device.VkAdapter.ToVkFormat(descriptor.DepthStencilFormat);
-        if (!descriptor.DepthStencilFormat.IsDepthOnlyFormat())
+        VkFormat depthStencilFormat = _device.VkAdapter.ToVkFormat(descriptor.DepthStencilFormat);
+        VkPipelineRenderingCreateInfo renderingInfo = new()
         {
-            renderingInfo.stencilAttachmentFormat = renderingInfo.depthAttachmentFormat;
-        }
-
-        // DynamicState
-        int dynamicStateCount = 4;
-        VkDynamicState* vkDynamicStates = stackalloc VkDynamicState[6] {
-            VkDynamicState.Viewport,
-            VkDynamicState.Scissor,
-            VkDynamicState.StencilReference,
-            VkDynamicState.BlendConstants,
-            VkDynamicState.DepthBounds,
-            VkDynamicState.FragmentShadingRateKHR
+            colorAttachmentCount = colorAttachmentCount,
+            pColorAttachmentFormats = pColorAttachmentFormats,
+            depthAttachmentFormat = depthStencilFormat,
+            stencilAttachmentFormat = !descriptor.DepthStencilFormat.IsDepthOnlyFormat() ? depthStencilFormat : VK_FORMAT_UNDEFINED
         };
-        if (_device.VkAdapter.Features2.features.depthBounds)
-        {
-            dynamicStateCount++;
-        }
-        //if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
-        //{
-        //    dynamicStateCount++;
-        //}
 
-        VkPipelineDynamicStateCreateInfo dynamicState = new()
-        {
-            pNext = null,
-            flags = 0,
-            dynamicStateCount = (uint)dynamicStateCount,
-            pDynamicStates = vkDynamicStates,
-        };
+        VkPipelineDynamicStateCreateInfo dynamicState = device.DynamicStateInfo;
 
         VkGraphicsPipelineCreateInfo createInfo = new()
         {
             pNext = &renderingInfo,
-            stageCount = (uint)shaderStageCount,
+            stageCount = shaderStageCount,
             pStages = shaderStages,
             pVertexInputState = &vertexInputState,
             pInputAssemblyState = &inputAssemblyState,
@@ -276,7 +279,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
             pViewportState = &viewportState,
             pRasterizationState = &rasterizationState,
             pMultisampleState = &multisampleState,
-            pDepthStencilState = &depthStencilState,
+            pDepthStencilState = (descriptor.DepthStencilFormat == PixelFormat.Undefined) ? null : &depthStencilState,
             pColorBlendState = &blendState,
             pDynamicState = &dynamicState,
             layout = VkLayout.Handle,

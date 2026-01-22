@@ -18,17 +18,17 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
         : base("Graphics - Draw Triangle", services, mainWindow)
     {
         ReadOnlySpan<VertexPositionColor> vertexData = [
-            new(new Vector3(0.0f, 0.5f, 0.5f), new Vector4(1.0f, 0.0f, 0.0f, 1.0f)),
-            new(new Vector3(0.5f, -0.5f, 0.5f), new Vector4(0.0f, 1.0f, 0.0f, 1.0f)),
-            new(new Vector3(-0.5f, -0.5f, 0.5f), new Vector4(0.0f, 0.0f, 1.0f, 1.0f)),
+            new(new Vector3(0.0f, 0.5f, 0.0f), Colors.Red),
+            new(new Vector3(-0.5f, -0.5f, 0.0f), Colors.Lime),
+            new(new Vector3(0.5f, -0.5f, 0.0f), Colors.Blue),
         ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 
         PipelineLayoutDescription pipelineLayoutDescription = new();
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        using ShaderModule vertexShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModule("Triangle.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModuleNew("Triangle", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModuleNew("Triangle", ShaderStages.Fragment, "fragmentMain"u8);
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {

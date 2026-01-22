@@ -364,19 +364,18 @@ internal static unsafe class VulkanUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkCompareOp ToVk(this CompareFunction value)
     {
-        switch (value)
+        return value switch
         {
-            case CompareFunction.Never: return VkCompareOp.Never;
-            case CompareFunction.Less: return VkCompareOp.Less;
-            case CompareFunction.Equal: return VkCompareOp.Equal;
-            case CompareFunction.LessEqual: return VkCompareOp.LessOrEqual;
-            case CompareFunction.Greater: return VkCompareOp.Greater;
-            case CompareFunction.NotEqual: return VkCompareOp.NotEqual;
-            case CompareFunction.GreaterEqual: return VkCompareOp.GreaterOrEqual;
-            case CompareFunction.Always: return VkCompareOp.Always;
-            default:
-                return VkCompareOp.Never;
-        }
+            CompareFunction.Never => VK_COMPARE_OP_NEVER,
+            CompareFunction.Less => VK_COMPARE_OP_LESS,
+            CompareFunction.Equal => VK_COMPARE_OP_EQUAL,
+            CompareFunction.LessEqual => VK_COMPARE_OP_LESS_OR_EQUAL,
+            CompareFunction.Greater => VK_COMPARE_OP_GREATER,
+            CompareFunction.NotEqual => VK_COMPARE_OP_NOT_EQUAL,
+            CompareFunction.GreaterEqual => VK_COMPARE_OP_GREATER_OR_EQUAL,
+            CompareFunction.Always => VK_COMPARE_OP_ALWAYS,
+            _ => VK_COMPARE_OP_NEVER,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -384,8 +383,8 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            VertexStepMode.Instance => VkVertexInputRate.Instance,
-            _ => VkVertexInputRate.Vertex,
+            VertexStepMode.Instance => VK_VERTEX_INPUT_RATE_INSTANCE,
+            _ => VK_VERTEX_INPUT_RATE_VERTEX,
         };
     }
 
@@ -394,90 +393,97 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            CullMode.Front => VkCullModeFlags.Front,
-            CullMode.None => VkCullModeFlags.None,
-            _ => VkCullModeFlags.Back,
+            CullMode.Front => VK_CULL_MODE_FRONT_BIT,
+            CullMode.None => VK_CULL_MODE_NONE,
+            _ => VK_CULL_MODE_BACK_BIT,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkFrontFace ToVk(this FrontFace value)
+    {
+        return value switch
+        {
+            FrontFace.Clockwise => VK_FRONT_FACE_CLOCKWISE,
+            FrontFace.CounterClockwise => VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            _ => VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkStencilOp ToVk(this StencilOperation value)
+    {
+        return value switch
+        {
+            StencilOperation.Keep => VK_STENCIL_OP_KEEP,
+            StencilOperation.Zero => VK_STENCIL_OP_ZERO,
+            StencilOperation.Replace => VK_STENCIL_OP_REPLACE,
+            StencilOperation.Invert => VK_STENCIL_OP_INVERT,
+            StencilOperation.IncrementClamp => VK_STENCIL_OP_INCREMENT_AND_CLAMP,
+            StencilOperation.DecrementClamp => VK_STENCIL_OP_DECREMENT_AND_CLAMP,
+            StencilOperation.IncrementWrap => VK_STENCIL_OP_INCREMENT_AND_WRAP,
+            StencilOperation.DecrementWrap => VK_STENCIL_OP_DECREMENT_AND_WRAP,
+            _ => VK_STENCIL_OP_KEEP,
         };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkBlendFactor ToVk(this BlendFactor value)
     {
-        switch (value)
+        return value switch
         {
-            case BlendFactor.Zero:
-                return VkBlendFactor.Zero;
-            case BlendFactor.One:
-                return VkBlendFactor.One;
-            case BlendFactor.SourceColor:
-                return VkBlendFactor.SrcColor;
-            case BlendFactor.OneMinusSourceColor:
-                return VkBlendFactor.OneMinusSrcColor;
-            case BlendFactor.SourceAlpha:
-                return VkBlendFactor.SrcAlpha;
-            case BlendFactor.OneMinusSourceAlpha:
-                return VkBlendFactor.OneMinusSrcAlpha;
-            case BlendFactor.DestinationColor:
-                return VkBlendFactor.DstColor;
-            case BlendFactor.OneMinusDestinationColor:
-                return VkBlendFactor.OneMinusDstColor;
-            case BlendFactor.DestinationAlpha:
-                return VkBlendFactor.DstAlpha;
-            case BlendFactor.OneMinusDestinationAlpha:
-                return VkBlendFactor.OneMinusDstAlpha;
-            case BlendFactor.SourceAlphaSaturate:
-                return VkBlendFactor.SrcAlphaSaturate;
-            case BlendFactor.BlendColor:
-                return VkBlendFactor.ConstantColor;
-            case BlendFactor.OneMinusBlendColor:
-                return VkBlendFactor.OneMinusConstantColor;
-            case BlendFactor.BlendAlpha:
-                return VkBlendFactor.ConstantAlpha;
-            case BlendFactor.OneMinusBlendAlpha:
-                return VkBlendFactor.OneMinusConstantAlpha;
-            case BlendFactor.Source1Color:
-                return VkBlendFactor.Src1Color;
-            case BlendFactor.OneMinusSource1Color:
-                return VkBlendFactor.OneMinusSrc1Color;
-            case BlendFactor.Source1Alpha:
-                return VkBlendFactor.Src1Alpha;
-            case BlendFactor.OneMinusSource1Alpha:
-                return VkBlendFactor.OneMinusSrc1Alpha;
-            default:
-                return VkBlendFactor.Zero;
-        }
+            BlendFactor.Zero => VK_BLEND_FACTOR_ZERO,
+            BlendFactor.One => VK_BLEND_FACTOR_ONE,
+            BlendFactor.SourceColor => VK_BLEND_FACTOR_SRC_COLOR,
+            BlendFactor.OneMinusSourceColor => VkBlendFactor.OneMinusSrcColor,
+            BlendFactor.SourceAlpha => VkBlendFactor.SrcAlpha,
+            BlendFactor.OneMinusSourceAlpha => VkBlendFactor.OneMinusSrcAlpha,
+            BlendFactor.DestinationColor => VkBlendFactor.DstColor,
+            BlendFactor.OneMinusDestinationColor => VkBlendFactor.OneMinusDstColor,
+            BlendFactor.DestinationAlpha => VkBlendFactor.DstAlpha,
+            BlendFactor.OneMinusDestinationAlpha => VkBlendFactor.OneMinusDstAlpha,
+            BlendFactor.SourceAlphaSaturate => VkBlendFactor.SrcAlphaSaturate,
+            BlendFactor.BlendColor => VkBlendFactor.ConstantColor,
+            BlendFactor.OneMinusBlendColor => VkBlendFactor.OneMinusConstantColor,
+            BlendFactor.BlendAlpha => VkBlendFactor.ConstantAlpha,
+            BlendFactor.OneMinusBlendAlpha => VkBlendFactor.OneMinusConstantAlpha,
+            BlendFactor.Source1Color => VkBlendFactor.Src1Color,
+            BlendFactor.OneMinusSource1Color => VkBlendFactor.OneMinusSrc1Color,
+            BlendFactor.Source1Alpha => VkBlendFactor.Src1Alpha,
+            BlendFactor.OneMinusSource1Alpha => VkBlendFactor.OneMinusSrc1Alpha,
+            _ => VkBlendFactor.Zero,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkBlendOp ToVk(this BlendOperation value)
     {
-        switch (value)
+        return value switch
         {
-            case BlendOperation.Subtract: return VkBlendOp.Subtract;
-            case BlendOperation.ReverseSubtract: return VkBlendOp.ReverseSubtract;
-            case BlendOperation.Min: return VkBlendOp.Min;
-            case BlendOperation.Max: return VkBlendOp.Max;
-            default:
-                return VkBlendOp.Add;
-        }
+            BlendOperation.Subtract => VK_BLEND_OP_SUBTRACT,
+            BlendOperation.ReverseSubtract => VK_BLEND_OP_REVERSE_SUBTRACT,
+            BlendOperation.Min => VK_BLEND_OP_MIN,
+            BlendOperation.Max => VK_BLEND_OP_MAX,
+            _ => VK_BLEND_OP_ADD,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkColorComponentFlags ToVk(this ColorWriteMask value)
     {
-        VkColorComponentFlags result = VkColorComponentFlags.None;
+        VkColorComponentFlags result = 0;
 
         if ((value & ColorWriteMask.Red) != 0)
-            result |= VkColorComponentFlags.R;
+            result |= VK_COLOR_COMPONENT_R_BIT;
 
         if ((value & ColorWriteMask.Green) != 0)
-            result |= VkColorComponentFlags.G;
+            result |= VK_COLOR_COMPONENT_G_BIT;
 
         if ((value & ColorWriteMask.Blue) != 0)
-            result |= VkColorComponentFlags.B;
+            result |= VK_COLOR_COMPONENT_B_BIT;
 
         if ((value & ColorWriteMask.Alpha) != 0)
-            result |= VkColorComponentFlags.A;
+            result |= VK_COLOR_COMPONENT_A_BIT;
 
         return result;
     }
@@ -487,9 +493,9 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            SamplerMinMagFilter.Nearest => VkFilter.Nearest,
-            SamplerMinMagFilter.Linear => VkFilter.Linear,
-            _ => VkFilter.Nearest,
+            SamplerMinMagFilter.Nearest => VK_FILTER_NEAREST,
+            SamplerMinMagFilter.Linear => VK_FILTER_LINEAR,
+            _ => VK_FILTER_NEAREST,
         };
     }
 
@@ -498,9 +504,9 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            SamplerMipFilter.Nearest => VkSamplerMipmapMode.Nearest,
-            SamplerMipFilter.Linear => VkSamplerMipmapMode.Linear,
-            _ => VkSamplerMipmapMode.Nearest,
+            SamplerMipFilter.Nearest => VK_SAMPLER_MIPMAP_MODE_NEAREST,
+            SamplerMipFilter.Linear => VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            _ => VK_SAMPLER_MIPMAP_MODE_NEAREST,
         };
     }
 
@@ -509,12 +515,12 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            SamplerAddressMode.Repeat => VkSamplerAddressMode.Repeat,
+            SamplerAddressMode.Repeat => VK_SAMPLER_ADDRESS_MODE_REPEAT,
             SamplerAddressMode.MirrorRepeat => VkSamplerAddressMode.MirroredRepeat,
             SamplerAddressMode.ClampToEdge => VkSamplerAddressMode.ClampToEdge,
             SamplerAddressMode.ClampToBorder => VkSamplerAddressMode.ClampToBorder,
             SamplerAddressMode.MirrorClampToEdge => samplerMirrorClampToEdge ? VkSamplerAddressMode.MirrorClampToEdge : VkSamplerAddressMode.MirroredRepeat,
-            _ => VkSamplerAddressMode.Repeat,
+            _ => VK_SAMPLER_ADDRESS_MODE_REPEAT,
         };
     }
 
@@ -523,13 +529,13 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            SamplerBorderColor.FloatTransparentBlack => VkBorderColor.FloatTransparentBlack,
+            SamplerBorderColor.FloatTransparentBlack => VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
             SamplerBorderColor.FloatOpaqueBlack => VkBorderColor.FloatOpaqueBlack,
             SamplerBorderColor.FloatOpaqueWhite => VkBorderColor.FloatOpaqueWhite,
             SamplerBorderColor.UintTransparentBlack => VkBorderColor.IntTransparentBlack,
             SamplerBorderColor.UintOpaqueBlack => VkBorderColor.IntOpaqueBlack,
             SamplerBorderColor.UintOpaqueWhite => VkBorderColor.IntOpaqueWhite,
-            _ => VkBorderColor.FloatTransparentBlack,
+            _ => VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
         };
     }
 
@@ -561,7 +567,7 @@ internal static unsafe class VulkanUtils
                 return new(
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                    VkAccessFlags2.None
+                    0
                     );
 
             case TextureLayout.CopySource:

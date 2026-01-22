@@ -31,6 +31,10 @@ public  record struct RenderPipelineDescriptor
     public DepthStencilState DepthStencilState;
 
     public PrimitiveTopology PrimitiveTopology;
+    /// <summary>
+    /// Index format for strip topologies (when using primitive restart -> <see cref="PrimitiveTopology.LineStrip"/> or <see cref="PrimitiveTopology.TriangleStrip"/>).
+    /// </summary>
+	public IndexFormat StripIndexFormat;
 
     public PixelFormat[] ColorFormats;
     public PixelFormat DepthStencilFormat = PixelFormat.Undefined;

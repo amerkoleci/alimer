@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Linq;
-
 namespace Alimer.Graphics;
 
 public abstract class CommandQueue
@@ -17,12 +15,12 @@ public abstract class CommandQueue
     /// </summary>
     public abstract CommandQueueType QueueType { get; }
 
-    public void Execute(params CommandBuffer[] commandBuffers)
+    public void Execute(params Span<CommandBuffer> commandBuffers)
     {
-        Execute(commandBuffers.AsEnumerable());
+        Execute(commandBuffers, false);
     }
 
-    public abstract void Execute(IEnumerable<CommandBuffer> commandBuffers, bool waitForCompletion = false);
+    public abstract void Execute(Span<CommandBuffer> commandBuffers, bool waitForCompletion = false);
 
     /// <summary>
     /// Wait for the queue to finish pending GPU operations.

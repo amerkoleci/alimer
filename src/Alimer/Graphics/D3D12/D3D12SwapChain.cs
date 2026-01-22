@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using Alimer.Graphics.D3D;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static Alimer.Graphics.D3D.D3DUtils;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.DXGI;
 using static TerraFX.Interop.DirectX.DXGI_SCALING;
@@ -41,7 +40,7 @@ internal unsafe class D3D12SwapChain : SwapChain
             Stereo = false,
             SampleDesc = new(1, 0),
             BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            BufferCount = PresentModeToBufferCount(descriptor.PresentMode),
+            BufferCount = descriptor.PresentMode.PresentModeToBufferCount(),
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
@@ -123,6 +122,7 @@ internal unsafe class D3D12SwapChain : SwapChain
 
     public DXGI_FORMAT DxgiFormat { get; }
     public IDXGISwapChain3* Handle => _handle;
+    public D3D12Texture CurrentTexture => _backbufferTextures![CurrentBackBufferIndex];
     public uint CurrentBackBufferIndex => _handle.Get()->GetCurrentBackBufferIndex();
 
     /// <summary>

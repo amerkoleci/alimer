@@ -17,7 +17,11 @@ partial class Mesh
     public static Mesh CreateBox(GraphicsDevice device, in Vector3 size)
     {
         // TODO
-        Mesh mesh = new(device);
+        Mesh mesh = new(device, 24,
+            new VertexAttribute(VertexFormat.Float3, 0, 0),     // Position
+            new VertexAttribute(VertexFormat.Float3, 12, 1),    // Normal
+            new VertexAttribute(VertexFormat.Float2, 24, 2)     // TexCoord
+            );
         return mesh;
     }
 }

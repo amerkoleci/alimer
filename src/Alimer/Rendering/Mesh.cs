@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Numerics;
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
 
@@ -13,11 +14,13 @@ public sealed partial class Mesh : DisposableObject
     private bool _boundsDirty = true;
     private VertexBufferLayout _layout;
 
-    public Mesh(GraphicsDevice device)
+    public Mesh(GraphicsDevice device, uint vertexCount, params VertexAttribute[] attributes)
     {
         Guard.IsNotNull(device, nameof(device));
 
         Device = device;
+        VertexCount = vertexCount;
+        _layout = new VertexBufferLayout(attributes);
     }
 
     public GraphicsDevice Device { get; }
@@ -25,7 +28,12 @@ public sealed partial class Mesh : DisposableObject
     /// <summary>
     /// The number of vertices in the vertex buffers.
     /// </summary>
-    public int VertexCount { get; set; }
+    public uint VertexCount { get; }
+
+    /// <summary>
+    /// Gets the size, in bytes, of a single vertex element in the layout.
+    /// </summary>
+    public uint VertexStride => _layout.Stride;
 
     /// <summary>
     /// Gets the collection of sub-meshes that make up this mesh.
@@ -33,6 +41,7 @@ public sealed partial class Mesh : DisposableObject
     public IReadOnlyList<SubMesh> SubMeshes => _subMeshes;
 
     public VertexBufferLayout Layout => _layout;
+    public IndexFormat IndexFormat { get; private set; }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="Mesh" /> class.
@@ -47,6 +56,11 @@ public sealed partial class Mesh : DisposableObject
         }
     }
 
+    public void SetPositions(ReadOnlySpan<Vector3> positions, uint vertexCount)
+    {
+
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -59,5 +73,13 @@ public sealed partial class Mesh : DisposableObject
         SubMesh subMesh = new(this, indexStart, indexCount, materialIndex);
         _subMeshes.Add(subMesh);
         return subMesh;
+    }
+
+    public class VertexBuffer
+    {
+        public VertexBuffer(uint vertex)
+        {
+
+        }
     }
 }

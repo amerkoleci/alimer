@@ -3,7 +3,6 @@
 
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
-using static Alimer.Graphics.D3D.D3DUtils;
 using static Alimer.Graphics.D3D12.D3D12Utils;
 using static Alimer.Utilities.MemoryUtilities;
 using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;

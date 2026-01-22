@@ -32,25 +32,25 @@ public static class GraphicsUtilities
     public static bool BlendEnabled(in RenderTargetBlendState state)
     {
         return
-            state.ColorBlendOperation != BlendOperation.Add ||
-            state.AlphaBlendOperation != BlendOperation.Add ||
-            state.SourceColorBlendFactor != BlendFactor.One ||
-            state.DestinationColorBlendFactor != BlendFactor.Zero ||
-            state.SourceAlphaBlendFactor != BlendFactor.One ||
-            state.DestinationAlphaBlendFactor != BlendFactor.Zero;
+            state.ColorBlendOperation != BlendOperation.Add
+            || state.AlphaBlendOperation != BlendOperation.Add
+            || state.SourceColorBlendFactor != BlendFactor.One
+            || state.DestinationColorBlendFactor != BlendFactor.Zero
+            || state.SourceAlphaBlendFactor != BlendFactor.One
+            || state.DestinationAlphaBlendFactor != BlendFactor.Zero;
     }
 
     public static bool StencilTestEnabled(in DepthStencilState state)
     {
         return
-            state.StencilBack.CompareFunction != CompareFunction.Always ||
-            state.StencilBack.FailOperation != StencilOperation.Keep ||
-            state.StencilBack.DepthFailOperation != StencilOperation.Keep ||
-            state.StencilBack.PassOperation != StencilOperation.Keep ||
-            state.StencilFront.CompareFunction != CompareFunction.Always ||
-            state.StencilFront.FailOperation != StencilOperation.Keep ||
-            state.StencilFront.DepthFailOperation != StencilOperation.Keep ||
-            state.StencilFront.PassOperation != StencilOperation.Keep;
+            state.StencilBack.CompareFunction != CompareFunction.Always
+            || state.StencilBack.FailOperation != StencilOperation.Keep
+            || state.StencilBack.DepthFailOperation != StencilOperation.Keep
+            || state.StencilBack.PassOperation != StencilOperation.Keep
+            || state.StencilFront.CompareFunction != CompareFunction.Always
+            || state.StencilFront.FailOperation != StencilOperation.Keep
+            || state.StencilFront.DepthFailOperation != StencilOperation.Keep
+            || state.StencilFront.PassOperation != StencilOperation.Keep;
     }
 
     public static void Swap<T>(ref T source, ref T destination)

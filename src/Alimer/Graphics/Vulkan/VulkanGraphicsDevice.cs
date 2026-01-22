@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using XenoAtom.Collections;
@@ -26,6 +27,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VulkanCopyAllocator _copyAllocator;
     private readonly VulkanCommandQueue[] _queues = new VulkanCommandQueue[(int)CommandQueueType.Count];
     private readonly VmaAllocator _allocator;
+    private readonly uint _dynamicStateCount;
+    private readonly VkDynamicState* _pDynamicStates;
+    private readonly VkPipelineDynamicStateCreateInfo _dynamicStateInfo;
     private readonly VmaAllocation _nullBufferAllocation = VmaAllocation.Null;
     private readonly VmaAllocation _nullImageAllocation1D = VmaAllocation.Null;
     private readonly VmaAllocation _nullImageAllocation2D = VmaAllocation.Null;
@@ -589,6 +593,38 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         _copyAllocator = new(this);
 
+        // Dynamic PSO states
+        _dynamicStateCount = 4;
+        if (features2.features.depthBounds)
+        {
+            _dynamicStateCount++;
+        }
+        if (_adapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate)
+        {
+            _dynamicStateCount++;
+        }
+
+        _pDynamicStates = MemoryUtilities.AllocateArray<VkDynamicState>(_dynamicStateCount);
+        int dynamicStateIndex = 0;
+        _pDynamicStates[dynamicStateIndex++] = VK_DYNAMIC_STATE_VIEWPORT;
+        _pDynamicStates[dynamicStateIndex++] = VK_DYNAMIC_STATE_SCISSOR;
+        _pDynamicStates[dynamicStateIndex++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+        _pDynamicStates[dynamicStateIndex++] = VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+        if (features2.features.depthBounds)
+        {
+            _pDynamicStates[dynamicStateIndex++] = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+        }
+        if (_adapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate)
+        {
+            _pDynamicStates[dynamicStateIndex++] = VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR;
+        }
+        //psoDynamicStates.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE);
+        _dynamicStateInfo = new VkPipelineDynamicStateCreateInfo
+        {
+            dynamicStateCount = _dynamicStateCount,
+            pDynamicStates = _pDynamicStates
+        };
+
         // Pipeline Cache
         {
             // TODO: Add cache from disk
@@ -806,13 +842,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VkDevice Handle => _handle;
     public VkDeviceApi DeviceApi => _deviceApi;
-    public VulkanCommandQueue GraphicsQueue => _queues[(int)CommandQueueType.Graphics];
-    public VulkanCommandQueue ComputeQueue => _queues[(int)CommandQueueType.Compute];
-    public VulkanCommandQueue CopyQueue => _queues[(int)CommandQueueType.Copy];
-    public VulkanCommandQueue? VideoDecodeQueue => _queues[(int)CommandQueueType.VideoDecode];
+    public VulkanCommandQueue VkGraphicsQueue => _queues[(int)CommandQueueType.Graphics];
+    public VulkanCommandQueue VkComputeQueue => _queues[(int)CommandQueueType.Compute];
+    public VulkanCommandQueue VkCopyQueue => _queues[(int)CommandQueueType.Copy];
+    public VulkanCommandQueue? VkVideoDecodeQueue => _queues[(int)CommandQueueType.VideoDecode];
     //public VulkanCommandQueue? VideoEncodeQueue => _queues[(int)CommandQueueType.VideoEncode];
 
     public VmaAllocator Allocator => _allocator;
+
+    public ref readonly VkPipelineDynamicStateCreateInfo DynamicStateInfo => ref _dynamicStateInfo;
 
     public VkPipelineCache PipelineCache { get; }
 
@@ -878,6 +916,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
 
             vmaDestroyAllocator(_allocator);
+            MemoryUtilities.Free(_pDynamicStates);
 
             if (PipelineCache.IsNotNull)
             {
@@ -1096,6 +1135,26 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 #endif
 
         return result;
+    }
+
+    /// <inheritdoc />
+    public override bool QueryVertexFormatSupport(VertexFormat format)
+    {
+        VkFormat vkFormat = format.ToVk();
+        if (vkFormat == VK_FORMAT_UNDEFINED)
+            return false;
+
+        VkFormatProperties3 props3 = new();
+        VkFormatProperties2 props2 = new()
+        {
+            pNext = &props3
+        };
+        InstanceApi.vkGetPhysicalDeviceFormatProperties2(_adapter.Handle, vkFormat, &props2);
+
+        if ((props3.bufferFeatures & (VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT)) == (VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT))
+            return true;
+
+        return false;
     }
 
     public VkFormat ToVkFormat(PixelFormat format) => _adapter.ToVkFormat(format);

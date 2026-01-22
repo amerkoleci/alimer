@@ -56,7 +56,6 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         _fence.Get()->SetName($"{queueType}Queue - Fence");
     }
 
-
     /// <inheritdoc />
     public override GraphicsDevice Device => D3DDevice;
 
@@ -104,13 +103,18 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         return commandBuffer;
     }
 
-    public override void Execute(IEnumerable<CommandBuffer> commandBuffers, bool waitForCompletion = false)
+    public override void Execute(Span<CommandBuffer> commandBuffers, bool waitForCompletion = false)
     {
+        ID3D12CommandList** commandLists = stackalloc ID3D12CommandList*[8];
+
+        uint count = 0;
         foreach (D3D12CommandBuffer commandBuffer in commandBuffers)
         {
             ID3D12CommandList* handle = commandBuffer.End();
-            //_submitCommandBuffers.Add(handle);
+            commandLists[count++] = handle;
         }
+
+        _handle.Get()->ExecuteCommandLists(count, commandLists);
     }
 
     public void FinishFrame()

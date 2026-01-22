@@ -18,12 +18,12 @@ public readonly record struct VertexPositionColor
         new VertexAttribute(VertexFormat.Float4, 12, 1)
     ];
 
-    public VertexPositionColor(in Vector3 position, in Vector4 color)
+    public VertexPositionColor(in Vector3 position, in Color color)
     {
         Position = position;
         Color = color;
     }
 
     public readonly Vector3 Position;
-    public readonly Vector4 Color;
+    public readonly Color Color;
 }

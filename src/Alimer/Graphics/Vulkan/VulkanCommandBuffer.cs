@@ -151,6 +151,16 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             // Silence validation about uninitialized stride:
             //const VkDeviceSize zero = {};
             //vkCmdBindVertexBuffers2(commandBuffer, 0, 1, &nullBuffer, &zero, &zero, &zero);
+
+            if (_queue.VkDevice.VkAdapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate)
+            {
+                VkExtent2D fragmentSize = new(1, 1);
+                VkFragmentShadingRateCombinerOpKHR* combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2];
+                combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+                combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+
+                _deviceApi.vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
+            }
         }
 
         if (!label.IsEmpty)

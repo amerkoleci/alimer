@@ -3,16 +3,16 @@
 
 namespace Alimer.Graphics;
 
-public readonly record struct VertexAttribute
+public  record struct VertexAttribute
 {
+    public VertexFormat Format;
+    public uint Offset;
+    public uint ShaderLocation;
+
     public VertexAttribute(VertexFormat format, uint offset, uint shaderLocation)
     {
         Format = format;
         Offset = offset;
         ShaderLocation = shaderLocation;
     }
-
-    public VertexFormat Format { get; init; }
-    public uint Offset { get; init; }
-    public uint ShaderLocation { get; init; }
 }
