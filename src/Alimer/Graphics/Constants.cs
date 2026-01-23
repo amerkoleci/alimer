@@ -17,4 +17,8 @@ public static class Constants
     public const int MaxSamplerAnisotropy = 16;
 
     public const int QuerySetMaxQueries = 8192;
+
+    public const uint MipLevelCountUndefined = uint.MaxValue;
+    public const uint ArrayLayerCountUndefined = uint.MaxValue;
+    public const ulong WholeSize = ulong.MaxValue;
 }

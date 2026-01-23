@@ -14,7 +14,7 @@ using static TerraFX.Interop.Windows.E;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Buffer : GraphicsBuffer, ID3D12GpuResource
+internal unsafe class D3D12Buffer : GraphicsBuffer
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;

@@ -9,7 +9,6 @@ namespace Alimer.Graphics;
 public abstract class GraphicsObjectBase : DisposableObject
 {
     private string? _label;
-    private CommandQueue? _graphicsCommandQueue;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GraphicsObjectBase" /> class.

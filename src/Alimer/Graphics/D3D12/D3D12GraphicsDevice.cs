@@ -749,13 +749,13 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description)
+    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor description)
     {
         return new D3D12BindGroupLayout(this, description);
     }
 
     /// <inheritdoc />
-    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description)
+    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescriptor description)
     {
         return new D3D12BindGroup(this, layout, description);
     }

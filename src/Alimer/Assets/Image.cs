@@ -33,7 +33,7 @@ public sealed unsafe class Image : Asset, IDisposable
         {
             case TextureDimension.Texture1D:
             case TextureDimension.Texture2D:
-            case TextureDimension.TextureCube:
+            //case TextureDimension.TextureCube:
                 for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
                 {
                     uint mipWidth = Width;
@@ -302,7 +302,7 @@ public sealed unsafe class Image : Asset, IDisposable
         {
             case TextureDimension.Texture1D:
             case TextureDimension.Texture2D:
-            case TextureDimension.TextureCube:
+            //case TextureDimension.TextureCube:
             {
                 for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
                 {

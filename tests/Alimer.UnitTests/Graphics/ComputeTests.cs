@@ -16,7 +16,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
     [Test]
     public void ComputeTest1()
     {
-        BindGroupLayoutDescription bindGroupLayoutDescription = new();
+        BindGroupLayoutDescriptor bindGroupLayoutDescription = new();
         using BindGroupLayout bindGroupLayout = Device.CreateBindGroupLayout(bindGroupLayoutDescription);
         Assert.That(() => bindGroupLayout, Is.Not.Null);
 

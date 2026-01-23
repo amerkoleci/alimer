@@ -252,7 +252,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             }
             else if (newStateLegacy == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
             {
-                InsertUAVBarrier(resource, commit);
+                InsertUAVBarrier(resource.Handle, commit);
             }
         }
 
@@ -262,14 +262,14 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
     }
 
-    public void InsertUAVBarrier(ID3D12GpuResource resource, bool commit = false)
+    public void InsertUAVBarrier(ID3D12Resource* resource, bool commit = false)
     {
         Guard.IsTrue(_numBarriersToFlush < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
         ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
 
         barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
         barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrierDesc.UAV.pResource = resource.Handle;
+        barrierDesc.UAV.pResource = resource;
 
         if (commit)
             CommitBarriers();

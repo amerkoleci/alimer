@@ -282,21 +282,21 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateSamplerCore(descriptor);
     }
 
-    public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescription description)
+    public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescriptor description)
     {
         return CreateBindGroupLayoutCore(in description);
     }
 
     public BindGroupLayout CreateBindGroupLayout(params BindGroupLayoutEntry[] entries)
     {
-        return CreateBindGroupLayoutCore(new BindGroupLayoutDescription(entries));
+        return CreateBindGroupLayoutCore(new BindGroupLayoutDescriptor(entries));
     }
 
-    public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescription description)
+    public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescriptor description)
     {
         Guard.IsNotNull(layout, nameof(layout));
-        Guard.IsNotNull(description.Entries, nameof(BindGroupDescription.Entries));
-        Guard.IsGreaterThan(description.Entries.Length, 0, nameof(BindGroupDescription.Entries));
+        Guard.IsNotNull(description.Entries, nameof(BindGroupDescriptor.Entries));
+        Guard.IsGreaterThan(description.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
 
         return CreateBindGroupCore(layout, in description);
     }
@@ -306,7 +306,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         Guard.IsNotNull(layout, nameof(layout));
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 
-        return CreateBindGroupCore(layout, new BindGroupDescription(entries));
+        return CreateBindGroupCore(layout, new BindGroupDescriptor(entries));
     }
 
     public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescription description)
@@ -393,8 +393,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
     protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
-    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription descridescriptorption);
-    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription descriptor);
+    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descridescriptorption);
+    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescriptor descriptor);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor);
     protected abstract ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);

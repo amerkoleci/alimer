@@ -16,7 +16,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     public readonly List<D3D12_DESCRIPTOR_RANGE1> SamplerDescriptorRanges = new();
     public readonly List<D3D12_STATIC_SAMPLER_DESC> StaticSamplers = new();
 
-    public D3D12BindGroupLayout(D3D12GraphicsDevice device, in BindGroupLayoutDescription description)
+    public D3D12BindGroupLayout(D3D12GraphicsDevice device, in BindGroupLayoutDescriptor description)
         : base(description)
     {
         _device = device;

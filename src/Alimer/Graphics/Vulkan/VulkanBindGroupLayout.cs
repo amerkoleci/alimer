@@ -16,7 +16,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     private readonly VkDescriptorSetLayoutBinding* _layoutBindings;
     private readonly List<VkDescriptorPoolSize> _descriptorPoolSizeInfo = new();
 
-    public VulkanBindGroupLayout(VulkanGraphicsDevice device, in BindGroupLayoutDescription description)
+    public VulkanBindGroupLayout(VulkanGraphicsDevice device, in BindGroupLayoutDescriptor description)
         : base(description)
     {
         _device = device;

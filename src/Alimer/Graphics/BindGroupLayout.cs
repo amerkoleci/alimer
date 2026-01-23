@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public abstract class BindGroupLayout : GraphicsObject
 {
-    protected BindGroupLayout(in BindGroupLayoutDescription description)
+    protected BindGroupLayout(in BindGroupLayoutDescriptor description)
         : base(description.Label)
     {
     }

@@ -78,7 +78,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
             new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStages.Fragment) //new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
             ));
         _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
-            new BindGroupEntry(0, _texture),
+            new BindGroupEntry(0, _texture.DefaultView!),
             new BindGroupEntry(0, _sampler))
             );
 

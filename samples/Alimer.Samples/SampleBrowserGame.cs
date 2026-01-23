@@ -69,7 +69,7 @@ public sealed class SampleBrowserGame : Game
         // D3D12 is broken ATM
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
         //preferredGraphicsBackend = GraphicsBackendType.Metal;
 #endif
 

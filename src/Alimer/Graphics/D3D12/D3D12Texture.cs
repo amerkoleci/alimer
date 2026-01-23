@@ -19,9 +19,8 @@ using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
+internal unsafe class D3D12Texture : Texture
 {
-    private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly nint _allocation;
     private readonly HANDLE _sharedHandle = HANDLE.NULL;
@@ -36,7 +35,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
         : base(description)
     {
-        _device = device;
+        DXDevice = device;
         DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
         bool isDepthStencil = description.Format.IsDepthStencilFormat();
 
@@ -249,7 +248,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             }
             else
             {
-                uploadContext = _device.Allocate(allocatedSize);
+                uploadContext = DXDevice.Allocate(allocatedSize);
                 mappedData = uploadContext.UploadBuffer.pMappedData;
             }
 
@@ -281,31 +280,32 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
 
             if (uploadContext.IsValid)
             {
-                _device.Submit(in uploadContext);
+                DXDevice.Submit(in uploadContext);
             }
         }
 
         SetTextureLayout(initialLayout);
     }
 
-    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description, TextureLayout initialLayout)
-        : base(description)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor descriptor, TextureLayout initialLayout)
+        : base(descriptor)
     {
-        _device = device;
-        DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
+        DXDevice = device;
+        DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
         _handle = existingTexture;
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
 
         SetTextureLayout(initialLayout);
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GraphicsDevice Device => DXDevice;
 
+    public D3D12GraphicsDevice DXDevice { get; }
     public DXGI_FORMAT DxgiFormat { get; }
     public ID3D12Resource* Handle => _handle;
     public ulong AllocatedSize { get; }
@@ -320,13 +320,13 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
     {
         foreach (DescriptorIndex index in _RTVs.Values)
         {
-            _device.RenderTargetViewHeap.ReleaseDescriptors(index);
+            DXDevice.RenderTargetViewHeap.ReleaseDescriptors(index);
         }
         _RTVs.Clear();
 
         foreach (DescriptorIndex index in _DSVs.Values)
         {
-            _device.DepthStencilViewHeap.ReleaseDescriptors(index);
+            DXDevice.DepthStencilViewHeap.ReleaseDescriptors(index);
         }
         _DSVs.Clear();
 
@@ -352,6 +352,12 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         _handle.Get()->SetName(newLabel);
     }
 
+    /// <inheritdoc />
+    protected override TextureView CreateView(in TextureViewDescriptor descriptor)
+    {
+        return new D3D12TextureView(this, descriptor);  
+    }
+
     public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
     {
         int hash = HashCode.Combine(mipSlice, arraySlice, format);
@@ -364,14 +370,14 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             viewDesc.Format = format;
             viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-            descriptorIndex = _device.RenderTargetViewHeap.AllocateDescriptors(1u);
+            descriptorIndex = DXDevice.RenderTargetViewHeap.AllocateDescriptors(1u);
             _RTVs.Add(hash, descriptorIndex);
 
-            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
-            _device.Device->CreateRenderTargetView(_handle.Get(), &viewDesc, cpuHandle);
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = DXDevice.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
+            DXDevice.Device->CreateRenderTargetView(_handle.Get(), &viewDesc, cpuHandle);
         }
 
-        return _device.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
+        return DXDevice.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
     }
 
     public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
@@ -386,13 +392,13 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
             viewDesc.Format = format;
             viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 
-            descriptorIndex = _device.DepthStencilViewHeap.AllocateDescriptors(1u);
+            descriptorIndex = DXDevice.DepthStencilViewHeap.AllocateDescriptors(1u);
             _DSVs.Add(hash, descriptorIndex);
 
-            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _device.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
-            _device.Device->CreateDepthStencilView(_handle.Get(), &viewDesc, cpuHandle);
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = DXDevice.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
+            DXDevice.Device->CreateDepthStencilView(_handle.Get(), &viewDesc, cpuHandle);
         }
 
-        return _device.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
+        return DXDevice.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
     }
 }

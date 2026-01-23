@@ -25,8 +25,17 @@ public enum TextureUsage
     /// Supports shader read and write access.
     /// </summary>
     ShaderReadWrite = ShaderRead | ShaderWrite,
+    /// <summary>
+    /// 
+    /// </summary>
     RenderTarget = 1 << 2,
+    /// <summary>
+    /// 
+    /// </summary>
     Transient = 1 << 3,
+    /// <summary>
+    /// 
+    /// </summary>
     ShadingRate = 1 << 4,
     /// <summary>
     /// Supports shared handle usage.

@@ -75,8 +75,6 @@ internal static unsafe class D3D12Utils
         };
     }
 
-
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DXGI_FORMAT GetTypelessFormatFromDepthFormat(this PixelFormat format)
     {
@@ -113,6 +111,45 @@ internal static unsafe class D3D12Utils
             PixelFormat.RGB10A2Unorm => DXGI_FORMAT_R10G10B10A2_UNORM,
             _ => DXGI_FORMAT_B8G8R8A8_UNORM,
         };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DXGI_FORMAT ToDxgiRTVFormat(this PixelFormat format)
+    {
+        return (DXGI_FORMAT)format.ToDxgiFormat();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DXGI_FORMAT ToDxgiDSVFormat(this PixelFormat format)
+    {
+        return (DXGI_FORMAT)format.ToDxgiFormat();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DXGI_FORMAT ToDxgiSRVFormat(this PixelFormat format)
+    {
+        // Try to resolve resource format:
+        switch (format)
+        {
+            case PixelFormat.Depth16Unorm:
+                return DXGI_FORMAT_R16_UNORM;
+
+            case PixelFormat.Depth32Float:
+                return DXGI_FORMAT_R32_FLOAT;
+
+            //case PixelFormat.Stencil8:
+            case PixelFormat.Depth24UnormStencil8:
+                return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
+            case PixelFormat.Depth32FloatStencil8:
+                return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+
+            //case PixelFormat::NV12:
+            //    srvDesc.Format = DXGI_FORMAT_R8_UNORM;
+            //    break;
+            default:
+                return (DXGI_FORMAT)format.ToDxgiFormat();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

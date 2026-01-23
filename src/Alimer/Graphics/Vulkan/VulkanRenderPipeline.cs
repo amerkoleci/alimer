@@ -171,8 +171,8 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
             multisampleState.sampleShadingEnable = false;
             multisampleState.minSampleShading = 1.0f;
         }
-        uint sampleMask = uint.MaxValue;
-        multisampleState.pSampleMask = &sampleMask;
+        //uint sampleMask = uint.MaxValue;
+        multisampleState.pSampleMask = null; // &sampleMask;
 
         // DepthStencilState
         VkPipelineDepthStencilStateCreateInfo depthStencilState = default;

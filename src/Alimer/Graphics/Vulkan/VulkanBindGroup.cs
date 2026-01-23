@@ -13,7 +13,7 @@ internal unsafe class VulkanBindGroup : BindGroup
     private readonly VkDescriptorPool _descriptorPool = VkDescriptorPool.Null;
     private readonly VkDescriptorSet _handle = VkDescriptorSet.Null;
 
-    public VulkanBindGroup(VulkanGraphicsDevice device, BindGroupLayout layout, in BindGroupDescription description)
+    public VulkanBindGroup(VulkanGraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor description)
         : base(description)
     {
         _device = device;
@@ -68,7 +68,7 @@ internal unsafe class VulkanBindGroup : BindGroup
             VkDescriptorType descriptorType = layoutBinding.descriptorType;
 
             VulkanBuffer? backendBuffer = default;
-            VulkanTexture? backendTexture = default;
+            VulkanTextureView? backendTextureView = default;
             VulkanSampler? backendSampler = default;
 
             BindGroupEntry? foundEntry = default;
@@ -90,8 +90,8 @@ internal unsafe class VulkanBindGroup : BindGroup
 
                     case VkDescriptorType.SampledImage:
                     case VkDescriptorType.StorageImage:
-                        backendTexture = entry.Texture != null ? (VulkanTexture)entry.Texture : default;
-                        if (backendTexture == null)
+                        backendTextureView = entry.TextureView != null ? (VulkanTextureView)entry.TextureView : default;
+                        if (backendTextureView == null)
                             continue;
                         break;
 
@@ -142,21 +142,21 @@ internal unsafe class VulkanBindGroup : BindGroup
                     imageInfos[i].sampler = VkSampler.Null;
                     if (foundEntry.HasValue)
                     {
-                        imageInfos[i].imageView = backendTexture!.GetView(0, 0);
-                        imageInfos[i].imageLayout = VkImageLayout.ShaderReadOnlyOptimal;
+                        imageInfos[i].imageView = backendTextureView!.Handle;
+                        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     }
                     else
                     {
                         imageInfos[i].imageView = device.NullImage2DView;
-                        imageInfos[i].imageLayout = VkImageLayout.General;
+                        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                     }
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
                 case VkDescriptorType.StorageImage:
                     imageInfos[i].sampler = VkSampler.Null;
-                    imageInfos[i].imageView = backendTexture!.GetView(0, 0);
-                    imageInfos[i].imageLayout = VkImageLayout.General;
+                    imageInfos[i].imageView = backendTextureView!.Handle;
+                    imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
@@ -168,7 +168,7 @@ internal unsafe class VulkanBindGroup : BindGroup
                     {
                         bufferInfos[i].buffer = backendBuffer!.Handle;
                         bufferInfos[i].offset = foundEntry!.Value.Offset;
-                        bufferInfos[i].range = foundEntry!.Value.Size;
+                        bufferInfos[i].range =  foundEntry!.Value.Size;
                     }
                     else
                     {

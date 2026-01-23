@@ -106,11 +106,12 @@ public record struct ImageDescription
             );
     }
 
+#if TODO
     public static ImageDescription ImageCube(
-        PixelFormat format,
-        uint size,
-        uint mipLevelCount = 1,
-        uint arrayLayers = 1)
+PixelFormat format,
+uint size,
+uint mipLevelCount = 1,
+uint arrayLayers = 1)
     {
         return new(
             TextureDimension.TextureCube,
@@ -119,7 +120,8 @@ public record struct ImageDescription
             size,
             arrayLayers * 6,
             mipLevelCount);
-    }
+    } 
+#endif
 
     public static uint GetMipLevelCount(uint width, uint height, uint depth = 1, uint minDimension = 1, uint requiredAlignment = 1u)
     {

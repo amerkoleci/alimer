@@ -1405,13 +1405,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescription description)
+    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor description)
     {
         return new VulkanBindGroupLayout(this, description);
     }
 
     /// <inheritdoc />
-    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescription description)
+    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescriptor description)
     {
         return new VulkanBindGroup(this, layout, description);
     }

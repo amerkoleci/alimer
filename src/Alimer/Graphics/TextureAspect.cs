@@ -3,8 +3,7 @@
 
 namespace Alimer.Graphics;
 
-[Flags]
-public enum TextureAspect : uint
+public enum TextureAspect
 {
     All = 0,
     DepthOnly = 1,

@@ -11,13 +11,6 @@ namespace Alimer.Graphics.Vulkan;
 
 internal static unsafe class VulkanUtils
 {
-    private static readonly VkImageType[] s_vkImageTypeMap = [
-        VkImageType.Image1D,
-        VkImageType.Image2D,
-        VkImageType.Image3D,
-        VkImageType.Image2D,
-    ];
-
     #region Layers Methods
     #endregion
 
@@ -239,7 +232,32 @@ internal static unsafe class VulkanUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static VkImageType ToVk(this TextureDimension value) => s_vkImageTypeMap[(uint)value];
+    public static VkImageType ToVk(this TextureDimension value)
+    {
+        return value switch
+        {
+            TextureDimension.Texture1D => VK_IMAGE_TYPE_1D,
+            TextureDimension.Texture2D => VK_IMAGE_TYPE_2D,
+            TextureDimension.Texture3D => VK_IMAGE_TYPE_3D,
+            _ => VK_IMAGE_TYPE_2D,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkImageViewType ToVk(this TextureViewDimension value)
+    {
+        return value switch
+        {
+            TextureViewDimension.View1D => VK_IMAGE_VIEW_TYPE_1D,
+            TextureViewDimension.View1DArray => VK_IMAGE_VIEW_TYPE_1D_ARRAY,
+            TextureViewDimension.View2D => VK_IMAGE_VIEW_TYPE_2D,
+            TextureViewDimension.Texture2DArray => VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+            TextureViewDimension.ViewCube => VK_IMAGE_VIEW_TYPE_CUBE,
+            TextureViewDimension.ViewCubeArray => VK_IMAGE_VIEW_TYPE_CUBE_ARRAY,
+            TextureViewDimension.View3D => VK_IMAGE_VIEW_TYPE_3D,
+            _ => VK_IMAGE_VIEW_TYPE_2D,
+        };
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkImageAspectFlags GetImageAspectFlags(this VkFormat format, TextureAspect aspect)

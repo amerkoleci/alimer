@@ -3,12 +3,15 @@
 
 using System.Diagnostics;
 using Alimer.Assets;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
 
 public abstract class Texture : GraphicsObject
 {
     protected readonly TextureLayout[] _subresourceLayouts;
+    private TextureView? _defaultView;
+    protected readonly Dictionary<TextureViewDescriptor, TextureView> _views = [];
 
     protected Texture(in TextureDescriptor descriptor)
         : base(descriptor.Label)
@@ -77,6 +80,125 @@ public abstract class Texture : GraphicsObject
     /// Gets the memory type of the texure.
     /// </summary>
     public MemoryType MemoryType { get; }
+
+    #region View
+    public TextureView? DefaultView
+    {
+        get
+        {
+            if ((Usage & (TextureUsage.ShaderRead | TextureUsage.ShaderWrite | TextureUsage.RenderTarget)) == 0)
+                return default;
+
+            if (_defaultView is not null)
+                return _defaultView;
+
+            _defaultView = GetView(new());
+            return _defaultView;
+        }
+    }
+
+    public TextureView GetView() => GetView(default);
+    public TextureView GetView(in TextureViewDescriptor descriptor)
+    {
+        if ((Usage & (TextureUsage.ShaderRead | TextureUsage.ShaderWrite | TextureUsage.RenderTarget)) == 0)
+        {
+            throw new GraphicsException("Cannot create TextureView for texture without ShaderRead, ShaderWrite or RenderTarget usage");
+        }
+
+        if (_views.TryGetValue(descriptor, out TextureView? view))
+        {
+            return view;
+        }
+
+        TextureViewDescriptor creationDesc = descriptor;
+
+        if (creationDesc.Dimension == TextureViewDimension.Undefined)
+        {
+            switch (Dimension)
+            {
+                case TextureDimension.Texture1D:
+                    creationDesc.Dimension = (ArrayLayers > 1) ? TextureViewDimension.View1DArray : TextureViewDimension.View1D;
+                    break;
+                case TextureDimension.Texture2D:
+                    creationDesc.Dimension = (ArrayLayers > 1) ? TextureViewDimension.Texture2DArray : TextureViewDimension.View2D;
+                    break;
+                case TextureDimension.Texture3D:
+                    creationDesc.Dimension = TextureViewDimension.View3D;
+                    break;
+                //case TextureDimension.Cube:
+                //    creationDesc.Dimension = (ArrayLayers > 6) ? TextureViewDimension.TextureCubeArray : TextureViewDimension.TextureCube;
+                //    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(descriptor.Dimension));
+            }
+        }
+
+        if (creationDesc.Format == PixelFormat.Undefined)
+        {
+            creationDesc.Format = Format;
+        }
+
+        creationDesc.BaseMipLevel = Math.Min(creationDesc.BaseMipLevel, MipLevelCount);
+        if (creationDesc.MipLevelCount == MipLevelCountUndefined)
+        {
+            creationDesc.MipLevelCount = MipLevelCount - creationDesc.BaseMipLevel;
+        }
+        else
+        {
+            creationDesc.MipLevelCount = Math.Min(creationDesc.MipLevelCount, MipLevelCount - creationDesc.BaseMipLevel);
+        }
+
+        if (creationDesc.ArrayLayerCount == ArrayLayerCountUndefined)
+        {
+            switch (creationDesc.Dimension)
+            {
+                case TextureViewDimension.View1D:
+                case TextureViewDimension.View2D:
+                case TextureViewDimension.View3D:
+                    creationDesc.ArrayLayerCount = 1;
+                    break;
+                case TextureViewDimension.ViewCube:
+                    creationDesc.ArrayLayerCount = 6;
+                    break;
+                case TextureViewDimension.View1DArray:
+                case TextureViewDimension.Texture2DArray:
+                case TextureViewDimension.ViewCubeArray:
+                    creationDesc.ArrayLayerCount = ArrayLayers - creationDesc.BaseArrayLayer;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Multisampled texture view creation only 2D and 2D array textures are supported.
+        if (SampleCount > TextureSampleCount.Count1)
+        {
+            if (creationDesc.Dimension != TextureViewDimension.View2D &&
+                creationDesc.Dimension != TextureViewDimension.Texture2DArray)
+            {
+                throw new GraphicsException("Multisampled texture views are only supported for 2D and 2D array textures.");
+            }
+        }
+
+        //uint textureArrayLayerCount = GetArrayLayers() * (type == TextureType::TextureCube ? 6 : 1);
+        //creationDesc.BaseArrayLayer = MatMin(creationDesc.baseArrayLayer, textureArrayLayerCount);
+        //creationDesc.ArrayLayerCount = Min(creationDesc.arrayLayerCount, textureArrayLayerCount - creationDesc.baseArrayLayer);
+
+        view = CreateView(in creationDesc);
+        _views[descriptor] = view;
+        return view;
+    }
+
+    protected abstract TextureView CreateView(in TextureViewDescriptor descriptor);
+    protected void DestroyViews()
+    {
+        foreach (TextureView view in _views.Values)
+        {
+            view.Destroy();
+        }
+        _views.Clear();
+    }
+    #endregion
 
     /// <summary>
     /// Get a mip-level width.
