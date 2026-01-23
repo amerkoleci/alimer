@@ -33,6 +33,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         : base("Graphics - Draw Textured Cube", services, mainWindow)
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        //_cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
         _cubeMesh.CreateGpuData(GraphicsDevice);
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));

@@ -288,7 +288,7 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         SetTextureLayout(initialLayout);
     }
 
-    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description)
+    public D3D12Texture(D3D12GraphicsDevice device, ID3D12Resource* existingTexture, in TextureDescriptor description, TextureLayout initialLayout)
         : base(description)
     {
         _device = device;
@@ -299,6 +299,8 @@ internal unsafe class D3D12Texture : Texture, ID3D12GpuResource
         {
             OnLabelChanged(description.Label!);
         }
+
+        SetTextureLayout(initialLayout);
     }
 
     /// <inheritdoc />

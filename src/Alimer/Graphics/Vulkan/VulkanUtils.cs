@@ -405,7 +405,6 @@ internal static unsafe class VulkanUtils
         return value switch
         {
             FrontFace.Clockwise => VK_FRONT_FACE_CLOCKWISE,
-            FrontFace.CounterClockwise => VK_FRONT_FACE_COUNTER_CLOCKWISE,
             _ => VK_FRONT_FACE_COUNTER_CLOCKWISE,
         };
     }

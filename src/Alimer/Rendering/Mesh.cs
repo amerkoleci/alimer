@@ -10,6 +10,8 @@ using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
+// TODO: Mesh on GPU with CPU access
+
 public sealed partial class Mesh : DisposableObject
 {
     private readonly List<SubMesh> _subMeshes = [];
@@ -18,6 +20,7 @@ public sealed partial class Mesh : DisposableObject
     private MeshVertexBufferLayout _layout;
     private readonly VertexBuffer _vertexBuffer;
     private readonly IndexBuffer _indexBuffer;
+    private int _positionOffset = -1;
     private GraphicsBuffer? _gpuVertexBuffer;
     private GraphicsBuffer? _gpuIndexBuffer;
 
@@ -46,6 +49,10 @@ public sealed partial class Mesh : DisposableObject
     /// </summary>
     public IReadOnlyList<SubMesh> SubMeshes => _subMeshes;
 
+    /// <summary>
+    /// Gets the bounds of the mesh.
+    /// </summary>
+    public BoundingBox Bounds => _bounds;
 
     /// <summary>
     /// Finalizes an instance of the <see cref="Mesh" /> class.
@@ -120,14 +127,105 @@ public sealed partial class Mesh : DisposableObject
         return subMesh;
     }
 
+    public bool HasVertexAttribute(MeshVertexAttributeSemantic semantic)
+    {
+        return _layout.HasAttribute(semantic);
+    }
+
+    public MeshVertexAttribute? GetVertexAttribute(MeshVertexAttributeSemantic semantic)
+    {
+        return _layout.GetAttribute(semantic);
+    }
+
+    public int GetVertexAttributeOffset(MeshVertexAttributeSemantic semantic)
+    {
+        return _layout.GetAttributeOffset(semantic);
+    }
+
+    public static unsafe int GetVertexAttributeSize(MeshVertexAttributeSemantic semantic)
+    {
+        return semantic switch
+        {
+            MeshVertexAttributeSemantic.Position => sizeof(Vector3),
+            MeshVertexAttributeSemantic.Normal => sizeof(Vector3),
+            MeshVertexAttributeSemantic.Tangent => sizeof(Vector4),
+            MeshVertexAttributeSemantic.Color => sizeof(Color),
+            MeshVertexAttributeSemantic.BlendIndices => sizeof(Vector4), // UInt4?
+            MeshVertexAttributeSemantic.BlendWeights => sizeof(Vector4),
+            MeshVertexAttributeSemantic.TexCoord0 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord1 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord2 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord3 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord4 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord5 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord6 => sizeof(Vector2),
+            MeshVertexAttributeSemantic.TexCoord7 => sizeof(Vector2),
+            _ => throw new ArgumentOutOfRangeException(nameof(semantic), "Unknown vertex attribute semantic."),
+        };
+    }
+
+    public void SetVertexAttributes(params Span<MeshVertexAttribute> attributes)
+    {
+        _layout = new MeshVertexBufferLayout(attributes);
+        _positionOffset = _layout.GetAttributeOffset(MeshVertexAttributeSemantic.Position);
+    }
+
+    public void SetVertexAttributes<T>()
+        where T : unmanaged, IMeshVertex
+    {
+        _layout = new MeshVertexBufferLayout(default(T).VertexAttributes);
+        _positionOffset = _layout.GetAttributeOffset(MeshVertexAttributeSemantic.Position);
+    }
+
+    public void GetVertexAttributes(Span<MeshVertexAttribute> attributes)
+    {
+        _layout.GetAttributes(attributes);
+    }
+
     public void SetPositions(ReadOnlySpan<Vector3> positions)
     {
+        _vertexBuffer.SetElementData(positions, _positionOffset);
+        _boundsDirty = true;
+    }
+
+    public void GetPositions(Span<Vector3> positions)
+    {
+        _vertexBuffer.GetElementData(positions, _positionOffset);
+    }
+
+    public void GetNormals(Span<Vector3> normals)
+    {
+        GetAttributeData(MeshVertexAttributeSemantic.Normal, normals);
+    }
+
+    public unsafe void GetAttributeData<T>(MeshVertexAttributeSemantic semantic, Span<T> data)
+        where T : unmanaged
+    {
+        MeshVertexAttribute? attribute = _layout.GetAttribute(semantic) ?? throw new InvalidOperationException($"Mesh does not contain attribute with semantic {semantic}.");
+
+        int offset = attribute.Value.Offset;
+        int attributeSize = GetVertexAttributeSize(attribute.Value.Semantic);
+        Guard.IsEqualTo(sizeof(T), attributeSize, nameof(T));
+
+        _vertexBuffer.GetElementData(data, offset);
+    }
+
+    public unsafe void SetAttributeData<T>(MeshVertexAttributeSemantic semantic, Span<T> data)
+        where T : unmanaged
+    {
+        MeshVertexAttribute? attribute = _layout.GetAttribute(semantic) ?? throw new InvalidOperationException($"Mesh does not contain attribute with semantic {semantic}.");
+
+        int offset = attribute.Value.Offset;
+        int attributeSize = GetVertexAttributeSize(attribute.Value.Semantic);
+        Guard.IsEqualTo(sizeof(T), attributeSize, nameof(T));
+
+        _vertexBuffer.SetElementData(data, offset);
     }
 
     public void SetVertices<T>(ReadOnlySpan<T> vertices, int vertexCount = 0)
         where T : unmanaged, IMeshVertex
     {
-        _layout = new MeshVertexBufferLayout(default(T).VertexAttributes);
+        SetVertexAttributes<T>();
         _vertexBuffer.SetData(vertices, vertexCount);
     }
 
@@ -135,6 +233,16 @@ public sealed partial class Mesh : DisposableObject
         where T : unmanaged, IMeshVertex
     {
         _vertexBuffer.GetData(vertices);
+    }
+
+    public void SetIndices(ReadOnlySpan<ushort> indices, int indexCount = 0)
+    {
+        _indexBuffer.SetData(indices, indexCount);
+    }
+
+    public void SetIndices(ReadOnlySpan<uint> indices, int indexCount = 0)
+    {
+        _indexBuffer.SetData(indices, indexCount);
     }
 
     public void GetIndices(Span<ushort> indices)
@@ -147,14 +255,30 @@ public sealed partial class Mesh : DisposableObject
         _indexBuffer.GetData(indices);
     }
 
-    public void SetIndices(ReadOnlySpan<ushort> indices, int indexCount = 0)
+    public void RecalculateBounds()
     {
-        _indexBuffer.SetData(indices, indexCount);
+        if (!_boundsDirty)
+            return;
+
+        Span<Vector3> vertexPositions = stackalloc Vector3[VertexCount];
+        GetPositions(vertexPositions);
+        _bounds = BoundingBox.CreateFromPoints(vertexPositions);
     }
 
-    public void SetIndices(ReadOnlySpan<uint> indices, int indexCount = 0)
+    public bool RecalculateTangents()
     {
-        _indexBuffer.SetData(indices, indexCount);
+        MeshVertexAttribute? normalAttribute = GetVertexAttribute(MeshVertexAttributeSemantic.Normal);
+        MeshVertexAttribute? texCoord0Attribute = GetVertexAttribute(MeshVertexAttributeSemantic.TexCoord0);
+        MeshVertexAttribute? tangentAttribute = GetVertexAttribute(MeshVertexAttributeSemantic.Tangent);
+
+        if (!normalAttribute.HasValue || !texCoord0Attribute.HasValue)
+            return false;
+
+        // TODO: Add tangent attribute if missing
+        if (!tangentAttribute.HasValue)
+            return false;
+
+        return false;
     }
 
     public unsafe class CpuBuffer
@@ -217,6 +341,44 @@ public sealed partial class Mesh : DisposableObject
         }
 
         public byte* GetRawData() => _data;
+
+        public void SetData<T>(int index, int offset, T value)
+            where T : unmanaged
+        {
+            Guard.IsEqualTo(sizeof(T), ElementSize, nameof(T));
+
+            if (index >= ElementCount)
+                return;
+
+            int dataOffset = index * ElementSize + offset;
+            NativeMemory.Copy(&value, &_data[dataOffset], (uint)sizeof(T));
+        }
+
+        public void SetElementData<T>(ReadOnlySpan<T> source, int offset)
+            where T : unmanaged
+        {
+            for (int i = 0; i < source.Length; i++)
+            {
+                int dataOffset = i * ElementSize + offset;
+                fixed (T* sourcePtr = &source[i])
+                {
+                    NativeMemory.Copy(sourcePtr, &_data[dataOffset], (uint)sizeof(T));
+                }
+            }
+        }
+
+        public void GetElementData<T>(Span<T> destination, int offset)
+            where T : unmanaged
+        {
+            for (int i = 0; i < destination.Length; i++)
+            {
+                int dataOffset = i * ElementSize + offset;
+                fixed (T* destinationPtr = &destination[i])
+                {
+                    NativeMemory.Copy(&_data[dataOffset], destinationPtr, (uint)sizeof(T));
+                }
+            }
+        }
     }
 
     public unsafe class VertexBuffer : CpuBuffer
@@ -230,7 +392,6 @@ public sealed partial class Mesh : DisposableObject
             Resize(vertexCount, sizeof(T));
             source.CopyTo(new Span<T>(_data, vertexCount));
         }
-
 
         public void GetData<T>(Span<T> destination)
             where T : unmanaged, IMeshVertex
@@ -308,53 +469,6 @@ public sealed partial class Mesh : DisposableObject
                         NativeMemory.Copy(_data, dataPtr, (uint)(data.Length * sizeof(uint)));
                         break;
                 }
-            }
-        }
-
-        public void SetIndex(int index, uint value)
-        {
-            if (index >= ElementCount)
-                return;
-
-            int offset = index * ElementSize;
-
-            switch (IndexFormat)
-            {
-                case IndexFormat.UInt16:
-                    NativeMemory.Copy(&value, &_data[offset], 2u);
-                    break;
-                case IndexFormat.UInt32:
-                    NativeMemory.Copy(&value, &_data[offset], 4u);
-                    break;
-            }
-        }
-
-        public uint GetIndex(int index)
-        {
-            if (index >= ElementCount)
-                return 0;
-
-            int size = ElementSize;
-            int offset = index * size;
-
-            switch (IndexFormat)
-            {
-                case IndexFormat.UInt16:
-                {
-                    ushort value = 0;
-                    NativeMemory.Copy(&_data[offset], &value, 2u);
-                    return value;
-                }
-
-                case IndexFormat.UInt32:
-                {
-                    uint value = 0;
-                    NativeMemory.Copy(&_data[offset], &value, 4u);
-                    return value;
-                }
-
-                default:
-                    throw new InvalidOperationException("Unknown index format.");
             }
         }
     }

@@ -5,14 +5,14 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
+using Alimer.Rendering;
 
 namespace Alimer.Samples.Graphics;
 
 [Description("Graphics - Draw Cube")]
 public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 {
-    private readonly GraphicsBuffer _vertexBuffer;
-    private readonly GraphicsBuffer _indexBuffer;
+    private readonly Mesh _cubeMesh;
     private readonly GraphicsBuffer _constantBuffer0;
     private readonly GraphicsBuffer _constantBuffer1;
 
@@ -30,10 +30,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     public DrawCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Cube", services, mainWindow)
     {
-        var data = MeshUtilities.CreateCube(5.0f);
-
-        _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
-        _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
+        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
 
         _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, MemoryType.Upload));
@@ -106,9 +103,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         renderPassEncoder.SetBindGroup(0, _bindGroup0);
         renderPassEncoder.SetBindGroup(1, _bindGroup1);
 
-        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-        renderPassEncoder.DrawIndexed(36);
+        _cubeMesh.Draw(renderPassEncoder);
         renderPassEncoder.EndEncoding();
     }
 }

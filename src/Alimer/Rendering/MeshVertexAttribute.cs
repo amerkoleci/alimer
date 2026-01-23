@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.ComponentModel;
-using System.Numerics;
 using Alimer.Graphics;
 
 namespace Alimer.Rendering;
@@ -27,9 +25,4 @@ public enum MeshVertexAttributeSemantic
     Custom
 }
 
-public struct MeshVertexAttribute(MeshVertexAttributeSemantic semantic, VertexFormat format, int offset)
-{
-    public MeshVertexAttributeSemantic Semantic = semantic;
-    public VertexFormat Format = format;
-    public int Offset = offset;
-}
+public record struct MeshVertexAttribute(MeshVertexAttributeSemantic Semantic, VertexFormat Format, int Offset);

@@ -66,7 +66,8 @@ public record struct TextureDescriptor
         uint depthOrArrayLayers,
         uint mipLevelCount = 1,
         TextureUsage usage = TextureUsage.ShaderRead,
-        TextureSampleCount sampleCount = TextureSampleCount.Count1)
+        TextureSampleCount sampleCount = TextureSampleCount.Count1,
+        string? label = default)
     {
         Dimension = dimension;
         Format = format;
@@ -76,6 +77,7 @@ public record struct TextureDescriptor
         MipLevelCount = mipLevelCount;
         SampleCount = sampleCount;
         Usage = usage;
+        Label = label;
     }
 
     public static TextureDescriptor Texture1D(
@@ -83,7 +85,8 @@ public record struct TextureDescriptor
         uint width,
         uint mipLevelCount = 1,
         uint arrayLayers = 1,
-        TextureUsage usage = TextureUsage.ShaderRead)
+        TextureUsage usage = TextureUsage.ShaderRead,
+        string? label = default)
     {
         return new(
             TextureDimension.Texture1D,
@@ -93,7 +96,9 @@ public record struct TextureDescriptor
             arrayLayers,
             mipLevelCount,
             usage,
-            TextureSampleCount.Count1);
+            TextureSampleCount.Count1,
+            label
+            );
     }
 
     public static TextureDescriptor Texture2D(
@@ -103,7 +108,8 @@ public record struct TextureDescriptor
         uint mipLevelCount = 1,
         uint arrayLayers = 1,
         TextureUsage usage = TextureUsage.ShaderRead,
-        TextureSampleCount sampleCount = TextureSampleCount.Count1)
+        TextureSampleCount sampleCount = TextureSampleCount.Count1,
+        string? label = default)
     {
         return new(
             TextureDimension.Texture2D,
@@ -113,7 +119,8 @@ public record struct TextureDescriptor
             arrayLayers,
             mipLevelCount,
             usage,
-            sampleCount);
+            sampleCount,
+            label);
     }
 
     public static TextureDescriptor Texture3D(
@@ -122,7 +129,8 @@ public record struct TextureDescriptor
         uint height,
         uint depth,
         uint mipLevelCount = 1,
-        TextureUsage usage = TextureUsage.ShaderRead)
+        TextureUsage usage = TextureUsage.ShaderRead,
+        string? label = default)
     {
         return new(
             TextureDimension.Texture3D,
@@ -132,7 +140,9 @@ public record struct TextureDescriptor
             depth,
             mipLevelCount,
             usage,
-            TextureSampleCount.Count1);
+            TextureSampleCount.Count1,
+            label
+            );
     }
 
     public static TextureDescriptor TextureCube(
@@ -140,7 +150,8 @@ public record struct TextureDescriptor
         uint size,
         uint mipLevelCount = 1,
         uint arrayLayers = 1,
-        TextureUsage usage = TextureUsage.ShaderRead)
+        TextureUsage usage = TextureUsage.ShaderRead,
+        string? label = default)
     {
         return new(
             TextureDimension.Texture2D,
@@ -150,7 +161,8 @@ public record struct TextureDescriptor
             arrayLayers * 6,
             mipLevelCount,
             usage,
-            TextureSampleCount.Count1
+            TextureSampleCount.Count1,
+            label
             );
     }
 }

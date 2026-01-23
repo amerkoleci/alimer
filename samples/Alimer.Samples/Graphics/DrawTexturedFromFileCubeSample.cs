@@ -13,8 +13,7 @@ namespace Alimer.Samples.Graphics;
 [Description("Graphics - Draw Textured Cube from File")]
 public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 {
-    private readonly GraphicsBuffer _vertexBuffer;
-    private readonly GraphicsBuffer _indexBuffer;
+    private readonly Mesh _cubeMesh;
     private readonly GraphicsBuffer _constantBuffer;
     private readonly Texture _texture;
     private readonly Sampler _sampler;
@@ -33,10 +32,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
     public DrawTexturedFromFileCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube from file", services, mainWindow)
     {
-        Mesh cube = Mesh.CreateCube(5.0f);
-        var data = MeshUtilities.CreateCube(5.0f);
-        _vertexBuffer = ToDispose(CreateBuffer(data.Vertices, BufferUsage.Vertex));
-        _indexBuffer = ToDispose(CreateBuffer(data.Indices, BufferUsage.Index));
+        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
@@ -114,9 +110,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         renderPassEncoder.SetBindGroup(1, _materialBindGroup);
         //context.SetPushConstants(0, worldViewProjection);
 
-        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-        renderPassEncoder.DrawIndexed(36);
+        _cubeMesh.Draw(renderPassEncoder);
         renderPassEncoder.EndEncoding();
     }
 }

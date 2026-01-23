@@ -377,18 +377,19 @@ internal unsafe class VulkanTexture : Texture
         }
     }
 
-    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescriptor description)
+    public VulkanTexture(VulkanGraphicsDevice device, VkImage existingTexture, in TextureDescriptor description, TextureLayout initialLayout)
         : base(description)
     {
         _device = device;
         _handle = existingTexture;
         VkFormat = device.VkAdapter.ToVkFormat(description.Format);
 
-
         if (!string.IsNullOrEmpty(description.Label))
         {
             OnLabelChanged(description.Label!);
         }
+
+        SetTextureLayout(initialLayout);
     }
 
     /// <inheritdoc />

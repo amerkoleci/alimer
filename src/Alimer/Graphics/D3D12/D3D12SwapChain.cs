@@ -57,7 +57,7 @@ internal unsafe class D3D12SwapChain : SwapChain
                 };
 
                 ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForHwnd(
-                    (IUnknown*)device.D3D12GraphicsQueue,
+                    (IUnknown*)device.D3D12GraphicsQueue.Handle,
                     (HWND)win32Surface.Hwnd,
                     &swapChainDesc,
                     &fsSwapChainDesc,
@@ -73,7 +73,7 @@ internal unsafe class D3D12SwapChain : SwapChain
             case SwapChainPanelChainSurface swapChainPanelSurface:
             {
                 ThrowIfFailed(device.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
-                    (IUnknown*)device.D3D12GraphicsQueue,
+                    (IUnknown*)device.D3D12GraphicsQueue.Handle,
                     &swapChainDesc,
                     null,
                     tempSwapChain.GetAddressOf()
@@ -142,13 +142,13 @@ internal unsafe class D3D12SwapChain : SwapChain
                 ColorFormat,
                 swapChainDesc.Width,
                 swapChainDesc.Height,
-                usage: TextureUsage.RenderTarget
+                usage: TextureUsage.RenderTarget,
+                label: $"BackBuffer texture {i}"
             );
-            description.Label = $"BackBuffer texture {i}";
 
             using ComPtr<ID3D12Resource> backbufferTexture = default;
             ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), (void**)backbufferTexture.GetAddressOf()));
-            _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), description);
+            _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), description, TextureLayout.Present);
         }
     }
 

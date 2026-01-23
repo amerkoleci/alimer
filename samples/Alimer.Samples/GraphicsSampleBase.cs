@@ -49,16 +49,6 @@ public abstract class GraphicsSampleBase : SampleBase
         }
     }
 
-    protected GraphicsBuffer CreateBuffer<T>(List<T> initialData,
-       BufferUsage usage = BufferUsage.ShaderReadWrite,
-       MemoryType cpuAccess = MemoryType.Private)
-       where T : unmanaged
-    {
-        Span<T> dataSpan = CollectionsMarshal.AsSpan(initialData);
-
-        return GraphicsDevice.CreateBuffer(dataSpan, usage, cpuAccess);
-    }
-
     protected Stream OpenEmbeddedAssetStream(string name) => typeof(GraphicsSampleBase).Assembly!.GetManifestResourceStream(name)!;
     protected byte[] ReadEmbeddedAssetBytes(string name)
     {
@@ -173,9 +163,13 @@ public abstract class GraphicsSampleBase : SampleBase
                 break;
 
             case GraphicsBackendType.Vulkan:
-                arguments.AddRange(["-fvk-use-dx-layout", "-fvk-use-dx-position-w", "-fvk-use-entrypoint-name", "-target", "spirv"]);
-
-
+                arguments.AddRange([
+                    "-fvk-use-dx-layout",
+                    "-fvk-use-dx-position-w",
+                    "-fvk-use-entrypoint-name",
+                    "-target",
+                    "spirv"]
+                    );
 
                 const uint ShiftSpaceCount = 8;
 

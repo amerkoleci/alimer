@@ -32,4 +32,50 @@ public readonly struct MeshVertexBufferLayout
         Stride = computedStride;
         StepMode = VertexStepMode.Vertex;
     }
+
+    public bool HasAttribute(MeshVertexAttributeSemantic semantic)
+    {
+        for (int i = 0; i < Attributes.Length; i++)
+        {
+            if (Attributes[i].Semantic == semantic)
+                return true;
+        }
+
+        return false;
+    }
+
+    public MeshVertexAttribute? GetAttribute(MeshVertexAttributeSemantic semantic)
+    {
+        for (int i = 0; i < Attributes.Length; i++)
+        {
+            if (Attributes[i].Semantic == semantic)
+                return Attributes[i];
+        }
+
+        return default;
+    }
+
+    public int GetAttributeOffset(MeshVertexAttributeSemantic semantic)
+    {
+        for (int i = 0; i < Attributes.Length; i++)
+        {
+            if (Attributes[i].Semantic == semantic)
+                return Attributes[i].Offset;
+        }
+
+        return -1;
+    }
+
+    public void GetAttributes(Span<MeshVertexAttribute> attributes)
+    {
+        if (attributes.Length < Attributes.Length)
+        {
+            throw new ArgumentException("The provided span is too small to hold all attributes.", nameof(attributes));
+        }
+
+        for (int i = 0; i < Attributes.Length; i++)
+        {
+            attributes[i] = Attributes[i];
+        }
+    }
 }

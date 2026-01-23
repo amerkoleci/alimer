@@ -104,7 +104,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             D3D12_RASTERIZER_DESC1 rasterizerState = D3D12_RASTERIZER_DESC1.DEFAULT;
             rasterizerState.FillMode = descriptor.RasterizerState.FillMode.ToD3D12();
             rasterizerState.CullMode = descriptor.RasterizerState.CullMode.ToD3D12();
-            rasterizerState.FrontCounterClockwise = FALSE; // (descriptor.RasterizerState.FrontFace == FrontFace.CounterClockwise) ? TRUE : FALSE;
+            rasterizerState.FrontCounterClockwise = (descriptor.RasterizerState.FrontFace == FrontFace.CounterClockwise);
             rasterizerState.DepthBias = descriptor.RasterizerState.DepthBias;
             rasterizerState.DepthBiasClamp = descriptor.RasterizerState.DepthBiasClamp;
             rasterizerState.SlopeScaledDepthBias = descriptor.RasterizerState.DepthBiasSlopeScale;
@@ -229,7 +229,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 
         // SampleDesc and SampleMask
         stream.stream1.SampleDesc = new(new DXGI_SAMPLE_DESC(descriptor.SampleCount.ToSampleCount(), 0));
-        stream.stream1.SampleMask = 0;
+        stream.stream1.SampleMask = 0xFFFFFFFF;
 
         D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = new()
         {

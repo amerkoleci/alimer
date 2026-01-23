@@ -362,7 +362,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         ulong timestampFrequency;
-        ThrowIfFailed(D3D12GraphicsQueue->GetTimestampFrequency(&timestampFrequency));
+        ThrowIfFailed(D3D12GraphicsQueue.Handle->GetTimestampFrequency(&timestampFrequency));
         TimestampFrequency = timestampFrequency;
     }
 
@@ -381,11 +381,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12GraphicsAdapter DxAdapter => _adapter;
     public bool EnhancedBarriersSupported => _adapter.Features.EnhancedBarriersSupported;
 
-    public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)CommandQueueType.Graphics].Handle;
-    public D3D12CommandQueue GraphicsQueue => _queues[(int)CommandQueueType.Graphics];
-    public D3D12CommandQueue ComputeQueue => _queues[(int)CommandQueueType.Compute];
-    public D3D12CommandQueue CopyQueue => _queues[(int)CommandQueueType.Copy];
-    public D3D12CommandQueue? VideDecodeQueue => _queues[(int)CommandQueueType.VideoDecode];
+    //public ID3D12CommandQueue* D3D12GraphicsQueue => _queues[(int)CommandQueueType.Graphics].Handle;
+    public D3D12CommandQueue D3D12GraphicsQueue => _queues[(int)CommandQueueType.Graphics];
+    public D3D12CommandQueue D3D12ComputeQueue => _queues[(int)CommandQueueType.Compute];
+    public D3D12CommandQueue D3D12CopyQueue => _queues[(int)CommandQueueType.Copy];
+    public D3D12CommandQueue? D3D12VideoDecodeQueue => _queues[(int)CommandQueueType.VideoDecode];
     //public D3D12CommandQueue? VideoEncode => _queues[(int)CommandQueueType.VideoEncode];
 
     public D3D12DescriptorAllocator RenderTargetViewHeap { get; }

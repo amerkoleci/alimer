@@ -284,7 +284,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             );
             description.Label = $"BackBuffer texture {i}";
 
-            _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in description);
+            _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in description, TextureLayout.Undefined);
             _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _acquireSemaphores[i]).CheckResult();
             _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _releaseSemaphores[i]).CheckResult();
         }
