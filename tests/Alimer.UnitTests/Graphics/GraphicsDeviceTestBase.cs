@@ -5,13 +5,13 @@ namespace Alimer.Graphics.Tests;
 
 public abstract class GraphicsDeviceTestBase : IDisposable
 {
-    public  GraphicsBackendType BackendType { get; }
+    public  GraphicsBackend BackendType { get; }
 
     public GraphicsManager Manager { get; }
     public GraphicsAdapter Adapter { get; }
     public GraphicsDevice Device { get; }
 
-    protected GraphicsDeviceTestBase(GraphicsBackendType backendType)
+    protected GraphicsDeviceTestBase(GraphicsBackend backendType)
     {
         BackendType = backendType;
 

@@ -36,13 +36,13 @@ internal unsafe class D3D12TextureView : TextureView
             if (isDepthStencil)
             {
                 DSVFormat = descriptor.Format.ToDxgiDSVFormat();
-                //DSV = GetDSV(desc, textureView->DSVFormat, false);
-                //DSVReadOnly = GetDSV(desc, textureView->DSVFormat, true);
+                DSV = GetDSV(in descriptor, DSVFormat, false);
+                DSVReadOnly = GetDSV(in descriptor, DSVFormat, true);
             }
             else
             {
                 RTVFormat = descriptor.Format.ToDxgiRTVFormat();
-                //RTV = GetRTV(desc, textureView->RTVFormat);
+                RTV = GetRTV(in descriptor, RTVFormat);
             }
         }
     }
@@ -157,17 +157,29 @@ internal unsafe class D3D12TextureView : TextureView
         return viewDesc;
     }
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(in TextureViewDescriptor descriptor, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
     {
-        int hash = HashCode.Combine(mipSlice, arraySlice, format);
+        int hash = HashCode.Combine(descriptor.GetHashCode(), format);
 
         if (!_RTVs.TryGetValue(hash, out DescriptorIndex descriptorIndex))
         {
-            D3D12_RESOURCE_DESC desc = _texture.Handle->GetDesc();
-
             D3D12_RENDER_TARGET_VIEW_DESC viewDesc = default;
             viewDesc.Format = format;
-            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+            if (Texture.IsMultisampled)
+            {
+                Debug.Assert(Texture.Dimension == TextureDimension.Texture2D);
+                Debug.Assert(Texture.MipLevelCount == 1);
+                Debug.Assert(ArrayLayerCount == 1);
+                Debug.Assert(BaseArrayLayer == 0);
+                Debug.Assert(MipLevelCount == 0);
+
+                viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+            }
+            else
+            {
+                viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            }
 
             descriptorIndex = _texture.DXDevice.RenderTargetViewHeap.AllocateDescriptors(1u);
             _RTVs.Add(hash, descriptorIndex);
@@ -179,9 +191,9 @@ internal unsafe class D3D12TextureView : TextureView
         return _texture.DXDevice.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
     }
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(in TextureViewDescriptor descriptor, DXGI_FORMAT format, bool readOnly)
     {
-        int hash = HashCode.Combine(mipSlice, arraySlice, format);
+        int hash = HashCode.Combine(descriptor.GetHashCode(), format, readOnly);
 
         if (!_DSVs.TryGetValue(hash, out DescriptorIndex descriptorIndex))
         {

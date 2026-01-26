@@ -57,7 +57,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly nint _winPixEventRuntimeDLL;
 
     public D3D12GraphicsDevice(D3D12GraphicsAdapter adapter, in GraphicsDeviceDescription description)
-        : base(GraphicsBackendType.D3D12, in description)
+        : base(GraphicsBackend.D3D12, in description)
     {
         _adapter = adapter;
 
@@ -516,6 +516,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.PipelineStatisticsQuery:
             case Feature.TextureCompressionBC:
             case Feature.IndirectFirstInstance:
+            case Feature.TextureComponentSwizzle:
             case Feature.SamplerClampToBorder:
             case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:

@@ -11,9 +11,11 @@ using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE_COMBINER;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
-using Alimer.Graphics.D3D;
+using static TerraFX.Interop.DirectX.D3D12_RESOLVE_MODE;
 using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
+using Alimer.Utilities;
+using System.Runtime.CompilerServices;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -22,6 +24,8 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     private readonly D3D12CommandBuffer _commandBuffer;
     private D3D12RenderPipeline? _currentPipeline;
     private readonly D3D12_VERTEX_BUFFER_VIEW[] _vboViews = new D3D12_VERTEX_BUFFER_VIEW[MaxVertexBufferBindings];
+    private int _subresourceParamsCount = 0;
+    private readonly D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS[] _subresourceParams = new D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 
     public D3D12RenderPassEncoder(D3D12CommandBuffer commandBuffer)
     {
@@ -38,6 +42,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         }
 
         _currentPipeline = default;
+        _subresourceParamsCount = 0;
 
         if (!descriptor.Label.IsEmpty)
         {
@@ -52,27 +57,25 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
         SizeI renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
-        D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
         D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
 
-        bool hasDepthOrStencil = descriptor.DepthStencilAttachment.Texture != null;
-        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.Texture != null ? descriptor.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+        bool hasDepthOrStencil = descriptor.DepthStencilAttachment.View != null;
+        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.View != null ? descriptor.DepthStencilAttachment.View.Format : PixelFormat.Undefined;
 
         for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
             ref readonly RenderPassColorAttachment attachment = ref descriptor.ColorAttachments[slot];
-            Guard.IsTrue(attachment.Texture is not null);
+            Guard.IsTrue(attachment.View is not null);
 
-            D3D12Texture texture = (D3D12Texture)attachment.Texture;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
+            D3D12TextureView view = (D3D12TextureView)attachment.View;
 
-            renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
-            renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
+            renderArea.Width = Math.Min(renderArea.Width, (int)view.Width);
+            renderArea.Height = Math.Min(renderArea.Height, (int)view.Height);
 
-            RTVs[slot].cpuDescriptor = texture.GetRTV(mipLevel, slice, texture.DxgiFormat);
-            RTVs[slot].BeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
+            RTVs[slot].cpuDescriptor = view.RTV;
+            RTVs[slot].BeginningAccess.Clear.ClearValue.Format = view.RTVFormat;
 
             switch (attachment.LoadAction)
             {
@@ -104,8 +107,35 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
                     break;
             }
 
+            if (attachment.ResolveView is not null)
+            {
+                D3D12TextureView resolveView = (D3D12TextureView)attachment.ResolveView;
+
+                RTVs[slot].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE;
+
+                RTVs[slot].EndingAccess.Resolve.pSrcResource = ((D3D12Texture)view.Texture).Handle;
+                RTVs[slot].EndingAccess.Resolve.pDstResource = ((D3D12Texture)resolveView.Texture).Handle;
+                RTVs[slot].EndingAccess.Resolve.SubresourceCount = 1u;
+
+                _subresourceParams[_subresourceParamsCount++] = EndingAccessResolveSubresourceParameters(resolveView);
+
+                RTVs[slot].EndingAccess.Resolve.pSubresourceParameters = (D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS*)Unsafe.AsPointer(ref UnsafeUtilities.GetReferenceUnsafe(_subresourceParams, _subresourceParamsCount));
+                RTVs[slot].EndingAccess.Resolve.Format = resolveView.RTVFormat;
+                RTVs[slot].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_AVERAGE;
+
+                // Clear or preserve the resolve source.
+                if (attachment.StoreAction == StoreAction.Discard)
+                {
+                    RTVs[slot].EndingAccess.Resolve.PreserveResolveSource = false;
+                }
+                else if (attachment.StoreAction == StoreAction.Store)
+                {
+                    RTVs[slot].EndingAccess.Resolve.PreserveResolveSource = true;
+                }
+            }
+
             // Barrier -> D3D12_RESOURCE_STATE_RENDER_TARGET
-            _commandBuffer.TextureBarrier(texture, TextureLayout.RenderTarget);
+            _commandBuffer.TextureBarrier(view, TextureLayout.RenderTarget);
 
             ++numRTVS;
         }
@@ -114,15 +144,14 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         {
             RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment;
 
-            D3D12Texture texture = (D3D12Texture)attachment.Texture!;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
+            D3D12TextureView view = (D3D12TextureView)attachment.View!;
 
-            renderArea.Width = Math.Min(renderArea.Width, (int)texture.GetWidth(mipLevel));
-            renderArea.Height = Math.Min(renderArea.Height, (int)texture.GetHeight(mipLevel));
 
-            DSV.cpuDescriptor = texture.GetDSV(mipLevel, slice/*, attachment.depthReadOnly, attachment.stencilReadOnly*/);
-            DSV.DepthBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
+            renderArea.Width = Math.Min(renderArea.Width, (int)view.Width);
+            renderArea.Height = Math.Min(renderArea.Height, (int)view.Height);
+
+            DSV.cpuDescriptor = (attachment.DepthReadOnly || attachment.StencilReadOnly) ? view.DSVReadOnly : view.DSV;
+            DSV.DepthBeginningAccess.Clear.ClearValue.Format = view.DSVFormat;
 
             switch (attachment.DepthLoadAction)
             {
@@ -151,9 +180,9 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
                     break;
             }
 
-            if (!texture.Format.IsDepthOnlyFormat())
+            if (!view.Format.IsDepthOnlyFormat())
             {
-                DSV.StencilBeginningAccess.Clear.ClearValue.Format = texture.DxgiFormat;
+                DSV.StencilBeginningAccess.Clear.ClearValue.Format = view.DSVFormat;
 
                 switch (attachment.StencilLoadAction)
                 {
@@ -188,8 +217,18 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
                 DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
             }
 
-            _commandBuffer.TextureBarrier(texture,
-                (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite);
+            if (attachment.DepthReadOnly)
+            {
+                renderPassFlags |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH;
+            }
+
+            if (attachment.StencilReadOnly)
+            {
+                renderPassFlags |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_STENCIL;
+            }
+
+            // View barrier
+            _commandBuffer.TextureBarrier(view, (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite);
         }
         _commandBuffer.CommitBarriers();
 
@@ -446,5 +485,28 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         }
 
         _commandBuffer.FlushBindGroups(graphics: true);
+    }
+
+    private static D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS EndingAccessResolveSubresourceParameters(D3D12TextureView resolveDestination)
+    {
+        D3D12Texture resolveDestinationTexture = (D3D12Texture)resolveDestination.Texture;
+        //Debug.Assert(resolveDestinationTexture->GetFormat().aspects == Aspect::Color);
+
+        D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS subresourceParameters = new()
+        {
+            SrcSubresource = 0,
+            DstSubresource = resolveDestinationTexture.GetSubresourceIndex(resolveDestination.BaseMipLevel, resolveDestination.BaseArrayLayer/*, TextureAspect.Color*/),
+            DstX = 0,
+            DstY = 0,
+            SrcRect = new RECT()
+            {
+                left = 0,
+                top = 0,
+                right = (int)resolveDestinationTexture.Width,
+                bottom = (int)resolveDestinationTexture.Height
+            }
+        };
+
+        return subresourceParameters;
     }
 }

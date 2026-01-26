@@ -8,7 +8,7 @@ namespace Alimer.Graphics.Tests;
 [TestFixture(TestOf = typeof(GraphicsDevice))]
 public abstract class ComputeTests : GraphicsDeviceTestBase
 {
-    protected ComputeTests(GraphicsBackendType backendType)
+    protected ComputeTests(GraphicsBackend backendType)
         : base(backendType)
     {
     }
@@ -36,7 +36,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
 public class D3D12ComputeTests : ComputeTests
 {
     public D3D12ComputeTests()
-        : base(GraphicsBackendType.D3D12)
+        : base(GraphicsBackend.D3D12)
     {
 
     }
@@ -46,7 +46,7 @@ public class D3D12ComputeTests : ComputeTests
 public class VulkanComputeTests : ComputeTests
 {
     public VulkanComputeTests()
-        : base(GraphicsBackendType.Vulkan)
+        : base(GraphicsBackend.Vulkan)
     {
 
     }

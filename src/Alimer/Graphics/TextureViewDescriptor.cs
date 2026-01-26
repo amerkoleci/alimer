@@ -14,9 +14,9 @@ public record struct TextureViewDescriptor
     public PixelFormat Format = PixelFormat.Undefined;
     public uint BaseMipLevel = 0;
     public uint MipLevelCount = MipLevelCountUndefined;
-    public uint BaseArrayLayer = 0;                            // For Texture3D, this is WSlice.
+    public uint BaseArrayLayer = 0;                           // For Texture3D, this is WSlice.
     public uint ArrayLayerCount = ArrayLayerCountUndefined;   // For cube maps, this is a multiple of 6.
-    //public TextureSwizzleChannels swizzle;
+    public TextureSwizzleChannels Swizzle = TextureSwizzleChannels.Default;
     public TextureAspect Aspect = TextureAspect.All;
 
     /// <summary>

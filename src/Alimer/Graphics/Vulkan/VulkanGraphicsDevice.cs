@@ -52,7 +52,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkSampler _nullSampler = default;
 
     public VulkanGraphicsDevice(VulkanGraphicsAdapter adapter, in GraphicsDeviceDescription description)
-        : base(GraphicsBackendType.Vulkan, description)
+        : base(GraphicsBackend.Vulkan, description)
     {
         _adapter = adapter;
         _physicalDevice = adapter.Handle;
@@ -983,6 +983,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     return true;
                 }
                 return false;
+
+            case Feature.TextureComponentSwizzle:
+                return true;
 
             case Feature.DepthBoundsTest:
                 return _adapter.Features2.features.depthBounds;

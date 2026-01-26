@@ -22,6 +22,7 @@ public abstract class TextureView
         MipLevelCount = descriptor.MipLevelCount;
         BaseArrayLayer = descriptor.BaseArrayLayer;
         ArrayLayerCount = descriptor.ArrayLayerCount;
+        Swizzle = descriptor.Swizzle;
         Aspect = descriptor.Aspect;
         _label = descriptor.Label;
     }
@@ -33,7 +34,7 @@ public abstract class TextureView
     public uint MipLevelCount { get; }
     public uint BaseArrayLayer { get; }
     public uint ArrayLayerCount { get; }
-    //public TextureSwizzleChannels swizzle;
+    public TextureSwizzleChannels Swizzle { get; }
     public TextureAspect Aspect { get; }
 
     /// <summary>
@@ -51,6 +52,9 @@ public abstract class TextureView
             OnLabelChanged(value);
         }
     }
+
+    public uint Width => Texture.GetWidth(BaseMipLevel);
+    public uint Height => Texture.GetHeight(BaseMipLevel);
 
     protected virtual void OnLabelChanged(string? newLabel)
     {

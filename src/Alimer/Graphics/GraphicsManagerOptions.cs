@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public struct GraphicsManagerOptions
 {
-    public GraphicsBackendType PreferredBackend { get; set; } = GraphicsBackendType.Default;
+    public GraphicsBackend PreferredBackend { get; set; } = GraphicsBackend.Default;
     public GraphicsValidationMode ValidationMode { get; set; } = GraphicsValidationMode.Disabled;
     public string? Label { get; set; }
 

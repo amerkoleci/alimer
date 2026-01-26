@@ -85,7 +85,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
     {
         UpdateCamera(camera);
 
-        RenderPassColorAttachment colorAttachment = new(output, Colors.Black)
+        RenderPassColorAttachment colorAttachment = new(output.DefaultView!, Colors.Black)
         {
             LoadAction = LoadAction.Clear,
             StoreAction = MultisampleColorTexture != null ? StoreAction.Discard : StoreAction.Store,

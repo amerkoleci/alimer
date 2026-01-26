@@ -8,19 +8,9 @@ namespace Alimer.Graphics;
 public record struct RenderPassDepthStencilAttachment
 {
     /// <summary>
-    /// The <see cref="Graphics.Texture"/> associated with this attachment.
+    /// The <see cref="TextureView"/> associated with this attachment.
     /// </summary>
-    public Texture? Texture;
-
-    /// <summary>
-    /// The mipmap level of the texture used for rendering to the attachment.
-    /// </summary>
-    public uint MipLevel;
-
-    /// <summary>
-    /// The slice of the texture used for rendering to the attachment.
-    /// </summary>
-    public uint Slice;
+    public TextureView? View;
 
     /// <summary>
     /// The action performed by this attachment at the start of a rendering pass.
@@ -62,10 +52,18 @@ public record struct RenderPassDepthStencilAttachment
     /// </summary>
     public bool StencilReadOnly  = false;
 
+    public RenderPassDepthStencilAttachment(TextureView view)
+    {
+        Guard.IsNotNull(view, nameof(view));
+
+        View = view;
+    }
+
     public RenderPassDepthStencilAttachment(Texture texture)
     {
         Guard.IsNotNull(texture, nameof(texture));
+        Guard.IsNotNull(texture.DefaultView, nameof(texture.DefaultView));
 
-        Texture = texture;
+        View = texture.DefaultView;
     }
 }

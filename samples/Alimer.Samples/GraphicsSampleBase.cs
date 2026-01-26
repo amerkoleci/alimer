@@ -63,7 +63,7 @@ public abstract class GraphicsSampleBase : SampleBase
 
     protected ShaderModule LoadShader(string name, ShaderStages stage, Utf8String entryPoint)
     {
-        string shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? "spirv" : "dxil";
+        string shaderFormat = GraphicsDevice.Backend == GraphicsBackend.Vulkan ? "spirv" : "dxil";
 
         string entryName = $"{name}_{entryPoint}_{shaderFormat}.bin";
         byte[] bytecode = ReadEmbeddedAssetBytes(entryName);
@@ -78,7 +78,7 @@ public abstract class GraphicsSampleBase : SampleBase
         Utf8String entryPoint,
         Dictionary<string, string>? defines = default)
     {
-        ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
+        ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackend.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
 
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".hlsl");
@@ -154,15 +154,15 @@ public abstract class GraphicsSampleBase : SampleBase
 
         switch (GraphicsDevice.Backend)
         {
-            case GraphicsBackendType.D3D12:
+            case GraphicsBackend.D3D12:
                 arguments.AddRange(["-profile", "sm_6_6", "-target", "dxil"]);
                 break;
 
-            case GraphicsBackendType.Metal:
+            case GraphicsBackend.Metal:
                 arguments.AddRange(["-target", "metal"]);
                 break;
 
-            case GraphicsBackendType.Vulkan:
+            case GraphicsBackend.Vulkan:
                 arguments.AddRange([
                     "-fvk-use-dx-layout",
                     "-fvk-use-dx-position-w",

@@ -16,6 +16,7 @@ public enum Feature
     ShaderFloat16,
     RG11B10UfloatRenderable,
     BGRA8UnormStorage,
+    TextureComponentSwizzle,
 
     DepthBoundsTest,
     SamplerClampToBorder,

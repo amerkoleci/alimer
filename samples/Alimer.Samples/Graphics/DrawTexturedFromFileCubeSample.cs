@@ -97,7 +97,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
         _constantBuffer.SetData(worldViewProjection);
 
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {

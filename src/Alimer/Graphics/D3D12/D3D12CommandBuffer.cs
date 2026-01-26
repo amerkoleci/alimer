@@ -168,6 +168,22 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _encoderActive = false;
     }
 
+    public void TextureBarrier(D3D12TextureView view, TextureLayout newLayout, bool commit = false)
+    {
+        D3D12Texture backendTexture = (D3D12Texture)view.Texture;
+
+        for (uint arrayLayer = view.BaseArrayLayer; arrayLayer < (view.BaseArrayLayer + view.ArrayLayerCount); arrayLayer++)
+        {
+            for (uint mipLevel = view.BaseMipLevel; mipLevel < (view.BaseMipLevel + view.MipLevelCount); mipLevel++)
+            {
+                uint subresource = backendTexture.GetSubresourceIndex(mipLevel, arrayLayer);
+
+                TextureBarrier(backendTexture, newLayout, subresource, commit);
+            }
+        }
+
+    }
+
     public void TextureBarrier(D3D12Texture resource, TextureLayout newLayout, uint subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false)
     {
         uint index = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;

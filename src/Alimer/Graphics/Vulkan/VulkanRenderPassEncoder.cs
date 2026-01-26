@@ -55,22 +55,20 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         VkRenderingAttachmentInfo depthAttachment = new();
         VkRenderingAttachmentInfo stencilAttachment = new();
 
-        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.Texture != null ? descriptor.DepthStencilAttachment.Texture.Format : PixelFormat.Undefined;
+        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.View != null ? descriptor.DepthStencilAttachment.View.Format : PixelFormat.Undefined;
         bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
 
         for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
             ref readonly RenderPassColorAttachment attachment = ref descriptor.ColorAttachments[slot];
-            Guard.IsTrue(attachment.Texture is not null);
+            Guard.IsTrue(attachment.View is not null);
 
-            VulkanTexture texture = (VulkanTexture)attachment.Texture;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
-            VkImageView imageView = texture.GetView(mipLevel, slice);
+            VulkanTextureView view = (VulkanTextureView)attachment.View;
+            VkImageView imageView = view.Handle;
 
-            renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
-            renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
-            layerCount = Math.Min(layerCount, texture.ArrayLayers);
+            renderArea.extent.width = Math.Min(renderArea.extent.width, view.Width);
+            renderArea.extent.height = Math.Min(renderArea.extent.height, view.Height);
+            layerCount = Math.Min(layerCount, view.ArrayLayerCount);
 
             ref VkRenderingAttachmentInfo attachmentInfo = ref colorAttachments[renderingInfo.colorAttachmentCount++];
             attachmentInfo = new()
@@ -82,24 +80,30 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
                 clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
             };
 
-            _commandBuffer.TextureBarrier(texture, TextureLayout.RenderTarget, mipLevel, 1u, slice, 1u);
+            if (attachment.ResolveView is not null)
+            {
+                VulkanTextureView resolveView = (VulkanTextureView)attachment.ResolveView;
+                attachmentInfo.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+                attachmentInfo.resolveImageView = resolveView.Handle;
+                attachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
+
+            _commandBuffer.TextureBarrier(view, TextureLayout.RenderTarget);
         }
 
         if (hasDepthOrStencil)
         {
             RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment;
 
-            VulkanTexture texture = (VulkanTexture)attachment.Texture!;
-            uint mipLevel = attachment.MipLevel;
-            uint slice = attachment.Slice;
+            VulkanTextureView view = (VulkanTextureView)attachment.View!;
 
-            renderArea.extent.width = Math.Min(renderArea.extent.width, texture.GetWidth(mipLevel));
-            renderArea.extent.height = Math.Min(renderArea.extent.height, texture.GetHeight(mipLevel));
-            layerCount = Math.Min(layerCount, texture.ArrayLayers);
+            renderArea.extent.width = Math.Min(renderArea.extent.width, view.Width);
+            renderArea.extent.height = Math.Min(renderArea.extent.height, view.Height);
+            layerCount = Math.Min(layerCount, view.ArrayLayerCount);
 
-            depthAttachment.imageView = texture.GetView(mipLevel, slice);
-            depthAttachment.imageLayout = VkImageLayout.DepthAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            depthAttachment.resolveMode = VkResolveModeFlags.None;
+            depthAttachment.imageView = view.Handle;
+            depthAttachment.imageLayout = attachment.DepthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
             depthAttachment.loadOp = attachment.DepthLoadAction.ToVk();
             depthAttachment.storeOp = attachment.DepthStoreAction.ToVk();
             depthAttachment.clearValue.depthStencil = new(attachment.DepthClearValue, attachment.StencilClearValue);
@@ -108,7 +112,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
             if (depthStencilFormat.IsStencilFormat())
             {
                 stencilAttachment.imageView = depthAttachment.imageView;
-                stencilAttachment.imageLayout = VkImageLayout.StencilAttachmentOptimal; //  //desc.depthStencilAttachment.depthReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                stencilAttachment.imageLayout = attachment.StencilReadOnly ? VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
                 stencilAttachment.resolveMode = VkResolveModeFlags.None;
                 stencilAttachment.loadOp = attachment.StencilLoadAction.ToVk();
                 stencilAttachment.storeOp = attachment.StencilStoreAction.ToVk();
@@ -116,7 +120,9 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
                 renderingInfo.pStencilAttachment = &stencilAttachment;
             }
 
-            _commandBuffer.TextureBarrier(texture, TextureLayout.DepthWrite, mipLevel, 1u, slice, 1u);
+            _commandBuffer.TextureBarrier(view,
+                (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite
+                );
         }
         _commandBuffer.CommitBarriers();
 

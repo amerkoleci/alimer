@@ -55,8 +55,8 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
-        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
+        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!.DefaultView!);
         RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
             Label = "BackBuffer"u8

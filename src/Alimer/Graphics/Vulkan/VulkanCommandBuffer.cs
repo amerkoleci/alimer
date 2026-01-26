@@ -264,6 +264,16 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         buffer.CurrentState = newState;
     }
 
+    public void TextureBarrier(VulkanTextureView view, TextureLayout newLayout)
+    {
+        VulkanTexture backendTexture = (VulkanTexture)view.Texture;
+        TextureBarrier(backendTexture, newLayout,
+            view.BaseMipLevel, view.MipLevelCount,
+            view.BaseArrayLayer, view.ArrayLayerCount,
+            view.Aspect
+        );
+    }
+
     public void TextureBarrier(VulkanTexture texture, TextureLayout newLayout,
         uint baseMiplevel,
         uint levelCount,

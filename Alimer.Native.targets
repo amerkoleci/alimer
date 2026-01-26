@@ -14,11 +14,13 @@
     <When Condition="($([MSBuild]::IsOsPlatform('linux')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='linux-x64'">
       <ItemGroup>
         <None Include="$(AlimerNativeDirectory)linux-x64/libalimer_native.so" Link="libalimer_native.so" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)linux-x64/libalimer_physics.so" Link="libalimer_physics.so" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
     <When Condition="($([MSBuild]::IsOsPlatform('osx')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='osx-universal'">
       <ItemGroup>
-        <None Include="$(AlimerNativeDirectory)osx-universal/libalimer_native.dylib" Link="libalimer_native.dylib" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)osx/libalimer_native.dylib" Link="libalimer_native.dylib" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(AlimerNativeDirectory)osx/libalimer_physics.dylib" Link="libalimer_physics.dylib" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
   </Choose>

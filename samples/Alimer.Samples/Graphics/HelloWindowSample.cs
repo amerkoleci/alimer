@@ -16,7 +16,7 @@ public sealed class HelloWindowSample : GraphicsSampleBase
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {

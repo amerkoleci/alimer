@@ -11,7 +11,7 @@ public sealed class SampleBrowserGame : Game
 {
     private SampleBase _runningSample = null!;
 
-    public SampleBrowserGame(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
+    public SampleBrowserGame(GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default)
         : base(preferredGraphicsBackend)
     {
         GameSystems.Add(new ImGuiSystem(Services));
@@ -64,12 +64,12 @@ public sealed class SampleBrowserGame : Game
 
     public static void Main()
     {
-        GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default;
+        GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default;
 
         // D3D12 is broken ATM
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        //preferredGraphicsBackend = GraphicsBackendType.Vulkan;
+        preferredGraphicsBackend = GraphicsBackend.Vulkan;
         //preferredGraphicsBackend = GraphicsBackendType.Metal;
 #endif
 

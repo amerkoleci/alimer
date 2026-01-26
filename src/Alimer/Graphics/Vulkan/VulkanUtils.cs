@@ -280,18 +280,12 @@ internal static unsafe class VulkanUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkPresentModeKHR ToVk(this PresentMode value)
     {
-        switch (value)
+        return value switch
         {
-            default:
-            case PresentMode.Fifo:
-                return VkPresentModeKHR.Fifo;
-
-            case PresentMode.Immediate:
-                return VkPresentModeKHR.Immediate;
-
-            case PresentMode.Mailbox:
-                return VkPresentModeKHR.Mailbox;
-        }
+            PresentMode.Immediate => VK_PRESENT_MODE_IMMEDIATE_KHR,
+            PresentMode.Mailbox => VK_PRESENT_MODE_MAILBOX_KHR,
+            _ => VK_PRESENT_MODE_FIFO_KHR,
+        };
     }
 
     public static uint MinImageCountForPresentMode(this VkPresentModeKHR mode)
@@ -533,10 +527,10 @@ internal static unsafe class VulkanUtils
         return value switch
         {
             SamplerAddressMode.Repeat => VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            SamplerAddressMode.MirrorRepeat => VkSamplerAddressMode.MirroredRepeat,
-            SamplerAddressMode.ClampToEdge => VkSamplerAddressMode.ClampToEdge,
-            SamplerAddressMode.ClampToBorder => VkSamplerAddressMode.ClampToBorder,
-            SamplerAddressMode.MirrorClampToEdge => samplerMirrorClampToEdge ? VkSamplerAddressMode.MirrorClampToEdge : VkSamplerAddressMode.MirroredRepeat,
+            SamplerAddressMode.MirrorRepeat => VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+            SamplerAddressMode.ClampToEdge => VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            SamplerAddressMode.ClampToBorder => VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+            SamplerAddressMode.MirrorClampToEdge => samplerMirrorClampToEdge ? VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
             _ => VK_SAMPLER_ADDRESS_MODE_REPEAT,
         };
     }
@@ -554,6 +548,27 @@ internal static unsafe class VulkanUtils
             SamplerBorderColor.UintOpaqueWhite => VkBorderColor.IntOpaqueWhite,
             _ => VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
         };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkComponentSwizzle ToVk(this TextureSwizzle value)
+    {
+        return value switch
+        {
+            TextureSwizzle.Red => VK_COMPONENT_SWIZZLE_R,
+            TextureSwizzle.Green => VK_COMPONENT_SWIZZLE_G,
+            TextureSwizzle.Blue => VK_COMPONENT_SWIZZLE_B,
+            TextureSwizzle.Alpha => VK_COMPONENT_SWIZZLE_A,
+            TextureSwizzle.Zero => VK_COMPONENT_SWIZZLE_ZERO,
+            TextureSwizzle.One => VK_COMPONENT_SWIZZLE_ONE,
+            _ => VK_COMPONENT_SWIZZLE_IDENTITY,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VkComponentMapping ToVk(this TextureSwizzleChannels value)
+    {
+        return new VkComponentMapping(value.Red.ToVk(), value.Green.ToVk(), value.Blue.ToVk(), value.Alpha.ToVk());
     }
 
     private static readonly VkBufferStateMapping[] s_BufferStateMap = [

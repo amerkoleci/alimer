@@ -81,6 +81,11 @@ public abstract class Texture : GraphicsObject
     /// </summary>
     public MemoryType MemoryType { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the texture is multisampled.
+    /// </summary>
+    public bool IsMultisampled => SampleCount > TextureSampleCount.Count1;
+
     #region View
     public TextureView? DefaultView
     {
@@ -114,23 +119,16 @@ public abstract class Texture : GraphicsObject
 
         if (creationDesc.Dimension == TextureViewDimension.Undefined)
         {
-            switch (Dimension)
+            creationDesc.Dimension = Dimension switch
             {
-                case TextureDimension.Texture1D:
-                    creationDesc.Dimension = (ArrayLayers > 1) ? TextureViewDimension.View1DArray : TextureViewDimension.View1D;
-                    break;
-                case TextureDimension.Texture2D:
-                    creationDesc.Dimension = (ArrayLayers > 1) ? TextureViewDimension.Texture2DArray : TextureViewDimension.View2D;
-                    break;
-                case TextureDimension.Texture3D:
-                    creationDesc.Dimension = TextureViewDimension.View3D;
-                    break;
+                TextureDimension.Texture1D => (ArrayLayers > 1) ? TextureViewDimension.View1DArray : TextureViewDimension.View1D,
+                TextureDimension.Texture2D => (ArrayLayers > 1) ? TextureViewDimension.Texture2DArray : TextureViewDimension.View2D,
+                TextureDimension.Texture3D => TextureViewDimension.View3D,
                 //case TextureDimension.Cube:
                 //    creationDesc.Dimension = (ArrayLayers > 6) ? TextureViewDimension.TextureCubeArray : TextureViewDimension.TextureCube;
                 //    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(descriptor.Dimension));
-            }
+                _ => throw new ArgumentOutOfRangeException(nameof(descriptor.Dimension)),
+            };
         }
 
         if (creationDesc.Format == PixelFormat.Undefined)
@@ -230,7 +228,7 @@ public abstract class Texture : GraphicsObject
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> (int)mipLevel) : 0;
     }
 
-    public uint CalculateSubresource(uint mipLevel, uint arrayLayer, uint planeSlice = 0)
+    public uint GetSubresourceIndex(uint mipLevel, uint arrayLayer, uint planeSlice = 0)
     {
         return mipLevel + arrayLayer * MipLevelCount + planeSlice * MipLevelCount * ArrayLayers;
     }
@@ -240,7 +238,7 @@ public abstract class Texture : GraphicsObject
         Debug.Assert(mipLevel < MipLevelCount);
         Debug.Assert(arrayLayer < Depth * ArrayLayers);
 
-        uint subresource = CalculateSubresource(mipLevel, arrayLayer, placeSlice);
+        uint subresource = GetSubresourceIndex(mipLevel, arrayLayer, placeSlice);
         return _subresourceLayouts[subresource];
     }
 
@@ -271,7 +269,7 @@ public abstract class Texture : GraphicsObject
         Debug.Assert(mipLevel < MipLevelCount);
         Debug.Assert(arrayLayer < Depth * ArrayLayers);
 
-        uint subresource = CalculateSubresource(mipLevel, arrayLayer, placeSlice);
+        uint subresource = GetSubresourceIndex(mipLevel, arrayLayer, placeSlice);
         _subresourceLayouts[subresource] = newLayout;
     }
 
@@ -285,8 +283,8 @@ public abstract class Texture : GraphicsObject
         {
             for (uint mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
             {
-                uint iterSubresource = CalculateSubresource(mipLevel, arrayLayer);
-                _subresourceLayouts[iterSubresource] = newLayout;
+                uint subresource = GetSubresourceIndex(mipLevel, arrayLayer);
+                _subresourceLayouts[subresource] = newLayout;
             }
         }
     }

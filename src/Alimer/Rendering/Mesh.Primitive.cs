@@ -110,10 +110,12 @@ partial class Mesh
         for (int j = 0; j <= horizontalSegments; j++)
         {
             Vector3 normal = new(0, -1, 0);
+            Vector2 texcoord = new(uScale * j / horizontalSegments, vScale);
+
             vertices[vertexCount++] = new VertexPositionNormalTexture(
                 normal * radius,
                 normal,
-                new Vector2(uScale * j / horizontalSegments, vScale)
+                texcoord
                 );
         }
 
@@ -127,51 +129,43 @@ partial class Mesh
 
             // the first point
             Vector3 firstNormal = new(0, dy, dxz);
+            VertexPositionNormalTexture firstHorizontalVertex = new(firstNormal * radius, firstNormal, new Vector2(0, v));
 
-            vertices[vertexCount++] = new VertexPositionNormalTexture(
-                firstNormal * radius,
-                firstNormal,
-                new Vector2(0, v)
-            );
+            vertices[vertexCount++] = firstHorizontalVertex;
 
             // Create a single ring of vertices at this latitude.
             for (int j = 1; j < horizontalSegments; j++)
             {
                 float u = (uScale * j) / horizontalSegments;
 
-                float longitude = (float)(j * 2.0f * MathF.PI / horizontalSegments);
+                float longitude = j * 2.0f * MathF.PI / horizontalSegments;
                 (float dx, float dz) = MathF.SinCos(longitude);
 
                 dx *= dxz;
                 dz *= dxz;
 
                 Vector3 normal = new(dx, dy, dz);
+                Vector2 textcoord = new(u, v);
 
                 vertices[vertexCount++] = new VertexPositionNormalTexture(
                     normal * radius,
                     normal,
-                    new Vector2(i, v)
+                    textcoord
                 );
             }
 
-            // The last point equal to the first point
-            vertices[vertexCount++] = new VertexPositionNormalTexture(
-                firstNormal * radius,
-                firstNormal,
-                new Vector2(uScale, v)
-            );
+            // the last point equal to the first point
+            firstHorizontalVertex.TextureCoordinate = new Vector2(uScale, v);
+            vertices[vertexCount++] = firstHorizontalVertex;
         }
 
         // Generate the end extremity points
         for (int j = 0; j <= horizontalSegments; j++)
         {
             Vector3 normal = Vector3.UnitY;
+            Vector2 textcoord = new(uScale * j / horizontalSegments, 0f);
 
-            vertices[vertexCount++] = new VertexPositionNormalTexture(
-                normal * radius,
-                normal,
-                new Vector2(uScale * j / horizontalSegments, 0.0f)
-            );
+            vertices[vertexCount++] = new VertexPositionNormalTexture(normal * radius, normal, textcoord);
         }
 
         // Fill the index buffer with triangles joining each pair of latitude rings.

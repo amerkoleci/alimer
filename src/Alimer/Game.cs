@@ -27,7 +27,7 @@ public abstract class Game : DisposableObject, IGame
     /// Initializes a new instance of the <see cref="Game" /> class.
     /// </summary>
     /// <param name="name">The optional name of the application.</param>
-    protected Game(GraphicsBackendType preferredGraphicsBackend = GraphicsBackendType.Default)
+    protected Game(GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default)
     {
         _platform = GamePlatform.CreateDefault();
         PrintSystemInformation();

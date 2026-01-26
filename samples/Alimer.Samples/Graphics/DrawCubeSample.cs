@@ -91,8 +91,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         Color testColor = new(0.0f, 1.0f, 1.0f, 1.0f);
         _constantBuffer1.SetData(testColor);
 
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
-        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
+        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!.DefaultView!);
         RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {
             Label = "BackBuffer"u8

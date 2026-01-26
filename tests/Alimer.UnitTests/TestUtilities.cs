@@ -14,7 +14,7 @@ public static class TestUtilities
 
         ShaderCompilationOptions options = new()
         {
-            ShaderFormat = device.Backend == GraphicsBackendType.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL,
+            ShaderFormat = device.Backend == GraphicsBackend.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL,
             ShaderStage = stage,
             EntryPoint = entryPoint.ToString()!,
 #if DEBUG

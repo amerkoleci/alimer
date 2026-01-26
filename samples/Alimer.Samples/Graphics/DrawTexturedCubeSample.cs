@@ -32,8 +32,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
     public DrawTexturedCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube", services, mainWindow)
     {
-        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-        //_cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
+        //_cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        _cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
         _cubeMesh.CreateGpuData(GraphicsDevice);
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
@@ -111,7 +111,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
         _constantBuffer.SetData(worldViewProjection);
 
-        RenderPassColorAttachment colorAttachment = new(swapChainTexture, new Color(0.3f, 0.3f, 0.3f));
+        RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
         {

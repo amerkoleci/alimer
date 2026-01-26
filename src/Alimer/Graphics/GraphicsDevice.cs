@@ -16,7 +16,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected readonly ConcurrentQueue<Tuple<GraphicsObject, ulong>> _deferredDestroyObjects = new();
     protected bool _shuttingDown;
 
-    public GraphicsDevice(GraphicsBackendType backend, in GraphicsDeviceDescription description)
+    public GraphicsDevice(GraphicsBackend backend, in GraphicsDeviceDescription description)
         : base(description.Label)
     {
         Backend = backend;
@@ -26,7 +26,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <summary>
     /// Get the type of the graphics backend.
     /// </summary>
-    public GraphicsBackendType Backend { get; }
+    public GraphicsBackend Backend { get; }
 
     /// <summary>
     /// Get the <see cref="GraphicsAdapter"/> object that created this object.
