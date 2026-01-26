@@ -17,14 +17,17 @@ public record struct VertexPositionNormalTexture : IMeshVertex
     public Vector3 Normal;
     public Vector2 TextureCoordinate;
 
-    private static readonly MeshVertexAttribute[] s_vertexAttributes =
-    [
+    public static MeshVertexAttribute[] VertexAttributes { get; } = [
         new MeshVertexAttribute(MeshVertexAttributeSemantic.Position, VertexFormat.Float3, 0),
         new MeshVertexAttribute(MeshVertexAttributeSemantic.Normal, VertexFormat.Float3, 12),
         new MeshVertexAttribute(MeshVertexAttributeSemantic.TexCoord0, VertexFormat.Float2, 24)
     ];
 
-    public readonly MeshVertexAttribute[] VertexAttributes => s_vertexAttributes;
+    public static VertexAttribute[] RHIVertexAttributes { get; } = [
+        new VertexAttribute(VertexFormat.Float3, 0, 0),
+        new VertexAttribute(VertexFormat.Float3, 12, 1),
+        new VertexAttribute(VertexFormat.Float2, 24, 2)
+    ];
 
     public VertexPositionNormalTexture(in Vector3 position, in Vector3 normal, in Vector2 textureCoordinate)
     {

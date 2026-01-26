@@ -122,7 +122,7 @@ public abstract class Texture : GraphicsObject
             creationDesc.Dimension = Dimension switch
             {
                 TextureDimension.Texture1D => (ArrayLayers > 1) ? TextureViewDimension.View1DArray : TextureViewDimension.View1D,
-                TextureDimension.Texture2D => (ArrayLayers > 1) ? TextureViewDimension.Texture2DArray : TextureViewDimension.View2D,
+                TextureDimension.Texture2D => (ArrayLayers > 1) ? TextureViewDimension.View2DArray : TextureViewDimension.View2D,
                 TextureDimension.Texture3D => TextureViewDimension.View3D,
                 //case TextureDimension.Cube:
                 //    creationDesc.Dimension = (ArrayLayers > 6) ? TextureViewDimension.TextureCubeArray : TextureViewDimension.TextureCube;
@@ -159,7 +159,7 @@ public abstract class Texture : GraphicsObject
                     creationDesc.ArrayLayerCount = 6;
                     break;
                 case TextureViewDimension.View1DArray:
-                case TextureViewDimension.Texture2DArray:
+                case TextureViewDimension.View2DArray:
                 case TextureViewDimension.ViewCubeArray:
                     creationDesc.ArrayLayerCount = ArrayLayers - creationDesc.BaseArrayLayer;
                     break;
@@ -172,7 +172,7 @@ public abstract class Texture : GraphicsObject
         if (SampleCount > TextureSampleCount.Count1)
         {
             if (creationDesc.Dimension != TextureViewDimension.View2D &&
-                creationDesc.Dimension != TextureViewDimension.Texture2DArray)
+                creationDesc.Dimension != TextureViewDimension.View2DArray)
             {
                 throw new GraphicsException("Multisampled texture views are only supported for 2D and 2D array textures.");
             }

@@ -214,21 +214,15 @@ internal static unsafe class VulkanUtils
 
     public static VkSampleCountFlags ToVk(this TextureSampleCount sampleCount)
     {
-        switch (sampleCount)
+        return sampleCount switch
         {
-            case TextureSampleCount.Count2:
-                return VkSampleCountFlags.Count2;
-            case TextureSampleCount.Count4:
-                return VkSampleCountFlags.Count4;
-            case TextureSampleCount.Count8:
-                return VkSampleCountFlags.Count8;
-            case TextureSampleCount.Count16:
-                return VkSampleCountFlags.Count16;
-            case TextureSampleCount.Count32:
-                return VkSampleCountFlags.Count32;
-            default:
-                return VkSampleCountFlags.Count1;
-        }
+            TextureSampleCount.Count2 => VkSampleCountFlags.Count2,
+            TextureSampleCount.Count4 => VkSampleCountFlags.Count4,
+            TextureSampleCount.Count8 => VkSampleCountFlags.Count8,
+            TextureSampleCount.Count16 => VkSampleCountFlags.Count16,
+            TextureSampleCount.Count32 => VkSampleCountFlags.Count32,
+            _ => VkSampleCountFlags.Count1,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -251,7 +245,7 @@ internal static unsafe class VulkanUtils
             TextureViewDimension.View1D => VK_IMAGE_VIEW_TYPE_1D,
             TextureViewDimension.View1DArray => VK_IMAGE_VIEW_TYPE_1D_ARRAY,
             TextureViewDimension.View2D => VK_IMAGE_VIEW_TYPE_2D,
-            TextureViewDimension.Texture2DArray => VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+            TextureViewDimension.View2DArray => VK_IMAGE_VIEW_TYPE_2D_ARRAY,
             TextureViewDimension.ViewCube => VK_IMAGE_VIEW_TYPE_CUBE,
             TextureViewDimension.ViewCubeArray => VK_IMAGE_VIEW_TYPE_CUBE_ARRAY,
             TextureViewDimension.View3D => VK_IMAGE_VIEW_TYPE_3D,
@@ -541,11 +535,11 @@ internal static unsafe class VulkanUtils
         return value switch
         {
             SamplerBorderColor.FloatTransparentBlack => VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
-            SamplerBorderColor.FloatOpaqueBlack => VkBorderColor.FloatOpaqueBlack,
-            SamplerBorderColor.FloatOpaqueWhite => VkBorderColor.FloatOpaqueWhite,
-            SamplerBorderColor.UintTransparentBlack => VkBorderColor.IntTransparentBlack,
-            SamplerBorderColor.UintOpaqueBlack => VkBorderColor.IntOpaqueBlack,
-            SamplerBorderColor.UintOpaqueWhite => VkBorderColor.IntOpaqueWhite,
+            SamplerBorderColor.FloatOpaqueBlack => VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+            SamplerBorderColor.FloatOpaqueWhite => VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+            SamplerBorderColor.UIntTransparentBlack => VK_BORDER_COLOR_INT_TRANSPARENT_BLACK,
+            SamplerBorderColor.UIntOpaqueBlack => VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            SamplerBorderColor.UIntOpaqueWhite => VK_BORDER_COLOR_INT_OPAQUE_WHITE,
             _ => VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
         };
     }
@@ -571,7 +565,7 @@ internal static unsafe class VulkanUtils
         return new VkComponentMapping(value.Red.ToVk(), value.Green.ToVk(), value.Blue.ToVk(), value.Alpha.ToVk());
     }
 
-    private static readonly VkBufferStateMapping[] s_BufferStateMap = [
+    private static readonly VkBufferStateMapping[] s_bufferStateMap = [
         new(BufferStates.CopyDest, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT),
         new(BufferStates.CopySource, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT),
         new(BufferStates.ShaderResource, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT),
@@ -593,96 +587,70 @@ internal static unsafe class VulkanUtils
 
     public static VkImageLayoutMapping ConvertImageLayout(TextureLayout layout, bool depthOnlyFormat)
     {
-        switch (layout)
+        return layout switch
         {
-            case TextureLayout.Undefined:
-                return new(
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                    0
-                    );
-
-            case TextureLayout.CopySource:
-                return new(
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                    VK_ACCESS_2_TRANSFER_READ_BIT
-                    );
-
-            case TextureLayout.CopyDest:
-                return new(
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                    VK_ACCESS_2_TRANSFER_WRITE_BIT
-                    );
-
-            case TextureLayout.ResolveSource:
-                return new(
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                    VK_ACCESS_2_TRANSFER_READ_BIT
-                    );
-
-            case TextureLayout.ResolveDest:
-                return new(
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                    VK_ACCESS_2_TRANSFER_WRITE_BIT
-                    );
-
-            case TextureLayout.ShaderResource:
-                //return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
-                return new(
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                        VK_ACCESS_2_SHADER_READ_BIT
-                    );
-
-            case TextureLayout.UnorderedAccess:
-                return new(
-                    VK_IMAGE_LAYOUT_GENERAL,
-                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                        VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
-                    );
-
-            case TextureLayout.RenderTarget:
-                return new(
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-                    );
-
-            case TextureLayout.DepthWrite:
-                return new(
-                    depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-                    );
-
-            case TextureLayout.DepthRead:
-                return new(
-                    depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
-                    );
-
-            case TextureLayout.Present:
-                return new(
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                    VK_ACCESS_2_MEMORY_READ_BIT
-                    );
-
-            case TextureLayout.ShadingRateSurface:
-                return new(
-                    VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR,
-                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
-                        VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR
-                    );
-
-            default:
-                return ThrowHelper.ThrowArgumentException<VkImageLayoutMapping>();
-        }
+            TextureLayout.Undefined => new(
+                                VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                                0
+                                ),
+            TextureLayout.CopySource => new(
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                VK_ACCESS_2_TRANSFER_READ_BIT
+                                ),
+            TextureLayout.CopyDest => new(
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                VK_ACCESS_2_TRANSFER_WRITE_BIT
+                                ),
+            TextureLayout.ResolveSource => new(
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                VK_ACCESS_2_TRANSFER_READ_BIT
+                                ),
+            TextureLayout.ResolveDest => new(
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                VK_ACCESS_2_TRANSFER_WRITE_BIT
+                                ),
+            TextureLayout.ShaderResource => new(
+                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                    VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                    VK_ACCESS_2_SHADER_READ_BIT
+                                ),//return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
+            TextureLayout.UnorderedAccess => new(
+                                VK_IMAGE_LAYOUT_GENERAL,
+                                    VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                    VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
+                                ),
+            TextureLayout.RenderTarget => new(
+                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                    VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                                ),
+            TextureLayout.DepthWrite => new(
+                                depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+                                ),
+            TextureLayout.DepthRead => new(
+                                depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+                                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                                ),
+            TextureLayout.Present => new(
+                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                VK_ACCESS_2_MEMORY_READ_BIT
+                                ),
+            TextureLayout.ShadingRateSurface => new(
+                                VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR,
+                                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
+                                    VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR
+                                ),
+            _ => ThrowHelper.ThrowArgumentException<VkImageLayoutMapping>(),
+        };
     }
 
     public static VkBufferStateMapping ConvertBufferState(BufferStates state)
@@ -691,7 +659,7 @@ internal static unsafe class VulkanUtils
         VkPipelineStageFlags2 resultStageFlags = VkPipelineStageFlags2.None;
         VkAccessFlags2 resultAccessMask = VkAccessFlags2.None;
 
-        int numStateBits = s_BufferStateMap.Length;
+        int numStateBits = s_bufferStateMap.Length;
 
         uint stateTmp = (uint)state;
         uint bitIndex = 0;
@@ -702,7 +670,7 @@ internal static unsafe class VulkanUtils
 
             if ((stateTmp & bit) != 0)
             {
-                ref VkBufferStateMapping mapping = ref s_BufferStateMap[bitIndex];
+                ref VkBufferStateMapping mapping = ref s_bufferStateMap[bitIndex];
 
                 Debug.Assert((uint)mapping.State == bit);
 

@@ -35,7 +35,7 @@ public enum TextureViewDimension
     /// <summary>
     /// 2D texture array view.
     /// </summary>
-    Texture2DArray,
+    View2DArray,
     /// <summary>
     /// Cube texture array view.
     /// </summary>

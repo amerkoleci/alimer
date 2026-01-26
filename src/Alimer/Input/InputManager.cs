@@ -13,7 +13,6 @@ public class InputManager : GameSystem
 
     public IReadOnlyList<IInputSource> Sources => _sources;
     public IEnumerable<IKeyboardInputSource> KeyboardSources => _keyboardSources;
-
     public IKeyboardInputSource? Keyboard => _keyboardSources.Count > 0 ? _keyboardSources[0] : default;
 
     public InputManager(IInputSourceConfiguration configuration)

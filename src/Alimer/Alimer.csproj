@@ -72,8 +72,4 @@
     <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Engine\" />
-  </ItemGroup>
-
 </Project>

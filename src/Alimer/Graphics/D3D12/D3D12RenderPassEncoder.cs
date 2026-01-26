@@ -150,7 +150,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             renderArea.Width = Math.Min(renderArea.Width, (int)view.Width);
             renderArea.Height = Math.Min(renderArea.Height, (int)view.Height);
 
-            DSV.cpuDescriptor = (attachment.DepthReadOnly || attachment.StencilReadOnly) ? view.DSVReadOnly : view.DSV;
+            DSV.cpuDescriptor = (attachment.DepthReadOnly || attachment.StencilReadOnly) ? view.GetDSV(attachment.DepthReadOnly, attachment.StencilReadOnly) : view.DSV;
             DSV.DepthBeginningAccess.Clear.ClearValue.Format = view.DSVFormat;
 
             switch (attachment.DepthLoadAction)

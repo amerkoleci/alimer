@@ -51,12 +51,11 @@ public sealed class SceneCubeSample : SampleBase
 
         _meshEntity = new("Sphere", new Vector3(0.0f, 2.0f, 0.0f));
 
-        //MeshComponent meshComponent = new()
-        //{
-        //    Mesh = new Mesh(GraphicsDevice)
-        //};
-        //
-        //_meshEntity.AddComponent(meshComponent);
+        Mesh cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
+        cubeMesh.CreateGpuData(GraphicsDevice);
+
+        MeshComponent meshComponent = new(cubeMesh);
+        _meshEntity.AddComponent(meshComponent);
         _meshEntity.AddComponent(sphereRigidBody);
         
         root.Children.Add(_meshEntity);

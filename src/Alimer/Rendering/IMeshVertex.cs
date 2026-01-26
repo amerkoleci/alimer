@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
 using Alimer.Graphics;
 
 namespace Alimer.Rendering;
@@ -10,5 +11,8 @@ namespace Alimer.Rendering;
 /// </summary>
 public interface IMeshVertex
 {
-    MeshVertexAttribute[] VertexAttributes { get; }
+    [NotNull]
+    static abstract MeshVertexAttribute[] VertexAttributes { get; }
+    [NotNull]
+    static abstract VertexAttribute[] RHIVertexAttributes { get; }
 }

@@ -33,6 +33,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         : base("Graphics - Draw Textured Cube from file", services, mainWindow)
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        _cubeMesh.CreateGpuData(GraphicsDevice);
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
@@ -64,7 +65,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
+            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
         };
 
         RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)

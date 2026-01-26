@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
+using Alimer.Rendering;
 
 namespace Alimer.Samples.Graphics;
 
@@ -92,7 +93,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
+            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
         };
 
         RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)

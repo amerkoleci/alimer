@@ -1,0 +1,12 @@
+﻿// Copyright (c) Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+
+namespace Alimer.Engine;
+
+[DefaultEntitySystem(typeof(RenderSystem))]
+public partial class RenderableComponent : EntityComponent
+{
+    public RenderableComponent()
+    {
+    }
+}

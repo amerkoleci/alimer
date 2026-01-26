@@ -28,6 +28,7 @@ using static TerraFX.Interop.DirectX.D3D12_STENCIL_OP;
 using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.DirectX.D3D12_SAMPLER_FLAGS;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -650,7 +651,7 @@ internal static unsafe class D3D12Utils
         switch (description.BorderColor)
         {
             case SamplerBorderColor.FloatOpaqueBlack:
-            case SamplerBorderColor.UintOpaqueBlack:
+            case SamplerBorderColor.UIntOpaqueBlack:
                 desc.BorderColor[0] = 0.0f;
                 desc.BorderColor[1] = 0.0f;
                 desc.BorderColor[2] = 0.0f;
@@ -658,7 +659,7 @@ internal static unsafe class D3D12Utils
                 break;
 
             case SamplerBorderColor.FloatOpaqueWhite:
-            case SamplerBorderColor.UintOpaqueWhite:
+            case SamplerBorderColor.UIntOpaqueWhite:
                 desc.BorderColor[0] = 1.0f;
                 desc.BorderColor[1] = 1.0f;
                 desc.BorderColor[2] = 1.0f;
@@ -670,6 +671,92 @@ internal static unsafe class D3D12Utils
                 desc.BorderColor[1] = 0.0f;
                 desc.BorderColor[2] = 0.0f;
                 desc.BorderColor[3] = 0.0f;
+                break;
+        }
+
+        return desc;
+    }
+
+    public static D3D12_SAMPLER_DESC2 ToD3D12SamplerDesc2(in SamplerDescriptor description)
+    {
+        D3D12_FILTER_TYPE minFilter = description.MinFilter.ToD3D12();
+        D3D12_FILTER_TYPE magFilter = description.MagFilter.ToD3D12();
+        D3D12_FILTER_TYPE mipmapFilter = description.MipFilter.ToD3D12();
+
+        D3D12_FILTER_REDUCTION_TYPE reductionType = description.ReductionType.ToD3D12();
+
+        D3D12_SAMPLER_DESC2 desc = new();
+
+        // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_sampler_desc
+        desc.MaxAnisotropy = Math.Min(Math.Max(description.MaxAnisotropy, 1u), D3D12_DEFAULT_MAX_ANISOTROPY);
+        if (desc.MaxAnisotropy > 1)
+        {
+            desc.Filter = D3D12_ENCODE_ANISOTROPIC_FILTER(reductionType);
+        }
+        else
+        {
+            desc.Filter = D3D12_ENCODE_BASIC_FILTER(minFilter, magFilter, mipmapFilter, reductionType);
+        }
+
+        desc.AddressU = description.AddressModeU.ToD3D12();
+        desc.AddressV = description.AddressModeV.ToD3D12();
+        desc.AddressW = description.AddressModeW.ToD3D12();
+        desc.MipLODBias = 0.0f;
+        if (description.CompareFunction != CompareFunction.Never)
+        {
+            desc.ComparisonFunc = description.CompareFunction.ToD3D12();
+        }
+        else
+        {
+            desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+        }
+        desc.MinLOD = description.LodMinClamp;
+        desc.MaxLOD = description.LodMaxClamp;
+        switch (description.BorderColor)
+        {
+            case SamplerBorderColor.FloatOpaqueBlack:
+                desc.FloatBorderColor[0] = 0.0f;
+                desc.FloatBorderColor[1] = 0.0f;
+                desc.FloatBorderColor[2] = 0.0f;
+                desc.FloatBorderColor[3] = 1.0f;
+                break;
+
+            case SamplerBorderColor.FloatOpaqueWhite:
+                desc.FloatBorderColor[0] = 1.0f;
+                desc.FloatBorderColor[1] = 1.0f;
+                desc.FloatBorderColor[2] = 1.0f;
+                desc.FloatBorderColor[3] = 1.0f;
+                break;
+
+            default:
+                desc.FloatBorderColor[0] = 0.0f;
+                desc.FloatBorderColor[1] = 0.0f;
+                desc.FloatBorderColor[2] = 0.0f;
+                desc.FloatBorderColor[3] = 0.0f;
+                break;
+
+            case SamplerBorderColor.UIntTransparentBlack:
+                desc.Flags = D3D12_SAMPLER_FLAG_UINT_BORDER_COLOR;
+                desc.UintBorderColor[0] = 0;
+                desc.UintBorderColor[1] = 0;
+                desc.UintBorderColor[2] = 0;
+                desc.UintBorderColor[3] = 0;
+                break;
+
+            case SamplerBorderColor.UIntOpaqueBlack:
+                desc.Flags = D3D12_SAMPLER_FLAG_UINT_BORDER_COLOR;
+                desc.UintBorderColor[0] = 0;
+                desc.UintBorderColor[1] = 0;
+                desc.UintBorderColor[2] = 0;
+                desc.UintBorderColor[3] = 1;
+                break;
+
+            case SamplerBorderColor.UIntOpaqueWhite:
+                desc.Flags = D3D12_SAMPLER_FLAG_UINT_BORDER_COLOR;
+                desc.UintBorderColor[0] = 1;
+                desc.UintBorderColor[1] = 1;
+                desc.UintBorderColor[2] = 1;
+                desc.UintBorderColor[3] = 1;
                 break;
         }
 
@@ -700,9 +787,9 @@ internal static unsafe class D3D12Utils
             BorderColor = description.BorderColor switch
             {
                 SamplerBorderColor.FloatOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
-                SamplerBorderColor.UintOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT,
                 SamplerBorderColor.FloatOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE,
-                SamplerBorderColor.UintOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT,
+                SamplerBorderColor.UIntOpaqueBlack => D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT,
+                SamplerBorderColor.UIntOpaqueWhite => D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT,
                 _ => D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,
             }
         };

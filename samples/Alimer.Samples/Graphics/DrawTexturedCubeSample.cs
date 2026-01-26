@@ -32,8 +32,8 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
     public DrawTexturedCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube", services, mainWindow)
     {
-        //_cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-        _cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
+        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        //_cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
         _cubeMesh.CreateGpuData(GraphicsDevice);
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
@@ -83,10 +83,9 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         using ShaderModule vertexShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Vertex, "vertexMain"u8);
         using ShaderModule fragmentShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Fragment, "fragmentMain"u8);
 
-
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
+            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
         };
 
         RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
@@ -106,7 +105,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         Matrix4x4 world = Matrix4x4.CreateRotationX(time) * Matrix4x4.CreateRotationY(time * 2) * Matrix4x4.CreateRotationZ(time * .7f);
 
         Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0, 0, 25), new Vector3(0, 0, 0), Vector3.UnitY);
-        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView((float)Math.PI / 4, AspectRatio, 0.1f, 100);
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4, AspectRatio, 0.1f, 100);
         Matrix4x4 viewProjection = Matrix4x4.Multiply(view, projection);
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
         _constantBuffer.SetData(worldViewProjection);

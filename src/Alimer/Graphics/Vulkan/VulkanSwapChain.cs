@@ -182,12 +182,12 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         VkPresentModeKHR presentMode = PresentMode.ToVk();
 
         {
-            ReadOnlySpan<VkPresentModeKHR> kPresentModeFallbacks = stackalloc VkPresentModeKHR[3]
-            {
-                VkPresentModeKHR.Immediate,
-                VkPresentModeKHR.Mailbox,
-                VkPresentModeKHR.Fifo
-            };
+            ReadOnlySpan<VkPresentModeKHR> kPresentModeFallbacks =
+            [
+                VK_PRESENT_MODE_IMMEDIATE_KHR,
+                VK_PRESENT_MODE_MAILBOX_KHR,
+                VK_PRESENT_MODE_FIFO_KHR
+            ];
 
             // Go to the target mode.
             int modeIndex = 0;
@@ -205,7 +205,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             Debug.Assert(modeIndex < kPresentModeFallbacks.Length);
             presentMode = kPresentModeFallbacks[modeIndex];
 
-            bool HasPresentMode(ReadOnlySpan<VkPresentModeKHR> presentModes, VkPresentModeKHR target)
+            static bool HasPresentMode(ReadOnlySpan<VkPresentModeKHR> presentModes, VkPresentModeKHR target)
             {
                 foreach (VkPresentModeKHR presentMode in presentModes)
                 {
@@ -215,8 +215,6 @@ internal unsafe partial class VulkanSwapChain : SwapChain
 
                 return false;
             }
-            ;
-
         }
 
         // Determine the number of images
@@ -227,14 +225,14 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             imageCount = Math.Min(imageCount, caps.maxImageCount);
         }
 
-        VkImageUsageFlags imageUsage = VkImageUsageFlags.ColorAttachment | VkImageUsageFlags.InputAttachment | VkImageUsageFlags.TransferDst;
+        VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlags.InputAttachment | VkImageUsageFlags.TransferDst;
 
         VkFormatProperties formatProps;
         instanceApi.vkGetPhysicalDeviceFormatProperties(_device.PhysicalDevice, surfaceFormat.format, &formatProps);
-        if (((formatProps.optimalTilingFeatures & VkFormatFeatureFlags.TransferSrc) != 0) ||
-            ((formatProps.optimalTilingFeatures & VkFormatFeatureFlags.BlitSrc) != 0))
+        if (((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT) != 0) ||
+            ((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0))
         {
-            imageUsage |= VkImageUsageFlags.TransferSrc;
+            imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         }
 
         VkSwapchainCreateInfoKHR createInfo = new()
@@ -246,9 +244,9 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             imageExtent = swapChainExtent,
             imageArrayLayers = 1,
             imageUsage = imageUsage,
-            imageSharingMode = VkSharingMode.Exclusive,
+            imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
             preTransform = caps.currentTransform,
-            compositeAlpha = VkCompositeAlphaFlagsKHR.Opaque,
+            compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             presentMode = presentMode,
             clipped = true,
             oldSwapchain = _handle

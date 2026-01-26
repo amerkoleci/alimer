@@ -3,6 +3,7 @@
 
 using Alimer.Graphics;
 using Alimer.Numerics;
+using Alimer.Rendering;
 
 namespace Alimer.Engine;
 
@@ -33,8 +34,27 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
 
+#if TODO
+        // Till we have a material system, create a basic pipeline
+        using ShaderModule vertexShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Fragment, "fragmentMain"u8);
+
+        var vertexBufferLayout = new VertexBufferLayout[1]
+        {
+            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
+        };
+
+        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        {
+            Label = "RenderPipeline",
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader
+        };
+        _renderPipeline = GraphicsDevice.CreateRenderPipeline(renderPipelineDesc); 
+#endif
+
         MainWindow.SizeChanged += OnCanvasSizeChanged;
-        Resize((int)MainWindow.ClientSize.Width, (int)MainWindow.ClientSize.Height);
+        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
     }
 
     public IServiceRegistry Services { get; }
@@ -89,11 +109,12 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         {
             LoadAction = LoadAction.Clear,
             StoreAction = MultisampleColorTexture != null ? StoreAction.Discard : StoreAction.Store,
+            ClearColor = new Color(0.3f, 0.3f, 0.3f)
         };
-
-        RenderPassDescriptor renderPassDescriptor = new(colorAttachment)
+        RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
+        RenderPassDescriptor renderPassDescriptor = new(depthStencilAttachment, colorAttachment)
         {
-            Label = "Output pass"u8
+            Label = "Forward render pass"u8
         };
 
         RenderPassEncoder renderPass = commandBuffer.BeginRenderPass(renderPassDescriptor);
@@ -124,8 +145,8 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
         {
             DepthStencilTexture?.Dispose();
 
-            TextureDescriptor depthStencilTextureDesc = TextureDescriptor.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1, 
-                usage: TextureUsage.RenderTarget, 
+            TextureDescriptor depthStencilTextureDesc = TextureDescriptor.Texture2D(DepthStencilFormat, (uint)Width, (uint)Height, 1, 1,
+                usage: TextureUsage.RenderTarget,
                 sampleCount: SampleCount
                 );
             DepthStencilTexture = GraphicsDevice.CreateTexture(in depthStencilTextureDesc);
@@ -134,7 +155,7 @@ public sealed class RenderSystem : EntitySystem<MeshComponent>
 
     private void OnCanvasSizeChanged(object? sender, EventArgs e)
     {
-        Resize((int)MainWindow.ClientSize.Width, (int)MainWindow.ClientSize.Height);
+        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
     }
 
     private void UpdateCamera(CameraComponent camera)

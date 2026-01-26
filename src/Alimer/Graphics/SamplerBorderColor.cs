@@ -8,7 +8,7 @@ public enum SamplerBorderColor
     FloatTransparentBlack,
     FloatOpaqueBlack,
     FloatOpaqueWhite,
-    UintTransparentBlack,
-    UintOpaqueBlack,
-    UintOpaqueWhite,
+    UIntTransparentBlack,
+    UIntOpaqueBlack,
+    UIntOpaqueWhite,
 }

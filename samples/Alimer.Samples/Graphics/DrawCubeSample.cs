@@ -31,6 +31,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         : base("Graphics - Draw Cube", services, mainWindow)
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        _cubeMesh.CreateGpuData(GraphicsDevice);
 
         _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, MemoryType.Upload));
@@ -58,12 +59,9 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         using ShaderModule vertexShader = CompileShaderModuleNew("Cube", ShaderStages.Vertex, "vertexMain"u8);
         using ShaderModule fragmentShader = CompileShaderModuleNew("Cube", ShaderStages.Fragment, "fragmentMain"u8);
 
-        //ShaderStageDescription vertexShader = LoadShader("Cube", ShaderStages.Vertex, "vertexMain");
-        //ShaderStageDescription fragmentShader = LoadShader("Cube", ShaderStages.Fragment, "fragmentMain");
-
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
+            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
         };
 
         RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)

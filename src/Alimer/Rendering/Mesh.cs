@@ -173,7 +173,7 @@ public sealed partial class Mesh : DisposableObject
     public void SetVertexAttributes<T>()
         where T : unmanaged, IMeshVertex
     {
-        _layout = new MeshVertexBufferLayout(default(T).VertexAttributes);
+        _layout = new MeshVertexBufferLayout(T.VertexAttributes);
         _positionOffset = _layout.GetAttributeOffset(MeshVertexAttributeSemantic.Position);
     }
 

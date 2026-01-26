@@ -26,7 +26,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 
-        ReadOnlySpan<ushort> indexData = [0, 1, 2, 0, 2, 3];
+        ReadOnlySpan<ushort> indexData = [0, 2, 1, 0, 3, 2];
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, BufferUsage.Index));
 
         PipelineLayoutDescription pipelineLayoutDescription = new()

@@ -3,9 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Alimer.Assets;
 using Alimer.Graphics;
-using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 using static Alimer.AlimerApi;
 
