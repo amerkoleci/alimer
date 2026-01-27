@@ -30,9 +30,14 @@ public struct BindGroupEntry
     public TextureView? TextureView;
 
     /// <summary>
-    /// The <see cref="Sampler"/> bound.
+    /// The <see cref="Graphics.Sampler"/> bound.
     /// </summary>
     public Sampler? Sampler;
+
+    /// <summary>
+    /// The <see cref="Graphics.AccelerationStructure"/> bound.
+    /// </summary>
+    public AccelerationStructure? AccelerationStructure;
 
     public BindGroupEntry(uint binding, GraphicsBuffer buffer, ulong offset = 0, ulong size = WholeSize)
     {
@@ -58,6 +63,14 @@ public struct BindGroupEntry
 
         Binding = binding;
         Sampler = sampler;
+    }
+
+    public BindGroupEntry(uint binding, AccelerationStructure accelerationStructure)
+    {
+        Guard.IsNotNull(accelerationStructure, nameof(accelerationStructure));
+
+        Binding = binding;
+        AccelerationStructure = accelerationStructure;
     }
 }
 

@@ -87,6 +87,7 @@ internal unsafe class VulkanBindGroup : BindGroup
             VulkanBuffer? backendBuffer = default;
             VulkanTextureView? backendTextureView = default;
             VulkanSampler? backendSampler = default;
+            VulkanAccelerationStructure? backendAccelerationStructure = default;
 
             BindGroupEntry? foundEntry = default;
             foreach (BindGroupEntry entry in entries)
@@ -99,7 +100,7 @@ internal unsafe class VulkanBindGroup : BindGroup
 
                 switch (layoutBinding.descriptorType)
                 {
-                    case VkDescriptorType.Sampler:
+                    case VK_DESCRIPTOR_TYPE_SAMPLER:
                         backendSampler = entry.Sampler != null ? (VulkanSampler)entry.Sampler : default;
                         if (backendSampler == null)
                             continue;
@@ -128,8 +129,11 @@ internal unsafe class VulkanBindGroup : BindGroup
                             continue;
                         break;
 
-                    //case VkDescriptorType.AccelerationStructureKHR:
-                    //    return shaderResource;
+                    case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                        backendAccelerationStructure = entry.AccelerationStructure != null ? (VulkanAccelerationStructure)entry.AccelerationStructure : default;
+                        if (backendAccelerationStructure == null)
+                            continue;
+                        break;
 
                     default:
                         break;
@@ -150,12 +154,12 @@ internal unsafe class VulkanBindGroup : BindGroup
 
             switch (descriptorType)
             {
-                case VkDescriptorType.Sampler:
+                case VK_DESCRIPTOR_TYPE_SAMPLER:
                     imageInfos[i].sampler = foundEntry.HasValue ? backendSampler!.Handle : _device.NullSampler;
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
-                case VkDescriptorType.SampledImage:
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
                     imageInfos[i].sampler = VkSampler.Null;
                     if (foundEntry.HasValue)
                     {
@@ -170,15 +174,15 @@ internal unsafe class VulkanBindGroup : BindGroup
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
-                case VkDescriptorType.StorageImage:
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
                     imageInfos[i].sampler = VkSampler.Null;
                     imageInfos[i].imageView = backendTextureView!.Handle;
                     imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
-                case VkDescriptorType.UniformBuffer:
-                case VkDescriptorType.StorageBuffer:
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 case VkDescriptorType.UniformBufferDynamic:
                 case VkDescriptorType.StorageBufferDynamic:
                     if (backendBuffer != null)
@@ -194,6 +198,15 @@ internal unsafe class VulkanBindGroup : BindGroup
                     }
 
                     descriptorWrites[i].pBufferInfo = &bufferInfos[i];
+                    break;
+
+                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                    VkAccelerationStructureKHR accelerationStructure = backendAccelerationStructure!.Handle;
+                    accelStructInfos[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+                    accelStructInfos[i].accelerationStructureCount = 1u;
+                    accelStructInfos[i].pAccelerationStructures = &accelerationStructure;
+
+                    descriptorWrites[i].pNext = &accelStructInfos[i];
                     break;
 
                 default:

@@ -24,7 +24,6 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         SetPipelineCore(pipeline);
     }
 
-
     public void Dispatch1D(uint threadCountX, uint groupSizeX = 64u)
     {
         Dispatch(
@@ -67,5 +66,4 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
     protected abstract void SetPipelineCore(ComputePipeline pipeline);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
     protected abstract void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
-
 }

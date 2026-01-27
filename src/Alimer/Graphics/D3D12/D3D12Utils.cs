@@ -29,6 +29,7 @@ using static TerraFX.Interop.DirectX.D3D12_TEXTURE_ADDRESS_MODE;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_SAMPLER_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_SHADER_COMPONENT_MAPPING;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -611,6 +612,26 @@ internal static unsafe class D3D12Utils
             default:
                 return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         }
+    }
+
+    public static D3D12_SHADER_COMPONENT_MAPPING ToD3D12(this TextureSwizzle value)
+    {
+        return value switch
+        {
+            TextureSwizzle.Red => D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0,
+            TextureSwizzle.Green => D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1,
+            TextureSwizzle.Blue => D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2,
+            TextureSwizzle.Alpha => D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3,
+            TextureSwizzle.Zero => D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0,
+            TextureSwizzle.One => D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1,
+            _ => D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0,
+        };
+    }
+
+    public static uint ToD3D12(this TextureSwizzleChannels swizzle)
+    {
+        //D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+        return D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(swizzle.Red.ToD3D12(), swizzle.Green.ToD3D12(), swizzle.Blue.ToD3D12(), swizzle.Alpha.ToD3D12());
     }
 
     public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescriptor description)

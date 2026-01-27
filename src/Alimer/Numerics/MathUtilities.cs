@@ -38,22 +38,6 @@ public static partial class MathUtilities
         get => 4.7683716E-07f; // 2^-21: 0x35000000
     }
 
-    /// <summary>
-    /// Converts radians to degrees.
-    /// </summary>
-    /// <param name="radians">The angle in radians.</param>
-    /// <returns>The converted value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float ToDegrees(this float radians) => radians * (180.0f / MathF.PI);
-
-    /// <summary>
-    /// Converts degrees to radians.
-    /// </summary>
-    /// <param name="degrees">Converts degrees to radians.</param>
-    /// <returns>The converted value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float ToRadians(this float degrees) => degrees * (MathF.PI / 180.0f);
-
     /// <summary>Compares two 64-bit floats to determine approximate equality.</summary>
     /// <param name="left">The float to compare with <paramref name="right" />.</param>
     /// <param name="right">The float to compare with <paramref name="left" />.</param>

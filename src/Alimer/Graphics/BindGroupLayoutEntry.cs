@@ -3,6 +3,93 @@
 
 namespace Alimer.Graphics;
 
+public readonly struct BufferBindingLayout
+{
+    public readonly BufferBindingType Type;
+    public readonly bool HasDynamicOffset;
+    public readonly ulong MinBindingSize;
+
+    public BufferBindingLayout()
+    {
+        Type = BufferBindingType.Constant;
+        HasDynamicOffset = false;
+        MinBindingSize = 0;
+    }
+
+    public BufferBindingLayout(BufferBindingType type, bool hasDynamicOffset = false, ulong minBindingSize = 0)
+    {
+        Type = type;
+        HasDynamicOffset = hasDynamicOffset;
+        MinBindingSize = minBindingSize;
+    }
+}
+
+public readonly struct SamplerBindingLayout
+{
+    public readonly SamplerBindingType Type;
+
+    public SamplerBindingLayout()
+    {
+        Type = SamplerBindingType.Filtering;
+    }
+
+    public SamplerBindingLayout(SamplerBindingType type)
+    {
+        Type = type;
+    }
+}
+
+public readonly struct TextureBindingLayout
+{
+    public readonly TextureSampleType SampleType;
+    //public TextureViewDimension ViewDimension;
+    public readonly bool Multisampled;
+
+    public TextureBindingLayout()
+    {
+        SampleType = TextureSampleType.Float;
+        Multisampled = false;
+    }
+
+    public TextureBindingLayout(TextureSampleType sampleType, bool multisampled = false)
+    {
+        SampleType = sampleType;
+        Multisampled = multisampled;
+    }
+}
+
+public struct StorageTextureBindingLayout
+{
+    public StorageTextureAccess Access = StorageTextureAccess.WriteOnly;
+    public PixelFormat Format = PixelFormat.Undefined;
+    //public TextureViewDimension viewDimension;
+
+    public StorageTextureBindingLayout()
+    {
+    }
+
+    public StorageTextureBindingLayout(StorageTextureAccess access, PixelFormat format = PixelFormat.Undefined)
+    {
+        Access = access;
+        Format = format;
+    }
+}
+
+public struct AccelerationStructureBindingLayout
+{
+    public PixelFormat Format = PixelFormat.Undefined;
+
+    public AccelerationStructureBindingLayout()
+    {
+    }
+
+    public AccelerationStructureBindingLayout(PixelFormat format)
+    {
+        Format = format;
+    }
+}
+
+
 /// <summary>
 /// Single entry for <see cref="BindGroupLayout"/>.
 /// </summary>
@@ -29,6 +116,7 @@ public record struct BindGroupLayoutEntry
 
     public TextureBindingLayout Texture;
     public StorageTextureBindingLayout StorageTexture;
+    public AccelerationStructureBindingLayout AccelerationStructure;
 
     public BindGroupLayoutEntry(BufferBindingLayout buffer, uint binding, ShaderStages visibility = ShaderStages.All)
     {
@@ -85,84 +173,14 @@ public record struct BindGroupLayoutEntry
             {
                 return BindingInfoType.StorageTexture;
             }
+            else if (AccelerationStructure.Format != PixelFormat.Undefined)
+            {
+                return BindingInfoType.AccelerationStructure;
+            }
             else
             {
                 return BindingInfoType.Undefined;
             }
         }
-    }
-}
-
-public readonly struct BufferBindingLayout
-{
-    public readonly BufferBindingType Type;
-    public readonly bool HasDynamicOffset;
-    public readonly ulong MinBindingSize;
-
-    public BufferBindingLayout()
-    {
-        Type = BufferBindingType.Constant;
-        HasDynamicOffset = false;
-        MinBindingSize = 0;
-    }
-
-    public BufferBindingLayout(BufferBindingType type, bool hasDynamicOffset = false, ulong minBindingSize = 0)
-    {
-        Type = type;
-        HasDynamicOffset = hasDynamicOffset;
-        MinBindingSize = minBindingSize;
-    }
-}
-
-public readonly struct SamplerBindingLayout
-{
-    public readonly SamplerBindingType Type;
-
-    public SamplerBindingLayout()
-    {
-        Type = SamplerBindingType.Filtering;
-    }
-
-    public SamplerBindingLayout(SamplerBindingType type)
-    {
-        Type = type;
-    }
-}
-
-public readonly struct TextureBindingLayout
-{
-    public readonly TextureSampleType SampleType;
-    //public TextureViewDimension ViewDimension;
-    public readonly bool Multisampled;
-
-    public TextureBindingLayout()
-    {
-        SampleType = TextureSampleType.Float;
-        Multisampled = false;
-    }
-
-    public TextureBindingLayout(TextureSampleType sampleType, bool multisampled = false)
-    {
-        SampleType = sampleType;
-        Multisampled = multisampled;
-    }
-}
-
-public readonly struct StorageTextureBindingLayout
-{
-    public readonly StorageTextureAccess Access;
-    public readonly PixelFormat Format;
-    //public TextureViewDimension viewDimension;
-
-    public StorageTextureBindingLayout()
-    {
-        Access = StorageTextureAccess.WriteOnly;
-        Format = PixelFormat.Undefined;
-    }
-
-    public StorageTextureBindingLayout(StorageTextureAccess access, PixelFormat format = PixelFormat.Undefined)
-    {
-        Access = access;
-        Format = format;
     }
 }

@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
+using Alimer.Rendering;
 using Alimer.Samples.Graphics;
 
 namespace Alimer.Samples;
@@ -21,6 +22,11 @@ public sealed class SampleBrowserGame : Game
     {
         base.Initialize();
 
+        // Setup shader system (until we have a proper asset pipeline)
+        string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
+        ShaderSystem.AddPath(shadersPath);
+        ShaderSystem.Compiler = new AssetShaderCompiler(ShaderSystem);
+
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
@@ -29,11 +35,11 @@ public sealed class SampleBrowserGame : Game
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
-        _runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
+        //_runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
-        //_runningSample = new SceneCubeSample(Services);
+        _runningSample = new SceneCubeSample(Services);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
@@ -69,7 +75,7 @@ public sealed class SampleBrowserGame : Game
         // D3D12 is broken ATM
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
-        //preferredGraphicsBackend = GraphicsBackend.Vulkan;
+        preferredGraphicsBackend = GraphicsBackend.Vulkan;
         //preferredGraphicsBackend = GraphicsBackendType.Metal;
 #endif
 

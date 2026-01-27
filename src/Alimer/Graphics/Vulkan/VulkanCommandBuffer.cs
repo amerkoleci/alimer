@@ -359,6 +359,22 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
+    public void PushBindGroup(uint group, Span<BindGroupEntry> entries)
+    {
+        //_deviceApi.vkCmdPushDescriptorSetKHR(_commandBuffer,
+        //    VkPipelineBindPoint.Graphics,
+        //    _currentPipelineLayout,
+        //    group
+        //    );
+        //device->vkCmdPushDescriptorSetKHR(commandBuffer,
+        //                                 VK_PIPELINE_BIND_POINT_COMPUTE,
+        //                                 vkPipelineLayout,
+        //                                 group,
+        //                                 writeDescriptorSets.size(),
+        //                                 writeDescriptorSets.data());
+    }
+
+
     public void SetPipelineLayout(VulkanPipelineLayout newPipelineLayout)
     {
         if (_currentPipelineLayout == newPipelineLayout)

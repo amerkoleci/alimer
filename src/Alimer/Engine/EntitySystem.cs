@@ -58,13 +58,16 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
     public virtual bool Accepts(Type type) => MainComponentType?.IsAssignableFrom(type) ?? false;
 }
 
-public abstract class EntitySystem<TComponent> : EntitySystem where TComponent : EntityComponent
+public abstract class EntitySystem<TComponent> : EntitySystem
+    where TComponent : EntityComponent
 {
-    protected EntitySystem() : base(typeof(TComponent))
+    protected EntitySystem()
+        : base(typeof(TComponent))
     {
     }
 
-    protected EntitySystem(params Type[] requiredComponentTypes) : base(typeof(TComponent), requiredComponentTypes)
+    protected EntitySystem(params Type[] requiredComponentTypes)
+        : base(typeof(TComponent), requiredComponentTypes)
     {
     }
 
@@ -100,7 +103,8 @@ public abstract class EntitySystem<TComponent> : EntitySystem where TComponent :
 
     private bool EntityMatch(Entity entity)
     {
-        if (RequiredComponentTypes.Count == 0) return true;
+        if (RequiredComponentTypes.Count == 0)
+            return true;
 
         List<Type> remainingRequiredTypes = [.. RequiredComponentTypes];
 
@@ -108,7 +112,8 @@ public abstract class EntitySystem<TComponent> : EntitySystem where TComponent :
         {
             remainingRequiredTypes.RemoveAll(t => t.IsAssignableFrom(component.GetType()));
 
-            if (remainingRequiredTypes.Count == 0) return true;
+            if (remainingRequiredTypes.Count == 0)
+                return true;
         }
 
         return false;

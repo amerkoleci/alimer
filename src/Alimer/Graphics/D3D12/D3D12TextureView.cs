@@ -75,7 +75,7 @@ internal unsafe class D3D12TextureView : TextureView
         D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = new()
         {
             Format = SRVFormat,
-            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+            Shader4ComponentMapping = Swizzle.ToD3D12()
         };
 
         if (_texture.SampleCount > TextureSampleCount.Count1)

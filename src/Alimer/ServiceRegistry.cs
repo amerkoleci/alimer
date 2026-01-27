@@ -13,7 +13,8 @@ namespace Alimer;
 /// </remarks>
 public class ServiceRegistry : IServiceRegistry
 {
-    private readonly Dictionary<Type, object> _registeredService = new();
+    private readonly Lock _lock = new();
+    private readonly Dictionary<Type, object> _registeredService = [];
 
     /// <inheritdoc />
     public event EventHandler<ServiceEventArgs>? ServiceAdded;
@@ -27,7 +28,7 @@ public class ServiceRegistry : IServiceRegistry
         ArgumentNullException.ThrowIfNull(service, nameof(service));
 
         Type type = typeof(T);
-        lock (_registeredService)
+        lock (_lock)
         {
             if (_registeredService.ContainsKey(type))
                 throw new ArgumentException("Service is already registered with this type", nameof(type));
@@ -49,7 +50,7 @@ public class ServiceRegistry : IServiceRegistry
         T service = factory();
         ArgumentNullException.ThrowIfNull(service, nameof(service));
 
-        lock (_registeredService)
+        lock (_lock)
         {
             if (_registeredService.ContainsKey(type))
                 throw new ArgumentException("Service is already registered with this type", nameof(type));
@@ -65,7 +66,7 @@ public class ServiceRegistry : IServiceRegistry
     {
         Type type = typeof(T);
         object? oldService = default;
-        lock (_registeredService)
+        lock (_lock)
         {
             if (_registeredService.TryGetValue(type, out oldService))
                 _registeredService.Remove(type);
@@ -79,7 +80,7 @@ public class ServiceRegistry : IServiceRegistry
     public T? TryGetService<T>() where T : class
     {
         Type type = typeof(T);
-        lock (_registeredService)
+        lock (_lock)
         {
             if (_registeredService.TryGetValue(type, out object? service))
             {
@@ -91,10 +92,11 @@ public class ServiceRegistry : IServiceRegistry
     }
 
     /// <inheritdoc />
-    public T GetService<T>() where T : class
+    public T GetService<T>()
+        where T : class
     {
         Type type = typeof(T);
-        lock (_registeredService)
+        lock (_lock)
         {
             if (!_registeredService.TryGetValue(type, out object? service))
             {

@@ -9,5 +9,6 @@ public enum BindingInfoType : byte
     Buffer,
     Sampler,
     Texture,
-    StorageTexture
+    StorageTexture,
+    AccelerationStructure
 }

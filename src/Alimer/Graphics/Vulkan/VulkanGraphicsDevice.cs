@@ -334,8 +334,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                     enabledDeviceExtensions.Add(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
                 }
             }
-        }
 
+        }
 
         if (_adapter.Extensions.MemoryBudget)
         {
@@ -1449,7 +1449,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private VkDescriptorPool CreateDescriptorSetPool()
     {
         uint totalSets = 1024;
-        const uint poolSizeCount = 7;
+        const uint poolSizeCount = 8; // 7 + 1 raytracing
+
         VkDescriptorPoolSize* poolSizes = stackalloc VkDescriptorPoolSize[(int)poolSizeCount]
         {
             new(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 512),
@@ -1458,15 +1459,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             new(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 128 ),
             new(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 128 ),
             new(VK_DESCRIPTOR_TYPE_SAMPLER, 16 ), /* Static samplers are 10 */
-            new(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 8 )
+            new(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 8 ),
+            new (VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 8) // // DESCRIPTORBINDER_SRV_COUNT * poolSize
         };
+
+        uint actualPoolSizeCount = 7;
+        if (QueryFeatureSupport(Feature.RayTracing))
+        {
+            actualPoolSizeCount++;
+        }
 
         VkDescriptorPoolCreateInfo poolInfo = new()
         {
             sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             maxSets = totalSets,
             flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT (bindless)
-            poolSizeCount = poolSizeCount,
+            poolSizeCount = actualPoolSizeCount,
             pPoolSizes = poolSizes
         };
 

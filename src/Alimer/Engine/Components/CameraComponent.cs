@@ -68,7 +68,7 @@ public partial class CameraComponent : EntityComponent
         ViewMatrix = Matrix4x4.CreateLookAt(translation, translation + forwardVector, upVector);
 
         ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(
-            FieldOfView.ToRadians(),
+            float.DegreesToRadians(FieldOfView),
             aspectRatio,
             NearPlaneDistance,
             FarPlaneDistance);

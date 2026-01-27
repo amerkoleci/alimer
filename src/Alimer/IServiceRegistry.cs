@@ -43,7 +43,7 @@ public interface IServiceRegistry
     /// </summary>
     /// <typeparam name="T">The type of the service to retrieve.</typeparam>
     /// <returns>A service of the requested type, or [null] if not found.</returns>
-    //[CanBeNull]
+    [return: MaybeNull]
     T? TryGetService<T>() where T : class;
 
     /// <summary>
@@ -52,6 +52,6 @@ public interface IServiceRegistry
     /// <typeparam name="T">The type of the service to retrieve.</typeparam>
     /// <returns>A service of the requested type, or throws exception if not found.</returns>
     /// <exception cref="ArgumentException">Thrown when the requested service is null.</exception>
-    //[CanBeNull]
+    [return: NotNull]
     T GetService<T>() where T : class;
 }

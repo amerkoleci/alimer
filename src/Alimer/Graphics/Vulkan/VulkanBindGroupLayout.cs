@@ -24,6 +24,10 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         LayoutBindingCount = description.Entries.Length;
         _layoutBindings = AllocateArray<VkDescriptorSetLayoutBinding>((nuint)LayoutBindingCount);
 
+        bool isPush = false;
+        if (isPush)
+            flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT;
+
         for (int i = 0; i < LayoutBindingCount; i++)
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
@@ -79,15 +83,19 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                     break;
 
                 case BindingInfoType.Sampler:
-                    vkDescriptorType = VkDescriptorType.Sampler;
+                    vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
                     break;
 
                 case BindingInfoType.Texture:
-                    vkDescriptorType = VkDescriptorType.SampledImage;
+                    vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                     break;
 
                 case BindingInfoType.StorageTexture:
-                    vkDescriptorType = VkDescriptorType.StorageImage;
+                    vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                    break;
+
+                case BindingInfoType.AccelerationStructure:
+                    vkDescriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
                     break;
 
                 default:

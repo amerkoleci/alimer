@@ -175,7 +175,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
                 CollectNewEntitySystems(componentType);
             }
 
-            systemsForComponent = new List<EntitySystem>();
+            systemsForComponent = [];
 
             foreach (EntitySystem system in Systems)
             {

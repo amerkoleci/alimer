@@ -7,7 +7,7 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class CommandEncoder
+public abstract  class CommandEncoder
 {
     protected bool _hasLabel;
 
@@ -45,13 +45,13 @@ public abstract unsafe class CommandEncoder
         SetBindGroupCore(groupIndex, bindGroup, dynamicBufferOffsets);
     }
 
-    public void SetPushConstants<T>(uint pushConstantIndex, T data)
+    public unsafe void SetPushConstants<T>(uint pushConstantIndex, T data)
          where T : unmanaged
     {
         SetPushConstantsCore(pushConstantIndex, &data, sizeof(T));
     }
 
-    public void SetPushConstants<T>(uint pushConstantIndex, ReadOnlySpan<T> data)
+    public unsafe void SetPushConstants<T>(uint pushConstantIndex, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         int sizeInBytes = data.Length * sizeof(T);
@@ -61,7 +61,7 @@ public abstract unsafe class CommandEncoder
     }
 
     protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets);
-    protected abstract void SetPushConstantsCore(uint pushConstantIndex, void* data, int size);
+    protected abstract unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, int size);
 
     #region Validation
     [Conditional("VALIDATE_USAGE")]

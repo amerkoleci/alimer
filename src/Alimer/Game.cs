@@ -8,6 +8,7 @@ using Alimer.Assets;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Input;
+using Alimer.Rendering;
 
 namespace Alimer;
 
@@ -21,7 +22,7 @@ public abstract class Game : DisposableObject, IGame
     private readonly AssetManager _assets;
     private readonly Lock _tickLock = new();
     private readonly Stopwatch _stopwatch = new();
-    private readonly GameTime _appTime = new();
+    private readonly GameTime _gameTime = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Game" /> class.
@@ -55,6 +56,8 @@ public abstract class Game : DisposableObject, IGame
         };
 
         GraphicsDevice = GraphicsAdapter.CreateDevice(in deviceDescription);
+        ShaderSystem = new(GraphicsDevice);
+        _services.AddService(ShaderSystem);
 
         AudioDeviceOptions audioOptions = new();
         AudioDevice = AudioDevice.Create(in audioOptions);
@@ -80,7 +83,7 @@ public abstract class Game : DisposableObject, IGame
     /// <inheritdoc />
     public bool IsExiting { get; private set; }
 
-    public GameTime Time => _appTime;
+    public GameTime Time => _gameTime;
 
     public IServiceRegistry Services => _services;
 
@@ -129,6 +132,11 @@ public abstract class Game : DisposableObject, IGame
     /// </summary>
     public SceneSystem SceneSystem { get; }
 
+    /// <summary>
+    /// Gets the shader system used for managing and compiling shaders.
+    /// </summary>
+    public ShaderSystem ShaderSystem { get; }
+
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
@@ -142,6 +150,7 @@ public abstract class Game : DisposableObject, IGame
                     disposable.Dispose();
                 }
             }
+            ShaderSystem.Dispose();
 
             GraphicsDevice.WaitIdle();
             MainWindow.Destroy();
@@ -271,11 +280,11 @@ public abstract class Game : DisposableObject, IGame
             try
             {
                 TimeSpan elapsedTime = _stopwatch.Elapsed - Time.Total;
-                _appTime.Update(_stopwatch.Elapsed, elapsedTime);
+                _gameTime.Update(_stopwatch.Elapsed, elapsedTime);
 
                 // Update input first
                 Input.Update();
-                Update(_appTime);
+                Update(_gameTime);
 
                 BeginDraw();
 
@@ -284,7 +293,7 @@ public abstract class Game : DisposableObject, IGame
                 Texture? swapChainTexture = MainWindow.SwapChain!.AcquireNextTexture();
                 if (swapChainTexture is not null)
                 {
-                    Draw(commandBuffer, swapChainTexture, _appTime);
+                    Draw(commandBuffer, swapChainTexture, _gameTime);
                 }
 
                 commandBuffer.Present(MainWindow.SwapChain!);
@@ -310,7 +319,7 @@ public abstract class Game : DisposableObject, IGame
         LoadContentAsync();
 
         _stopwatch.Start();
-        _appTime.Update(_stopwatch.Elapsed, TimeSpan.Zero);
+        _gameTime.Update(_stopwatch.Elapsed, TimeSpan.Zero);
 
         BeginRun();
     }

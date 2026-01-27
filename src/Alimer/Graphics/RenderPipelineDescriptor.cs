@@ -9,7 +9,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="RenderPipeline"/>.
 /// </summary>
-public  record struct RenderPipelineDescriptor
+public record struct RenderPipelineDescriptor
 {
     /// <summary>
     /// Gets or sets the label of <see cref="RenderPipeline"/>.
