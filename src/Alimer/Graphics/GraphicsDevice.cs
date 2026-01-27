@@ -282,26 +282,26 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateSamplerCore(descriptor);
     }
 
-    public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescriptor description)
+    public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescriptor descriptor)
     {
-        return CreateBindGroupLayoutCore(in description);
+        return CreateBindGroupLayoutCore(in descriptor);
     }
 
-    public BindGroupLayout CreateBindGroupLayout(params BindGroupLayoutEntry[] entries)
+    public BindGroupLayout CreateBindGroupLayout(params ReadOnlySpan<BindGroupLayoutEntry> entries)
     {
         return CreateBindGroupLayoutCore(new BindGroupLayoutDescriptor(entries));
     }
 
-    public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescriptor description)
+    public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescriptor descriptor)
     {
         Guard.IsNotNull(layout, nameof(layout));
-        Guard.IsNotNull(description.Entries, nameof(BindGroupDescriptor.Entries));
-        Guard.IsGreaterThan(description.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
+        Guard.IsNotEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
+        Guard.IsGreaterThan(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
 
-        return CreateBindGroupCore(layout, in description);
+        return CreateBindGroupCore(layout, in descriptor);
     }
 
-    public BindGroup CreateBindGroup(BindGroupLayout layout, params BindGroupEntry[] entries)
+    public BindGroup CreateBindGroup(BindGroupLayout layout, params ReadOnlySpan<BindGroupEntry> entries)
     {
         Guard.IsNotNull(layout, nameof(layout));
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
@@ -393,7 +393,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
     protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
-    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descridescriptorption);
+    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor);
     protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescriptor descriptor);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor);
     protected abstract ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor);

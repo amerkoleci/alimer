@@ -31,13 +31,18 @@ public abstract unsafe class CommandEncoder
 
     public void SetBindGroup(int groupIndex, BindGroup bindGroup)
     {
+        SetBindGroup(groupIndex, bindGroup, []);
+    }
+
+    public void SetBindGroup(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
+    {
         Guard.IsGreaterThanOrEqualTo(groupIndex, 0, nameof(groupIndex));
         Guard.IsNotNull(bindGroup, nameof(bindGroup));
 
         // TODO: Use GraphicsAdaterLimits.MaxBindGroups
         Guard.IsLessThan(groupIndex, MaxBindGroups, nameof(groupIndex));
 
-        SetBindGroupCore(groupIndex, bindGroup);
+        SetBindGroupCore(groupIndex, bindGroup, dynamicBufferOffsets);
     }
 
     public void SetPushConstants<T>(uint pushConstantIndex, T data)
@@ -55,7 +60,7 @@ public abstract unsafe class CommandEncoder
             SetPushConstantsCore(pushConstantIndex, ptr, sizeInBytes);
     }
 
-    protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup);
+    protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets);
     protected abstract void SetPushConstantsCore(uint pushConstantIndex, void* data, int size);
 
     #region Validation

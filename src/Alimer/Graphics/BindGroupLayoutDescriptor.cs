@@ -8,9 +8,9 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes a <see cref="BindGroupLayout"/>.
 /// </summary>
-public struct BindGroupLayoutDescriptor
+public ref struct BindGroupLayoutDescriptor
 {
-    public BindGroupLayoutEntry[] Entries;
+    public ReadOnlySpan<BindGroupLayoutEntry> Entries = [];
 
     /// <summary>
     /// The label of <see cref="BindGroupLayout"/>.
@@ -19,14 +19,12 @@ public struct BindGroupLayoutDescriptor
 
     public BindGroupLayoutDescriptor()
     {
-        Entries = [];
     }
 
-    public BindGroupLayoutDescriptor(params BindGroupLayoutEntry[] entries)
+    public BindGroupLayoutDescriptor(ReadOnlySpan<BindGroupLayoutEntry> entries)
     {
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 
         Entries = entries;
     }
-
 }

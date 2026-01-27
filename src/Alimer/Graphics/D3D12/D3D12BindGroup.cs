@@ -18,11 +18,50 @@ internal unsafe class D3D12BindGroup : BindGroup
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12BindGroupLayout _layout;
 
-    public D3D12BindGroup(D3D12GraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor description)
-        : base(description)
+    public D3D12BindGroup(D3D12GraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
         _layout = (D3D12BindGroupLayout)layout;
+
+        // Update descriptor entries
+        Update(descriptor.Entries);
+    }
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="D3D12BindGroup" /> class.
+    /// </summary>
+    ~D3D12BindGroup() => Dispose(disposing: false);
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
+
+    /// <inheritdoc />
+    public override BindGroupLayout Layout => _layout;
+
+    public uint DescriptorTableCbvUavSrv { get; private set; }
+
+    public uint DescriptorTableSamplers { get; private set; }
+
+    /// <inheitdoc />
+    protected internal override void Destroy()
+    {
+        if (DescriptorTableCbvUavSrv > 0)
+        {
+            _device.ShaderResourceViewHeap.ReleaseDescriptors(DescriptorTableCbvUavSrv, _layout.DescriptorTableSizeCbvUavSrv);
+        }
+
+        if (DescriptorTableSamplers > 0)
+        {
+            _device.SamplerHeap.ReleaseDescriptors(DescriptorTableSamplers, _layout.DescriptorTableSizeSamplers);
+        }
+    }
+
+    /// <inheitdoc />
+    public override void Update(ReadOnlySpan<BindGroupEntry> entries)
+    {
+        // Free existing descriptors
+        Destroy();
 
         if (_layout.DescriptorTableSizeCbvUavSrv > 0)
         {
@@ -39,7 +78,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                         descriptorTableBaseIndex + range.OffsetInDescriptorsFromTableStart + index);
 
                     bool found = false;
-                    foreach (BindGroupEntry entry in description.Entries)
+                    foreach (BindGroupEntry entry in entries)
                     {
                         if (entry.Binding != binding)
                             continue;
@@ -80,7 +119,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 BufferLocation = buffer.GpuAddress + offset,
                                 SizeInBytes = (uint)MathUtilities.AlignUp(size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
                             };
-                            device.Device->CreateConstantBufferView(&cbvDesc, descriptorHandle);
+                            _device.Device->CreateConstantBufferView(&cbvDesc, descriptorHandle);
                             found = true;
                             break;
                         }
@@ -100,7 +139,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 break;
 
                             case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
-                                device.Device->CreateConstantBufferView(null, descriptorHandle);
+                                _device.Device->CreateConstantBufferView(null, descriptorHandle);
                                 break;
 
                             case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
@@ -112,7 +151,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                 }
             }
 
-            device.ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, _layout.DescriptorTableSizeCbvUavSrv);
+            _device.ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, _layout.DescriptorTableSizeCbvUavSrv);
         }
 
         if (_layout.DescriptorTableSizeSamplers > 0)
@@ -129,7 +168,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                     D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.SamplerHeap.GetCpuHandle(descriptorTableBaseIndex + range.OffsetInDescriptorsFromTableStart + index);
 
                     bool found = false;
-                    foreach (BindGroupEntry entry in description.Entries)
+                    foreach (BindGroupEntry entry in entries)
                     {
                         if (entry.Binding == binding && entry.Sampler != null)
                         {
@@ -144,37 +183,14 @@ internal unsafe class D3D12BindGroup : BindGroup
                     {
                         // Create a default sampler
                         D3D12_SAMPLER_DESC samplerDesc = new();
-                        device.Device->CreateSampler(&samplerDesc, descriptorHandle);
+                        _device.Device->CreateSampler(&samplerDesc, descriptorHandle);
                         continue;
                     }
                 }
             }
 
-            device.SamplerHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, _layout.DescriptorTableSizeSamplers);
+            _device.SamplerHeap.CopyToShaderVisibleHeap(descriptorTableBaseIndex, _layout.DescriptorTableSizeSamplers);
         }
-    }
-
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12BindGroup" /> class.
-    /// </summary>
-    ~D3D12BindGroup() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
-
-    /// <inheritdoc />
-    public override BindGroupLayout Layout => _layout;
-
-    public uint DescriptorTableCbvUavSrv { get; }
-   
-    public uint DescriptorTableSamplers { get; }
-    
-
-    /// <inheitdoc />
-    protected internal override void Destroy()
-    {
-        _device.ShaderResourceViewHeap.ReleaseDescriptors(DescriptorTableCbvUavSrv, _layout.DescriptorTableSizeCbvUavSrv);
-        _device.SamplerHeap.ReleaseDescriptors(DescriptorTableSamplers, _layout.DescriptorTableSizeSamplers);
     }
 
     public void CreateNullSRV(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, DXGI_FORMAT srvFormat = DXGI_FORMAT_R32_UINT)

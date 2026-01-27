@@ -118,6 +118,12 @@ struct AudioEngine final
     ma_node* endpointNode = nullptr;
 };
 
+struct AudioClip final
+{
+
+    std::atomic_uint32_t refCount;
+};
+
 AudioContext* alimerAudioContextInit(void)
 {
     AudioContext* context = new AudioContext();
@@ -321,6 +327,28 @@ uint32_t alimerAudioEngineGetChannelCount(AudioEngine* engine)
 uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine)
 {
     return ma_engine_get_sample_rate(&engine->handle);
+}
+
+AudioClip* alimerAudioClipCreate(const char* filepath)
+{
+    AudioClip* clip = new AudioClip();
+    clip->refCount.store(1);
+
+    //ma_decoder_config config{};
+    //clip->channel_count = config.channels = 1;
+    //clip->sample_rate = config.sampleRate = ma_engine_get_sample_rate(engine.get());
+    //config.format = ma_format_s16;
+    //ma_uint64 count;
+    //ma_decode_file(filepath, &config, frameCount, frames);
+    //ma_result res = decoder(&config, &count, (void**)(&info->samples));
+    //info->sample_count = count;
+    //if (res == MA_SUCCESS)
+    //{
+    //    sound->internal_state = info;
+    //    info->sample_count *= info->channel_count;
+    //}
+
+    return clip;
 }
 
 #endif /* defined(ALIMER_AUDIO) */

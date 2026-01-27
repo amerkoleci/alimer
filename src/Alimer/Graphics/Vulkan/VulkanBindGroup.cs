@@ -10,48 +10,65 @@ internal unsafe class VulkanBindGroup : BindGroup
 {
     private readonly VulkanGraphicsDevice _device;
     private readonly VulkanBindGroupLayout _layout;
-    private readonly VkDescriptorPool _descriptorPool = VkDescriptorPool.Null;
     private readonly VkDescriptorSet _handle = VkDescriptorSet.Null;
 
-    public VulkanBindGroup(VulkanGraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor description)
-        : base(description)
+    public VulkanBindGroup(VulkanGraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
         _layout = (VulkanBindGroupLayout)layout;
 
-        Span<VkDescriptorPoolSize> poolSizes = _layout.PoolSizes;
-        uint maxSets = 1u;
+        // Allocate DescriptorSet from the bind group pool
+        uint maxVariableArrayLength = 0;
+        VkDescriptorSet descriptorSet = VkDescriptorSet.Null;
+        VkResult result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
 
-        VkResult result = _device.DeviceApi.vkCreateDescriptorPool(device.Handle, poolSizes, maxSets, out _descriptorPool);
-        if (result != VkResult.Success)
+        // If we have run out of pool memory and rely on internalPools, create a new internal pool and retry
+        if (result == VK_ERROR_OUT_OF_POOL_MEMORY
+            || result == VK_ERROR_FRAGMENTED_POOL)
         {
-            Log.Error($"Vulkan: Failed to create {nameof(BindGroup)}.");
-            return;
+            device.AllocateDescriptorPool();
+            result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
+            result.CheckResult();
         }
 
-        VkDescriptorSetLayout descriptorSetLayout = _layout.Handle;
-
-        VkDescriptorSetAllocateInfo allocInfo = new()
-        {
-            descriptorPool = _descriptorPool,
-            descriptorSetCount = 1,
-            pSetLayouts = &descriptorSetLayout
-        };
-
-        VkDescriptorSet descriptorSet;
-        result = _device.DeviceApi.vkAllocateDescriptorSets(device.Handle, &allocInfo, &descriptorSet);
-        if (result != VkResult.Success)
-        {
-            Log.Error($"Vulkan: Failed to allocate DescriptorSet.");
-            return;
-        }
         _handle = descriptorSet;
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
 
+        Update(descriptor.Entries);
+    }
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="VulkanBindGroup" /> class.
+    /// </summary>
+    ~VulkanBindGroup() => Dispose(disposing: false);
+
+    /// <inheritdoc />
+    public override GraphicsDevice Device => _device;
+
+    /// <inheritdoc />
+    public override BindGroupLayout Layout => _layout;
+
+    public VkDescriptorSet Handle => _handle;
+
+    /// <inheritdoc />
+    protected override void OnLabelChanged(string? newLabel)
+    {
+        _device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, _handle, newLabel);
+    }
+
+    /// <inheitdoc />
+    protected internal override void Destroy()
+    {
+    }
+
+    /// <inheitdoc />
+    public override void Update(ReadOnlySpan<BindGroupEntry> entries)
+    {
         // TODO: Handle null descriptors to avoid vulkan warnings
         int descriptorWriteCount = 0;
         VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[_layout.LayoutBindingCount];
@@ -72,9 +89,9 @@ internal unsafe class VulkanBindGroup : BindGroup
             VulkanSampler? backendSampler = default;
 
             BindGroupEntry? foundEntry = default;
-            foreach (BindGroupEntry entry in description.Entries)
+            foreach (BindGroupEntry entry in entries)
             {
-                uint registerOffset = device.GetRegisterOffset(layoutBinding.descriptorType);
+                uint registerOffset = _device.GetRegisterOffset(layoutBinding.descriptorType);
                 uint originalBinding = layoutBinding.binding - registerOffset;
 
                 if (entry.Binding != originalBinding)
@@ -134,7 +151,7 @@ internal unsafe class VulkanBindGroup : BindGroup
             switch (descriptorType)
             {
                 case VkDescriptorType.Sampler:
-                    imageInfos[i].sampler = foundEntry.HasValue ? backendSampler!.Handle : device.NullSampler;
+                    imageInfos[i].sampler = foundEntry.HasValue ? backendSampler!.Handle : _device.NullSampler;
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
                     break;
 
@@ -147,7 +164,7 @@ internal unsafe class VulkanBindGroup : BindGroup
                     }
                     else
                     {
-                        imageInfos[i].imageView = device.NullImage2DView;
+                        imageInfos[i].imageView = _device.NullImage2DView;
                         imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                     }
                     descriptorWrites[i].pImageInfo = &imageInfos[i];
@@ -168,11 +185,11 @@ internal unsafe class VulkanBindGroup : BindGroup
                     {
                         bufferInfos[i].buffer = backendBuffer!.Handle;
                         bufferInfos[i].offset = foundEntry!.Value.Offset;
-                        bufferInfos[i].range =  foundEntry!.Value.Size;
+                        bufferInfos[i].range = foundEntry!.Value.Size;
                     }
                     else
                     {
-                        bufferInfos[i].buffer = device.NullBuffer;
+                        bufferInfos[i].buffer = _device.NullBuffer;
                         bufferInfos[i].range = VK_WHOLE_SIZE;
                     }
 
@@ -185,36 +202,11 @@ internal unsafe class VulkanBindGroup : BindGroup
         }
 
         _device.DeviceApi.vkUpdateDescriptorSets(
-            device.Handle,
+            _device.Handle,
             (uint)descriptorWriteCount,
             descriptorWrites,
             0,
             null
         );
-    }
-
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanBindGroup" /> class.
-    /// </summary>
-    ~VulkanBindGroup() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
-
-    /// <inheritdoc />
-    public override BindGroupLayout Layout => _layout;
-
-    public VkDescriptorSet Handle => _handle;
-
-    /// <inheritdoc />
-    protected override void OnLabelChanged(string? newLabel)
-    {
-        _device.SetObjectName(VkObjectType.DescriptorSet, _handle, newLabel);
-    }
-
-    /// <inheitdoc />
-    protected internal override void Destroy()
-    {
-        _device.DeviceApi.vkDestroyDescriptorPool(_device.Handle, _descriptorPool);
     }
 }

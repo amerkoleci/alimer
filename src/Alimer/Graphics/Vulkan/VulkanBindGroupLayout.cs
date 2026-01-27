@@ -14,7 +14,6 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     private readonly VulkanGraphicsDevice _device;
     private readonly VkDescriptorSetLayout _handle = VkDescriptorSetLayout.Null;
     private readonly VkDescriptorSetLayoutBinding* _layoutBindings;
-    private readonly List<VkDescriptorPoolSize> _descriptorPoolSizeInfo = new();
 
     public VulkanBindGroupLayout(VulkanGraphicsDevice device, in BindGroupLayoutDescriptor description)
         : base(description)
@@ -125,35 +124,6 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         {
             OnLabelChanged(description.Label!);
         }
-
-        // count the number of descriptors required per type
-        Dictionary<VkDescriptorType, uint> poolSizeMap = new();
-        for (int i = 0; i < LayoutBindingCount; i++)
-        {
-            if (_layoutBindings[i].pImmutableSamplers != null)
-                continue;
-
-            if (poolSizeMap.ContainsKey(_layoutBindings[i].descriptorType) == false)
-            {
-                poolSizeMap[_layoutBindings[i].descriptorType] = 0;
-            }
-
-            poolSizeMap[_layoutBindings[i].descriptorType] += _layoutBindings[i].descriptorCount;
-        }
-
-        // compute descriptor pool size info
-        foreach (KeyValuePair<VkDescriptorType, uint> poolSizeIter in poolSizeMap)
-        {
-            if (poolSizeIter.Value > 0)
-            {
-                VkDescriptorPoolSize poolSize = new()
-                {
-                    type = poolSizeIter.Key,
-                    descriptorCount = poolSizeIter.Value
-                };
-                _descriptorPoolSizeInfo.Add(poolSize);
-            }
-        }
     }
 
     /// <summary>
@@ -169,12 +139,10 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     public int LayoutBindingCount { get; }
     public ref VkDescriptorSetLayoutBinding GetLayoutBinding(uint index) => ref _layoutBindings[index];
 
-    public Span<VkDescriptorPoolSize> PoolSizes => CollectionsMarshal.AsSpan(_descriptorPoolSizeInfo);
-
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VkObjectType.DescriptorSetLayout, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _handle, newLabel);
     }
 
     /// <inheitdoc />

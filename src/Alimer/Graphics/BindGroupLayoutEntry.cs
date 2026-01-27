@@ -6,8 +6,30 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Single entry for <see cref="BindGroupLayout"/>.
 /// </summary>
-public readonly record struct BindGroupLayoutEntry
+public record struct BindGroupLayoutEntry
 {
+    /// <summary>
+    /// Register index to bind to (supplied in shader).
+    /// </summary>
+    public uint Binding;
+
+    /// <summary>
+    /// The shader stage the resources will be accessible to.
+    /// </summary>
+    public ShaderStages Visibility;
+
+    /// <summary>
+    /// Gets the buffer binding.
+    /// </summary>
+    public BufferBindingLayout Buffer;
+
+    public SamplerBindingLayout Sampler;
+
+    public SamplerDescriptor? StaticSampler;
+
+    public TextureBindingLayout Texture;
+    public StorageTextureBindingLayout StorageTexture;
+
     public BindGroupLayoutEntry(BufferBindingLayout buffer, uint binding, ShaderStages visibility = ShaderStages.All)
     {
         Binding = binding;
@@ -42,28 +64,6 @@ public readonly record struct BindGroupLayoutEntry
         Visibility = visibility;
         StorageTexture = storageTexture;
     }
-
-    /// <summary>
-    /// Register index to bind to (supplied in shader).
-    /// </summary>
-    public uint Binding { get; init; }
-
-    /// <summary>
-    /// The shader stage the resources will be accessible to.
-    /// </summary>
-    public ShaderStages Visibility { get; init; }
-
-    /// <summary>
-    /// Gets the buffer binding.
-    /// </summary>
-    public BufferBindingLayout Buffer { get; init; }
-
-    public SamplerBindingLayout Sampler { get; init; }
-
-    public SamplerDescriptor? StaticSampler { get; init; }
-
-    public TextureBindingLayout Texture { get; init; }
-    public StorageTextureBindingLayout StorageTexture { get; init; }
 
     public BindingInfoType BindingType
     {

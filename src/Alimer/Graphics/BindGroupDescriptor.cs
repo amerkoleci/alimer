@@ -64,20 +64,21 @@ public struct BindGroupEntry
 /// <summary>
 /// Structure that describes a compute <see cref="BindGroup"/>.
 /// </summary>
-public readonly record struct BindGroupDescriptor
+public ref struct BindGroupDescriptor
 {
-    public BindGroupDescriptor(params BindGroupEntry[] entries)
-    {
-        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
-
-        Entries = entries;
-    }
-
     // TODO: Separate per type (buffers/textures/samplers etc)
-    public BindGroupEntry[] Entries { get; init; }
+    public ReadOnlySpan<BindGroupEntry> Entries;
 
     /// <summary>
     /// The label of <see cref="BindGroup"/>.
     /// </summary>
-    public string? Label { get; init; }
+    public string? Label;
+
+    public BindGroupDescriptor(ReadOnlySpan<BindGroupEntry> entries, string? label = default)
+    {
+        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
+
+        Entries = entries;
+        Label = label;
+    }
 }

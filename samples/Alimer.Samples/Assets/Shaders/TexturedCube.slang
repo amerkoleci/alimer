@@ -32,6 +32,7 @@ ConstantBuffer<DrawData> draw : register(b0, space0);
 SamplerState pbrSampler : register(s0, space1);
 Texture2D<float4> baseColorTexture : register(t0, space1);
 
+[shader("vertex")]
 VertexOutput vertexMain(in VertexInput input)
 {
     VertexOutput output;
@@ -46,6 +47,7 @@ VertexOutput vertexMain(in VertexInput input)
     return output;
 }
 
+[shader("pixel")]
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
     float4 baseColor = /*material.baseColorFactor **/ baseColorTexture.Sample(pbrSampler, input.texcoord);

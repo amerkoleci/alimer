@@ -36,6 +36,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VmaAllocation _nullImageAllocation3D = VmaAllocation.Null;
 
     private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = [];
+    private readonly List<VkDescriptorPool> _descriptorSetPools = [];
 
     private readonly VkBuffer _nullBuffer = default;
     private readonly VkBufferView _nullBufferView = default;
@@ -762,6 +763,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
+        // Allocate at least one descriptor pool.
+        _descriptorSetPools.Add(CreateDescriptorSetPool());
+
         // TODO: Rest of limits
         VkPhysicalDeviceProperties2 properties2 = _adapter.Properties2;
         VkPhysicalDeviceLimits vkLimits = properties2.properties.limits;
@@ -888,6 +892,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 _deviceApi.vkDestroySampler(_handle, sampler);
             }
             _samplerCache.Clear();
+
+            // Destroy Descriptor Pools
+            foreach (VkDescriptorPool descriptorPool in _descriptorSetPools)
+            {
+                _deviceApi.vkDestroyDescriptorPool(_handle, descriptorPool);
+            }
+            _descriptorSetPools.Clear();
 
             // Destroy null descriptor
             vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
@@ -1400,6 +1411,75 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         return sampler;
     }
+
+    #region DescriptorPool
+    public void AllocateDescriptorPool()
+    {
+        _descriptorSetPools.Add(CreateDescriptorSetPool());
+    }
+
+    public VkResult AllocateDescriptorSet(VkDescriptorSetLayout descriptorSetLayout,
+        VkDescriptorSet* descriptorSet,
+        uint maxVariableDescriptorCounts)
+    {
+        VkDescriptorPool descriptorPool = _descriptorSetPools[^1];
+
+        VkDescriptorSetAllocateInfo allocInfo = new()
+        {
+            sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            descriptorPool = descriptorPool,
+            descriptorSetCount = 1,
+            pSetLayouts = &descriptorSetLayout
+        };
+
+        // For variable length descriptor arrays, this specify the maximum count we expect them to be.
+        // Note that this value will apply to all bindings defined as variable arrays in the BindGroupLayout
+        // used to allocate this BindGroup
+        VkDescriptorSetVariableDescriptorCountAllocateInfo variableLengthInfo = new();
+        if (maxVariableDescriptorCounts > 0)
+        {
+            variableLengthInfo.descriptorSetCount = 1;
+            variableLengthInfo.pDescriptorCounts = &maxVariableDescriptorCounts;
+            allocInfo.pNext = &variableLengthInfo;
+        }
+
+        return _deviceApi.vkAllocateDescriptorSets(_handle, &allocInfo, descriptorSet);
+    }
+
+    private VkDescriptorPool CreateDescriptorSetPool()
+    {
+        uint totalSets = 1024;
+        const uint poolSizeCount = 7;
+        VkDescriptorPoolSize* poolSizes = stackalloc VkDescriptorPoolSize[(int)poolSizeCount]
+        {
+            new(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 512),
+            new(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 16 ),
+            new(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 512 ),
+            new(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 128 ),
+            new(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 128 ),
+            new(VK_DESCRIPTOR_TYPE_SAMPLER, 16 ), /* Static samplers are 10 */
+            new(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 8 )
+        };
+
+        VkDescriptorPoolCreateInfo poolInfo = new()
+        {
+            sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            maxSets = totalSets,
+            flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT (bindless)
+            poolSizeCount = poolSizeCount,
+            pPoolSizes = poolSizes
+        };
+
+        VkResult result = _deviceApi.vkCreateDescriptorPool(_handle, &poolInfo, null, out VkDescriptorPool pool);
+        if (result != VK_SUCCESS)
+        {
+            //Log.Error(result, "Error when creating descriptor pool: {}");
+            return VkDescriptorPool.Null;
+        }
+
+        return pool;
+    }
+    #endregion
 
     /// <inheritdoc />
     protected override Sampler CreateSamplerCore(in SamplerDescriptor descriptor)

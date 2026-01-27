@@ -8,6 +8,71 @@ namespace Alimer.Graphics;
 /// </summary>
 public record struct SamplerDescriptor
 {
+    /// <summary>
+    /// Gets or sets the min filter of <see cref="Sampler"/>
+    /// </summary>
+    public SamplerMinMagFilter MinFilter = SamplerMinMagFilter.Nearest;
+
+    /// <summary>
+    /// Gets or sets the mag filter of <see cref="Sampler"/>
+    /// </summary>
+    public SamplerMinMagFilter MagFilter = SamplerMinMagFilter.Nearest;
+
+    /// <summary>
+    /// Gets or sets the mip filter of <see cref="Sampler"/>
+    /// </summary>
+    public SamplerMipFilter MipFilter = SamplerMipFilter.Nearest;
+
+    /// <summary>
+    /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a u texture coordinate that is outside the 0 to 1 range.
+    /// </summary>
+    public SamplerAddressMode AddressModeU = SamplerAddressMode.Repeat;
+
+    /// <summary>
+    /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a v texture coordinate that is outside the 0 to 1 range.
+    /// </summary>
+    public SamplerAddressMode AddressModeV = SamplerAddressMode.Repeat;
+
+    /// <summary>
+    /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a w texture coordinate that is outside the 0 to 1 range.
+    /// </summary>
+    public SamplerAddressMode AddressModeW = SamplerAddressMode.Repeat;
+
+    /// <summary>
+    /// Gets or sets the minimum level of detail (LOD) to use when sampling from a texture.
+    /// </summary>
+    public float LodMinClamp = 0.0f;
+
+    /// <summary>
+    /// Gets or sets the maximum level of detail (LOD) to use when sampling from a texture.
+    /// </summary>
+    public float LodMaxClamp = float.MaxValue;
+
+    /// <summary>
+    /// Gets or sets the <see cref="Graphics.CompareFunction"/> value that specifies a function that compares sampled data against existing sampled data.
+    /// </summary>
+    public CompareFunction CompareFunction = CompareFunction.Never;
+
+    /// <summary>
+    /// Gets or sets the number of samples that can be taken to improve the quality of sample footprints that are anisotropic.
+    /// </summary>
+    public ushort MaxAnisotropy = 1;
+
+    /// <summary>
+    /// Gets or sets the <see cref="SamplerReductionType"/> value.
+    /// </summary>
+    public SamplerReductionType ReductionType = SamplerReductionType.Standard;
+
+    /// <summary>
+    /// Gets or sets the <see cref="SamplerBorderColor"/> border color for clamped texture values.
+    /// </summary>
+    public SamplerBorderColor BorderColor = SamplerBorderColor.FloatTransparentBlack;
+
+    /// <summary>
+    /// Gets or sets the label of <see cref="Sampler"/>.
+    /// </summary>
+    public string? Label;
+
     public static SamplerDescriptor Default => new();
     public static SamplerDescriptor PointWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat);
     public static SamplerDescriptor PointClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge);
@@ -90,69 +155,4 @@ public record struct SamplerDescriptor
         ReductionType = SamplerReductionType.Standard;
         BorderColor = SamplerBorderColor.FloatTransparentBlack;
     }
-
-    /// <summary>
-    /// Gets or sets the min filter of <see cref="Sampler"/>
-    /// </summary>
-    public SamplerMinMagFilter MinFilter = SamplerMinMagFilter.Nearest;
-
-    /// <summary>
-    /// Gets or sets the mag filter of <see cref="Sampler"/>
-    /// </summary>
-    public SamplerMinMagFilter MagFilter = SamplerMinMagFilter.Nearest;
-
-    /// <summary>
-    /// Gets or sets the mip filter of <see cref="Sampler"/>
-    /// </summary>
-    public SamplerMipFilter MipFilter = SamplerMipFilter.Nearest;
-
-    /// <summary>
-    /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a u texture coordinate that is outside the 0 to 1 range.
-    /// </summary>
-    public SamplerAddressMode AddressModeU = SamplerAddressMode.Repeat;
-
-    /// <summary>
-    /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a v texture coordinate that is outside the 0 to 1 range.
-    /// </summary>
-    public SamplerAddressMode AddressModeV = SamplerAddressMode.Repeat;
-
-    /// <summary>
-    /// Gets or sets the <see cref="SamplerAddressMode"/> value that specifies the method to use for resolving a w texture coordinate that is outside the 0 to 1 range.
-    /// </summary>
-    public SamplerAddressMode AddressModeW = SamplerAddressMode.Repeat;
-
-    /// <summary>
-    /// Gets or sets the minimum level of detail (LOD) to use when sampling from a texture.
-    /// </summary>
-    public float LodMinClamp = 0.0f;
-
-    /// <summary>
-    /// Gets or sets the maximum level of detail (LOD) to use when sampling from a texture.
-    /// </summary>
-    public float LodMaxClamp = float.MaxValue;
-
-    /// <summary>
-    /// Gets or sets the <see cref="Graphics.CompareFunction"/> value that specifies a function that compares sampled data against existing sampled data.
-    /// </summary>
-    public CompareFunction CompareFunction = CompareFunction.Never;
-
-    /// <summary>
-    /// Gets or sets the number of samples that can be taken to improve the quality of sample footprints that are anisotropic.
-    /// </summary>
-    public ushort MaxAnisotropy = 1;
-
-    /// <summary>
-    /// Gets or sets the <see cref="SamplerReductionType"/> value.
-    /// </summary>
-    public SamplerReductionType ReductionType = SamplerReductionType.Standard;
-
-    /// <summary>
-    /// Gets or sets the <see cref="SamplerBorderColor"/> border color for clamped texture values.
-    /// </summary>
-    public SamplerBorderColor BorderColor = SamplerBorderColor.FloatTransparentBlack;
-
-    /// <summary>
-    /// Gets or sets the label of <see cref="Sampler"/>.
-    /// </summary>
-    public string? Label;
 }

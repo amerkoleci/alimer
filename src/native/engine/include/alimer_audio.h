@@ -9,6 +9,7 @@
 /* Forward */
 typedef struct AudioContext AudioContext;
 typedef struct AudioEngine AudioEngine;
+typedef struct AudioClip AudioClip;
 
 /* Enums */
 typedef enum AudioDeviceType {
@@ -82,5 +83,7 @@ ALIMER_API float alimerAudioEngineGetVolume(AudioEngine* engine, VolumeUnit unit
 ALIMER_API void alimerAudioEngineSetVolume(AudioEngine* engine, float value, VolumeUnit unit);
 ALIMER_API uint32_t alimerAudioEngineGetChannelCount(AudioEngine* engine);
 ALIMER_API uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine);
+
+ALIMER_API AudioClip* alimerAudioClipCreate(const char* filepath);
 
 #endif /* ALIMER_AUDIO_H_ */

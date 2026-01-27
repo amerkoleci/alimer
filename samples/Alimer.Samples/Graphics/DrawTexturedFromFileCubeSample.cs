@@ -16,7 +16,6 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
     private readonly Mesh _cubeMesh;
     private readonly GraphicsBuffer _constantBuffer;
     private readonly Texture _texture;
-    private readonly Sampler _sampler;
 
     private readonly BindGroupLayout _bindGroupLayout;
     private readonly BindGroup _bindGroup;
@@ -40,8 +39,6 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
 
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(SamplerDescriptor.Default));
-
         _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
             ));
@@ -51,11 +48,11 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
         // Material
         _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStages.Fragment)
+            new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment)
             ));
         _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
-            new BindGroupEntry(0, _texture.DefaultView!),
-            new BindGroupEntry(0, _sampler))
+            new BindGroupEntry(0, _texture.DefaultView!)
+            )
             );
 
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));

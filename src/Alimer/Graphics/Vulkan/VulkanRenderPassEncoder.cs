@@ -185,9 +185,9 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetBindGroupCore(int groupIndex, BindGroup bindGroup)
+    protected override void SetBindGroupCore(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
     {
-        _commandBuffer.SetBindGroup(groupIndex, bindGroup);
+        _commandBuffer.SetBindGroup(groupIndex, bindGroup, dynamicBufferOffsets);
     }
 
     /// <inheritdoc/>

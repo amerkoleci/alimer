@@ -348,7 +348,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
+    public void SetBindGroup(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
     {
         VulkanBindGroup backendBindGroup = (VulkanBindGroup)bindGroup;
         if (_descriptorSets[groupIndex] != backendBindGroup.Handle)
