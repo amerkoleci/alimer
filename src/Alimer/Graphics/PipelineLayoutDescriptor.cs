@@ -10,9 +10,9 @@ namespace Alimer.Graphics;
 /// </summary>
 public ref struct PipelineLayoutDescriptor
 {
-    public ReadOnlySpan<BindGroupLayout> BindGroupLayouts;
+    public Span<BindGroupLayout> BindGroupLayouts;
 
-    public ReadOnlySpan<PushConstantRange> PushConstantRanges;
+    public Span<PushConstantRange> PushConstantRanges;
 
     /// <summary>
     /// The label of <see cref="PipelineLayout"/>.
@@ -25,15 +25,12 @@ public ref struct PipelineLayoutDescriptor
         PushConstantRanges = [];
     }
 
-    public PipelineLayoutDescriptor(ReadOnlySpan<BindGroupLayout> bindGroupLayouts)
+    public PipelineLayoutDescriptor(Span<BindGroupLayout> bindGroupLayouts)
+        : this(bindGroupLayouts, [])
     {
-        Guard.IsFalse(bindGroupLayouts.IsEmpty, nameof(bindGroupLayouts));
-
-        BindGroupLayouts = bindGroupLayouts;
-        PushConstantRanges = [];
     }
 
-    public PipelineLayoutDescriptor(ReadOnlySpan<BindGroupLayout> bindGroupLayouts, ReadOnlySpan<PushConstantRange> pushConstantRanges)
+    public PipelineLayoutDescriptor(Span<BindGroupLayout> bindGroupLayouts, Span<PushConstantRange> pushConstantRanges)
     {
         Guard.IsFalse(bindGroupLayouts.IsEmpty, nameof(bindGroupLayouts));
 

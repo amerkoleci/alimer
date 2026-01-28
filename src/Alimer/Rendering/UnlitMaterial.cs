@@ -11,21 +11,9 @@ namespace Alimer.Rendering;
 /// </summary>
 public class UnlitMaterial : Material
 {
-    public UnlitMaterial(GraphicsDevice device)
-        : base(device)
+    public UnlitMaterial()
+        : base()
     {
-    }
-    /// <summary>
-    /// Finalizes an instance of the <see cref="UnlitMaterial" /> class.
-    /// </summary>
-    ~UnlitMaterial() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-        }
     }
 
     public Color BaseColorFactor { get; set; } = new (1.0f, 1.0f, 1.0f, 1.0f);

@@ -13,20 +13,20 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     private readonly VkPipelineLayout _handle = VkPipelineLayout.Null;
     private readonly VkPushConstantRange* _pushConstantRanges;
 
-    public VulkanPipelineLayout(VulkanGraphicsDevice device, in PipelineLayoutDescriptor description)
-        : base(description)
+    public VulkanPipelineLayout(VulkanGraphicsDevice device, in PipelineLayoutDescriptor descriptor)
+        : base(descriptor)
     {
         _device = device;
 
-        int setLayoutCount = description.BindGroupLayouts.Length;
+        int setLayoutCount = descriptor.BindGroupLayouts.Length;
         VkDescriptorSetLayout* pSetLayouts = stackalloc VkDescriptorSetLayout[setLayoutCount];
 
         for (int i = 0; i < setLayoutCount; i++)
         {
-            pSetLayouts[i] = ((VulkanBindGroupLayout)description.BindGroupLayouts[i]).Handle;
+            pSetLayouts[i] = ((VulkanBindGroupLayout)descriptor.BindGroupLayouts[i]).Handle;
         }
 
-        int pushConstantRangeCount = description.PushConstantRanges.Length;
+        int pushConstantRangeCount = descriptor.PushConstantRanges.Length;
         _pushConstantRanges = AllocateArray<VkPushConstantRange>((nuint)pushConstantRangeCount);
         {
             uint offset = 0;
@@ -36,7 +36,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
                 {
                     stageFlags = VkShaderStageFlags.All,
                     offset = offset,
-                    size = description.PushConstantRanges[i].Size,
+                    size = descriptor.PushConstantRanges[i].Size,
                 };
 
                 offset += _pushConstantRanges[i].size;
@@ -58,9 +58,9 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             return;
         }
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
     }
 

@@ -40,7 +40,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                 _bindings[i] = new VkDescriptorSetLayoutBinding
                 {
                     binding = entry.Binding + registerOffset,
-                    descriptorType = VkDescriptorType.Sampler,
+                    descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
                     descriptorCount = 1u,
                     stageFlags = VK_SHADER_STAGE_ALL,
                     pImmutableSamplers = &sampler,

@@ -297,7 +297,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreatePipelineLayoutCore(in description);
     }
 
-    public PipelineLayout CreatePipelineLayout(params ReadOnlySpan<BindGroupLayout> bindGroupLayouts)
+    public PipelineLayout CreatePipelineLayout(params Span<BindGroupLayout> bindGroupLayouts)
     {
         return CreatePipelineLayout(new PipelineLayoutDescriptor(bindGroupLayouts));
     }

@@ -32,47 +32,63 @@ public sealed class SceneCubeSample : SampleBase
 
         //var test = _cameraEntity.Serialize();
 
-        // Cube mesh
-        _cubeEntity = new("Cube", new Vector3(0.0f, 2.0f, 0.0f));
-        Mesh cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-        cubeMesh.CreateGpuData(GraphicsDevice);
-
-        MeshComponent meshComponent = new(cubeMesh);
-        _cubeEntity.AddComponent(meshComponent);
-        //_meshEntity.AddComponent(sphereRigidBody);
-
-        root.Children.Add(_cubeEntity);
-
-#if TODO
         // Floor
         RigidBodyComponent floorRigidBody = new()
         {
-            ColliderShape = new BoxColliderShape(new Vector3(200.0f, 2.0f, 200.0f)),
+            ColliderShape = new BoxColliderShape(new Vector3(100.0f, 1.0f, 100.0f)),
             BodyType = RigidBodyType.Static
         };
 
         var floorEntity = new Entity("Floor", new Vector3(0.0f, -1.0f, 0.0f));
         floorEntity.AddComponent(floorRigidBody);
-        root.Children.Add(floorEntity); 
+        root.Children.Add(floorEntity);
 
-        // Mesh
-        RigidBodyComponent sphereRigidBody = new()
+        // Cube mesh
         {
-            ColliderShape = new SphereColliderShape(50.0f),
-            //Mass = 100.0f
-        };
+            _cubeEntity = new("Cube", new Vector3(0.0f, 2.0f, 0.0f));
+            Mesh cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+            cubeMesh.CreateGpuData(GraphicsDevice);
 
-        _meshEntity = new("Sphere", new Vector3(0.0f, 2.0f, 0.0f));
+            PhysicallyBasedMaterial material = new()
+            {
+                BaseColorFactor = Colors.CornflowerBlue,
+            };
 
-        Mesh cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
-        cubeMesh.CreateGpuData(GraphicsDevice);
+            RigidBodyComponent cubeRigidBody = new()
+            {
+                ColliderShape = new SphereColliderShape(5.0f),
+                //Mass = 100.0f
+            };
 
-        MeshComponent meshComponent = new(cubeMesh);
-        _meshEntity.AddComponent(meshComponent);
-        _meshEntity.AddComponent(sphereRigidBody);
-        
-        root.Children.Add(_meshEntity);
-#endif
+            MeshComponent meshComponent = new(cubeMesh);
+            meshComponent.Materials.Add(material);
+            _cubeEntity.AddComponent(meshComponent);
+            //_cubeEntity.AddComponent(cubeRigidBody);
+        }
+
+        root.Children.Add(_cubeEntity);
+
+        // Sphere
+        bool sphere = false;
+        if (sphere == true)
+        {
+            RigidBodyComponent sphereRigidBody = new()
+            {
+                ColliderShape = new SphereColliderShape(0.5f),
+                LinearVelocity = new(0.0f, -5.0f, 0.0f)
+            };
+
+            Entity sphereEntity = new("Sphere", new Vector3(0.0f, 5.0f, 0.0f));
+
+            Mesh cubeMesh = ToDispose(Mesh.CreateSphere(0.5f));
+            cubeMesh.CreateGpuData(GraphicsDevice);
+
+            MeshComponent meshComponent = new(cubeMesh);
+            sphereEntity.AddComponent(meshComponent);
+            sphereEntity.AddComponent(sphereRigidBody);
+
+            root.Children.Add(sphereEntity);
+        }
 
         Scene.RootEntity = root;
     }

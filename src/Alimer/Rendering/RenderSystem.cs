@@ -8,20 +8,29 @@ using Alimer.Numerics;
 
 namespace Alimer.Rendering;
 
-public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
+public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 {
+    private float _elapsedTime;
+
     private readonly Texture _blackTexture;
     private readonly Texture _whiteTexture;
     private readonly Texture _defaultNormalTexture;
     private readonly Texture _checkerTexture;
-    private readonly Sampler _defaultSampler;
+    //private readonly Sampler _defaultSampler;
 
     // TODO: Max frames inflight
-    private readonly GraphicsBuffer _perViewBuffer;
-
     // TODO: Material system
+
+    private readonly ConstantBuffer<FrameConstants> _frameBuffer;
     private readonly BindGroupLayout _frameBindGroupLayout;
     private readonly BindGroup _frameBindGroup;
+
+    private readonly ConstantBuffer<PerViewData> _viewBuffer;
+    private readonly BindGroupLayout _viewBindGroupLayout;
+    private readonly BindGroup _viewBindGroup;
+
+    private readonly PhysicallyBasedMaterial _defaultMaterial = new();
+    private readonly ConstantBuffer<PBRMaterialData> _materialBuffer;
     private readonly BindGroupLayout _materialBindGroupLayout;
     private readonly BindGroup _materialBindGroup;
     private readonly PipelineLayout _pipelineLayout;
@@ -60,7 +69,7 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
             0xFFFFFFFF,
         ];
         _checkerTexture = GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4);
-        _defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
+        //_defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
 
         ColorFormat = MainWindow.SwapChain!.ColorFormat;
         DepthStencilFormat = PixelFormat.Depth24UnormStencil8;
@@ -68,21 +77,40 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
         ResolutionMultiplier = 1;
 
         // WIP code
-        _perViewBuffer = GraphicsDevice.CreateBuffer((ulong)sizeof(PerViewData), BufferUsage.Constant, MemoryType.Upload);
+        // Implement ring buffer
+        _frameBuffer = new(GraphicsDevice, label: "Frame Constant Buffer");
+        _viewBuffer = new(GraphicsDevice, label: "View Constant Buffer");
+        _materialBuffer = new(GraphicsDevice, label: "Material Constant Buffer");
 
         // Till we have a material system, create a basic pipeline
         _frameBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
             );
 
+        _viewBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
+           new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
+           );
+
         _materialBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Fragment),
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment)
+            //new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment),
+            // Static samplers
+            new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
+            new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
+            new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
+            new BindGroupLayoutEntry(SamplerDescriptor.LinearClamp, 103, ShaderStages.All),         // SamplerLinearClamp
+            new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 104, ShaderStages.All),          // SamplerLinearWrap
+            new BindGroupLayoutEntry(SamplerDescriptor.LinearMirror, 105, ShaderStages.All),        // SamplerLinearMirror
+            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicClamp, 106, ShaderStages.All),    // SamplerAnisotropicClamp
+            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicWrap, 107, ShaderStages.All),     // SamplerAnisotropicWrap
+            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicMirror, 108, ShaderStages.All),   // SamplerAnisotropicMirror
+            new BindGroupLayoutEntry(SamplerDescriptor.ComparisonDepth, 109, ShaderStages.All)    // SamplerAnisotropicMirror
             );
 
-        ReadOnlySpan<BindGroupLayout> bindGroupLayouts = [_frameBindGroupLayout, _materialBindGroupLayout];
-        ReadOnlySpan<PushConstantRange> pushConstantRanges = [
-            new PushConstantRange(0, (uint)sizeof(DrawData))
+        Span<BindGroupLayout> bindGroupLayouts = [_materialBindGroupLayout, _viewBindGroupLayout, _frameBindGroupLayout];
+        Span<PushConstantRange> pushConstantRanges = [
+            new PushConstantRange(999, (uint)sizeof(DrawData))
         ];
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor = new(bindGroupLayouts, pushConstantRanges);
@@ -91,11 +119,16 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
 
         // Bind groups with default textures/samplers
         _frameBindGroup = _frameBindGroupLayout.CreateBindGroup(
-            new BindGroupEntry(0, _perViewBuffer)
+            new BindGroupEntry(0, _frameBuffer.Buffer)
+            );
+
+        _viewBindGroup = _frameBindGroupLayout.CreateBindGroup(
+            new BindGroupEntry(0, _viewBuffer.Buffer)
             );
 
         _materialBindGroup = _materialBindGroupLayout.CreateBindGroup(
-           new BindGroupEntry(0, _checkerTexture.DefaultView!)
+              new BindGroupEntry(0, _materialBuffer.Buffer),
+              new BindGroupEntry(0, _checkerTexture.DefaultView!)
            );
 
         ShaderModule vertexShader = ShaderSystem.GetShaderModule("PBR", ShaderStages.Vertex);
@@ -154,14 +187,23 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
             _whiteTexture.Dispose();
             _defaultNormalTexture.Dispose();
             _checkerTexture.Dispose();
-            _defaultSampler.Dispose();
+            //_defaultSampler.Dispose();
 
-            _perViewBuffer.Dispose();
-
-            _frameBindGroupLayout.Dispose();
-            _frameBindGroup.Dispose();
+            // Material
+            _materialBuffer.Dispose();
             _materialBindGroupLayout.Dispose();
             _materialBindGroup.Dispose();
+
+            // View
+            _viewBuffer.Dispose();
+            _viewBindGroup.Dispose();
+            _viewBindGroupLayout.Dispose();
+
+            // Frame
+            _frameBuffer.Dispose();
+            _frameBindGroupLayout.Dispose();
+            _frameBindGroup.Dispose();
+
             _pipelineLayout.Dispose();
             _renderPipeline.Dispose();
         }
@@ -169,13 +211,19 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
         base.Dispose(disposing);
     }
 
-    public override void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
+    public override void Update(GameTime time)
     {
-        Render(commandBuffer, outputTexture, Scene.CurrentCamera!);
+        _elapsedTime = (float)time.Total.TotalSeconds;
     }
 
-    public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera)
+    public override void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
     {
+        Render(commandBuffer, outputTexture, Scene.CurrentCamera!, time);
+    }
+
+    public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera, GameTime time)
+    {
+        UpdateFrame(time);
         UpdateCamera(camera);
 
         RenderPassColorAttachment colorAttachment = new(output.DefaultView!, Colors.Black)
@@ -194,12 +242,15 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
         //renderContext.SetBindGroup(0, camera.bindGroup);
 
         renderPass.SetPipeline(_renderPipeline!);
-        renderPass.SetBindGroup(0, _frameBindGroup);
-        renderPass.SetBindGroup(1, _materialBindGroup);
+        renderPass.SetBindGroup(2, _frameBindGroup);
+
+        // For each camera
+        renderPass.SetBindGroup(1, _viewBindGroup);
 
         foreach (MeshComponent meshComponent in Components)
         {
-            TransformComponent transformComponent = meshComponent.Entity.Transform;
+            renderPass.SetBindGroup(0, _materialBindGroup);
+            TransformComponent transformComponent = meshComponent.Entity!.Transform;
 
             DrawData drawData = new()
             {
@@ -208,16 +259,23 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
 
             renderPass.SetPushConstants(0, drawData);
             Mesh? mesh = meshComponent.Mesh;
-            if (mesh != null)
-            {
-                //foreach (var subMesh in mesh.SubMeshes)
-                //{
-                //    renderPass.SetVertexBuffer(0, mesh.VertexBuffer);
-                //    renderPass.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
-                //    renderPass.DrawIndexed();
-                //}
-                mesh.Draw(renderPass, 1u);
-            }
+            if (mesh == null)
+                throw new InvalidOperationException("MeshComponent has no Mesh assigned.");
+
+            // Material
+            PhysicallyBasedMaterial material = meshComponent.Materials.Count > 0 ? (PhysicallyBasedMaterial)meshComponent.Materials[0] : _defaultMaterial;
+            //material.Update(_materialBuffer);
+            PBRMaterialData materialData = new();
+            materialData.baseColorFactor = material.BaseColorFactor;
+            _materialBuffer.SetData(materialData);
+
+            //foreach (var subMesh in mesh.SubMeshes)
+            //{
+            //    renderPass.SetVertexBuffer(0, mesh.VertexBuffer);
+            //    renderPass.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
+            //    renderPass.DrawIndexed();
+            //}
+            mesh.Draw(renderPass, 1u);
         }
 
         //_cubeMesh.Draw(renderPassEncoder);
@@ -260,16 +318,33 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
         Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
     }
 
+    private void UpdateFrame(GameTime gameTime)
+    {
+        FrameConstants frameData = new()
+        {
+            ElapsedTime = (float)gameTime.Elapsed.TotalSeconds,
+            TotalTime = (float)gameTime.Total.TotalSeconds
+        };
+
+        _frameBuffer.SetData(frameData);
+    }
+
     private void UpdateCamera(CameraComponent camera)
     {
-        PerViewData perViewData = new PerViewData
+        PerViewData viewData = new()
         {
             viewMatrix = camera.ViewMatrix,
             projectionMatrix = camera.ViewProjectionMatrix,
             viewProjectionMatrix = camera.ViewProjectionMatrix
         };
+        _ = Matrix4x4.Invert(viewData.viewProjectionMatrix, out viewData.inverseViewMatrix);
+        _ = Matrix4x4.Invert(viewData.projectionMatrix, out viewData.inverseProjectionMatrix);
 
-        _perViewBuffer.SetData(perViewData);
+        // https://github.com/Aminator/DirectX12GameEngine/blob/master/DirectX12GameEngine.Rendering/Materials/MaterialAttributes.cs
+        viewData.cameraPosition = camera.Entity!.Transform.Position;
+        //viewData.time = _elapsedTime;
+
+        _viewBuffer.SetData(viewData);
     }
 
     private Texture CreateTextureFromColor(in Color color)
@@ -286,18 +361,6 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
     protected override void OnEntityComponentRemoved(MeshComponent component)
     {
 
-    }
-
-    // Must match shader layout (ShaderTypes.h)
-    public struct PerViewData
-    {
-        public Matrix4x4 viewMatrix;
-        public Matrix4x4 projectionMatrix;
-        public Matrix4x4 viewProjectionMatrix;
-        public Matrix4x4 inverseViewMatrix;
-        public Matrix4x4 inverseProjectionMatrix;
-        public Vector3 cameraPosition;
-        public float time;
     }
 
     public struct DrawData

@@ -8,19 +8,14 @@ namespace Alimer.Rendering;
 /// <summary>
 /// Base material class.
 /// </summary>
-public abstract class Material : DisposableObject
+public abstract class Material
 {
     private static int s_nextMaterialId = 1;
 
-    public Material(GraphicsDevice device)
+    public Material()
     {
-        ArgumentNullException.ThrowIfNull(device, nameof(device));
-
-        Device = device;
         Id = s_nextMaterialId++;
     }
-
-    public GraphicsDevice Device { get; }
 
     /// <summary>
     /// Gets the unique material id.

@@ -34,6 +34,12 @@ struct DrawIndexedIndirectCommand
     uint firstInstance;
 };
 
+struct ALIGNMENT PerFrameData
+{
+    float elapsedTime;
+    float totalTime;
+};
+
 struct ALIGNMENT PerViewData
 {
     float4x4 viewMatrix;
@@ -42,7 +48,11 @@ struct ALIGNMENT PerViewData
     float4x4 inverseViewMatrix;
     float4x4 inverseProjectionMatrix;
     float3 cameraPosition;
-    float time;
+};
+
+struct ALIGNMENT PBRMaterialData
+{
+    float4 baseColorFactor;
 };
 
 struct ALIGNMENT PerDrawData

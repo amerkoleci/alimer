@@ -12,22 +12,9 @@ namespace Alimer.Rendering;
 /// </summary>
 public sealed class PhysicallyBasedMaterial : UnlitMaterial
 {
-    public PhysicallyBasedMaterial(GraphicsDevice device)
-        : base(device)
+    public PhysicallyBasedMaterial()
+        : base()
     {
-    }
-
-    /// <summary>
-    /// Finalizes an instance of the <see cref="PhysicallyBasedMaterial" /> class.
-    /// </summary>
-    ~PhysicallyBasedMaterial() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-        }
     }
 
     public Texture? NormalTexture { get; set; }

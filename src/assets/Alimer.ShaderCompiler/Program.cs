@@ -73,6 +73,7 @@ class Program
         }
     }
 
+    // https://www.khronos.org/assets/uploads/developers/presentations/Vulkan_BOF_Using_Slang_with_Vulkan_SIGG24.pdf
     private static void CompileSlang(string outputDirectory, string shaderSourceFileName,
         ShaderFormat shaderFormat, ShaderStages stage, Dictionary<string, string>? defines = default)
     {

@@ -1333,14 +1333,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override Texture CreateTextureCore(in TextureDescriptor description, TextureData* initialData)
+    protected override Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData)
     {
-        return new VulkanTexture(this, description, initialData);
+        return new VulkanTexture(this, descriptor, initialData);
     }
 
-    public VkSampler GetOrCreateVulkanSampler(in SamplerDescriptor description)
+    public VkSampler GetOrCreateVulkanSampler(in SamplerDescriptor descriptor)
     {
-        if (!_samplerCache.TryGetValue(description, out VkSampler sampler))
+        if (!_samplerCache.TryGetValue(descriptor, out VkSampler sampler))
         {
             bool samplerMirrorClampToEdge = _adapter.Features12.samplerMirrorClampToEdge;
 
@@ -1349,16 +1349,16 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 flags = 0,
                 pNext = null,
-                magFilter = description.MagFilter.ToVk(),
-                minFilter = description.MinFilter.ToVk(),
-                mipmapMode = description.MipFilter.ToVk(),
-                addressModeU = description.AddressModeU.ToVk(samplerMirrorClampToEdge),
-                addressModeV = description.AddressModeV.ToVk(samplerMirrorClampToEdge),
-                addressModeW = description.AddressModeW.ToVk(samplerMirrorClampToEdge),
+                magFilter = descriptor.MagFilter.ToVk(),
+                minFilter = descriptor.MinFilter.ToVk(),
+                mipmapMode = descriptor.MipFilter.ToVk(),
+                addressModeU = descriptor.AddressModeU.ToVk(samplerMirrorClampToEdge),
+                addressModeV = descriptor.AddressModeV.ToVk(samplerMirrorClampToEdge),
+                addressModeW = descriptor.AddressModeW.ToVk(samplerMirrorClampToEdge),
                 mipLodBias = 0.0f,
             };
 
-            ushort maxAnisotropy = description.MaxAnisotropy;
+            ushort maxAnisotropy = descriptor.MaxAnisotropy;
             if (maxAnisotropy > 1 && _adapter.Features2.features.samplerAnisotropy == VkBool32.True)
             {
                 createInfo.anisotropyEnable = true;
@@ -1370,9 +1370,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 createInfo.maxAnisotropy = 1;
             }
 
-            if (description.ReductionType == SamplerReductionType.Comparison)
+            if (descriptor.ReductionType == SamplerReductionType.Comparison)
             {
-                createInfo.compareOp = description.CompareFunction.ToVk();
+                createInfo.compareOp = descriptor.CompareFunction.ToVk();
                 createInfo.compareEnable = true;
             }
             else
@@ -1381,18 +1381,18 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 createInfo.compareEnable = false;
             }
 
-            createInfo.minLod = description.LodMinClamp;
-            createInfo.maxLod = (description.LodMaxClamp == float.MaxValue) ? VK_LOD_CLAMP_NONE : description.LodMaxClamp;
-            createInfo.borderColor = description.BorderColor.ToVk();
+            createInfo.minLod = descriptor.LodMinClamp;
+            createInfo.maxLod = (descriptor.LodMaxClamp == float.MaxValue) ? VK_LOD_CLAMP_NONE : descriptor.LodMaxClamp;
+            createInfo.borderColor = descriptor.BorderColor.ToVk();
             createInfo.unnormalizedCoordinates = false;
 
             VkSamplerReductionModeCreateInfo samplerReductionModeInfo = default;
-            if (description.ReductionType == SamplerReductionType.Minimum ||
-                description.ReductionType == SamplerReductionType.Maximum)
+            if (descriptor.ReductionType == SamplerReductionType.Minimum ||
+                descriptor.ReductionType == SamplerReductionType.Maximum)
             {
                 samplerReductionModeInfo = new()
                 {
-                    reductionMode = description.ReductionType == SamplerReductionType.Maximum ? VkSamplerReductionMode.Max : VkSamplerReductionMode.Min
+                    reductionMode = descriptor.ReductionType == SamplerReductionType.Maximum ? VkSamplerReductionMode.Max : VkSamplerReductionMode.Min
                 };
 
                 createInfo.pNext = &samplerReductionModeInfo;
@@ -1400,13 +1400,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             VkResult result = _deviceApi.vkCreateSampler(_handle, &createInfo, null, &sampler);
 
-            if (result != VkResult.Success)
+            if (result != VK_SUCCESS)
             {
                 Log.Error("Vulkan: Failed to create sampler.");
                 return VkSampler.Null;
             }
 
-            _samplerCache.Add(description, sampler);
+            _samplerCache.Add(descriptor, sampler);
         }
 
         return sampler;

@@ -21,19 +21,19 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     private readonly uint[] _cbvUavSrvRootParameterIndex;
     private readonly uint[] _samplerRootParameterIndex;
 
-    public D3D12PipelineLayout(D3D12GraphicsDevice device, in PipelineLayoutDescriptor description)
-        : base(description)
+    public D3D12PipelineLayout(D3D12GraphicsDevice device, in PipelineLayoutDescriptor descriptor)
+        : base(in descriptor)
     {
         _device = device;
 
         PushConstantsBaseIndex = ~0u;
 
         // TODO: Handle dynamic constant buffers
-        int setLayoutCount = description.BindGroupLayouts.Length;
+        int setLayoutCount = descriptor.BindGroupLayouts.Length;
         _cbvUavSrvRootParameterIndex = new uint[setLayoutCount];
         _samplerRootParameterIndex = new uint[setLayoutCount];
 
-        List<D3D12_STATIC_SAMPLER_DESC> staticSamplers = new();
+        List<D3D12_STATIC_SAMPLER_DESC> staticSamplers = [];
 
         // Count root parameter count first
         int rootParameterCount = 0;
@@ -42,7 +42,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             _cbvUavSrvRootParameterIndex[i] = ~0u;
             _samplerRootParameterIndex[i] = ~0u;
 
-            D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
+            D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)descriptor.BindGroupLayouts[i];
             if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
             {
                 rootParameterCount++;
@@ -54,13 +54,14 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             }
         }
 
-        int pushConstantRangeCount = description.PushConstantRanges.Length;
+        int pushConstantRangeCount = descriptor.PushConstantRanges.Length;
+        rootParameterCount += pushConstantRangeCount;
         uint rootParameterIndex = 0;
         D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParameterCount];
 
         for (int i = 0; i < setLayoutCount; i++)
         {
-            D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)description.BindGroupLayouts[i];
+            D3D12BindGroupLayout bindGroupLayout = (D3D12BindGroupLayout)descriptor.BindGroupLayouts[i];
             if (bindGroupLayout.DescriptorTableSizeCbvUavSrv > 0)
             {
                 _cbvUavSrvRootParameterIndex[i] = rootParameterIndex;
@@ -120,7 +121,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
             for (int i = 0; i < pushConstantRangeCount; i++)
             {
-                ref readonly PushConstantRange pushConstantRange = ref description.PushConstantRanges[i];
+                ref readonly PushConstantRange pushConstantRange = ref descriptor.PushConstantRanges[i];
 
                 rootParameters[rootParameterIndex].InitAsConstants(pushConstantRange.Size / 4, pushConstantRange.ShaderRegister);
                 rootParameterIndex++;
@@ -160,13 +161,12 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 (void**)_handle.GetAddressOf());
             if (hr.FAILED)
             {
-
                 return;
             }
 
-            if (!string.IsNullOrEmpty(description.Label))
+            if (!string.IsNullOrEmpty(descriptor.Label))
             {
-                OnLabelChanged(description.Label!);
+                OnLabelChanged(descriptor.Label!);
             }
         }
     }

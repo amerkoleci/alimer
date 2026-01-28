@@ -43,9 +43,11 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject
     public void SetData<T>(in T data, int offsetInBytes = 0)
         where T : unmanaged
     {
-        fixed (T* pointer = &data)
+        Guard.IsTrue(MemoryType == MemoryType.Upload);
+
+        fixed (T* dataPtr = &data)
         {
-            SetData(new Span<T>(pointer, 1), offsetInBytes);
+            SetDataUnsafe(dataPtr, offsetInBytes);
         }
     }
 

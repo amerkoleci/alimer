@@ -85,6 +85,12 @@ public record struct SamplerDescriptor
     public static SamplerDescriptor AnisotropicWrap => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.Repeat, 16);
     public static SamplerDescriptor AnisotropicClamp => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.ClampToEdge, 16);
     public static SamplerDescriptor AnisotropicMirror => new(SamplerMinMagFilter.Nearest, SamplerAddressMode.MirrorRepeat, 16);
+    public static SamplerDescriptor ComparisonDepth => new(SamplerMinMagFilter.Linear, SamplerAddressMode.ClampToEdge, 1)
+    {
+        ReductionType = SamplerReductionType.Comparison,
+        CompareFunction = CompareFunction.GreaterEqual,
+    };
+
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SamplerDescriptor"/> struct with default values.

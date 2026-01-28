@@ -11,6 +11,7 @@ namespace Alimer.Physics;
 public partial class RigidBodyComponent : PhysicsComponent
 {
     private ColliderShape? _shape;
+    private Vector3 _linearVelocity = Vector3.Zero;
 
     /// <summary>
     /// Getrs or sets the body type
@@ -74,7 +75,7 @@ public partial class RigidBodyComponent : PhysicsComponent
         get
         {
             if (!IsValid)
-                return Vector3.Zero;
+                return _linearVelocity;
 
             alimerPhysicsBodyGetLinearVelocity(Handle, out Vector3 velocity);
             return velocity;
@@ -82,7 +83,10 @@ public partial class RigidBodyComponent : PhysicsComponent
         set
         {
             if (!IsValid)
+            {
+                _linearVelocity = value;
                 return;
+            }
 
             alimerPhysicsBodySetLinearVelocity(Handle, in value);
         }
@@ -136,6 +140,12 @@ public partial class RigidBodyComponent : PhysicsComponent
 
         Handle = alimerPhysicsBodyCreate(Simulation.World, in bodyDesc);
         BodyID = alimerPhysicsBodyGetID(Handle);
+
+        // Apply pending linear velocity
+        if (_linearVelocity != Vector3.Zero)
+        {
+            alimerPhysicsBodySetLinearVelocity(Handle, _linearVelocity);
+        }
 
         // Add it to the world
         //bodyInterface.AddBody(Handle, (MotionType == MotionType.Static) ? Activation.DontActivate : Activation.Activate);
