@@ -20,7 +20,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
         using BindGroupLayout bindGroupLayout = Device.CreateBindGroupLayout(bindGroupLayoutDescription);
         Assert.That(() => bindGroupLayout, Is.Not.Null);
 
-        PipelineLayoutDescription pipelineLayoutDescription = new([bindGroupLayout]);
+        PipelineLayoutDescriptor pipelineLayoutDescription = new([bindGroupLayout]);
         using PipelineLayout pipelineLayout = Device.CreatePipelineLayout(pipelineLayoutDescription);
         Assert.That(() => pipelineLayout, Is.Not.Null);
 

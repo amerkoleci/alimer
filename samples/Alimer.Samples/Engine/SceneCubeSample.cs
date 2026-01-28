@@ -14,7 +14,7 @@ namespace Alimer.Samples;
 public sealed class SceneCubeSample : SampleBase
 {
     private readonly Entity _cameraEntity;
-    private readonly Entity _meshEntity;
+    private readonly Entity _cubeEntity;
 
     public SceneCubeSample(IServiceRegistry services)
         : base("Engine - Scene Cube")
@@ -32,6 +32,18 @@ public sealed class SceneCubeSample : SampleBase
 
         //var test = _cameraEntity.Serialize();
 
+        // Cube mesh
+        _cubeEntity = new("Cube", new Vector3(0.0f, 2.0f, 0.0f));
+        Mesh cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        cubeMesh.CreateGpuData(GraphicsDevice);
+
+        MeshComponent meshComponent = new(cubeMesh);
+        _cubeEntity.AddComponent(meshComponent);
+        //_meshEntity.AddComponent(sphereRigidBody);
+
+        root.Children.Add(_cubeEntity);
+
+#if TODO
         // Floor
         RigidBodyComponent floorRigidBody = new()
         {
@@ -41,7 +53,7 @@ public sealed class SceneCubeSample : SampleBase
 
         var floorEntity = new Entity("Floor", new Vector3(0.0f, -1.0f, 0.0f));
         floorEntity.AddComponent(floorRigidBody);
-        root.Children.Add(floorEntity);
+        root.Children.Add(floorEntity); 
 
         // Mesh
         RigidBodyComponent sphereRigidBody = new()
@@ -60,6 +72,7 @@ public sealed class SceneCubeSample : SampleBase
         _meshEntity.AddComponent(sphereRigidBody);
         
         root.Children.Add(_meshEntity);
+#endif
 
         Scene.RootEntity = root;
     }
@@ -68,8 +81,14 @@ public sealed class SceneCubeSample : SampleBase
     public GraphicsDevice GraphicsDevice { get; }
     public SceneSystem Scene { get; }
 
+    public override void Update(GameTime time)
+    {
+        float deltaTime = (float)time.Elapsed.TotalSeconds;
+        _cubeEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
+    }
+
     public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
-        _meshEntity.GetComponent<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
+        //_cubeEntity.GetComponent<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
     }
 }

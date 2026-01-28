@@ -43,14 +43,14 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
             ));
 
-        _bindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_bindGroupLayout, new BindGroupEntry(0, _constantBuffer)));
+        _bindGroup = ToDispose(_bindGroupLayout.CreateBindGroup(new BindGroupEntry(0, _constantBuffer)));
 
         // Material
         _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
             new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment)
             ));
-        _materialBindGroup = ToDispose(GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
+        _materialBindGroup = ToDispose(_materialBindGroupLayout.CreateBindGroup(
             new BindGroupEntry(0, _texture.DefaultView!)
             )
             );

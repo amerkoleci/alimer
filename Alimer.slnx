@@ -22,6 +22,10 @@
   <Folder Name="/assets/shaders/">
     <File Path="assets/Shaders/Alimer.hlsli" />
     <File Path="assets/Shaders/Math.hlsli" />
+    <File Path="assets/Shaders/PBR.slang" />
+    <File Path="assets/Shaders/ShaderTypes.h" />
+    <File Path="assets/Shaders/Sprite.slang" />
+    <File Path="assets/Shaders/Unlit.slang" />
   </Folder>
   <Folder Name="/editor/">
     <Project Path="src/editor/Alimer.Editor/Alimer.Editor.csproj" />

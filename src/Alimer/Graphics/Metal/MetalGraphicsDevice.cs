@@ -58,8 +58,7 @@ internal class MetalGraphicsDevice : GraphicsDevice
     protected override unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData) => throw new NotImplementedException();
     protected override Sampler CreateSamplerCore(in SamplerDescriptor descriptor) => throw new NotImplementedException();
     protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descridescriptorption) => throw new NotImplementedException();
-    protected override BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescriptor descriptor) => throw new NotImplementedException();
-    protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor) => throw new NotImplementedException();
+    protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor descriptor) => throw new NotImplementedException();
     protected override ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor) => throw new NotImplementedException();
     protected override RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor) => throw new NotImplementedException();
     protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor) => throw new NotImplementedException();

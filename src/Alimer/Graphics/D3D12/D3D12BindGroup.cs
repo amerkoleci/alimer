@@ -18,11 +18,11 @@ internal unsafe class D3D12BindGroup : BindGroup
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12BindGroupLayout _layout;
 
-    public D3D12BindGroup(D3D12GraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor descriptor)
+    public D3D12BindGroup(D3D12BindGroupLayout layout, in BindGroupDescriptor descriptor)
         : base(descriptor)
     {
-        _device = device;
-        _layout = (D3D12BindGroupLayout)layout;
+        _device = layout.DXDevice;
+        _layout = layout;
 
         // Update descriptor entries
         Update(descriptor.Entries);

@@ -14,7 +14,7 @@ namespace Alimer.Engine;
 
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public partial class Entity 
+public partial class Entity
 {
     private Entity? _parent;
     private string _name;

@@ -16,7 +16,8 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
     private readonly Texture _checkerTexture;
     private readonly Sampler _defaultSampler;
 
-    private readonly GraphicsBuffer _cameraBuffer;
+    // TODO: Max frames inflight
+    private readonly GraphicsBuffer _perViewBuffer;
 
     // TODO: Material system
     private readonly BindGroupLayout _frameBindGroupLayout;
@@ -67,7 +68,7 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
         ResolutionMultiplier = 1;
 
         // WIP code
-        _cameraBuffer = GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload);
+        _perViewBuffer = GraphicsDevice.CreateBuffer((ulong)sizeof(PerViewData), BufferUsage.Constant, MemoryType.Upload);
 
         // Till we have a material system, create a basic pipeline
         _frameBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
@@ -78,19 +79,27 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
             new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment)
             );
-        _pipelineLayout = GraphicsDevice.CreatePipelineLayout(_frameBindGroupLayout, _materialBindGroupLayout);
+
+        ReadOnlySpan<BindGroupLayout> bindGroupLayouts = [_frameBindGroupLayout, _materialBindGroupLayout];
+        ReadOnlySpan<PushConstantRange> pushConstantRanges = [
+            new PushConstantRange(0, (uint)sizeof(DrawData))
+        ];
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor = new(bindGroupLayouts, pushConstantRanges);
+
+        _pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescriptor);
 
         // Bind groups with default textures/samplers
         _frameBindGroup = _frameBindGroupLayout.CreateBindGroup(
-            new BindGroupEntry(0, _cameraBuffer)
+            new BindGroupEntry(0, _perViewBuffer)
             );
 
-        _materialBindGroup = GraphicsDevice.CreateBindGroup(_materialBindGroupLayout,
+        _materialBindGroup = _materialBindGroupLayout.CreateBindGroup(
            new BindGroupEntry(0, _checkerTexture.DefaultView!)
            );
 
-        ShaderModule vertexShader = ShaderSystem.GetShaderModule("TexturedCube", ShaderStages.Vertex);
-        ShaderModule fragmentShader = ShaderSystem.GetShaderModule("TexturedCube", ShaderStages.Fragment);
+        ShaderModule vertexShader = ShaderSystem.GetShaderModule("PBR", ShaderStages.Vertex);
+        ShaderModule fragmentShader = ShaderSystem.GetShaderModule("PBR", ShaderStages.Fragment);
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
@@ -147,7 +156,7 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
             _checkerTexture.Dispose();
             _defaultSampler.Dispose();
 
-            _cameraBuffer.Dispose();
+            _perViewBuffer.Dispose();
 
             _frameBindGroupLayout.Dispose();
             _frameBindGroup.Dispose();
@@ -188,12 +197,16 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
         renderPass.SetBindGroup(0, _frameBindGroup);
         renderPass.SetBindGroup(1, _materialBindGroup);
 
-
         foreach (MeshComponent meshComponent in Components)
         {
             TransformComponent transformComponent = meshComponent.Entity.Transform;
-            Matrix4x4 world = transformComponent.WorldMatrix;
-            //renderPass.SetPushConstants(ShaderStages.Vertex, 0, (uint)sizeof(Matrix4x4), &world);
+
+            DrawData drawData = new()
+            {
+                WorldMatrix = transformComponent.WorldMatrix
+            };
+
+            renderPass.SetPushConstants(0, drawData);
             Mesh? mesh = meshComponent.Mesh;
             if (mesh != null)
             {
@@ -249,17 +262,47 @@ public sealed unsafe class RenderSystem : EntitySystem<MeshComponent>
 
     private void UpdateCamera(CameraComponent camera)
     {
-        Matrix4x4 view = camera.ViewMatrix;
-        Matrix4x4 projection = camera.ViewProjectionMatrix;
-        Matrix4x4 viewProjection = Matrix4x4.Multiply(view, projection);
-        Matrix4x4 world = Matrix4x4.Identity;
-        Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
-        _cameraBuffer.SetData(worldViewProjection);
+        PerViewData perViewData = new PerViewData
+        {
+            viewMatrix = camera.ViewMatrix,
+            projectionMatrix = camera.ViewProjectionMatrix,
+            viewProjectionMatrix = camera.ViewProjectionMatrix
+        };
+
+        _perViewBuffer.SetData(perViewData);
     }
 
     private Texture CreateTextureFromColor(in Color color)
     {
         ReadOnlySpan<uint> pixels = [color.ToRgba()];
         return GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);
+    }
+
+    protected override void OnEntityComponentAdded(MeshComponent component)
+    {
+
+    }
+
+    protected override void OnEntityComponentRemoved(MeshComponent component)
+    {
+
+    }
+
+    // Must match shader layout (ShaderTypes.h)
+    public struct PerViewData
+    {
+        public Matrix4x4 viewMatrix;
+        public Matrix4x4 projectionMatrix;
+        public Matrix4x4 viewProjectionMatrix;
+        public Matrix4x4 inverseViewMatrix;
+        public Matrix4x4 inverseProjectionMatrix;
+        public Vector3 cameraPosition;
+        public float time;
+    }
+
+    public struct DrawData
+    {
+        public Matrix4x4 WorldMatrix;
+        public uint MaterialIndex;
     }
 }

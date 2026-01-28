@@ -11,15 +11,14 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 {
-    private readonly D3D12GraphicsDevice _device;
-    public readonly List<D3D12_DESCRIPTOR_RANGE1> CbvUavSrvDescriptorRanges = new();
-    public readonly List<D3D12_DESCRIPTOR_RANGE1> SamplerDescriptorRanges = new();
-    public readonly List<D3D12_STATIC_SAMPLER_DESC> StaticSamplers = new();
+    public readonly List<D3D12_DESCRIPTOR_RANGE1> CbvUavSrvDescriptorRanges = [];
+    public readonly List<D3D12_DESCRIPTOR_RANGE1> SamplerDescriptorRanges = [];
+    public readonly List<D3D12_STATIC_SAMPLER_DESC> StaticSamplers = [];
 
     public D3D12BindGroupLayout(D3D12GraphicsDevice device, in BindGroupLayoutDescriptor description)
         : base(description)
     {
-        _device = device;
+        DXDevice = device;
 
         int bindingCount = description.Entries.Length;
 
@@ -121,7 +120,9 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     ~D3D12BindGroupLayout() => Dispose(disposing: false);
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GraphicsDevice Device => DXDevice;
+
+    public D3D12GraphicsDevice DXDevice { get; }
 
     public uint DescriptorTableSizeCbvUavSrv = 0;
     public uint DescriptorTableSizeSamplers = 0;
@@ -129,5 +130,11 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     /// <inheitdoc />
     protected internal override void Destroy()
     {
+    }
+
+    /// <inheritdoc />
+    protected override BindGroup CreateBindGroupCore(in BindGroupDescriptor description)
+    {
+        return new D3D12BindGroup(this, description);
     }
 }

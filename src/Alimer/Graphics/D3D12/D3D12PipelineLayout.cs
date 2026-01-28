@@ -21,7 +21,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     private readonly uint[] _cbvUavSrvRootParameterIndex;
     private readonly uint[] _samplerRootParameterIndex;
 
-    public D3D12PipelineLayout(D3D12GraphicsDevice device, in PipelineLayoutDescription description)
+    public D3D12PipelineLayout(D3D12GraphicsDevice device, in PipelineLayoutDescriptor description)
         : base(description)
     {
         _device = device;

@@ -17,4 +17,6 @@ public sealed partial class MeshComponent : RenderableComponent
     }
 
     public Mesh? Mesh { get; set; }
+
+    public IList<Material> Materials { get; } = [];
 }

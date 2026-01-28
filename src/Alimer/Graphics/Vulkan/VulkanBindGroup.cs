@@ -12,11 +12,11 @@ internal unsafe class VulkanBindGroup : BindGroup
     private readonly VulkanBindGroupLayout _layout;
     private readonly VkDescriptorSet _handle = VkDescriptorSet.Null;
 
-    public VulkanBindGroup(VulkanGraphicsDevice device, BindGroupLayout layout, in BindGroupDescriptor descriptor)
+    public VulkanBindGroup(VulkanBindGroupLayout layout, in BindGroupDescriptor descriptor)
         : base(descriptor)
     {
-        _device = device;
-        _layout = (VulkanBindGroupLayout)layout;
+        _device = layout.VkDevice;
+        _layout = layout;
 
         // Allocate DescriptorSet from the bind group pool
         uint maxVariableArrayLength = 0;
@@ -27,7 +27,7 @@ internal unsafe class VulkanBindGroup : BindGroup
         if (result == VK_ERROR_OUT_OF_POOL_MEMORY
             || result == VK_ERROR_FRAGMENTED_POOL)
         {
-            device.AllocateDescriptorPool();
+            _device.AllocateDescriptorPool();
             result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
             result.CheckResult();
         }

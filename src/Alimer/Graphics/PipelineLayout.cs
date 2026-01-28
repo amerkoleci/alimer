@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public abstract class PipelineLayout : GraphicsObject
 {
-    protected PipelineLayout(in PipelineLayoutDescription description)
+    protected PipelineLayout(in PipelineLayoutDescriptor description)
         : base(description.Label)
     {
         BindGroupLayoutCount = description.BindGroupLayouts.Length;

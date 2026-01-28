@@ -12,18 +12,20 @@ public abstract class BindGroupLayout : GraphicsObject
     {
     }
 
+    public BindGroup CreateBindGroup(params ReadOnlySpan<BindGroupEntry> entries)
+    {
+        return CreateBindGroup(new BindGroupDescriptor(entries));
+    }
+
     public BindGroup CreateBindGroup(in BindGroupDescriptor descriptor)
     {
         Guard.IsNotEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
         Guard.IsGreaterThan(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
 
-        return Device.CreateBindGroup(this, in descriptor);
+        // TODO: Validate that entries match layout and handle null resources.
+
+        return CreateBindGroupCore(in descriptor);
     }
 
-    public BindGroup CreateBindGroup(params ReadOnlySpan<BindGroupEntry> entries)
-    {
-        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
-
-        return Device.CreateBindGroup(this, new BindGroupDescriptor(entries));
-    }
+    protected abstract BindGroup CreateBindGroupCore(in BindGroupDescriptor descriptor);
 }

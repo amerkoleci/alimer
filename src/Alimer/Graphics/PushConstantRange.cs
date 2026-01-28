@@ -32,4 +32,4 @@ public readonly record struct PushConstantRange
     /// Size in bytes.
     public required uint Size { get; init; }
 
-};
+}

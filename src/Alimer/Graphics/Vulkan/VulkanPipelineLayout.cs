@@ -13,7 +13,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     private readonly VkPipelineLayout _handle = VkPipelineLayout.Null;
     private readonly VkPushConstantRange* _pushConstantRanges;
 
-    public VulkanPipelineLayout(VulkanGraphicsDevice device, in PipelineLayoutDescription description)
+    public VulkanPipelineLayout(VulkanGraphicsDevice device, in PipelineLayoutDescriptor description)
         : base(description)
     {
         _device = device;

@@ -292,31 +292,14 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBindGroupLayoutCore(new BindGroupLayoutDescriptor(entries));
     }
 
-    public BindGroup CreateBindGroup(BindGroupLayout layout, in BindGroupDescriptor descriptor)
-    {
-        Guard.IsNotNull(layout, nameof(layout));
-        Guard.IsNotEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
-        Guard.IsGreaterThan(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
-
-        return CreateBindGroupCore(layout, in descriptor);
-    }
-
-    public BindGroup CreateBindGroup(BindGroupLayout layout, params ReadOnlySpan<BindGroupEntry> entries)
-    {
-        Guard.IsNotNull(layout, nameof(layout));
-        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
-
-        return CreateBindGroupCore(layout, new BindGroupDescriptor(entries));
-    }
-
-    public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescription description)
+    public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescriptor description)
     {
         return CreatePipelineLayoutCore(in description);
     }
 
-    public PipelineLayout CreatePipelineLayout(params BindGroupLayout[] bindGroupLayouts)
+    public PipelineLayout CreatePipelineLayout(params ReadOnlySpan<BindGroupLayout> bindGroupLayouts)
     {
-        return CreatePipelineLayout(new PipelineLayoutDescription(bindGroupLayouts));
+        return CreatePipelineLayout(new PipelineLayoutDescriptor(bindGroupLayouts));
     }
 
     public ShaderModule CreateShaderModule(in ShaderModuleDescriptor descriptor)
@@ -394,8 +377,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor);
-    protected abstract BindGroup CreateBindGroupCore(BindGroupLayout layout, in BindGroupDescriptor descriptor);
-    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescription descriptor);
+    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor descriptor);
     protected abstract ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
     protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);

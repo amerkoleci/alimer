@@ -38,27 +38,30 @@ public static class QuaternionExtensions
         }
     }
 
-    public static Quaternion FromEuler(this in Vector3 value)
+    public static Quaternion FromEuler(float x, float y, float z)
     {
-        Quaternion rotation;
+        float halfToRad = float.DegreesToRadians(0.5f);
+        x *= halfToRad;
+        y *= halfToRad;
+        z *= halfToRad;
 
-        Vector3 halfAngles = value * 0.5f;
-
-        float fSinX = MathF.Sin(halfAngles.X);
-        float fCosX = MathF.Cos(halfAngles.X);
-        float fSinY = MathF.Sin(halfAngles.Y);
-        float fCosY = MathF.Cos(halfAngles.Y);
-        float fSinZ = MathF.Sin(halfAngles.Z);
-        float fCosZ = MathF.Cos(halfAngles.Z);
+        (float fSinX, float fCosX) = float.SinCos(x);
+        (float fSinY, float fCosY) = float.SinCos(y);
+        (float fSinZ, float fCosZ) = float.SinCos(z);
 
         float fCosXY = fCosX * fCosY;
         float fSinXY = fSinX * fSinY;
 
-        rotation.X = fSinX * fCosY * fCosZ - fSinZ * fSinY * fCosX;
-        rotation.Y = fSinY * fCosX * fCosZ + fSinZ * fSinX * fCosY;
-        rotation.Z = fSinZ * fCosXY - fSinXY * fCosZ;
-        rotation.W = fCosZ * fCosXY + fSinXY * fSinZ;
+        return new(
+            fSinX * fCosY * fCosZ - fSinZ * fSinY * fCosX,
+            fSinY * fCosX * fCosZ + fSinZ * fSinX * fCosY,
+            fSinZ * fCosXY - fSinXY * fCosZ,
+            fCosZ * fCosXY + fSinXY * fSinZ
+            );
+    }
 
-        return rotation;
+    public static Quaternion FromEuler(this in Vector3 value)
+    {
+        return FromEuler(value.X, value.Y, value.Z);
     }
 }

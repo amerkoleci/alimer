@@ -49,6 +49,10 @@ public partial class TransformComponent : EntityComponent, IEnumerable<Transform
 
     [IgnoreDataMember]
     [JsonIgnore]
+    public bool IsTransformHierarchyRoot => Parent is null;
+
+    [IgnoreDataMember]
+    [JsonIgnore]
     public ref Matrix4x4 LocalMatrix => ref _localMatrix;
 
     [IgnoreDataMember]
@@ -77,6 +81,17 @@ public partial class TransformComponent : EntityComponent, IEnumerable<Transform
         set => _scale = value;
     }
 
+    [JsonIgnore]
+    public Quaternion WorldRotation
+    {
+        get
+        {
+            // TODO
+            //_worldRotation = _parent->GetRotation() * localRotation;
+            return Rotation;
+        }
+    }
+
     [IgnoreDataMember]
     [JsonIgnore]
     public Vector3 RotationEuler { get => Rotation.ToEuler(); set => Rotation = value.FromEuler(); }
@@ -86,6 +101,63 @@ public partial class TransformComponent : EntityComponent, IEnumerable<Transform
     public IEnumerator<TransformComponent> GetEnumerator() => Children.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>
+    /// Rotate the scene node in the chosen transform space.
+    /// </summary>
+    /// <param name="delta"></param>
+    /// <param name="space"></param>
+    public void Rotate(in Quaternion delta, TransformSpace space = TransformSpace.World)
+    {
+        switch (space)
+        {
+            case TransformSpace.Local:
+                _rotation = Quaternion.Normalize(_rotation * delta);
+                break;
+
+            case TransformSpace.Parent:
+                _rotation = Quaternion.Normalize(delta * _rotation);
+                break;
+
+            case TransformSpace.World:
+                if (IsTransformHierarchyRoot)
+                {
+                    _rotation = Quaternion.Normalize(delta * _rotation);
+                }
+                else
+                {
+                    Quaternion worldRotation = WorldRotation;
+                    _rotation = _rotation * Quaternion.Inverse(worldRotation) * delta * worldRotation;
+                }
+                break;
+        }
+
+        //MarkDirty();
+    }
+
+    /// <summary>
+    /// Rotate the entity using euler angles (in degrees) in the chosen transform space.
+    /// </summary>
+    /// <remarks>Eulers are specified in degrees in XYZ order.</remarks>
+    /// <param name="angles"></param>
+    /// <param name="space"></param>
+    public void Rotate(in Vector3 angles, TransformSpace space = TransformSpace.World)
+    {
+        Quaternion rotation = angles.FromEuler();
+        Rotate(rotation, space);
+    }
+
+    /// <summary>
+    /// Rotate the entity using euler angles (in degrees) in the chosen transform space.
+    /// </summary>
+    /// <remarks>Eulers are specified in degrees in XYZ order.</remarks>
+    /// <param name="angles"></param>
+    /// <param name="space"></param>
+    public void Rotate(float x, float y, float z, TransformSpace space = TransformSpace.World)
+    {
+        Quaternion rotation = QuaternionExtensions.FromEuler(x, y, z);
+        Rotate(rotation, space);
+    }
 
     public void UpdateLocalMatrix()
     {

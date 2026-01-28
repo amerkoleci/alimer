@@ -40,8 +40,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex)
             ));
 
-        _bindGroup0 = ToDispose(GraphicsDevice.CreateBindGroup(
-            _bindGroupLayout0,
+        _bindGroup0 = ToDispose(_bindGroupLayout0.CreateBindGroup(
             new BindGroupEntry(0, _constantBuffer0)
             ));
 
@@ -49,8 +48,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Fragment)
             ));
 
-        _bindGroup1 = ToDispose(GraphicsDevice.CreateBindGroup(
-            _bindGroupLayout1,
+        _bindGroup1 = ToDispose(_bindGroupLayout1.CreateBindGroup(
             new BindGroupEntry(0, _constantBuffer1)
             ));
 

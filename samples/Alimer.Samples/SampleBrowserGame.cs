@@ -76,7 +76,7 @@ public sealed class SampleBrowserGame : Game
 #if !WINDOWS
         //preferredGraphicsBackend = GraphicsBackendType.WebGPU;
         preferredGraphicsBackend = GraphicsBackend.Vulkan;
-        //preferredGraphicsBackend = GraphicsBackendType.Metal;
+        //preferredGraphicsBackend = GraphicsBackend.Metal;
 #endif
 
         using SampleBrowserGame game = new(preferredGraphicsBackend);

@@ -11,18 +11,17 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 {
-    private readonly VulkanGraphicsDevice _device;
     private readonly VkDescriptorSetLayout _handle = VkDescriptorSetLayout.Null;
-    private readonly VkDescriptorSetLayoutBinding* _layoutBindings;
+    private readonly VkDescriptorSetLayoutBinding* _bindings;
 
     public VulkanBindGroupLayout(VulkanGraphicsDevice device, in BindGroupLayoutDescriptor description)
         : base(description)
     {
-        _device = device;
+        VkDevice = device;
 
         VkDescriptorSetLayoutCreateFlags flags = VkDescriptorSetLayoutCreateFlags.None;
         LayoutBindingCount = description.Entries.Length;
-        _layoutBindings = AllocateArray<VkDescriptorSetLayoutBinding>((nuint)LayoutBindingCount);
+        _bindings = AllocateArray<VkDescriptorSetLayoutBinding>((nuint)LayoutBindingCount);
 
         bool isPush = false;
         if (isPush)
@@ -38,7 +37,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                 registerOffset = device.GetRegisterOffset(VkDescriptorType.Sampler);
                 VkSampler sampler = device.GetOrCreateVulkanSampler(entry.StaticSampler.Value);
 
-                _layoutBindings[i] = new VkDescriptorSetLayoutBinding
+                _bindings[i] = new VkDescriptorSetLayoutBinding
                 {
                     binding = entry.Binding + registerOffset,
                     descriptorType = VkDescriptorType.Sampler,
@@ -105,7 +104,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 
             registerOffset = device.GetRegisterOffset(vkDescriptorType);
 
-            _layoutBindings[i] = new VkDescriptorSetLayoutBinding
+            _bindings[i] = new VkDescriptorSetLayoutBinding
             {
                 binding = entry.Binding + registerOffset,
                 descriptorType = vkDescriptorType,
@@ -118,10 +117,10 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         {
             flags = flags,
             bindingCount = (uint)LayoutBindingCount,
-            pBindings = _layoutBindings
+            pBindings = _bindings
         };
 
-        VkResult result = _device.DeviceApi.vkCreateDescriptorSetLayout(device.Handle, &createInfo, null, out _handle);
+        VkResult result = VkDevice.DeviceApi.vkCreateDescriptorSetLayout(device.Handle, &createInfo, null, out _handle);
         if (result != VkResult.Success)
         {
             Log.Error($"Vulkan: Failed to create {nameof(BindGroupLayout)}.");
@@ -140,23 +139,30 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     ~VulkanBindGroupLayout() => Dispose(disposing: false);
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GraphicsDevice Device => VkDevice;
 
+    public VulkanGraphicsDevice VkDevice { get; }
     public VkDescriptorSetLayout Handle => _handle;
 
     public int LayoutBindingCount { get; }
-    public ref VkDescriptorSetLayoutBinding GetLayoutBinding(uint index) => ref _layoutBindings[index];
+    public ref VkDescriptorSetLayoutBinding GetLayoutBinding(uint index) => ref _bindings[index];
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _handle, newLabel);
+        VkDevice.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _handle, newLabel);
     }
 
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        Free(_layoutBindings);
-        _device.DeviceApi.vkDestroyDescriptorSetLayout(_device.Handle, _handle);
+        Free(_bindings);
+        VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(VkDevice.Handle, _handle);
+    }
+
+    /// <inheritdoc />
+    protected override BindGroup CreateBindGroupCore(in BindGroupDescriptor descriptor)
+    {
+        return new VulkanBindGroup(this, descriptor);
     }
 }

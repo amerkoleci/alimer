@@ -29,7 +29,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         ReadOnlySpan<ushort> indexData = [0, 2, 1, 0, 3, 2];
         _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, BufferUsage.Index));
 
-        PipelineLayoutDescription pipelineLayoutDescription = new()
+        PipelineLayoutDescriptor pipelineLayoutDescription = new()
         {
             Label = "PipelineLayout"
         };

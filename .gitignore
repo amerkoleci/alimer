@@ -36,6 +36,7 @@
 project.lock.json
 project.assets.json
 *.nuget.dgspec.json
+launchSettings.json
 
 # Others
 *.Cache

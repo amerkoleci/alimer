@@ -86,6 +86,8 @@ public sealed class AssetShaderCompiler : IShaderCompiler
                 break;
 
             case GraphicsBackend.Vulkan:
+                arguments.Add("-D__spirv__");
+
                 arguments.AddRange([
                     "-fvk-use-dx-layout",
                     "-fvk-use-dx-position-w",

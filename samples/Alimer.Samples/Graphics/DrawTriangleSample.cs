@@ -24,7 +24,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
         ];
         _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
 
-        PipelineLayoutDescription pipelineLayoutDescription = new();
+        PipelineLayoutDescriptor pipelineLayoutDescription = new();
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
         using ShaderModule vertexShader = CompileShaderModuleNew("Triangle", ShaderStages.Vertex, "vertexMain"u8);

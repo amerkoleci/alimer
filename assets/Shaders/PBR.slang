@@ -1,0 +1,56 @@
+#include "Alimer.hlsli"
+#include "ShaderTypes.h"
+
+struct VertexInput {
+    float3 Position : ATTRIBUTE0;
+    float3 Normal   : ATTRIBUTE1;
+    float2 texcoord : ATTRIBUTE2;
+#if defined(VERTEX_COLOR)
+    float4 Color    : ATTRIBUTE3;
+#endif
+};
+
+struct VertexOutput {
+    float4 Position : SV_POSITION;
+    float3 Normal : NORMAL;
+    float2 texcoord : TEXCOORD0;
+    float4 Color : COLOR0;
+};
+
+// View (space 1)
+ConstantBuffer<PerViewData> view : register(b0, space0);
+
+// Material (space 0)
+
+// Draw - push constants
+ALIMER_PUSH_CONSTANTS(PerDrawData, draw);
+//ConstantBuffer<DrawData> draw : register(b0, space0);
+
+SamplerState pbrSampler : register(s0, space1);
+Texture2D<float4> baseColorTexture : register(t0, space1);
+
+[shader("vertex")]
+VertexOutput vertexMain(in VertexInput input)
+{
+    float4 worldPosition = mul(float4(input.Position, 1.0f), draw.worldMatrix);
+
+    VertexOutput output;
+
+    // Clip-space position
+    output.Position = mul(worldPosition, view.viewProjectionMatrix);
+    output.Normal = input.Normal;
+    output.texcoord = input.texcoord;
+#if defined(VERTEX_COLOR)
+    output.Color = input.Color;
+#else
+    output.Color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+#endif
+    return output;
+}
+
+[shader("pixel")]
+float4 fragmentMain(in VertexOutput input) : SV_TARGET
+{
+    float4 baseColor = /*material.baseColorFactor **/ baseColorTexture.Sample(pbrSampler, input.texcoord);
+    return baseColor;
+}
