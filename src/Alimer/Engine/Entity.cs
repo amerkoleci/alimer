@@ -88,6 +88,10 @@ public partial class Entity
 
     public TransformComponent Transform { get; private set; }
 
+    [IgnoreDataMember]
+    [JsonIgnore]
+    public ref Matrix4x4 WorldTransform => ref Transform.WorldMatrix;
+
     /// <summary>
     /// Adds the specified component to the entity and returns it.
     /// </summary>

@@ -169,7 +169,6 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera, GameTime time)
     {
         UpdateFrame(time);
-        UpdateCamera(camera);
 
         RenderPassColorAttachment colorAttachment = new(output.DefaultView!, Colors.Black)
         {
@@ -189,7 +188,17 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         renderPass.SetBindGroup(2, _frameBindGroup);
 
         // For each camera
-        renderPass.SetBindGroup(1, _viewBindGroup);
+        RenderCamera(renderPass, camera);
+
+        renderPass.EndEncoding();
+    }
+
+    private void RenderCamera(RenderPassEncoder encoder, CameraComponent camera)
+    {
+        UpdateCamera(camera);
+        BoundingFrustum cameraFrustum = camera.Frustum;
+
+        encoder.SetBindGroup(1, _viewBindGroup);
 
         // Loop through all the renderable entities and store them by pipeline.
         //for (const pipeline of this.renderBatch.sortedPipelines)
@@ -202,13 +211,18 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
             if (meshComponent.Mesh is null)
                 continue;
 
+            // Check if visible to camera frustum before drawing
+            BoundingBox worldBoundingBox = meshComponent.WorldBoundingBox;
+            //if (!cameraFrustum.Intersects(worldBoundingBox))
+            //    continue;
+
             Mesh mesh = meshComponent.Mesh;
-            MeshVertexBufferLayout layout = mesh.VertexBufferLayout;
-            VertexBufferLayout gpuLayout = new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes);
+            //MeshVertexBufferLayout layout = mesh.VertexBufferLayout;
+            VertexBufferLayout gpuLayout = new((uint)mesh.VertexStride, VertexPositionNormalTexture.RHIVertexAttributes);
             Span<VertexBufferLayout> geometryLayout = [gpuLayout];
 
-            renderPass.SetVertexBuffer(0, mesh.GpuVertexBuffer!);
-            renderPass.SetIndexBuffer(mesh.GpuIndexBuffer!, mesh.IndexFormat);
+            encoder.SetVertexBuffer(0, mesh.GpuVertexBuffer!);
+            encoder.SetIndexBuffer(mesh.GpuIndexBuffer!, mesh.IndexFormat);
 
             foreach (SubMesh subMesh in mesh.SubMeshes)
             {
@@ -226,8 +240,8 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
                 RenderPipeline renderPipeline = factory.GetPipeline(geometryLayout, material, skinned);
                 BindGroup bindGroup = factory.GetBindGroup(material, skinned);
 
-                renderPass.SetPipeline(renderPipeline);
-                renderPass.SetBindGroup(0, bindGroup);
+                encoder.SetPipeline(renderPipeline);
+                encoder.SetBindGroup(0, bindGroup);
 
                 // Update per-object data (after set pipeline)
                 TransformComponent transformComponent = meshComponent.Entity!.Transform;
@@ -235,14 +249,12 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
                 {
                     WorldMatrix = transformComponent.WorldMatrix
                 };
-                renderPass.SetPushConstants(0, drawData);
+                encoder.SetPushConstants(0, drawData);
 
                 uint instanceCount = 1u;
-                renderPass.DrawIndexed((uint)subMesh.IndexCount, instanceCount, (uint)subMesh.IndexStart, 0, 0);
+                encoder.DrawIndexed((uint)subMesh.IndexCount, instanceCount, (uint)subMesh.IndexStart, 0, 0);
             }
         }
-
-        renderPass.EndEncoding();
     }
 
     public void Resize(int pixelWidth, int pixelHeight)
@@ -292,7 +304,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         PerViewData viewData = new()
         {
             viewMatrix = camera.ViewMatrix,
-            projectionMatrix = camera.ViewProjectionMatrix,
+            projectionMatrix = camera.ProjectionMatrix,
             viewProjectionMatrix = camera.ViewProjectionMatrix
         };
         _ = Matrix4x4.Invert(viewData.viewProjectionMatrix, out viewData.inverseViewMatrix);

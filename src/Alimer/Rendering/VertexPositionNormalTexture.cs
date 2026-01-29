@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
-using Alimer.Numerics;
 
 namespace Alimer.Rendering;
 
@@ -17,10 +16,10 @@ public record struct VertexPositionNormalTexture : IMeshVertex
     public Vector3 Normal;
     public Vector2 TextureCoordinate;
 
-    public static MeshVertexAttribute[] VertexAttributes { get; } = [
-        new MeshVertexAttribute(MeshVertexAttributeSemantic.Position, VertexFormat.Float3, 0),
-        new MeshVertexAttribute(MeshVertexAttributeSemantic.Normal, VertexFormat.Float3, 12),
-        new MeshVertexAttribute(MeshVertexAttributeSemantic.TexCoord0, VertexFormat.Float2, 24)
+    public static Mesh.VertexAttribute[] VertexAttributes { get; } = [
+        new(Mesh.VertexAttributeSemantic.Position, VertexFormat.Float3, 0),
+        new(Mesh.VertexAttributeSemantic.Normal, VertexFormat.Float3, 12),
+        new(Mesh.VertexAttributeSemantic.TexCoord0, VertexFormat.Float2, 24)
     ];
 
     public static VertexAttribute[] RHIVertexAttributes { get; } = [

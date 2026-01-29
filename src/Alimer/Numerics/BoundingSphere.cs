@@ -42,12 +42,6 @@ public partial struct BoundingSphere : IEquatable<BoundingSphere>, IFormattable
         Radius = radius;
     }
 
-    public static BoundingSphere CreateFromPoints(Vector3[] points)
-    {
-        Span<Vector3> span = points.AsSpan();
-        return CreateFromPoints(span);
-    }
-
     public static BoundingSphere CreateFromPoints(Span<Vector3> points)
     {
         Vector3 MinX, MaxX, MinY, MaxY, MinZ, MaxZ;
@@ -135,6 +129,133 @@ public partial struct BoundingSphere : IEquatable<BoundingSphere>, IFormattable
         }
 
         return new BoundingSphere(center, radius);
+    }
+
+    public readonly ContainmentType Contains(in Vector3 point)
+    {
+        float distanceSquared = Vector3.DistanceSquared(point, Center);
+        float radiusSquared = Radius * Radius;
+
+        return distanceSquared <= radiusSquared ? ContainmentType.Contains : ContainmentType.Disjoint;
+    }
+
+    public readonly ContainmentType Contains(in BoundingSphere sphere)
+    {
+        float d = Vector3.Distance(Center, sphere.Center);
+        float r1 = Radius;
+        float r2 = sphere.Radius;
+
+        return (r1 + r2 >= d) ? ((r1 - r2 >= d) ? ContainmentType.Contains : ContainmentType.Intersects) : ContainmentType.Disjoint;
+    }
+
+    public readonly bool Intersects(in BoundingSphere sphere)
+    {
+        // If the distance between the spheres' centers is less than or equal
+        // to the sum of their radii, then the spheres intersect.
+        float vx = sphere.Center.X - Center.Y;
+        float vy = sphere.Center.Y - Center.Y;
+        float vz = sphere.Center.Z - Center.Z;
+
+        return float.Sqrt(vx * vx + vy * vy + vz * vz) <= (Radius + sphere.Radius);
+    }
+
+    public readonly bool Intersects(in BoundingBox box)
+    {
+        // Determine what point is closest; if the distance to that
+        // point is less than the radius, then this sphere intersects.
+        float cpX = Center.X;
+        float cpY = Center.Y;
+        float cpZ = Center.Z;
+
+        Vector3 boxMin = box.Min;
+        Vector3 boxMax = box.Max;
+        // Closest x value.
+        if (Center.X < boxMin.X)
+        {
+            cpX = boxMin.X;
+        }
+        else if (Center.X > boxMax.X)
+        {
+            cpX = boxMax.X;
+        }
+
+        // Closest y value.
+        if (Center.Y < boxMin.Y)
+        {
+            cpY = boxMin.Y;
+        }
+        else if (Center.Y > boxMax.Y)
+        {
+            cpY = boxMax.Y;
+        }
+
+        // Closest z value.
+        if (Center.Z < boxMin.Z)
+        {
+            cpZ = boxMin.Z;
+        }
+        else if (Center.Z > boxMax.Z)
+        {
+            cpZ = boxMax.Z;
+        }
+
+        // Find the distance to the closest point and see if it is less than or equal to the radius.
+        cpX -= Center.X;
+        cpY -= Center.Y;
+        cpZ -= Center.Z;
+
+        return float.Sqrt(cpX * cpX + cpY * cpY + cpZ * cpZ) <= Radius;
+    }
+
+    public readonly PlaneIntersectionType Intersects(in Plane plane)
+    {
+        float distance = plane.Distance(Center);
+
+        if (float.Abs(distance) <= Radius)
+        {
+            return PlaneIntersectionType.Intersecting;
+        }
+        else if (distance > 0.0f)
+        {
+            return PlaneIntersectionType.Front;
+        }
+        else
+        {
+            return PlaneIntersectionType.Back;
+        }
+    }
+
+    public readonly bool Intersects(in Ray ray, out float distance)
+    {
+         Vector3 origin = ray.Position;
+         Vector3 direction = ray.Direction;
+
+        // Calculate the vector and the square of the distance from the ray's origin to this sphere's center.
+        float vx = origin.X - Center.X;
+        float vy = origin.Y - Center.Y;
+        float vz = origin.Z - Center.Z;
+        float d2 = vx * vx + vy * vy + vz * vz;
+
+        // Solve the quadratic equation using the ray's and sphere's equations together.
+        // Since the ray's direction is guaranteed to be 1 by the Ray, we don't need to
+        // calculate and use A (A=ray.getDirection().lengthSquared()).
+        float B = 2.0f * (vx * direction.X + vy * direction.Y + vz * direction.Z);
+        float C = d2 - Radius * Radius;
+        float discriminant = B * B - 4.0f * C;
+
+        // If the discriminant is negative, then there is no intersection.
+        if (discriminant < 0.0f)
+        {
+            distance = .0f;
+            return false;
+        }
+
+        // The intersection is at the smaller positive root.
+        float sqrtDisc = float.Sqrt(discriminant);
+        float t0 = (-B - sqrtDisc) * 0.5f;
+        float t1 = (-B + sqrtDisc) * 0.5f;
+        distance = (t0 > 0.0f && t0 < t1) ? t0 : t1;
+        return true;
     }
 
     /// <inheritdoc/>

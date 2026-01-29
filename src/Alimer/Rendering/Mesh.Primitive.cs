@@ -1,11 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
@@ -83,7 +80,7 @@ partial class Mesh
             vbase += 4;
         }
 
-        Mesh mesh = new();
+        Mesh mesh = new(24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.UInt16);
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
         mesh.RecalculateBounds();
@@ -189,7 +186,7 @@ partial class Mesh
             }
         }
 
-        Mesh mesh = new();
+        Mesh mesh = new(vertexCount, VertexPositionNormalTexture.VertexAttributes, indexCount, IndexFormat.UInt16);
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
         mesh.RecalculateBounds();

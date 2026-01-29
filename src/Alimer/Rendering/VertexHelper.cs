@@ -2,10 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using MeshOptimizer;
+//using MeshOptimizer;
 using Alimer.Numerics;
 
-namespace Alimer.Assets.Graphics;
+namespace Alimer.Rendering;
 
 public static unsafe class VertexHelper
 {
@@ -49,9 +49,9 @@ public static unsafe class VertexHelper
     }
 
     public static Span<Vector3> GenerateTangents(
-        Span<Vector3> positions,
-        Span<Vector2> texcoords,
-        Span<uint> indices)
+        ReadOnlySpan<Vector3> positions,
+        ReadOnlySpan<Vector2> texcoords,
+        ReadOnlySpan<uint> indices)
     {
         Span<Vector3> tangentBuffer = new Vector3[positions.Length];
 
@@ -104,10 +104,12 @@ public static unsafe class VertexHelper
         return tangentBuffer;
     }
 
+#if TODO_MESH_OPTIMIZER
     public static void OptimizeVertexCache(Span<uint> destination, ReadOnlySpan<uint> indices, uint vertexCount)
     {
         // https://github.com/zeux/meshoptimizer#vertex-cache-optimization
         Meshopt.OptimizeVertexCache(destination, indices, vertexCount);
-    }
+    } 
+#endif
 }
 

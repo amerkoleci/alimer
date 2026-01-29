@@ -19,7 +19,7 @@ public record struct VertexBufferLayout
         uint computedStride = 0;
         for (int i = 0; i < attributes.Length; i++)
         {
-            uint elementSize = attributes[i].Format.GetSizeInBytes();
+            uint elementSize = (uint)attributes[i].Format.GetSizeInBytes();
             if (attributes[i].Offset != 0)
             {
                 computedStride = attributes[i].Offset + elementSize;

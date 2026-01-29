@@ -7,8 +7,8 @@ namespace Alimer.Graphics;
 
 public readonly record struct VertexFormatInfo(
     VertexFormat Format,
-    uint ByteSize,
-    uint ComponentCount,
+    int ByteSize,
+    int ComponentCount,
     FormatKind Kind
 );
 
@@ -66,5 +66,5 @@ public static class VertexFormatUtils
         return ref s_vertexFormatInfos[(uint)format];
     }
 
-    public static uint GetSizeInBytes(this VertexFormat format) => GetFormatInfo(format).ByteSize;
+    public static int GetSizeInBytes(this VertexFormat format) => GetFormatInfo(format).ByteSize;
 }

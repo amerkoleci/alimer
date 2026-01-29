@@ -231,6 +231,204 @@ public partial struct BoundingBox : IEquatable<BoundingBox>, IFormattable
     }
 
 
+    public readonly ContainmentType Contains(in Vector3 point)
+    {
+        if (Min.X <= point.X && Max.X >= point.X
+            && Min.Y <= point.Y && Max.Y >= point.Y
+            && Min.Z <= point.Z && Max.Z >= point.Z)
+        {
+            return ContainmentType.Contains;
+        }
+
+        return ContainmentType.Disjoint;
+    }
+
+    public readonly ContainmentType Contains(in BoundingBox box)
+    {
+        if (Max.X < box.Min.X || Min.X > box.Max.X)
+            return ContainmentType.Disjoint;
+
+        if (Max.Y < box.Min.Y || Min.Y > box.Max.Y)
+            return ContainmentType.Disjoint;
+
+        if (Max.Z < box.Min.Z || Min.Z > box.Max.Z)
+            return ContainmentType.Disjoint;
+
+        if (Min.X <= box.Min.X && (box.Max.X <= Max.X
+            && Min.Y <= box.Min.Y && box.Max.Y <= Max.Y)
+            && Min.Z <= box.Min.Z && box.Max.Z <= Max.Z)
+        {
+            return ContainmentType.Contains;
+        }
+
+        return ContainmentType.Intersects;
+    }
+
+    public readonly ContainmentType Contains(in BoundingSphere sphere)
+    {
+        Vector3 vector = Vector3.Clamp(sphere.Center, Min, Max);
+        float distance = Vector3.DistanceSquared(sphere.Center, vector);
+
+        if (distance > sphere.Radius * sphere.Radius)
+            return ContainmentType.Disjoint;
+
+        if (((Min.X + sphere.Radius <= sphere.Center.X) && (sphere.Center.X <= Max.X - sphere.Radius) && (Max.X - Min.X > sphere.Radius))
+            && ((Min.Y + sphere.Radius <= sphere.Center.Y) && (sphere.Center.Y <= Max.Y - sphere.Radius) && (Max.Y - Min.Y > sphere.Radius))
+            && ((Min.Z + sphere.Radius <= sphere.Center.Z) && (sphere.Center.Z <= Max.Z - sphere.Radius) && (Max.Z - Min.Z > sphere.Radius)))
+        {
+            return ContainmentType.Contains;
+        }
+
+        return ContainmentType.Intersects;
+    }
+
+    public readonly bool Intersects(in BoundingBox box)
+    {
+        if (Max.X < box.Min.X || Min.X > box.Max.X)
+        {
+            return false;
+        }
+
+        if (Max.Y < box.Min.Y || Min.Y > box.Max.Y)
+        {
+            return false;
+        }
+
+        if (Max.Z < box.Min.Z || Min.Z > box.Max.Z)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public readonly bool Intersects(in BoundingSphere sphere)
+    {
+        return sphere.Intersects(this);
+    }
+
+    public readonly bool Intersects(in BoundingFrustum frustum)
+    {
+        return frustum.Intersects( this);
+    }
+
+    public readonly PlaneIntersectionType Intersects(in Plane plane)
+    {
+        // Calculate the distance from the center of the box to the plane.
+        Vector3 center = new((Min.X + Max.X) * 0.5f, (Min.Y + Max.Y) * 0.5f, (Min.Z + Max.Z) * 0.5f);
+        float distance = plane.Distance(center);
+
+        // Get the extents of the box from its center along each axis.
+        float extentX = (Max.X - Min.X) * 0.5f;
+        float extentY = (Max.Y - Min.Y) * 0.5f;
+        float extentZ = (Max.Z - Min.Z) * 0.5f;
+
+        Vector3 planeNormal = plane.Normal;
+        if (float.Abs(distance) <= (float.Abs(extentX * planeNormal.X) + float.Abs(extentY * planeNormal.Y) + float.Abs(extentZ * planeNormal.Z)))
+        {
+            return PlaneIntersectionType.Intersecting;
+        }
+
+        return (distance > 0.0f) ? PlaneIntersectionType.Front : PlaneIntersectionType.Back;
+    }
+
+    public readonly bool Intersects(in Ray ray, out float distance)
+    {
+        // Intermediate calculation variables.
+        float dnear = 0.0f;
+        float dfar = 0.0f;
+        float tmin = 0.0f;
+        float tmax = 0.0f;
+
+         Vector3 origin = ray.Position;
+         Vector3 direction = ray.Direction;
+
+        // X direction.
+        float div = 1.0f / direction.X;
+        if (div >= 0.0f)
+        {
+            tmin = (Min.X - origin.X) * div;
+            tmax = (Max.X - origin.X) * div;
+        }
+        else
+        {
+            tmin = (Max.X - origin.X) * div;
+            tmax = (Min.X - origin.X) * div;
+        }
+        dnear = tmin;
+        dfar = tmax;
+
+        // Check if the ray misses the box.
+        if (dnear > dfar || dfar < 0.0f)
+        {
+            distance = 0.0f;
+            return false;
+        }
+
+        // Y direction.
+        div = 1.0f / direction.Y;
+        if (div >= 0.0f)
+        {
+            tmin = (Min.Y - origin.Y) * div;
+            tmax = (Max.Y - origin.Y) * div;
+        }
+        else
+        {
+            tmin = (Max.Y - origin.Y) * div;
+            tmax = (Min.Y - origin.Y) * div;
+        }
+
+        // Update the near and far intersection distances.
+        if (tmin > dnear)
+        {
+            dnear = tmin;
+        }
+        if (tmax < dfar)
+        {
+            dfar = tmax;
+        }
+        // Check if the ray misses the box.
+        if (dnear > dfar || dfar < 0.0f)
+        {
+            distance = 0.0f;
+            return false;
+        }
+
+        // Z direction.
+        div = 1.0f / direction.Z;
+        if (div >= 0.0f)
+        {
+            tmin = (Min.Z - origin.Z) * div;
+            tmax = (Max.Z - origin.Z) * div;
+        }
+        else
+        {
+            tmin = (Max.Z - origin.Z) * div;
+            tmax = (Min.Z - origin.Z) * div;
+        }
+
+        // Update the near and far intersection distances.
+        if (tmin > dnear)
+        {
+            dnear = tmin;
+        }
+        if (tmax < dfar)
+        {
+            dfar = tmax;
+        }
+
+        // Check if the ray misses the box.
+        if (dnear > dfar || dfar < 0.0f)
+        {
+            distance = 0.0f;
+            return false;
+        }
+
+        // The ray intersects the box (and since the direction of a Ray is normalized, dnear is the distance to the ray).
+        distance = dnear;
+        return true;
+    }
+
     /// <inheritdoc/>
     public override readonly bool Equals([NotNullWhen(true)] object? obj) => (obj is BoundingBox other) && Equals(other);
 

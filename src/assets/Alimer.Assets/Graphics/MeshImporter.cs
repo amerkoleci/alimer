@@ -9,6 +9,8 @@ using GLTF2;
 using AssimpScene = Silk.NET.Assimp.Scene;
 using GLTFMaterial = SharpGLTF.Schema2.Material;
 using GLTFMesh = SharpGLTF.Schema2.Mesh;
+using Alimer.Rendering;
+using MeshOptimizer;
 
 namespace Alimer.Assets.Graphics;
 
@@ -193,7 +195,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         }
 
         Span<uint> optimized = stackalloc uint[indices.Length];
-        VertexHelper.OptimizeVertexCache(optimized, indices, (uint)positions.Count);
+        OptimizeVertexCache(optimized, indices, (uint)positions.Count);
 
         MeshAsset asset = new()
         {
@@ -287,5 +289,11 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
     public override Task<MeshAsset> Import(MeshMetadata metadata)
     {
         return ImportGLTF(metadata);
+    }
+
+    private static void OptimizeVertexCache(Span<uint> destination, ReadOnlySpan<uint> indices, uint vertexCount)
+    {
+        // https://github.com/zeux/meshoptimizer#vertex-cache-optimization
+        Meshopt.OptimizeVertexCache(destination, indices, vertexCount);
     }
 }

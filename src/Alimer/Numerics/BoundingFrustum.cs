@@ -9,52 +9,97 @@ namespace Alimer.Numerics;
 
 public readonly partial struct BoundingFrustum : IEquatable<BoundingFrustum>
 {
+    public const int NearPlaneIndex = 0;
+    public const int FarPlaneIndex = 1;
+    public const int LeftPlaneIndex = 2;
+    public const int RightPlaneIndex = 3;
+    public const int TopPlaneIndex = 4;
+    public const int BottomPlaneIndex = 5;
     public const int CornerCount = 8;
 
     private readonly Plane[] _planes;
 
     public BoundingFrustum(in Matrix4x4 viewProjection)
     {
+        // Gribb-Hartmann plane extraction for row-major, RIGHT-HANDED coordinates
+        // (OpenGL/Vulkan style: Z points toward camera, near < far in view space)
+        // Planes point inward (normals point toward the inside of the frustum)
+
         _planes =
         [
-            Plane.Normalize(new Plane(-viewProjection.M13, -viewProjection.M23, -viewProjection.M33, -viewProjection.M43)),
-            Plane.Normalize(new Plane(viewProjection.M13 - viewProjection.M14, viewProjection.M23 - viewProjection.M24, viewProjection.M33 - viewProjection.M34, viewProjection.M43 - viewProjection.M44)),
-            Plane.Normalize(new Plane(-viewProjection.M14 - viewProjection.M11, -viewProjection.M24 - viewProjection.M21, -viewProjection.M34 - viewProjection.M31, -viewProjection.M44 - viewProjection.M41)),
-            Plane.Normalize(new Plane(viewProjection.M11 - viewProjection.M14, viewProjection.M21 - viewProjection.M24, viewProjection.M31 - viewProjection.M34, viewProjection.M41 - viewProjection.M44)),
-            Plane.Normalize(new Plane(viewProjection.M12 - viewProjection.M14, viewProjection.M22 - viewProjection.M24, viewProjection.M32 - viewProjection.M34, viewProjection.M42 - viewProjection.M44)),
-            Plane.Normalize(new Plane(-viewProjection.M14 - viewProjection.M12, -viewProjection.M24 - viewProjection.M22, -viewProjection.M34 - viewProjection.M32, -viewProjection.M44 - viewProjection.M42)),
+            // Near plane (note the negation for right-handed)
+            Plane.Normalize(new Plane(
+            -viewProjection.M13,
+            -viewProjection.M23,
+            -viewProjection.M33,
+            -viewProjection.M43)),
+        
+            // Far plane
+            Plane.Normalize(new Plane(
+                viewProjection.M14 - viewProjection.M13,
+                viewProjection.M24 - viewProjection.M23,
+                viewProjection.M34 - viewProjection.M33,
+                viewProjection.M44 - viewProjection.M43)),
+        
+            // Left plane
+            Plane.Normalize(new Plane(
+                viewProjection.M14 + viewProjection.M11,
+                viewProjection.M24 + viewProjection.M21,
+                viewProjection.M34 + viewProjection.M31,
+                viewProjection.M44 + viewProjection.M41)),
+        
+            // Right plane
+            Plane.Normalize(new Plane(
+                viewProjection.M14 - viewProjection.M11,
+                viewProjection.M24 - viewProjection.M21,
+                viewProjection.M34 - viewProjection.M31,
+                viewProjection.M44 - viewProjection.M41)),
+        
+            // Top plane
+            Plane.Normalize(new Plane(
+                viewProjection.M14 - viewProjection.M12,
+                viewProjection.M24 - viewProjection.M22,
+                viewProjection.M34 - viewProjection.M32,
+                viewProjection.M44 - viewProjection.M42)),
+        
+            // Bottom plane
+            Plane.Normalize(new Plane(
+                viewProjection.M14 + viewProjection.M12,
+                viewProjection.M24 + viewProjection.M22,
+                viewProjection.M34 + viewProjection.M32,
+                viewProjection.M44 + viewProjection.M42)),
         ];
     }
 
     /// <summary>
     /// The near plane of this frustum.
     /// </summary>
-    public ref readonly Plane Near => ref _planes[0];
+    public ref readonly Plane Near => ref _planes[NearPlaneIndex];
 
     /// <summary>
     /// The far plane of this frustum.
     /// </summary>
-    public ref readonly Plane Far => ref _planes[1];
+    public ref readonly Plane Far => ref _planes[FarPlaneIndex];
 
     /// <summary>
     /// The left plane of this frustum.
     /// </summary>
-    public ref readonly Plane Left => ref _planes[2];
+    public ref readonly Plane Left => ref _planes[LeftPlaneIndex];
 
     /// <summary>
     /// The right plane of this frustum.
     /// </summary>
-    public ref readonly Plane Right => ref _planes[3];
+    public ref readonly Plane Right => ref _planes[RightPlaneIndex];
 
     /// <summary>
     /// The top  plane of this frustum.
     /// </summary>
-    public ref readonly Plane Top => ref _planes[4];
+    public ref readonly Plane Top => ref _planes[TopPlaneIndex];
 
     /// <summary>
     /// The bottom plane of this frustum.
     /// </summary>
-    public ref readonly Plane Bottom => ref _planes[5];
+    public ref readonly Plane Bottom => ref _planes[BottomPlaneIndex];
 
     /// <summary>
     /// Retrieves the eight corners of the bounding frustum.
@@ -126,6 +171,17 @@ public readonly partial struct BoundingFrustum : IEquatable<BoundingFrustum>
 
     /// <inheritdoc />
     public override string ToString() => $"{nameof(BoundingFrustum)}";
+
+    public readonly bool Intersects(in BoundingBox box)
+    {
+        // The box must either intersect or be in the positive half-space of all six planes of the frustum.
+        return (box.Intersects(_planes[NearPlaneIndex]) != PlaneIntersectionType.Back
+            && box.Intersects(_planes[FarPlaneIndex]) != PlaneIntersectionType.Back
+            && box.Intersects(_planes[LeftPlaneIndex]) != PlaneIntersectionType.Back
+            && box.Intersects(_planes[RightPlaneIndex]) != PlaneIntersectionType.Back
+            && box.Intersects(_planes[TopPlaneIndex]) != PlaneIntersectionType.Back
+            && box.Intersects(_planes[BottomPlaneIndex]) != PlaneIntersectionType.Back);
+    }
 
     private static Vector3 IntersectionPoint(Plane a, Plane b, Plane c)
     {

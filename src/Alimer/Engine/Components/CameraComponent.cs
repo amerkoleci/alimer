@@ -51,6 +51,10 @@ public partial class CameraComponent : Component
     [JsonIgnore]
     public Matrix4x4 ViewProjectionMatrix { get; set; } = Matrix4x4.Identity;
 
+    [IgnoreDataMember]
+    [JsonIgnore]
+    public BoundingFrustum Frustum { get; set; }
+
 
     public void Update(float? screenAspectRatio = null)
     {
@@ -74,5 +78,6 @@ public partial class CameraComponent : Component
             FarPlaneDistance);
 
         ViewProjectionMatrix = ViewMatrix * ProjectionMatrix;
+        Frustum = new(ViewProjectionMatrix);
     }
 }

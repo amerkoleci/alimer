@@ -12,7 +12,5 @@ namespace Alimer.Rendering;
 public interface IMeshVertex
 {
     [NotNull]
-    static abstract MeshVertexAttribute[] VertexAttributes { get; }
-    [NotNull]
-    static abstract VertexAttribute[] RHIVertexAttributes { get; }
+    static abstract Mesh.VertexAttribute[] VertexAttributes { get; }
 }
