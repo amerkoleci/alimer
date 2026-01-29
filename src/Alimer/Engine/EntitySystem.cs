@@ -53,13 +53,13 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
     {
     }
 
-    public abstract void ProcessEntityComponent(EntityComponent component, Entity entity, bool forceRemove);
+    public abstract void ProcessEntityComponent(Component component, Entity entity, bool forceRemove);
 
     public virtual bool Accepts(Type type) => MainComponentType?.IsAssignableFrom(type) ?? false;
 }
 
 public abstract class EntitySystem<TComponent> : EntitySystem
-    where TComponent : EntityComponent
+    where TComponent : Component
 {
     protected EntitySystem()
         : base(typeof(TComponent))
@@ -73,7 +73,7 @@ public abstract class EntitySystem<TComponent> : EntitySystem
 
     protected HashSet<TComponent> Components { get; } = [];
 
-    public override void ProcessEntityComponent(EntityComponent component, Entity entity, bool forceRemove)
+    public override void ProcessEntityComponent(Component component, Entity entity, bool forceRemove)
     {
         if (component is not TComponent entityComponent)
             throw new ArgumentException("The entity component must be assignable to TComponent", nameof(component));
@@ -108,7 +108,7 @@ public abstract class EntitySystem<TComponent> : EntitySystem
 
         List<Type> remainingRequiredTypes = [.. RequiredComponentTypes];
 
-        foreach (EntityComponent component in entity.Components)
+        foreach (Component component in entity.Components)
         {
             remainingRequiredTypes.RemoveAll(t => t.IsAssignableFrom(component.GetType()));
 

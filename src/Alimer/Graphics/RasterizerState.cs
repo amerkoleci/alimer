@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public  record struct RasterizerState
+public record struct RasterizerState
 {
     public FillMode FillMode = FillMode.Solid;
     public CullMode CullMode = CullMode.Back;

@@ -9,7 +9,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="RenderPipeline"/>.
 /// </summary>
-public record struct RenderPipelineDescriptor
+public ref struct RenderPipelineDescriptor
 {
     /// <summary>
     /// Gets or sets the label of <see cref="RenderPipeline"/>.
@@ -22,7 +22,7 @@ public record struct RenderPipelineDescriptor
     public ShaderModule? AmplificationShader;
     public ShaderModule? MeshShader;
 
-    public VertexBufferLayout[] VertexBufferLayouts;
+    public Span<VertexBufferLayout> VertexBufferLayouts;
 
     public BlendState BlendState;
 
@@ -36,14 +36,14 @@ public record struct RenderPipelineDescriptor
     /// </summary>
 	public IndexFormat StripIndexFormat;
 
-    public PixelFormat[] ColorFormats;
+    public Span<PixelFormat> ColorFormats;
     public PixelFormat DepthStencilFormat = PixelFormat.Undefined;
 
     public TextureSampleCount SampleCount = TextureSampleCount.Count1;
 
     public RenderPipelineDescriptor(
         PipelineLayout layout,
-        PixelFormat[] colorFormats,
+        Span<PixelFormat> colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
         : this(layout, [], colorFormats, depthStencilFormat)
     {
@@ -51,8 +51,8 @@ public record struct RenderPipelineDescriptor
 
     public RenderPipelineDescriptor(
         PipelineLayout layout,
-        VertexBufferLayout[] vertexBufferLayouts,
-        PixelFormat[] colorFormats,
+        Span<VertexBufferLayout> vertexBufferLayouts,
+        Span<PixelFormat> colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
     {
         Guard.IsNotNull(layout, nameof(layout));

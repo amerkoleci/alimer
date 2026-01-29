@@ -10,7 +10,7 @@ namespace Alimer.Graphics;
 /// </summary>
 public ref struct BindGroupLayoutDescriptor
 {
-    public ReadOnlySpan<BindGroupLayoutEntry> Entries = [];
+    public Span<BindGroupLayoutEntry> Entries = [];
 
     /// <summary>
     /// The label of <see cref="BindGroupLayout"/>.
@@ -21,10 +21,16 @@ public ref struct BindGroupLayoutDescriptor
     {
     }
 
-    public BindGroupLayoutDescriptor(ReadOnlySpan<BindGroupLayoutEntry> entries)
+    public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries)
     {
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 
         Entries = entries;
+    }
+
+    public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries, string label)
+        : this(entries)
+    {
+        Label = label;
     }
 }

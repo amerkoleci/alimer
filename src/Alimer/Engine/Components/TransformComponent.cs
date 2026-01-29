@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 namespace Alimer.Engine;
 
 [DefaultEntitySystem(typeof(TransformSystem))]
-public partial class TransformComponent : EntityComponent, IEnumerable<TransformComponent>
+public partial class TransformComponent : Component, IEnumerable<TransformComponent>
 {
     private Matrix4x4 _localMatrix = Matrix4x4.Identity;
     private Matrix4x4 _worldMatrix = Matrix4x4.Identity;

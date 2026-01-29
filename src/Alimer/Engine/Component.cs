@@ -6,10 +6,13 @@ using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
+/// <summary>
+/// Defines a component that can be attached to an <see cref="Entity"/>.
+/// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "__type")]
 [JsonDerivedType(typeof(TransformComponent), "TransformComponent")]
 [JsonDerivedType(typeof(CameraComponent), "CameraComponent")]
-public abstract class EntityComponent
+public abstract class Component
 {
     [IgnoreDataMember]
     [JsonIgnore]

@@ -36,7 +36,7 @@ public sealed class SceneSystem : EntityManager
         }
     }
 
-    protected override void AddComponent(EntityComponent component, Entity entity)
+    protected override void AddComponent(Component component, Entity entity)
     {
         base.AddComponent(component, entity);
 
@@ -48,7 +48,7 @@ public sealed class SceneSystem : EntityManager
         }
     }
 
-    protected override void RemoveComponent(EntityComponent component, Entity entity)
+    protected override void RemoveComponent(Component component, Entity entity)
     {
         base.RemoveComponent(component, entity);
 

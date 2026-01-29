@@ -10,31 +10,21 @@ namespace Alimer.Rendering;
 
 public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 {
-    private float _elapsedTime;
-
     private readonly Texture _blackTexture;
     private readonly Texture _whiteTexture;
     private readonly Texture _defaultNormalTexture;
-    private readonly Texture _checkerTexture;
-    //private readonly Sampler _defaultSampler;
 
     // TODO: Max frames inflight
     // TODO: Material system
+    private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
 
     private readonly ConstantBuffer<FrameConstants> _frameBuffer;
-    private readonly BindGroupLayout _frameBindGroupLayout;
     private readonly BindGroup _frameBindGroup;
 
     private readonly ConstantBuffer<PerViewData> _viewBuffer;
-    private readonly BindGroupLayout _viewBindGroupLayout;
     private readonly BindGroup _viewBindGroup;
 
-    private readonly PhysicallyBasedMaterial _defaultMaterial = new();
-    private readonly ConstantBuffer<PBRMaterialData> _materialBuffer;
-    private readonly BindGroupLayout _materialBindGroupLayout;
-    private readonly BindGroup _materialBindGroup;
-    private readonly PipelineLayout _pipelineLayout;
-    private readonly RenderPipeline _renderPipeline;
+    private readonly UnlitMaterial _defaultMaterial = new();
 
     public RenderSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
@@ -42,7 +32,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
         Services = services;
-        GraphicsDevice = services.GetService<GraphicsDevice>();
+        Device = services.GetService<GraphicsDevice>();
         Scene = services.GetService<SceneSystem>();
         ShaderSystem = services.GetService<ShaderSystem>();
         MainWindow = services.GetService<Window>();
@@ -68,84 +58,38 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
             0x00000000,
             0xFFFFFFFF,
         ];
-        _checkerTexture = GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4);
-        //_defaultSampler = GraphicsDevice.CreateSampler(SamplerDescriptor.LinearWrap);
+        CheckerTexture = ToDispose(Device.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4));
+        DefaultSampler = ToDispose(Device.CreateSampler(SamplerDescriptor.PointWrap));
 
         ColorFormat = MainWindow.SwapChain!.ColorFormat;
         DepthStencilFormat = PixelFormat.Depth24UnormStencil8;
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
+        GPUMaterialFactories.RegisterDefault();
 
         // WIP code
         // Implement ring buffer
-        _frameBuffer = new(GraphicsDevice, label: "Frame Constant Buffer");
-        _viewBuffer = new(GraphicsDevice, label: "View Constant Buffer");
-        _materialBuffer = new(GraphicsDevice, label: "Material Constant Buffer");
+        _frameBuffer = new(Device, label: "Frame Constant Buffer");
+        _viewBuffer = new(Device, label: "View Constant Buffer");
 
         // Till we have a material system, create a basic pipeline
-        _frameBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
+        FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
+            "Frame BindGroupLayout",
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
-            );
+            ));
 
-        _viewBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
+        ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
-           );
-
-        _materialBindGroupLayout = GraphicsDevice.CreateBindGroupLayout(
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
-            //new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment),
-            // Static samplers
-            new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
-            new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
-            new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
-            new BindGroupLayoutEntry(SamplerDescriptor.LinearClamp, 103, ShaderStages.All),         // SamplerLinearClamp
-            new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 104, ShaderStages.All),          // SamplerLinearWrap
-            new BindGroupLayoutEntry(SamplerDescriptor.LinearMirror, 105, ShaderStages.All),        // SamplerLinearMirror
-            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicClamp, 106, ShaderStages.All),    // SamplerAnisotropicClamp
-            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicWrap, 107, ShaderStages.All),     // SamplerAnisotropicWrap
-            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicMirror, 108, ShaderStages.All),   // SamplerAnisotropicMirror
-            new BindGroupLayoutEntry(SamplerDescriptor.ComparisonDepth, 109, ShaderStages.All)    // SamplerAnisotropicMirror
-            );
-
-        Span<BindGroupLayout> bindGroupLayouts = [_materialBindGroupLayout, _viewBindGroupLayout, _frameBindGroupLayout];
-        Span<PushConstantRange> pushConstantRanges = [
-            new PushConstantRange(999, (uint)sizeof(DrawData))
-        ];
-
-        PipelineLayoutDescriptor pipelineLayoutDescriptor = new(bindGroupLayouts, pushConstantRanges);
-
-        _pipelineLayout = GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescriptor);
+           ));
 
         // Bind groups with default textures/samplers
-        _frameBindGroup = _frameBindGroupLayout.CreateBindGroup(
+        _frameBindGroup = FrameBindGroupLayout.CreateBindGroup(
             new BindGroupEntry(0, _frameBuffer.Buffer)
             );
 
-        _viewBindGroup = _frameBindGroupLayout.CreateBindGroup(
+        _viewBindGroup = FrameBindGroupLayout.CreateBindGroup(
             new BindGroupEntry(0, _viewBuffer.Buffer)
             );
-
-        _materialBindGroup = _materialBindGroupLayout.CreateBindGroup(
-              new BindGroupEntry(0, _materialBuffer.Buffer),
-              new BindGroupEntry(0, _checkerTexture.DefaultView!)
-           );
-
-        ShaderModule vertexShader = ShaderSystem.GetShaderModule("PBR", ShaderStages.Vertex);
-        ShaderModule fragmentShader = ShaderSystem.GetShaderModule("PBR", ShaderStages.Fragment);
-
-        var vertexBufferLayout = new VertexBufferLayout[1]
-        {
-            new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
-        };
-
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, [ColorFormat], DepthStencilFormat)
-        {
-            Label = "RenderPipeline",
-            VertexShader = vertexShader,
-            FragmentShader = fragmentShader
-        };
-        _renderPipeline = GraphicsDevice.CreateRenderPipeline(renderPipelineDesc);
 
         MainWindow.SizeChanged += OnCanvasSizeChanged;
         Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
@@ -153,7 +97,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
     public IServiceRegistry Services { get; }
 
-    public GraphicsDevice GraphicsDevice { get; }
+    public GraphicsDevice Device { get; }
     public SceneSystem Scene { get; }
     public Window MainWindow { get; }
 
@@ -163,7 +107,6 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     public int ResolutionMultiplier { get; } = 1;
     public int Width { get; private set; }
     public int Height { get; private set; }
-
     public bool ShadowsEnabled { get; set; } = true;
     public int ShadowResolutionMultiplier { get; set; } = 1;
 
@@ -172,6 +115,11 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
     public Texture? MultisampleColorTexture { get; private set; }
     public Texture? DepthStencilTexture { get; private set; }
+    public Texture CheckerTexture { get; }
+    public Sampler DefaultSampler { get; }
+
+    public BindGroupLayout FrameBindGroupLayout { get; }
+    public BindGroupLayout ViewBindGroupLayout { get; }
 
     public ShaderSystem ShaderSystem { get; }
 
@@ -180,32 +128,27 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     {
         if (disposing)
         {
+            // Dispose all material factories
+            foreach (IGPUMaterialFactory factory in _gpuMaterialFactories.Values)
+            {
+                factory.Dispose();
+            }
+            _gpuMaterialFactories.Clear();
+
             MultisampleColorTexture?.Dispose();
             DepthStencilTexture?.Dispose();
 
             _blackTexture.Dispose();
             _whiteTexture.Dispose();
             _defaultNormalTexture.Dispose();
-            _checkerTexture.Dispose();
-            //_defaultSampler.Dispose();
-
-            // Material
-            _materialBuffer.Dispose();
-            _materialBindGroupLayout.Dispose();
-            _materialBindGroup.Dispose();
 
             // View
             _viewBuffer.Dispose();
             _viewBindGroup.Dispose();
-            _viewBindGroupLayout.Dispose();
 
             // Frame
             _frameBuffer.Dispose();
-            _frameBindGroupLayout.Dispose();
             _frameBindGroup.Dispose();
-
-            _pipelineLayout.Dispose();
-            _renderPipeline.Dispose();
         }
 
         base.Dispose(disposing);
@@ -213,12 +156,14 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
     public override void Update(GameTime time)
     {
-        _elapsedTime = (float)time.Total.TotalSeconds;
     }
 
     public override void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
     {
-        Render(commandBuffer, outputTexture, Scene.CurrentCamera!, time);
+        if (Scene.CurrentCamera is null)
+            return;
+
+        Render(commandBuffer, outputTexture, Scene.CurrentCamera, time);
     }
 
     public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera, GameTime time)
@@ -239,51 +184,64 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         };
 
         RenderPassEncoder renderPass = commandBuffer.BeginRenderPass(renderPassDescriptor);
-        //renderContext.SetBindGroup(0, camera.bindGroup);
 
-        renderPass.SetPipeline(_renderPipeline!);
+        // Frame BindGroup (once per frame)
         renderPass.SetBindGroup(2, _frameBindGroup);
 
         // For each camera
         renderPass.SetBindGroup(1, _viewBindGroup);
 
-        foreach (MeshComponent meshComponent in Components)
-        {
-            renderPass.SetBindGroup(0, _materialBindGroup);
-            TransformComponent transformComponent = meshComponent.Entity!.Transform;
-
-            DrawData drawData = new()
-            {
-                WorldMatrix = transformComponent.WorldMatrix
-            };
-
-            renderPass.SetPushConstants(0, drawData);
-            Mesh? mesh = meshComponent.Mesh;
-            if (mesh == null)
-                throw new InvalidOperationException("MeshComponent has no Mesh assigned.");
-
-            // Material
-            PhysicallyBasedMaterial material = meshComponent.Materials.Count > 0 ? (PhysicallyBasedMaterial)meshComponent.Materials[0] : _defaultMaterial;
-            //material.Update(_materialBuffer);
-            PBRMaterialData materialData = new();
-            materialData.baseColorFactor = material.BaseColorFactor;
-            _materialBuffer.SetData(materialData);
-
-            //foreach (var subMesh in mesh.SubMeshes)
-            //{
-            //    renderPass.SetVertexBuffer(0, mesh.VertexBuffer);
-            //    renderPass.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
-            //    renderPass.DrawIndexed();
-            //}
-            mesh.Draw(renderPass, 1u);
-        }
-
-        //_cubeMesh.Draw(renderPassEncoder);
-
         // Loop through all the renderable entities and store them by pipeline.
-        //for (const pipeline of this.renderBatch.sortedPipelines) {
+        //for (const pipeline of this.renderBatch.sortedPipelines)
+        //{
         //    passEncoder.setPipeline(pipeline.pipeline);
         //}
+
+        foreach (MeshComponent meshComponent in Components)
+        {
+            if (meshComponent.Mesh is null)
+                continue;
+
+            Mesh mesh = meshComponent.Mesh;
+            MeshVertexBufferLayout layout = mesh.VertexBufferLayout;
+            VertexBufferLayout gpuLayout = new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes);
+            Span<VertexBufferLayout> geometryLayout = [gpuLayout];
+
+            renderPass.SetVertexBuffer(0, mesh.GpuVertexBuffer!);
+            renderPass.SetIndexBuffer(mesh.GpuIndexBuffer!, mesh.IndexFormat);
+
+            foreach (SubMesh subMesh in mesh.SubMeshes)
+            {
+                int materialIndex = subMesh.MaterialIndex;
+                if (materialIndex >= meshComponent.Materials.Count)
+                    continue;
+
+                Material material = meshComponent.Materials[materialIndex];
+                if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
+                {
+                    throw new InvalidOperationException($"No GPU material factory found for material type '{material.GetType()}'.");
+                }
+
+                bool skinned = false;
+                RenderPipeline renderPipeline = factory.GetPipeline(geometryLayout, material, skinned);
+                BindGroup bindGroup = factory.GetBindGroup(material, skinned);
+
+                renderPass.SetPipeline(renderPipeline);
+                renderPass.SetBindGroup(0, bindGroup);
+
+                // Update per-object data (after set pipeline)
+                TransformComponent transformComponent = meshComponent.Entity!.Transform;
+                DrawData drawData = new()
+                {
+                    WorldMatrix = transformComponent.WorldMatrix
+                };
+                renderPass.SetPushConstants(0, drawData);
+
+                uint instanceCount = 1u;
+                renderPass.DrawIndexed((uint)subMesh.IndexCount, instanceCount, (uint)subMesh.IndexStart, 0, 0);
+            }
+        }
+
         renderPass.EndEncoding();
     }
 
@@ -297,7 +255,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
             MultisampleColorTexture?.Dispose();
 
             TextureDescriptor multisampleTextureDesc = TextureDescriptor.Texture2D(ColorFormat, (uint)Width, (uint)Height, 1, 1, TextureUsage.RenderTarget, SampleCount);
-            MultisampleColorTexture = GraphicsDevice.CreateTexture(in multisampleTextureDesc);
+            MultisampleColorTexture = Device.CreateTexture(in multisampleTextureDesc);
         }
 
         if (DepthStencilFormat != PixelFormat.Undefined &&
@@ -309,7 +267,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
                 usage: TextureUsage.RenderTarget,
                 sampleCount: SampleCount
                 );
-            DepthStencilTexture = GraphicsDevice.CreateTexture(in depthStencilTextureDesc);
+            DepthStencilTexture = Device.CreateTexture(in depthStencilTextureDesc);
         }
     }
 
@@ -350,17 +308,59 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     private Texture CreateTextureFromColor(in Color color)
     {
         ReadOnlySpan<uint> pixels = [color.ToRgba()];
-        return GraphicsDevice.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);
+        return Device.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);
     }
 
     protected override void OnEntityComponentAdded(MeshComponent component)
     {
+        foreach (Material material in component.Materials)
+        {
+            if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
+            {
+                factory = GPUMaterialFactories.GetFactory(material, this);
+                _gpuMaterialFactories[material.GetType()] = factory;
+            }
 
+            factory.Add(material);
+        }
+
+#if TODO
+        if (component.Mesh is not null)
+        {
+            MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
+            VertexBufferLayout gpuLayout = new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes);
+            Span<VertexBufferLayout> geometryLayout = [gpuLayout];
+
+            foreach (SubMesh subMesh in component.Mesh.SubMeshes)
+            {
+                int materialIndex = subMesh.MaterialIndex;
+                if (materialIndex >= component.Materials.Count)
+                    continue;
+
+                Material material = component.Materials[materialIndex];
+                if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
+                {
+                    factory = GPUMaterialFactories.GetFactory(material, this);
+                    _gpuMaterialFactories[material.GetType()] = factory;
+                }
+
+                bool skinned = false;
+                RenderPipeline renderPipeline = factory.GetPipeline(geometryLayout, material, skinned);
+                BindGroup bindGroup = factory.GetBindGroup(material, skinned);
+            }
+        } 
+#endif
     }
 
     protected override void OnEntityComponentRemoved(MeshComponent component)
     {
-
+        foreach (Material material in component.Materials)
+        {
+            if (_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
+            {
+                factory.Remove(material);
+            }
+        }
     }
 
     public struct DrawData

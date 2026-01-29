@@ -9,7 +9,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes a compute <see cref="ComputePipeline"/>.
 /// </summary>
-public record struct ComputePipelineDescriptor
+public ref struct ComputePipelineDescriptor
 {
     public required ShaderModule ComputeShader;
     public PipelineLayout Layout;

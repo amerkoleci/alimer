@@ -43,6 +43,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject
     public void SetData<T>(in T data, int offsetInBytes = 0)
         where T : unmanaged
     {
+        // TODO: Copy command buffer
         Guard.IsTrue(MemoryType == MemoryType.Upload);
 
         fixed (T* dataPtr = &data)

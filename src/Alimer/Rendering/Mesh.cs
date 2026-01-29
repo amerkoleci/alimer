@@ -40,7 +40,10 @@ public sealed partial class Mesh : DisposableObject
     /// </summary>
     public int VertexStride => _layout.Stride;
 
-    public MeshVertexBufferLayout Layout => _layout;
+    public GraphicsBuffer? GpuVertexBuffer => _gpuVertexBuffer;
+    public GraphicsBuffer? GpuIndexBuffer => _gpuIndexBuffer;
+
+    public MeshVertexBufferLayout VertexBufferLayout => _layout;
 
     public IndexFormat IndexFormat => _indexBuffer.IndexFormat;
 

@@ -27,7 +27,7 @@ public sealed class SceneCubeSample : SampleBase
         // Camera
         _cameraEntity = new();
         CameraComponent camera = _cameraEntity.AddComponent<CameraComponent>();
-        camera.Entity.Transform.Position = new Vector3(0.0f, 0.0f, 25.0f);
+        camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 25.0f);
         root.Children.Add(_cameraEntity);
 
         //var test = _cameraEntity.Serialize();

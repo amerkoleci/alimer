@@ -5,22 +5,22 @@ using System.Collections.ObjectModel;
 
 namespace Alimer.Engine;
 
-public sealed class EntityComponentCollection(Entity entity) : ObservableCollection<EntityComponent>
+public sealed class EntityComponentCollection(Entity entity) : ObservableCollection<Component>
 {
     /// <summary>
     /// Gets the owner entity.
     /// </summary>
     public Entity Entity { get; } = entity;
 
-    public void Add(params EntityComponent[] components)
+    public void Add(params Component[] components)
     {
-        foreach(EntityComponent component in components)
+        foreach(Component component in components)
         {
             base.Add(component);
         }
     }
 
-    protected override void InsertItem(int index, EntityComponent item)
+    protected override void InsertItem(int index, Component item)
     {
         if (Contains(item))
             return;

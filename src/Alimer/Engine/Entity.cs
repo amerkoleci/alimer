@@ -94,8 +94,8 @@ public partial class Entity
     /// <typeparam name="T">The type of component to add. Must derive from EntityComponent.</typeparam>
     /// <param name="component">The component instance to add to the entity. Cannot be null.</param>
     /// <returns>The component that was added to the entity.</returns>
-    public EntityComponent AddComponent<T>(T component)
-        where T : EntityComponent
+    public Component AddComponent<T>(T component)
+        where T : Component
     {
         Components.Add(component);
         return component;
@@ -107,7 +107,7 @@ public partial class Entity
     /// <typeparam name="T">The type of component to add. Must be a subclass of EntityComponent and have a parameterless constructor.</typeparam>
     /// <returns>The newly created component of type T that was added to the entity.</returns>
     public T AddComponent<T>()
-        where T : EntityComponent, new()
+        where T : Component, new()
     {
         T component = new();
         Components.Add(component);
@@ -123,9 +123,9 @@ public partial class Entity
     /// <returns>The first component of type T attached to the entity.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the entity does not contain a component of type T.</exception>
     public T GetComponent<T>()
-        where T : EntityComponent
+        where T : Component
     {
-        foreach (EntityComponent component in Components)
+        foreach (Component component in Components)
         {
             if (component is T typedComponent)
             {
@@ -144,9 +144,9 @@ public partial class Entity
     /// <typeparam name="T">The type of component to search for. Must derive from EntityComponent.</typeparam>
     /// <returns>The first component of type T if found; otherwise, null.</returns>
     public T? TryGetComponent<T>()
-        where T : EntityComponent
+        where T : Component
     {
-        foreach (EntityComponent component in Components)
+        foreach (Component component in Components)
         {
             if (component is T typedComponent)
             {
@@ -165,7 +165,7 @@ public partial class Entity
     /// constructor.</typeparam>
     /// <returns>The existing component of type T if found; otherwise, a new instance of T that has been added to the entity.</returns>
     public T GetOrCreateComponent<T>()
-        where T : EntityComponent, new()
+        where T : Component, new()
     {
         T? component = GetComponent<T>();
 
@@ -184,9 +184,9 @@ public partial class Entity
     /// <typeparam name="T">The type of component to search for. Must derive from EntityComponent.</typeparam>
     /// <returns>true if a component of type T is attached to the entity; otherwise, false.</returns>
 	public bool HasComponent<T>()
-        where T : EntityComponent
+        where T : Component
     {
-        foreach (EntityComponent component in Components)
+        foreach (Component component in Components)
         {
             if (component is T typedComponent)
             {
@@ -205,11 +205,11 @@ public partial class Entity
     /// <typeparam name="T">The type of component to remove. Must derive from EntityComponent.</typeparam>
     /// <returns>true if a component of type T was found and removed; otherwise, false.</returns>
     public bool RemoveComponent<T>()
-        where T : EntityComponent
+        where T : Component
     {
         for (int i = 0; i < Components.Count; i++)
         {
-            EntityComponent component = Components[i];
+            Component component = Components[i];
             if (component is T typedComponent)
             {
                 //component.OnDetach();
@@ -226,7 +226,7 @@ public partial class Entity
     /// </summary>
     /// <param name="component">The component to remove from the entity. Cannot be null.</param>
     /// <returns>true if the component was successfully removed; otherwise, false.</returns>
-    public bool RemoveComponent(EntityComponent component)
+    public bool RemoveComponent(Component component)
     {
         return Components.Remove(component);
     }
@@ -253,7 +253,7 @@ public partial class Entity
         entity._parent = null;
     }
 
-    private void AddInternal(EntityComponent component)
+    private void AddInternal(Component component)
     {
         if (component.Entity != null)
         {
@@ -268,7 +268,7 @@ public partial class Entity
         component.Entity = this;
     }
 
-    private void RemoveInternal(EntityComponent component)
+    private void RemoveInternal(Component component)
     {
         if (component.Entity != this)
         {
@@ -307,13 +307,13 @@ public partial class Entity
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
-                foreach (EntityComponent component in e.NewItems!)
+                foreach (Component component in e.NewItems!)
                 {
                     AddInternal(component);
                 }
                 break;
             case NotifyCollectionChangedAction.Remove:
-                foreach (EntityComponent component in e.OldItems!)
+                foreach (Component component in e.OldItems!)
                 {
                     RemoveInternal(component);
                 }
@@ -336,6 +336,6 @@ public partial class Entity
 
         public Entity[] Children => [.. _entity.Transform.Children.Select(x => x.Entity!)];
 
-        public EntityComponent[] Components => [.. _entity.Components];
+        public Component[] Components => [.. _entity.Components];
     }
 }

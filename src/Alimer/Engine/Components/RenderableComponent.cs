@@ -6,7 +6,7 @@ using Alimer.Rendering;
 namespace Alimer.Engine;
 
 [DefaultEntitySystem(typeof(RenderSystem))]
-public partial class RenderableComponent : EntityComponent
+public partial class RenderableComponent : Component
 {
     public RenderableComponent()
     {

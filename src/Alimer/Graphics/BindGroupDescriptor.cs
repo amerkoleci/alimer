@@ -49,6 +49,15 @@ public struct BindGroupEntry
         Size = size;
     }
 
+    public BindGroupEntry(uint binding, Texture texture)
+    {
+        Guard.IsNotNull(texture, nameof(texture));
+        Guard.IsNotNull(texture.DefaultView, nameof(texture.DefaultView));
+
+        Binding = binding;
+        TextureView = texture.DefaultView;
+    }
+
     public BindGroupEntry(uint binding, TextureView textureView)
     {
         Guard.IsNotNull(textureView, nameof(textureView));

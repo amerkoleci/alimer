@@ -108,7 +108,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
         _entities.Add(entity);
 
-        foreach (EntityComponent component in entity.Components)
+        foreach (Component component in entity.Components)
         {
             AddComponent(component, entity);
         }
@@ -134,7 +134,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         entity.Components.CollectionChanged -= OnComponentsCollectionChanged;
         entity.Children.CollectionChanged -= OnChildrenCollectionChanged;
 
-        foreach (EntityComponent component in entity.Components)
+        foreach (Component component in entity.Components)
         {
             RemoveComponent(component, entity);
         }
@@ -147,17 +147,17 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         entity.EntityManager = null;
     }
 
-    protected virtual void AddComponent(EntityComponent component, Entity entity)
+    protected virtual void AddComponent(Component component, Entity entity)
     {
         CheckEntityComponentWithSystems(component, entity, false);
     }
 
-    protected virtual void RemoveComponent(EntityComponent component, Entity entity)
+    protected virtual void RemoveComponent(Component component, Entity entity)
     {
         CheckEntityComponentWithSystems(component, entity, true);
     }
 
-    private void CheckEntityComponentWithSystems(EntityComponent component, Entity entity, bool forceRemove)
+    private void CheckEntityComponentWithSystems(Component component, Entity entity, bool forceRemove)
     {
         Type componentType = component.GetType();
 
@@ -218,9 +218,9 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         }
     }
 
-    private void UpdateDependentSystems(Entity entity, EntityComponent skipComponent)
+    private void UpdateDependentSystems(Entity entity, Component skipComponent)
     {
-        foreach (EntityComponent component in entity.Components)
+        foreach (Component component in entity.Components)
         {
             if (component == skipComponent) continue;
 
@@ -263,14 +263,14 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
-                foreach (EntityComponent component in e.NewItems!.Cast<EntityComponent>())
+                foreach (Component component in e.NewItems!.Cast<Component>())
                 {
                     AddComponent(component, entity);
                     UpdateDependentSystems(entity, component);
                 }
                 break;
             case NotifyCollectionChangedAction.Remove:
-                foreach (EntityComponent component in e.OldItems!.Cast<EntityComponent>())
+                foreach (Component component in e.OldItems!.Cast<Component>())
                 {
                     RemoveComponent(component, entity);
                     UpdateDependentSystems(entity, component);

@@ -50,7 +50,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
 
         for (uint binding = 0; binding < descriptor.VertexBufferLayouts.Length; binding++)
         {
-            ref readonly VertexBufferLayout layout = ref descriptor.VertexBufferLayouts[binding];
+            ref readonly VertexBufferLayout layout = ref descriptor.VertexBufferLayouts[(int)binding];
 
             if (layout.Stride == 0)
                 continue;

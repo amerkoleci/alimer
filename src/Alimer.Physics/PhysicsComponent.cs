@@ -7,7 +7,7 @@ using Alimer.Engine;
 namespace Alimer.Physics;
 
 [DefaultEntitySystem(typeof(PhysicsSystem))]
-public abstract partial class PhysicsComponent : EntityComponent
+public abstract partial class PhysicsComponent : Component
 {
     public PhysicsSimulation? Simulation { get; internal set; }
     public abstract Matrix4x4 PhysicsWorldTransform { get; set; }

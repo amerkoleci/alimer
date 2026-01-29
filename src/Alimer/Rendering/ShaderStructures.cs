@@ -31,7 +31,7 @@ public struct PerViewData : IShaderConstantBuffer
 public struct PBRMaterialData : IShaderConstantBuffer
 {
     public Color baseColorFactor;
-    public Vector4 emissiveFactor;
+    public Color emissiveFactor;
     public float metallicFactor;
     public float roughnessFactor;
     public float normalScale;

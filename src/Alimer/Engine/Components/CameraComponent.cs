@@ -15,7 +15,7 @@ namespace Alimer.Engine;
 [Description("Camera component.")]
 //[Icon("camera")]
 [DefaultEntitySystem(typeof(CameraSystem))]
-public partial class CameraComponent : EntityComponent
+public partial class CameraComponent : Component
 {
     public const float DefaultFieldOfView = 60.0f;
 

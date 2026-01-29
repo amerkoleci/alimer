@@ -62,4 +62,12 @@ struct ALIGNMENT PerDrawData
     //float4x4 inverseWorldMatrix;
 };
 
+#ifndef __cplusplus
+// Frame (space 2)
+ConstantBuffer<PerFrameData> frame : register(b0, space2);
+
+// View (space 1)
+ConstantBuffer<PerViewData> view : register(b0, space1);
+#endif
+
 #endif // _ALIMER_SHADER__

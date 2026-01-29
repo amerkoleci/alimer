@@ -5,11 +5,11 @@ using Alimer.Graphics;
 
 namespace Alimer.Rendering;
 
-public readonly struct MeshVertexBufferLayout
+public struct MeshVertexBufferLayout
 {
-    public int Stride { get; init; }
-    public VertexStepMode StepMode { get; init; }
-    public MeshVertexAttribute[] Attributes { get; init; }
+    public int Stride;
+    public VertexStepMode StepMode;
+    public MeshVertexAttribute[] Attributes;                    
 
     public MeshVertexBufferLayout(params Span<MeshVertexAttribute> attributes)
     {
@@ -33,7 +33,7 @@ public readonly struct MeshVertexBufferLayout
         StepMode = VertexStepMode.Vertex;
     }
 
-    public bool HasAttribute(MeshVertexAttributeSemantic semantic)
+    public readonly bool HasAttribute(MeshVertexAttributeSemantic semantic)
     {
         for (int i = 0; i < Attributes.Length; i++)
         {
@@ -44,7 +44,7 @@ public readonly struct MeshVertexBufferLayout
         return false;
     }
 
-    public MeshVertexAttribute? GetAttribute(MeshVertexAttributeSemantic semantic)
+    public readonly MeshVertexAttribute? GetAttribute(MeshVertexAttributeSemantic semantic)
     {
         for (int i = 0; i < Attributes.Length; i++)
         {
@@ -55,7 +55,7 @@ public readonly struct MeshVertexBufferLayout
         return default;
     }
 
-    public int GetAttributeOffset(MeshVertexAttributeSemantic semantic)
+    public readonly int GetAttributeOffset(MeshVertexAttributeSemantic semantic)
     {
         for (int i = 0; i < Attributes.Length; i++)
         {
@@ -66,7 +66,7 @@ public readonly struct MeshVertexBufferLayout
         return -1;
     }
 
-    public void GetAttributes(Span<MeshVertexAttribute> attributes)
+    public readonly void GetAttributes(Span<MeshVertexAttribute> attributes)
     {
         if (attributes.Length < Attributes.Length)
         {
