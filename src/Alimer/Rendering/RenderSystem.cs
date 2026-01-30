@@ -17,6 +17,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     // TODO: Max frames inflight
     // TODO: Material system
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
+    private readonly RenderBatch _renderBatch;
 
     private readonly ConstantBuffer<FrameConstants> _frameBuffer;
     private readonly BindGroup _frameBindGroup;
@@ -66,6 +67,8 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
         GPUMaterialFactories.RegisterDefault();
+
+        _renderBatch = ToDispose(new RenderBatch(Device));
 
         // WIP code
         // Implement ring buffer

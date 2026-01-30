@@ -316,7 +316,7 @@ public partial struct BoundingBox : IEquatable<BoundingBox>, IFormattable
     {
         // Calculate the distance from the center of the box to the plane.
         Vector3 center = new((Min.X + Max.X) * 0.5f, (Min.Y + Max.Y) * 0.5f, (Min.Z + Max.Z) * 0.5f);
-        float distance = plane.Distance(center);
+        float distance = plane.GetDistance(center);
 
         // Get the extents of the box from its center along each axis.
         float extentX = (Max.X - Min.X) * 0.5f;

@@ -209,7 +209,7 @@ public partial struct BoundingSphere : IEquatable<BoundingSphere>, IFormattable
 
     public readonly PlaneIntersectionType Intersects(in Plane plane)
     {
-        float distance = plane.Distance(Center);
+        float distance = plane.GetDistance(Center);
 
         if (float.Abs(distance) <= Radius)
         {
