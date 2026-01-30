@@ -98,22 +98,21 @@ if (ALIMER_IMAGE_KTX)
     set_target_properties(ktx PROPERTIES FOLDER "ThirdParty" POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
+if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
         GIT_TAG release-3.4.0
         OPTIONS
-            "SDL_SHARED OFF"
-            "SDL_STATIC ON"
-            "SDL_LIBC ON"
+            "SDL_SHARED ON"
+            "SDL_STATIC OFF"
             "SDL_TIMERS ON"
             "SDL_TEST_LIBRARY OFF"
             "SDL_DISABLE_INSTALL ON"
             "SDL_DISABLE_INSTALL_DOCS ON"
             # Disable everything we don't care about.
             "SDL_ATOMIC OFF"
-            "SDL_AUDIO OFF"
+            "SDL_AUDIO ON"
             "SDL_RENDER OFF"
             "SDL_HAPTIC OFF"
             "SDL_POWER OFF"
@@ -126,10 +125,17 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
             "SDL_CAMERA OFF"
             "SDL_DIALOG OFF"
             "SDL_GPU OFF"
-        EXCLUDE_FROM_ALL YES
     )
 
-    set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
+    if (ALIMER_INSTALL)
+        install(TARGETS "SDL3-shared"
+            ARCHIVE DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION  ${CMAKE_INSTALL_BINDIR}
+        )
+    endif()
+
+    set_property(TARGET "SDL3-shared" PROPERTY FOLDER "ThirdParty")
     set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 

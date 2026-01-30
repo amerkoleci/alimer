@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="$(AlimerNativeDirectory)win-x64\SDL3.dll">
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
     <None Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">
       <PackagePath>runtimes\win-x64\native</PackagePath>
       <Pack>True</Pack>

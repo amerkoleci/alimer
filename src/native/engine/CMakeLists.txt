@@ -77,31 +77,6 @@ if (ALIMER_IMAGE_KTX)
     target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMAGE_KTX)
 endif ()
 
-if (EMSCRIPTEN)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_platform_sdl.cpp
-    )
-
-    set_target_properties(${TARGET_NAME} PROPERTIES ENABLE_EXPORTS ON)
-    target_link_options(${TARGET_NAME} PUBLIC
-        "-Os"
-        "-sUSE_SDL=3"
-        "-sFORCE_FILESYSTEM=1"
-    )
-
-     # Handle WebGPU symbols
-    target_link_options(${TARGET_NAME} PUBLIC -sUSE_WEBGPU)
-
-    # Enable the use of emscripten_sleep()
-	target_link_options(${TARGET_NAME} PUBLIC -sASYNCIFY)
-elseif (ALIMER_USE_SDL)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_platform_sdl.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
-endif()
-
 if (NOT EMSCRIPTEN)
     # Do we support Vulkan on Apple?
     target_sources(${TARGET_NAME} PRIVATE

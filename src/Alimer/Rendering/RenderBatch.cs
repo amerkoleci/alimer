@@ -39,7 +39,6 @@ public sealed unsafe class RenderBatch : DisposableObject
             BufferUsage.Vertex,
             MemoryType.Upload,
             label: "Upload Instance Buffer"
-            )
-            );
+            ));
     }
 }

@@ -182,8 +182,6 @@ option(ALIMER_ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ALIMER_INSTALL "Generate the install target" ${ALIMER_MASTER_PROJECT})
 option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
 
-option(ALIMER_USE_SDL "Use SDL for desktop windows" ON)
-
 option(ALIMER_AUDIO "Enable Audio support" ON)
 option(ALIMER_PHYSICS "Enable Physics support (using Jolt)" ON)
 option(ALIMER_IMAGE_KTX "Enable ktx support in image module" ON)

@@ -2,6 +2,7 @@
   <Choose>
     <When Condition="($([MSBuild]::IsOsPlatform('windows')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='win-x64'">
       <ItemGroup>
+        <None Include="$(AlimerNativeDirectory)win-x64/SDL3.dll" Link="SDL3.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
         <None Include="$(AlimerNativeDirectory)win-x64/alimer_native.dll" Link="alimer_native.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
         <None Include="$(AlimerNativeDirectory)win-x64/alimer_physics.dll" Link="alimer_physics.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
