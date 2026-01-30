@@ -7,14 +7,14 @@ using NUnit.Framework;
 namespace Alimer.Rendering;
 
 [TestFixture(TestOf = typeof(Mesh))]
-public class MeshTests
+public class BinarySerializationTests
 {
     [Theory]
     public void TestDefault()
     {
-        Mesh mesh = new Mesh();
+        Mesh mesh = new Mesh(24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.UInt16);
 
-        Assert.That(() => mesh.VertexCount, Is.EqualTo(0));
+        Assert.That(() => mesh.VertexCount, Is.EqualTo(24));
         Assert.That(() => mesh.IndexFormat, Is.EqualTo(IndexFormat.UInt16));
     }
 

@@ -31,9 +31,13 @@ public sealed unsafe partial class Mesh : DisposableObject
     public Mesh(int vertexCount,
         Span<VertexAttribute> vertexAttributes,
         int indexCount,
-        IndexFormat indexFormat,
+        IndexFormat indexFormat = IndexFormat.UInt16,
         int vertexStride = 0)
     {
+        Guard.IsGreaterThan(vertexCount, 0, nameof(vertexCount));
+        Guard.IsNotEmpty(vertexAttributes, nameof(vertexAttributes));
+        Guard.IsGreaterThan(indexCount, 0, nameof(indexCount));
+
         _vertexAttributes = vertexAttributes.ToArray();
         // Compute stride from vertex attributes if required
         if (vertexStride == 0)

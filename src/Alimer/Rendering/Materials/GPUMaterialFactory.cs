@@ -7,13 +7,55 @@ using static Alimer.Rendering.RenderSystem;
 
 namespace Alimer.Rendering;
 
+// TODO: Rework GPUMaterialFactory to support more flexible materials (with properties)
+public enum RenderOrder
+{
+    First = 0,
+    Default = 1,
+    Skybox = 2,
+    Transparent = 3,
+    Last = 4
+}
+
+public class GPUMaterialBindGroups
+{
+    public int FirstBindGroupIndex = 0;
+    public bool CastsShadow = true;
+    public BindGroup[] BindGroups = [];
+
+    public GPUMaterialBindGroups(params BindGroup[] groups)
+    {
+        BindGroups = groups;
+    }
+}
+
+public class GPUMaterialPipeline
+{
+    private static int s_nextPipelineId = 1;
+
+    public GPUMaterialPipeline(RenderPipeline pipeline, PipelineLayout pipelineLayout, RenderOrder renderOrder)
+    {
+        Id = s_nextPipelineId++;
+        Pipeline = pipeline;
+        PipelineLayout = pipelineLayout;
+        RenderOrder = renderOrder;
+    }
+
+    public int Id { get; }
+    public RenderPipeline Pipeline { get; }
+    public PipelineLayout PipelineLayout { get; }
+    public RenderOrder RenderOrder { get; }
+}
+
 public interface IGPUMaterialFactory : IDisposable
 {
+    RenderOrder RenderOrder { get; }
+
     void Add(Material material);
     bool Remove(Material material);
 
     //VertexBufferLayout GetLayout(Mesh mesh);
-    RenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned);
+    GPUMaterialPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned);
     BindGroup GetBindGroup(Material material, bool skinned);
 }
 
@@ -23,7 +65,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
     protected readonly List<TMaterial> _materials = [];
     protected BindGroupLayout _bindGroupLayout;
     private readonly Dictionary<int, BindGroup> _bindGroups = [];
-    private readonly Dictionary<int, RenderPipeline> _renderPipelines = [];
+    private readonly Dictionary<int, GPUMaterialPipeline> _renderPipelines = [];
 
     protected GPUMaterialFactory(RenderSystem system)
     {
@@ -36,6 +78,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
     public RenderSystem System { get; }
 
     #region IGPUMaterialFactory Members
+    public RenderOrder RenderOrder { get; } = RenderOrder.Default;
     void IGPUMaterialFactory.Add(Material material)
     {
         if (material is not TMaterial typedMaterial)
@@ -90,10 +133,10 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
         return bindGroup;
     }
 
-    public RenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)
+    public GPUMaterialPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)
     {
         int hashCode = GetPipelineKey(geometryLayout, material, skinned);
-        if (!_renderPipelines.TryGetValue(hashCode, out RenderPipeline? pipeline))
+        if (!_renderPipelines.TryGetValue(hashCode, out GPUMaterialPipeline? pipeline))
         {
             ShaderModule vertexShader = CreateVertexShaderModule(geometryLayout, material, skinned);
             ShaderModule fragmentShader = CreateFragmentShaderModule(geometryLayout, material);
@@ -109,9 +152,10 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
                 VertexShader = vertexShader,
                 FragmentShader = fragmentShader
             };
-            pipeline = System.Device.CreateRenderPipeline(in renderPipelineDesc);
+            RenderPipeline renderPipeline = ToDispose(System.Device.CreateRenderPipeline(in renderPipelineDesc));
 
-            _renderPipelines[hashCode] = ToDispose(pipeline);
+            pipeline = new(renderPipeline, pipelineLayout, material.Transparent ? RenderOrder.Transparent : RenderOrder);
+            _renderPipelines[hashCode] = pipeline;
         }
 
         return pipeline;

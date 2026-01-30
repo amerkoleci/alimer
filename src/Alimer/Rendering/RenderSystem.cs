@@ -17,6 +17,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     // TODO: Max frames inflight
     // TODO: Material system
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
+    //private readonly Dictionary<Mesh, List<GPUInstanceData>> _renderMeshInstances = [];
     private readonly RenderBatch _renderBatch;
 
     private readonly ConstantBuffer<FrameConstants> _frameBuffer;
@@ -159,6 +160,50 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
     public override void Update(GameTime time)
     {
+        if (Scene.CurrentCamera is null)
+            return;
+
+        // Prepare frame instances (visible to camera)
+        BoundingFrustum cameraFrustum = Scene.CurrentCamera.Frustum;
+
+        foreach (MeshComponent component in Components)
+        {
+            if (component.Mesh is null)
+                continue;
+
+            Mesh mesh = component.Mesh;
+            //MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
+            VertexBufferLayout gpuLayout = new((uint)mesh.VertexStride, VertexPositionNormalTexture.RHIVertexAttributes);
+            Span<VertexBufferLayout> geometryLayout = [gpuLayout];
+
+            foreach (SubMesh subMesh in mesh.SubMeshes)
+            {
+                int materialIndex = subMesh.MaterialIndex;
+                if (materialIndex >= component.Materials.Count)
+                    continue;
+
+                Material material = component.Materials[materialIndex];
+                if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
+                {
+                    throw new InvalidOperationException($"No GPU material factory found for material type '{material.GetType()}'.");
+                }
+
+                GPUInstanceData instanceData = new()
+                {
+                    WorldMatrix = component.Entity!.Transform.WorldMatrix,
+                    Color = Colors.White,
+                    Count = 1,
+                    //MaterialIndex = (uint)materialIndex
+                };
+
+                bool skinned = false;
+                GPUMaterialPipeline pipeline = factory.GetPipeline(geometryLayout, material, skinned);
+                //GPUMaterialBindGroups bindGroups = new(factory.GetBindGroup(material, skinned));
+                BindGroup bindGroup = factory.GetBindGroup(material, skinned);
+                //RenderPrimitive primitive = new(subMesh, pipeline, bindGroups);
+                _renderBatch.AddRenderable(subMesh, pipeline, bindGroup, instanceData);
+            }
+        }
     }
 
     public override void Draw(CommandBuffer commandBuffer, Texture outputTexture, GameTime time)
@@ -194,68 +239,59 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         RenderCamera(renderPass, camera);
 
         renderPass.EndEncoding();
+
+        // Clear the render batch. It'll be built up again next frame.
+        _renderBatch.Clear();
     }
 
-    private void RenderCamera(RenderPassEncoder encoder, CameraComponent camera)
+    private void RenderCamera(RenderPassEncoder passEncoder, CameraComponent camera)
     {
         UpdateCamera(camera);
-        BoundingFrustum cameraFrustum = camera.Frustum;
 
-        encoder.SetBindGroup(1, _viewBindGroup);
+        passEncoder.SetBindGroup(1, _viewBindGroup);
 
         // Loop through all the renderable entities and store them by pipeline.
-        //for (const pipeline of this.renderBatch.sortedPipelines)
-        //{
-        //    passEncoder.setPipeline(pipeline.pipeline);
-        //}
-
-        foreach (MeshComponent meshComponent in Components)
+        foreach (var pipeline in _renderBatch.SortedPipelines)
         {
-            if (meshComponent.Mesh is null)
-                continue;
+            passEncoder.SetPipeline(pipeline.Pipeline);
 
-            // Check if visible to camera frustum before drawing
-            BoundingBox worldBoundingBox = meshComponent.WorldBoundingBox;
-            //if (!cameraFrustum.Intersects(worldBoundingBox))
-            //    continue;
-
-            Mesh mesh = meshComponent.Mesh;
-            //MeshVertexBufferLayout layout = mesh.VertexBufferLayout;
-            VertexBufferLayout gpuLayout = new((uint)mesh.VertexStride, VertexPositionNormalTexture.RHIVertexAttributes);
-            Span<VertexBufferLayout> geometryLayout = [gpuLayout];
-
-            encoder.SetVertexBuffer(0, mesh.GpuVertexBuffer!);
-            encoder.SetIndexBuffer(mesh.GpuIndexBuffer!, mesh.IndexFormat);
-
-            foreach (SubMesh subMesh in mesh.SubMeshes)
+            var geometryList = _renderBatch.GetGeometryList(pipeline);
+            foreach (var pair in geometryList)
             {
-                int materialIndex = subMesh.MaterialIndex;
-                if (materialIndex >= meshComponent.Materials.Count)
-                    continue;
+                SubMesh geometry = pair.Key;
+                var materialList = pair.Value;
 
-                Material material = meshComponent.Materials[materialIndex];
-                if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
+                passEncoder.SetVertexBuffer(0, geometry.Mesh.GpuVertexBuffer!);
+                passEncoder.SetIndexBuffer(geometry.Mesh.GpuIndexBuffer!, geometry.Mesh.IndexFormat);
+
+                foreach (var materialPair in materialList)
                 {
-                    throw new InvalidOperationException($"No GPU material factory found for material type '{material.GetType()}'.");
+                    var material = materialPair.Key;
+                    var instances = materialPair.Value;
+
+                    // TODO: GPUBindGroups
+                    //int i = material.firstBindGroupIndex;
+                    //for (const bindGroup of material.bindGroups) {
+                    //    passEncoder.setBindGroup(i++, bindGroup);
+                    //}
+
+                    passEncoder.SetBindGroup(0, material);
+
+                    //if (pipeline.instanceSlot >= 0)
+                    //{
+                    //    passEncoder.setVertexBuffer(pipeline.instanceSlot, instanceBuffer, instances.bufferOffset);
+                    //}
+
+                    // Update per-object data (after set pipeline)
+                    DrawData drawData = new()
+                    {
+                        WorldMatrix = instances.Transforms[0]
+                    };
+                    passEncoder.SetPushConstants(0, drawData);
+
+                    uint instanceCount = 1u; // instances.InstanceCount;
+                    passEncoder.DrawIndexed((uint)geometry.IndexCount, instanceCount, (uint)geometry.IndexStart, 0, 0);
                 }
-
-                bool skinned = false;
-                RenderPipeline renderPipeline = factory.GetPipeline(geometryLayout, material, skinned);
-                BindGroup bindGroup = factory.GetBindGroup(material, skinned);
-
-                encoder.SetPipeline(renderPipeline);
-                encoder.SetBindGroup(0, bindGroup);
-
-                // Update per-object data (after set pipeline)
-                TransformComponent transformComponent = meshComponent.Entity!.Transform;
-                DrawData drawData = new()
-                {
-                    WorldMatrix = transformComponent.WorldMatrix
-                };
-                encoder.SetPushConstants(0, drawData);
-
-                uint instanceCount = 1u;
-                encoder.DrawIndexed((uint)subMesh.IndexCount, instanceCount, (uint)subMesh.IndexStart, 0, 0);
             }
         }
     }
@@ -338,33 +374,6 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
             factory.Add(material);
         }
-
-#if TODO
-        if (component.Mesh is not null)
-        {
-            MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
-            VertexBufferLayout gpuLayout = new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes);
-            Span<VertexBufferLayout> geometryLayout = [gpuLayout];
-
-            foreach (SubMesh subMesh in component.Mesh.SubMeshes)
-            {
-                int materialIndex = subMesh.MaterialIndex;
-                if (materialIndex >= component.Materials.Count)
-                    continue;
-
-                Material material = component.Materials[materialIndex];
-                if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
-                {
-                    factory = GPUMaterialFactories.GetFactory(material, this);
-                    _gpuMaterialFactories[material.GetType()] = factory;
-                }
-
-                bool skinned = false;
-                RenderPipeline renderPipeline = factory.GetPipeline(geometryLayout, material, skinned);
-                BindGroup bindGroup = factory.GetBindGroup(material, skinned);
-            }
-        } 
-#endif
     }
 
     protected override void OnEntityComponentRemoved(MeshComponent component)
@@ -375,6 +384,27 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
             {
                 factory.Remove(material);
             }
+        }
+    }
+
+    class RenderPrimitive
+    {
+        public readonly SubMesh Geometry;
+        public readonly GPUMaterialPipeline Pipeline;
+        public readonly GPUMaterialBindGroups BindGroups;
+
+        public RenderPrimitive(SubMesh geometry, GPUMaterialPipeline pipeline, BindGroup bindGroup)
+        {
+            Geometry = geometry;
+            Pipeline = pipeline;
+            BindGroups = new GPUMaterialBindGroups(bindGroup);
+        }
+
+        public RenderPrimitive(SubMesh geometry, GPUMaterialPipeline pipeline, GPUMaterialBindGroups? bindGroups)
+        {
+            Geometry = geometry;
+            Pipeline = pipeline;
+            BindGroups = bindGroups ?? new GPUMaterialBindGroups();
         }
     }
 

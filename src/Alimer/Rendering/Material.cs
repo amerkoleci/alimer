@@ -18,4 +18,5 @@ public enum MaterialAlphaMode
 public abstract class Material : Asset
 {
     public MaterialAlphaMode AlphaMode { get;set; } = MaterialAlphaMode.Opaque;
+    public bool Transparent => AlphaMode == MaterialAlphaMode.Blend;
 }
