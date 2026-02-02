@@ -11,6 +11,7 @@ namespace Alimer.Rendering;
 
 using InstanceDictionary = Dictionary</*GPUMaterialBindGroups*/BindGroup, GPUBatchEntry>;
 //using GeometryDictionary = Dictionary<SubMesh, InstanceDictionary>;
+//using PipelineMaterials = Dictionary<GPURenderPipeline, MaterialGeometry>;
 
 public sealed unsafe class RenderBatch : DisposableObject
 {

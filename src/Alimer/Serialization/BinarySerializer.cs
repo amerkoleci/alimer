@@ -259,6 +259,94 @@ public partial class BinarySerializer
     }
 
     /// <summary>
+    /// Serializes a single <strong>long</strong> value.
+    /// </summary>
+    /// <param name="value">The value to serialize</param>
+    /// <remarks>
+    /// Note that depending on the serialization <see cref="Mode"/>, this method reads or writes the value.
+    /// </remarks>
+    public void Serialize(ref long value)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        if (Mode == SerializerMode.Write)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(buffer, value);
+            Stream.Write(buffer);
+        }
+        else
+        {
+            Stream.ReadExactly(buffer);
+            value = BinaryPrimitives.ReadInt64LittleEndian(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Serializes a single <strong>ulong</strong> value.
+    /// </summary>
+    /// <param name="value">The value to serialize</param>
+    /// <remarks>
+    /// Note that depending on the serialization <see cref="Mode"/>, this method reads or writes the value.
+    /// </remarks>
+    public void Serialize(ref ulong value)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        if (Mode == SerializerMode.Write)
+        {
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer, value);
+            Stream.Write(buffer);
+        }
+        else
+        {
+            Stream.ReadExactly(buffer);
+            value = BinaryPrimitives.ReadUInt64LittleEndian(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Serializes a single <strong>float</strong> value.
+    /// </summary>
+    /// <param name="value">The value to serialize</param>
+    /// <remarks>
+    /// Note that depending on the serialization <see cref="Mode"/>, this method reads or writes the value.
+    /// </remarks>
+    public void Serialize(ref float value)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+        if (Mode == SerializerMode.Write)
+        {
+            BinaryPrimitives.WriteSingleLittleEndian(buffer, value);
+            Stream.Write(buffer);
+        }
+        else
+        {
+            Stream.ReadExactly(buffer);
+            value = BinaryPrimitives.ReadSingleLittleEndian(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Serializes a single <strong>double</strong> value.
+    /// </summary>
+    /// <param name="value">The value to serialize</param>
+    /// <remarks>
+    /// Note that depending on the serialization <see cref="Mode"/>, this method reads or writes the value.
+    /// </remarks>
+    public void Serialize(ref double value)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        if (Mode == SerializerMode.Write)
+        {
+            BinaryPrimitives.WriteDoubleLittleEndian(buffer, value);
+            Stream.Write(buffer);
+        }
+        else
+        {
+            Stream.ReadExactly(buffer);
+            value = BinaryPrimitives.ReadDoubleLittleEndian(buffer);
+        }
+    }
+
+    /// <summary>
     /// Serializes a single <strong>boolean</strong> value.
     /// </summary>
     /// <param name="value">The value to serialize</param>

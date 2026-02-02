@@ -19,8 +19,9 @@ public ref struct RenderPipelineDescriptor
     public PipelineLayout Layout;
     public ShaderModule? VertexShader;
     public ShaderModule? FragmentShader;
-    public ShaderModule? AmplificationShader;
+
     public ShaderModule? MeshShader;
+    public ShaderModule? AmplificationShader;
 
     public Span<VertexBufferLayout> VertexBufferLayouts;
 
@@ -31,6 +32,7 @@ public ref struct RenderPipelineDescriptor
     public DepthStencilState DepthStencilState;
 
     public PrimitiveTopology PrimitiveTopology;
+
     /// <summary>
     /// Index format for strip topologies (when using primitive restart -> <see cref="PrimitiveTopology.LineStrip"/> or <see cref="PrimitiveTopology.TriangleStrip"/>).
     /// </summary>
