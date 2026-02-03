@@ -48,7 +48,8 @@ internal struct VulkanPhysicalDeviceExtensions
 
     public bool DeferredHostOperations;
     public bool PortabilitySubset;
-    public bool TextureCompressionAstcHdr;
+    public bool TextureCompressionASTC_HDR;
+    public bool TextureCompressionASTC_3D;
 
     public bool ShaderViewportIndexLayer;
     public bool AccelerationStructure;
@@ -141,7 +142,11 @@ internal struct VulkanPhysicalDeviceExtensions
                 }
                 else if (extensionName == VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME)
                 {
-                    extensions.TextureCompressionAstcHdr = true;
+                    extensions.TextureCompressionASTC_HDR = true;
+                }
+                else if (extensionName == VK_EXT_TEXTURE_COMPRESSION_ASTC_3D_EXTENSION_NAME)
+                {
+                    extensions.TextureCompressionASTC_3D = true;
                 }
                 else if (extensionName == VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)
                 {

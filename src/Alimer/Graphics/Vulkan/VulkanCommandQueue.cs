@@ -168,7 +168,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
                 pSignalSemaphoreInfos = signalSemaphoreInfos
             };
 
-            VkDevice.DeviceApi.vkQueueSubmit2(Handle, 1, &submitInfo, fence).CheckResult();
+            VkDevice.DeviceApi.vkQueueSubmit2(Handle, submitInfo, fence).CheckResult();
 
             if (_presentSwapChains.Count > 0)
             {
@@ -193,10 +193,11 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
                 };
 
                 VkResult result = VkDevice.DeviceApi.vkQueuePresentKHR(Handle, &presentInfo);
-                if (result != VkResult.Success)
+                if (result != VK_SUCCESS)
                 {
                     // Handle outdated error in present
-                    if (result == VkResult.SuboptimalKHR || result == VkResult.ErrorOutOfDateKHR)
+                    if (result == VK_SUBOPTIMAL_KHR
+                        || result == VK_ERROR_OUT_OF_DATE_KHR)
                     {
                         //for (auto & swapchain : swapchain_updates)
                         //{

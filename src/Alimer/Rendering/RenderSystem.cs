@@ -166,12 +166,21 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         // Prepare frame instances (visible to camera)
         BoundingFrustum cameraFrustum = Scene.CurrentCamera.Frustum;
 
-        foreach (MeshComponent component in Components)
+        foreach (MeshComponent meshComponent in Components)
         {
-            if (component.Mesh is null)
+            if (meshComponent.Mesh is null)
                 continue;
 
-            Mesh mesh = component.Mesh;
+            // Check if visible to camera frustum before drawing
+            BoundingBox worldBoundingBox = meshComponent.WorldBoundingBox;
+            ContainmentType containmentType = cameraFrustum.Contains(worldBoundingBox);
+            if (containmentType == ContainmentType.Disjoint)
+                continue;
+
+            //if (!cameraFrustum.Intersects(worldBoundingBox))
+            //    continue;
+
+            Mesh mesh = meshComponent.Mesh;
             //MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
             VertexBufferLayout gpuLayout = new((uint)mesh.VertexStride, VertexPositionNormalTexture.RHIVertexAttributes);
             Span<VertexBufferLayout> geometryLayout = [gpuLayout];
@@ -179,10 +188,10 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
             foreach (SubMesh subMesh in mesh.SubMeshes)
             {
                 int materialIndex = subMesh.MaterialIndex;
-                if (materialIndex >= component.Materials.Count)
+                if (materialIndex >= meshComponent.Materials.Count)
                     continue;
 
-                Material material = component.Materials[materialIndex];
+                Material material = meshComponent.Materials[materialIndex];
                 if (!_gpuMaterialFactories.TryGetValue(material.GetType(), out IGPUMaterialFactory? factory))
                 {
                     throw new InvalidOperationException($"No GPU material factory found for material type '{material.GetType()}'.");
@@ -190,7 +199,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
                 GPUInstanceData instanceData = new()
                 {
-                    WorldMatrix = component.Entity!.Transform.WorldMatrix,
+                    WorldMatrix = meshComponent.Entity!.WorldTransform,
                     Color = Colors.White,
                     Count = 1,
                     //MaterialIndex = (uint)materialIndex

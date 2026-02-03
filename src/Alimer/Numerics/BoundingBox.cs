@@ -324,7 +324,7 @@ public partial struct BoundingBox : IEquatable<BoundingBox>, IFormattable
         float extentZ = (Max.Z - Min.Z) * 0.5f;
 
         Vector3 planeNormal = plane.Normal;
-        if (float.Abs(distance) <= (float.Abs(extentX * planeNormal.X) + float.Abs(extentY * planeNormal.Y) + float.Abs(extentZ * planeNormal.Z)))
+        if (MathF.Abs(distance) <= (MathF.Abs(extentX * planeNormal.X) + MathF.Abs(extentY * planeNormal.Y) + MathF.Abs(extentZ * planeNormal.Z)))
         {
             return PlaneIntersectionType.Intersecting;
         }

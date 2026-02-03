@@ -36,7 +36,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceExtendedDynamicStateFeaturesEXT ExtendedDynamicStateFeatures = default;
     public readonly VkPhysicalDeviceExtendedDynamicState2FeaturesEXT ExtendedDynamicState2Features = default;
     public readonly VkPhysicalDevicePipelineCreationCacheControlFeatures PipelineCreationCacheControlFeatures = default;
-    public readonly VkPhysicalDeviceTextureCompressionASTCHDRFeatures AstcHdrFeatures = default;
+    public readonly VkPhysicalDeviceTextureCompressionASTCHDRFeatures ASTC_HDRFeatures = default;
+    public readonly VkPhysicalDeviceTextureCompressionASTC3DFeaturesEXT ASTC_3DFeaturesEXT = default;
 
     // Core 1.4
     public readonly VkPhysicalDeviceMaintenance5Features Maintenance5Features = default;
@@ -89,6 +90,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features = default;
         VkPhysicalDevicePipelineCreationCacheControlFeatures pipelineCreationCacheControlFeatures = default;
         VkPhysicalDeviceTextureCompressionASTCHDRFeatures astcHdrFeatures = default;
+        VkPhysicalDeviceTextureCompressionASTC3DFeaturesEXT astc3DFeaturesEXT = default;
 
         // Core in 1.4
         VkPhysicalDeviceMaintenance5Features maintenance5Features = default;
@@ -185,10 +187,16 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
                 AddToFeatureChain(&pipelineCreationCacheControlFeatures);
             }
 
-            if (Extensions.TextureCompressionAstcHdr)
+            if (Extensions.TextureCompressionASTC_HDR)
             {
                 astcHdrFeatures = new();
                 AddToFeatureChain(&astcHdrFeatures);
+            }
+
+            if (Extensions.TextureCompressionASTC_3D)
+            {
+                astc3DFeaturesEXT = new();
+                AddToFeatureChain(&astc3DFeaturesEXT);
             }
         }
         else
@@ -324,7 +332,9 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         ExtendedDynamicState2Features = extendedDynamicState2Features;
         PipelineCreationCacheControlFeatures = pipelineCreationCacheControlFeatures;
         Maintenance4Features = maintenance4Features;
-        AstcHdrFeatures = astcHdrFeatures;
+        ASTC_HDRFeatures = astcHdrFeatures;
+        ASTC_3DFeaturesEXT = astc3DFeaturesEXT;
+
         // Core 1.4
         Maintenance5Features = maintenance5Features;
         Maintenance6Features = maintenance6Features;

@@ -300,12 +300,20 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 AddToFeatureChain(&pipelineCreationCacheControlFeatures);
             }
 
-            if (_adapter.Extensions.TextureCompressionAstcHdr)
+            if (_adapter.Extensions.TextureCompressionASTC_HDR)
             {
                 enabledDeviceExtensions.Add(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
 
-                var astcHdrFeatures = _adapter.AstcHdrFeatures;
+                var astcHdrFeatures = _adapter.ASTC_HDRFeatures;
                 AddToFeatureChain(&astcHdrFeatures);
+            }
+
+            if (_adapter.Extensions.TextureCompressionASTC_3D)
+            {
+                enabledDeviceExtensions.Add(VK_EXT_TEXTURE_COMPRESSION_ASTC_3D_EXTENSION_NAME);
+
+                var astc3DFeatures = _adapter.ASTC_3DFeaturesEXT;
+                AddToFeatureChain(&astc3DFeatures);
             }
         }
         else
@@ -967,7 +975,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             case Feature.TextureCompressionASTC_HDR:
                 return _adapter.Features13.textureCompressionASTC_HDR == true
-                    || _adapter.AstcHdrFeatures.textureCompressionASTC_HDR == true;
+                    || _adapter.ASTC_HDRFeatures.textureCompressionASTC_HDR == true;
+
+            //case Feature.TextureCompressionASTC_3D:
+            //    return _adapter.ASTC_3DFeaturesEXT.textureCompressionASTC_3D == true;
 
             case Feature.IndirectFirstInstance:
                 return _adapter.Features2.features.drawIndirectFirstInstance == true;
