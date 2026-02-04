@@ -639,7 +639,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             // TODO: Add cache from disk
             VkPipelineCacheCreateInfo pipelineCacheCreateInfo = new();
 
-            _deviceApi.vkCreatePipelineCache(_handle, in pipelineCacheCreateInfo, out VkPipelineCache pipelineCache).CheckResult();
+            _deviceApi.vkCreatePipelineCache(in pipelineCacheCreateInfo, out VkPipelineCache pipelineCache).CheckResult();
             PipelineCache = pipelineCache;
         }
 
@@ -660,11 +660,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             VkBufferViewCreateInfo viewInfo = new()
             {
-                format = VkFormat.R32G32B32A32Sfloat,
+                format = VK_FORMAT_R32G32B32A32_SFLOAT,
                 range = VK_WHOLE_SIZE,
                 buffer = _nullBuffer
             };
-            _deviceApi.vkCreateBufferView(_handle, &viewInfo, null, out _nullBufferView).CheckResult();
+            _deviceApi.vkCreateBufferView(in viewInfo, out _nullBufferView).CheckResult();
 
             VkImageCreateInfo imageInfo = new();
             imageInfo.extent.width = 1;
@@ -739,34 +739,34 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             imageViewInfo.format = VkFormat.R8G8B8A8Unorm;
             imageViewInfo.image = _nullImage1D;
             imageViewInfo.viewType = VkImageViewType.Image1D;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1D).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageView1D).CheckResult();
 
             imageViewInfo.image = _nullImage1D;
             imageViewInfo.viewType = VkImageViewType.Image1DArray;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView1DArray).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageView1DArray).CheckResult();
 
             imageViewInfo.image = _nullImage2D;
             imageViewInfo.viewType = VkImageViewType.Image2D;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2D).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageView2D).CheckResult();
 
             imageViewInfo.image = _nullImage2D;
             imageViewInfo.viewType = VkImageViewType.Image2DArray;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView2DArray).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageView2DArray).CheckResult();
 
             imageViewInfo.image = _nullImage2D;
             imageViewInfo.viewType = VkImageViewType.ImageCube;
             imageViewInfo.subresourceRange.layerCount = 6;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCube).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageViewCube).CheckResult();
 
             imageViewInfo.image = _nullImage2D;
             imageViewInfo.viewType = VkImageViewType.ImageCubeArray;
             imageViewInfo.subresourceRange.layerCount = 6;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageViewCubeArray).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageViewCubeArray).CheckResult();
 
             imageViewInfo.image = _nullImage3D;
             imageViewInfo.subresourceRange.layerCount = 1;
             imageViewInfo.viewType = VkImageViewType.Image3D;
-            _deviceApi.vkCreateImageView(_handle, &imageViewInfo, null, out _nullImageView3D).CheckResult();
+            _deviceApi.vkCreateImageView(&imageViewInfo, null, out _nullImageView3D).CheckResult();
 
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
@@ -897,30 +897,30 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             foreach (VkSampler sampler in _samplerCache.Values)
             {
-                _deviceApi.vkDestroySampler(_handle, sampler);
+                _deviceApi.vkDestroySampler(sampler);
             }
             _samplerCache.Clear();
 
             // Destroy Descriptor Pools
             foreach (VkDescriptorPool descriptorPool in _descriptorSetPools)
             {
-                _deviceApi.vkDestroyDescriptorPool(_handle, descriptorPool);
+                _deviceApi.vkDestroyDescriptorPool(descriptorPool);
             }
             _descriptorSetPools.Clear();
 
             // Destroy null descriptor
             vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
-            _deviceApi.vkDestroyBufferView(_handle, _nullBufferView);
+            _deviceApi.vkDestroyBufferView(_nullBufferView);
             vmaDestroyImage(_allocator, _nullImage1D, _nullImageAllocation1D);
             vmaDestroyImage(_allocator, _nullImage2D, _nullImageAllocation2D);
             vmaDestroyImage(_allocator, _nullImage3D, _nullImageAllocation3D);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageView1D);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageView1DArray);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageView2D);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageView2DArray);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageViewCube);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageViewCubeArray);
-            _deviceApi.vkDestroyImageView(_handle, _nullImageView3D);
+            _deviceApi.vkDestroyImageView(_nullImageView1D);
+            _deviceApi.vkDestroyImageView(_nullImageView1DArray);
+            _deviceApi.vkDestroyImageView(_nullImageView2D);
+            _deviceApi.vkDestroyImageView(_nullImageView2DArray);
+            _deviceApi.vkDestroyImageView(_nullImageViewCube);
+            _deviceApi.vkDestroyImageView(_nullImageViewCubeArray);
+            _deviceApi.vkDestroyImageView(_nullImageView3D);
 
             ProcessDeletionQueue(true);
             _frameCount = 0;
@@ -940,12 +940,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             if (PipelineCache.IsNotNull)
             {
                 // Destroy Vulkan pipeline cache
-                _deviceApi.vkDestroyPipelineCache(Handle, PipelineCache);
+                _deviceApi.vkDestroyPipelineCache(PipelineCache);
             }
 
             if (Handle.IsNotNull)
             {
-                _deviceApi.vkDestroyDevice(Handle);
+                _deviceApi.vkDestroyDevice();
             }
         }
     }
@@ -1190,7 +1190,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override void WaitIdle()
     {
-        VkResult result = _deviceApi.vkDeviceWaitIdle(Handle);
+        VkResult result = _deviceApi.vkDeviceWaitIdle();
         if (result != VK_SUCCESS)
         {
             throw new GraphicsException("Vulkan: Failed to wait for Vulkan device idle");
@@ -1221,8 +1221,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 if (_queues[i] is null)
                     continue;
 
-                _deviceApi.vkWaitForFences(_handle, _queues[i].FrameFence, true, TimeoutValue).CheckResult();
-                _deviceApi.vkResetFences(_handle, _queues[i].FrameFence).CheckResult();
+                _deviceApi.vkWaitForFences(_queues[i].FrameFence, true, TimeoutValue).CheckResult();
+                _deviceApi.vkResetFences(_queues[i].FrameFence).CheckResult();
             }
         }
 
@@ -1409,7 +1409,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 createInfo.pNext = &samplerReductionModeInfo;
             }
 
-            VkResult result = _deviceApi.vkCreateSampler(_handle, &createInfo, null, &sampler);
+            VkResult result = _deviceApi.vkCreateSampler(in createInfo, out sampler);
 
             if (result != VK_SUCCESS)
             {
@@ -1454,7 +1454,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             allocInfo.pNext = &variableLengthInfo;
         }
 
-        return _deviceApi.vkAllocateDescriptorSets(_handle, &allocInfo, descriptorSet);
+        return _deviceApi.vkAllocateDescriptorSets(&allocInfo, descriptorSet);
     }
 
     private VkDescriptorPool CreateDescriptorSetPool()
@@ -1489,7 +1489,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             pPoolSizes = poolSizes
         };
 
-        VkResult result = _deviceApi.vkCreateDescriptorPool(_handle, &poolInfo, null, out VkDescriptorPool pool);
+        VkResult result = _deviceApi.vkCreateDescriptorPool(&poolInfo, null, out VkDescriptorPool pool);
         if (result != VK_SUCCESS)
         {
             //Log.Error(result, "Error when creating descriptor pool: {}");

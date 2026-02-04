@@ -13,7 +13,6 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanTexture : Texture
 {
-    private readonly Dictionary<int, VkImageView> _views = [];
     private VkImage _handle = VkImage.Null;
     private VmaAllocation _allocation;
 
@@ -408,11 +407,6 @@ internal unsafe class VulkanTexture : Texture
     protected internal override void Destroy()
     {
         DestroyViews();
-        foreach (VkImageView view in _views.Values)
-        {
-            VkDevice.DeviceApi.vkDestroyImageView(VkDevice.Handle, view);
-        }
-        _views.Clear();
 
         if (_allocation.IsNotNull)
         {
@@ -433,40 +427,5 @@ internal unsafe class VulkanTexture : Texture
     protected override TextureView CreateView(in TextureViewDescriptor descriptor)
     {
         return new VulkanTextureView(this, in descriptor);
-    }
-
-    public VkImageView GetView(uint baseMipLevel,
-        uint baseArrayLayer = 0,
-        uint mipLevelCount = VK_REMAINING_MIP_LEVELS,
-        uint arrayLayerCount = VK_REMAINING_ARRAY_LAYERS,
-        TextureAspect aspect = TextureAspect.All)
-    {
-        int hash = HashCode.Combine(baseMipLevel, baseArrayLayer, mipLevelCount, arrayLayerCount);
-
-        if (!_views.TryGetValue(hash, out VkImageView view))
-        {
-            VkImageAspectFlags aspectFlags = VkFormat.GetImageAspectFlags(aspect);
-            VkImageViewCreateInfo createInfo = new()
-            {
-                pNext = null,
-                flags = 0,
-                image = Handle,
-                viewType = VkImageViewType.Image2D,
-                format = VkFormat,
-                components = VkComponentMapping.Identity,
-                subresourceRange = new VkImageSubresourceRange(aspectFlags, (uint)baseMipLevel, mipLevelCount, (uint)baseArrayLayer, arrayLayerCount)
-            };
-
-            VkResult result = VkDevice.DeviceApi.vkCreateImageView(VkDevice.Handle, &createInfo, null, &view);
-            if (result != VkResult.Success)
-            {
-                Log.Error($"Vulkan: Failed to create ImageView, error: {result}");
-                return VkImageView.Null;
-            }
-
-            _views.Add(hash, view);
-        }
-
-        return view;
     }
 }

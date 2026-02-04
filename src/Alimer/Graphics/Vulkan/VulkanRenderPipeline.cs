@@ -288,7 +288,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         };
 
         VkPipeline pipeline;
-        VkResult result = _device.DeviceApi.vkCreateGraphicsPipelines(device.Handle, device.PipelineCache, 1, &createInfo, null, &pipeline);
+        VkResult result = _device.DeviceApi.vkCreateGraphicsPipelines(device.PipelineCache, 1, &createInfo, null, &pipeline);
 
         if (result != VkResult.Success)
         {
@@ -327,6 +327,6 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _device.DeviceApi.vkDestroyPipeline(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyPipeline(_handle);
     }
 }

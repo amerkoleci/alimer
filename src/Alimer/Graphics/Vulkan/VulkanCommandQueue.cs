@@ -29,7 +29,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 
         uint queueFamilyIndex = device.GetQueueFamily(queueType);
         uint queueIndex = device.GetQueueIndex(queueType);
-        device.DeviceApi.vkGetDeviceQueue(device.Handle, queueFamilyIndex, queueIndex, out Handle);
+        device.DeviceApi.vkGetDeviceQueue(queueFamilyIndex, queueIndex, out Handle);
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo = new()
         {
@@ -44,12 +44,12 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
             flags = 0
         };
 
-        device.DeviceApi.vkCreateSemaphore(device.Handle, &createInfo, null, out _semaphore).CheckResult();
+        device.DeviceApi.vkCreateSemaphore(&createInfo, null, out _semaphore).CheckResult();
 
         _frameFences = new VkFence[device.MaxFramesInFlight];
         for (int i = 0; i < device.MaxFramesInFlight; ++i)
         {
-            device.DeviceApi.vkCreateFence(device.Handle, out _frameFences[i]);
+            device.DeviceApi.vkCreateFence(out _frameFences[i]);
         }
     }
 
@@ -65,11 +65,11 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     public void Dispose()
     {
         WaitIdle();
-        VkDevice.DeviceApi.vkDestroySemaphore(VkDevice.Handle, _semaphore);
+        VkDevice.DeviceApi.vkDestroySemaphore(_semaphore);
 
         for (int i = 0; i < _frameFences.Length; ++i)
         {
-            VkDevice.DeviceApi.vkDestroyFence(VkDevice.Handle, _frameFences[i]);
+            VkDevice.DeviceApi.vkDestroyFence(_frameFences[i]);
         }
 
         foreach (VulkanCommandBuffer commandBuffer in _commandBuffers)
@@ -88,9 +88,9 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 
     public override void Execute(Span<CommandBuffer> commandBuffers, bool waitForCompletion = false)
     {
-        foreach (VulkanCommandBuffer commandBuffer in commandBuffers)
+        foreach (CommandBuffer commandBuffer in commandBuffers)
         {
-            VkCommandBuffer handle = commandBuffer.End();
+            VkCommandBuffer handle = ((VulkanCommandBuffer)commandBuffer).End();
             _submitCommandBuffers.Add(handle);
         }
     }

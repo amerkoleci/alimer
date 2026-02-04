@@ -53,7 +53,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
                 queueFamilyIndex = queue.VkDevice.GetQueueFamily(queue.QueueType)
             };
 
-            _deviceApi.vkCreateCommandPool(queue.VkDevice.Handle, &poolInfo, null, out _commandPools[i]).CheckResult();
+            _deviceApi.vkCreateCommandPool(&poolInfo, null, out _commandPools[i]).CheckResult();
 
             VkCommandBufferAllocateInfo commandBufferInfo = new()
             {
@@ -61,7 +61,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
                 level = VkCommandBufferLevel.Primary,
                 commandBufferCount = 1
             };
-            _deviceApi.vkAllocateCommandBuffer(queue.VkDevice.Handle, &commandBufferInfo, out _commandBuffers[i]).CheckResult();
+            _deviceApi.vkAllocateCommandBuffer(&commandBufferInfo, out _commandBuffers[i]).CheckResult();
 
             //binderPools[i].Init(device);
         }
@@ -81,7 +81,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         for (int i = 0; i < _commandPools.Length; ++i)
         {
             //vkFreeCommandBuffers(Queue.Device.Handle, _commandPools[i], 1, &commandBuffers[i]);
-            _deviceApi.vkDestroyCommandPool(_queue.VkDevice.Handle, _commandPools[i]);
+            _deviceApi.vkDestroyCommandPool(_commandPools[i]);
             //binderPools[i].Shutdown();
         }
     }
@@ -118,7 +118,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         _numBoundBindGroups = 0;
         Array.Clear(_descriptorSets, 0, _descriptorSets.Length);
 
-        _deviceApi.vkResetCommandPool(_queue.VkDevice.Handle, _commandPools[frameIndex], 0).CheckResult();
+        _deviceApi.vkResetCommandPool(_commandPools[frameIndex], 0).CheckResult();
         _commandBuffer = _commandBuffers[frameIndex];
 
         VkCommandBufferBeginInfo beginInfo = new()

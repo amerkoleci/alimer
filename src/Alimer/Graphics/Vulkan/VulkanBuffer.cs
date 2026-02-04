@@ -134,7 +134,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             {
                 buffer = _handle
             };
-            GpuAddress = _device.DeviceApi.vkGetBufferDeviceAddress(device.Handle, &info);
+            GpuAddress = _device.DeviceApi.vkGetBufferDeviceAddress(&info);
         }
 
         // Issue data copy on request
@@ -277,7 +277,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         }
         else
         {
-            _device.DeviceApi.vkDestroyBuffer(_device.Handle, _handle, null);
+            _device.DeviceApi.vkDestroyBuffer(_handle, null);
         }
 
         _handle = VkBuffer.Null;

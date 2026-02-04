@@ -220,7 +220,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
 
             if (options.ValidationMode != GraphicsValidationMode.Disabled && DebugUtils)
             {
-                _instanceApi.vkCreateDebugUtilsMessengerEXT(_instance, &debugUtilsCreateInfo, null, out _debugMessenger).CheckResult();
+                _instanceApi.vkCreateDebugUtilsMessengerEXT(&debugUtilsCreateInfo, null, out _debugMessenger).CheckResult();
             }
 
 #if DEBUG
@@ -247,9 +247,9 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         }
 
         // Enumerate adapters (physical devices)
-        _instanceApi.vkEnumeratePhysicalDevices(_instance, out uint adapterCount).CheckResult();
+        _instanceApi.vkEnumeratePhysicalDevices(out uint adapterCount).CheckResult();
         Span<VkPhysicalDevice> physicalDevices = stackalloc VkPhysicalDevice[(int)adapterCount];
-        _instanceApi.vkEnumeratePhysicalDevices(_instance, physicalDevices).CheckResult();
+        _instanceApi.vkEnumeratePhysicalDevices(physicalDevices).CheckResult();
 
         List<VulkanGraphicsAdapter> adapters = [];
         for (int i = 0; i < adapterCount; i++)
@@ -291,10 +291,10 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         {
             if (_debugMessenger.IsNotNull)
             {
-                _instanceApi.vkDestroyDebugUtilsMessengerEXT(_instance, _debugMessenger);
+                _instanceApi.vkDestroyDebugUtilsMessengerEXT(_debugMessenger);
             }
 
-            _instanceApi.vkDestroyInstance(_instance);
+            _instanceApi.vkDestroyInstance();
         }
     }
 

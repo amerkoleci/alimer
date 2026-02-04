@@ -34,7 +34,7 @@ internal unsafe class VulkanTextureView : TextureView
                 )
         };
 
-        VkResult result = texture.VkDevice.DeviceApi.vkCreateImageView(texture.VkDevice.Handle, &createInfo, null, out _handle);
+        VkResult result = texture.VkDevice.DeviceApi.vkCreateImageView(in createInfo, out _handle);
         if (result != VK_SUCCESS)
         {
             Log.Error($"Vulkan: Failed to create ImageView, error: {result}");
@@ -47,7 +47,7 @@ internal unsafe class VulkanTextureView : TextureView
     /// <inheitdoc />
     internal override void Destroy()
     {
-        _texture.VkDevice.DeviceApi.vkDestroyImageView(_texture.VkDevice.Handle, _handle);
+        _texture.VkDevice.DeviceApi.vkDestroyImageView(_handle);
         _handle = VkImageView.Null;
     }
 

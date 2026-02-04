@@ -23,7 +23,7 @@ internal unsafe class VulkanShaderModule : ShaderModule
             createInfo.codeSize = (UIntPtr)descriptor.ByteCode.Length;
             createInfo.pCode = (uint*)codePtr;
 
-            _device.DeviceApi.vkCreateShaderModule(_device.Handle, descriptor.ByteCode, null, out _handle).CheckResult();
+            _device.DeviceApi.vkCreateShaderModule(descriptor.ByteCode, null, out _handle).CheckResult();
         }
 
         //if (!string.IsNullOrEmpty(descriptor.Label))
@@ -52,7 +52,7 @@ internal unsafe class VulkanShaderModule : ShaderModule
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _device.DeviceApi.vkDestroyShaderModule(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyShaderModule(_handle);
     }
 
     /// <inheritdoc />

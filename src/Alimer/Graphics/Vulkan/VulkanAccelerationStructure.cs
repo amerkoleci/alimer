@@ -19,7 +19,7 @@ internal unsafe class VulkanAccelerationStructure : AccelerationStructure
         VkAccelerationStructureCreateInfoKHR createInfo = new();
 
         VkAccelerationStructureKHR handle;
-        VkResult result = _device.DeviceApi.vkCreateAccelerationStructureKHR(_device.Handle, &createInfo, null, &handle);
+        VkResult result = _device.DeviceApi.vkCreateAccelerationStructureKHR(&createInfo, null, &handle);
         if (result != VK_SUCCESS)
         {
             Log.Error($"Vulkan: Failed to create AccelerationStructure - error: {result}");
@@ -35,7 +35,7 @@ internal unsafe class VulkanAccelerationStructure : AccelerationStructure
     /// <inheritdoc />
     protected internal override void Destroy()
     {
-        _device.DeviceApi.vkDestroyAccelerationStructureKHR(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyAccelerationStructureKHR(_handle);
         _handle = VkAccelerationStructureKHR.Null;
     }
 

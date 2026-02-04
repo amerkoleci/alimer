@@ -38,7 +38,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
         };
 
         VkPipeline pipeline;
-        VkResult result = _device.DeviceApi.vkCreateComputePipelines(device.Handle,
+        VkResult result = _device.DeviceApi.vkCreateComputePipelines(
             device.PipelineCache,
             1, &createInfo,
             null,
@@ -82,6 +82,6 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _device.DeviceApi.vkDestroyPipeline(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyPipeline( _handle);
     }
 }

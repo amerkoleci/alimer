@@ -44,7 +44,7 @@ internal unsafe class VulkanQueryHeap : QueryHeap
             createInfo.pipelineStatistics = pipelineStatistics;
         }
 
-        VkResult result = _device.DeviceApi.vkCreateQueryPool(device.Handle, &createInfo, null, out _handle);
+        VkResult result = _device.DeviceApi.vkCreateQueryPool(in createInfo, out _handle);
         if (result != VkResult.Success)
         {
             Log.Error("Vulkan: Failed to create QueryHeap.");
@@ -75,7 +75,7 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _device.DeviceApi.vkDestroyQueryPool(_device.Handle, _handle);
+        _device.DeviceApi.vkDestroyQueryPool(_handle);
     }
 
     /// <inheritdoc />

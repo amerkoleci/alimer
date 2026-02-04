@@ -22,13 +22,13 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         _device.DeviceApi.vkQueueWaitIdle(_device.VkCopyQueue.Handle);
         foreach (VulkanUploadContext context in _freelist)
         {
-            _device.DeviceApi.vkDestroyCommandPool(_device.Handle, context.TransferCommandPool, null);
-            _device.DeviceApi.vkDestroyCommandPool(_device.Handle, context.TransitionCommandPool, null);
+            _device.DeviceApi.vkDestroyCommandPool(context.TransferCommandPool);
+            _device.DeviceApi.vkDestroyCommandPool(context.TransitionCommandPool);
             for (int i = 0; i < context.Semaphores.Length; i++)
             {
-                _device.DeviceApi.vkDestroySemaphore(_device.Handle, context.Semaphores[i], null);
+                _device.DeviceApi.vkDestroySemaphore(context.Semaphores[i]);
             }
-            _device.DeviceApi.vkDestroyFence(_device.Handle, context.Fence, null);
+            _device.DeviceApi.vkDestroyFence(context.Fence);
 
             context.UploadBuffer.Dispose();
         }
@@ -45,7 +45,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
             {
                 if (_freelist[i].UploadBufferSize >= size)
                 {
-                    if (_device.DeviceApi.vkGetFenceStatus(_device.Handle, _freelist[i].Fence) == VkResult.Success)
+                    if (_device.DeviceApi.vkGetFenceStatus(_freelist[i].Fence) == VkResult.Success)
                     {
                         context = _freelist[i];
                         VulkanUploadContext temp = _freelist[i];
@@ -61,17 +61,17 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         // If no buffer was found that fits the data, create one:
         if (!context.IsValid)
         {
-            _device.DeviceApi.vkCreateCommandPool(_device.Handle, VkCommandPoolCreateFlags.Transient, _device.CopyQueueFamily, out context.TransferCommandPool).CheckResult();
-            _device.DeviceApi.vkCreateCommandPool(_device.Handle, VkCommandPoolCreateFlags.Transient, _device.GraphicsFamily, out context.TransitionCommandPool).CheckResult();
+            _device.DeviceApi.vkCreateCommandPool(VkCommandPoolCreateFlags.Transient, _device.CopyQueueFamily, out context.TransferCommandPool).CheckResult();
+            _device.DeviceApi.vkCreateCommandPool(VkCommandPoolCreateFlags.Transient, _device.GraphicsFamily, out context.TransitionCommandPool).CheckResult();
 
-            _device.DeviceApi.vkAllocateCommandBuffer(_device.Handle, context.TransferCommandPool, out context.TransferCommandBuffer).CheckResult();
-            _device.DeviceApi.vkAllocateCommandBuffer(_device.Handle, context.TransitionCommandPool, out context.TransitionCommandBuffer).CheckResult();
+            _device.DeviceApi.vkAllocateCommandBuffer(context.TransferCommandPool, out context.TransferCommandBuffer).CheckResult();
+            _device.DeviceApi.vkAllocateCommandBuffer(context.TransitionCommandPool, out context.TransitionCommandBuffer).CheckResult();
 
-            _device.DeviceApi.vkCreateFence(_device.Handle, out context.Fence).CheckResult();
+            _device.DeviceApi.vkCreateFence(out context.Fence).CheckResult();
 
-            _device.DeviceApi.vkCreateSemaphore(_device.Handle, out context.Semaphores[0]).CheckResult();
-            _device.DeviceApi.vkCreateSemaphore(_device.Handle, out context.Semaphores[1]).CheckResult();
-            _device.DeviceApi.vkCreateSemaphore(_device.Handle, out context.Semaphores[2]).CheckResult();
+            _device.DeviceApi.vkCreateSemaphore(out context.Semaphores[0]).CheckResult();
+            _device.DeviceApi.vkCreateSemaphore(out context.Semaphores[1]).CheckResult();
+            _device.DeviceApi.vkCreateSemaphore(out context.Semaphores[2]).CheckResult();
 
             context.UploadBufferSize = BitOperations.RoundUpToPowerOf2(size);
             context.UploadBufferSize = Math.Max(context.UploadBufferSize, 65536);
@@ -81,8 +81,8 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         }
 
         // Begin command list in valid state
-        _device.DeviceApi.vkResetCommandPool(_device.Handle, context.TransferCommandPool, 0).CheckResult();
-        _device.DeviceApi.vkResetCommandPool(_device.Handle, context.TransitionCommandPool, 0).CheckResult();
+        _device.DeviceApi.vkResetCommandPool(context.TransferCommandPool, 0).CheckResult();
+        _device.DeviceApi.vkResetCommandPool(context.TransitionCommandPool, 0).CheckResult();
 
         VkCommandBufferBeginInfo beginInfo = new()
         {
@@ -92,7 +92,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         _device.DeviceApi.vkBeginCommandBuffer(context.TransferCommandBuffer, &beginInfo).CheckResult();
         _device.DeviceApi.vkBeginCommandBuffer(context.TransitionCommandBuffer, &beginInfo).CheckResult();
 
-        _device.DeviceApi.vkResetFences(_device.Handle, context.Fence).CheckResult();
+        _device.DeviceApi.vkResetFences(context.Fence).CheckResult();
         return context;
     }
 

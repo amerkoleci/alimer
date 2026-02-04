@@ -215,7 +215,6 @@ internal unsafe class VulkanBindGroup : BindGroup
         }
 
         _device.DeviceApi.vkUpdateDescriptorSets(
-            _device.Handle,
             (uint)descriptorWriteCount,
             descriptorWrites,
             0,

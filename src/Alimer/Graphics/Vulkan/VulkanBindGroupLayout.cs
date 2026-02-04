@@ -120,7 +120,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
             pBindings = _bindings
         };
 
-        VkResult result = VkDevice.DeviceApi.vkCreateDescriptorSetLayout(device.Handle, &createInfo, null, out _handle);
+        VkResult result = VkDevice.DeviceApi.vkCreateDescriptorSetLayout(&createInfo, null, out _handle);
         if (result != VkResult.Success)
         {
             Log.Error($"Vulkan: Failed to create {nameof(BindGroupLayout)}.");
@@ -157,7 +157,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     protected internal override void Destroy()
     {
         Free(_bindings);
-        VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(VkDevice.Handle, _handle);
+        VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(_handle);
     }
 
     /// <inheritdoc />

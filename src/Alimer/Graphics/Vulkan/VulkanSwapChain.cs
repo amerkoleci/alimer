@@ -44,7 +44,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
                         hinstance = Win32Native.GetModuleHandleW(null),
                         hwnd = win32Surface.Hwnd
                     };
-                    instanceApi.vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateWin32SurfaceKHR(in surfaceCreateInfo, out surface).CheckResult();
                     break;
                 }
 
@@ -54,7 +54,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
                     {
                         window = androidSurface.Window,
                     };
-                    instanceApi.vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateAndroidSurfaceKHR(in surfaceCreateInfo, out surface).CheckResult();
                     break;
                 }
 
@@ -65,7 +65,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
                         display = waylandSurface.Display,
                         surface = waylandSurface.Surface,
                     };
-                    instanceApi.vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateWaylandSurfaceKHR(in surfaceCreateInfo, out surface).CheckResult();
                     break;
                 }
 
@@ -76,7 +76,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
                         dpy = xlibSurface.Display,
                         window = xlibSurface.Window,
                     };
-                    instanceApi.vkCreateXlibSurfaceKHR(instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateXlibSurfaceKHR(in surfaceCreateInfo, out surface).CheckResult();
                     break;
                 }
 
@@ -86,7 +86,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
                     {
                         pLayer = metalLayerSurface.Layer,
                     };
-                    instanceApi.vkCreateMetalSurfaceEXT(instance, &surfaceCreateInfo, null, &surface).CheckResult();
+                    instanceApi.vkCreateMetalSurfaceEXT(in surfaceCreateInfo, out surface).CheckResult();
                     break;
                 }
 
@@ -252,7 +252,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             oldSwapchain = _handle
         };
 
-        VkResult result = _device.DeviceApi.vkCreateSwapchainKHR(_device.Handle, &createInfo, null, out _handle);
+        VkResult result = _device.DeviceApi.vkCreateSwapchainKHR(&createInfo, null, out _handle);
         if (result != VkResult.Success)
         {
             Log.Error("Vulkan: Failed to create SwapChain.");
@@ -261,13 +261,13 @@ internal unsafe partial class VulkanSwapChain : SwapChain
 
         if (createInfo.oldSwapchain.IsNotNull)
         {
-            _device.DeviceApi.vkDestroySwapchainKHR(_device.Handle, createInfo.oldSwapchain);
+            _device.DeviceApi.vkDestroySwapchainKHR(createInfo.oldSwapchain);
         }
 
         NeedAcquire = true;
-        _device.DeviceApi.vkGetSwapchainImagesKHR(_device.Handle, _handle, out uint actualImageCount).CheckResult();
+        _device.DeviceApi.vkGetSwapchainImagesKHR(_handle, out uint actualImageCount).CheckResult();
         Span<VkImage> swapChainImages = stackalloc VkImage[(int)actualImageCount];
-        _device.DeviceApi.vkGetSwapchainImagesKHR(_device.Handle, _handle, swapChainImages).CheckResult();
+        _device.DeviceApi.vkGetSwapchainImagesKHR(_handle, swapChainImages).CheckResult();
         _acquireSemaphores = new VkSemaphore[actualImageCount];
         _releaseSemaphores = new VkSemaphore[actualImageCount];
         _backbufferTextures = new VulkanTexture[actualImageCount];
@@ -283,8 +283,8 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             description.Label = $"BackBuffer texture {i}";
 
             _backbufferTextures[i] = new VulkanTexture(_device, swapChainImages[i], in description, TextureLayout.Undefined);
-            _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _acquireSemaphores[i]).CheckResult();
-            _device.DeviceApi.vkCreateSemaphore(_device.Handle, out _releaseSemaphores[i]).CheckResult();
+            _device.DeviceApi.vkCreateSemaphore(out _acquireSemaphores[i]).CheckResult();
+            _device.DeviceApi.vkCreateSemaphore(out _releaseSemaphores[i]).CheckResult();
         }
     }
 
@@ -306,13 +306,12 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     {
         for (uint i = 0; i < _backbufferTextures!.Length; ++i)
         {
-            _device.DeviceApi.vkDestroySemaphore(_device.Handle, _acquireSemaphores[i]);
-            _device.DeviceApi.vkDestroySemaphore(_device.Handle, _releaseSemaphores[i]);
+            _device.DeviceApi.vkDestroySemaphore(_acquireSemaphores[i]);
+            _device.DeviceApi.vkDestroySemaphore(_releaseSemaphores[i]);
         }
 
-        _device.DeviceApi.vkDestroySwapchainKHR(_device.Handle, _handle, null);
+        _device.DeviceApi.vkDestroySwapchainKHR(_handle, null);
         _device.VkAdapter.VkGraphicsManager.InstanceApi.vkDestroySurfaceKHR(
-            _device.VkAdapter.VkGraphicsManager.Instance,
             _surface,
             null);
     }
@@ -343,7 +342,6 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         lock (LockObject)
         {
             result = _device.DeviceApi.vkAcquireNextImageKHR(
-                _device.Handle,
                 Handle,
                 ulong.MaxValue,
                 _acquireSemaphores![_acquireSemaphoreIndex],
