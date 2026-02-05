@@ -160,14 +160,16 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
 
                 if (!hasTangent)
                 {
-                    Span<Vector3> calculatedTngents = VertexHelper.GenerateTangents(
-                        positionAccessor.ToArray(),
-                        texcoordAccessor.ToArray(),
-                        indexAccessor.ToArray());
+                    Span<Vector3> calculatedTangents = new Vector3[positionAccessor.Count];
+                    VertexHelper.GenerateTangents(
+                        calculatedTangents,
+                        positionAccessor,
+                        texcoordAccessor,
+                        indexAccessor);
                     tangentAccessor = new List<Vector3>();
                     for (int i = 0; i < positionAccessor.Count; ++i)
                     {
-                        tangentAccessor.Add(new Vector3(calculatedTngents[i].X, calculatedTngents[i].Y, calculatedTngents[i].Z));
+                        tangentAccessor.Add(calculatedTangents[i]);
                     }
                 }
 

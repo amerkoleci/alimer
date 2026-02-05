@@ -29,11 +29,11 @@ public class GPUMaterialBindGroups
     }
 }
 
-public class GPUMaterialPipeline
+public class GPURenderPipeline
 {
     private static int s_nextPipelineId = 1;
 
-    public GPUMaterialPipeline(RenderPipeline pipeline, PipelineLayout pipelineLayout, RenderOrder renderOrder)
+    public GPURenderPipeline(RenderPipeline pipeline, PipelineLayout pipelineLayout, RenderOrder renderOrder)
     {
         Id = s_nextPipelineId++;
         Pipeline = pipeline;
@@ -55,7 +55,7 @@ public interface IGPUMaterialFactory : IDisposable
     bool Remove(Material material);
 
     //VertexBufferLayout GetLayout(Mesh mesh);
-    GPUMaterialPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned);
+    GPURenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned);
     BindGroup GetBindGroup(Material material, bool skinned);
 }
 
@@ -65,7 +65,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
     protected readonly List<TMaterial> _materials = [];
     protected BindGroupLayout _bindGroupLayout;
     private readonly Dictionary<int, BindGroup> _bindGroups = [];
-    private readonly Dictionary<int, GPUMaterialPipeline> _renderPipelines = [];
+    private readonly Dictionary<int, GPURenderPipeline> _renderPipelines = [];
 
     protected GPUMaterialFactory(RenderSystem system)
     {
@@ -109,12 +109,12 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
     protected virtual unsafe PipelineLayout CreatePipelineLayout(bool skinned)
     {
-        Span<BindGroupLayout> bindGroupLayouts = [_bindGroupLayout, System.ViewBindGroupLayout, System.FrameBindGroupLayout];
-        Span<PushConstantRange> pushConstantRanges = [
-            new PushConstantRange(999, (uint)sizeof(DrawData))
-        ];
+        Span<BindGroupLayout> bindGroupLayouts = [_bindGroupLayout,
+            System.InstanceBindGroupLayout,
+            System.ViewBindGroupLayout,
+            System.FrameBindGroupLayout];
 
-        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts, pushConstantRanges);
+        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
         return System.Device.CreatePipelineLayout(in descriptor);
     }
 
@@ -133,10 +133,10 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
         return bindGroup;
     }
 
-    public GPUMaterialPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)
+    public GPURenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)
     {
         int hashCode = GetPipelineKey(geometryLayout, material, skinned);
-        if (!_renderPipelines.TryGetValue(hashCode, out GPUMaterialPipeline? pipeline))
+        if (!_renderPipelines.TryGetValue(hashCode, out GPURenderPipeline? pipeline))
         {
             ShaderModule vertexShader = CreateVertexShaderModule(geometryLayout, material, skinned);
             ShaderModule fragmentShader = CreateFragmentShaderModule(geometryLayout, material);

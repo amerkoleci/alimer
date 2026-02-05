@@ -98,28 +98,22 @@ public sealed class AssetShaderCompiler : IShaderCompiler
 
                 const uint ShiftSpaceCount = 8;
 
-                const uint SpirvBShift = 0;
-                const uint SpirvTShift = 100;
-
-                const uint SpirvUShift = 200;
-                const uint SpirvSShift = 300;
-
                 for (int space = 0; space < ShiftSpaceCount; space++)
                 {
                     arguments.Add("-fvk-b-shift");
-                    arguments.Add($"{SpirvBShift}");
+                    arguments.Add($"{VulkanRegisterShift.ContantBuffer}");
                     arguments.Add($"{space}");
 
                     arguments.Add("-fvk-t-shift");
-                    arguments.Add($"{SpirvTShift}");
+                    arguments.Add($"{VulkanRegisterShift.SRV}");
                     arguments.Add($"{space}");
 
                     arguments.Add("-fvk-u-shift");
-                    arguments.Add($"{SpirvUShift}");
+                    arguments.Add($"{VulkanRegisterShift.UAV}");
                     arguments.Add($"{space}");
 
                     arguments.Add("-fvk-s-shift");
-                    arguments.Add($"{SpirvSShift}");
+                    arguments.Add($"{VulkanRegisterShift.Sampler}");
                     arguments.Add($"{space}");
                 }
                 break;

@@ -4,6 +4,7 @@
 using System.Numerics;
 //using MeshOptimizer;
 using Alimer.Numerics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
@@ -48,16 +49,15 @@ public static unsafe class VertexHelper
         return normalBuffer;
     }
 
-    public static Span<Vector3> GenerateTangents(
-        ReadOnlySpan<Vector3> positions,
-        ReadOnlySpan<Vector2> texcoords,
-        ReadOnlySpan<uint> indices)
+    public static void GenerateTangents(
+        Span<Vector3> tangents,
+        IList<Vector3> positions,
+        IList<Vector2> texcoords,
+        IList<uint> indices)
     {
-        Span<Vector3> tangentBuffer = new Vector3[positions.Length];
-
-        int indexCount = indices.IsEmpty
-            ? positions.Length / sizeof(Vector3)
-            : indices.Length;
+        int indexCount = indices.Count == 0
+            ? positions.Count / sizeof(Vector3)
+            : indices.Count;
 
         for (int i = 0; i < indexCount; i += 3)
         {
@@ -65,7 +65,7 @@ public static unsafe class VertexHelper
             int index2 = i + 1;
             int index3 = i + 2;
 
-            if (!indices.IsEmpty)
+            if (indices.Count > 0)
             {
                 index1 = (int)indices[index1];
                 index2 = (int)indices[index2];
@@ -96,12 +96,10 @@ public static unsafe class VertexHelper
             float r = 1.0f / dR;
             Vector3 t = (uvEdge2.Y * edge1 - uvEdge1.Y * edge2) * r;
 
-            tangentBuffer[index1] += t;
-            tangentBuffer[index2] += t;
-            tangentBuffer[index3] += t;
+            tangents[index1] += t;
+            tangents[index2] += t;
+            tangents[index3] += t;
         }
-
-        return tangentBuffer;
     }
 
 #if TODO_MESH_OPTIMIZER

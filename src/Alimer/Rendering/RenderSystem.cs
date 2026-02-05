@@ -10,6 +10,12 @@ namespace Alimer.Rendering;
 
 public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 {
+    // ShaderTypes.h
+    public const int FrameBindGroupSpace = 3;
+    public const int ViewBindGroupSpace = 2;
+    public const int InstanceBindGroupSpace = 1;
+    public const int MaterialBindGroupSpace = 0;
+
     private readonly Texture _blackTexture;
     private readonly Texture _whiteTexture;
     private readonly Texture _defaultNormalTexture;
@@ -122,8 +128,9 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
-    public BindGroupLayout FrameBindGroupLayout { get; }
-    public BindGroupLayout ViewBindGroupLayout { get; }
+    public BindGroupLayout InstanceBindGroupLayout => _renderBatch.InstanceBindGroupLayout; // 1
+    public BindGroupLayout ViewBindGroupLayout { get; } // 2
+    public BindGroupLayout FrameBindGroupLayout { get; } // 3
 
     public ShaderSystem ShaderSystem { get; }
 
@@ -177,9 +184,6 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
             if (containmentType == ContainmentType.Disjoint)
                 continue;
 
-            //if (!cameraFrustum.Intersects(worldBoundingBox))
-            //    continue;
-
             Mesh mesh = meshComponent.Mesh;
             //MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
             VertexBufferLayout gpuLayout = new((uint)mesh.VertexStride, VertexPositionNormalTexture.RHIVertexAttributes);
@@ -200,13 +204,13 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
                 GPUInstanceData instanceData = new()
                 {
                     WorldMatrix = meshComponent.Entity!.WorldTransform,
-                    Color = Colors.White,
+                    Color = Colors.Yellow,
                     Count = 1,
                     //MaterialIndex = (uint)materialIndex
                 };
 
                 bool skinned = false;
-                GPUMaterialPipeline pipeline = factory.GetPipeline(geometryLayout, material, skinned);
+                GPURenderPipeline pipeline = factory.GetPipeline(geometryLayout, material, skinned);
                 //GPUMaterialBindGroups bindGroups = new(factory.GetBindGroup(material, skinned));
                 BindGroup bindGroup = factory.GetBindGroup(material, skinned);
                 //RenderPrimitive primitive = new(subMesh, pipeline, bindGroups);
@@ -236,13 +240,13 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
         RenderPassDescriptor renderPassDescriptor = new(depthStencilAttachment, colorAttachment)
         {
-            Label = "Forward render pass"u8
+            Label = "Forward pass"u8
         };
 
         RenderPassEncoder renderPass = commandBuffer.BeginRenderPass(renderPassDescriptor);
 
         // Frame BindGroup (once per frame)
-        renderPass.SetBindGroup(2, _frameBindGroup);
+        renderPass.SetBindGroup(FrameBindGroupSpace, _frameBindGroup);
 
         // For each camera
         RenderCamera(renderPass, camera);
@@ -257,7 +261,9 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     {
         UpdateCamera(camera);
 
-        passEncoder.SetBindGroup(1, _viewBindGroup);
+        passEncoder.SetBindGroup(ViewBindGroupSpace, _viewBindGroup);
+        BindGroup instanceBindGroup = _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
+        passEncoder.SetBindGroup(InstanceBindGroupSpace, instanceBindGroup);
 
         // Loop through all the renderable entities and store them by pipeline.
         foreach (var pipeline in _renderBatch.SortedPipelines)
@@ -286,20 +292,15 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
                     passEncoder.SetBindGroup(0, material);
 
-                    //if (pipeline.instanceSlot >= 0)
-                    //{
-                    //    passEncoder.setVertexBuffer(pipeline.instanceSlot, instanceBuffer, instances.bufferOffset);
-                    //}
-
                     // Update per-object data (after set pipeline)
-                    DrawData drawData = new()
-                    {
-                        WorldMatrix = instances.Transforms[0]
-                    };
-                    passEncoder.SetPushConstants(0, drawData);
+                    //InstanceData drawData = new()
+                    //{
+                    //    WorldMatrix = instances.Transforms[0]
+                    //};
+                    //passEncoder.SetPushConstants(0, drawData);
 
-                    uint instanceCount = 1u; // instances.InstanceCount;
-                    passEncoder.DrawIndexed((uint)geometry.IndexCount, instanceCount, (uint)geometry.IndexStart, 0, 0);
+                    uint instanceCount = instances.InstanceCount;
+                    passEncoder.DrawIndexed((uint)geometry.IndexCount, instanceCount, (uint)geometry.IndexStart, 0, instances.FirstInstance);
                 }
             }
         }
@@ -399,27 +400,21 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
     class RenderPrimitive
     {
         public readonly SubMesh Geometry;
-        public readonly GPUMaterialPipeline Pipeline;
+        public readonly GPURenderPipeline Pipeline;
         public readonly GPUMaterialBindGroups BindGroups;
 
-        public RenderPrimitive(SubMesh geometry, GPUMaterialPipeline pipeline, BindGroup bindGroup)
+        public RenderPrimitive(SubMesh geometry, GPURenderPipeline pipeline, BindGroup bindGroup)
         {
             Geometry = geometry;
             Pipeline = pipeline;
             BindGroups = new GPUMaterialBindGroups(bindGroup);
         }
 
-        public RenderPrimitive(SubMesh geometry, GPUMaterialPipeline pipeline, GPUMaterialBindGroups? bindGroups)
+        public RenderPrimitive(SubMesh geometry, GPURenderPipeline pipeline, GPUMaterialBindGroups? bindGroups)
         {
             Geometry = geometry;
             Pipeline = pipeline;
             BindGroups = bindGroups ?? new GPUMaterialBindGroups();
         }
-    }
-
-    public struct DrawData
-    {
-        public Matrix4x4 WorldMatrix;
-        public uint MaterialIndex;
     }
 }

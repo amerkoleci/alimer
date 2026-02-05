@@ -4,13 +4,17 @@
 
 // Material (space 0)
 
-// Draw - push constants
-ALIMER_PUSH_CONSTANTS(PerDrawData, draw);
-
 [shader("vertex")]
-VertexOutput vertexMain(in VertexInput input)
+VertexOutput vertexMain(in VertexInput input,
+    in uint instanceIndex: SV_InstanceID
+)
 {
-    float4 worldPosition = mul(float4(input.Position, 1.0f), draw.worldMatrix);
+    InstanceData instance = instanceDataBuffer[instanceIndex];
+
+    float4x4 worldMatrix = instance.worldMatrix;
+    const float4 instanceColor = instance.color;
+    const uint materialIndex = instance.materialIndex;
+    float4 worldPosition = mul(float4(input.Position, 1.0f), worldMatrix);
 
     VertexOutput output;
 
@@ -20,7 +24,7 @@ VertexOutput vertexMain(in VertexInput input)
     // output.DepthVS = output.Position.w;
 
     // World-space normal
-    output.Normal = normalize(mul(float4(input.Normal, 0.0f), draw.worldMatrix)).xyz;
+    output.Normal = normalize(mul(float4(input.Normal, 0.0f), worldMatrix)).xyz;
 
     // World-space tangent and bitangent
     //output.Tangent = normalize(mul(draw.worldMatrix, float4(input.Tangent.xyz, 0.0f))).xyz;
@@ -33,7 +37,7 @@ VertexOutput vertexMain(in VertexInput input)
 #if defined(VERTEX_COLOR)
     output.Color = input.Color;
 #else
-    output.Color = float3(1.0f);
+    output.Color = instanceColor.xyz; // float3(1.0f);
 #endif
     return output;
 }

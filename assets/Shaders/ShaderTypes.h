@@ -55,19 +55,23 @@ struct ALIGNMENT PBRMaterialData
     float4 baseColorFactor;
 };
 
-struct ALIGNMENT PerDrawData
+struct ALIGNMENT InstanceData
 {
     float4x4 worldMatrix;
+    float4 color;
     uint32_t materialIndex;
     //float4x4 inverseWorldMatrix;
 };
 
 #ifndef __cplusplus
-// Frame (space 2)
-ConstantBuffer<PerFrameData> frame : register(b0, space2);
+// Frame (space 3)
+ConstantBuffer<PerFrameData> frame : register(b0, space3);
 
-// View (space 1)
-ConstantBuffer<PerViewData> view : register(b0, space1);
+// View (space 2)
+ConstantBuffer<PerViewData> view : register(b0, space2);
+
+// Instance data + materials data (space 1)
+StructuredBuffer<InstanceData> instanceDataBuffer : register(t0, space1);
 #endif
 
 #endif // _ALIMER_SHADER__

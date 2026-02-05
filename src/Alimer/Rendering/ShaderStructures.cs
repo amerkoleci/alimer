@@ -27,6 +27,13 @@ public struct PerViewData : IShaderConstantBuffer
     public Vector3 cameraPosition;
 }
 
+public struct InstanceData : IShaderConstantBuffer
+{
+    public Matrix4x4 worldMatrix;
+    public Color color;
+    public uint materialIndex;
+}
+
 // Updated once per material
 public struct PBRMaterialData : IShaderConstantBuffer
 {

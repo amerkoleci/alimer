@@ -1568,35 +1568,30 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             name).CheckResult();
     }
 
-    public uint GetRegisterOffset(VkDescriptorType type)
+    public uint GetRegisterOffset(VkDescriptorType type, bool readOnlyStorage)
     {
         // This needs to map with ShaderCompiler
-        const uint constantBuffer = 0;
-        const uint shaderResource = 100;
-        const uint unorderedAccess = 200;
-        const uint sampler = 300;
-
         switch (type)
         {
-            case VkDescriptorType.Sampler:
-                return sampler;
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                return VulkanRegisterShift.ContantBuffer;
 
-            case VkDescriptorType.SampledImage:
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
             case VkDescriptorType.UniformTexelBuffer:
-                return shaderResource;
+                return VulkanRegisterShift.SRV;
 
-            case VkDescriptorType.StorageImage:
-            case VkDescriptorType.StorageTexelBuffer:
-            case VkDescriptorType.StorageBuffer:
-            case VkDescriptorType.StorageBufferDynamic:
-                return unorderedAccess;
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                return readOnlyStorage ? VulkanRegisterShift.SRV : VulkanRegisterShift.UAV;
 
-            case VkDescriptorType.UniformBuffer:
-            case VkDescriptorType.UniformBufferDynamic:
-                return constantBuffer;
+            case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                return VulkanRegisterShift.SRV;
 
-            case VkDescriptorType.AccelerationStructureKHR:
-                return shaderResource;
+            case VK_DESCRIPTOR_TYPE_SAMPLER:
+                return VulkanRegisterShift.Sampler;
 
             default:
                 ThrowHelper.ThrowInvalidOperationException();

@@ -34,7 +34,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 
             if (entry.StaticSampler.HasValue)
             {
-                registerOffset = device.GetRegisterOffset(VkDescriptorType.Sampler);
+                registerOffset = device.GetRegisterOffset(VK_DESCRIPTOR_TYPE_SAMPLER, false);
                 VkSampler sampler = device.GetOrCreateVulkanSampler(entry.StaticSampler.Value);
 
                 _bindings[i] = new VkDescriptorSetLayoutBinding
@@ -48,8 +48,8 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                 continue;
             }
 
-            VkDescriptorType vkDescriptorType = VkDescriptorType.Sampler;
-
+            bool readOnlyStorage = false;
+            VkDescriptorType vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
             switch (entry.BindingType)
             {
                 case BindingInfoType.Buffer:
@@ -58,24 +58,25 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                         case BufferBindingType.Constant:
                             if (entry.Buffer.HasDynamicOffset)
                             {
-                                vkDescriptorType = VkDescriptorType.UniformBufferDynamic;
+                                vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                             }
                             else
                             {
-                                vkDescriptorType = VkDescriptorType.UniformBuffer;
+                                vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                             }
                             break;
 
                         case BufferBindingType.Storage:
                         case BufferBindingType.ReadOnlyStorage:
                             // UniformTexelBuffer, StorageTexelBuffer ?
+                            readOnlyStorage = (entry.Buffer.Type == BufferBindingType.ReadOnlyStorage);
                             if (entry.Buffer.HasDynamicOffset)
                             {
-                                vkDescriptorType = VkDescriptorType.StorageBufferDynamic;
+                                vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                             }
                             else
                             {
-                                vkDescriptorType = VkDescriptorType.StorageBuffer;
+                                vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                             }
                             break;
                     }
@@ -102,8 +103,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                     break;
             }
 
-            registerOffset = device.GetRegisterOffset(vkDescriptorType);
-
+            registerOffset = device.GetRegisterOffset(vkDescriptorType, readOnlyStorage);
             _bindings[i] = new VkDescriptorSetLayoutBinding
             {
                 binding = entry.Binding + registerOffset,

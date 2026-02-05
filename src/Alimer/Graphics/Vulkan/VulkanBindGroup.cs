@@ -92,11 +92,29 @@ internal unsafe class VulkanBindGroup : BindGroup
             BindGroupEntry? foundEntry = default;
             foreach (BindGroupEntry entry in entries)
             {
-                uint registerOffset = _device.GetRegisterOffset(layoutBinding.descriptorType);
+                uint registerOffset = _device.GetRegisterOffset(layoutBinding.descriptorType, false);
                 uint originalBinding = layoutBinding.binding - registerOffset;
 
                 if (entry.Binding != originalBinding)
-                    continue;
+                {
+                    // ReadOnly storage?
+                    switch (layoutBinding.descriptorType)
+                    {
+                        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                            registerOffset = _device.GetRegisterOffset(layoutBinding.descriptorType, true);
+                            originalBinding = layoutBinding.binding - registerOffset;
+                            if (entry.Binding != originalBinding)
+                            {
+                                continue;
+                            }
+                            break;
+
+                        default:
+                            continue;
+                    }
+                }
 
                 switch (layoutBinding.descriptorType)
                 {
@@ -115,8 +133,8 @@ internal unsafe class VulkanBindGroup : BindGroup
 
                     case VkDescriptorType.UniformTexelBuffer:
                     case VkDescriptorType.StorageTexelBuffer:
-                    case VkDescriptorType.StorageBuffer:
-                    case VkDescriptorType.StorageBufferDynamic:
+                    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
                         backendBuffer = entry.Buffer != null ? (VulkanBuffer)entry.Buffer : default;
                         if (backendBuffer == null)
                             continue;

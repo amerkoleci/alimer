@@ -16,6 +16,12 @@ public sealed class SceneCubeSample : SampleBase
     private readonly Entity _cameraEntity;
     private readonly Entity _cubeEntity;
 
+    // Create grid
+    int xCount = 4;
+    int yCount = 4;
+    const float step = 4.0f;
+    private readonly List<Entity> _gridEntities = [];
+
     public SceneCubeSample(IServiceRegistry services)
         : base("Engine - Scene Cube")
     {
@@ -44,15 +50,16 @@ public sealed class SceneCubeSample : SampleBase
         root.Children.Add(floorEntity);
 
         // Cube mesh
+        Mesh cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
+        cubeMesh.CreateGpuData(GraphicsDevice);
+
+        PhysicallyBasedMaterial sharedMaterial = new()
+        {
+            BaseColorFactor = Colors.White,
+        };
+
         {
             _cubeEntity = new("Cube", new Vector3(0.0f, 2.0f, 0.0f));
-            Mesh cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-            cubeMesh.CreateGpuData(GraphicsDevice);
-
-            PhysicallyBasedMaterial material = new()
-            {
-                BaseColorFactor = Colors.CornflowerBlue,
-            };
 
             RigidBodyComponent cubeRigidBody = new()
             {
@@ -61,12 +68,33 @@ public sealed class SceneCubeSample : SampleBase
             };
 
             MeshComponent meshComponent = new(cubeMesh);
-            meshComponent.Materials.Add(material);
+            meshComponent.Materials.Add(sharedMaterial);
             _cubeEntity.AddComponent(meshComponent);
             //_cubeEntity.AddComponent(cubeRigidBody);
+            root.Children.Add(_cubeEntity);
         }
 
-        root.Children.Add(_cubeEntity);
+        // Cube 2 mesh
+        {
+            Mesh smallCubeMesh = ToDispose(Mesh.CreateCube(1.0f));
+            smallCubeMesh.CreateGpuData(GraphicsDevice);
+
+            for (int x = 0; x < xCount; x++)
+            {
+                for (int y = 0; y < yCount; y++)
+                {
+                    Vector3 translation = new(step * (x - xCount / 2 + 0.5f), step * (y - yCount / 2 + 0.5f), 0);
+
+                    Entity entity = new("Cube", translation);
+                    MeshComponent meshComponent = new(smallCubeMesh);
+                    meshComponent.Materials.Add(sharedMaterial);
+                    entity.AddComponent(meshComponent);
+                    root.Children.Add(entity);
+                    _gridEntities.Add(entity);
+                }
+            }
+
+        }
 
         // Sphere
         bool sphere = false;
@@ -80,10 +108,10 @@ public sealed class SceneCubeSample : SampleBase
 
             Entity sphereEntity = new("Sphere", new Vector3(0.0f, 5.0f, 0.0f));
 
-            Mesh cubeMesh = ToDispose(Mesh.CreateSphere(0.5f));
-            cubeMesh.CreateGpuData(GraphicsDevice);
+            Mesh sphereMesh = ToDispose(Mesh.CreateSphere(0.5f));
+            sphereMesh.CreateGpuData(GraphicsDevice);
 
-            MeshComponent meshComponent = new(cubeMesh);
+            MeshComponent meshComponent = new(sphereMesh);
             sphereEntity.AddComponent(meshComponent);
             sphereEntity.AddComponent(sphereRigidBody);
 
@@ -101,6 +129,15 @@ public sealed class SceneCubeSample : SampleBase
     {
         float deltaTime = (float)time.Elapsed.TotalSeconds;
         _cubeEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
+
+        int index = 0;
+        for (int x = 0; x < xCount; x++)
+        {
+            for (int y = 0; y < yCount; y++)
+            {
+                _gridEntities[index++].Transform.Rotate(10 * deltaTime, 20 * deltaTime, 1);
+            }
+        }
     }
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)

@@ -26,6 +26,8 @@
     <File Path="assets/Shaders/ShaderTypes.h" />
     <File Path="assets/Shaders/Sprite.slang" />
     <File Path="assets/Shaders/Unlit.slang" />
+    <File Path="assets/Shaders/VertexCommon.slang" />
+    <File Path="assets/Shaders/VertexInputOutput.hlsli" />
   </Folder>
   <Folder Name="/editor/">
     <Project Path="src/editor/Alimer.Editor/Alimer.Editor.csproj" />

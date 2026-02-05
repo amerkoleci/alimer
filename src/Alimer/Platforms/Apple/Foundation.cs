@@ -124,5 +124,5 @@ internal readonly partial struct NSObject : IDisposable
     public static implicit operator NSObject(nint handle) => new(handle);
     public static implicit operator nint(NSObject value) => value.Handle;
 
-    public Bool8 IsKindOfClass(nint @class) => bool_objc_msgSend(Handle, s_sel_isKindOfClass, @class);
+    public bool IsKindOfClass(nint @class) => bool_objc_msgSend(Handle, s_sel_isKindOfClass, @class);
 }
