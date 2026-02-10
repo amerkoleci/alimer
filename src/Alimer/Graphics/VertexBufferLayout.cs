@@ -8,7 +8,7 @@ namespace Alimer.Graphics;
 /// </summary>
 public record struct VertexBufferLayout
 {
-    public uint Stride;
+    public int Stride;
     public VertexStepMode StepMode;
     public VertexAttribute[] Attributes;
 
@@ -16,10 +16,10 @@ public record struct VertexBufferLayout
     {
         Attributes = attributes;
 
-        uint computedStride = 0;
+        int computedStride = 0;
         for (int i = 0; i < attributes.Length; i++)
         {
-            uint elementSize = (uint)attributes[i].Format.GetSizeInBytes();
+            int elementSize = attributes[i].Format.GetSizeInBytes();
             if (attributes[i].Offset != 0)
             {
                 computedStride = attributes[i].Offset + elementSize;
@@ -34,15 +34,19 @@ public record struct VertexBufferLayout
         StepMode = VertexStepMode.Vertex;
     }
 
-    public VertexBufferLayout(uint stride, params VertexAttribute[] attributes)
+    public VertexBufferLayout(int stride, params VertexAttribute[] attributes)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(stride, nameof(stride));
+
         Attributes = attributes;
         Stride = stride;
         StepMode = VertexStepMode.Vertex;
     }
 
-    public VertexBufferLayout(uint stride, VertexStepMode stepMode, params VertexAttribute[] attributes)
+    public VertexBufferLayout(int stride, VertexStepMode stepMode, params VertexAttribute[] attributes)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(stride, nameof(stride));
+
         Stride = stride;
         StepMode = stepMode;
         Attributes = attributes;

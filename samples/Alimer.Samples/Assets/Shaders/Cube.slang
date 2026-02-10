@@ -1,11 +1,11 @@
 #include "Alimer.hlsli"
 
 struct VertexInput {
-    float3 Position : ATTRIBUTE0;
-    float3 Normal   : ATTRIBUTE1;
-    float2 TexCoord : ATTRIBUTE2;
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float2 TexCoord : TEXCOORD;
 #ifdef VERTEX_COLOR
-    float4 Color    : ATTRIBUTE3;
+    float4 Color : COLOR;
 #endif
 };
 

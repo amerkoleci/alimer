@@ -37,6 +37,7 @@ public sealed unsafe partial class Mesh : DisposableObject
         Guard.IsGreaterThan(vertexCount, 0, nameof(vertexCount));
         Guard.IsNotEmpty(vertexAttributes, nameof(vertexAttributes));
         Guard.IsGreaterThan(indexCount, 0, nameof(indexCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(vertexStride, nameof(vertexStride));
 
         _vertexAttributes = vertexAttributes.ToArray();
         // Compute stride from vertex attributes if required
@@ -51,12 +52,13 @@ public sealed unsafe partial class Mesh : DisposableObject
                 }
                 else
                 {
+                    _vertexAttributes[i].Offset = vertexStride;
                     vertexStride += elementSize;
                 }
             }
         }
 
-        _vertexBuffer = new VertexBuffer(vertexCount, vertexStride);
+        _vertexBuffer = new VertexBuffer(vertexCount, (int)vertexStride);
         _indexBuffer = new CpuBuffer(indexCount, indexFormat == IndexFormat.UInt32 ? 4 : 2);
         _positionOffset = GetVertexAttributeOffset(VertexAttributeSemantic.Position);
     }
@@ -179,22 +181,22 @@ public sealed unsafe partial class Mesh : DisposableObject
         return false;
     }
 
-    public VertexAttribute? GetVertexAttribute(VertexAttributeSemantic semantic)
+    public VertexAttribute? GetVertexAttribute(VertexAttributeSemantic semantic, uint semanticIndex = 0)
     {
         for (int i = 0; i < _vertexAttributes.Length; i++)
         {
-            if (_vertexAttributes[i].Semantic == semantic)
+            if (_vertexAttributes[i].Semantic == semantic && _vertexAttributes[i].SemanticIndex == semanticIndex)
                 return _vertexAttributes[i];
         }
 
         return default;
     }
 
-    public int GetVertexAttributeOffset(VertexAttributeSemantic semantic)
+    public int GetVertexAttributeOffset(VertexAttributeSemantic semantic, uint semanticIndex = 0)
     {
         for (int i = 0; i < _vertexAttributes.Length; i++)
         {
-            if (_vertexAttributes[i].Semantic == semantic)
+            if (_vertexAttributes[i].Semantic == semantic && _vertexAttributes[i].SemanticIndex == semanticIndex)
                 return _vertexAttributes[i].Offset;
         }
 
@@ -350,7 +352,7 @@ public sealed unsafe partial class Mesh : DisposableObject
     public bool RecalculateTangents()
     {
         VertexAttribute? normalAttribute = GetVertexAttribute(VertexAttributeSemantic.Normal);
-        VertexAttribute? texCoord0Attribute = GetVertexAttribute(VertexAttributeSemantic.TexCoord0);
+        VertexAttribute? texCoord0Attribute = GetVertexAttribute(VertexAttributeSemantic.TexCoord);
         VertexAttribute? tangentAttribute = GetVertexAttribute(VertexAttributeSemantic.Tangent);
 
         if (!normalAttribute.HasValue || !texCoord0Attribute.HasValue)
@@ -364,30 +366,7 @@ public sealed unsafe partial class Mesh : DisposableObject
         GetTangents(vertexTangents);
 
         return false;
-    } 
-
-
-    public enum VertexAttributeSemantic
-    {
-        Position,
-        Normal,
-        Tangent,
-        Color,
-        BlendIndices,
-        BlendWeights,
-        TexCoord0,
-        TexCoord1,
-        TexCoord2,
-        TexCoord3,
-        TexCoord4,
-        TexCoord5,
-        TexCoord6,
-        TexCoord7,
-
-        Custom
     }
-
-    public record struct VertexAttribute(VertexAttributeSemantic Semantic, VertexFormat Format, int Offset);
 
     public unsafe class CpuBuffer
     {

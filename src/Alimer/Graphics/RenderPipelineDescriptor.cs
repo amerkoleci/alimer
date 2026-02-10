@@ -36,7 +36,7 @@ public ref struct RenderPipelineDescriptor
     /// <summary>
     /// Index format for strip topologies (when using primitive restart -> <see cref="PrimitiveTopology.LineStrip"/> or <see cref="PrimitiveTopology.TriangleStrip"/>).
     /// </summary>
-	public IndexFormat StripIndexFormat;
+	public IndexFormat StripIndexFormat = IndexFormat.Undefined;
 
     public Span<PixelFormat> ColorFormats;
     public PixelFormat DepthStencilFormat = PixelFormat.Undefined;

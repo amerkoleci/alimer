@@ -9,14 +9,14 @@
 #endif
 
 struct VertexInput {
-    float3 Position : ATTRIBUTE0;
-    float3 Normal : ATTRIBUTE1;
-    float2 TexCoord0 : ATTRIBUTE2;
-    //float4 Tangent : ATTRIBUTE2;
-    //float2 TexCoord0 : ATTRIBUTE3;
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float2 TexCoord0 : TEXCOORD0;
+    //float4 Tangent : TANGENT;
+    //float2 TexCoord1 : TEXCOORD1;
 
 #if USE_VERTEX_COLOR
-    float3 Color : ATTRIBUTE4;
+    float3 Color : COLOR;
 #endif
 };
 

@@ -3,16 +3,21 @@
 
 namespace Alimer.Graphics;
 
-public  record struct VertexAttribute
+public record struct VertexAttribute
 {
+    public VertexAttributeSemantic Semantic;
     public VertexFormat Format;
-    public uint Offset;
-    public uint ShaderLocation;
+    public int Offset;
+    public int SemanticIndex;
 
-    public VertexAttribute(VertexFormat format, uint offset, uint shaderLocation)
+    public VertexAttribute(VertexAttributeSemantic semantic, VertexFormat format, int offset = 0, int semanticIndex = 0)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset, nameof(offset));
+        ArgumentOutOfRangeException.ThrowIfNegative(semanticIndex, nameof(semanticIndex));
+
+        Semantic = semantic;
         Format = format;
         Offset = offset;
-        ShaderLocation = shaderLocation;
+        SemanticIndex = semanticIndex;
     }
 }

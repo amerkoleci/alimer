@@ -1,18 +1,18 @@
 #include "Alimer.hlsli"
 
 struct VertexInput {
-    float3 Position : ATTRIBUTE0;
-    float3 Normal   : ATTRIBUTE1;
-    float2 texcoord : ATTRIBUTE2;
+    float3 Position : POSITION0;
+    float3 Normal : NORMAL0;
+    float2 TexCoord : TEXCOORD0;
 #if defined(VERTEX_COLOR)
-    float4 Color    : ATTRIBUTE3;
+    float4 Color : COLOR0;
 #endif
 };
 
 struct VertexOutput {
     float4 Position : SV_POSITION;
     float3 Normal : NORMAL;
-    float2 texcoord : TEXCOORD0;
+    float2 TexCoord : TEXCOORD0;
     float4 Color : COLOR0;
 };
 
@@ -38,7 +38,7 @@ VertexOutput vertexMain(in VertexInput input)
     VertexOutput output;
     output.Position = mul(float4(input.Position, 1.0f), draw.worldMatrix);
     output.Normal = input.Normal;
-    output.texcoord = input.texcoord;
+    output.TexCoord = input.TexCoord;
 #if defined(VERTEX_COLOR)
     output.Color = input.Color;
 #else
@@ -50,6 +50,6 @@ VertexOutput vertexMain(in VertexInput input)
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
-    float4 baseColor = /*material.baseColorFactor **/ baseColorTexture.Sample(pbrSampler, input.texcoord);
+    float4 baseColor = /*material.baseColorFactor **/ baseColorTexture.Sample(pbrSampler, input.TexCoord);
     return baseColor;
 }

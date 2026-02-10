@@ -58,6 +58,11 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
                 $"Buffer cannot be bound as index buffer because it was not created with BufferUsage.Index.");
         }
 
+        if (format == IndexFormat.Undefined)
+        {
+            throw new GraphicsException($"Invalid index format, cannot be {nameof(IndexFormat.Undefined)}.");
+        }
+
         _indexBuffer = buffer;
         _indexFormat = format;
 #endif

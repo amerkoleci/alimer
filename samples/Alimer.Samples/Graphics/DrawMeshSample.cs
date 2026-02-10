@@ -87,13 +87,13 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
-        using ShaderModule vertexShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModule("TexturedCube.hlsl", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Vertex, "vertexMain"u8);
+        using ShaderModule fragmentShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Fragment, "fragmentMain"u8);
 
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
+            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
         RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)

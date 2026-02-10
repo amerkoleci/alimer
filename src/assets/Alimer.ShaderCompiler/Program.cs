@@ -139,28 +139,22 @@ class Program
 
                 const uint ShiftSpaceCount = 8;
 
-                const uint SpirvBShift = 0;
-                const uint SpirvTShift = 100;
-
-                const uint SpirvUShift = 200;
-                const uint SpirvSShift = 300;
-
                 for (int space = 0; space < ShiftSpaceCount; space++)
                 {
                     arguments.Add("-fvk-b-shift");
-                    arguments.Add($"{SpirvBShift}");
+                    arguments.Add($"{VulkanRegisterShift.ContantBuffer}");
                     arguments.Add($"{space}");
 
                     arguments.Add("-fvk-t-shift");
-                    arguments.Add($"{SpirvTShift}");
+                    arguments.Add($"{VulkanRegisterShift.SRV}");
                     arguments.Add($"{space}");
 
                     arguments.Add("-fvk-u-shift");
-                    arguments.Add($"{SpirvUShift}");
+                    arguments.Add($"{VulkanRegisterShift.UAV}");
                     arguments.Add($"{space}");
 
                     arguments.Add("-fvk-s-shift");
-                    arguments.Add($"{SpirvSShift}");
+                    arguments.Add($"{VulkanRegisterShift.Sampler}");
                     arguments.Add($"{space}");
                 }
                 break;
@@ -172,8 +166,6 @@ class Program
 
         byte[] byteCode = SlangCompiler.CompileWithReflection([.. arguments], out SlangReflection reflection);
         //var result = SlangCompiler.Compile([.. arguments]);
-
-        reflection.Deserialize();
 
         string shaderFile = Path.GetFileNameWithoutExtension(shaderSourceFileName);
         string outputFile = Path.GetFileNameWithoutExtension(shaderFile) + "_" + entryPoint + "_" + shaderFormat.ToString().ToLower();

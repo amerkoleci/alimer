@@ -3,8 +3,6 @@
 
 using System.Numerics;
 //using MeshOptimizer;
-using Alimer.Numerics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 

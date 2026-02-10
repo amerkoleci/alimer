@@ -59,7 +59,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {
-            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.RHIVertexAttributes)
+            new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
         RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)

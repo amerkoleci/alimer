@@ -122,8 +122,6 @@ public sealed class AssetShaderCompiler : IShaderCompiler
         byte[] bytecode = SlangCompiler.CompileWithReflection([.. arguments], out SlangReflection reflection);
         //var result = SlangCompiler.Compile([.. arguments]);
 
-        reflection.Deserialize();
-
         ShaderModuleDescriptor descriptor = new(stage, bytecode, entryPoint);
         return _system.Device.CreateShaderModule(in descriptor);
     }

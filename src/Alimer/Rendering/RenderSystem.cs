@@ -186,7 +186,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
             Mesh mesh = meshComponent.Mesh;
             //MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
-            VertexBufferLayout gpuLayout = new((uint)mesh.VertexStride, VertexPositionNormalTexture.RHIVertexAttributes);
+            VertexBufferLayout gpuLayout = new(mesh.VertexStride, VertexPositionNormalTexture.VertexAttributes);
             Span<VertexBufferLayout> geometryLayout = [gpuLayout];
 
             foreach (SubMesh subMesh in mesh.SubMeshes)

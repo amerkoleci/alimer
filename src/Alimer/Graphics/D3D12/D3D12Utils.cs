@@ -861,5 +861,38 @@ internal static unsafe class D3D12Utils
         return result;
     }
 
+    public static ReadOnlySpan<byte> GetSemanticName(this VertexAttributeSemantic value)
+    {
+        switch (value)
+        {
+            case VertexAttributeSemantic.Position:
+                return "POSITION"u8;
+
+            case VertexAttributeSemantic.Normal:
+                return "NORMAL"u8;
+
+            case VertexAttributeSemantic.Tangent:
+                return "TANGENT"u8;
+
+            case VertexAttributeSemantic.TexCoord:
+                return "TEXCOORD"u8;
+
+            case VertexAttributeSemantic.Color:
+                return "COLOR"u8;
+
+            case VertexAttributeSemantic.BlendIndices:
+                return "BLENDINDICES"u8;
+
+            case VertexAttributeSemantic.BlendWeight:
+                return "BLENDWEIGHT"u8;
+
+            case VertexAttributeSemantic.Custom:
+                return "CUSTOM"u8;
+
+            default:
+                return default;
+        }
+    }
+
     public readonly record struct D3D12TextureLayoutMapping(D3D12_BARRIER_LAYOUT Layout, D3D12_BARRIER_SYNC Sync, D3D12_BARRIER_ACCESS Access);
 }

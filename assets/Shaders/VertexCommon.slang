@@ -6,10 +6,10 @@
 
 [shader("vertex")]
 VertexOutput vertexMain(in VertexInput input,
-    in uint instanceIndex: SV_InstanceID
+    uint vertexId: SV_VertexID, uint instanceId: SV_InstanceID
 )
 {
-    InstanceData instance = instanceDataBuffer[instanceIndex];
+    InstanceData instance = instanceDataBuffer[instanceId];
 
     float4x4 worldMatrix = instance.worldMatrix;
     const float4 instanceColor = instance.color;

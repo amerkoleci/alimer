@@ -10,12 +10,12 @@ namespace Alimer.Samples;
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public readonly record struct VertexPositionColor
 {
-    public static readonly unsafe uint SizeInBytes = (uint)sizeof(VertexPositionColor);
+    public static readonly unsafe int SizeInBytes = sizeof(VertexPositionColor);
 
     public static readonly VertexAttribute[] VertexAttributes =
     [
-        new VertexAttribute(VertexFormat.Float3, 0, 0),
-        new VertexAttribute(VertexFormat.Float4, 12, 1)
+        new VertexAttribute(VertexAttributeSemantic.Position, VertexFormat.Float3, 0),
+        new VertexAttribute(VertexAttributeSemantic.Color, VertexFormat.Float4, 12)
     ];
 
     public VertexPositionColor(in Vector3 position, in Color color)

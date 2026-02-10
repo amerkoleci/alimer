@@ -48,6 +48,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         VkVertexInputBindingDescription* vertexBindings = stackalloc VkVertexInputBindingDescription[descriptor.VertexBufferLayouts.Length];
         VkVertexInputAttributeDescription* vertexAttributes = stackalloc VkVertexInputAttributeDescription[MaxVertexAttributes];
 
+        uint attributeLocation = 0;
         for (uint binding = 0; binding < descriptor.VertexBufferLayouts.Length; binding++)
         {
             ref readonly VertexBufferLayout layout = ref descriptor.VertexBufferLayouts[(int)binding];
@@ -57,18 +58,22 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
 
             VkVertexInputBindingDescription* bindingDesc = &vertexBindings[vertexBufferLayoutsCount++];
             bindingDesc->binding = binding;
-            bindingDesc->stride = layout.Stride;
+            bindingDesc->stride = (uint)layout.Stride;
             bindingDesc->inputRate = layout.StepMode.ToVk();
 
+            int currentOffset = 0;
             for (int i = 0; i < layout.Attributes.Length; i++)
             {
                 ref readonly VertexAttribute attribute = ref layout.Attributes[i];
 
                 VkVertexInputAttributeDescription* attributeDesc = &vertexAttributes[vertexAttributesCount++];
-                attributeDesc->location = attribute.ShaderLocation;
+                attributeDesc->location = attributeLocation;
                 attributeDesc->binding = binding;
                 attributeDesc->format = attribute.Format.ToVk();
-                attributeDesc->offset = attribute.Offset;
+                attributeDesc->offset = (uint)(attribute.Offset != 0 ? attribute.Offset : currentOffset);
+
+                currentOffset += attribute.Format.GetSizeInBytes();
+                attributeLocation++;
             }
         }
 

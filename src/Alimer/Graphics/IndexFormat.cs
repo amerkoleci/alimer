@@ -9,6 +9,10 @@ namespace Alimer.Graphics;
 public enum IndexFormat
 {
     /// <summary>
+    /// Undefined index format, used to disable index buffer stripping <see cref="RenderPipelineDescriptor.StripIndexFormat"/>.
+    /// </summary>
+    Undefined,
+    /// <summary>
     /// 16-bit unsigned integer indices.
     /// </summary>
 	UInt16,

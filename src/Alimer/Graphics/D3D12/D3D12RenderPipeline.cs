@@ -58,7 +58,8 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 
 
         // Input Layout
-        ReadOnlySpan<byte> semanticName = "ATTRIBUTE"u8;
+
+        //ReadOnlySpan<byte> semanticName = "TEXCOORD"u8; // "ATTRIBUTE"u8;
         D3D12_INPUT_ELEMENT_DESC* inputElements = stackalloc D3D12_INPUT_ELEMENT_DESC[MaxVertexAttributes];
         D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = new()
         {
@@ -71,19 +72,21 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             if (layout.Stride == 0)
                 continue;
 
+            uint currentOffset = 0;
             for (int i = 0; i < layout.Attributes.Length; i++)
             {
                 ref readonly VertexAttribute attribute = ref layout.Attributes[i];
 
                 ref D3D12_INPUT_ELEMENT_DESC element = ref inputElements[inputLayoutDesc.NumElements++];
-                element.SemanticName = (sbyte*)UnsafeUtilities.GetPointerUnsafe(semanticName);
-                element.SemanticIndex = attribute.ShaderLocation;
+                element.SemanticName = (sbyte*)UnsafeUtilities.GetPointerUnsafe(attribute.Semantic.GetSemanticName());
+                element.SemanticIndex = (uint)attribute.SemanticIndex;
                 element.Format = attribute.Format.ToDxgiFormat();
                 element.InputSlot = binding;
-                element.AlignedByteOffset = attribute.Offset;
+                element.AlignedByteOffset = attribute.Offset != 0 ? (uint)attribute.Offset : currentOffset;
 
                 _numVertexBindings = Math.Max(binding + 1, _numVertexBindings);
-                _strides[binding] = layout.Stride;
+                _strides[binding] = (uint)layout.Stride;
+                currentOffset += (uint)attribute.Format.GetSizeInBytes();
 
                 if (layout.StepMode == VertexStepMode.Vertex)
                 {
@@ -129,13 +132,17 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         }
         else
         {
-            if (descriptor.StripIndexFormat == IndexFormat.UInt16)
+            switch (descriptor.StripIndexFormat)
             {
-                stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
-            }
-            else
-            {
-                stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF;
+                case IndexFormat.Undefined:
+                    stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+                    break;
+                case IndexFormat.UInt16:
+                    stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+                    break;
+                case IndexFormat.UInt32:
+                    stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF;
+                    break;
             }
         }
 
