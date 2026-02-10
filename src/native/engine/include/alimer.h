@@ -28,6 +28,9 @@
 #   define DEFAULT_INITIALIZER(x)
 #endif
 
+/* Forward declarations */
+typedef struct Window Window;
+
 /* Enums */
 typedef enum LogCategory {
     LogCategory_System = 0,
@@ -497,6 +500,20 @@ typedef struct Blob {
     char* name;
 } Blob;
 
+typedef struct WindowIcon {
+    uint32_t    width;
+    uint32_t    height;
+    uint8_t* data;
+} WindowIcon;
+
+typedef struct WindowDesc {
+    const char* title;
+    uint32_t    width;
+    uint32_t    height;
+    WindowFlags flags;
+    WindowIcon  icon;
+} WindowDesc;
+
 typedef struct WindowEvent {
     WindowEventType type;
     uint32_t windowID;
@@ -621,6 +638,49 @@ ALIMER_API uint32_t alimerPixelFormatToDxgiFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromDxgiFormat(uint32_t dxgiFormat);
 ALIMER_API uint32_t alimerPixelFormatToVkFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromVkFormat(uint32_t vkFormat);
+
+
+/* Platform */
+ALIMER_API bool alimerPlatformInit(void);
+ALIMER_API void alimerPlatformShutdown(void);
+ALIMER_API bool alimerPlatformPollEvent(PlatformEvent* evt);
+
+/* Window */
+ALIMER_API Window* alimerWindowCreate(const WindowDesc* desc);
+ALIMER_API void alimerWindowDestroy(Window* window);
+ALIMER_API uint32_t alimerWindowGetID(Window* window);
+ALIMER_API bool alimerWindowIsOpen(Window* window);
+ALIMER_API void alimerWindowSetPosition(Window* window, int32_t x, int32_t y);
+ALIMER_API void alimerWindowGetPosition(Window* window, int32_t* x, int32_t* y);
+ALIMER_API void alimerWindowSetCentered(Window* window);
+ALIMER_API void alimerWindowSetSize(Window* window, uint32_t width, uint32_t height);
+ALIMER_API void alimerWindowGetSize(Window* window, uint32_t* width, uint32_t* height);
+ALIMER_API void alimerWindowGetSizeInPixels(Window* window, uint32_t* width, uint32_t* height);
+ALIMER_API void alimerWindowSetTitle(Window* window, const char* title);
+ALIMER_API const char* alimerWindowGetTitle(Window* window);
+ALIMER_API bool alimerWindowIsMinimized(Window* window);
+ALIMER_API bool alimerWindowIsMaximized(Window* window);
+ALIMER_API bool alimerWindowIsFullscreen(Window* window);
+ALIMER_API void alimerWindowSetFullscreen(Window* window, bool value);
+ALIMER_API bool alimerWindowHasFocus(Window* window);
+ALIMER_API void alimerWindowShow(Window* window);
+ALIMER_API void alimerWindowHide(Window* window);
+ALIMER_API void alimerWindowMaximize(Window* window);
+ALIMER_API void alimerWindowMinimize(Window* window);
+ALIMER_API void alimerWindowRestore(Window* window);
+ALIMER_API void alimerWindowFocus(Window* window);
+
+ALIMER_API void* alimerGetWin32Window(Window* window);
+ALIMER_API void* alimerGetCocoaWindow(Window* window);
+ALIMER_API void* alimerGetWaylandDisplay(Window* window);
+ALIMER_API void* alimerGetWaylandSurface(Window* window);
+ALIMER_API void* alimerGetX11Display(Window* window);
+ALIMER_API uint64_t alimerGetX11Window(Window* window);
+
+/* Clipboard */
+ALIMER_API bool alimerHasClipboardText(void);
+ALIMER_API const char* alimerClipboardGetText(void);
+ALIMER_API void alimerClipboardSetText(const char* text);
 
 #if defined(__clang__)
 #   pragma clang diagnostic pop

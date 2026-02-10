@@ -104,8 +104,8 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
         GITHUB_REPOSITORY libsdl-org/SDL
         GIT_TAG release-3.4.0
         OPTIONS
-            "SDL_SHARED ON"
-            "SDL_STATIC OFF"
+            "SDL_SHARED OFF"
+            "SDL_STATIC ON"
             "SDL_TIMERS ON"
             "SDL_TEST_LIBRARY OFF"
             "SDL_DISABLE_INSTALL ON"
@@ -127,15 +127,7 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
             "SDL_GPU OFF"
     )
 
-    if (ALIMER_INSTALL)
-        install(TARGETS "SDL3-shared"
-            ARCHIVE DESTINATION  ${CMAKE_INSTALL_LIBDIR}
-            LIBRARY DESTINATION  ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION  ${CMAKE_INSTALL_BINDIR}
-        )
-    endif()
-
-    set_property(TARGET "SDL3-shared" PROPERTY FOLDER "ThirdParty")
+    set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
     set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
