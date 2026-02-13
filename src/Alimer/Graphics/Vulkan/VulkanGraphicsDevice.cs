@@ -473,6 +473,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             AddToFeatureChain(&conditionalRenderingFeatures);
         }
 
+        if (_adapter.Extensions.UnifiedImageLayouts)
+        {
+            enabledDeviceExtensions.Add(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
+
+            VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures = _adapter.UnifiedImageLayoutsFeatures;
+            AddToFeatureChain(&unifiedImageLayoutsFeatures);
+        }
+
+        if (_adapter.Extensions.DescriptorHeap)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
+
+            VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT = _adapter.DescriptorHeapFeaturesEXT;
+            AddToFeatureChain(&descriptorHeapFeaturesEXT);
+        }
+
         if (_adapter.Extensions.Video.Queue)
         {
             enabledDeviceExtensions.Add(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME);
@@ -1163,7 +1179,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override bool QueryVertexFormatSupport(VertexFormat format)
+    public override bool QueryVertexFormatSupport(VertexAttributeFormat format)
     {
         VkFormat vkFormat = format.ToVk();
         if (vkFormat == VK_FORMAT_UNDEFINED)

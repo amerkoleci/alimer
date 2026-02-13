@@ -11,9 +11,6 @@ namespace Alimer.Graphics.Vulkan;
 
 internal static unsafe class VulkanUtils
 {
-    #region Layers Methods
-    #endregion
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkFormat ToVkFormat(PixelFormat format)
     {
@@ -156,43 +153,52 @@ internal static unsafe class VulkanUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static VkFormat ToVk(this VertexFormat format)
+    public static VkFormat ToVk(this VertexAttributeFormat format)
     {
         return format switch
         {
-            VertexFormat.UByte2 => VkFormat.R8G8Uint,
-            VertexFormat.UByte4 => VkFormat.R8G8B8A8Uint,
-            VertexFormat.Byte2 => VkFormat.R8G8Sint,
-            VertexFormat.Byte4 => VkFormat.R8G8B8A8Sint,
-            VertexFormat.UByte2Normalized => VkFormat.R8G8Unorm,
-            VertexFormat.UByte4Normalized => VkFormat.R8G8B8A8Unorm,
-            VertexFormat.Byte2Normalized => VkFormat.R8G8Snorm,
-            VertexFormat.Byte4Normalized => VkFormat.R8G8B8A8Snorm,
-            VertexFormat.UShort2 => VkFormat.R16G16Uint,
-            VertexFormat.UShort4 => VkFormat.R16G16B16A16Uint,
-            VertexFormat.Short2 => VkFormat.R16G16Sint,
-            VertexFormat.Short4 => VkFormat.R16G16B16A16Sint,
-            VertexFormat.UShort2Normalized => VkFormat.R16G16Unorm,
-            VertexFormat.UShort4Normalized => VkFormat.R16G16B16A16Unorm,
-            VertexFormat.Short2Normalized => VkFormat.R16G16Snorm,
-            VertexFormat.Short4Normalized => VkFormat.R16G16B16A16Snorm,
-            VertexFormat.Half2 => VkFormat.R16G16Sfloat,
-            VertexFormat.Half4 => VkFormat.R16G16B16A16Sfloat,
-            VertexFormat.Float => VkFormat.R32Sfloat,
-            VertexFormat.Float2 => VkFormat.R32G32Sfloat,
-            VertexFormat.Float3 => VkFormat.R32G32B32Sfloat,
-            VertexFormat.Float4 => VkFormat.R32G32B32A32Sfloat,
-            VertexFormat.UInt => VkFormat.R32Uint,
-            VertexFormat.UInt2 => VkFormat.R32G32Uint,
-            VertexFormat.UInt3 => VkFormat.R32G32B32Uint,
-            VertexFormat.UInt4 => VkFormat.R32G32B32A32Uint,
-            VertexFormat.Int => VkFormat.R32Sint,
-            VertexFormat.Int2 => VkFormat.R32G32Sint,
-            VertexFormat.Int3 => VkFormat.R32G32B32Sint,
-            VertexFormat.Int4 => VkFormat.R32G32B32A32Sint,
+            VertexAttributeFormat.UInt8 => VK_FORMAT_R8_UINT,
+            VertexAttributeFormat.UInt8x2 => VK_FORMAT_R8G8_UINT,
+            VertexAttributeFormat.UInt8x4 => VK_FORMAT_R8G8B8A8_UINT,
+            VertexAttributeFormat.SInt8 => VK_FORMAT_R8_SINT,
+            VertexAttributeFormat.SInt8x2 => VK_FORMAT_R8G8_SINT,
+            VertexAttributeFormat.SInt8x4 => VK_FORMAT_R8G8B8A8_SINT,
+            VertexAttributeFormat.UNorm8 => VK_FORMAT_R8_UNORM,
+            VertexAttributeFormat.UNorm8x2 => VK_FORMAT_R8G8_UNORM,
+            VertexAttributeFormat.UNorm8x4 => VK_FORMAT_R8G8B8A8_UNORM,
+            VertexAttributeFormat.SNorm8 => VK_FORMAT_R8_SNORM,
+            VertexAttributeFormat.SNorm8x2 => VK_FORMAT_R8G8_SNORM,
+            VertexAttributeFormat.SNorm8x4 => VK_FORMAT_R8G8B8A8_SNORM,
+            VertexAttributeFormat.UInt16 => VK_FORMAT_R16_UINT,
+            VertexAttributeFormat.UInt16x2 => VK_FORMAT_R16G16_UINT,
+            VertexAttributeFormat.UInt16x4 => VK_FORMAT_R16G16B16A16_UINT,
+            VertexAttributeFormat.SInt16 => VK_FORMAT_R16_SINT,
+            VertexAttributeFormat.SInt16x2 => VK_FORMAT_R16G16_SINT,
+            VertexAttributeFormat.SInt16x4 => VK_FORMAT_R16G16B16A16_SINT,
+            VertexAttributeFormat.UNorm16 => VK_FORMAT_R16_UNORM,
+            VertexAttributeFormat.UNorm16x2 => VK_FORMAT_R16G16_UNORM,
+            VertexAttributeFormat.UNorm16x4 => VK_FORMAT_R16G16B16A16_UNORM,
+            VertexAttributeFormat.SNorm16 => VK_FORMAT_R16_SNORM,
+            VertexAttributeFormat.SNorm16x2 => VK_FORMAT_R16G16_SNORM,
+            VertexAttributeFormat.SNorm16x4 => VK_FORMAT_R16G16B16A16_SNORM,
+            VertexAttributeFormat.Float16 => VK_FORMAT_R16_SFLOAT,
+            VertexAttributeFormat.Float16x2 => VK_FORMAT_R16G16_SFLOAT,
+            VertexAttributeFormat.Float16x4 => VK_FORMAT_R16G16B16A16_SFLOAT,
+            VertexAttributeFormat.Float32 => VK_FORMAT_R32_SFLOAT,
+            VertexAttributeFormat.Float32x2 => VK_FORMAT_R32G32_SFLOAT,
+            VertexAttributeFormat.Float32x3 => VK_FORMAT_R32G32B32_SFLOAT,
+            VertexAttributeFormat.Float32x4 => VK_FORMAT_R32G32B32A32_SFLOAT,
+            VertexAttributeFormat.UInt32 => VK_FORMAT_R32_UINT,
+            VertexAttributeFormat.UInt32x2 => VK_FORMAT_R32G32_UINT,
+            VertexAttributeFormat.UInt32x3 => VK_FORMAT_R32G32B32_UINT,
+            VertexAttributeFormat.UInt32x4 => VK_FORMAT_R32G32B32A32_UINT,
+            VertexAttributeFormat.SInt32 => VK_FORMAT_R32_SINT,
+            VertexAttributeFormat.SInt32x2 => VK_FORMAT_R32G32_SINT,
+            VertexAttributeFormat.SInt32x3 => VK_FORMAT_R32G32B32_SINT,
+            VertexAttributeFormat.SInt32x4 => VK_FORMAT_R32G32B32A32_SINT,
             //case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
-            VertexFormat.Unorm10_10_10_2 => VK_FORMAT_A2B10G10R10_UNORM_PACK32,
-            VertexFormat.Unorm8x4BGRA => VK_FORMAT_B8G8R8A8_UNORM,
+            VertexAttributeFormat.UNorm10_10_10_2 => VK_FORMAT_A2B10G10R10_UNORM_PACK32,
+            VertexAttributeFormat.UNorm8x4BGRA => VK_FORMAT_B8G8R8A8_UNORM,
             //case VertexFormat.RG11B10Float:         return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
             //case VertexFormat.RGB9E5Float:          return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
             _ => VkFormat.Undefined,
@@ -203,12 +209,12 @@ internal static unsafe class VulkanUtils
     {
         return sampleCount switch
         {
-            TextureSampleCount.Count2 => VkSampleCountFlags.Count2,
-            TextureSampleCount.Count4 => VkSampleCountFlags.Count4,
-            TextureSampleCount.Count8 => VkSampleCountFlags.Count8,
-            TextureSampleCount.Count16 => VkSampleCountFlags.Count16,
-            TextureSampleCount.Count32 => VkSampleCountFlags.Count32,
-            _ => VkSampleCountFlags.Count1,
+            TextureSampleCount.Count2 => VK_SAMPLE_COUNT_2_BIT,
+            TextureSampleCount.Count4 => VK_SAMPLE_COUNT_4_BIT,
+            TextureSampleCount.Count8 => VK_SAMPLE_COUNT_8_BIT,
+            TextureSampleCount.Count16 => VK_SAMPLE_COUNT_16_BIT,
+            TextureSampleCount.Count32 => VK_SAMPLE_COUNT_32_BIT,
+            _ => VK_SAMPLE_COUNT_1_BIT,
         };
     }
 
@@ -295,9 +301,9 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            LoadAction.Clear => VkAttachmentLoadOp.Clear,
-            LoadAction.Discard => VkAttachmentLoadOp.DontCare,
-            _ => VkAttachmentLoadOp.Load,
+            LoadAction.Clear => VK_ATTACHMENT_LOAD_OP_CLEAR,
+            LoadAction.Discard => VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            _ => VK_ATTACHMENT_LOAD_OP_LOAD,
         };
     }
 
@@ -306,8 +312,8 @@ internal static unsafe class VulkanUtils
     {
         return value switch
         {
-            StoreAction.Discard => VkAttachmentStoreOp.DontCare,
-            _ => VkAttachmentStoreOp.Store,
+            StoreAction.Discard => VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            _ => VK_ATTACHMENT_STORE_OP_STORE,
         };
     }
 
@@ -327,16 +333,16 @@ internal static unsafe class VulkanUtils
             result |= VK_SHADER_STAGE_VERTEX_BIT;
 
         if ((stage & ShaderStages.Fragment) != 0)
-            result |= VkShaderStageFlags.Fragment;
+            result |= VK_SHADER_STAGE_FRAGMENT_BIT;
 
         if ((stage & ShaderStages.Compute) != 0)
-            result |= VkShaderStageFlags.Compute;
-
-        if ((stage & ShaderStages.Amplification) != 0)
-            result |= VkShaderStageFlags.TaskEXT;
+            result |= VK_SHADER_STAGE_COMPUTE_BIT;
 
         if ((stage & ShaderStages.Mesh) != 0)
-            result |= VkShaderStageFlags.MeshEXT;
+            result |= VK_SHADER_STAGE_MESH_BIT_EXT;
+
+        if ((stage & ShaderStages.Amplification) != 0)
+            result |= VK_SHADER_STAGE_TASK_BIT_EXT;
 
         return result;
     }
@@ -427,23 +433,21 @@ internal static unsafe class VulkanUtils
             BlendFactor.Zero => VK_BLEND_FACTOR_ZERO,
             BlendFactor.One => VK_BLEND_FACTOR_ONE,
             BlendFactor.SourceColor => VK_BLEND_FACTOR_SRC_COLOR,
-            BlendFactor.OneMinusSourceColor => VkBlendFactor.OneMinusSrcColor,
-            BlendFactor.SourceAlpha => VkBlendFactor.SrcAlpha,
-            BlendFactor.OneMinusSourceAlpha => VkBlendFactor.OneMinusSrcAlpha,
-            BlendFactor.DestinationColor => VkBlendFactor.DstColor,
-            BlendFactor.OneMinusDestinationColor => VkBlendFactor.OneMinusDstColor,
-            BlendFactor.DestinationAlpha => VkBlendFactor.DstAlpha,
-            BlendFactor.OneMinusDestinationAlpha => VkBlendFactor.OneMinusDstAlpha,
-            BlendFactor.SourceAlphaSaturate => VkBlendFactor.SrcAlphaSaturate,
-            BlendFactor.BlendColor => VkBlendFactor.ConstantColor,
-            BlendFactor.OneMinusBlendColor => VkBlendFactor.OneMinusConstantColor,
-            BlendFactor.BlendAlpha => VkBlendFactor.ConstantAlpha,
-            BlendFactor.OneMinusBlendAlpha => VkBlendFactor.OneMinusConstantAlpha,
-            BlendFactor.Source1Color => VkBlendFactor.Src1Color,
-            BlendFactor.OneMinusSource1Color => VkBlendFactor.OneMinusSrc1Color,
-            BlendFactor.Source1Alpha => VkBlendFactor.Src1Alpha,
-            BlendFactor.OneMinusSource1Alpha => VkBlendFactor.OneMinusSrc1Alpha,
-            _ => VkBlendFactor.Zero,
+            BlendFactor.OneMinusSourceColor => VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
+            BlendFactor.SourceAlpha => VK_BLEND_FACTOR_SRC_ALPHA,
+            BlendFactor.OneMinusSourceAlpha => VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            BlendFactor.DestinationColor => VK_BLEND_FACTOR_DST_COLOR,
+            BlendFactor.OneMinusDestinationColor => VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+            BlendFactor.DestinationAlpha => VK_BLEND_FACTOR_DST_ALPHA,
+            BlendFactor.OneMinusDestinationAlpha => VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+            BlendFactor.SourceAlphaSaturate => VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
+            BlendFactor.BlendColor => VK_BLEND_FACTOR_CONSTANT_COLOR,
+            BlendFactor.OneMinusBlendColor => VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
+            BlendFactor.Source1Color => VK_BLEND_FACTOR_SRC1_COLOR,
+            BlendFactor.OneMinusSource1Color => VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR,
+            BlendFactor.Source1Alpha => VK_BLEND_FACTOR_SRC1_ALPHA,
+            BlendFactor.OneMinusSource1Alpha => VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA,
+            _ => VK_BLEND_FACTOR_ZERO,
         };
     }
 

@@ -59,6 +59,7 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool MeshShader;
     public bool ConditionalRendering;
     public bool UnifiedImageLayouts;
+    public bool DescriptorHeap;
     public bool Win32FullScreenExclusive;
 
     public VulkanPhysicalDeviceVideoExtensions Video;
@@ -84,9 +85,21 @@ internal struct VulkanPhysicalDeviceExtensions
                 {
                     extensions.Maintenance4 = true;
                 }
+                else if (extensionName == VK_KHR_MAINTENANCE_5_EXTENSION_NAME)
+                {
+                    extensions.Maintenance5 = true;
+                }
+                else if (extensionName == VK_KHR_MAINTENANCE_6_EXTENSION_NAME)
+                {
+                    extensions.Maintenance6 = true;
+                }
                 else if (extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
                 {
                     extensions.DynamicRendering = true;
+                }
+                else if (extensionName == VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
+                {
+                    extensions.PushDescriptor = true;
                 }
                 else if (extensionName == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
                 {
@@ -180,6 +193,10 @@ internal struct VulkanPhysicalDeviceExtensions
                 {
                     extensions.UnifiedImageLayouts = true;
                 }
+                else if (extensionName == VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME)
+                {
+                    extensions.DescriptorHeap = true;
+                }
                 else if (extensionName == VK_KHR_VIDEO_QUEUE_EXTENSION_NAME)
                 {
                     extensions.Video.Queue = true;
@@ -195,10 +212,6 @@ internal struct VulkanPhysicalDeviceExtensions
                 else if (extensionName == VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME)
                 {
                     extensions.Video.DecodeH265 = true;
-                }
-                if (extensionName == VK_KHR_MAINTENANCE_5_EXTENSION_NAME)
-                {
-                    extensions.Maintenance5 = true;
                 }
                 else if (extensionName == VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME)
                 {
@@ -254,7 +267,7 @@ internal struct VulkanPhysicalDeviceExtensions
         api.vkGetPhysicalDeviceProperties2(physicalDevice, &properties2);
 
         // Core 1.4
-        if (properties2.properties.apiVersion >= VkVersion.Version_1_4)
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_4)
         {
             extensions.Maintenance5 = true;
             extensions.Maintenance6 = true;
@@ -262,7 +275,7 @@ internal struct VulkanPhysicalDeviceExtensions
         }
 
         // Core 1.3
-        if (properties2.properties.apiVersion >= VkVersion.Version_1_3)
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
         {
             extensions.Maintenance4 = true;
             extensions.DynamicRendering = true;

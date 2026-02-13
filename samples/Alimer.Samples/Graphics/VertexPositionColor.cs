@@ -14,8 +14,8 @@ public readonly record struct VertexPositionColor
 
     public static readonly VertexAttribute[] VertexAttributes =
     [
-        new VertexAttribute(VertexAttributeSemantic.Position, VertexFormat.Float3, 0),
-        new VertexAttribute(VertexAttributeSemantic.Color, VertexFormat.Float4, 12)
+        new VertexAttribute(VertexAttributeSemantic.Position, VertexAttributeFormat.Float32x3, 0),
+        new VertexAttribute(VertexAttributeSemantic.Color, VertexAttributeFormat.Float32x4, 12)
     ];
 
     public VertexPositionColor(in Vector3 position, in Color color)

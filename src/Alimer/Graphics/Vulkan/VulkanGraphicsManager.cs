@@ -163,7 +163,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
                 applicationVersion = new VkVersion(1, 0, 0),
                 pEngineName = pEngineName,
                 engineVersion = new VkVersion(1, 0, 0),
-                apiVersion = VkVersion.Version_1_3
+                apiVersion = VK_API_VERSION_1_3
             };
 
             using Utf8StringArray vkLayerNames = new(instanceLayers);
@@ -259,7 +259,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             // We require minimum 1.2
             VkPhysicalDeviceProperties2 properties = new();
             _instanceApi.vkGetPhysicalDeviceProperties2(physicalDevice, &properties);
-            if (properties.properties.apiVersion < VkVersion.Version_1_2)
+            if (properties.properties.apiVersion < VK_API_VERSION_1_2)
             {
                 continue;
             }
@@ -309,7 +309,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             }
 
             VkVersion apiVersion = vkEnumerateInstanceVersion();
-            if (apiVersion < VkVersion.Version_1_2)
+            if (apiVersion < VK_API_VERSION_1_2)
             {
                 Log.Warn("Vulkan 1.2 is required!");
                 return false;

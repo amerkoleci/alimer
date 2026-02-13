@@ -4,36 +4,36 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Define a <see cref="PixelFormat"/> or <see cref="VertexFormat"/> kind.
+/// Define a <see cref="PixelFormat"/> or <see cref="VertexAttributeFormat"/> kind.
 /// </summary>
 public enum FormatKind
 {
     /// <summary>
     /// Unsigned normalized formats.
     /// </summary>
-    Unorm,
+    UNorm,
     /// <summary>
     /// Unsigned normalized SRGB formats.
     /// </summary>
-    UnormSrgb,
+    UNormSrgb,
     /// <summary>
     /// Signed normalized formats
     /// </summary>
-    Snorm,
+    SNorm,
     /// <summary>
     /// Unsigned integer formats
     /// </summary>
-    Uint,
+    UInt,
     /// <summary>
     /// Signed integer formats
     /// </summary>
-    Sint,
+    SInt,
     /// <summary>
     /// Floating-point formats.
     /// </summary>
     Float,
     /// <summary>
-    /// Hdr formats.
+    /// HDR formats.
     /// </summary>
-    Hdr,
+    HDR,
 }

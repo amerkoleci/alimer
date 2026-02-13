@@ -644,7 +644,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override bool QueryVertexFormatSupport(VertexFormat format)
+    public override bool QueryVertexFormatSupport(VertexAttributeFormat format)
     {
         DXGI_FORMAT dxgiFormat = format.ToDxgiFormat();
         if (dxgiFormat == DXGI_FORMAT_UNKNOWN)

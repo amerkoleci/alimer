@@ -6,11 +6,11 @@ namespace Alimer.Graphics;
 public record struct VertexAttribute
 {
     public VertexAttributeSemantic Semantic;
-    public VertexFormat Format;
+    public VertexAttributeFormat Format;
     public int Offset;
     public int SemanticIndex;
 
-    public VertexAttribute(VertexAttributeSemantic semantic, VertexFormat format, int offset = 0, int semanticIndex = 0)
+    public VertexAttribute(VertexAttributeSemantic semantic, VertexAttributeFormat format, int offset = 0, int semanticIndex = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset, nameof(offset));
         ArgumentOutOfRangeException.ThrowIfNegative(semanticIndex, nameof(semanticIndex));

@@ -9,10 +9,10 @@ namespace Alimer.Graphics.Tests;
 [TestFixture(TestOf = typeof(PixelFormat))]
 public class PixelFormatTests
 {
-    [TestCase(PixelFormat.R8Unorm, FormatKind.Unorm, DxgiFormat.R8Unorm)]
-    [TestCase(PixelFormat.R8Snorm, FormatKind.Snorm, DxgiFormat.R8Snorm)]
-    [TestCase(PixelFormat.R8Uint, FormatKind.Uint, DxgiFormat.R8Uint)]
-    [TestCase(PixelFormat.R8Sint, FormatKind.Sint, DxgiFormat.R8Sint)]
+    [TestCase(PixelFormat.R8Unorm, FormatKind.UNorm, DxgiFormat.R8Unorm)]
+    [TestCase(PixelFormat.R8Snorm, FormatKind.SNorm, DxgiFormat.R8Snorm)]
+    [TestCase(PixelFormat.R8Uint, FormatKind.UInt, DxgiFormat.R8Uint)]
+    [TestCase(PixelFormat.R8Sint, FormatKind.SInt, DxgiFormat.R8Sint)]
     public void Test8Bit(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;

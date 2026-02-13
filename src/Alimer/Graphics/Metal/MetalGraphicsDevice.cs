@@ -45,7 +45,7 @@ internal class MetalGraphicsDevice : GraphicsDevice
         return result;
     }
 
-    public override bool QueryVertexFormatSupport(VertexFormat format)
+    public override bool QueryVertexFormatSupport(VertexAttributeFormat format)
     {
         return true;
     }

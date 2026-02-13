@@ -96,7 +96,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public abstract bool QueryFeatureSupport(Feature feature);
 
     public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
-    public abstract bool QueryVertexFormatSupport(VertexFormat format);
+    public abstract bool QueryVertexFormatSupport(VertexAttributeFormat format);
 
     /// <summary>
     /// Get command queue of the specified type.

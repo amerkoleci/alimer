@@ -24,14 +24,14 @@ public enum ShaderStages
     Compute = 1 << 2,
 
     /// <summary>
-    /// Amplification shader stage.
-    /// </summary>
-    Amplification = 1 << 3,
-
-    /// <summary>
     /// Mesh shader stage.
     /// </summary>
-    Mesh = 1 << 4,
+    Mesh = 1 << 3,
+
+    /// <summary>
+    /// Amplification shader stage.
+    /// </summary>
+    Amplification = 1 << 4,
 
 #if RAYTRACING
     /// <summary>
