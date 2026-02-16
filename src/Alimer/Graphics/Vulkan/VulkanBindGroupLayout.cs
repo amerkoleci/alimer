@@ -108,7 +108,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
             {
                 binding = entry.Binding + registerOffset,
                 descriptorType = vkDescriptorType,
-                descriptorCount = 1u,
+                descriptorCount = Math.Max(entry.Count, 1u), // VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK ?
                 stageFlags = entry.Visibility.ToVk()
             };
         }

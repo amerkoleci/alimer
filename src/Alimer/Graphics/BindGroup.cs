@@ -22,5 +22,5 @@ public abstract class BindGroup : GraphicsObject
     /// A read-only span containing the bind group entries to apply. Each entry specifies a resource to bind; the span
     /// must not be empty.
     /// </param>
-    public abstract void Update(ReadOnlySpan<BindGroupEntry> entries);
+    public abstract void Update(Span<BindGroupEntry> entries);
 }

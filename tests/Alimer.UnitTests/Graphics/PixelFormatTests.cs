@@ -45,75 +45,79 @@ public class PixelFormatTests
         Assert.That(() => height, Is.EqualTo(heightCount));
     }
 
-#if TODO
-    [Theory]
-    [InlineData(PixelFormat.R16Unorm, FormatKind.Unorm, DxgiFormat.R16Unorm)]
-    [InlineData(PixelFormat.R16Snorm, FormatKind.Snorm, DxgiFormat.R16Snorm)]
-    [InlineData(PixelFormat.R16Uint, FormatKind.Uint, DxgiFormat.R16Uint)]
-    [InlineData(PixelFormat.R16Sint, FormatKind.Sint, DxgiFormat.R16Sint)]
-    [InlineData(PixelFormat.R16Float, FormatKind.Float, DxgiFormat.R16Float)]
-    [InlineData(PixelFormat.RG8Unorm, FormatKind.Unorm, DxgiFormat.R8G8Unorm)]
-    [InlineData(PixelFormat.RG8Snorm, FormatKind.Snorm, DxgiFormat.R8G8Snorm)]
-    [InlineData(PixelFormat.RG8Uint, FormatKind.Uint, DxgiFormat.R8G8Uint)]
-    [InlineData(PixelFormat.RG8Sint, FormatKind.Sint, DxgiFormat.R8G8Sint)]
+    [TestCase(PixelFormat.R16Unorm, FormatKind.UNorm, DxgiFormat.R16Unorm)]
+    [TestCase(PixelFormat.R16Snorm, FormatKind.SNorm, DxgiFormat.R16Snorm)]
+    [TestCase(PixelFormat.R16Uint, FormatKind.UInt, DxgiFormat.R16Uint)]
+    [TestCase(PixelFormat.R16Sint, FormatKind.SInt, DxgiFormat.R16Sint)]
+    [TestCase(PixelFormat.R16Float, FormatKind.Float, DxgiFormat.R16Float)]
+    [TestCase(PixelFormat.RG8Unorm, FormatKind.UNorm, DxgiFormat.R8G8Unorm)]
+    [TestCase(PixelFormat.RG8Snorm, FormatKind.SNorm, DxgiFormat.R8G8Snorm)]
+    [TestCase(PixelFormat.RG8Uint, FormatKind.UInt, DxgiFormat.R8G8Uint)]
+    [TestCase(PixelFormat.RG8Sint, FormatKind.SInt, DxgiFormat.R8G8Sint)]
     public void Test16Bit(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;
         uint height = 512;
         PixelFormatInfo formatInfo = format.GetFormatInfo();
-        Assert.Equal(2u, formatInfo.BytesPerBlock);
-        Assert.Equal(1u, formatInfo.BlockWidth);
-        Assert.Equal(1u, formatInfo.BlockHeight);
-        Assert.Equal(kind, formatInfo.Kind);
-        Assert.False(format.IsSrgb());
-        Assert.False(format.IsCompressedFormat());
-        Assert.False(format.IsDepthFormat());
-        Assert.False(format.IsStencilFormat());
-        Assert.False(format.IsDepthStencilFormat());
-        Assert.False(format.IsDepthOnlyFormat());
-        Assert.Equal(format, format.SrgbToLinearFormat());
-        Assert.Equal(format, format.LinearToSrgbFormat());
-        Assert.Equal(16u, format.BitsPerPixel());
-        Assert.Equal(dxgiFormat, format.ToDxgiFormat());
+
+        Assert.That(() => formatInfo.BytesPerBlock, Is.EqualTo(2u));
+        Assert.That(() => formatInfo.BlockWidth, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.BlockHeight, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.Kind, Is.EqualTo(kind));
+        Assert.That(() => format.IsSrgb(), Is.False);
+        Assert.That(() => format.IsCompressedFormat(), Is.False);
+        Assert.That(() => format.IsDepthFormat(), Is.False);
+        Assert.That(() => format.IsStencilFormat(), Is.False);
+        Assert.That(() => format.IsDepthStencilFormat(), Is.False);
+        Assert.That(() => format.IsDepthOnlyFormat(), Is.False);
+
+        Assert.That(() => format.SrgbToLinearFormat(), Is.EqualTo(format));
+        Assert.That(() => format.LinearToSrgbFormat(), Is.EqualTo(format));
+        Assert.That(() => format.BitsPerPixel(), Is.EqualTo(16u));
+        Assert.That(() => format.ToDxgiFormat(), Is.EqualTo(dxgiFormat));
 
         GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
-        Assert.Equal(width * 2, rowPitch);
-        Assert.Equal(height * rowPitch, slicePitch);
-        Assert.Equal(width, widthCount);
-        Assert.Equal(height, heightCount);
+        Assert.That(() => rowPitch, Is.EqualTo(width * 2));
+        Assert.That(() => slicePitch, Is.EqualTo(height * rowPitch));
+        Assert.That(() => width, Is.EqualTo(widthCount));
+        Assert.That(() => height, Is.EqualTo(heightCount));
     }
 
-    [Theory]
-    [InlineData(PixelFormat.BGRA4Unorm, FormatKind.Unorm, DxgiFormat.B4G4R4A4Unorm)]
-    [InlineData(PixelFormat.B5G6R5Unorm, FormatKind.Unorm, DxgiFormat.B5G6R5Unorm)]
-    [InlineData(PixelFormat.BGR5A1Unorm, FormatKind.Unorm, DxgiFormat.B5G5R5A1Unorm)]
+    [TestCase(PixelFormat.BGRA4Unorm, FormatKind.UNorm, DxgiFormat.B4G4R4A4Unorm)]
+    [TestCase(PixelFormat.B5G6R5Unorm, FormatKind.UNorm, DxgiFormat.B5G6R5Unorm)]
+    [TestCase(PixelFormat.BGR5A1Unorm, FormatKind.UNorm, DxgiFormat.B5G5R5A1Unorm)]
     public void Test16BitPacked(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;
         uint height = 512;
         PixelFormatInfo formatInfo = format.GetFormatInfo();
-        Assert.Equal(2u, formatInfo.BytesPerBlock);
-        Assert.Equal(1u, formatInfo.BlockWidth);
-        Assert.Equal(1u, formatInfo.BlockHeight);
-        Assert.Equal(kind, formatInfo.Kind);
-        Assert.False(format.IsSrgb());
-        Assert.False(format.IsCompressedFormat());
-        Assert.False(format.IsDepthFormat());
-        Assert.False(format.IsStencilFormat());
-        Assert.False(format.IsDepthStencilFormat());
-        Assert.False(format.IsDepthOnlyFormat());
-        Assert.Equal(format, format.SrgbToLinearFormat());
-        Assert.Equal(format, format.LinearToSrgbFormat());
-        Assert.Equal(16u, format.BitsPerPixel());
-        Assert.Equal(dxgiFormat, format.ToDxgiFormat());
+
+        Assert.That(() => formatInfo.BytesPerBlock, Is.EqualTo(2u));
+        Assert.That(() => formatInfo.BlockWidth, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.BlockHeight, Is.EqualTo(1u));
+        Assert.That(() => formatInfo.Kind, Is.EqualTo(kind));
+
+        Assert.That(() => format.IsSrgb(), Is.False);
+        Assert.That(() => format.IsCompressedFormat(), Is.False);
+        Assert.That(() => format.IsDepthFormat(), Is.False);
+        Assert.That(() => format.IsStencilFormat(), Is.False);
+        Assert.That(() => format.IsDepthStencilFormat(), Is.False);
+        Assert.That(() => format.IsDepthOnlyFormat(), Is.False);
+
+        Assert.That(() => format.SrgbToLinearFormat(), Is.EqualTo(format));
+        Assert.That(() => format.LinearToSrgbFormat(), Is.EqualTo(format));
+        Assert.That(() => format.BitsPerPixel(), Is.EqualTo(16u));
+        Assert.That(() => format.ToDxgiFormat(), Is.EqualTo(dxgiFormat));
 
         GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
-        Assert.Equal(width * 2, rowPitch);
-        Assert.Equal(height * rowPitch, slicePitch);
-        Assert.Equal(width, widthCount);
-        Assert.Equal(height, heightCount);
+        Assert.That(() => rowPitch, Is.EqualTo(width * 2));
+        Assert.That(() => slicePitch, Is.EqualTo(height * rowPitch));
+        Assert.That(() => width, Is.EqualTo(widthCount));
+        Assert.That(() => height, Is.EqualTo(heightCount));
     }
 
+
+#if TODO
     [Theory]
     [InlineData(PixelFormat.R32Uint, FormatKind.Uint, DxgiFormat.R32Uint)]
     [InlineData(PixelFormat.R32Sint, FormatKind.Sint, DxgiFormat.R32Sint)]

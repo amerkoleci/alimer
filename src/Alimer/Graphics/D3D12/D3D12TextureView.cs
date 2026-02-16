@@ -6,6 +6,7 @@ using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_DSV_FLAGS;
@@ -26,12 +27,6 @@ internal unsafe class D3D12TextureView : TextureView
     {
         _texture = texture;
 
-        // TODO: Take look at D3DShaderResourceViewFormat
-        if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
-        {
-            SRVFormat = descriptor.Format.ToDxgiSRVFormat();
-        }
-
         if (texture.Usage.HasFlag(TextureUsage.RenderTarget))
         {
             bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
@@ -48,7 +43,6 @@ internal unsafe class D3D12TextureView : TextureView
         }
     }
 
-    public DXGI_FORMAT SRVFormat { get; }
     public DXGI_FORMAT RTVFormat { get; }
     public DXGI_FORMAT DSVFormat { get; }
     public D3D12_CPU_DESCRIPTOR_HANDLE RTV { get; }
@@ -70,11 +64,12 @@ internal unsafe class D3D12TextureView : TextureView
         _DSVs.Clear();
     }
 
-    public D3D12_SHADER_RESOURCE_VIEW_DESC GetSRV()
+    public D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDescriptor()
     {
+        DXGI_FORMAT format = Format.ToDxgiSRVFormat();
         D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = new()
         {
-            Format = SRVFormat,
+            Format = format,
             Shader4ComponentMapping = Swizzle.ToD3D12()
         };
 
@@ -160,6 +155,74 @@ internal unsafe class D3D12TextureView : TextureView
 
                 default:
                     throw new InvalidOperationException("Invalid texture view dimension for SRV.");
+            }
+        }
+
+        return viewDesc;
+    }
+
+    public D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDescriptor()
+    {
+        DXGI_FORMAT format = Format.ToDxgiSRVFormat();
+        D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = new()
+        {
+            Format = format,
+        };
+
+        if (_texture.SampleCount > TextureSampleCount.Count1)
+        {
+            if (Dimension == TextureViewDimension.View2D)
+            {
+                viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY;
+            }
+            else
+            {
+                viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DMS;
+                viewDesc.Texture2DMSArray.FirstArraySlice = BaseArrayLayer;
+                viewDesc.Texture2DMSArray.ArraySize = ArrayLayerCount;
+            }
+        }
+        else
+        {
+            switch (Dimension)
+            {
+                case TextureViewDimension.View1D:
+                    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+                    viewDesc.Texture1D.MipSlice = BaseMipLevel;
+                    break;
+
+                case TextureViewDimension.View1DArray:
+                    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+                    viewDesc.Texture1DArray.MipSlice = BaseMipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = BaseArrayLayer;
+                    viewDesc.Texture1DArray.ArraySize = ArrayLayerCount;
+                    break;
+
+                case TextureViewDimension.View2D:
+                    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+                    viewDesc.Texture2D.MipSlice = BaseMipLevel;
+                    viewDesc.Texture2D.PlaneSlice = 0; // TODO
+                    break;
+
+                case TextureViewDimension.View2DArray:
+                    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+                    viewDesc.Texture2DArray.MipSlice = BaseMipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = BaseArrayLayer;
+                    viewDesc.Texture2DArray.ArraySize = ArrayLayerCount;
+                    viewDesc.Texture2DArray.PlaneSlice = 0; // TODO
+                    break;
+
+                case TextureViewDimension.View3D:
+                    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+                    viewDesc.Texture3D.MipSlice = BaseMipLevel;
+                    viewDesc.Texture3D.FirstWSlice = 0;
+                    viewDesc.Texture3D.WSize = uint.MaxValue;
+                    break;
+
+                case TextureViewDimension.ViewCube:
+                case TextureViewDimension.ViewCubeArray:
+                default:
+                    throw new InvalidOperationException($"Invalid texture view dimension '{Dimension}' for SRV.");
             }
         }
 

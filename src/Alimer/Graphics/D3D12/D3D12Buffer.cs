@@ -204,7 +204,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-         _handle.Get()->SetName(newLabel);
+        _handle.Get()->SetName(newLabel);
     }
 
     /// <inheitdoc />

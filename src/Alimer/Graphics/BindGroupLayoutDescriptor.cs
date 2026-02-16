@@ -21,16 +21,11 @@ public ref struct BindGroupLayoutDescriptor
     {
     }
 
-    public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries)
+    public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries, string? label = default)
     {
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 
         Entries = entries;
-    }
-
-    public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries, string label)
-        : this(entries)
-    {
         Label = label;
     }
 }

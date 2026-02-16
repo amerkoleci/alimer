@@ -5,35 +5,29 @@ namespace Alimer.Graphics;
 
 public readonly struct BufferBindingLayout
 {
-    public readonly BufferBindingType Type;
-    public readonly bool HasDynamicOffset;
-    public readonly ulong MinBindingSize;
+    public readonly BufferBindingType Type = BufferBindingType.Constant;
+    public readonly bool HasDynamicOffset = false;
 
     public BufferBindingLayout()
     {
-        Type = BufferBindingType.Constant;
-        HasDynamicOffset = false;
-        MinBindingSize = 0;
     }
 
-    public BufferBindingLayout(BufferBindingType type, bool hasDynamicOffset = false, ulong minBindingSize = 0)
+    public BufferBindingLayout(BufferBindingType type, bool hasDynamicOffset = false)
     {
         Type = type;
         HasDynamicOffset = hasDynamicOffset;
-        MinBindingSize = minBindingSize;
     }
 }
 
 public readonly struct SamplerBindingLayout
 {
-    public readonly SamplerBindingType Type;
+    public readonly SamplerBindingType Type = SamplerBindingType.Filtering;
 
     public SamplerBindingLayout()
     {
-        Type = SamplerBindingType.Filtering;
     }
 
-    public SamplerBindingLayout(SamplerBindingType type)
+    public SamplerBindingLayout(SamplerBindingType type = SamplerBindingType.Filtering)
     {
         Type = type;
     }
@@ -41,28 +35,26 @@ public readonly struct SamplerBindingLayout
 
 public readonly struct TextureBindingLayout
 {
-    public readonly TextureSampleType SampleType;
-    //public TextureViewDimension ViewDimension;
-    public readonly bool Multisampled;
+    public readonly TextureSampleType SampleType = TextureSampleType.Float;
+    public readonly TextureViewDimension ViewDimension = TextureViewDimension.View2D;
+    public readonly bool Multisampled = false;
 
     public TextureBindingLayout()
     {
-        SampleType = TextureSampleType.Float;
-        Multisampled = false;
     }
 
-    public TextureBindingLayout(TextureSampleType sampleType, bool multisampled = false)
+    public TextureBindingLayout(TextureSampleType sampleType = TextureSampleType.Float, bool multisampled = false)
     {
         SampleType = sampleType;
         Multisampled = multisampled;
     }
 }
 
-public struct StorageTextureBindingLayout
+public readonly struct StorageTextureBindingLayout
 {
-    public StorageTextureAccess Access = StorageTextureAccess.WriteOnly;
-    public PixelFormat Format = PixelFormat.Undefined;
-    //public TextureViewDimension viewDimension;
+    public readonly StorageTextureAccess Access = StorageTextureAccess.WriteOnly;
+    public readonly PixelFormat Format = PixelFormat.Undefined;
+    public readonly TextureViewDimension ViewDimension = TextureViewDimension.View2D;
 
     public StorageTextureBindingLayout()
     {
@@ -75,9 +67,9 @@ public struct StorageTextureBindingLayout
     }
 }
 
-public struct AccelerationStructureBindingLayout
+public readonly struct AccelerationStructureBindingLayout
 {
-    public PixelFormat Format = PixelFormat.Undefined;
+    public readonly PixelFormat Format = PixelFormat.Undefined;
 
     public AccelerationStructureBindingLayout()
     {
@@ -89,34 +81,38 @@ public struct AccelerationStructureBindingLayout
     }
 }
 
-
 /// <summary>
 /// Single entry for <see cref="BindGroupLayout"/>.
 /// </summary>
-public record struct BindGroupLayoutEntry
+public readonly struct BindGroupLayoutEntry
 {
     /// <summary>
     /// Register index to bind to (supplied in shader).
     /// </summary>
-    public uint Binding;
+    public readonly uint Binding;
 
     /// <summary>
     /// The shader stage the resources will be accessible to.
     /// </summary>
-    public ShaderStages Visibility;
+    public readonly ShaderStages Visibility;
+
+    /// <summary>
+    /// The number of descriptors contained in the binding, accessed in a shader as an array.
+    /// </summary>
+    public readonly uint Count = 1u;
 
     /// <summary>
     /// Gets the buffer binding.
     /// </summary>
-    public BufferBindingLayout Buffer;
+    public readonly BufferBindingLayout Buffer;
 
-    public SamplerBindingLayout Sampler;
+    public readonly SamplerBindingLayout Sampler;
 
-    public SamplerDescriptor? StaticSampler;
+    public readonly SamplerDescriptor? StaticSampler;
 
-    public TextureBindingLayout Texture;
-    public StorageTextureBindingLayout StorageTexture;
-    public AccelerationStructureBindingLayout AccelerationStructure;
+    public readonly TextureBindingLayout Texture;
+    public readonly StorageTextureBindingLayout StorageTexture;
+    public readonly AccelerationStructureBindingLayout AccelerationStructure;
 
     public BindGroupLayoutEntry(BufferBindingLayout buffer, uint binding, ShaderStages visibility = ShaderStages.All)
     {

@@ -7,7 +7,7 @@ using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
-public abstract class TextureView
+public abstract class TextureView : IGraphicsBindableResource
 {
     private string? _label;
 

@@ -8,7 +8,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a Graphics buffer.
 /// </summary>
-public abstract unsafe class GraphicsBuffer : GraphicsObject
+public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableResource
 {
     protected GraphicsBuffer(in BufferDescriptor descriptor)
         : base(descriptor.Label)

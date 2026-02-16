@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.Constants;
 
@@ -17,69 +18,34 @@ public struct BindGroupEntry
     public uint Binding;
 
     /// <summary>
-    /// The <see cref="GraphicsBuffer"/> bound.
+    /// Specifies the index in a binding array.
     /// </summary>
-    public GraphicsBuffer? Buffer;
+    public uint ArrayElement = 0;
 
+    /// <summary>
+    /// The <see cref="IGraphicsBindableResource"/> bound.
+    /// </summary>
+    public IGraphicsBindableResource Resource;
+
+    /// <summary>
+    /// If the binding is a buffer, this is the byte offset of the binding range, ignored otherwise.
+    /// </summary>
     public ulong Offset = 0;
-    public ulong Size = WholeSize;
 
     /// <summary>
-    /// The <see cref="Graphics.TextureView"/> bound.
+    /// If the binding is a buffer, this is the byte size of the binding range
+    /// (<see cref="WholeSize"/> means the binding ends at the end of the buffer), ignored otherwise.
     /// </summary>
-    public TextureView? TextureView;
+    public ulong Size = WholeSize; 
 
-    /// <summary>
-    /// The <see cref="Graphics.Sampler"/> bound.
-    /// </summary>
-    public Sampler? Sampler;
-
-    /// <summary>
-    /// The <see cref="Graphics.AccelerationStructure"/> bound.
-    /// </summary>
-    public AccelerationStructure? AccelerationStructure;
-
-    public BindGroupEntry(uint binding, GraphicsBuffer buffer, ulong offset = 0, ulong size = WholeSize)
+    public BindGroupEntry(uint binding, IGraphicsBindableResource resource, ulong offset = 0, ulong size = WholeSize)
     {
-        Guard.IsNotNull(buffer, nameof(buffer));
+        Guard.IsNotNull(resource, nameof(resource));
 
         Binding = binding;
-        Buffer = buffer;
+        Resource = resource;
         Offset = offset;
         Size = size;
-    }
-
-    public BindGroupEntry(uint binding, Texture texture)
-    {
-        Guard.IsNotNull(texture, nameof(texture));
-        Guard.IsNotNull(texture.DefaultView, nameof(texture.DefaultView));
-
-        Binding = binding;
-        TextureView = texture.DefaultView;
-    }
-
-    public BindGroupEntry(uint binding, TextureView textureView)
-    {
-        Guard.IsNotNull(textureView, nameof(textureView));
-
-        Binding = binding;
-        TextureView = textureView;
-    }
-
-    public BindGroupEntry(uint binding, Sampler sampler)
-    {
-        Guard.IsNotNull(sampler, nameof(sampler));
-
-        Binding = binding;
-        Sampler = sampler;
-    }
-
-    public BindGroupEntry(uint binding, AccelerationStructure accelerationStructure)
-    {
-        Guard.IsNotNull(accelerationStructure, nameof(accelerationStructure));
-
-        Binding = binding;
-        AccelerationStructure = accelerationStructure;
     }
 }
 
@@ -89,17 +55,18 @@ public struct BindGroupEntry
 public ref struct BindGroupDescriptor
 {
     // TODO: Separate per type (buffers/textures/samplers etc)
-    public ReadOnlySpan<BindGroupEntry> Entries;
+    public Span<BindGroupEntry> Entries;
 
     /// <summary>
     /// The label of <see cref="BindGroup"/>.
     /// </summary>
     public string? Label;
 
-    public BindGroupDescriptor(ReadOnlySpan<BindGroupEntry> entries, string? label = default)
+    public BindGroupDescriptor(Span<BindGroupEntry> entries,string? label = default)
     {
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 
+        //ConstantBufferEntries = constantBufferEntries;
         Entries = entries;
         Label = label;
     }

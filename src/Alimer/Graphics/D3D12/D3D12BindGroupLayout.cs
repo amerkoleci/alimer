@@ -39,14 +39,17 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                 continue;
             }
 
-            D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.BindingType.ToD3D12();
-            if ((descriptorRangeType != currentType) || currentBinding == ~0u || entry.Binding != currentBinding + 1)
+            D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.ToD3D12RangeType();
+
+            uint numDescriptors = Math.Max(entry.Count, 1u);
+            if ((descriptorRangeType != currentType)
+                || entry.Binding != currentBinding + 1)
             {
                 // Start a new range
                 D3D12_DESCRIPTOR_RANGE1 range = new()
                 {
                     RangeType = descriptorRangeType,
-                    NumDescriptors = 1,
+                    NumDescriptors = numDescriptors,
                     BaseShaderRegister = entry.Binding,
                     RegisterSpace = D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START,
                     OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
@@ -93,7 +96,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                     Debug.Assert(SamplerDescriptorRanges.Count > 0);
 
                     D3D12_DESCRIPTOR_RANGE1 range = SamplerDescriptorRanges[SamplerDescriptorRanges.Count - 1];
-                    range.NumDescriptors += 1;
+                    range.NumDescriptors += numDescriptors;
                     SamplerDescriptorRanges[SamplerDescriptorRanges.Count - 1] = range;
 
                     DescriptorTableSizeSamplers++;
@@ -103,7 +106,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
                     Debug.Assert(CbvUavSrvDescriptorRanges.Count > 0);
 
                     D3D12_DESCRIPTOR_RANGE1 range = CbvUavSrvDescriptorRanges[CbvUavSrvDescriptorRanges.Count - 1];
-                    range.NumDescriptors += 1;
+                    range.NumDescriptors += numDescriptors;
                     CbvUavSrvDescriptorRanges[CbvUavSrvDescriptorRanges.Count - 1] = range;
 
                     DescriptorTableSizeCbvUavSrv++;

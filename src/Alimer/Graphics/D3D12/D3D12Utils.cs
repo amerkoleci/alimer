@@ -140,27 +140,18 @@ internal static unsafe class D3D12Utils
     public static DXGI_FORMAT ToDxgiSRVFormat(this PixelFormat format)
     {
         // Try to resolve resource format:
-        switch (format)
+        return format switch
         {
-            case PixelFormat.Depth16Unorm:
-                return DXGI_FORMAT_R16_UNORM;
-
-            case PixelFormat.Depth32Float:
-                return DXGI_FORMAT_R32_FLOAT;
-
+            PixelFormat.Depth16Unorm => DXGI_FORMAT_R16_UNORM,
+            PixelFormat.Depth32Float => DXGI_FORMAT_R32_FLOAT,
             //case PixelFormat.Stencil8:
-            case PixelFormat.Depth24UnormStencil8:
-                return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-
-            case PixelFormat.Depth32FloatStencil8:
-                return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-
+            PixelFormat.Depth24UnormStencil8 => DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+            PixelFormat.Depth32FloatStencil8 => DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS,
             //case PixelFormat::NV12:
             //    srvDesc.Format = DXGI_FORMAT_R8_UNORM;
             //    break;
-            default:
-                return (DXGI_FORMAT)format.ToDxgiFormat();
-        }
+            _ => (DXGI_FORMAT)format.ToDxgiFormat(),
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -602,25 +593,58 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12(this BindingInfoType value)
+    public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12RangeType(this BindGroupLayoutEntry entry)
     {
-        switch (value)
+        D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+        switch (entry.BindingType)
         {
             case BindingInfoType.Buffer:
-                return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+                switch (entry.Buffer.Type)
+                {
+                    case BufferBindingType.Constant:
+                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+                        break;
+                    case BufferBindingType.Storage:
+                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+                        break;
+                    case BufferBindingType.ReadOnlyStorage:
+                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                        break;
+                    case BufferBindingType.Undefined:
+                        throw new InvalidOperationException($"{nameof(BufferBindingType.Undefined)} not allowed");
+                }
+                break;
+
 
             case BindingInfoType.Sampler:
-                return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+                descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+                break;
 
             case BindingInfoType.Texture:
-                return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                break;
 
             case BindingInfoType.StorageTexture:
-                return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+                switch (entry.StorageTexture.Access)
+                {
+                    case StorageTextureAccess.WriteOnly:
+                    case StorageTextureAccess.ReadWrite:
+                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+                        break;
+                    case StorageTextureAccess.ReadOnly:
+                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                        break;
+                    case StorageTextureAccess.Undefined:
+                        throw new InvalidOperationException($"{nameof(StorageTextureAccess.Undefined)} not allowed");
+                }
+                break;
 
             default:
-                return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                break;
         }
+
+        return descriptorRangeType;
     }
 
     public static D3D12_SHADER_COMPONENT_MAPPING ToD3D12(this TextureSwizzle value)

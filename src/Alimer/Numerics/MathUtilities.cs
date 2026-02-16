@@ -243,6 +243,18 @@ public static partial class MathUtilities
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(uint value, uint alignment)
+    {
+        return (value & (alignment - 1)) == 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(ulong value, ulong alignment)
+    {
+        return (value & (alignment - 1)) == 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNegativeOrNonFinite(double value)
     {
         ulong bits = BitConverter.DoubleToUInt64Bits(value);

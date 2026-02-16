@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public abstract class Sampler : GraphicsObject
+public abstract class Sampler : GraphicsObject, IGraphicsBindableResource
 {
     protected Sampler(in SamplerDescriptor descriptor)
         : base(descriptor.Label)

@@ -67,7 +67,7 @@ internal unsafe class VulkanBindGroup : BindGroup
     }
 
     /// <inheitdoc />
-    public override void Update(ReadOnlySpan<BindGroupEntry> entries)
+    public override void Update(Span<BindGroupEntry> entries)
     {
         // TODO: Handle null descriptors to avoid vulkan warnings
         int descriptorWriteCount = 0;
@@ -119,38 +119,45 @@ internal unsafe class VulkanBindGroup : BindGroup
                 switch (layoutBinding.descriptorType)
                 {
                     case VK_DESCRIPTOR_TYPE_SAMPLER:
-                        backendSampler = entry.Sampler != null ? (VulkanSampler)entry.Sampler : default;
-                        if (backendSampler == null)
+                        if (entry.Resource is not Sampler)
                             continue;
+
+                        backendSampler = (VulkanSampler)entry.Resource;
                         break;
 
-                    case VkDescriptorType.SampledImage:
-                    case VkDescriptorType.StorageImage:
-                        backendTextureView = entry.TextureView != null ? (VulkanTextureView)entry.TextureView : default;
+                    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                        if (entry.Resource is TextureView)
+                        {
+                            backendTextureView = (VulkanTextureView)entry.Resource;
+                        }
+                        else if (entry.Resource is Texture)
+                        {
+                            backendTextureView = (VulkanTextureView)((VulkanTexture)entry.Resource).DefaultView!;
+                        }
+
                         if (backendTextureView == null)
                             continue;
                         break;
 
-                    case VkDescriptorType.UniformTexelBuffer:
-                    case VkDescriptorType.StorageTexelBuffer:
+
+                    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
                     case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                     case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-                        backendBuffer = entry.Buffer != null ? (VulkanBuffer)entry.Buffer : default;
-                        if (backendBuffer == null)
+                        if (entry.Resource is not GraphicsBuffer)
                             continue;
-                        break;
 
-                    case VkDescriptorType.UniformBuffer:
-                    case VkDescriptorType.UniformBufferDynamic:
-                        backendBuffer = entry.Buffer != null ? (VulkanBuffer)entry.Buffer : default;
-                        if (backendBuffer == null)
-                            continue;
+                        backendBuffer = (VulkanBuffer)entry.Resource;
                         break;
 
                     case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
-                        backendAccelerationStructure = entry.AccelerationStructure != null ? (VulkanAccelerationStructure)entry.AccelerationStructure : default;
-                        if (backendAccelerationStructure == null)
+                        if (entry.Resource is not AccelerationStructure)
                             continue;
+
+                        backendAccelerationStructure = (VulkanAccelerationStructure)entry.Resource;
                         break;
 
                     default:
@@ -165,8 +172,8 @@ internal unsafe class VulkanBindGroup : BindGroup
             {
                 dstSet = _handle,
                 dstBinding = layoutBinding.binding,
-                dstArrayElement = 0,
-                descriptorCount = layoutBinding.descriptorCount,
+                dstArrayElement = foundEntry.HasValue ? foundEntry.Value.ArrayElement : 0u,
+                descriptorCount = 1u, //layoutBinding.descriptorCount,
                 descriptorType = descriptorType
             };
 

@@ -7,9 +7,20 @@ using CommunityToolkit.Diagnostics;
 namespace Alimer;
 
 /// <summary>
+/// Base interface for a <see cref="IDisposable"/> interface.
+/// </summary>
+public interface IDisposableObject : IDisposable
+{
+    /// <summary>
+    /// Gets <c>true</c> if the object has been disposed; otherwise, <c>false</c>.
+    /// </summary>
+    bool IsDisposed { get; }
+}
+
+/// <summary>
 /// Base class for a <see cref="IDisposable"/> interface.
 /// </summary>
-public abstract class DisposableObject : IDisposable
+public abstract class DisposableObject : IDisposableObject
 {
     private volatile uint _isDisposed = 0;
 
@@ -21,9 +32,7 @@ public abstract class DisposableObject : IDisposable
         _isDisposed = 0;
     }
 
-    /// <summary>
-    /// Gets <c>true</c> if the object has been disposed; otherwise, <c>false</c>.
-    /// </summary>
+    /// <inheritdoc />
     public bool IsDisposed => _isDisposed != 0;
 
     /// <summary>

@@ -7,7 +7,7 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
 
-public abstract class Texture : GraphicsObject
+public abstract class Texture : GraphicsObject, IGraphicsBindableResource
 {
     protected readonly TextureLayout[] _subresourceLayouts;
     private TextureView? _defaultView;

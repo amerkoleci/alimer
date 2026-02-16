@@ -10,9 +10,12 @@ public abstract class BindGroupLayout : GraphicsObject
     protected BindGroupLayout(in BindGroupLayoutDescriptor descriptor)
         : base(descriptor.Label)
     {
+        Entries = descriptor.Entries.ToArray();
     }
 
-    public BindGroup CreateBindGroup(params ReadOnlySpan<BindGroupEntry> entries)
+    public BindGroupLayoutEntry[] Entries { get; }
+
+    public BindGroup CreateBindGroup(params Span<BindGroupEntry> entries)
     {
         return CreateBindGroup(new BindGroupDescriptor(entries));
     }
