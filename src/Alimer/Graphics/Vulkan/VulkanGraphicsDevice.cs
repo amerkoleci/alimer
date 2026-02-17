@@ -1584,7 +1584,69 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             name).CheckResult();
     }
 
-    public uint GetRegisterOffset(VkDescriptorType type, bool readOnlyStorage)
+    public (VkDescriptorType DescriptorType, uint RegisterOffet) GetVkDescriptorType(BindGroupLayoutEntry entry)
+    {
+        bool readOnlyStorage = false;
+        VkDescriptorType vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        switch (entry.BindingType)
+        {
+            case BindingInfoType.Buffer:
+                switch (entry.Buffer.Type)
+                {
+                    case BufferBindingType.Constant:
+                        if (entry.Buffer.HasDynamicOffset)
+                        {
+                            vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                        }
+                        else
+                        {
+                            vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                        }
+                        break;
+
+                    case BufferBindingType.ShaderRead:
+                    case BufferBindingType.ShaderReadWrite:
+                        // UniformTexelBuffer, StorageTexelBuffer ?
+                        readOnlyStorage = (entry.Buffer.Type == BufferBindingType.ShaderRead);
+                        if (entry.Buffer.HasDynamicOffset)
+                        {
+                            vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+                        }
+                        else
+                        {
+                            vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                        }
+                        break;
+                }
+                break;
+
+            case BindingInfoType.Sampler:
+                vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                break;
+
+            case BindingInfoType.Texture:
+                vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                break;
+
+            case BindingInfoType.StorageTexture:
+                vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                break;
+
+            case BindingInfoType.AccelerationStructure:
+                vkDescriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+                break;
+
+            default:
+                ThrowHelper.ThrowInvalidOperationException();
+                break;
+        }
+
+        uint registerOffset = GetRegisterOffset(vkDescriptorType, readOnlyStorage);
+
+        return (vkDescriptorType, registerOffset);
+    }
+
+    public uint GetRegisterOffset(VkDescriptorType type, bool readOnlyStorage = false)
     {
         // This needs to map with ShaderCompiler
         switch (type)
@@ -1594,7 +1656,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 return VulkanRegisterShift.ContantBuffer;
 
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-            case VkDescriptorType.UniformTexelBuffer:
+            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
                 return VulkanRegisterShift.SRV;
 
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:

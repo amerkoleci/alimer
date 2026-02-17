@@ -70,18 +70,20 @@ internal unsafe class VulkanBindGroup : BindGroup
     public override void Update(Span<BindGroupEntry> entries)
     {
         // TODO: Handle null descriptors to avoid vulkan warnings
-        int descriptorWriteCount = 0;
+        // TODO: Handle total layout binding count (entries + array size)
         VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[_layout.LayoutBindingCount];
         VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[_layout.LayoutBindingCount];
         VkDescriptorImageInfo* imageInfos = stackalloc VkDescriptorImageInfo[_layout.LayoutBindingCount];
-        VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[descriptorWriteCount];
+        VkWriteDescriptorSetAccelerationStructureKHR* accelStructInfos = stackalloc VkWriteDescriptorSetAccelerationStructureKHR[_layout.LayoutBindingCount];
 
-        for (uint i = 0; i < _layout.LayoutBindingCount; i++)
+        int descriptorWriteCount = 0;
+        for (uint i = 0; i < _layout.Entries.Length; i++)
         {
-            ref VkDescriptorSetLayoutBinding layoutBinding = ref _layout.GetLayoutBinding(i);
-            if (layoutBinding.pImmutableSamplers != null)
+            ref BindGroupLayoutEntry layoutEntry = ref _layout.Entries[i];
+            if (layoutEntry.StaticSampler.HasValue)
                 continue;
 
+            ref VkDescriptorSetLayoutBinding layoutBinding = ref _layout.GetLayoutBinding(i);
             VkDescriptorType descriptorType = layoutBinding.descriptorType;
 
             VulkanBuffer? backendBuffer = default;
@@ -173,8 +175,9 @@ internal unsafe class VulkanBindGroup : BindGroup
                 dstSet = _handle,
                 dstBinding = layoutBinding.binding,
                 dstArrayElement = foundEntry.HasValue ? foundEntry.Value.ArrayElement : 0u,
-                descriptorCount = 1u, //layoutBinding.descriptorCount,
-                descriptorType = descriptorType
+                descriptorCount = layoutBinding.descriptorCount,
+                descriptorType = descriptorType,
+                pTexelBufferView = default,
             };
 
             switch (descriptorType)
@@ -208,8 +211,8 @@ internal unsafe class VulkanBindGroup : BindGroup
 
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                case VkDescriptorType.UniformBufferDynamic:
-                case VkDescriptorType.StorageBufferDynamic:
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
                     if (backendBuffer != null)
                     {
                         bufferInfos[i].buffer = backendBuffer!.Handle;

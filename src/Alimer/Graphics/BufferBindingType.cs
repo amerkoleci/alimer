@@ -7,6 +7,6 @@ public enum BufferBindingType
 {
     Undefined = 0,
     Constant,
-    Storage,
-    ReadOnlyStorage
+    ShaderRead,
+    ShaderReadWrite,
 }

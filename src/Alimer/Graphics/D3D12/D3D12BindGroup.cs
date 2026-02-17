@@ -80,17 +80,24 @@ internal unsafe class D3D12BindGroup : BindGroup
                     D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = _device.ShaderResourceViewHeap.GetCpuHandle(descriptorTableBaseIndex + range.OffsetInDescriptorsFromTableStart + itemInRange);
 
                     // Find the layout entry for this binding to determine expected type
-                    BindGroupLayoutEntry? foundLayoutEntry = default;
+                    bool foundLayoutEntry = false;
+                    BindGroupLayoutEntry layoutEntry = default;
                     for (int layoutEntryIndex = 0; layoutEntryIndex < _layout.Entries.Length; layoutEntryIndex++)
                     {
-                        ref BindGroupLayoutEntry layoutEntry = ref _layout.Entries[layoutEntryIndex];
+                        ref BindGroupLayoutEntry iterLayoutEntry = ref _layout.Entries[layoutEntryIndex];
 
-                        D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = layoutEntry.ToD3D12RangeType();
-                        if (range.RangeType == descriptorRangeType && layoutEntry.Binding == slot)
+                        D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = iterLayoutEntry.ToD3D12RangeType();
+                        if (range.RangeType == descriptorRangeType && iterLayoutEntry.Binding == slot)
                         {
-                            foundLayoutEntry = layoutEntry;
+                            layoutEntry = iterLayoutEntry;
+                            foundLayoutEntry = true;
                             break;
                         }
+                    }
+
+                    if (!foundLayoutEntry)
+                    {
+                        throw new InvalidOperationException("Layout entry should have a defined binding type");
                     }
 
                     bool found = false;
@@ -102,15 +109,14 @@ internal unsafe class D3D12BindGroup : BindGroup
                         if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
                         {
                             // Verify the layout entry expects an SRV (texture or read-only storage buffer)
-                            if (foundLayoutEntry.HasValue)
-                            {
-                                BindGroupLayoutEntry layoutEntry = foundLayoutEntry.Value;
-                                bool isTexture = layoutEntry.BindingType == BindingInfoType.Texture;
-                                bool isReadOnlyStorage = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.ReadOnlyStorage;
+                            bool isTexture = layoutEntry.BindingType == BindingInfoType.Texture;
+                            if (isTexture && entry.Resource is GraphicsBuffer)
+                                continue;
 
-                                if (!isTexture && !isReadOnlyStorage)
-                                    continue;
-                            }
+                            bool isShaderReadBuffer = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.ShaderRead;
+
+                            if (!isTexture && !isShaderReadBuffer)
+                                continue;
 
                             if (entry.Resource is GraphicsBuffer buffer)
                             {
@@ -148,11 +154,19 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 found = true;
                                 break;
                             }
-                            else if (entry.Resource is TextureView textureView)
+                            else if (entry.Resource is D3D12TextureView backendTextureView)
                             {
-                                D3D12TextureView backendTextureView = (D3D12TextureView)textureView;
                                 D3D12Texture backendTexture = (D3D12Texture)backendTextureView.Texture;
                                 D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = backendTextureView.GetSRVDescriptor();
+                                _device.Device->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
+
+                                found = true;
+                                break;
+                            }
+                            else if (entry.Resource is D3D12Texture backendTexture)
+                            {
+                                D3D12TextureView backendTextureDefaultView = (D3D12TextureView)backendTexture.DefaultView!;
+                                D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = backendTextureDefaultView.GetSRVDescriptor();
                                 _device.Device->CreateShaderResourceView(backendTexture.Handle, &viewDesc, descriptorHandle);
 
                                 found = true;
@@ -162,21 +176,16 @@ internal unsafe class D3D12BindGroup : BindGroup
                         else if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
                         {
                             // Verify the layout entry expects a UAV (storage buffer or storage texture)
-                            if (foundLayoutEntry.HasValue)
-                            {
-                                var layoutEntry = foundLayoutEntry.Value;
-                                bool isStorageTexture = layoutEntry.StorageTexture.Access != StorageTextureAccess.Undefined;
-                                bool isStorageBuffer = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.Storage;
+                            bool isStorageTexture = layoutEntry.StorageTexture.Access != StorageTextureAccess.Undefined;
+                            bool isStorageBuffer = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.ShaderReadWrite;
 
-                                if (!isStorageTexture && !isStorageBuffer)
-                                    continue;
-                            }
+                            if (!isStorageTexture && !isStorageBuffer)
+                                continue;
 
-                            if (entry.Resource is GraphicsBuffer buffer)
+                            if (entry.Resource is D3D12Buffer backendBuffer)
                             {
-                                D3D12Buffer backendBuffer = (D3D12Buffer)buffer;
                                 ulong offset = entry.Offset;
-                                ulong size = entry.Size == WholeSize ? buffer.Size : entry.Size;
+                                ulong size = entry.Size == WholeSize ? backendBuffer.Size : entry.Size;
 
                                 // TODO: TypedBuffer_UAV
                                 D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = new();
@@ -224,12 +233,19 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 found = true;
                                 break;
                             }
-                            else if (entry.Resource is TextureView textureView)
+                            else if (entry.Resource is D3D12TextureView backendTextureView)
                             {
-                                D3D12TextureView backendTextureView = (D3D12TextureView)textureView;
                                 D3D12Texture backendTexture = (D3D12Texture)backendTextureView.Texture;
 
                                 D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = backendTextureView.GetUAVDescriptor();
+                                _device.Device->CreateUnorderedAccessView(backendTexture.Handle, null, &uavDesc, descriptorHandle);
+                                found = true;
+                                break;
+                            }
+                            else if (entry.Resource is D3D12Texture backendTexture)
+                            {
+                                D3D12TextureView backendTextureDefaultView = (D3D12TextureView)backendTexture.DefaultView!;
+                                D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = backendTextureDefaultView.GetUAVDescriptor();
                                 _device.Device->CreateUnorderedAccessView(backendTexture.Handle, null, &uavDesc, descriptorHandle);
                                 found = true;
                                 break;
@@ -238,26 +254,21 @@ internal unsafe class D3D12BindGroup : BindGroup
                         else if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
                         {
                             // Only process if this is a buffer suitable for CBV
-                            if (entry.Resource is not GraphicsBuffer)
+                            if (entry.Resource is not D3D12Buffer backendBuffer)
                                 continue;
 
                             // Verify the layout entry expects a uniform buffer
-                            if (foundLayoutEntry.HasValue)
-                            {
-                                var layoutEntry = foundLayoutEntry.Value;
-                                bool isUniformBuffer = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.Constant;
+                            bool isUniformBuffer = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.Constant;
 
-                                if (!isUniformBuffer)
-                                    continue;
-                            }
+                            if (!isUniformBuffer)
+                                continue;
 
-                            D3D12Buffer buffer = (D3D12Buffer)entry.Resource;
                             ulong offset = entry.Offset;
-                            ulong size = entry.Size == WholeSize ? buffer.Size : entry.Size;
+                            ulong size = entry.Size == WholeSize ? backendBuffer.Size : entry.Size;
 
                             D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = new()
                             {
-                                BufferLocation = buffer.GpuAddress + offset,
+                                BufferLocation = backendBuffer.GpuAddress + offset,
                                 SizeInBytes = (uint)MathUtilities.AlignUp(size - offset, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
                             };
                             _device.Device->CreateConstantBufferView(&cbvDesc, descriptorHandle);

@@ -30,11 +30,10 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         for (int i = 0; i < LayoutBindingCount; i++)
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
-            uint registerOffset;
 
             if (entry.StaticSampler.HasValue)
             {
-                registerOffset = device.GetRegisterOffset(VK_DESCRIPTOR_TYPE_SAMPLER, false);
+                uint registerOffset = device.GetRegisterOffset(VK_DESCRIPTOR_TYPE_SAMPLER);
                 VkSampler sampler = device.GetOrCreateVulkanSampler(entry.StaticSampler.Value);
 
                 _bindings[i] = new VkDescriptorSetLayoutBinding
@@ -48,66 +47,12 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                 continue;
             }
 
-            bool readOnlyStorage = false;
-            VkDescriptorType vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-            switch (entry.BindingType)
-            {
-                case BindingInfoType.Buffer:
-                    switch (entry.Buffer.Type)
-                    {
-                        case BufferBindingType.Constant:
-                            if (entry.Buffer.HasDynamicOffset)
-                            {
-                                vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                            }
-                            else
-                            {
-                                vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                            }
-                            break;
-
-                        case BufferBindingType.Storage:
-                        case BufferBindingType.ReadOnlyStorage:
-                            // UniformTexelBuffer, StorageTexelBuffer ?
-                            readOnlyStorage = (entry.Buffer.Type == BufferBindingType.ReadOnlyStorage);
-                            if (entry.Buffer.HasDynamicOffset)
-                            {
-                                vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                            }
-                            else
-                            {
-                                vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                            }
-                            break;
-                    }
-                    break;
-
-                case BindingInfoType.Sampler:
-                    vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                    break;
-
-                case BindingInfoType.Texture:
-                    vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    break;
-
-                case BindingInfoType.StorageTexture:
-                    vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                    break;
-
-                case BindingInfoType.AccelerationStructure:
-                    vkDescriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-                    break;
-
-                default:
-                    ThrowHelper.ThrowInvalidOperationException();
-                    break;
-            }
-
-            registerOffset = device.GetRegisterOffset(vkDescriptorType, readOnlyStorage);
+            (VkDescriptorType DescriptorType, uint RegisterOffset) vk = device.GetVkDescriptorType(entry);
+            
             _bindings[i] = new VkDescriptorSetLayoutBinding
             {
-                binding = entry.Binding + registerOffset,
-                descriptorType = vkDescriptorType,
+                binding = entry.Binding + vk.RegisterOffset,
+                descriptorType = vk.DescriptorType,
                 descriptorCount = Math.Max(entry.Count, 1u), // VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK ?
                 stageFlags = entry.Visibility.ToVk()
             };

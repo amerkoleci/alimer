@@ -605,11 +605,11 @@ internal static unsafe class D3D12Utils
                     case BufferBindingType.Constant:
                         descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
                         break;
-                    case BufferBindingType.Storage:
-                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                        break;
-                    case BufferBindingType.ReadOnlyStorage:
+                    case BufferBindingType.ShaderRead:
                         descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+                        break;
+                    case BufferBindingType.ShaderReadWrite:
+                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
                         break;
                     case BufferBindingType.Undefined:
                         throw new InvalidOperationException($"{nameof(BufferBindingType.Undefined)} not allowed");

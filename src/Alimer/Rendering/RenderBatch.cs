@@ -40,7 +40,7 @@ public sealed unsafe class RenderBatch : DisposableObject
 
         InstanceBindGroupLayout = ToDispose(device.CreateBindGroupLayout(
             "Instance bind group layout",
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.ReadOnlyStorage), 0, ShaderStages.Vertex)
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.ShaderRead), 0, ShaderStages.Vertex)
         ));
         ResizeInstanceBuffer(InitialInstanceCount);
     }
