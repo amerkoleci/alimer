@@ -31,7 +31,7 @@ public sealed unsafe partial class Mesh : DisposableObject
     public Mesh(int vertexCount,
         Span<VertexAttribute> vertexAttributes,
         int indexCount,
-        IndexFormat indexFormat = IndexFormat.UInt16,
+        IndexFormat indexFormat = IndexFormat.Uint16,
         int vertexStride = 0)
     {
         Guard.IsGreaterThan(vertexCount, 0, nameof(vertexCount));
@@ -59,7 +59,7 @@ public sealed unsafe partial class Mesh : DisposableObject
         }
 
         _vertexBuffer = new VertexBuffer(vertexCount, (int)vertexStride);
-        _indexBuffer = new CpuBuffer(indexCount, indexFormat == IndexFormat.UInt32 ? 4 : 2);
+        _indexBuffer = new CpuBuffer(indexCount, indexFormat == IndexFormat.Uint32 ? 4 : 2);
         _positionOffset = GetVertexAttributeOffset(VertexAttributeSemantic.Position);
     }
 
@@ -67,6 +67,11 @@ public sealed unsafe partial class Mesh : DisposableObject
     /// The number of vertices in the vertex buffers.
     /// </summary>
     public int VertexCount => _vertexBuffer.ElementCount;
+
+    /// <summary>
+    /// The vertex attributes that define the layout of the vertex buffer.
+    /// </summary>
+    public VertexAttribute[] VertexAttributes => _vertexAttributes;
 
     /// <summary>
     /// Gets the size, in bytes, of a single vertex element in the layout.
@@ -81,7 +86,7 @@ public sealed unsafe partial class Mesh : DisposableObject
     /// <summary>
     /// The data format of the indices that the index buffer stores.
     /// </summary>
-    public IndexFormat IndexFormat => _indexBuffer.ElementSize == 4 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+    public IndexFormat IndexFormat => _indexBuffer.ElementSize == 4 ? IndexFormat.Uint32 : IndexFormat.Uint16;
 
     /// <summary>
     /// Gets the collection of sub-meshes that make up this mesh.
@@ -270,7 +275,7 @@ public sealed unsafe partial class Mesh : DisposableObject
 
     public void SetIndices(ReadOnlySpan<ushort> source, int indexCount = 0)
     {
-        Guard.IsTrue(IndexFormat == IndexFormat.UInt16, nameof(source), "Index buffer is not of type UInt16.");
+        Guard.IsTrue(IndexFormat == IndexFormat.Uint16, nameof(source), "Index buffer is not of type UInt16.");
 
         if (indexCount == 0)
             indexCount = source.Length;
@@ -283,7 +288,7 @@ public sealed unsafe partial class Mesh : DisposableObject
 
     public void SetIndices(ReadOnlySpan<uint> source, int indexCount = 0)
     {
-        Guard.IsTrue(IndexFormat == IndexFormat.UInt32, nameof(source), "Index buffer is not of type UInt32.");
+        Guard.IsTrue(IndexFormat == IndexFormat.Uint32, nameof(source), "Index buffer is not of type UInt32.");
 
         if (indexCount == 0)
             indexCount = source.Length;
@@ -301,10 +306,10 @@ public sealed unsafe partial class Mesh : DisposableObject
         {
             switch (IndexFormat)
             {
-                case IndexFormat.UInt16:
+                case IndexFormat.Uint16:
                     NativeMemory.Copy(sourcePtr, destinationPtr, (uint)(destination.Length * sizeof(ushort)));
                     break;
-                case IndexFormat.UInt32:
+                case IndexFormat.Uint32:
                     for (int i = 0; i < destination.Length; i++)
                     {
                         uint value = 0;
@@ -323,7 +328,7 @@ public sealed unsafe partial class Mesh : DisposableObject
         {
             switch (IndexFormat)
             {
-                case IndexFormat.UInt16:
+                case IndexFormat.Uint16:
                     for (int i = 0; i < destination.Length; i++)
                     {
                         ushort value = 0;
@@ -332,7 +337,7 @@ public sealed unsafe partial class Mesh : DisposableObject
                     }
 
                     break;
-                case IndexFormat.UInt32:
+                case IndexFormat.Uint32:
                     NativeMemory.Copy(sourcePtr, destinationPtr, (uint)(destination.Length * sizeof(uint)));
                     break;
             }

@@ -15,9 +15,9 @@ public enum IndexFormat
     /// <summary>
     /// 16-bit unsigned integer indices.
     /// </summary>
-	UInt16,
+	Uint16,
     /// <summary>
     /// 32-bit unsigned integer indices.
     /// </summary>
-    UInt32,
+    Uint32,
 }

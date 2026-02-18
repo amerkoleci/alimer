@@ -397,10 +397,11 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             _ => GraphicsAdapterType.Other
         };
 
-        SupportsD24S8 = IsDepthStencilFormatSupported(VkFormat.D24UnormS8Uint);
-        SupportsD32S8 = IsDepthStencilFormatSupported(VkFormat.D32SfloatS8Uint);
+        SupportsDepth24UnormStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D24_UNORM_S8_UINT);
+        SupportsDepth32FloatStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D32_SFLOAT_S8_UINT);
+        SupportsStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_S8_UINT);
 
-        Debug.Assert(SupportsD24S8 || SupportsD32S8);
+        Debug.Assert(SupportsDepth24UnormStencil8 || SupportsDepth32FloatStencil8);
 
 
         void AddToFeatureChain(void* next)
@@ -423,8 +424,9 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public VulkanGraphicsManager VkGraphicsManager => (VulkanGraphicsManager)Manager;
     public VkInstanceApi InstanceApi { get; }
 
-    public bool SupportsD24S8 { get; }
-    public bool SupportsD32S8 { get; }
+    public bool SupportsDepth24UnormStencil8 { get; }
+    public bool SupportsDepth32FloatStencil8 { get; }
+    public bool SupportsStencil8 { get; }
 
     /// <inheritdoc />
     public override string DeviceName { get; }
@@ -442,7 +444,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
     public bool IsDepthStencilFormatSupported(VkFormat format)
     {
-        Debug.Assert(format == VkFormat.D16UnormS8Uint || format == VkFormat.D24UnormS8Uint || format == VkFormat.D32SfloatS8Uint || format == VkFormat.S8Uint);
+        Debug.Assert(format == VK_FORMAT_D16_UNORM_S8_UINT
+            || format == VK_FORMAT_D24_UNORM_S8_UINT
+            || format == VK_FORMAT_D32_SFLOAT_S8_UINT
+            || format == VK_FORMAT_S8_UINT
+            );
+
         VkGraphicsManager.InstanceApi.vkGetPhysicalDeviceFormatProperties(
             Handle,
             format,
@@ -453,14 +460,19 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
     public VkFormat ToVkFormat(PixelFormat format)
     {
-        //if (format == PixelFormat.Stencil8 && !SupportsS8)
-        //{
-        //    return VkFormat.D24UnormS8Uint;
-        //}
-
-        if (format == PixelFormat.Depth24UnormStencil8 && !SupportsD24S8)
+        if (format == PixelFormat.Stencil8 && !SupportsStencil8)
         {
-            return VkFormat.D32SfloatS8Uint;
+            if (SupportsDepth32FloatStencil8)
+            {
+                return VK_FORMAT_D32_SFLOAT_S8_UINT;
+            }
+
+            return VK_FORMAT_D24_UNORM_S8_UINT;
+        }
+
+        if (format == PixelFormat.Depth24UnormStencil8 && !SupportsDepth24UnormStencil8)
+        {
+            return VK_FORMAT_D32_SFLOAT_S8_UINT;
         }
 
         VkFormat vkFormat = VulkanUtils.ToVkFormat(format);

@@ -972,7 +972,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         switch (feature)
         {
             case Feature.Depth32FloatStencil8:
-                return _adapter.SupportsD32S8;
+                return _adapter.SupportsDepth32FloatStencil8;
 
             case Feature.TimestampQuery:
                 return _adapter.Properties2.properties.limits.timestampComputeAndGraphics == true;

@@ -128,7 +128,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
                                 srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-                                uint stride = 0; // backendBuffer->GetStride();
+                                uint stride = entry.Stride;
                                 if (stride == 0)
                                 {
                                     // Raw Buffer (ByteAddressBuffer in HLSL) -> WebGPU
@@ -140,9 +140,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 }
                                 else
                                 {
-                                    // structured buffer offset must be aligned to structure stride!
-                                    Debug.Assert(MathUtilities.IsAligned(offset, stride));
-
+                                    // StructuredBuffer in HLSL
                                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
                                     srvDesc.Buffer.FirstElement = offset / stride;
                                     srvDesc.Buffer.NumElements = (uint)((size - offset) / stride);
@@ -192,12 +190,10 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 viewDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
                                 viewDesc.Format = DXGI_FORMAT_UNKNOWN;
 
-                                uint stride = 0; // backendBuffer->GetStride();
+                                uint stride = entry.Stride;
                                 if (stride > 0)
                                 {
-                                    // structured buffer offset must be aligned to structure stride!
-                                    Debug.Assert(MathUtilities.IsAligned(offset, stride));
-
+                                    // RWStructuredBuffer in HLSL
                                     ulong firstElement = offset / stride;
                                     uint numElements = (uint)((size - offset) / stride);
 
@@ -221,7 +217,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                                 }
                                 else
                                 {
-                                    // Raw Buffer (ByteAddressBuffer in HLSL) -> WebGPU
+                                    // Raw Buffer (RWByteAddressBuffer in HLSL) -> WebGPU
                                     viewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
                                     viewDesc.Buffer.FirstElement = offset / sizeof(uint);
                                     viewDesc.Buffer.NumElements = (uint)(size / sizeof(uint));

@@ -64,7 +64,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
 
         RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
         renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.Uint16);
         renderPassEncoder.SetPipeline(_renderPipeline!);
         renderPassEncoder.DrawIndexed(6);
         renderPassEncoder.EndEncoding();

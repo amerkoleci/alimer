@@ -11,8 +11,8 @@
 struct VertexInput {
     float3 Position : POSITION;
     float3 Normal : NORMAL;
+    float4 Tangent : TANGENT;
     float2 TexCoord0 : TEXCOORD0;
-    //float4 Tangent : TANGENT;
     //float2 TexCoord1 : TEXCOORD1;
 
 #if USE_VERTEX_COLOR

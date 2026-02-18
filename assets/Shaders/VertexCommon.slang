@@ -27,8 +27,8 @@ VertexOutput vertexMain(in VertexInput input,
     output.Normal = normalize(mul(float4(input.Normal, 0.0f), worldMatrix)).xyz;
 
     // World-space tangent and bitangent
-    //output.Tangent = normalize(mul(draw.worldMatrix, float4(input.Tangent.xyz, 0.0f))).xyz;
-    //output.Bitangent = cross(output.Normal, output.Tangent) * input.Tangent.w;
+    output.Tangent = normalize(mul(float4(input.Tangent.xyz, 0.0f), worldMatrix)).xyz;
+    output.Bitangent = cross(output.Normal, output.Tangent) * input.Tangent.w;
 
     // Pass along the texture coordinates
     output.TexCoord0 = input.TexCoord0;

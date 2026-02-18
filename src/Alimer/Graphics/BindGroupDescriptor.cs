@@ -36,9 +36,14 @@ public struct BindGroupEntry
     /// If the binding is a buffer, this is the byte size of the binding range
     /// (<see cref="WholeSize"/> means the binding ends at the end of the buffer), ignored otherwise.
     /// </summary>
-    public ulong Size = WholeSize; 
+    public ulong Size = WholeSize;
 
-    public BindGroupEntry(uint binding, IGraphicsBindableResource resource, ulong offset = 0, ulong size = WholeSize)
+    /// <summary>
+    /// Gets the buffer stride (when using StructuredBuffer or RWStructuredBuffer in shader)
+    /// </summary>
+    public uint Stride;
+
+    public BindGroupEntry(uint binding, IGraphicsBindableResource resource, ulong offset = 0, ulong size = WholeSize, uint stride = 0)
     {
         Guard.IsNotNull(resource, nameof(resource));
 
@@ -46,6 +51,16 @@ public struct BindGroupEntry
         Resource = resource;
         Offset = offset;
         Size = size;
+        Stride = stride;
+
+        // Structured buffer offset must be aligned to structure stride
+        if (stride > 0)
+        {
+            if (!MathUtilities.IsAligned(offset, stride))
+            {
+                throw new ArgumentException("Offset must be aligned to stride for structured buffers.", nameof(offset));
+            }
+        }
     }
 }
 
@@ -62,7 +77,7 @@ public ref struct BindGroupDescriptor
     /// </summary>
     public string? Label;
 
-    public BindGroupDescriptor(Span<BindGroupEntry> entries,string? label = default)
+    public BindGroupDescriptor(Span<BindGroupEntry> entries, string? label = default)
     {
         Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
 

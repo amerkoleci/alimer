@@ -11,23 +11,23 @@ public enum FormatKind
     /// <summary>
     /// Unsigned normalized formats.
     /// </summary>
-    UNorm,
+    Unorm,
     /// <summary>
     /// Unsigned normalized SRGB formats.
     /// </summary>
-    UNormSrgb,
+    UnormSrgb,
     /// <summary>
     /// Signed normalized formats
     /// </summary>
-    SNorm,
+    Snorm,
     /// <summary>
     /// Unsigned integer formats
     /// </summary>
-    UInt,
+    Uint,
     /// <summary>
     /// Signed integer formats
     /// </summary>
-    SInt,
+    Sint,
     /// <summary>
     /// Floating-point formats.
     /// </summary>

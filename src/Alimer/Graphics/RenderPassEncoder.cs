@@ -25,7 +25,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
 
 #if VALIDATE_USAGE
         _indexBuffer = default;
-        _indexFormat = IndexFormat.UInt16;
+        _indexFormat = IndexFormat.Uint16;
 #endif
     }
 
@@ -235,7 +235,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
             throw new GraphicsException($"An index buffer must be bound before {nameof(CommandBuffer)}.{nameof(DrawIndexed)} can be called.");
         }
 
-        ulong indexFormatSize = _indexFormat == IndexFormat.UInt16 ? 2u : 4u;
+        ulong indexFormatSize = _indexFormat == IndexFormat.Uint16 ? 2u : 4u;
         ulong bytesNeeded = indexCount * indexFormatSize;
         if (_indexBuffer.Size < bytesNeeded)
         {

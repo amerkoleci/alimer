@@ -9,10 +9,10 @@ namespace Alimer.Graphics.Tests;
 [TestFixture(TestOf = typeof(PixelFormat))]
 public class PixelFormatTests
 {
-    [TestCase(PixelFormat.R8Unorm, FormatKind.UNorm, DxgiFormat.R8Unorm)]
-    [TestCase(PixelFormat.R8Snorm, FormatKind.SNorm, DxgiFormat.R8Snorm)]
-    [TestCase(PixelFormat.R8Uint, FormatKind.UInt, DxgiFormat.R8Uint)]
-    [TestCase(PixelFormat.R8Sint, FormatKind.SInt, DxgiFormat.R8Sint)]
+    [TestCase(PixelFormat.R8Unorm, FormatKind.Unorm, DxgiFormat.R8Unorm)]
+    [TestCase(PixelFormat.R8Snorm, FormatKind.Snorm, DxgiFormat.R8Snorm)]
+    [TestCase(PixelFormat.R8Uint, FormatKind.Uint, DxgiFormat.R8Uint)]
+    [TestCase(PixelFormat.R8Sint, FormatKind.Sint, DxgiFormat.R8Sint)]
     public void Test8Bit(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;
@@ -45,15 +45,15 @@ public class PixelFormatTests
         Assert.That(() => height, Is.EqualTo(heightCount));
     }
 
-    [TestCase(PixelFormat.R16Unorm, FormatKind.UNorm, DxgiFormat.R16Unorm)]
-    [TestCase(PixelFormat.R16Snorm, FormatKind.SNorm, DxgiFormat.R16Snorm)]
-    [TestCase(PixelFormat.R16Uint, FormatKind.UInt, DxgiFormat.R16Uint)]
-    [TestCase(PixelFormat.R16Sint, FormatKind.SInt, DxgiFormat.R16Sint)]
+    [TestCase(PixelFormat.R16Unorm, FormatKind.Unorm, DxgiFormat.R16Unorm)]
+    [TestCase(PixelFormat.R16Snorm, FormatKind.Snorm, DxgiFormat.R16Snorm)]
+    [TestCase(PixelFormat.R16Uint, FormatKind.Uint, DxgiFormat.R16Uint)]
+    [TestCase(PixelFormat.R16Sint, FormatKind.Sint, DxgiFormat.R16Sint)]
     [TestCase(PixelFormat.R16Float, FormatKind.Float, DxgiFormat.R16Float)]
-    [TestCase(PixelFormat.RG8Unorm, FormatKind.UNorm, DxgiFormat.R8G8Unorm)]
-    [TestCase(PixelFormat.RG8Snorm, FormatKind.SNorm, DxgiFormat.R8G8Snorm)]
-    [TestCase(PixelFormat.RG8Uint, FormatKind.UInt, DxgiFormat.R8G8Uint)]
-    [TestCase(PixelFormat.RG8Sint, FormatKind.SInt, DxgiFormat.R8G8Sint)]
+    [TestCase(PixelFormat.RG8Unorm, FormatKind.Unorm, DxgiFormat.R8G8Unorm)]
+    [TestCase(PixelFormat.RG8Snorm, FormatKind.Snorm, DxgiFormat.R8G8Snorm)]
+    [TestCase(PixelFormat.RG8Uint, FormatKind.Uint, DxgiFormat.R8G8Uint)]
+    [TestCase(PixelFormat.RG8Sint, FormatKind.Sint, DxgiFormat.R8G8Sint)]
     public void Test16Bit(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;
@@ -83,9 +83,9 @@ public class PixelFormatTests
         Assert.That(() => height, Is.EqualTo(heightCount));
     }
 
-    [TestCase(PixelFormat.BGRA4Unorm, FormatKind.UNorm, DxgiFormat.B4G4R4A4Unorm)]
-    [TestCase(PixelFormat.B5G6R5Unorm, FormatKind.UNorm, DxgiFormat.B5G6R5Unorm)]
-    [TestCase(PixelFormat.BGR5A1Unorm, FormatKind.UNorm, DxgiFormat.B5G5R5A1Unorm)]
+    [TestCase(PixelFormat.BGRA4Unorm, FormatKind.Unorm, DxgiFormat.B4G4R4A4Unorm)]
+    [TestCase(PixelFormat.B5G6R5Unorm, FormatKind.Unorm, DxgiFormat.B5G6R5Unorm)]
+    [TestCase(PixelFormat.BGR5A1Unorm, FormatKind.Unorm, DxgiFormat.B5G5R5A1Unorm)]
     public void Test16BitPacked(PixelFormat format, FormatKind kind, DxgiFormat dxgiFormat)
     {
         uint width = 1024;

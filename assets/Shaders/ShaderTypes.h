@@ -50,6 +50,7 @@ struct ALIGNMENT PerViewData
     float3 cameraPosition;
 };
 
+/* TODO: pack and use half*/
 struct ALIGNMENT PBRMaterialData
 {
     float4 baseColorFactor;

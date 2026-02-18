@@ -381,7 +381,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = d3d12Buffer.GpuAddress + offset;
         view.SizeInBytes = (uint)(d3d12Buffer.Size - offset);
-        view.Format = (format == IndexFormat.UInt16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+        view.Format = (format == IndexFormat.Uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         _commandBuffer.CommandList->IASetIndexBuffer(&view);
     }
 

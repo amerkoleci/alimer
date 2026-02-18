@@ -186,7 +186,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
 
             Mesh mesh = meshComponent.Mesh;
             //MeshVertexBufferLayout layout = component.Mesh.VertexBufferLayout;
-            VertexBufferLayout gpuLayout = new(mesh.VertexStride, VertexPositionNormalTexture.VertexAttributes);
+            VertexBufferLayout gpuLayout = new(mesh.VertexStride, mesh.VertexAttributes);
             Span<VertexBufferLayout> geometryLayout = [gpuLayout];
 
             foreach (SubMesh subMesh in mesh.SubMeshes)
@@ -299,7 +299,7 @@ public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
                     //};
                     //passEncoder.SetPushConstants(0, drawData);
 
-                    uint instanceCount = instances.InstanceCount;
+                    uint instanceCount = instances.InstanceCount + instances.FirstInstance;
                     passEncoder.DrawIndexed((uint)geometry.IndexCount, instanceCount, (uint)geometry.IndexStart, 0, instances.FirstInstance);
                 }
             }

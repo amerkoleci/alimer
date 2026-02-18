@@ -41,7 +41,9 @@ public sealed class SampleBrowserGame : Game
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
-        _runningSample = new SceneCubeSample(Services);
+        //_runningSample = new SceneCubeSample(Services);
+        _runningSample = new ScenePBRRendererSample(Services);
+        
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
@@ -75,7 +77,7 @@ public sealed class SampleBrowserGame : Game
         GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default;
 
 #if !WINDOWS
-        //preferredGraphicsBackend = GraphicsBackend.Vulkan;
+        preferredGraphicsBackend = GraphicsBackend.Vulkan;
         //preferredGraphicsBackend = GraphicsBackend.Metal;
 #endif
 

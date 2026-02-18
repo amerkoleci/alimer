@@ -346,7 +346,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
     protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0)
     {
         VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
-        VkIndexType vkIndexType = (format == IndexFormat.UInt16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+        VkIndexType vkIndexType = (format == IndexFormat.Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
         _deviceApi.vkCmdBindIndexBuffer(_commandBuffer.Handle, vulkanBuffer.Handle, offset, vkIndexType);
     }

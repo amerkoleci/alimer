@@ -137,10 +137,10 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
                 case IndexFormat.Undefined:
                     stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
                     break;
-                case IndexFormat.UInt16:
+                case IndexFormat.Uint16:
                     stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
                     break;
-                case IndexFormat.UInt32:
+                case IndexFormat.Uint32:
                     stream.stream1.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF;
                     break;
             }

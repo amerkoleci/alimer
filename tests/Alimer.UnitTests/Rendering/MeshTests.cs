@@ -12,10 +12,10 @@ public class BinarySerializationTests
     [Theory]
     public void TestDefault()
     {
-        Mesh mesh = new Mesh(24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.UInt16);
+        Mesh mesh = new Mesh(24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.Uint16);
 
         Assert.That(() => mesh.VertexCount, Is.EqualTo(24));
-        Assert.That(() => mesh.IndexFormat, Is.EqualTo(IndexFormat.UInt16));
+        Assert.That(() => mesh.IndexFormat, Is.EqualTo(IndexFormat.Uint16));
     }
 
 }

@@ -132,7 +132,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         //context.SetPushConstants(0, worldViewProjection);
 
         renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
+        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.Uint16);
         renderPassEncoder.DrawIndexed(_indexCount);
         renderPassEncoder.EndEncoding();
     }

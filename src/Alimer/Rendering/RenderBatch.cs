@@ -64,7 +64,7 @@ public sealed unsafe class RenderBatch : DisposableObject
                 label: $"Upload Instance Buffer Frame {i}"
                 ));
             _instanceBindGroups![i] = InstanceBindGroupLayout.CreateBindGroup(
-                new BindGroupEntry(0, _instanceBuffers[i])
+                new BindGroupEntry(0, _instanceBuffers[i], stride: (uint)sizeof(InstanceData))
             );
         }
     }
