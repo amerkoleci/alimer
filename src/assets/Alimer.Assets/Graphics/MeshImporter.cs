@@ -6,11 +6,16 @@ using CommunityToolkit.Diagnostics;
 using SharpGLTF.Schema2;
 using Silk.NET.Assimp;
 using GLTF2;
+using Material = Alimer.Rendering.Material;
 using AssimpScene = Silk.NET.Assimp.Scene;
+using AssimpMaterial = Silk.NET.Assimp.Material;
 using GLTFMaterial = SharpGLTF.Schema2.Material;
 using GLTFMesh = SharpGLTF.Schema2.Mesh;
 using Alimer.Rendering;
 using MeshOptimizer;
+using Alimer.Utilities;
+using Alimer.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Assets.Graphics;
 
@@ -44,97 +49,109 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
 
     public Task<MeshAsset> ImportGLTF(MeshMetadata metadata)
     {
-        using FileStream stream = System.IO.File.OpenRead(metadata.FileFullPath);
-        var gltf = GltfUtils.ParseGltf(stream);
+        string filePath = metadata.FileFullPath;
+        using FileStream stream = System.IO.File.OpenRead(filePath);
+        using FileStream binaryDataStream = System.IO.File.OpenRead(filePath);
+        Gltf2? gltf = GltfUtils.ParseGltf(stream);
 
-
-        List<Vector3> positions = [];
+        Vector3[] positions = [];
         List<Vector3> normals = [];
         List<Vector3> tangents = [];
         List<Vector2> texCoords0 = [];
         uint[] indices = [];
 
+        byte[][] buffers = new byte[gltf!.Buffers.Length][];
+        for (int i = 0; i < gltf.Buffers.Length; i++)
+        {
+            buffers[i] = GltfUtils.LoadBinaryBuffer(binaryDataStream);
+        }
+
         foreach (Gltf2.Mesh mesh in gltf.Meshes)
         {
             foreach (Gltf2.MeshPrimitive primitive in mesh.Primitives)
             {
-                if (primitive.Attributes.TryGetValue("POSITION", out int index))
+                int vertexOffset = positions.Length;
+
+                bool hasPosition = primitive.Attributes.TryGetValue("POSITION", out int positionIndex);
+                bool hasNormal = primitive.Attributes.TryGetValue("NORMAL", out int normalIndex);
+                bool hasTangent = primitive.Attributes.TryGetValue("TANGENT", out int tangentIndex);
+                bool hasTexCoord0 = primitive.Attributes.TryGetValue("TEXCOORD_0", out int texCoord0Index);
+
+                Guard.IsTrue(hasPosition);
+                Guard.IsTrue(hasNormal);
+                Guard.IsTrue(hasTexCoord0);
+
+                if (primitive.Indices.HasValue)
                 {
-                    var accessor = gltf.Accessors[index];
+                    int indicesIndex = primitive.Indices.Value;
+                    Gltf2.Accessor accessor = gltf.Accessors[indicesIndex];
+                    int indexCount = accessor.Count;
 
-                    int bufferViewIndex = accessor.BufferView ?? throw new Exception();
-                    Gltf2.BufferView bufferView = gltf.BufferViews[bufferViewIndex];
+                    int indexOffset = indices.Length;
+                    Array.Resize(ref indices, indexOffset + indexCount);
+                    //mesh.subsets.back().indexOffset = (uint32_t)indexOffset;
+                    //mesh.subsets.back().indexCount = (uint32_t)indexCount;
 
-                    int offset = bufferView.ByteOffset + accessor.ByteOffset;
-
-                    //int stride = accessor.ComponentType switch
-                    //{
-                    //    Gltf2.ComponentType.UnsignedShort => GetCountOfAccessorType(accessor.Type) * sizeof(ushort),
-                    //    Gltf2.ComponentType.UnsignedInt => GetCountOfAccessorType(accessor.Type) * sizeof(uint),
-                    //    _ => throw new NotSupportedException("This component type is not supported.")
-                    //};
-
-                    var buffer = gltf.Buffers[bufferView.Buffer];
-                    //return gltf.Buffers[bufferView.Buffer].AsSpan(offset, stride * accessor.Count);
+                    Span<byte> data = GetAccessorData(gltf, buffers, accessor, out int stride);
+                    if (stride == 1)
+                    {
+                        for (int i = 0; i < indexCount; i += 3)
+                        {
+                            indices[indexOffset + i + 0] = (uint)vertexOffset + data[i + 0];
+                            indices[indexOffset + i + 1] = (uint)vertexOffset + data[i + 1];
+                            indices[indexOffset + i + 2] = (uint)vertexOffset + data[i + 2];
+                        }
+                    }
+                    else if (stride == 2)
+                    {
+                        Span<ushort> ushortData = MemoryMarshal.Cast<byte, ushort>(data);
+                        for (int i = 0; i < indexCount; i += 3)
+                        {
+                            indices[indexOffset + i + 0] = (uint)vertexOffset + ushortData[i + 0];
+                            indices[indexOffset + i + 1] = (uint)vertexOffset + ushortData[i + 1];
+                            indices[indexOffset + i + 2] = (uint)vertexOffset + ushortData[i + 2];
+                        }
+                    }
+                    else if (stride == 4)
+                    {
+                        Span<uint> uintData = MemoryMarshal.Cast<byte, uint>(data);
+                        for (int i = 0; i < indexCount; i += 3)
+                        {
+                            indices[indexOffset + i + 0] = (uint)vertexOffset + uintData[i + 0];
+                            indices[indexOffset + i + 1] = (uint)vertexOffset + uintData[i + 1];
+                            indices[indexOffset + i + 2] = (uint)vertexOffset + uintData[i + 2];
+                        }
+                    }
                 }
 
+                // Load vertex attributes now
+                foreach (var attribute in primitive.Attributes)
+                {
+                    string attributeName = attribute.Key;
+                    int accessorIndex = attribute.Value;
+                    Gltf2.Accessor accessor = gltf.Accessors[accessorIndex];
+                    int vertexCount = accessor.Count;
 
-                //bool hasPosition = primitive.GetVertexAccessor("POSITION") is not null;
-                //bool hasNormal = primitive.GetVertexAccessor("NORMAL") is not null;
-                //bool hasTangent = primitive.GetVertexAccessor("TANGENT") is not null;
-                //bool hasTexCoord0 = primitive.GetVertexAccessor("TEXCOORD_0") is not null;
+                    Span<byte> attributeData = GetAccessorData(gltf, buffers, accessor, out int stride);
+                    // Process the data based on the attribute name (e.g., "POSITION", "NORMAL", etc.)
+                    // and the accessor type (e.g., VEC3, VEC2, etc.) to populate the positions, normals, tangents, and texCoords0 lists.
 
-                //Guard.IsTrue(hasPosition);
-                //Guard.IsTrue(hasNormal);
-                //Guard.IsTrue(hasTexCoord0);
-
-                //IList<Vector3> positionAccessor = primitive.GetVertexAccessor("POSITION").AsVector3Array();
-                //IList<Vector3> normalAccessor = primitive.GetVertexAccessor("NORMAL").AsVector3Array();
-                //IList<Vector3>? tangentAccessor = hasTangent ? primitive.GetVertexAccessor("TANGENT").AsVector3Array() : default;
-                //IList<Vector2> texcoordAccessor = primitive.GetVertexAccessor("TEXCOORD_0").AsVector2Array();
-                //var indexAccessor = primitive.GetIndexAccessor().AsIndicesArray();
-
-                //if (!hasTangent)
-                //{
-                //    Span<Vector3> calculatedTngents = VertexHelper.GenerateTangents(
-                //        positionAccessor.ToArray(),
-                //        texcoordAccessor.ToArray(),
-                //        indexAccessor.ToArray());
-                //    tangentAccessor = new List<Vector3>();
-                //    for (int i = 0; i < positionAccessor.Count; ++i)
-                //    {
-                //        tangentAccessor.Add(new Vector3(calculatedTngents[i].X, calculatedTngents[i].Y, calculatedTngents[i].Z));
-                //    }
-                //}
-
-                //for (int i = 0; i < positionAccessor.Count; ++i)
-                //{
-                //    Vector3 position = positionAccessor[i];
-                //    Vector3 normal = normalAccessor[i];
-                //    Vector3 tangent = hasTangent ? tangentAccessor[i]! : Vector3.Zero;
-                //    Vector2 texcoord = texcoordAccessor[i];
-
-                //    positions.Add(position);
-                //    normals.Add(normal);
-                //    tangents.Add(tangent);
-                //    texCoords0.Add(texcoord);
-                //}
-
-                //// Indices
-                //indices = new uint[indexAccessor.Count];
-
-                //for (int i = 0; i < indices.Length; i++)
-                //{
-                //    indices[i] = indexAccessor[i];
-                //}
+                    if (attributeName == "POSITION")
+                    {
+                        Array.Resize(ref positions, vertexOffset + vertexCount);
+                        Span<Vector3> vector3Data = MemoryMarshal.Cast<byte, Vector3>(attributeData);
+                        for (int i = 0; i < vertexCount; ++i)
+                        {
+                            positions[vertexOffset + i] = vector3Data[i];
+                        }
+                    }
+                }
             }
         }
 
-        ModelRoot modelRoot = ModelRoot.Load(metadata.FileFullPath);
+        Material[] materials = new Material[gltf.Materials.Length];
 
-        foreach (GLTFMaterial material in modelRoot.LogicalMaterials)
-        {
-        }
+        ModelRoot modelRoot = ModelRoot.Load(metadata.FileFullPath);
 
 
         foreach (GLTFMesh mesh in modelRoot.LogicalMeshes)
@@ -143,12 +160,10 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
             {
                 GLTFMaterial material = primitive.Material;
 
-                bool hasPosition = primitive.GetVertexAccessor("POSITION") is not null;
                 bool hasNormal = primitive.GetVertexAccessor("NORMAL") is not null;
                 bool hasTangent = primitive.GetVertexAccessor("TANGENT") is not null;
                 bool hasTexCoord0 = primitive.GetVertexAccessor("TEXCOORD_0") is not null;
 
-                Guard.IsTrue(hasPosition);
                 Guard.IsTrue(hasNormal);
                 Guard.IsTrue(hasTexCoord0);
 
@@ -156,7 +171,6 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
                 IList<Vector3> normalAccessor = primitive.GetVertexAccessor("NORMAL").AsVector3Array();
                 IList<Vector3>? tangentAccessor = hasTangent ? primitive.GetVertexAccessor("TANGENT").AsVector3Array() : default;
                 IList<Vector2> texcoordAccessor = primitive.GetVertexAccessor("TEXCOORD_0").AsVector2Array();
-                var indexAccessor = primitive.GetIndexAccessor().AsIndicesArray();
 
                 if (!hasTangent)
                 {
@@ -165,7 +179,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
                         calculatedTangents,
                         positionAccessor,
                         texcoordAccessor,
-                        indexAccessor);
+                        indices);
                     tangentAccessor = new List<Vector3>();
                     for (int i = 0; i < positionAccessor.Count; ++i)
                     {
@@ -175,42 +189,33 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
 
                 for (int i = 0; i < positionAccessor.Count; ++i)
                 {
-                    Vector3 position = positionAccessor[i];
                     Vector3 normal = normalAccessor[i];
                     Vector3 tangent = hasTangent ? tangentAccessor[i]! : Vector3.Zero;
                     Vector2 texcoord = texcoordAccessor[i];
 
-                    positions.Add(position);
                     normals.Add(normal);
                     tangents.Add(tangent);
                     texCoords0.Add(texcoord);
-                }
-
-                // Indices
-                indices = new uint[indexAccessor.Count];
-
-                for (int i = 0; i < indices.Length; i++)
-                {
-                    indices[i] = indexAccessor[i];
                 }
             }
         }
 
         Span<uint> optimized = stackalloc uint[indices.Length];
-        OptimizeVertexCache(optimized, indices, (uint)positions.Count);
+        OptimizeVertexCache(optimized, indices, (uint)positions.Length);
 
-        MeshAsset asset = new()
+        MeshData meshData = new()
         {
-            Source = metadata.FileFullPath,
-            Data = new Rendering.MeshData()
-            {
-                VertexCount = positions.Count,
-                Positions = positions.ToArray(),
-                Normals = normals.ToArray(),
-                Tangents = tangents.ToArray(),
-                Texcoords = texCoords0.ToArray(),
-                Indices = optimized.ToArray()
-            }
+            VertexCount = positions.Length,
+            Positions = positions,
+            Normals = normals.ToArray(),
+            Tangents = tangents.ToArray(),
+            Texcoords = texCoords0.ToArray(),
+            Indices = optimized.ToArray()
+        };
+
+        MeshAsset asset = new(meshData, materials)
+        {
+            Source = metadata.FileFullPath
         };
 
         return Task.FromResult(asset);
@@ -271,18 +276,25 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
             indices[i + 2] = mesh->MFaces[i].MIndices[2];
         }
 
-        MeshAsset asset = new()
+        // Mesh optimizations
+        Span<uint> optimized = stackalloc uint[indices.Length];
+        OptimizeVertexCache(optimized, indices, (uint)positions.Count);
+
+        Material[] materials = new Material[scene->MNumMaterials];
+
+        MeshData meshData = new()
         {
-            Source = source,
-            Data = new Rendering.MeshData()
-            {
-                VertexCount = positions.Count,
-                Positions = [.. positions],
-                Normals = [.. normals],
-                Tangents = [.. tangents],
-                Texcoords = [.. texCoords0],
-                Indices = indices
-            }
+            VertexCount = positions.Count,
+            Positions = [.. positions],
+            Normals = [.. normals],
+            Tangents = [.. tangents],
+            Texcoords = [.. texCoords0],
+            Indices = optimized.ToArray()
+        };
+
+        MeshAsset asset = new(meshData, materials)
+        {
+            Source = source
         };
 
         return Task.FromResult(asset);
@@ -298,4 +310,18 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         // https://github.com/zeux/meshoptimizer#vertex-cache-optimization
         Meshopt.OptimizeVertexCache(destination, indices, vertexCount);
     }
+
+    #region GLTF
+    private static Span<byte> GetAccessorData(Gltf2 gltf, byte[][] buffers, Gltf2.Accessor accessor, out int stride)
+    {
+        int bufferViewIndex = accessor.BufferView ?? throw new Exception();
+        Gltf2.BufferView bufferView = gltf.BufferViews[bufferViewIndex];
+
+        int offset = bufferView.ByteOffset + accessor.ByteOffset;
+
+        stride = accessor.ByteStride(bufferView);
+
+        return buffers[bufferView.Buffer].AsSpan(offset, stride * accessor.Count);
+    }
+    #endregion
 }

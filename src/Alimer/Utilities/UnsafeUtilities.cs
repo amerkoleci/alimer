@@ -48,16 +48,6 @@ public static unsafe class UnsafeUtilities
     public static Span<T> AsSpan<T>(this ReadOnlySpan<T> span)
         => MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in MemoryMarshal.GetReference(span)), span.Length);
 
-    /// <inheritdoc cref="MemoryMarshal.Cast{TFrom, TTo}(Span{TFrom})" />
-    public static Span<TTo> Cast<TFrom, TTo>(this Span<TFrom> span)
-        where TFrom : struct
-        where TTo : struct => MemoryMarshal.Cast<TFrom, TTo>(span);
-
-    /// <inheritdoc cref="MemoryMarshal.Cast{TFrom, TTo}(ReadOnlySpan{TFrom})" />
-    public static ReadOnlySpan<TTo> Cast<TFrom, TTo>(this ReadOnlySpan<TFrom> span)
-        where TFrom : struct
-        where TTo : struct => MemoryMarshal.Cast<TFrom, TTo>(span);
-
     /// <inheritdoc cref="MemoryMarshal.CreateSpan{T}(ref T, int)" />
     public static Span<T> CreateSpan<T>(scoped ref T reference, int length) => MemoryMarshal.CreateSpan(ref reference, length);
 

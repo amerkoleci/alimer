@@ -78,11 +78,7 @@ public class AssetCompilerContext : IDisposable
             metadata.FileRelativePath = Path.GetRelativePath(inputDirectory, metadata.FileFullPath);
 
             //string json = metadata.ToJson();
-            Asset? asset = await Import(metadata);
-
-            if (asset is null)
-                throw new NullReferenceException("Asset is null");
-
+            Asset? asset = await Import(metadata) ?? throw new NullReferenceException("Asset is null");
             if (_writers.TryGetValue(asset.GetType(), out IAssetTypeWriter? assetWriter))
             {
                 string outputFileName = Path.ChangeExtension(Path.GetFileNameWithoutExtension(assetFileName), assetWriter.FileExtension);

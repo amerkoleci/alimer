@@ -8,7 +8,9 @@ using Alimer.Numerics;
 
 namespace Alimer.Rendering;
 
-public sealed unsafe partial class RenderSystem : EntitySystem<MeshComponent>
+// TODO: Add support for RenderableComponent (ParticleSystem or other?)
+
+public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 {
     // ShaderTypes.h
     public const int FrameBindGroupSpace = 3;

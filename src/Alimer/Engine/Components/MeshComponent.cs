@@ -5,7 +5,11 @@ using Alimer.Rendering;
 
 namespace Alimer.Engine;
 
-public sealed partial class MeshComponent : RenderableComponent
+/// <summary>
+/// A component that contains a mesh and materials for the visual appearance of an entity.
+/// </summary>
+[DefaultEntitySystem(typeof(RenderSystem))]
+public sealed partial class MeshComponent : Component
 {
     /// Local-space bounding box.
     private BoundingBox _localBoundingBox;

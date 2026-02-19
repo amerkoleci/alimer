@@ -49,9 +49,9 @@ Texture2D<float4> inputTexture : register(t0);
 RWTexture2DArray<float4> outputTexture : register(u0);
 // SamplerState defaultSampler : register(s0);
 
+// Utility kernel for converting from an equirectangular environment map (LDR or HDR) to a cube map
 [shader("compute")]
 [numthreads(32, 32, 1)]
-// Utility kernel for converting from an equirectangular environment map (LDR or HDR) to a cube map
 void CubeFromEquirectangular(uint3 ThreadID: SV_DispatchThreadID)
 {
     const SamplerState equirectSampler = SamplerLinearClamp;
