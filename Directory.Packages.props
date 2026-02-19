@@ -38,7 +38,6 @@
     
     <!-- Asset Pipeline -->
     <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />
-    <PackageVersion Include="SharpGLTF.Core" Version="1.0.6" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.23.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.6" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.2.0" />

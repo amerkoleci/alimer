@@ -31,7 +31,7 @@ public sealed partial class MeshComponent : Component
 
     public Mesh? Mesh { get; set; }
 
-    public IList<Material> Materials { get; } = [];
+    public List<Material> Materials { get; } = [];
     public BoundingBox LocalBoundingBox => _localBoundingBox;
 
     public BoundingBox WorldBoundingBox

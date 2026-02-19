@@ -59,7 +59,7 @@ struct ALIGNMENT PBRMaterialData
 struct ALIGNMENT InstanceData
 {
     float4x4 worldMatrix;
-    float4 color;
+    //float4 color;
     uint32_t materialIndex;
     //float4x4 inverseWorldMatrix;
 };

@@ -32,14 +32,9 @@ public sealed class ScenePBRRendererSample : SampleBase
         root.Children.Add(_cameraEntity);
 
         // GLTF mesh
-        PhysicallyBasedMaterial sharedMaterial = new()
-        {
-            BaseColorFactor = Colors.White,
-        };
-
         string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
 
-        MeshImporter meshImporter = new();
+        MeshImporter meshImporter = new(GraphicsDevice);
         MeshMetadata meshMetadata = new()
         {
             FileFullPath = Path.Combine(meshesPath, "DamagedHelmet.glb")
@@ -68,7 +63,12 @@ public sealed class ScenePBRRendererSample : SampleBase
             _damagedHelmetEntity = new("Damaged Helmet", new Vector3(0.0f, 2.0f, 0.0f));
 
             MeshComponent meshComponent = new(damagedHelmetMesh);
-            meshComponent.Materials.Add(sharedMaterial);
+
+            foreach(var material in meshAsset.Materials)
+            {
+                meshComponent.Materials.Add(ToDispose(material));
+            }
+
             _damagedHelmetEntity.AddComponent(meshComponent);
             root.Children.Add(_damagedHelmetEntity);
         }

@@ -43,7 +43,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));
         //_texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "environment.hdr")));
 
-        MeshImporter meshImporter = new();
+        MeshImporter meshImporter = new(GraphicsDevice);
         MeshMetadata meshMetadata = new()
         {
             FileFullPath = Path.Combine(meshesPath, "DamagedHelmet.glb")

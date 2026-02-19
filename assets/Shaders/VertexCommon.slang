@@ -12,7 +12,7 @@ VertexOutput vertexMain(in VertexInput input,
     InstanceData instance = instanceDataBuffer[instanceId];
 
     float4x4 worldMatrix = instance.worldMatrix;
-    const float4 instanceColor = instance.color;
+    //const float4 instanceColor = instance.color;
     const uint materialIndex = instance.materialIndex;
     float4 worldPosition = mul(float4(input.Position, 1.0f), worldMatrix);
 
@@ -37,7 +37,8 @@ VertexOutput vertexMain(in VertexInput input,
 #if defined(VERTEX_COLOR)
     output.Color = input.Color;
 #else
-    output.Color = instanceColor.xyz; // float3(1.0f);
+    // output.Color = instanceColor.xyz;
+    output.Color = float3(1.0f);
 #endif
     return output;
 }

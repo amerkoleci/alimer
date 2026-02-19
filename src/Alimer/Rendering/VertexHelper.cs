@@ -49,13 +49,11 @@ public static unsafe class VertexHelper
 
     public static void GenerateTangents(
         Span<Vector3> tangents,
-        IList<Vector3> positions,
+        Span<Vector3> positions,
         IList<Vector2> texcoords,
         IList<uint> indices)
     {
-        int indexCount = indices.Count == 0
-            ? positions.Count / sizeof(Vector3)
-            : indices.Count;
+        int indexCount = indices.Count == 0 ? positions.Length / sizeof(Vector3) : indices.Count;
 
         for (int i = 0; i < indexCount; i += 3)
         {

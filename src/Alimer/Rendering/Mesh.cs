@@ -1,19 +1,17 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Buffers.Binary;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
+using Alimer.Serialization;
 using CommunityToolkit.Diagnostics;
-using XenoAtom.Collections;
 
 namespace Alimer.Rendering;
 
 // TODO: Mesh on GPU with CPU access
 
-public sealed unsafe partial class Mesh : DisposableObject
+public sealed unsafe partial class Mesh : DisposableObject, IBinarySerializable
 {
     //private readonly UnsafeList<Vector3> _positions = [];
     private VertexAttribute[] _vertexAttributes;
@@ -371,6 +369,10 @@ public sealed unsafe partial class Mesh : DisposableObject
         GetTangents(vertexTangents);
 
         return false;
+    }
+
+    public void Serialize(BinarySerializer serializer)
+    {
     }
 
     public unsafe class CpuBuffer

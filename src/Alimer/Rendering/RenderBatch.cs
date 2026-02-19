@@ -94,10 +94,9 @@ public sealed unsafe class RenderBatch : DisposableObject
         instances.Transforms.Add(instance.WorldMatrix);
         _instanceData.Add(new InstanceData {
             worldMatrix = instance.WorldMatrix,
-            color = instance.Color,
-            materialIndex = 0 // TODO
+            materialIndex = instance.MaterialIndex
         });
-        instances.Colors.Add(instance.Color);
+        //instances.Colors.Add(instance.Color);
         _totalInstanceCount += 1;
     }
 
@@ -134,7 +133,7 @@ public sealed unsafe class RenderBatch : DisposableObject
     }
 }
 
-public record struct GPUInstanceData(Matrix4x4 WorldMatrix, Color Color, uint Count = 1);
+public record struct GPUInstanceData(Matrix4x4 WorldMatrix, uint MaterialIndex, uint Count = 1);
 
 public class GPUBatchEntry
 {
@@ -146,6 +145,6 @@ public class GPUBatchEntry
     public readonly uint FirstInstance;
     public uint InstanceCount;
     public readonly List<Matrix4x4> Transforms = [];
-    public readonly List<Color> Colors = [];
+    //public readonly List<Color> Colors = [];
     public int BufferOffset;
 }

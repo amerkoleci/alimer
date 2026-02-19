@@ -3,19 +3,18 @@
 
 using System.Numerics;
 using CommunityToolkit.Diagnostics;
-using SharpGLTF.Schema2;
 using Silk.NET.Assimp;
 using GLTF2;
+using Texture = Alimer.Graphics.Texture;
 using Material = Alimer.Rendering.Material;
 using AssimpScene = Silk.NET.Assimp.Scene;
 using AssimpMaterial = Silk.NET.Assimp.Material;
-using GLTFMaterial = SharpGLTF.Schema2.Material;
-using GLTFMesh = SharpGLTF.Schema2.Mesh;
 using Alimer.Rendering;
 using MeshOptimizer;
 using Alimer.Utilities;
-using Alimer.Numerics;
 using System.Runtime.InteropServices;
+using SkiaSharp;
+using Alimer.Graphics;
 
 namespace Alimer.Assets.Graphics;
 
@@ -42,10 +41,15 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         // | PostProcessSteps.Debone
         ;
 
-    public MeshImporter()
+    public MeshImporter(GraphicsDevice device)
     {
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
+
+        Device = device;
         _assImp = Assimp.GetApi();
     }
+
+    public GraphicsDevice Device { get; }
 
     public Task<MeshAsset> ImportGLTF(MeshMetadata metadata)
     {
@@ -54,10 +58,11 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         using FileStream binaryDataStream = System.IO.File.OpenRead(filePath);
         Gltf2? gltf = GltfUtils.ParseGltf(stream);
 
-        Vector3[] positions = [];
-        List<Vector3> normals = [];
-        List<Vector3> tangents = [];
-        List<Vector2> texCoords0 = [];
+        Vector3[] vertexPositions = [];
+        Vector3[] vertexNormals = [];
+        Vector3[] vertexTangents = [];
+        Vector2[] vertexTexCoords0 = [];
+        Vector2[] vertexTexCoords1 = [];
         uint[] indices = [];
 
         byte[][] buffers = new byte[gltf!.Buffers.Length][];
@@ -70,7 +75,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         {
             foreach (Gltf2.MeshPrimitive primitive in mesh.Primitives)
             {
-                int vertexOffset = positions.Length;
+                int vertexOffset = vertexPositions.Length;
 
                 bool hasPosition = primitive.Attributes.TryGetValue("POSITION", out int positionIndex);
                 bool hasNormal = primitive.Attributes.TryGetValue("NORMAL", out int normalIndex);
@@ -138,78 +143,148 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
 
                     if (attributeName == "POSITION")
                     {
-                        Array.Resize(ref positions, vertexOffset + vertexCount);
+                        Array.Resize(ref vertexPositions, vertexOffset + vertexCount);
                         Span<Vector3> vector3Data = MemoryMarshal.Cast<byte, Vector3>(attributeData);
                         for (int i = 0; i < vertexCount; ++i)
                         {
-                            positions[vertexOffset + i] = vector3Data[i];
+                            vertexPositions[vertexOffset + i] = vector3Data[i];
                         }
                     }
+                    else if (attributeName == "NORMAL")
+                    {
+                        Array.Resize(ref vertexNormals, vertexOffset + vertexCount);
+
+                        Span<Vector3> vector3Data = MemoryMarshal.Cast<byte, Vector3>(attributeData);
+                        for (int i = 0; i < vertexCount; ++i)
+                        {
+                            vertexNormals[vertexOffset + i] = vector3Data[i];
+                        }
+                    }
+                    else if (attributeName == "TANGENT")
+                    {
+                        Array.Resize(ref vertexTangents, vertexOffset + vertexCount);
+
+                        Span<Vector4> vector4Data = MemoryMarshal.Cast<byte, Vector4>(attributeData);
+                        for (int i = 0; i < vertexCount; ++i)
+                        {
+                            vertexTangents[vertexOffset + i] = new Vector3(vector4Data[i].X, vector4Data[i].Y, vector4Data[i].Z);
+                        }
+                    }
+                    else if (attributeName == "TEXCOORD_0")
+                    {
+                        // TODO: Handle TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE and TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT
+                        Array.Resize(ref vertexTexCoords0, vertexOffset + vertexCount);
+
+                        if (accessor.ComponentType == Gltf2.ComponentType.Float)
+                        {
+                            Span<Vector2> vector2Data = MemoryMarshal.Cast<byte, Vector2>(attributeData);
+                            for (int i = 0; i < vertexCount; ++i)
+                            {
+                                vertexTexCoords0[vertexOffset + i] = vector2Data[i];
+                            }
+                        }
+                        else if (accessor.ComponentType == Gltf2.ComponentType.UnsignedByte)
+                        {
+                            for (int i = 0; i < vertexCount; ++i)
+                            {
+                                byte s = attributeData[i + 0];
+                                byte t = attributeData[i + 1];
+
+                                vertexTexCoords0[vertexOffset + i] = new Vector2(s / 255.0f, t / 255.0f);
+                            }
+                        }
+                        else if (accessor.ComponentType == Gltf2.ComponentType.UnsignedShort)
+                        {
+                            Span<ushort> ushortData = MemoryMarshal.Cast<byte, ushort>(attributeData);
+                            for (int i = 0; i < vertexCount; ++i)
+                            {
+                                ushort s = ushortData[i + 0];
+                                ushort t = ushortData[i + 1];
+
+                                vertexTexCoords0[vertexOffset + i] = new Vector2(s / 65535.0f, t / 65535.0f);
+                            }
+                        }
+                    }
+                    else if (attributeName == "TEXCOORD_1")
+                    {
+                        // TODO: Handle TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE and TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT
+                        Array.Resize(ref vertexTexCoords0, vertexOffset + vertexCount);
+
+                        Span<Vector2> vector2Data = MemoryMarshal.Cast<byte, Vector2>(attributeData);
+                        for (int i = 0; i < vertexCount; ++i)
+                        {
+                            vertexTexCoords0[vertexOffset + i] = vector2Data[i];
+                        }
+                    }
+                    else if (attributeName == "JOINTS_0")
+                    {
+                    }
+                    else if (attributeName == "WEIGHTS_0")
+                    {
+                    }
+                    else if (attributeName == "COLOR_0")
+                    {
+                    }
+                }
+
+                if (!hasTangent)
+                {
+                    vertexTangents = new Vector3[vertexPositions.Length];
+                    VertexHelper.GenerateTangents(
+                        vertexTangents,
+                        vertexPositions,
+                        vertexTexCoords0,
+                        indices);
                 }
             }
         }
 
         Material[] materials = new Material[gltf.Materials.Length];
-
-        ModelRoot modelRoot = ModelRoot.Load(metadata.FileFullPath);
-
-
-        foreach (GLTFMesh mesh in modelRoot.LogicalMeshes)
+        for (int materialIndex = 0; materialIndex < gltf.Materials.Length; materialIndex++)
         {
-            foreach (MeshPrimitive primitive in mesh.Primitives)
+            Gltf2.Material material = gltf.Materials[materialIndex];
+            if (material.PbrMetallicRoughness.HasValue)
             {
-                GLTFMaterial material = primitive.Material;
-
-                bool hasNormal = primitive.GetVertexAccessor("NORMAL") is not null;
-                bool hasTangent = primitive.GetVertexAccessor("TANGENT") is not null;
-                bool hasTexCoord0 = primitive.GetVertexAccessor("TEXCOORD_0") is not null;
-
-                Guard.IsTrue(hasNormal);
-                Guard.IsTrue(hasTexCoord0);
-
-                IList<Vector3> positionAccessor = primitive.GetVertexAccessor("POSITION").AsVector3Array();
-                IList<Vector3> normalAccessor = primitive.GetVertexAccessor("NORMAL").AsVector3Array();
-                IList<Vector3>? tangentAccessor = hasTangent ? primitive.GetVertexAccessor("TANGENT").AsVector3Array() : default;
-                IList<Vector2> texcoordAccessor = primitive.GetVertexAccessor("TEXCOORD_0").AsVector2Array();
-
-                if (!hasTangent)
+                Gltf2.MaterialPbrMetallicRoughness pbr = material.PbrMetallicRoughness.Value;
+                PhysicallyBasedMaterial physicallyBasedMaterial = new()
                 {
-                    Span<Vector3> calculatedTangents = new Vector3[positionAccessor.Count];
-                    VertexHelper.GenerateTangents(
-                        calculatedTangents,
-                        positionAccessor,
-                        texcoordAccessor,
-                        indices);
-                    tangentAccessor = new List<Vector3>();
-                    for (int i = 0; i < positionAccessor.Count; ++i)
-                    {
-                        tangentAccessor.Add(calculatedTangents[i]);
-                    }
+                    Name = material.Name,
+                    BaseColorFactor = pbr.BaseColorFactor,
+                    MetallicFactor = pbr.MetallicFactor,
+                    RoughnessFactor = pbr.RoughnessFactor,
+                    EmissiveFactor = material.EmissiveFactor,
+                    AlphaMode = FromGltf(material.AlphaMode),
+                    AlphaCutoff = material.AlphaCutoff,
+                    DoubleSided = material.DoubleSided
+                };
+
+                if (pbr.BaseColorTexture.HasValue)
+                {
+                    Gltf2.TextureInfo baseColorTexture = pbr.BaseColorTexture.Value;
+                    //Texture diffuseTexture = await GetTextureAsync(diffuseTextureIndex.Value);
+                    physicallyBasedMaterial.BaseColorTexture = GetTexture(gltf, buffers, baseColorTexture.Index);
+                    //baseColorTexture.TexCoord;
                 }
 
-                for (int i = 0; i < positionAccessor.Count; ++i)
-                {
-                    Vector3 normal = normalAccessor[i];
-                    Vector3 tangent = hasTangent ? tangentAccessor[i]! : Vector3.Zero;
-                    Vector2 texcoord = texcoordAccessor[i];
-
-                    normals.Add(normal);
-                    tangents.Add(tangent);
-                    texCoords0.Add(texcoord);
-                }
+                materials[materialIndex] = physicallyBasedMaterial;
             }
         }
 
+        // Create animations:
+        foreach (Gltf2.Animation animation in gltf.Animations)
+        {
+        }
+
         Span<uint> optimized = stackalloc uint[indices.Length];
-        OptimizeVertexCache(optimized, indices, (uint)positions.Length);
+        OptimizeVertexCache(optimized, indices, (uint)vertexPositions.Length);
 
         MeshData meshData = new()
         {
-            VertexCount = positions.Length,
-            Positions = positions,
-            Normals = normals.ToArray(),
-            Tangents = tangents.ToArray(),
-            Texcoords = texCoords0.ToArray(),
+            VertexCount = vertexPositions.Length,
+            Positions = vertexPositions,
+            Normals = vertexNormals,
+            Tangents = vertexTangents,
+            Texcoords = vertexTexCoords0,
             Indices = optimized.ToArray()
         };
 
@@ -321,7 +396,71 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
 
         stride = accessor.ByteStride(bufferView);
 
+        if (accessor.Sparse.HasValue)
+        {
+            Gltf2.AccessorSparse sparse = accessor.Sparse.Value;
+            Gltf2.BufferView sparse_indices_view = gltf.BufferViews[sparse.Indices.BufferView];
+            Gltf2.BufferView sparse_values_view = gltf.BufferViews[sparse.Values.BufferView];
+            Gltf2.Buffer sparse_indices_buffer = gltf.Buffers[sparse_indices_view.Buffer];
+            Gltf2.Buffer sparse_values_buffer = gltf.Buffers[sparse_values_view.Buffer];
+            //const uint8_t* sparse_indices_data = sparse_indices_buffer.data.data() + sparse.indices.byteOffset + sparse_indices_view.byteOffset;
+            //const uint8_t* sparse_values_data = sparse_values_buffer.data.data() + sparse.values.byteOffset + sparse_values_view.byteOffset;
+            //switch (sparse.indices.componentType)
+            //{
+            //    default:
+            //    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+            //        for (int s = 0; s < sparse.count; ++s)
+            //        {
+            //            mesh.vertex_positions[sparse_indices_data[s]] = ((const XMFLOAT3*)sparse_values_data)[s] ;
+            //}
+            //break;
+            //
+            //            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+            //    for (int s = 0; s < sparse.count; ++s)
+            //    {
+            //        mesh.vertex_positions[((const uint16_t*)sparse_indices_data)[s]] = ((const XMFLOAT3*)sparse_values_data)[s] ;
+            //}
+            //break;
+            //
+            //            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+            //    for (int s = 0; s < sparse.count; ++s)
+            //    {
+            //        mesh.vertex_positions[((const uint32_t*)sparse_indices_data)[s]] = ((const XMFLOAT3*)sparse_values_data)[s] ;
+            //}
+            //break;
+            //}
+            throw new NotImplementedException("Sparse accessors are not yet supported.");
+        }
+
         return buffers[bufferView.Buffer].AsSpan(offset, stride * accessor.Count);
     }
+
+    // TODO: async
+    private Texture GetTexture(Gltf2 gltf, byte[][] buffers, int textureIndex)
+    {
+        int imageIndex = gltf.Textures[textureIndex].Source ?? throw new Exception();
+        Gltf2.Image image = gltf.Images[imageIndex];
+
+        int bufferViewIndex = image.BufferView ?? throw new Exception();
+        Gltf2.BufferView bufferView = gltf.BufferViews[bufferViewIndex];
+
+        byte[] currentBuffer = buffers[bufferView.Buffer];
+
+        Span<byte> imageData = currentBuffer.AsSpan(bufferView.ByteOffset, bufferView.ByteLength);
+        Texture texture = Texture.FromMemory(Device, imageData);
+        return texture;
+    }
+
+    private static MaterialAlphaMode FromGltf(Gltf2.AlphaMode alphaMode)
+    {
+        return alphaMode switch
+        {
+            Gltf2.AlphaMode.Opaque => MaterialAlphaMode.Opaque,
+            Gltf2.AlphaMode.Mask => MaterialAlphaMode.Mask,
+            Gltf2.AlphaMode.Blend => MaterialAlphaMode.Blend,
+            _ => throw new NotSupportedException($"Unsupported GLTF alpha mode: {alphaMode}")
+        };
+    }
+
     #endregion
 }

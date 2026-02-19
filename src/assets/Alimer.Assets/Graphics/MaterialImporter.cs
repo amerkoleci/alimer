@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using SharpGLTF.Schema2;
+using GLTF2;
 
 namespace Alimer.Assets.Graphics;
 
@@ -10,7 +10,7 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public sealed class MaterialImporter : AssetImporter<MaterialAsset, MaterialMetadata>
 {
-    public Task<MaterialAsset> Import(SharpGLTF.Schema2.Material gltfMaterial, string source)
+    public Task<MaterialAsset> Import(Gltf2.Material gltfMaterial, string source)
     {
         MaterialAsset asset = new()
         {
@@ -22,9 +22,10 @@ public sealed class MaterialImporter : AssetImporter<MaterialAsset, MaterialMeta
 
     public override Task<MaterialAsset> Import(MaterialMetadata metadata)
     {
-        //GraphicsDevice device = services.GetRequiredService<GraphicsDevice>();
-        ModelRoot modelRoot = ModelRoot.Load(metadata.FileFullPath);
+        string filePath = metadata.FileFullPath;
+        using FileStream stream = System.IO.File.OpenRead(filePath);
+        Gltf2? gltf = GltfUtils.ParseGltf(stream);
 
-        return Import(modelRoot.LogicalMaterials[0], metadata.FileFullPath);
+        return Import(gltf!.Materials[0], metadata.FileFullPath);
     }
 }

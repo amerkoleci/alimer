@@ -15,7 +15,7 @@ public class UnlitMaterial : Material
     {
     }
 
-    public Color BaseColorFactor { get; set; } = new (1.0f, 1.0f, 1.0f, 1.0f);
+    public Color BaseColorFactor { get; set; } = new(1.0f, 1.0f, 1.0f, 1.0f);
     public Texture? BaseColorTexture { get; set; }
 
     public bool DoubleSided { get; set; }
@@ -26,6 +26,17 @@ public class UnlitMaterial : Material
 
     public CompareFunction DepthCompare { get; set; } = CompareFunction.Less;
 
-    public bool AdditiveBlend { get; set; } 
+    public bool AdditiveBlend { get; set; }
+
     //public bool CastsShadow { get; set; } = true;
+
+    /// <inheritdoc cref="Dispose()" />
+    /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            BaseColorTexture?.Dispose();
+        }
+    }
 }

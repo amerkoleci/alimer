@@ -6,7 +6,7 @@ using Alimer.Numerics;
 
 namespace Alimer.Rendering;
 
-public struct MeshData
+public  struct MeshData
 {
     public MeshData()
     {

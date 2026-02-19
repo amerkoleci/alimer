@@ -13,7 +13,6 @@
 
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.HarfBuzz" />
-    <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="Silk.NET.Assimp" />
     <PackageReference Include="Alimer.Bindings.MeshOptimizer" />
   </ItemGroup>

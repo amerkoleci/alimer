@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Alimer.Numerics;
 
 namespace GLTF2;
 
@@ -426,7 +427,7 @@ public partial class Gltf2
     /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
     /// </summary>
     public record struct MaterialPbrMetallicRoughness(
-        Vector4 BaseColorFactor,
+        Color BaseColorFactor,
         TextureInfo? BaseColorTexture,
         float MetallicFactor,
         float RoughnessFactor,
@@ -436,7 +437,7 @@ public partial class Gltf2
     )
     {
         public MaterialPbrMetallicRoughness()
-            : this(Vector4.One, null, 1, 1, null, null, null) { }
+            : this(Colors.White, null, 1, 1, null, null, null) { }
     }
 
     /// <summary>
@@ -859,6 +860,7 @@ public partial class Gltf2
             typeof(FloatStructJsonConverter<Vector4>),
             typeof(FloatStructJsonConverter<Matrix3x2>),
             typeof(FloatStructJsonConverter<Matrix4x4>),
+            typeof(FloatStructJsonConverter<Color>),
             typeof(AccesorTypeJsonConverter),
             typeof(ComponentTypeJsonConverter),
             typeof(PathJsonConverter),

@@ -203,13 +203,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                     throw new InvalidOperationException($"No GPU material factory found for material type '{material.GetType()}'.");
                 }
 
-                GPUInstanceData instanceData = new()
-                {
-                    WorldMatrix = meshComponent.Entity!.WorldTransform,
-                    Color = Colors.Yellow,
-                    Count = 1,
-                    //MaterialIndex = (uint)materialIndex
-                };
+                Matrix4x4 worldMatrix = meshComponent.Entity!.WorldTransform;
+
+                GPUInstanceData instanceData = new(worldMatrix, (uint)materialIndex, Count: 1);
 
                 bool skinned = false;
                 GPURenderPipeline pipeline = factory.GetPipeline(geometryLayout, material, skinned);

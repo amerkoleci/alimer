@@ -8,6 +8,11 @@ namespace Alimer.Assets;
 /// </summary>
 public abstract class Asset
 {
+    /// <summary>
+    /// Gets or sets the name of the asset.
+    /// </summary>
+    public string? Name { get;set; }
+
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public override string ToString()
