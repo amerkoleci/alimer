@@ -155,6 +155,13 @@ public partial class Gltf2
         Repeat = 10497,
     }
 
+    public enum CameraType
+    {
+        Invalid,
+        Perspective,
+        Orthographic,
+    }
+
     /// <summary>
     /// A typed view into a buffer view that contains raw binary data.<br/>
     /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-accessor
@@ -378,6 +385,7 @@ public partial class Gltf2
         MaterialPbrMetallicRoughness? PbrMetallicRoughness,
         MaterialNormalTextureInfo? NormalTexture,
         MaterialOcclusionTextureInfo? OcclusionTexture,
+        TextureInfo? EmissiveTexture,
         Vector3 EmissiveFactor,
         AlphaMode AlphaMode,
         float AlphaCutoff,
@@ -387,7 +395,9 @@ public partial class Gltf2
     )
     {
         public Material()
-            : this(null, null, null, null, Vector3.Zero, AlphaMode.Opaque, 0.50f, false, null, null) { }
+            : this(null, null, null, null, null, Vector3.Zero, AlphaMode.Opaque, 0.50f, false, null, null)
+        {
+        }
     }
 
     /// <summary>
@@ -437,11 +447,13 @@ public partial class Gltf2
     )
     {
         public MaterialPbrMetallicRoughness()
-            : this(Colors.White, null, 1, 1, null, null, null) { }
+            : this(Colors.White, null, 1, 1, null, null, null)
+        {
+        }
     }
 
     /// <summary>
-    /// A set of primitives to be rendered. Its global transform is defined by a node that references it.<br/>
+    /// A set of primitives to be rendered. Its global transform is defined by a node that references it.
     /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh
     /// </summary>
     public record struct Mesh(
@@ -457,7 +469,7 @@ public partial class Gltf2
     }
 
     /// <summary>
-    /// Geometry to be rendered with the given material.<br/>
+    /// Geometry to be rendered with the given material.
     /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh-primitive
     /// </summary>
     public record struct MeshPrimitive(
@@ -498,7 +510,7 @@ public partial class Gltf2
     }
 
     /// <summary>
-    /// Texture sampler properties for filtering and wrapping modes.<br/>
+    /// Texture sampler properties for filtering and wrapping modes.
     /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-sampler
     /// </summary>
     public record struct Sampler(
@@ -564,6 +576,67 @@ public partial class Gltf2
     }
 
     /// <summary>
+    /// A perspective camera.<br/>
+    /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-camera-perspective
+    /// </summary>
+    public record struct CameraPerspective(
+        float? AspectRatio,
+        float? yFov,
+        float? zFar,
+        float? zNear,
+        JsonObject? Extensions = null,
+        JsonObject? Extras = null
+    )
+    {
+        public CameraPerspective()
+            : this(null, null, null, null, null)
+        {
+        }
+
+        public readonly bool HaAspectRatio => AspectRatio.HasValue;
+    }
+
+    /// <summary>
+    /// A orthographic camera.<br/>
+    /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-camera-orthographic
+    /// </summary>
+    public record struct CameraOrthographic(
+        float xMag,
+        float yMag,
+        float zFar,
+        float zNear,
+        JsonObject? Extensions = null,
+        JsonObject? Extras = null
+    )
+    {
+        public CameraOrthographic()
+            : this(0, 0, 0, 0, null, null)
+        {
+        }
+    }
+
+    /// <summary>
+    /// A camera.<br/>
+    /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-camera
+    /// </summary>
+    public record struct Camera(
+        string? Type,
+        string? Name,
+        CameraPerspective? Perspective,
+        CameraOrthographic? Orthographic,
+        JsonObject? Extensions = null,
+        JsonObject? Extras = null
+    )
+    {
+        public Camera()
+            : this(null, null, null, null, null)
+        {
+        }
+
+        public readonly CameraType CameraType => (Perspective is not null) ? CameraType.Perspective : (Orthographic is not null) ? CameraType.Orthographic : CameraType.Invalid;
+    }
+
+    /// <summary>
     /// Reference to a texture.<br/>
     /// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-textureinfo
     /// </summary>
@@ -598,6 +671,7 @@ public partial class Gltf2
     public SceneInfo[] Scenes { get; set; } = [];
     public Skin[] Skins { get; set; } = [];
     public Texture[] Textures { get; set; } = [];
+    public Camera[] Cameras { get; set; } = [];
 
     /// <summary>
     /// JSON object with extension-specific objects.

@@ -19,11 +19,11 @@ internal static class Extensions
             _ => "public"
         };
 
-    public static bool IsStruct(this SyntaxNode node)
-        => node is StructDeclarationSyntax;
+    public static bool IsStruct(this SyntaxNode node) => node is StructDeclarationSyntax;
 
-    public static bool IsClass(this SyntaxNode node)
-        => node is ClassDeclarationSyntax;
+    public static bool IsClass(this SyntaxNode node) => node is ClassDeclarationSyntax;
+
+    public static bool IsEnum(this SyntaxNode node) => node is EnumDeclarationSyntax;
 
     public static bool IsRecordStruct(this SyntaxNode node)
         => node is RecordDeclarationSyntax recordDecl && recordDecl.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword);

@@ -24,7 +24,11 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // baseColorTexture
             new BindGroupLayoutEntry(new SamplerBindingLayout(SamplerBindingType.Filtering), 0),  // baseColorSampler
             new BindGroupLayoutEntry(new TextureBindingLayout(), 1, ShaderStages.Fragment), // normalTexture
-                                                                                            // Static samplers
+            new BindGroupLayoutEntry(new TextureBindingLayout(), 2, ShaderStages.Fragment), // metallicRoughnessTexture 
+            new BindGroupLayoutEntry(new TextureBindingLayout(), 3, ShaderStages.Fragment), // emissiveTexture 
+            new BindGroupLayoutEntry(new TextureBindingLayout(), 4, ShaderStages.Fragment), // occlusionTexture 
+
+            // Static samplers
             new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
             new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
             new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
@@ -57,14 +61,22 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
         // TODO: Should be one material buffer per material
         PBRMaterialData materialData = new()
         {
-            baseColorFactor = pbrMaterial.BaseColorFactor
+            baseColorFactor = pbrMaterial.BaseColorFactor,
+            emissiveFactor = pbrMaterial.EmissiveFactor,
+            metallicFactor = pbrMaterial.MetallicFactor,
+            roughnessFactor = pbrMaterial.RoughnessFactor,
+            normalScale = pbrMaterial.NormalScale,
+            occlusionStrength = pbrMaterial.OcclusionStrength
         };
         _materialBuffer.SetData(materialData);
 
         BindGroup bindGroup = _bindGroupLayout.CreateBindGroup(
             new BindGroupEntry(0, _materialBuffer),
             new BindGroupEntry(0, pbrMaterial.BaseColorTexture ?? System.OpaqueWhiteTexture),
-            new BindGroupEntry(0, pbrMaterial.NormalTexture ?? System.DefaultNormalTexture),
+            new BindGroupEntry(1, pbrMaterial.NormalTexture ?? System.DefaultNormalTexture),
+            new BindGroupEntry(2, pbrMaterial.MetallicRoughnessTexture ?? System.OpaqueWhiteTexture),
+            new BindGroupEntry(3, pbrMaterial.EmissiveTexture ?? System.OpaqueWhiteTexture),
+            new BindGroupEntry(4, pbrMaterial.OcclusionTexture ?? System.OpaqueWhiteTexture),
             new BindGroupEntry(0, System.DefaultSampler)
         );
 

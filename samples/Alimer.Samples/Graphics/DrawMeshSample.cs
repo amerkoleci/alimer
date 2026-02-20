@@ -14,8 +14,7 @@ namespace Alimer.Samples.Graphics;
 public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 {
     private readonly uint _indexCount;
-    private readonly GraphicsBuffer _vertexBuffer;
-    private readonly GraphicsBuffer _indexBuffer;
+    private readonly Mesh _mesh;
     private readonly GraphicsBuffer _constantBuffer;
     private readonly Texture _texture;
     private readonly Sampler _sampler;
@@ -50,18 +49,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         };
         MeshAsset meshAsset = meshImporter.Import(meshMetadata).Result;
 
-        Span<VertexPositionNormalTexture> vertices = stackalloc VertexPositionNormalTexture[meshAsset.Data!.VertexCount];
-        for (int i = 0; i < meshAsset.Data.VertexCount; i++)
-        {
-            vertices[i] = new VertexPositionNormalTexture(meshAsset.Data.Positions[i], meshAsset.Data.Normals[i], meshAsset.Data.Texcoords[i]);
-        }
-
-        //var data = MeshUtilities.CreateCube(5.0f);
-        //_vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Vertices, BufferUsage.Vertex));
-        //_indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(data.Indices, BufferUsage.Index));
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertices, BufferUsage.Vertex));
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(meshAsset.Data.Indices!.AsSpan(), BufferUsage.Index));
-        _indexCount = (uint)meshAsset.Data!.Indices.Length;
+        _mesh = ToDispose(meshAsset.Mesh);
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 
@@ -131,9 +119,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         renderPassEncoder.SetBindGroup(1, _materialBindGroup);
         //context.SetPushConstants(0, worldViewProjection);
 
-        renderPassEncoder.SetVertexBuffer(0, _vertexBuffer);
-        renderPassEncoder.SetIndexBuffer(_indexBuffer, IndexFormat.Uint16);
-        renderPassEncoder.DrawIndexed(_indexCount);
+        _mesh.Draw(renderPassEncoder, 1u);
         renderPassEncoder.EndEncoding();
     }
 }

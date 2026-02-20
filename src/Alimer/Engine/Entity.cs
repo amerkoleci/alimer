@@ -37,7 +37,7 @@ public partial class Entity
 
         Transform = new TransformComponent()
         {
-            Position = position,
+            Position = position
         };
 
         Components.Add(Transform);

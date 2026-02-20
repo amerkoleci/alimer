@@ -31,7 +31,7 @@ public sealed unsafe class Image : Asset, IDisposable
         {
             case TextureDimension.Texture1D:
             case TextureDimension.Texture2D:
-            //case TextureDimension.TextureCube:
+                //case TextureDimension.TextureCube:
                 for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
                 {
                     uint mipWidth = Width;
@@ -316,7 +316,7 @@ public sealed unsafe class Image : Asset, IDisposable
 
                     for (uint level = 0; level < description.MipLevelCount; ++level)
                     {
-                        PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+                        PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint _, out uint _);
 
                         levels[index] = new(mipWidth, mipHeight, description.Format, rowPitch, slicePitch, (IntPtr)pixels);
                         ++index;
@@ -342,7 +342,7 @@ public sealed unsafe class Image : Asset, IDisposable
 
                 for (uint level = 0; level < description.MipLevelCount; ++level)
                 {
-                    PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount);
+                    PixelFormatUtils.GetSurfaceInfo(description.Format, mipWidth, mipHeight, out uint rowPitch, out uint slicePitch, out uint _, out uint _);
 
                     for (uint slice = 0; slice < mipDepth; ++slice)
                     {

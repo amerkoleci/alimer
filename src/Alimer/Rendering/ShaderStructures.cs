@@ -30,7 +30,7 @@ public struct PerViewData : IShaderConstantBuffer
 public struct InstanceData : IShaderConstantBuffer
 {
     public Matrix4x4 worldMatrix;
-    public Color color;
+    //public Color color;
     public uint materialIndex;
 }
 
@@ -38,7 +38,8 @@ public struct InstanceData : IShaderConstantBuffer
 public struct PBRMaterialData : IShaderConstantBuffer
 {
     public Color baseColorFactor;
-    public Color emissiveFactor;
+    public Vector3 emissiveFactor;
+    private float _padding0; // Padding to align to 16 bytes
     public float metallicFactor;
     public float roughnessFactor;
     public float normalScale;

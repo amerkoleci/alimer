@@ -14,7 +14,7 @@ internal sealed class SerializationGenerator : IIncrementalGenerator
     {
         IncrementalValuesProvider<ComponentType> classDeclarations = context.SyntaxProvider.ForAttributeWithMetadataName(
            fullyQualifiedMetadataName: AlimerTypes.DefaultEntitySystemAttribute,
-           predicate: static (node, _) => node.IsClass() && node.IsPartial(),
+           predicate: static (node, _) => node.IsPartial() && (node.IsClass() || node.IsStruct() || node.IsEnum()),
            transform: static (context, token) =>
            {
                INamedTypeSymbol classSymbol = (INamedTypeSymbol)context.TargetSymbol;

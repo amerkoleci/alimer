@@ -50,7 +50,7 @@ public static unsafe class VertexHelper
     public static void GenerateTangents(
         Span<Vector3> tangents,
         Span<Vector3> positions,
-        IList<Vector2> texcoords,
+        Span<Vector2> texcoords,
         IList<uint> indices)
     {
         int indexCount = indices.Count == 0 ? positions.Length / sizeof(Vector3) : indices.Count;

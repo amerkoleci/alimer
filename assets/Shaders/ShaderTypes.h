@@ -51,9 +51,14 @@ struct ALIGNMENT PerViewData
 };
 
 /* TODO: pack and use half*/
-struct ALIGNMENT PBRMaterialData
+struct ALIGNMENT PBRMaterialUniforms
 {
     float4 baseColorFactor;
+    float3 emissiveFactor;
+    float _padding;
+    float2 metallicRoughnessFactor;
+    float occlusionStrength;
+    float alphaCutoff;
 };
 
 struct ALIGNMENT InstanceData

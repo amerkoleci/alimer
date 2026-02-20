@@ -19,6 +19,9 @@ public sealed class PhysicallyBasedMaterial : UnlitMaterial
 
     public Texture? NormalTexture { get; set; }
 
+    [DefaultValue(1.0f)]
+    public float NormalScale { get; set; } = 1.0f;
+
     [DefaultValue(0.0f)]
     public float MetallicFactor { get; set; }
 
@@ -35,6 +38,8 @@ public sealed class PhysicallyBasedMaterial : UnlitMaterial
     /// <inheritdoc/>
     protected override void Destroy()
     {
+        base.Destroy();
+
         NormalTexture?.Dispose();
         MetallicRoughnessTexture?.Dispose();
         EmissiveTexture?.Dispose();

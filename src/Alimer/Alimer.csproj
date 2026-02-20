@@ -65,7 +65,6 @@
 
   <ItemGroup>
     <Using Remove="System.Linq" />
-    <Using Include="Alimer.Numerics" />
   </ItemGroup>
 
   <ItemGroup>

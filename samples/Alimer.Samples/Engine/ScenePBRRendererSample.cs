@@ -41,26 +41,13 @@ public sealed class ScenePBRRendererSample : SampleBase
         };
         MeshAsset meshAsset = meshImporter.Import(meshMetadata).Result;
 
-        Span<VertexPositionNormalTangentTexture> vertices = stackalloc VertexPositionNormalTangentTexture[meshAsset.Data!.VertexCount];
-        for (int i = 0; i < meshAsset.Data.VertexCount; i++)
-        {
-            vertices[i] = new VertexPositionNormalTangentTexture(
-                meshAsset.Data.Positions[i],
-                meshAsset.Data.Normals[i],
-                meshAsset.Data.Tangents[i],
-                meshAsset.Data.Texcoords[i]
-                );
-        }
-
-        Mesh damagedHelmetMesh = new(vertices.Length, VertexPositionNormalTangentTexture.VertexAttributes, meshAsset.Data.Indices!.Length, IndexFormat.Uint32);
-        damagedHelmetMesh.SetVertices(vertices);
-        damagedHelmetMesh.SetIndices(meshAsset.Data.Indices!.AsSpan());
-        damagedHelmetMesh.RecalculateBounds();
-        damagedHelmetMesh.CreateGpuData(GraphicsDevice);
+        Mesh damagedHelmetMesh = meshAsset.Mesh;
         _= ToDispose(damagedHelmetMesh);
 
         {
-            _damagedHelmetEntity = new("Damaged Helmet", new Vector3(0.0f, 2.0f, 0.0f));
+            _damagedHelmetEntity = new("Damaged Helmet", meshAsset.Translation);
+            _damagedHelmetEntity.Transform.Rotation = meshAsset.Rotation;
+            _damagedHelmetEntity.Transform.Scale = meshAsset.Scale;
 
             MeshComponent meshComponent = new(damagedHelmetMesh);
 

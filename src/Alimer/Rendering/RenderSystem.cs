@@ -83,11 +83,11 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         // Till we have a material system, create a basic pipeline
         FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
             "Frame BindGroupLayout",
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
             ));
 
         ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
-           new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
+           new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
            ));
 
         // Bind groups with default textures/samplers

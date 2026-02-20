@@ -21,6 +21,7 @@
   </Folder>
   <Folder Name="/assets/shaders/">
     <File Path="assets/Shaders/Alimer.hlsli" />
+    <File Path="assets/Shaders/BRDF.hlsli" />
     <File Path="assets/Shaders/IBL.slang" />
     <File Path="assets/Shaders/Math.hlsli" />
     <File Path="assets/Shaders/PBR.slang" />

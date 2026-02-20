@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using Alimer.Rendering;
 
 namespace Alimer.Assets.Graphics;
@@ -17,19 +18,22 @@ public class MeshAsset : AssetWithSource
     }
 
     [SetsRequiredMembers]
-    public MeshAsset(MeshData data, Material[] materials)
+    public MeshAsset(Mesh mesh, Material[] materials)
     {
-        ArgumentNullException.ThrowIfNull(data.Positions, nameof(MeshData.Positions));
+        ArgumentNullException.ThrowIfNull(mesh, nameof(mesh));
         ArgumentNullException.ThrowIfNull(materials, nameof(materials));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(materials.Length, 0, nameof(materials));
 
-        Data = data;
+        Mesh = mesh;
         Materials = materials;
     }
 
 
-    public required MeshData Data { get; set; }
+    public required Mesh Mesh { get; set; }
     public required Material[] Materials { get; set; }
+    public Vector3 Translation { get; set; }
+    public Quaternion Rotation { get; set; }
+    public Vector3 Scale { get; set; }
 
     /// <inheritdoc/>
     protected override void Destroy()
