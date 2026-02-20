@@ -18,10 +18,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public const int InstanceBindGroupSpace = 1;
     public const int MaterialBindGroupSpace = 0;
 
-    private readonly Texture _blackTexture;
-    private readonly Texture _whiteTexture;
-    private readonly Texture _defaultNormalTexture;
-
     // TODO: Max frames inflight
     // TODO: Material system
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
@@ -47,9 +43,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         ShaderSystem = services.GetService<ShaderSystem>();
         MainWindow = services.GetService<Window>();
 
-        _blackTexture = CreateTextureFromColor(Colors.Transparent);
-        _whiteTexture = CreateTextureFromColor(Colors.White);
-        _defaultNormalTexture = CreateTextureFromColor(new Color(0.5f, 0.5f, 1.0f, 0f));
+        OpaqueWhiteTexture = CreateTextureFromColor(Colors.White);
+        TransparentBlackTexture = CreateTextureFromColor(Colors.Transparent);
+        DefaultNormalTexture = CreateTextureFromColor(new Color(0.5f, 0.5f, 1.0f, 0f));
         ReadOnlySpan<uint> pixels = [
             0xFFFFFFFF,
             0x00000000,
@@ -127,6 +123,10 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public Texture? MultisampleColorTexture { get; private set; }
     public Texture? DepthStencilTexture { get; private set; }
+
+    public Texture OpaqueWhiteTexture { get; }
+    public Texture TransparentBlackTexture { get; }
+    public  Texture DefaultNormalTexture { get; }
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
@@ -150,10 +150,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
             MultisampleColorTexture?.Dispose();
             DepthStencilTexture?.Dispose();
-
-            _blackTexture.Dispose();
-            _whiteTexture.Dispose();
-            _defaultNormalTexture.Dispose();
 
             // View
             _viewBuffer.Dispose();
@@ -293,7 +289,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                     // Update per-object data (after set pipeline)
                     //InstanceData drawData = new()
                     //{
-                    //    WorldMatrix = instances.Transforms[0]
+                    //    worldMatrix = instances.Transforms[0]
                     //};
                     //passEncoder.SetPushConstants(0, drawData);
 
@@ -367,7 +363,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     private Texture CreateTextureFromColor(in Color color)
     {
         ReadOnlySpan<uint> pixels = [color.ToRgba()];
-        return Device.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1);
+        return ToDispose(Device.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1));
     }
 
     protected override void OnEntityComponentAdded(MeshComponent component)

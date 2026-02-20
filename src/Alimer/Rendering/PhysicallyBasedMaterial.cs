@@ -31,4 +31,13 @@ public sealed class PhysicallyBasedMaterial : UnlitMaterial
 
     [DefaultValue(1.0f)]
     public float OcclusionStrength { get; set; } = 1.0f;
+
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+        NormalTexture?.Dispose();
+        MetallicRoughnessTexture?.Dispose();
+        EmissiveTexture?.Dispose();
+        OcclusionTexture?.Dispose();
+    }
 }

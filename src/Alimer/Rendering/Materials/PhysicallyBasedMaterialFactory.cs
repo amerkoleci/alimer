@@ -23,6 +23,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Fragment),
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // baseColorTexture
             new BindGroupLayoutEntry(new SamplerBindingLayout(SamplerBindingType.Filtering), 0),  // baseColorSampler
+            new BindGroupLayoutEntry(new TextureBindingLayout(), 1, ShaderStages.Fragment), // normalTexture
                                                                                             // Static samplers
             new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
             new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
@@ -62,7 +63,8 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
 
         BindGroup bindGroup = _bindGroupLayout.CreateBindGroup(
             new BindGroupEntry(0, _materialBuffer),
-            new BindGroupEntry(0, pbrMaterial.BaseColorTexture ?? System.CheckerTexture),
+            new BindGroupEntry(0, pbrMaterial.BaseColorTexture ?? System.OpaqueWhiteTexture),
+            new BindGroupEntry(0, pbrMaterial.NormalTexture ?? System.DefaultNormalTexture),
             new BindGroupEntry(0, System.DefaultSampler)
         );
 

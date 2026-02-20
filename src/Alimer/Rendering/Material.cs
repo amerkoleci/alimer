@@ -43,5 +43,6 @@ public abstract class Material : Asset, IDisposableObject
     /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
     protected virtual void Dispose(bool disposing)
     {
+        Destroy();
     }
 }

@@ -10,5 +10,8 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public class MaterialAsset : AssetWithSource
 {
-
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+    }
 }

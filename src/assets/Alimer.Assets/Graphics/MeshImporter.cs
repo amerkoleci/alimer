@@ -266,6 +266,12 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
                     //baseColorTexture.TexCoord;
                 }
 
+                if (material.NormalTexture.HasValue)
+                {
+                    Gltf2.MaterialNormalTextureInfo normalTextureInfo = material.NormalTexture.Value;
+                    physicallyBasedMaterial.NormalTexture = GetTexture(gltf, buffers, normalTextureInfo.Index);
+                }
+
                 materials[materialIndex] = physicallyBasedMaterial;
             }
         }

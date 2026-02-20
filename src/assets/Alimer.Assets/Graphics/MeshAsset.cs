@@ -30,4 +30,9 @@ public class MeshAsset : AssetWithSource
 
     public required MeshData Data { get; set; }
     public required Material[] Materials { get; set; }
+
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+    }
 }

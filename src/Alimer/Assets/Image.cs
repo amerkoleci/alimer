@@ -125,10 +125,8 @@ public sealed unsafe class Image : Asset, IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_data != null)
-        {
-            NativeMemory.Free(_data);
-        }
+        Destroy();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -284,6 +282,15 @@ public sealed unsafe class Image : Asset, IDisposable
                     imageDesc.height);
                 return new(imageDescription, imageData);
             }
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+        if (_data != null)
+        {
+            NativeMemory.Free(_data);
         }
     }
 

@@ -28,7 +28,7 @@ public sealed class ScenePBRRendererSample : SampleBase
         // Camera
         _cameraEntity = new();
         CameraComponent camera = _cameraEntity.AddComponent<CameraComponent>();
-        camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 25.0f);
+        camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
         root.Children.Add(_cameraEntity);
 
         // GLTF mesh
@@ -83,7 +83,7 @@ public sealed class ScenePBRRendererSample : SampleBase
     public override void Update(GameTime time)
     {
         float deltaTime = (float)time.Elapsed.TotalSeconds;
-        _damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
+        //_damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
     }
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)

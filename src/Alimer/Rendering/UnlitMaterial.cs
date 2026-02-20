@@ -30,13 +30,10 @@ public class UnlitMaterial : Material
 
     //public bool CastsShadow { get; set; } = true;
 
-    /// <inheritdoc cref="Dispose()" />
-    /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
-    protected override void Dispose(bool disposing)
+
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            BaseColorTexture?.Dispose();
-        }
+        BaseColorTexture?.Dispose();
     }
 }

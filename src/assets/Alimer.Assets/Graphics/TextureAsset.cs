@@ -52,4 +52,9 @@ public class TextureAsset : AssetWithSource
 
         return device.CreateTexture2D(Data!, Format, (uint)Width, (uint)Height);
     }
+
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+    }
 }
