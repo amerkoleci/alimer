@@ -27,7 +27,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         VkDevice = device;
         QueueType = queueType;
 
-        uint queueFamilyIndex = device.GetQueueFamily(queueType);
+        uint queueFamilyIndex = device.GetQueueFamilyIndex(queueType);
         uint queueIndex = device.GetQueueIndex(queueType);
         device.DeviceApi.vkGetDeviceQueue(queueFamilyIndex, queueIndex, out Handle);
 

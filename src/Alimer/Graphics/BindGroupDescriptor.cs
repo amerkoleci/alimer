@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
+using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.Constants;
 
@@ -56,7 +57,7 @@ public struct BindGroupEntry
         // Structured buffer offset must be aligned to structure stride
         if (stride > 0)
         {
-            if (!MathUtilities.IsAligned(offset, stride))
+            if (!MemoryUtilities.IsAligned(offset, stride))
             {
                 throw new ArgumentException("Offset must be aligned to stride for structured buffers.", nameof(offset));
             }

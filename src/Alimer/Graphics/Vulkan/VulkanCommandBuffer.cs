@@ -50,7 +50,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             VkCommandPoolCreateInfo poolInfo = new()
             {
                 flags = VkCommandPoolCreateFlags.Transient,
-                queueFamilyIndex = queue.VkDevice.GetQueueFamily(queue.QueueType)
+                queueFamilyIndex = queue.VkDevice.GetQueueFamilyIndex(queue.QueueType)
             };
 
             _deviceApi.vkCreateCommandPool(&poolInfo, null, out _commandPools[i]).CheckResult();

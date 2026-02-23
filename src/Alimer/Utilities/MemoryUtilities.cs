@@ -61,6 +61,12 @@ public static unsafe class MemoryUtilities
         return zero ? NativeMemory.AllocZeroed(count, size) : NativeMemory.Alloc(count, size);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(uint value, uint alignment) => (value & (alignment - 1)) == 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAligned(ulong value, ulong alignment) => (value & (alignment - 1)) == 0;
+
     [DoesNotReturn]
     private static void ThrowOutOfMemoryException(ulong size)
     {

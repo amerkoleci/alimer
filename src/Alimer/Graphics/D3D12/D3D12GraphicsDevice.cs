@@ -30,6 +30,7 @@ using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
 using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Graphics.D3D12.D3D12MA.ALLOCATOR_FLAGS;
 using Alimer.Utilities;
+using SkiaSharp;
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
@@ -795,6 +796,16 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public override CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default)
     {
         return _queues[(int)queue].AcquireCommandBuffer(label);
+    }
+
+    public GRContext CreateSkiaContext()
+    {
+        return GRContext.CreateDirect3D(new GRD3DBackendContext()
+        {
+            Adapter = (nint)_adapter.Handle,
+            Device = (nint)Device,
+            Queue = (nint)D3D12GraphicsQueue.Handle
+        });
     }
 
     [UnmanagedCallersOnly]

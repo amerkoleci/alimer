@@ -4,15 +4,15 @@
     <ImGuiVersion>2.2.10-prerelease</ImGuiVersion>
     <SkiaSharpVersion>3.119.2</SkiaSharpVersion>
     <AvaloniaVersion>11.3.10</AvaloniaVersion>
+    <CodeAnalysisVersion>5.0.0</CodeAnalysisVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Source Generators -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(CodeAnalysisVersion)" />
     
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental4" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.0.0-preview1" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.3.2" />
     
     <!-- Engine -->
@@ -41,7 +41,7 @@
     <PackageVersion Include="Silk.NET.Assimp" Version="2.23.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.6" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.2.0" />
-    <PackageVersion Include="Slangc.NET" Version="2026.2.1" />
+    <PackageVersion Include="Slangc.NET" Version="2026.3.1" />
 
     <!-- Editor -->
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />

@@ -3,6 +3,7 @@
 
 using Alimer.Utilities;
 using CommunityToolkit.Diagnostics;
+using SkiaSharp;
 using Vortice.Vulkan;
 using XenoAtom.Collections;
 using static Alimer.Graphics.Vulkan.Vma;
@@ -1287,7 +1288,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
     }
 
-    public uint GetQueueFamily(CommandQueueType queueType) => _queueFamilyIndices[(int)queueType];
+    public uint GetQueueFamilyIndex(CommandQueueType queueType) => _queueFamilyIndices[(int)queueType];
     public uint GetQueueIndex(CommandQueueType queueType) => _queueIndices[(int)queueType];
 
     public VulkanUploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
@@ -1582,6 +1583,30 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             objectType,
             objectHandle,
             name).CheckResult();
+    }
+
+    public GRContext CreateSkiaContext()
+    {
+        return GRContext.CreateVulkan(new GRVkBackendContext()
+        {
+            VkInstance = _adapter.VkGraphicsManager.Instance,
+            VkPhysicalDevice = _adapter.Handle,
+            VkDevice = _handle,
+            VkQueue = _queues[(int)CommandQueueType.Graphics].Handle,
+            GraphicsQueueIndex = GetQueueFamilyIndex(CommandQueueType.Graphics),
+            GetProcedureAddress = (proc, _, _) =>
+            {
+                PFN_vkVoidFunction func = InstanceApi.vkGetDeviceProcAddr(_handle, proc);
+                if (func.Value != null)
+                    return (nint)func.Value;
+
+                func = vkGetInstanceProcAddr(_adapter.VkGraphicsManager.Instance, proc);
+                if (func.Value != null)
+                    return (nint)func.Value;
+
+                return 0;
+            }
+        });
     }
 
     public (VkDescriptorType DescriptorType, uint RegisterOffet) GetVkDescriptorType(BindGroupLayoutEntry entry)

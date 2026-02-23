@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -9,8 +10,11 @@ namespace Alimer;
 /// <summary>
 /// Base class for a <see cref="IDisposable"/> interface.
 /// </summary>
-public abstract class DisposableObject : IDisposableObject
+public abstract class DisposableObject : IDisposableObject//, IReferencable
 {
+    //private volatile uint _refCount = 1;
+
+    private DisposeCollector _collector;
     private volatile uint _isDisposed = 0;
 
     /// <summary>
@@ -18,25 +22,29 @@ public abstract class DisposableObject : IDisposableObject
     /// </summary>
     protected DisposableObject()
     {
+        _collector = new DisposeCollector();
         _isDisposed = 0;
     }
 
     /// <inheritdoc />
     public bool IsDisposed => _isDisposed != 0;
 
-    /// <summary>
-    /// Gets or sets the disposables.
-    /// </summary>
-    /// <value>The disposables.</value>
-    protected DisposeCollector? DisposeCollector { get; set; }
+    /// <inheritdoc/>
+    public DisposeCollector Collector
+    {
+        get
+        {
+            _collector.EnsureValid();
+            return _collector;
+        }
+    }
 
     /// <inheritdoc />
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
         {
-            DisposeCollector?.Dispose();
-            DisposeCollector = null;
+            _collector.Dispose();
 
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
@@ -61,39 +69,19 @@ public abstract class DisposableObject : IDisposableObject
         }
     }
 
-    /// <summary>
-    /// Adds a disposable object to the list of the objects to dispose.
-    /// </summary>
-    /// <param name="disposable">To dispose.</param>
-    protected internal T ToDispose<T>(T disposable)
-        where T : IDisposable
+    /// <inheritdoc cref="DisposeCollector.Add{T}(T)" />
+    protected internal T ToDispose<T>(T objectToDispose)
+        where T : notnull
     {
-        Guard.IsNotNull(disposable, nameof(disposable));
+        Guard.IsNotNull(objectToDispose, nameof(objectToDispose));
 
-        DisposeCollector ??= new DisposeCollector();
-        return DisposeCollector.Collect(disposable);
+        return _collector.Add(objectToDispose);
     }
 
-    /// <summary>
-    /// Dispose a disposable object and set the reference to null. Removes this object from the ToDispose list.
-    /// </summary>
-    /// <param name="disposable">Object to dispose.</param>
-    protected internal void RemoveAndDispose<T>(ref T? disposable)
-        where T : IDisposable
+    /// <inheritdoc cref="DisposeCollector.RemoveAndDispose{T}(ref T)" />
+    protected internal void RemoveAndDispose<T>([MaybeNull] ref T objectToDispose)
+        where T : notnull
     {
-        DisposeCollector?.RemoveAndDispose(ref disposable);
-    }
-
-    /// <summary>
-    /// Removes a disposable object to the list of the objects to dispose.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="disposable">To dispose.</param>
-    protected internal void RemoveToDispose<T>(T disposable)
-        where T : IDisposable
-    {
-        Guard.IsNotNull(disposable, nameof(disposable));
-
-        DisposeCollector?.Remove(disposable);
+        _collector.RemoveAndDispose(ref objectToDispose);
     }
 }
