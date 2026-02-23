@@ -24,12 +24,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     //private readonly Dictionary<Mesh, List<GPUInstanceData>> _renderMeshInstances = [];
     private readonly RenderBatch _renderBatch;
 
-    private readonly ConstantBuffer<FrameConstants> _frameBuffer;
-    private readonly BindGroup _frameBindGroup;
-
-    private readonly ConstantBuffer<PerViewData> _viewBuffer;
-    private readonly BindGroup _viewBindGroup;
-
     private readonly UnlitMaterial _defaultMaterial = new();
 
     public RenderSystem(IServiceRegistry services)
@@ -75,29 +69,33 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         _renderBatch = ToDispose(new RenderBatch(Device));
 
-        // WIP code
-        // Implement ring buffer
-        _frameBuffer = new(Device, label: "Frame Constant Buffer");
-        _viewBuffer = new(Device, label: "View Constant Buffer");
+        // TODO: Implement ring buffer
 
-        // Till we have a material system, create a basic pipeline
-        FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
-            "Frame BindGroupLayout",
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
+        // Per frame (set 3)
+        {
+            FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
+                "Frame BindGroupLayout",
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
+                ));
+
+            FrameConstantBuffer = ToDispose(new ConstantBuffer<FrameConstants>(Device, label: "Frame Constant Buffer"));
+            FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
+                new BindGroupEntry(0, FrameConstantBuffer.Handle)
+                ));
+        }
+
+
+        // Per frame (set 3)
+        {
+            ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
             ));
 
-        ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
-           new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
-           ));
-
-        // Bind groups with default textures/samplers
-        _frameBindGroup = FrameBindGroupLayout.CreateBindGroup(
-            new BindGroupEntry(0, _frameBuffer.Buffer)
-            );
-
-        _viewBindGroup = FrameBindGroupLayout.CreateBindGroup(
-            new BindGroupEntry(0, _viewBuffer.Buffer)
-            );
+            ViewConstantBuffer = ToDispose(new ConstantBuffer<PerViewData>(Device, label: "View Constant Buffer"));
+            ViewBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
+                new BindGroupEntry(0, ViewConstantBuffer.Handle)
+                ));
+        }
 
         MainWindow.SizeChanged += OnCanvasSizeChanged;
         Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
@@ -131,14 +129,24 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Sampler DefaultSampler { get; }
 
     public BindGroupLayout InstanceBindGroupLayout => _renderBatch.InstanceBindGroupLayout; // 1
+
+    // Set 2 (per view/camera)
     public BindGroupLayout ViewBindGroupLayout { get; } // 2
+    public ConstantBuffer<PerViewData> ViewConstantBuffer { get; }
+    public BindGroup ViewBindGroup { get; }
+
+    // Set 3 (per frame)
     public BindGroupLayout FrameBindGroupLayout { get; } // 3
+    public ConstantBuffer<FrameConstants> FrameConstantBuffer { get; }
+    public BindGroup FrameBindGroup { get; }
 
     public ShaderSystem ShaderSystem { get; }
 
     /// <inheritdoc/>
     protected override void Destroy()
     {
+        base.Destroy();
+
         // Dispose all material factories
         foreach (IGPUMaterialFactory factory in _gpuMaterialFactories.Values)
         {
@@ -148,14 +156,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         MultisampleColorTexture?.Dispose();
         DepthStencilTexture?.Dispose();
-
-        // View
-        _viewBuffer.Dispose();
-        _viewBindGroup.Dispose();
-
-        // Frame
-        _frameBuffer.Dispose();
-        _frameBindGroup.Dispose();
     }
 
     public override void Update(GameTime time)
@@ -235,7 +235,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         RenderPassEncoder renderPass = commandBuffer.BeginRenderPass(renderPassDescriptor);
 
         // Frame BindGroup (once per frame)
-        renderPass.SetBindGroup(FrameBindGroupSpace, _frameBindGroup);
+        renderPass.SetBindGroup(FrameBindGroupSpace, FrameBindGroup);
 
         // For each camera
         RenderCamera(renderPass, camera);
@@ -250,12 +250,12 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     {
         UpdateCamera(camera);
 
-        passEncoder.SetBindGroup(ViewBindGroupSpace, _viewBindGroup);
+        passEncoder.SetBindGroup(ViewBindGroupSpace, ViewBindGroup);
         BindGroup instanceBindGroup = _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
         passEncoder.SetBindGroup(InstanceBindGroupSpace, instanceBindGroup);
 
         // Loop through all the renderable entities and store them by pipeline.
-        foreach (var pipeline in _renderBatch.SortedPipelines)
+        foreach (GPURenderPipeline pipeline in _renderBatch.SortedPipelines)
         {
             passEncoder.SetPipeline(pipeline.Pipeline);
 
@@ -334,7 +334,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             TotalTime = (float)gameTime.Total.TotalSeconds
         };
 
-        _frameBuffer.SetData(frameData);
+        FrameConstantBuffer.SetData(frameData);
     }
 
     private void UpdateCamera(CameraComponent camera)
@@ -352,7 +352,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         viewData.cameraPosition = camera.Entity!.Transform.Position;
         //viewData.time = _elapsedTime;
 
-        _viewBuffer.SetData(viewData);
+        ViewConstantBuffer.SetData(viewData);
     }
 
     private Texture CreateTextureFromColor(in Color color)

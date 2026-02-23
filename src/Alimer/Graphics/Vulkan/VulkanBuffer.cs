@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using static Alimer.Graphics.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Alimer.Graphics.Vulkan.VmaAllocationCreateFlags;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -56,7 +57,8 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             // Read only ByteAddressBuffer is also storage buffer
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
         }
-        if ((description.Usage & BufferUsage.ShaderWrite) != 0)
+
+        if ((description.Usage & BufferUsage.ShaderReadWrite) != 0)
         {
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
         }
@@ -187,36 +189,38 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                 if ((description.Usage & BufferUsage.Vertex) != 0)
                 {
                     barrier.dstStageMask |= VkPipelineStageFlags2.VertexAttributeInput;
-                    barrier.dstAccessMask |= VkAccessFlags2.VertexAttributeRead;
+                    barrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
                 }
 
                 if ((description.Usage & BufferUsage.Index) != 0)
                 {
                     barrier.dstStageMask |= VkPipelineStageFlags2.IndexInput;
-                    barrier.dstAccessMask |= VkAccessFlags2.IndexRead;
+                    barrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
                 }
 
                 if ((description.Usage & BufferUsage.Constant) != 0)
                 {
-                    barrier.dstAccessMask |= VkAccessFlags2.UniformRead;
+                    barrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
                 }
 
                 if ((description.Usage & BufferUsage.ShaderRead) != 0)
                 {
-                    barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
+                    barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                 }
-                if ((description.Usage & BufferUsage.ShaderWrite) != 0)
+
+                if ((description.Usage & BufferUsage.ShaderReadWrite) != 0)
                 {
-                    barrier.dstAccessMask |= VkAccessFlags2.ShaderRead;
-                    barrier.dstAccessMask |= VkAccessFlags2.ShaderWrite;
+                    barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+                    barrier.dstAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
                 }
+
                 if ((description.Usage & BufferUsage.Indirect) != 0)
                 {
-                    barrier.dstAccessMask |= VkAccessFlags2.IndirectCommandRead;
+                    barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
                 }
                 if ((description.Usage & BufferUsage.RayTracing) != 0)
                 {
-                    barrier.dstAccessMask |= VkAccessFlags2.AccelerationStructureReadKHR;
+                    barrier.dstAccessMask |= VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
                 }
                 //if ((description.Usage & BufferUsage.VideoDecode) != 0)
                 //{
@@ -279,14 +283,14 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     }
 
     /// <inheitdoc />
-    protected override void SetDataUnsafe(void* dataPtr, int offsetInBytes)
+    protected override void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
     {
-        Unsafe.CopyBlockUnaligned((byte*)pMappedData + offsetInBytes, dataPtr, (uint)Size);
+        NativeMemory.Copy(sourcePtr, (byte*)pMappedData + offsetInBytes, sizeInBytes);
     }
 
     /// <inheitdoc />
-    protected override void GetDataUnsafe(void* destPtr, int offsetInBytes)
+    protected override void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes)
     {
-        Unsafe.CopyBlockUnaligned(destPtr, (byte*)pMappedData + offsetInBytes, (uint)Size);
+        NativeMemory.Copy((byte*)pMappedData + offsetInBytes, destinationPtr, sizeInBytes);
     }
 }

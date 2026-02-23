@@ -11,6 +11,7 @@ using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.Windows.E;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -33,7 +34,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
-        if ((description.Usage & BufferUsage.ShaderWrite) != 0)
+        if ((description.Usage & BufferUsage.ShaderReadWrite) != 0)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
@@ -71,7 +72,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
             ImmutableState = true;
         }
 
-        HRESULT hr = E_FAIL;
+        HRESULT hr;
         if (device.EnhancedBarriersSupported)
         {
             hr = D3D12MA.Allocator_CreateResource3(
@@ -203,14 +204,14 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     }
 
     /// <inheitdoc />
-    protected override void SetDataUnsafe(void* dataPtr, int offsetInBytes)
+    protected override void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
     {
-        Unsafe.CopyBlockUnaligned((byte*)pMappedData + offsetInBytes, dataPtr, (uint)Size);
+        NativeMemory.Copy(sourcePtr, (byte*)pMappedData + offsetInBytes, sizeInBytes);
     }
 
     /// <inheitdoc />
-    protected override void GetDataUnsafe(void* destPtr, int offsetInBytes)
+    protected override void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes)
     {
-        Unsafe.CopyBlockUnaligned(destPtr, (byte*)pMappedData + offsetInBytes, (uint)Size);
+        NativeMemory.Copy((byte*)pMappedData + offsetInBytes, destinationPtr, sizeInBytes);
     }
 }

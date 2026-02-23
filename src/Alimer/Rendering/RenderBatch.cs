@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Alimer.Engine;
 using Alimer.Graphics;
-using Alimer.Numerics;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Rendering;
 
@@ -18,11 +18,15 @@ public sealed unsafe class RenderBatch : DisposableObject
 {
     private const uint InitialInstanceCount = 128;
 
-    private static uint InstanceSizeInBytes = (uint)sizeof(InstanceData); // 4x float (16) + 1x float4 (color)
+    private static uint InstanceSizeInBytes = SizeOf<InstanceData>(); // 4x float (16) + 1x float4 (color)
 
-    private GraphicsBuffer[]? _instanceBuffers;
-    private BindGroup[]? _instanceBindGroups;
-    private bool _instanceBufferDirty = true;
+    private sealed class PerFrame
+    {
+        public GraphicsBuffer? InstanceBuffer;
+        public BindGroup? InstanceBindGroup;
+    }
+
+    private PerFrame[]? _perFrameData;  
     private uint _instanceCapacity = 0;
     private uint _totalInstanceCount = 0;
 
@@ -35,8 +39,11 @@ public sealed unsafe class RenderBatch : DisposableObject
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
         Device = device;
-        _instanceBuffers = new GraphicsBuffer[(int)device.MaxFramesInFlight];
-        _instanceBindGroups = new BindGroup[(int)device.MaxFramesInFlight];
+        _perFrameData = new PerFrame[(int)device.MaxFramesInFlight];
+        for (int i = 0; i < _perFrameData.Length; i++)
+        {
+            _perFrameData[i] = new PerFrame();
+        }
 
         InstanceBindGroupLayout = ToDispose(device.CreateBindGroupLayout(
             "Instance bind group layout",
@@ -50,21 +57,20 @@ public sealed unsafe class RenderBatch : DisposableObject
 
     public void ResizeInstanceBuffer(uint capacity)
     {
-        _instanceBufferDirty = true;
         _instanceCapacity = capacity;
 
-        for (int i = 0; i < _instanceBuffers!.Length; i++)
+        for (int i = 0; i < _perFrameData!.Length; i++)
         {
-            _instanceBuffers[i]?.Dispose();
+            _perFrameData[i].InstanceBuffer?.Dispose();
 
-            _instanceBuffers[i] = ToDispose(Device.CreateBuffer(
+            _perFrameData[i].InstanceBuffer = ToDispose(Device.CreateBuffer(
                 InstanceSizeInBytes * capacity,
                 BufferUsage.ShaderRead,
                 MemoryType.Upload,
                 label: $"Upload Instance Buffer Frame {i}"
                 ));
-            _instanceBindGroups![i] = InstanceBindGroupLayout.CreateBindGroup(
-                new BindGroupEntry(0, _instanceBuffers[i], stride: (uint)sizeof(InstanceData))
+            _perFrameData[i].InstanceBindGroup = InstanceBindGroupLayout.CreateBindGroup(
+                new BindGroupEntry(0, _perFrameData[i].InstanceBuffer!, stride: (uint)sizeof(InstanceData))
             );
         }
     }
@@ -92,9 +98,10 @@ public sealed unsafe class RenderBatch : DisposableObject
 
         instances.InstanceCount += instance.Count;
         instances.Transforms.Add(instance.WorldMatrix);
-        _instanceData.Add(new InstanceData {
+        _instanceData.Add(new InstanceData
+        {
             worldMatrix = instance.WorldMatrix,
-            materialIndex = instance.MaterialIndex
+            //materialIndex = instance.MaterialIndex
         });
         //instances.Colors.Add(instance.Color);
         _totalInstanceCount += 1;
@@ -102,16 +109,16 @@ public sealed unsafe class RenderBatch : DisposableObject
 
     public BindGroup UpdateInstanceBuffer(uint frameIndex)
     {
-        if (!_instanceBufferDirty)
+        PerFrame frame = _perFrameData![frameIndex];
+
+        // Only upload if we have instance data
+        if (_instanceData.Count > 0)            
         {
-            return _instanceBindGroups![frameIndex];
+            var instanceData = CollectionsMarshal.AsSpan(_instanceData);
+            frame.InstanceBuffer!.SetData(instanceData);
         }
 
-        var instanceData = CollectionsMarshal.AsSpan(_instanceData);
-        _instanceBuffers![frameIndex].SetData(instanceData);
-        _instanceBufferDirty = false;
-
-        return _instanceBindGroups![frameIndex];
+        return frame.InstanceBindGroup!;
     }
 
     public Dictionary<SubMesh, InstanceDictionary> GetGeometryList(GPURenderPipeline pipeline)
@@ -124,7 +131,6 @@ public sealed unsafe class RenderBatch : DisposableObject
         _pipelineGeometries.Clear();
         _totalInstanceCount = 0;
         _instanceData.Clear();
-        _instanceBufferDirty = true;
     }
 
     public IEnumerable<GPURenderPipeline> SortedPipelines

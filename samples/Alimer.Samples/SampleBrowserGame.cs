@@ -52,6 +52,8 @@ public sealed class SampleBrowserGame : Game
     protected override void Destroy()
     {
         _runningSample.Dispose();
+
+        base.Destroy();
     }
 
     protected override void Update(GameTime time)
@@ -73,7 +75,7 @@ public sealed class SampleBrowserGame : Game
         GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default;
 
 #if !WINDOWS
-        //preferredGraphicsBackend = GraphicsBackend.Vulkan;
+        preferredGraphicsBackend = GraphicsBackend.Vulkan;
         //preferredGraphicsBackend = GraphicsBackend.Metal;
 #endif
 

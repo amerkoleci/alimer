@@ -40,57 +40,48 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableR
 
     public BufferStates CurrentState { get; internal set; }
 
-    public void SetData<T>(in T data, int offsetInBytes = 0)
+    public void SetData<T>(in T source, uint offsetInBytes = 0)
         where T : unmanaged
     {
         // TODO: Copy command buffer
         Guard.IsTrue(MemoryType == MemoryType.Upload);
 
-        fixed (T* dataPtr = &data)
+        fixed (T* sourcePtr = &source)
         {
-            SetDataUnsafe(dataPtr, offsetInBytes);
+            SetDataUnsafe(sourcePtr, offsetInBytes, (uint)sizeof(T));
         }
     }
 
-    public void SetData<T>(Span<T> data, int offsetInBytes = 0)
+    public void SetData<T>(Span<T> source, uint offsetInBytes = 0)
         where T : unmanaged
     {
         Guard.IsTrue(MemoryType == MemoryType.Upload);
 
-        fixed (T* dataPtr = data)
+        fixed (T* sourcePtr = source)
         {
-            SetDataUnsafe(dataPtr, offsetInBytes);
+            SetDataUnsafe(sourcePtr, offsetInBytes, (uint)(source.Length * sizeof(T)));
         }
     }
 
-    public T GetData<T>(int offsetInBytes = 0)
-        where T : unmanaged
-    {
-        T data = new();
-        GetData(ref data, offsetInBytes);
-
-        return data;
-    }
-
-    public void GetData<T>(ref T data, int offsetInBytes = 0)
+    public void GetData<T>(ref T destination, uint offsetInBytes = 0)
         where T : unmanaged
     {
         Guard.IsTrue(MemoryType != MemoryType.Private);
 
-        fixed (T* destPtr = &data)
+        fixed (T* destinationPtr = &destination)
         {
-            GetDataUnsafe(destPtr, offsetInBytes);
+            GetDataUnsafe(destinationPtr, offsetInBytes, (uint)sizeof(T));
         }
     }
 
-    public void GetData<T>(Span<T> destination, int offsetInBytes = 0) where T : unmanaged
+    public void GetData<T>(Span<T> destination, uint offsetInBytes = 0) where T : unmanaged
     {
         fixed (T* destinationPtr = destination)
         {
-            GetDataUnsafe(destinationPtr, offsetInBytes);
+            GetDataUnsafe(destinationPtr, offsetInBytes, (uint)(destination.Length * sizeof(T)));
         }
     }
 
-    protected abstract void SetDataUnsafe(void* dataPtr, int offsetInBytes);
-    protected abstract void GetDataUnsafe(void* destPtr, int offsetInBytes);
+    protected abstract void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes);
+    protected abstract void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes);
 }

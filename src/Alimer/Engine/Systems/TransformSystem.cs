@@ -12,7 +12,7 @@ public sealed class TransformSystem : EntitySystem<TransformComponent>
         ArgumentNullException.ThrowIfNull(services, nameof(services));
     }
 
-    public override void BeginDraw()
+    public override void Update(GameTime time)
     {
         UpdateTransformations(_transformationRoots);
     }

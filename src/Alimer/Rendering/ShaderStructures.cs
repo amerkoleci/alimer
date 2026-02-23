@@ -12,8 +12,9 @@ namespace Alimer.Rendering;
 // Updated once per frame
 public struct FrameConstants : IShaderConstantBuffer
 {
-    public float ElapsedTime { get; set; }
-    public float TotalTime { get; set; }
+    public float ElapsedTime;
+    public float TotalTime;
+    private Vector2 _padding0; // Padding to align to 16 bytes
 }
 
 // Updated once per camera/view
@@ -25,13 +26,14 @@ public struct PerViewData : IShaderConstantBuffer
     public Matrix4x4 inverseViewMatrix;
     public Matrix4x4 inverseProjectionMatrix;
     public Vector3 cameraPosition;
+    private float _padding0; // Padding to align to 16 bytes
 }
 
 public struct InstanceData : IShaderConstantBuffer
 {
     public Matrix4x4 worldMatrix;
     //public Color color;
-    public uint materialIndex;
+    //public uint materialIndex;
 }
 
 // Updated once per material

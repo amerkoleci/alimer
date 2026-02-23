@@ -11,6 +11,12 @@ namespace Alimer.Utilities;
 /// <summary>Provides a set of methods to supplement or replace <see cref="Unsafe" /> and <see cref="MemoryMarshal" />.</summary>
 public static unsafe class UnsafeUtilities
 {
+#pragma warning disable CS8500
+    /// <inheritdoc cref="Unsafe.SizeOf{T}" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint SizeOf<T>() => unchecked((uint)sizeof(T));
+#pragma warning restore CS8500
+
     /// <inheritdoc cref="Unsafe.As{TFrom, TTo}(ref TFrom)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Span<TTo> As<TFrom, TTo>(this Span<TFrom> span)
@@ -112,12 +118,6 @@ public static unsafe class UnsafeUtilities
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T ReadUnaligned<T>(void* source, nuint offset)
         where T : unmanaged => Unsafe.ReadUnaligned<T>((void*)((nuint)source + offset));
-
-#pragma warning disable CS8500
-    /// <inheritdoc cref="Unsafe.SizeOf{T}" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint SizeOf<T>() => unchecked((uint)sizeof(T));
-#pragma warning restore CS8500
 
     /// <inheritdoc cref="Unsafe.WriteUnaligned{T}(void*, T)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

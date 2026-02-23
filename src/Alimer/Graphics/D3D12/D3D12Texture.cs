@@ -37,9 +37,13 @@ internal unsafe class D3D12Texture : Texture
         bool isDepthStencil = description.Format.IsDepthStencilFormat();
 
         // If ShaderRead or ShaderWrite and depth format, set to typeless.
-        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil)
         {
-            DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
+            if ((description.Usage & TextureUsage.ShaderRead) != 0
+                || (description.Usage & TextureUsage.ShaderWrite) != 0)
+            {
+                DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
+            }
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
@@ -161,9 +165,13 @@ internal unsafe class D3D12Texture : Texture
         }
 
         // If shader read/write and depth format, set to typeless
-        if (isDepthStencil && (description.Usage & TextureUsage.ShaderReadWrite) != 0)
+        if (isDepthStencil)
         {
-            pClearValue = null;
+            if ((description.Usage & TextureUsage.ShaderRead) != 0
+                || (description.Usage & TextureUsage.ShaderWrite) != 0)
+            {
+                pClearValue = null;
+            }
         }
 
         D3D12MA.ALLOCATION_DESC allocationDesc = new()
@@ -337,6 +345,6 @@ internal unsafe class D3D12Texture : Texture
     /// <inheritdoc />
     protected override TextureView CreateView(in TextureViewDescriptor descriptor)
     {
-        return new D3D12TextureView(this, descriptor);  
+        return new D3D12TextureView(this, descriptor);
     }
 }

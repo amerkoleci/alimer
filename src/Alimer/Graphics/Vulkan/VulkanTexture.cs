@@ -57,27 +57,27 @@ internal unsafe class VulkanTexture : Texture
 
         if ((descriptor.Usage & TextureUsage.Transient) != 0)
         {
-            usage |= VkImageUsageFlags.TransientAttachment;
+            usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
         }
         else
         {
-            usage |= VkImageUsageFlags.TransferSrc;
-            usage |= VkImageUsageFlags.TransferDst;
+            usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
 
         if ((descriptor.Usage & TextureUsage.ShaderRead) != 0)
         {
-            usage |= VkImageUsageFlags.Sampled;
+            usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
             initialLayout = TextureLayout.ShaderResource;
         }
 
         if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
         {
-            usage |= VkImageUsageFlags.Storage;
+            usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
             if (descriptor.Format.IsSrgb())
             {
-                flags |= VkImageCreateFlags.ExtendedUsage;
+                flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
             }
 
             initialLayout = TextureLayout.UnorderedAccess;
@@ -87,24 +87,24 @@ internal unsafe class VulkanTexture : Texture
         {
             if (isDepthStencil)
             {
-                usage |= VkImageUsageFlags.DepthStencilAttachment;
+                usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 initialLayout = TextureLayout.DepthWrite;
             }
             else
             {
-                usage |= VkImageUsageFlags.ColorAttachment;
+                usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 initialLayout = TextureLayout.RenderTarget;
             }
         }
 
         if ((descriptor.Usage & TextureUsage.ShadingRate) != 0)
         {
-            usage |= VkImageUsageFlags.FragmentShadingRateAttachmentKHR;
+            usage |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
         }
 
         if (!isDepthStencil && (descriptor.Usage & (TextureUsage.ShaderRead | TextureUsage.RenderTarget)) != 0)
         {
-            usage |= VkImageUsageFlags.InputAttachment;
+            usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         }
 
 #if TODO_SHARED

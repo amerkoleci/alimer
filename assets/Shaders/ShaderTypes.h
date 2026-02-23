@@ -38,6 +38,7 @@ struct ALIGNMENT PerFrameData
 {
     float elapsedTime;
     float totalTime;
+    float2 _padding;
 };
 
 struct ALIGNMENT PerViewData
@@ -48,6 +49,7 @@ struct ALIGNMENT PerViewData
     float4x4 inverseViewMatrix;
     float4x4 inverseProjectionMatrix;
     float3 cameraPosition;
+    float _padding0;
 };
 
 /* TODO: pack and use half*/
@@ -64,9 +66,9 @@ struct ALIGNMENT PBRMaterialUniforms
 struct ALIGNMENT InstanceData
 {
     float4x4 worldMatrix;
-    //float4 color;
-    uint32_t materialIndex;
     //float4x4 inverseWorldMatrix;
+    //float4 color;
+    //uint32_t materialIndex;
 };
 
 #ifndef __cplusplus

@@ -122,8 +122,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         // TODO: Separate positions
         ulong vertexBufferSize = (ulong)(_vertexBuffer.ElementCount * VertexStride);
         ulong indexBufferSize = (ulong)(_indexBuffer.ElementCount * _indexBuffer.ElementSize);
-        BufferDescriptor vertexBufferDesc = new(vertexBufferSize, BufferUsage.Vertex | BufferUsage.ShaderRead);
-        BufferDescriptor indexBufferDesc = new(indexBufferSize, BufferUsage.Index | BufferUsage.ShaderRead);
+        BufferDescriptor vertexBufferDesc = new(vertexBufferSize, BufferUsage.Vertex | BufferUsage.ShaderReadWrite);
+        BufferDescriptor indexBufferDesc = new(indexBufferSize, BufferUsage.Index | BufferUsage.ShaderReadWrite);
 
         _gpuVertexBuffer = device.CreateBuffer(vertexBufferDesc, _vertexBuffer.GetRawData());
         _gpuIndexBuffer = device.CreateBuffer(indexBufferDesc, _indexBuffer.GetRawData());

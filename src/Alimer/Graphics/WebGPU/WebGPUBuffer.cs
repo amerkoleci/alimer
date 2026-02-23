@@ -151,14 +151,14 @@ internal unsafe class WebGPUBuffer : GraphicsBuffer
     }
 
     /// <inheitdoc />
-    protected override void SetDataUnsafe(void* dataPtr, int offsetInBytes)
+    protected override void SetDataUnsafe(void* dataPtr, ulong sizeInBytes, int offsetInBytes)
     {
-        Unsafe.CopyBlockUnaligned((byte*)pMappedData + offsetInBytes, dataPtr, (uint)Size);
+        Unsafe.CopyBlockUnaligned((byte*)pMappedData + offsetInBytes, dataPtr, (uint)sizeInBytes);
     }
 
     /// <inheitdoc />
-    protected override void GetDataUnsafe(void* destPtr, int offsetInBytes)
+    protected override void GetDataUnsafe(void* destPtr, ulong sizeInBytes, int offsetInBytes)
     {
-        Unsafe.CopyBlockUnaligned(destPtr, (byte*)pMappedData + offsetInBytes, (uint)Size);
+        Unsafe.CopyBlockUnaligned(destPtr, (byte*)pMappedData + offsetInBytes, (uint)sizeInBytes);
     }
 }

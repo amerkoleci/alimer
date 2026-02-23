@@ -27,13 +27,9 @@ public enum BufferUsage
     /// </summary>
     ShaderRead = 1 << 3,
     /// <summary>
-    /// Supports write read access.
-    /// </summary>
-    ShaderWrite = 1 << 4,
-    /// <summary>
     /// Supports shader read and write access.
     /// </summary>
-    ShaderReadWrite = ShaderRead | ShaderWrite,
+    ShaderReadWrite = 1 << 4,
     /// <summary>
     /// Supports indirect buffer access for indirect draw/dispatch.
     /// </summary>

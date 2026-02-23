@@ -3,6 +3,7 @@
 
 using Alimer.Graphics;
 using CommunityToolkit.Diagnostics;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Rendering;
 
@@ -13,26 +14,27 @@ public sealed unsafe class ConstantBuffer<T> : DisposableObject
      where T : unmanaged
 {
     public readonly uint SizeInBytes;
-    public readonly GraphicsBuffer Buffer;
+    public readonly GraphicsBuffer Handle;
 
     public ConstantBuffer(GraphicsDevice device, MemoryType memoryType = MemoryType.Upload, string? label = default)
     {
         Guard.IsNotNull(device, nameof(device));
 
-        //SizeInBytes = MathHelper.AlignUp((uint)sizeof(T), 16);
-        SizeInBytes = (uint)sizeof(T);
+        uint minConstantBufferOffsetAlignment = device.Limits.MinConstantBufferOffsetAlignment;
+        uint typeSize = SizeOf<T>();
+        SizeInBytes = MathUtilities.AlignUp(typeSize, minConstantBufferOffsetAlignment);
         BufferDescriptor descriptor = new(SizeInBytes, BufferUsage.Constant, memoryType, label);
-        Buffer = device.CreateBuffer(in descriptor);
+        Handle = device.CreateBuffer(in descriptor);
     }
 
     /// <inheritdoc/>
     protected override void Destroy()
     {
-        Buffer.Dispose();
+        Handle.Dispose();
     }
 
-    public void SetData(T data, int offsetInBytes = 0)
+    public void SetData(T data, uint offsetInBytes = 0)
     {
-        Buffer.SetData(data, offsetInBytes);
+        Handle.SetData(data, offsetInBytes);
     }
 }
