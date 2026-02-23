@@ -273,13 +273,8 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     public uint NumVertexBindings => _numVertexBindings;
     public uint GetStride(uint slot) => _strides[slot];
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12RenderPipeline" /> class.
-    /// </summary>
-    ~D3D12RenderPipeline() => Dispose(disposing: false);
-
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         _handle.Dispose();
     }

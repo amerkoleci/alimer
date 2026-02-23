@@ -67,13 +67,8 @@ internal unsafe class VulkanQueryHeap : QueryHeap
 
     public VkQueryPool Handle => _handle;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanQueryHeap" /> class.
-    /// </summary>
-    ~VulkanQueryHeap() => Dispose(disposing: false);
-
-    /// <inheitdoc />
-    protected internal override void Destroy()
+    /// <inheritdoc/>
+    protected internal override void BackendDestroy()
     {
         _device.DeviceApi.vkDestroyQueryPool(_handle);
     }

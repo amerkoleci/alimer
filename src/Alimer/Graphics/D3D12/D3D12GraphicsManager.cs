@@ -156,8 +156,8 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     public IDXGIFactory6* Handle => _handle;
     public bool TearingSupported { get; }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
         for (int i = 0; i < _adapters.Length; i++)
         {

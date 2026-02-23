@@ -256,11 +256,6 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
     public VkBuffer Handle => _handle;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanBuffer" /> class.
-    /// </summary>
-    ~VulkanBuffer() => Dispose(disposing: false);
-
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
@@ -268,7 +263,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         if (_allocation.IsNotNull)
         {

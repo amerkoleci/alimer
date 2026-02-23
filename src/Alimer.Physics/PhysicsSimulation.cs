@@ -37,12 +37,10 @@ public sealed class PhysicsSimulation : DisposableObject
 #endif
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            alimerPhysicsWorldDestroy(World);
-        }
+        alimerPhysicsWorldDestroy(World);
     }
 
     public void Step(float deltaTime)

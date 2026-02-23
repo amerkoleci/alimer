@@ -121,11 +121,6 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     public VulkanTexture CurrentTexture => _backbufferTextures![_imageIndex];
     public bool NeedAcquire { get; set; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanSwapChain" /> class.
-    /// </summary>
-    ~VulkanSwapChain() => Dispose(disposing: false);
-
     private void AfterReset()
     {
         VkInstanceApi instanceApi = _device.VkAdapter.VkGraphicsManager.InstanceApi;
@@ -288,21 +283,19 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         }
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
+        for (int i = 0; i < _backbufferTextures!.Length; ++i)
         {
-            for (int i = 0; i < _backbufferTextures!.Length; ++i)
-            {
-                _backbufferTextures[i].Dispose();
-            }
+            _backbufferTextures[i].Dispose();
         }
 
-        base.Dispose(disposing);
+        base.Destroy();
     }
 
-    /// <inheitdoc />
-    protected internal override void Destroy()
+    /// <inheritdoc/>
+    protected internal override void BackendDestroy()
     {
         for (uint i = 0; i < _backbufferTextures!.Length; ++i)
         {

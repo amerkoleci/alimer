@@ -77,13 +77,8 @@ internal unsafe class D3D12QueryHeap : QueryHeap
     /// <inheritdoc />
     public override uint QueryResultSize { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12QueryHeap" /> class.
-    /// </summary>
-    ~D3D12QueryHeap() => Dispose(disposing: false);
-
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         _handle.Dispose();
     }

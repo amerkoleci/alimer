@@ -38,20 +38,6 @@ internal unsafe class NativePlatform : GamePlatform
     // <inheritdoc />
     public override Window MainWindow { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="SDLPlatform" /> class.
-    /// </summary>
-    ~NativePlatform() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            alimerPlatformShutdown();
-        }
-    }
-
     /// <inheritdoc />
     public override void RunMainLoop()
     {
@@ -77,6 +63,12 @@ internal unsafe class NativePlatform : GamePlatform
     public override void RequestExit()
     {
         _exitRequested = true;
+    }
+
+    /// <inheritdoc />
+    public override void Destroy()
+    {
+        alimerPlatformShutdown();
     }
 
     private void HandleEvent(in PlatformEvent evt)

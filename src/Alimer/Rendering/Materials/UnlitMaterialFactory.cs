@@ -29,12 +29,10 @@ public sealed class UnlitMaterialFactory : GPUMaterialFactory<UnlitMaterial>
             );
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            _bindGroupLayout?.Dispose();
-        }
+        _bindGroupLayout?.Dispose();
     }
 
     protected override BindGroup CreateBindGroup(Material material) => throw new NotImplementedException();

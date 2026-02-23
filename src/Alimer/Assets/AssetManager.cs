@@ -13,9 +13,4 @@ public class AssetManager : DisposableObject, IAssetManager
 
         _services = services;
     }
-
-    protected override void Dispose(bool disposing)
-    {
-
-    }
 }

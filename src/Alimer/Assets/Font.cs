@@ -7,7 +7,7 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Assets;
 
-public sealed unsafe class Font : DisposableObject
+public sealed unsafe class Font : Asset
 {
     private readonly nint _handle;
 
@@ -26,12 +26,10 @@ public sealed unsafe class Font : DisposableObject
         LineGap = linegap;
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            Alimer_FontDestroy(_handle);
-        }
+        Alimer_FontDestroy(_handle);
     }
 
     public int Ascent { get; }

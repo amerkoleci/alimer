@@ -122,13 +122,6 @@ public sealed unsafe class Image : Asset, IDisposable
         source.CopyTo(new Span<byte>(_data, source.Length));
     }
 
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        Destroy();
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
     /// Gets the image description.
     /// </summary>

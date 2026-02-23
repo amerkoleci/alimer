@@ -25,17 +25,10 @@ public sealed unsafe class ConstantBuffer<T> : DisposableObject
         Buffer = device.CreateBuffer(in descriptor);
     }
 
-    // <summary>
-    /// Finalizes an instance of the <see cref="ConstantBuffer" /> class.
-    /// </summary>
-    ~ConstantBuffer() => Dispose(disposing: false);
-
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            Buffer.Dispose();
-        }
+        Buffer.Dispose();
     }
 
     public void SetData(T data, int offsetInBytes = 0)

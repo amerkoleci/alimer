@@ -178,11 +178,6 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         _handle = existingHandle;
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12Buffer" /> class.
-    /// </summary>
-    ~D3D12Buffer() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
@@ -195,7 +190,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     public ulong AllocatedSize { get; }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         _ = D3D12MA.Allocation_Release(_allocation);
         _handle.Dispose();

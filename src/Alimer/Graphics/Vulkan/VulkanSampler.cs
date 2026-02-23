@@ -26,13 +26,8 @@ internal unsafe class VulkanSampler : Sampler
     public override GraphicsDevice Device => _device;
     public VkSampler Handle { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanSampler" /> class.
-    /// </summary>
-    ~VulkanSampler() => Dispose(disposing: false);
-
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
     }
 

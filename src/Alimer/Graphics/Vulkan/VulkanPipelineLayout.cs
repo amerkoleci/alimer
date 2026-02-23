@@ -64,11 +64,6 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
         }
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanPipelineLayout" /> class.
-    /// </summary>
-    ~VulkanPipelineLayout() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
@@ -83,7 +78,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         Free(_pushConstantRanges);
         _device.DeviceApi.vkDestroyPipelineLayout(_handle);

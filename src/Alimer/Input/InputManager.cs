@@ -6,7 +6,7 @@ using Alimer.Engine;
 
 namespace Alimer.Input;
 
-public class InputManager : GameSystem
+public partial class InputManager : GameSystem
 {
     private readonly List<IInputSource> _sources = [];
     private readonly List<IKeyboardInputSource> _keyboardSources = [];

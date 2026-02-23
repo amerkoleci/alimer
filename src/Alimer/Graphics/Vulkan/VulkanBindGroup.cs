@@ -42,11 +42,6 @@ internal unsafe class VulkanBindGroup : BindGroup
         Update(descriptor.Entries);
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanBindGroup" /> class.
-    /// </summary>
-    ~VulkanBindGroup() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
@@ -62,7 +57,7 @@ internal unsafe class VulkanBindGroup : BindGroup
     }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
     }
 

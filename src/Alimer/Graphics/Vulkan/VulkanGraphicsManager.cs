@@ -284,18 +284,15 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     public bool HasXcbSurface { get; }
     public bool HasWaylandSurface { get; }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
+        if (_debugMessenger.IsNotNull)
         {
-            if (_debugMessenger.IsNotNull)
-            {
-                _instanceApi.vkDestroyDebugUtilsMessengerEXT(_debugMessenger);
-            }
-
-            _instanceApi.vkDestroyInstance();
+            _instanceApi.vkDestroyDebugUtilsMessengerEXT(_debugMessenger);
         }
+
+        _instanceApi.vkDestroyInstance();
     }
 
     private static bool CheckIsSupported()

@@ -398,13 +398,8 @@ internal unsafe class VulkanTexture : Texture
     public VkImage Handle => _handle;
     public VkFormat VkFormat { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanTexture" /> class.
-    /// </summary>
-    ~VulkanTexture() => Dispose(disposing: false);
-
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         DestroyViews();
 

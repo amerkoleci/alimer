@@ -26,7 +26,7 @@ internal sealed unsafe class D3D12ShaderModule : ShaderModule
 
     public ref readonly D3D12_SHADER_BYTECODE ByteCode => ref _byteCode;
 
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         NativeMemory.Free(_byteCodePtr);
     }

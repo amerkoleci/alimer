@@ -16,15 +16,10 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
 
     public PhysicsSimulation Simulation { get; } = new();
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            Simulation.Dispose();
-        }
-
-        base.Dispose(disposing);
+        Simulation.Dispose();
     }
 
     protected override void OnEntityComponentAdded(PhysicsComponent component)

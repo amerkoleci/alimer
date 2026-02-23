@@ -137,27 +137,25 @@ public abstract class Game : DisposableObject, IGame
     /// </summary>
     public ShaderSystem ShaderSystem { get; }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
+        // Dispose game systems first.
+        foreach (IGameSystem system in GameSystems)
         {
-            // Dispose game systems first.
-            foreach (IGameSystem system in GameSystems)
+            if (system is IDisposable disposable)
             {
-                if (system is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
+                disposable.Dispose();
             }
-            ShaderSystem.Dispose();
-
-            GraphicsDevice.WaitIdle();
-            MainWindow.Destroy();
-            GraphicsDevice.Dispose();
-            AudioDevice.Dispose();
-            GraphicsManager.Dispose();
         }
+        ShaderSystem.Dispose();
+
+        GraphicsDevice.WaitIdle();
+        MainWindow.Destroy();
+        GraphicsDevice.Dispose();
+        AudioDevice.Dispose();
+        GraphicsManager.Dispose();
+        _platform.Destroy();
     }
 
     public virtual void ConfigureServices(IServiceRegistry services)

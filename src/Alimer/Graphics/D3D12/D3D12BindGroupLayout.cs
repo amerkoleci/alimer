@@ -117,11 +117,6 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
         }
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12BindGroupLayout" /> class.
-    /// </summary>
-    ~D3D12BindGroupLayout() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => DXDevice;
 
@@ -131,7 +126,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     public uint DescriptorTableSizeSamplers = 0;
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
     }
 

@@ -78,11 +78,6 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
         }
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanBindGroupLayout" /> class.
-    /// </summary>
-    ~VulkanBindGroupLayout() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => VkDevice;
 
@@ -99,7 +94,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         Free(_bindings);
         VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(_handle);

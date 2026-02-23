@@ -6,7 +6,7 @@ using Alimer.Input;
 
 namespace Alimer;
 
-internal abstract partial class GamePlatform : DisposableObject
+internal abstract partial class GamePlatform 
 {
     public Action? Ready;
     public event EventHandler? TickRequested;
@@ -32,6 +32,7 @@ internal abstract partial class GamePlatform : DisposableObject
 
     public abstract void RunMainLoop();
     public abstract void RequestExit();
+    public abstract void Destroy();
 
     protected internal void OnReady()
     {

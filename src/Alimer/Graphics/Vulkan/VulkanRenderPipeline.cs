@@ -318,11 +318,6 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
     public VkPipeline Handle => _handle;
     public VulkanPipelineLayout VkLayout { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanRenderPipeline" /> class.
-    /// </summary>
-    ~VulkanRenderPipeline() => Dispose(disposing: false);
-
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
@@ -330,7 +325,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
     }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         _device.DeviceApi.vkDestroyPipeline(_handle);
     }

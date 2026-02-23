@@ -132,7 +132,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
             {
                 if (_deferredDestroyObjects.TryDequeue(out item))
                 {
-                    item.Item1.Destroy();
+                    item.Item1.BackendDestroy();
                 }
             }
             else
@@ -146,7 +146,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     {
         if (_shuttingDown)
         {
-            @object.Destroy();
+            @object.BackendDestroy();
             return;
         }
 

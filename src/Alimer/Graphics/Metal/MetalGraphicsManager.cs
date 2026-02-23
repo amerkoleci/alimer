@@ -43,12 +43,6 @@ internal class MetalGraphicsManager : GraphicsManager
         }
     }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-
-    }
-
     private static bool CheckIsSupported()
     {
         if (!OperatingSystem.IsMacOS() &&

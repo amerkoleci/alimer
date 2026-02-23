@@ -47,13 +47,11 @@ public sealed class AudioDevice : DisposableObject
     /// </summary>
     public ReadOnlySpan<AudioAdapter> CaptureAdapters => _captureAdapters;
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            alimerAudioEngineDestroy(_engine);
-            alimerAudioContextDestroy(_context);
-        }
+        alimerAudioEngineDestroy(_engine);
+        alimerAudioContextDestroy(_context);
     }
 
     public static AudioDevice Create(in AudioDeviceOptions options)

@@ -126,7 +126,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public Texture OpaqueWhiteTexture { get; }
     public Texture TransparentBlackTexture { get; }
-    public  Texture DefaultNormalTexture { get; }
+    public Texture DefaultNormalTexture { get; }
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
@@ -136,31 +136,26 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public ShaderSystem ShaderSystem { get; }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
+        // Dispose all material factories
+        foreach (IGPUMaterialFactory factory in _gpuMaterialFactories.Values)
         {
-            // Dispose all material factories
-            foreach (IGPUMaterialFactory factory in _gpuMaterialFactories.Values)
-            {
-                factory.Dispose();
-            }
-            _gpuMaterialFactories.Clear();
-
-            MultisampleColorTexture?.Dispose();
-            DepthStencilTexture?.Dispose();
-
-            // View
-            _viewBuffer.Dispose();
-            _viewBindGroup.Dispose();
-
-            // Frame
-            _frameBuffer.Dispose();
-            _frameBindGroup.Dispose();
+            factory.Dispose();
         }
+        _gpuMaterialFactories.Clear();
 
-        base.Dispose(disposing);
+        MultisampleColorTexture?.Dispose();
+        DepthStencilTexture?.Dispose();
+
+        // View
+        _viewBuffer.Dispose();
+        _viewBindGroup.Dispose();
+
+        // Frame
+        _frameBuffer.Dispose();
+        _frameBindGroup.Dispose();
     }
 
     public override void Update(GameTime time)

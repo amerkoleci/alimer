@@ -889,81 +889,73 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkImageView NullImage3DView => _nullImageView3D;
     public VkSampler NullSampler => _nullSampler;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="VulkanGraphicsDevice" /> class.
-    /// </summary>
-    ~VulkanGraphicsDevice() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
+        WaitIdle();
+        _shuttingDown = true;
+
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
-            WaitIdle();
-            _shuttingDown = true;
+            if (_queues[i] is null)
+                continue;
 
-            for (int i = 0; i < (int)CommandQueueType.Count; i++)
-            {
-                if (_queues[i] is null)
-                    continue;
+            _queues[i].Dispose();
+        }
 
-                _queues[i].Dispose();
-            }
+        _copyAllocator.Dispose();
 
-            _copyAllocator.Dispose();
+        foreach (VkSampler sampler in _samplerCache.Values)
+        {
+            _deviceApi.vkDestroySampler(sampler);
+        }
+        _samplerCache.Clear();
 
-            foreach (VkSampler sampler in _samplerCache.Values)
-            {
-                _deviceApi.vkDestroySampler(sampler);
-            }
-            _samplerCache.Clear();
+        // Destroy Descriptor Pools
+        foreach (VkDescriptorPool descriptorPool in _descriptorSetPools)
+        {
+            _deviceApi.vkDestroyDescriptorPool(descriptorPool);
+        }
+        _descriptorSetPools.Clear();
 
-            // Destroy Descriptor Pools
-            foreach (VkDescriptorPool descriptorPool in _descriptorSetPools)
-            {
-                _deviceApi.vkDestroyDescriptorPool(descriptorPool);
-            }
-            _descriptorSetPools.Clear();
+        // Destroy null descriptor
+        vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
+        _deviceApi.vkDestroyBufferView(_nullBufferView);
+        vmaDestroyImage(_allocator, _nullImage1D, _nullImageAllocation1D);
+        vmaDestroyImage(_allocator, _nullImage2D, _nullImageAllocation2D);
+        vmaDestroyImage(_allocator, _nullImage3D, _nullImageAllocation3D);
+        _deviceApi.vkDestroyImageView(_nullImageView1D);
+        _deviceApi.vkDestroyImageView(_nullImageView1DArray);
+        _deviceApi.vkDestroyImageView(_nullImageView2D);
+        _deviceApi.vkDestroyImageView(_nullImageView2DArray);
+        _deviceApi.vkDestroyImageView(_nullImageViewCube);
+        _deviceApi.vkDestroyImageView(_nullImageViewCubeArray);
+        _deviceApi.vkDestroyImageView(_nullImageView3D);
 
-            // Destroy null descriptor
-            vmaDestroyBuffer(_allocator, _nullBuffer, _nullBufferAllocation);
-            _deviceApi.vkDestroyBufferView(_nullBufferView);
-            vmaDestroyImage(_allocator, _nullImage1D, _nullImageAllocation1D);
-            vmaDestroyImage(_allocator, _nullImage2D, _nullImageAllocation2D);
-            vmaDestroyImage(_allocator, _nullImage3D, _nullImageAllocation3D);
-            _deviceApi.vkDestroyImageView(_nullImageView1D);
-            _deviceApi.vkDestroyImageView(_nullImageView1DArray);
-            _deviceApi.vkDestroyImageView(_nullImageView2D);
-            _deviceApi.vkDestroyImageView(_nullImageView2DArray);
-            _deviceApi.vkDestroyImageView(_nullImageViewCube);
-            _deviceApi.vkDestroyImageView(_nullImageViewCubeArray);
-            _deviceApi.vkDestroyImageView(_nullImageView3D);
+        ProcessDeletionQueue(true);
+        _frameCount = 0;
+        _frameIndex = 0;
 
-            ProcessDeletionQueue(true);
-            _frameCount = 0;
-            _frameIndex = 0;
+        VmaTotalStatistics stats;
+        vmaCalculateStatistics(_allocator, &stats);
 
-            VmaTotalStatistics stats;
-            vmaCalculateStatistics(_allocator, &stats);
+        if (stats.total.statistics.allocationBytes > 0)
+        {
+            Log.Warn($"Total device memory leaked:  {stats.total.statistics.allocationBytes} bytes.");
+        }
 
-            if (stats.total.statistics.allocationBytes > 0)
-            {
-                Log.Warn($"Total device memory leaked:  {stats.total.statistics.allocationBytes} bytes.");
-            }
+        vmaDestroyAllocator(_allocator);
+        MemoryUtilities.Free(_pDynamicStates);
 
-            vmaDestroyAllocator(_allocator);
-            MemoryUtilities.Free(_pDynamicStates);
+        if (PipelineCache.IsNotNull)
+        {
+            // Destroy Vulkan pipeline cache
+            _deviceApi.vkDestroyPipelineCache(PipelineCache);
+        }
 
-            if (PipelineCache.IsNotNull)
-            {
-                // Destroy Vulkan pipeline cache
-                _deviceApi.vkDestroyPipelineCache(PipelineCache);
-            }
-
-            if (Handle.IsNotNull)
-            {
-                _deviceApi.vkDestroyDevice();
-            }
+        if (Handle.IsNotNull)
+        {
+            _deviceApi.vkDestroyDevice();
         }
     }
 

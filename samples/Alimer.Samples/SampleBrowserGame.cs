@@ -43,19 +43,15 @@ public sealed class SampleBrowserGame : Game
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
         _runningSample = new ScenePBRRendererSample(Services);
-        
+
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            _runningSample.Dispose();
-        }
-
-        base.Dispose(disposing);
+        _runningSample.Dispose();
     }
 
     protected override void Update(GameTime time)

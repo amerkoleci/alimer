@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Alimer.Assets;
 using Alimer.Graphics;
 using Alimer.Serialization;
 using CommunityToolkit.Diagnostics;
@@ -11,7 +12,7 @@ namespace Alimer.Rendering;
 
 // TODO: Mesh on GPU with CPU access
 
-public sealed unsafe partial class Mesh : DisposableObject, IBinarySerializable
+public sealed unsafe partial class Mesh : Asset, IBinarySerializable
 {
     //private readonly UnsafeList<Vector3> _positions = [];
     private VertexAttribute[] _vertexAttributes;
@@ -99,18 +100,10 @@ public sealed unsafe partial class Mesh : DisposableObject, IBinarySerializable
     public GraphicsBuffer? GpuVertexBuffer => _gpuVertexBuffer;
     public GraphicsBuffer? GpuIndexBuffer => _gpuIndexBuffer;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="Mesh" /> class.
-    /// </summary>
-    ~Mesh() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            DestroyGpuData();
-        }
+        DestroyGpuData();
     }
 
     #region Gpu

@@ -171,11 +171,6 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         }
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12PipelineLayout" /> class.
-    /// </summary>
-    ~D3D12PipelineLayout() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
@@ -190,7 +185,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         _handle.Dispose();
     }

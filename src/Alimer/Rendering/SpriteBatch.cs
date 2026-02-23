@@ -60,18 +60,10 @@ public class SpriteBatch : DisposableObject
 
     public GraphicsDevice Device { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="SpriteBatch" /> class.
-    /// </summary>
-    ~SpriteBatch() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-            _spriteVertexBuffer.Dispose();
-            _spriteIndexBuffer.Dispose();
-        }
+        _spriteVertexBuffer.Dispose();
+        _spriteIndexBuffer.Dispose();
     }
 }

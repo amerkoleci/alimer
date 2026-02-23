@@ -60,13 +60,8 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     public D3D12PipelineLayout D3DLayout { get; }
     public ID3D12RootSignature* RootSignature => D3DLayout.Handle;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12ComputePipeline" /> class.
-    /// </summary>
-    ~D3D12ComputePipeline() => Dispose(disposing: false);
-
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         _handle.Dispose();
     }

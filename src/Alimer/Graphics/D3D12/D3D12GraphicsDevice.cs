@@ -399,95 +399,87 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public ID3D12CommandSignature* DrawIndexedIndirectCommandSignature => _drawIndexedIndirectCommandSignature;
     public ID3D12CommandSignature* DispatchMeshIndirectCommandSignature => _dispatchMeshIndirectCommandSignature;
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12GraphicsDevice" /> class.
-    /// </summary>
-    ~D3D12GraphicsDevice() => Dispose(disposing: false);
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
+        WaitIdle();
+        _shuttingDown = true;
+
+        _copyAllocator.Dispose();
+
+        ProcessDeletionQueue(true);
+        _frameCount = 0;
+        _frameIndex = 0;
+
+        // Destroy CommandQueue's
+        for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
-            WaitIdle();
-            _shuttingDown = true;
+            if (_queues[i] == null)
+                continue;
 
-            _copyAllocator.Dispose();
+            _queues[i].Dispose();
+        }
 
-            ProcessDeletionQueue(true);
-            _frameCount = 0;
-            _frameIndex = 0;
+        RenderTargetViewHeap.Dispose();
+        DepthStencilViewHeap.Dispose();
+        ShaderResourceViewHeap.Dispose();
+        SamplerHeap.Dispose();
 
-            // Destroy CommandQueue's
-            for (int i = 0; i < (int)CommandQueueType.Count; i++)
+        _dispatchIndirectCommandSignature.Dispose();
+        _drawIndirectCommandSignature.Dispose();
+        _drawIndexedIndirectCommandSignature.Dispose();
+        _dispatchMeshIndirectCommandSignature.Dispose();
+
+        // Allocator.
+        if (_memoryAllocator != 0)
+        {
+            D3D12MA.TotalStatistics stats;
+            D3D12MA.Allocator_CalculateStatistics(_memoryAllocator, &stats);
+
+            if (stats.Total.Stats.AllocationBytes > 0)
             {
-                if (_queues[i] == null)
-                    continue;
-
-                _queues[i].Dispose();
+                Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
             }
 
-            RenderTargetViewHeap.Dispose();
-            DepthStencilViewHeap.Dispose();
-            ShaderResourceViewHeap.Dispose();
-            SamplerHeap.Dispose();
+            _ = D3D12MA.Allocator_Release(_memoryAllocator);
+        }
 
-            _dispatchIndirectCommandSignature.Dispose();
-            _drawIndirectCommandSignature.Dispose();
-            _drawIndexedIndirectCommandSignature.Dispose();
-            _dispatchMeshIndirectCommandSignature.Dispose();
+        // Device removed event
+        if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
+            _deviceHandle.IsAllocated)
+        {
+            _deviceHandle.Free();
+        }
 
-            // Allocator.
-            if (_memoryAllocator != 0)
-            {
-                D3D12MA.TotalStatistics stats;
-                D3D12MA.Allocator_CalculateStatistics(_memoryAllocator, &stats);
+        CloseHandle(_deviceRemovedEvent);
+        _deviceRemovedFence.Dispose();
 
-                if (stats.Total.Stats.AllocationBytes > 0)
-                {
-                    Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
-                }
+        if (_callbackCookie != 0)
+        {
+            using ComPtr<ID3D12InfoQueue1> infoQueue1 = default;
+            ThrowIfFailed(_device.CopyTo(infoQueue1.GetAddressOf()));
+            infoQueue1.Get()->UnregisterMessageCallback(_callbackCookie);
+            _callbackCookie = 0;
+        }
 
-                _ = D3D12MA.Allocator_Release(_memoryAllocator);
-            }
-
-            // Device removed event
-            if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
-                _deviceHandle.IsAllocated)
-            {
-                _deviceHandle.Free();
-            }
-
-            CloseHandle(_deviceRemovedEvent);
-            _deviceRemovedFence.Dispose();
-
-            if (_callbackCookie != 0)
-            {
-                using ComPtr<ID3D12InfoQueue1> infoQueue1 = default;
-                ThrowIfFailed(_device.CopyTo(infoQueue1.GetAddressOf()));
-                infoQueue1.Get()->UnregisterMessageCallback(_callbackCookie);
-                _callbackCookie = 0;
-            }
-
-            _videoDevice.Dispose();
-            _device8.Dispose();
+        _videoDevice.Dispose();
+        _device8.Dispose();
 #if DEBUG
-            uint refCount = _device.Get()->Release();
-            if (refCount > 0)
+        uint refCount = _device.Get()->Release();
+        if (refCount > 0)
+        {
+            Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
+
+            using ComPtr<ID3D12DebugDevice> debugDevice = default;
+
+            if (_device.CopyTo(debugDevice.GetAddressOf()).SUCCEEDED)
             {
-                Debug.WriteLine($"Direct3D12: There are {refCount} unreleased references left on the device");
-
-                using ComPtr<ID3D12DebugDevice> debugDevice = default;
-
-                if (_device.CopyTo(debugDevice.GetAddressOf()).SUCCEEDED)
-                {
-                    debugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-                }
+                debugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
             }
+        }
 #else
             _device.Dispose();
 #endif
-        }
     }
 
     [UnmanagedCallersOnly]

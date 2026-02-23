@@ -31,11 +31,6 @@ internal unsafe class D3D12BindGroup : BindGroup
         Update(descriptor.Entries);
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12BindGroup" /> class.
-    /// </summary>
-    ~D3D12BindGroup() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
@@ -47,7 +42,7 @@ internal unsafe class D3D12BindGroup : BindGroup
     public uint DescriptorTableSamplers { get; private set; }
 
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
         if (DescriptorTableCbvUavSrv > 0)
         {

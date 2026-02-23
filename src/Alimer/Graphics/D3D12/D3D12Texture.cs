@@ -29,9 +29,6 @@ internal unsafe class D3D12Texture : Texture
     private readonly uint* _numRows;
     private readonly void* pMappedData = default;
 
-    private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
-    private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
-
     public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
         : base(description)
     {
@@ -310,25 +307,10 @@ internal unsafe class D3D12Texture : Texture
     public ID3D12Resource* Handle => _handle;
     public ulong AllocatedSize { get; }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12Texture" /> class.
-    /// </summary>
-    ~D3D12Texture() => Dispose(disposing: false);
-
     /// <inheitdoc />
-    protected internal override void Destroy()
+    protected internal override void BackendDestroy()
     {
-        foreach (DescriptorIndex index in _RTVs.Values)
-        {
-            DXDevice.RenderTargetViewHeap.ReleaseDescriptors(index);
-        }
-        _RTVs.Clear();
-
-        foreach (DescriptorIndex index in _DSVs.Values)
-        {
-            DXDevice.DepthStencilViewHeap.ReleaseDescriptors(index);
-        }
-        _DSVs.Clear();
+        DestroyViews();
 
         if (_sharedHandle.Value != null)
         {
@@ -356,49 +338,5 @@ internal unsafe class D3D12Texture : Texture
     protected override TextureView CreateView(in TextureViewDescriptor descriptor)
     {
         return new D3D12TextureView(this, descriptor);  
-    }
-
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
-    {
-        int hash = HashCode.Combine(mipSlice, arraySlice, format);
-
-        if (!_RTVs.TryGetValue(hash, out DescriptorIndex descriptorIndex))
-        {
-            D3D12_RESOURCE_DESC desc = _handle.Get()->GetDesc();
-
-            D3D12_RENDER_TARGET_VIEW_DESC viewDesc = default;
-            viewDesc.Format = format;
-            viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-
-            descriptorIndex = DXDevice.RenderTargetViewHeap.AllocateDescriptors(1u);
-            _RTVs.Add(hash, descriptorIndex);
-
-            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = DXDevice.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
-            DXDevice.Device->CreateRenderTargetView(_handle.Get(), &viewDesc, cpuHandle);
-        }
-
-        return DXDevice.RenderTargetViewHeap.GetCpuHandle(descriptorIndex);
-    }
-
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(uint mipSlice, uint arraySlice, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN)
-    {
-        int hash = HashCode.Combine(mipSlice, arraySlice, format);
-
-        if (!_DSVs.TryGetValue(hash, out DescriptorIndex descriptorIndex))
-        {
-            D3D12_RESOURCE_DESC desc = _handle.Get()->GetDesc();
-
-            D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = default;
-            viewDesc.Format = format;
-            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-
-            descriptorIndex = DXDevice.DepthStencilViewHeap.AllocateDescriptors(1u);
-            _DSVs.Add(hash, descriptorIndex);
-
-            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = DXDevice.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
-            DXDevice.Device->CreateDepthStencilView(_handle.Get(), &viewDesc, cpuHandle);
-        }
-
-        return DXDevice.DepthStencilViewHeap.GetCpuHandle(descriptorIndex);
     }
 }

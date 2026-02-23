@@ -28,6 +28,11 @@ internal class MetalGraphicsDevice : GraphicsDevice
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }
 
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+    }
+
     public override bool QueryFeatureSupport(Feature feature)
     {
         switch (feature)
@@ -64,5 +69,4 @@ internal class MetalGraphicsDevice : GraphicsDevice
     protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor) => throw new NotImplementedException();
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor) => throw new NotImplementedException();
     protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor) => throw new NotImplementedException();
-    protected override void Dispose(bool disposing) => throw new NotImplementedException();
 }

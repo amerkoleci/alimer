@@ -32,11 +32,6 @@ public abstract class EntitySystem : DisposableObject, IGameSystem
 
     public EntityManager? EntityManager { get; internal set; }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-    }
-
     public virtual void Update(GameTime time)
     {
     }
