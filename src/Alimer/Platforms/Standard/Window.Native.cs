@@ -14,8 +14,6 @@ partial class Window
 {
     private readonly NativePlatform _platform;
     private readonly SwapChainSurface _surface;
-    private SizeI _clientSize;
-    private bool _minimized;
     private bool _isFullscreen;
     private readonly nint _window;
     public readonly uint Id;
@@ -41,8 +39,6 @@ partial class Window
 
         Id = alimerWindowGetID(_window);
         alimerWindowSetCentered(_window);
-        alimerWindowGetSizeInPixels(_window, out int width, out int height);
-        _clientSize = new(width, height);
 
         // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
         // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
@@ -102,7 +98,10 @@ partial class Window
     public partial SwapChainSurface Surface => _surface;
 
     /// <inheritdoc />
-    public partial bool IsMinimized => _minimized;
+    public partial bool IsMinimized
+    {
+        get => alimerWindowIsMinimized(_window);
+    }
 
     /// <inheritdoc />
     public partial bool IsFullscreen
@@ -133,7 +132,28 @@ partial class Window
     }
 
     /// <inheritdoc />
-    public partial SizeI ClientSize => _clientSize;
+    public partial SizeI Size
+    {
+        get
+        {
+            alimerWindowGetSize(_window, out int width, out int height);
+            return new(width, height);
+        }
+        set
+        {
+            alimerWindowSetSize(_window, value.Width, value.Height);
+        }
+    }
+
+    /// <inheritdoc />
+    public partial SizeI SizeInPixels
+    {
+        get
+        {
+            alimerWindowGetSizeInPixels(_window, out int width, out int height);
+            return new(width, height);
+        }
+    }
 
     public void Show()
     {
@@ -150,25 +170,17 @@ partial class Window
         switch (evt.type)
         {
             case WindowEventType.Minimized:
-                _minimized = true;
-                _clientSize = new(evt.data1, evt.data2);
-                OnSizeChanged();
                 break;
 
             case WindowEventType.Maximized:
             case WindowEventType.Restored:
-                _minimized = false;
-                _clientSize = new(evt.data1, evt.data2);
-                OnSizeChanged();
                 break;
 
             case WindowEventType.Resized:
-                _minimized = false;
                 HandleResize(evt);
                 break;
 
             case WindowEventType.SizeChanged:
-                _minimized = false;
                 HandleResize(evt);
                 break;
 
@@ -181,11 +193,6 @@ partial class Window
 
     private void HandleResize(in WindowEvent evt)
     {
-        if (_clientSize.Width != evt.data1 ||
-            _clientSize.Height != evt.data2)
-        {
-            _clientSize = new(evt.data1, evt.data2);
-            OnSizeChanged();
-        }
+        OnSizeChanged();
     }
 }

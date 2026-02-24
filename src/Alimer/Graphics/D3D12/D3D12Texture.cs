@@ -299,6 +299,26 @@ internal unsafe class D3D12Texture : Texture
         DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
         _handle = existingTexture;
 
+#if TODO
+        D3D12_RESOURCE_DESC resourceDesc = existingTexture->GetDesc();
+        ulong allocatedSize = 0;
+        uint numSubResources = Math.Max(1u, resourceDesc.MipLevels) * resourceDesc.DepthOrArraySize;
+        _footprints = AllocateArray<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>(numSubResources);
+        _rowSizesInBytes = AllocateArray<ulong>(numSubResources);
+        _numRows = AllocateArray<uint>(numSubResources);
+        device.Device->GetCopyableFootprints(
+            &resourceDesc,
+            0,
+            numSubResources,
+            0,
+            _footprints,
+            _numRows,
+            _rowSizesInBytes,
+            &allocatedSize
+        );
+        AllocatedSize = allocatedSize; 
+#endif
+
         if (!string.IsNullOrEmpty(descriptor.Label))
         {
             OnLabelChanged(descriptor.Label!);

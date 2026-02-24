@@ -7,10 +7,15 @@ using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.DXGI;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.DXGI_SCALING;
 using static TerraFX.Interop.DirectX.DXGI_SWAP_EFFECT;
 using static TerraFX.Interop.DirectX.DXGI_ALPHA_MODE;
 using static TerraFX.Interop.DirectX.DXGI_SWAP_CHAIN_FLAG;
+using static TerraFX.Interop.DirectX.DXGI_COLOR_SPACE_TYPE;
+using static TerraFX.Interop.DirectX.DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG;
+using static TerraFX.Interop.DirectX.D3D12_FEATURE;
+using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
 
 #if WINDOWS
 using WinRT;
@@ -25,22 +30,25 @@ internal unsafe class D3D12SwapChain : SwapChain
     private readonly ComPtr<IDXGISwapChain3> _handle;
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
-    private uint _syncInterval = 1;
-    private uint _presentFlags = 0;
+    private readonly uint _syncInterval = 1;
+    private readonly uint _presentFlags = 0;
 
     public D3D12SwapChain(D3D12GraphicsDevice device, in SwapChainDescriptor descriptor)
         : base(descriptor)
     {
         _device = device;
+        BackBufferFormat = descriptor.Format.ToDxgiSwapChainFormat();
+        BackBufferCount = descriptor.PresentMode.PresentModeToBufferCount();
+
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = new()
         {
-            Width = descriptor.Width,
-            Height = descriptor.Height,
-            Format = descriptor.Format.ToDxgiSwapChainFormat(),
+            Width = (uint)Math.Max(descriptor.Width, 1u),
+            Height = (uint)Math.Max(descriptor.Height, 1u),
+            Format = BackBufferFormat,
             Stereo = false,
             SampleDesc = new(1, 0),
-            BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            BufferCount = descriptor.PresentMode.PresentModeToBufferCount(),
+            BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT,
+            BufferCount = BackBufferCount,
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
@@ -114,16 +122,19 @@ internal unsafe class D3D12SwapChain : SwapChain
             OnLabelChanged(descriptor.Label!);
         }
 
+        UpdateColorSpace();
         AfterReset();
     }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    public DXGI_FORMAT DxgiFormat { get; }
+    public DXGI_FORMAT BackBufferFormat { get; }
+    public uint BackBufferCount { get; private set; }
+    public DXGI_COLOR_SPACE_TYPE ColorSpace { get; private set; }
     public IDXGISwapChain3* Handle => _handle;
     public D3D12Texture CurrentTexture => _backbufferTextures![CurrentBackBufferIndex];
-    public uint CurrentBackBufferIndex => _handle.Get()->GetCurrentBackBufferIndex();
+    public uint CurrentBackBufferIndex { get; private set; }
 
     private void AfterReset()
     {
@@ -145,6 +156,9 @@ internal unsafe class D3D12SwapChain : SwapChain
             ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), (void**)backbufferTexture.GetAddressOf()));
             _backbufferTextures[i] = new D3D12Texture(_device, backbufferTexture.Get(), description, TextureLayout.Present);
         }
+
+        // Reset the index to the current back buffer.
+        CurrentBackBufferIndex = _handle.Get()->GetCurrentBackBufferIndex();
     }
 
     /// <inheritdoc/>
@@ -176,16 +190,58 @@ internal unsafe class D3D12SwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    protected override void ResizeBackBuffer()
+    protected override void OnResize(int newWidth, int newHeight)
     {
-        _device.WaitIdle();
+        if (_backbufferTextures?.Length > 0)
+        {
+            _device.WaitIdle();
+
+            for (int i = 0; i < _backbufferTextures.Length; ++i)
+            {
+                _backbufferTextures[i].BackendDestroy();
+            }
+        }
+
+        // Determine the render target size in pixels.
+        uint backBufferWidth = Math.Max((uint)newWidth, 1u);
+        uint backBufferHeight = Math.Max((uint)newHeight, 1u);
+
+        // If the swap chain already exists, resize it.
+        HRESULT hr = _handle.Get()->ResizeBuffers(
+            BackBufferCount,
+            backBufferWidth,
+            backBufferHeight,
+            BackBufferFormat,
+            _device.DxAdapter.DxManager.TearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+            );
+
+        if (hr == DXGI_ERROR_DEVICE_REMOVED
+            || hr == DXGI_ERROR_DEVICE_RESET)
+        {
+#if DEBUG
+            HRESULT logHR = (hr == DXGI_ERROR_DEVICE_REMOVED) ? _device.Device->GetDeviceRemovedReason() : hr;
+            System.Diagnostics.Debug.WriteLine($"Device Lost on ResizeBuffers: Reason code {logHR}");
+#endif
+            // If the device was removed for any reason, a new device and swap chain will need to be created.
+            _device.OnDeviceRemoved();
+
+            // Everything is set up now. Do not continue execution of this method. HandleDeviceLost will reenter this method
+            // and correctly set up the new device.
+            return;
+        }
+        else
+        {
+            ThrowIfFailed(hr);
+        }
+
+        UpdateColorSpace();
+        AfterReset();
     }
 
     /// <inheritdoc />
     public override Texture? AcquireNextTexture()
     {
-        uint backBufferIndex = _handle.Get()->GetCurrentBackBufferIndex();
-        return _backbufferTextures![backBufferIndex];
+        return _backbufferTextures![CurrentBackBufferIndex];
     }
 
     public bool Present()
@@ -196,6 +252,146 @@ internal unsafe class D3D12SwapChain : SwapChain
             return false;
         }
 
+        // Update the back buffer index.
+        CurrentBackBufferIndex = _handle.Get()->GetCurrentBackBufferIndex();
+
         return true;
+    }
+
+    public void UpdateColorSpace()
+    {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = default;
+        formatSupport.Format = BackBufferFormat;
+        HRESULT hr = _device.Device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+        if (hr.SUCCEEDED &&
+            (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY) == 0)
+        {
+            return;
+        }
+
+        DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+
+        bool isDisplayHDR10 = false;
+
+        // Detect output
+        // HDR display query: https://docs.microsoft.com/en-us/windows/win32/direct3darticles/high-dynamic-range
+        using ComPtr<IDXGIOutput> dxgiOutput = default;
+        var hr2 = _handle.Get()->GetContainingOutput(dxgiOutput.GetAddressOf());
+        if (SUCCEEDED(_handle.Get()->GetContainingOutput(dxgiOutput.GetAddressOf())))
+        {
+            ComPtr<IDXGIOutput6> output6;
+            if (SUCCEEDED(dxgiOutput.As(&output6)))
+            {
+                DXGI_OUTPUT_DESC1 desc1;
+                if (SUCCEEDED(output6.Get()->GetDesc1(&desc1)))
+                {
+                    if (desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
+                    {
+                        isDisplayHDR10 = true;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Get the retangle bounds of the app window.
+            RECT windowBounds;
+            if (Surface is Win32SwapChainSurface win32Surface)
+            {
+                if (!GetWindowRect((HWND)win32Surface.Hwnd, &windowBounds))
+                    throw new InvalidOperationException($"GetWindowRect failed with {GetLastError()}");
+            }
+            else
+            {
+                // TODO: 
+                windowBounds = default;
+            }
+
+            int ax1 = windowBounds.left;
+            int ay1 = windowBounds.top;
+            int ax2 = windowBounds.right;
+            int ay2 = windowBounds.bottom;
+
+            using ComPtr<IDXGIOutput> bestOutput = default;
+            long bestIntersectArea = -1;
+
+            // Search for an HDR display among the outputs (e.g. in case of a virtual output from a remote desktop session).
+            using ComPtr<IDXGIAdapter> adapter = default;
+            for (uint adapterIndex = 0;
+                SUCCEEDED(_device.DxAdapter.DxManager.Handle->EnumAdapters(adapterIndex, adapter.ReleaseAndGetAddressOf()));
+                ++adapterIndex)
+            {
+                ComPtr<IDXGIOutput> output = default;
+                for (uint outputIndex = 0;
+                    SUCCEEDED(adapter.Get()->EnumOutputs(outputIndex, output.ReleaseAndGetAddressOf()));
+                    ++outputIndex)
+                {
+                    // Get the rectangle bounds of current output.
+                    DXGI_OUTPUT_DESC desc;
+                    ThrowIfFailed(output.Get()->GetDesc(&desc));
+                    RECT desktopCoordinates = desc.DesktopCoordinates;
+
+                    // Compute the intersection
+                    int intersectArea = ComputeIntersectionArea(ax1, ay1, ax2, ay2, desc.DesktopCoordinates);
+                    if (intersectArea > bestIntersectArea)
+                    {
+                        bestOutput.Swap(ref output);
+                        bestIntersectArea = intersectArea;
+                    }
+                }
+            }
+
+            if (bestOutput.Get() is not null)
+            {
+                using ComPtr<IDXGIOutput6> output6 = default;
+                if (SUCCEEDED(bestOutput.CopyTo(output6.GetAddressOf())))
+                {
+                    DXGI_OUTPUT_DESC1 desc;
+                    ThrowIfFailed(output6.Get()->GetDesc1(&desc));
+
+                    if (desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
+                    {
+                        // Display output is HDR10.
+                        isDisplayHDR10 = true;
+                    }
+                }
+            }
+        }
+
+        switch (BackBufferFormat)
+        {
+            case DXGI_FORMAT_R10G10B10A2_UNORM:
+                // The application creates the HDR10 signal.
+                colorSpace = isDisplayHDR10 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+                break;
+
+            case DXGI_FORMAT_R16G16B16A16_FLOAT:
+                // The system creates the HDR10 signal; application uses linear values.
+                colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+                break;
+
+            default:
+                break;
+        }
+
+        ColorSpace = colorSpace;
+        if (isDisplayHDR10)
+        {
+            uint colorSpaceSupport = 0;
+            if (SUCCEEDED(_handle.Get()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport)))
+            {
+                if ((colorSpaceSupport & (uint)DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) != 0)
+                {
+                    ThrowIfFailed(_handle.Get()->SetColorSpace1(colorSpace));
+                }
+            }
+        }
+    }
+
+    private static int ComputeIntersectionArea(
+        int ax1, int ay1, int ax2, int ay2,
+        in RECT b)
+    {
+        return Math.Max(0, Math.Min(ax2, b.right) - Math.Max(ax1, b.left)) * Math.Max(0, Math.Min(ay2, b.bottom) - Math.Max(ay1, b.top));
     }
 }

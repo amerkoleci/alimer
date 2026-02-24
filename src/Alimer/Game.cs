@@ -30,7 +30,7 @@ public abstract class Game : DisposableObject, IGame
     /// <param name="name">The optional name of the application.</param>
     protected Game(GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default)
     {
-        _platform = GamePlatform.CreateDefault();
+        _platform = GamePlatform.CreateDefault(this);
         PrintSystemInformation();
 
         _services = new();
@@ -196,7 +196,6 @@ public abstract class Game : DisposableObject, IGame
         {
             // Startup application
             _platform.Ready = OnPlatformReady;
-            _platform.TickRequested += OnTickRequested;
             _platform.RunMainLoop();
         }
 
@@ -286,18 +285,21 @@ public abstract class Game : DisposableObject, IGame
 
                 BeginDraw();
 
-                // Begin rendering commands
-                CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer(CommandQueueType.Graphics, "Frame"u8);
-                Texture? swapChainTexture = MainWindow.SwapChain!.AcquireNextTexture();
-                if (swapChainTexture is not null)
+                // Begin rendering commands if the window is not minimized. We can skip rendering when the window is minimized to save resources.
+                if (!MainWindow.IsMinimized)
                 {
-                    Draw(commandBuffer, swapChainTexture, _gameTime);
+                    CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer(CommandQueueType.Graphics, "Frame"u8);
+                    Texture? swapChainTexture = MainWindow.SwapChain!.AcquireNextTexture();
+                    if (swapChainTexture is not null)
+                    {
+                        Draw(commandBuffer, swapChainTexture, _gameTime);
+                    }
+
+                    commandBuffer.Present(MainWindow.SwapChain!);
+
+                    // Execute 
+                    GraphicsDevice.GraphicsQueue.Execute(commandBuffer);
                 }
-
-                commandBuffer.Present(MainWindow.SwapChain!);
-
-                // Execute 
-                GraphicsDevice.GraphicsQueue.Execute(commandBuffer);
             }
             finally
             {
@@ -338,11 +340,6 @@ public abstract class Game : DisposableObject, IGame
     private void OnPlatformReady()
     {
         InitializeBeforeRun();
-    }
-
-    private void OnTickRequested(object? sender, EventArgs e)
-    {
-        Tick();
     }
 
     private static void PrintSystemInformation()

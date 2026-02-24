@@ -17,22 +17,22 @@ public abstract class SwapChain : GraphicsObject
 
     public SwapChainSurface Surface { get; }
 
-    public uint Width { get; private set; }
-    public uint Height { get; private set; }
+    public int Width { get; private set; }
+    public int Height { get; private set; }
     public PixelFormat ColorFormat { get; protected set; }
     public PresentMode PresentMode { get; }
 
-    public void Resize(uint width, uint height)
+    public void Resize(int newWidth, int newHeight)
     {
-        if (Width == width && Height == height)
+        if (Width == newWidth && Height == newHeight)
             return;
 
-        ResizeBackBuffer();
-        Width = width;
-        Height = height;
+        OnResize(newWidth, newHeight);
+        Width = newWidth;
+        Height = newHeight;
     }
 
-    protected abstract void ResizeBackBuffer();
+    protected abstract void OnResize(int newWidth, int newHeight);
 
     /// <summary>
     /// Acquires the next available texture for rendering or processing operations.

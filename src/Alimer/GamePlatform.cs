@@ -9,7 +9,6 @@ namespace Alimer;
 internal abstract partial class GamePlatform 
 {
     public Action? Ready;
-    public event EventHandler? TickRequested;
 
     /// <summary>
     /// Gets whether the multiple views are supported.
@@ -26,9 +25,12 @@ internal abstract partial class GamePlatform
     /// </summary>
     public abstract IInputSourceConfiguration InputConfiguration { get; }
 
-    protected GamePlatform()
+    protected GamePlatform(Game game)
     {
+        Game = game;
     }
+
+    public Game Game { get; }
 
     public abstract void RunMainLoop();
     public abstract void RequestExit();
@@ -41,7 +43,7 @@ internal abstract partial class GamePlatform
 
     protected internal void OnTick()
     {
-        TickRequested?.Invoke(this, EventArgs.Empty);
+        Game.Tick();
     }
 
     /// <summary>

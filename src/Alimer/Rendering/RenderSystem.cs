@@ -98,7 +98,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         }
 
         MainWindow.SizeChanged += OnCanvasSizeChanged;
-        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
+        Resize(MainWindow.SizeInPixels);
     }
 
     public IServiceRegistry Services { get; }
@@ -162,6 +162,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     {
         if (Scene.CurrentCamera is null)
             return;
+
+        // Clear the render batch. It'll be built up again next frame.
+        _renderBatch.Clear();
 
         // Prepare frame instances (visible to camera)
         BoundingFrustum cameraFrustum = Scene.CurrentCamera.Frustum;
@@ -241,9 +244,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         RenderCamera(renderPass, camera);
 
         renderPass.EndEncoding();
-
-        // Clear the render batch. It'll be built up again next frame.
-        _renderBatch.Clear();
     }
 
     private void RenderCamera(RenderPassEncoder passEncoder, CameraComponent camera)
@@ -295,10 +295,10 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         }
     }
 
-    public void Resize(int pixelWidth, int pixelHeight)
+    public void Resize(in SizeI sizeInPixels)
     {
-        Width = pixelWidth * ResolutionMultiplier;
-        Height = pixelHeight * ResolutionMultiplier;
+        Width = sizeInPixels.Width * ResolutionMultiplier;
+        Height = sizeInPixels.Height * ResolutionMultiplier;
 
         if (SampleCount > TextureSampleCount.Count1)
         {
@@ -323,7 +323,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private void OnCanvasSizeChanged(object? sender, EventArgs e)
     {
-        Resize(MainWindow.ClientSize.Width, MainWindow.ClientSize.Height);
+        Resize(MainWindow.SizeInPixels);
     }
 
     private void UpdateFrame(GameTime gameTime)

@@ -19,11 +19,11 @@ public record struct SwapChainDescriptor
     /// <summary>
     /// Gets or sets the width in pixels of the <see cref="SwapChain"/>.
     /// </summary>
-	public required uint Width;
+	public required int Width;
     /// <summary>
     /// Gets or sets the height in pixels of the <see cref="SwapChain"/>.
     /// </summary>
-    public required uint Height;
+    public required int Height;
 
     public PixelFormat Format  = PixelFormat.BGRA8UnormSrgb;
     public PresentMode PresentMode = PresentMode.Fifo;
@@ -32,11 +32,13 @@ public record struct SwapChainDescriptor
     [SetsRequiredMembers]
     public SwapChainDescriptor(
         SwapChainSurface surface,
-        uint width, uint height,
+        int width, int height,
         PixelFormat colorFormat = PixelFormat.BGRA8UnormSrgb,
         PresentMode presentMode = PresentMode.Fifo)
     {
         ArgumentNullException.ThrowIfNull(surface);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width, nameof(width));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height, nameof(height));
 
         Surface = surface;
         Width = width;

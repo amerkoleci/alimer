@@ -312,12 +312,12 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VkObjectType.SurfaceKHR, _handle, newLabel);
-        _device.SetObjectName(VkObjectType.SwapchainKHR, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_SURFACE_KHR, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, _handle, newLabel);
     }
 
     /// <inheritdoc />
-    protected override void ResizeBackBuffer()
+    protected override void OnResize(int newWidth, int newHeight)
     {
 
     }

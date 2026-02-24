@@ -12,14 +12,9 @@ public class NavigationSystem : EntitySystem<NavigationMeshComponent>
     {
     }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void Destroy()
     {
-        if (disposing)
-        {
-        }
-
-        base.Dispose(disposing);
     }
 
     public override void Update(GameTime time)

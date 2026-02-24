@@ -9,7 +9,7 @@ namespace Alimer;
 /// <summary>
 /// Defines an application window.
 /// </summary>
-public sealed partial class Window 
+public sealed partial class Window
 {
     private string _title;
     public event EventHandler? SizeChanged;
@@ -47,8 +47,12 @@ public sealed partial class Window
         }
     }
 
+    /// <summary>
+    /// Gets or sets the position of the window on the screen, in pixels.
+    /// </summary>
     public partial PointI Position { get; set; }
-    public partial SizeI ClientSize { get; }
+    public partial SizeI Size { get; set; }
+    public partial SizeI SizeInPixels { get; }
 
     public SwapChain? SwapChain { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
@@ -60,7 +64,24 @@ public sealed partial class Window
     {
         get
         {
-            Size size = ClientSize;
+            Size size = Size;
+            if (size.Width != 0 && size.Height != 0)
+            {
+                return size.Width / size.Height;
+            }
+
+            return 0.0f;
+        }
+    }
+
+    /// <summary>
+    /// Gets the view aspect ratio.
+    /// </summary>
+    public float AspectRatioInPixels
+    {
+        get
+        {
+            Size size = SizeInPixels;
             if (size.Width != 0 && size.Height != 0)
             {
                 return size.Width / size.Height;
@@ -72,7 +93,8 @@ public sealed partial class Window
 
     public void CreateSwapChain(GraphicsDevice device)
     {
-        SwapChainDescriptor description = new(Surface, (uint)ClientSize.Width, (uint)ClientSize.Height, ColorFormat);
+        SizeI swapChainSize = SizeInPixels;
+        SwapChainDescriptor description = new(Surface, swapChainSize.Width, swapChainSize.Height, ColorFormat);
         SwapChain = device.CreateSwapChain(description);
         ColorFormat = SwapChain.ColorFormat;
 
@@ -80,6 +102,9 @@ public sealed partial class Window
 
     private void OnSizeChanged()
     {
+        SizeI swapChainSize = SizeInPixels;
+        SwapChain?.Resize(swapChainSize.Width, swapChainSize.Height);
+
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
 

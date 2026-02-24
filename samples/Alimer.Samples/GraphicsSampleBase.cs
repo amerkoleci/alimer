@@ -42,7 +42,7 @@ public abstract class GraphicsSampleBase : SampleBase
         if (DepthStencilFormat != PixelFormat.Undefined)
         {
             TextureDescriptor depthStencilTextureDesc = TextureDescriptor.Texture2D(DepthStencilFormat,
-                (uint)MainWindow.ClientSize.Width, (uint)MainWindow.ClientSize.Height,
+                (uint)MainWindow.SizeInPixels.Width, (uint)MainWindow.SizeInPixels.Height,
                 usage: TextureUsage.RenderTarget
                 );
             DepthStencilTexture = ToDispose(GraphicsDevice.CreateTexture(in depthStencilTextureDesc));

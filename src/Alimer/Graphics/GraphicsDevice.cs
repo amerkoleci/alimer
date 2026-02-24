@@ -363,8 +363,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public SwapChain CreateSwapChain(in SwapChainDescriptor descriptor)
     {
         Guard.IsNotNull(descriptor.Surface, nameof(SwapChainDescriptor.Surface));
-        Guard.IsGreaterThan(descriptor.Width, 0, nameof(SwapChainDescriptor.Width));
-        Guard.IsGreaterThan(descriptor.Height, 0, nameof(SwapChainDescriptor.Height));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(descriptor.Width, nameof(SwapChainDescriptor.Width));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(descriptor.Height, nameof(SwapChainDescriptor.Height));
         Guard.IsTrue(descriptor.Format != PixelFormat.Undefined, nameof(SwapChainDescriptor.Format));
 
         return CreateSwapChainCore(descriptor);

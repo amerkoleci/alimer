@@ -16,7 +16,8 @@ internal unsafe class NativePlatform : GamePlatform
     private readonly Dictionary<uint, Window> _idLookup = [];
     private bool _exitRequested;
 
-    public NativePlatform(string appName = "Alimer")
+    public NativePlatform(Game game, string appName = "Alimer")
+        : base(game)
     {
         // Init platform layer
         if (!alimerPlatformInit())
@@ -117,5 +118,5 @@ internal unsafe class NativePlatform : GamePlatform
 
 partial class GamePlatform
 {
-    public static GamePlatform CreateDefault() => new NativePlatform();
+    public static GamePlatform CreateDefault(Game game) => new NativePlatform(game);
 }

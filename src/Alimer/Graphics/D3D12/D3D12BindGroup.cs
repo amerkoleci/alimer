@@ -59,7 +59,7 @@ internal unsafe class D3D12BindGroup : BindGroup
     public override void Update(Span<BindGroupEntry> entries)
     {
         // Free existing descriptors
-        Destroy();
+        BackendDestroy();
 
         if (_layout.DescriptorTableSizeCbvUavSrv > 0)
         {
