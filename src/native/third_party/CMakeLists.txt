@@ -128,7 +128,6 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
     )
 
     set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
-    set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
 # vulkan
