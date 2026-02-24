@@ -102,7 +102,7 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.4.0
+        GIT_TAG release-3.4.2
         OPTIONS
             "SDL_SHARED OFF"
             "SDL_STATIC ON"
