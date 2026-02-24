@@ -22,11 +22,13 @@ internal unsafe class D3D12CopyAllocator : IDisposable
     {
         _device = device;
 
-        D3D12_COMMAND_QUEUE_DESC desc = new();
-        desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-        desc.Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        desc.NodeMask = 0;
+        D3D12_COMMAND_QUEUE_DESC desc = new()
+        {
+            Type = D3D12_COMMAND_LIST_TYPE_COPY,
+            Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+            Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
+            NodeMask = 0
+        };
 
         HRESULT hr = device.Device->CreateCommandQueue(&desc,
             __uuidof<ID3D12CommandQueue>(),
@@ -66,10 +68,9 @@ internal unsafe class D3D12CopyAllocator : IDisposable
             {
                 if (_freelist[i].UploadBufferSize >= stagingSize)
                 {
+                    // Swap the found context with the last one and remove it from the freelist
                     context = _freelist[i];
-                    D3D12UploadContext temp = _freelist[i];
-                    _freelist[i] = _freelist[_freelist.Count - 1];
-                    _freelist[_freelist.Count - 1] = temp;
+                    (_freelist[_freelist.Count - 1], _freelist[i]) = (_freelist[i], _freelist[_freelist.Count - 1]);
                     _freelist.RemoveAt(_freelist.Count - 1);
                     break;
                 }
@@ -111,10 +112,11 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         return context;
     }
 
-    public void Submit(in D3D12UploadContext context)
+    public void Submit(ref D3D12UploadContext context)
     {
+        context.FenceValue++;
+
         ThrowIfFailed(context.CommandList.Get()->Close());
-        ThrowIfFailed(context.Fence.Get()->Signal(0));
 
         ID3D12CommandList** commandLists = stackalloc ID3D12CommandList*[1]
         {
@@ -122,8 +124,9 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         };
 
         _queue.Get()->ExecuteCommandLists(1, commandLists);
-        ThrowIfFailed(_queue.Get()->Signal(context.Fence.Get(), 1));
-        ThrowIfFailed(context.Fence.Get()->SetEventOnCompletion(1, HANDLE.NULL));
+
+        ThrowIfFailed(_queue.Get()->Signal(context.Fence.Get(), context.FenceValue));
+        ThrowIfFailed(context.Fence.Get()->SetEventOnCompletion(context.FenceValue, HANDLE.NULL));
 
         lock (_lock)
         {
@@ -137,6 +140,7 @@ internal unsafe struct D3D12UploadContext
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
     public ComPtr<ID3D12GraphicsCommandList> CommandList;
     public ComPtr<ID3D12Fence> Fence;
+    public ulong FenceValue = 0;
     public ulong UploadBufferSize;
     public D3D12Buffer UploadBuffer = null!;
 

@@ -167,7 +167,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
                     description.Size
                 );
 
-                device.Submit(in context);
+                device.Submit(ref context);
             }
         }
     }

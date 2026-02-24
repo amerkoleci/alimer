@@ -285,7 +285,7 @@ internal unsafe class D3D12Texture : Texture
 
             if (uploadContext.IsValid)
             {
-                DXDevice.Submit(in uploadContext);
+                DXDevice.Submit(ref uploadContext);
             }
         }
 

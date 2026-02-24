@@ -123,7 +123,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         _frameIndex = (uint)(_frameCount % MaxFramesInFlight);
     }
 
-    protected void ProcessDeletionQueue(bool force)
+    protected virtual void ProcessDeletionQueue(bool force)
     {
         while (!_deferredDestroyObjects.IsEmpty)
         {

@@ -10,7 +10,7 @@ namespace Alimer.Graphics.Vulkan;
 internal unsafe class VulkanCopyAllocator : IDisposable
 {
     private readonly VulkanGraphicsDevice _device;
-    private readonly List<VulkanUploadContext> _freelist = new();
+    private readonly List<VulkanUploadContext> _freelist = [];
 
     public VulkanCopyAllocator(VulkanGraphicsDevice device)
     {

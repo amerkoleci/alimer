@@ -9,8 +9,10 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal static unsafe class VulkanUtils
+internal static class VulkanUtils
 {
+    public const ulong TimeoutValue = 3000000000; // 3 seconds
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VkFormat ToVkFormat(PixelFormat format)
     {
@@ -149,6 +151,146 @@ internal static unsafe class VulkanUtils
             //case PixelFormat.R8BG8Biplanar420Unorm: return VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
             //case PixelFormat.R10X6BG10X6Biplanar420Unorm: return VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16;
             _ => VkFormat.Undefined,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PixelFormat FromVkFormat(this VkFormat format)
+    {
+        return format switch
+        {
+            // 8-bit formats
+            VK_FORMAT_R8_UNORM => PixelFormat.R8Unorm,
+            VK_FORMAT_R8_SNORM => PixelFormat.R8Snorm,
+            VK_FORMAT_R8_UINT => PixelFormat.R8Uint,
+            VK_FORMAT_R8_SINT => PixelFormat.R8Sint,
+            // 16-bit formats
+            VK_FORMAT_R16_UINT => PixelFormat.R16Uint,
+            VK_FORMAT_R16_SINT => PixelFormat.R16Sint,
+            VK_FORMAT_R16_UNORM => PixelFormat.R16Unorm,
+            VK_FORMAT_R16_SNORM => PixelFormat.R16Snorm,
+            VK_FORMAT_R16_SFLOAT => PixelFormat.R16Float,
+            VK_FORMAT_R8G8_UNORM => PixelFormat.RG8Unorm,
+            VK_FORMAT_R8G8_SNORM => PixelFormat.RG8Snorm,
+            VK_FORMAT_R8G8_UINT => PixelFormat.RG8Uint,
+            VK_FORMAT_R8G8_SINT => PixelFormat.RG8Sint,
+            // Packed 16-Bit Pixel Formats
+            VK_FORMAT_B4G4R4A4_UNORM_PACK16 => PixelFormat.BGRA4Unorm,
+            VK_FORMAT_B5G6R5_UNORM_PACK16 => PixelFormat.B5G6R5Unorm,
+            VK_FORMAT_B5G5R5A1_UNORM_PACK16 => PixelFormat.BGR5A1Unorm,
+            // 32-bit formats
+            VK_FORMAT_R32_UINT => PixelFormat.R32Uint,
+            VK_FORMAT_R32_SINT => PixelFormat.R32Sint,
+            VK_FORMAT_R32_SFLOAT => PixelFormat.R32Float,
+            VK_FORMAT_R16G16_UINT => PixelFormat.RG16Uint,
+            VK_FORMAT_R16G16_SINT => PixelFormat.RG16Sint,
+            VK_FORMAT_R16G16_UNORM => PixelFormat.RG16Unorm,
+            VK_FORMAT_R16G16_SNORM => PixelFormat.RG16Snorm,
+            VK_FORMAT_R16G16_SFLOAT => PixelFormat.RG16Float,
+            VK_FORMAT_R8G8B8A8_UNORM => PixelFormat.RGBA8Unorm,
+            VK_FORMAT_R8G8B8A8_SRGB => PixelFormat.RGBA8UnormSrgb,
+            VK_FORMAT_R8G8B8A8_SNORM => PixelFormat.RGBA8Snorm,
+            VK_FORMAT_R8G8B8A8_UINT => PixelFormat.RGBA8Uint,
+            VK_FORMAT_R8G8B8A8_SINT => PixelFormat.RGBA8Sint,
+            VK_FORMAT_B8G8R8A8_UNORM => PixelFormat.BGRA8Unorm,
+            VK_FORMAT_B8G8R8A8_SRGB => PixelFormat.BGRA8UnormSrgb,
+            // Packed 32-Bit formats
+            VK_FORMAT_A2B10G10R10_UNORM_PACK32 => PixelFormat.RGB10A2Unorm,
+            VK_FORMAT_A2R10G10B10_UINT_PACK32 => PixelFormat.RGB10A2Uint,
+            VK_FORMAT_B10G11R11_UFLOAT_PACK32 => PixelFormat.RG11B10Float,
+            VK_FORMAT_E5B9G9R9_UFLOAT_PACK32 => PixelFormat.RGB9E5Float,
+            // 64-Bit formats
+            VK_FORMAT_R32G32_UINT => PixelFormat.RG32Uint,
+            VK_FORMAT_R32G32_SINT => PixelFormat.RG32Sint,
+            VK_FORMAT_R32G32_SFLOAT => PixelFormat.RG32Float,
+            VK_FORMAT_R16G16B16A16_UINT => PixelFormat.RGBA16Uint,
+            VK_FORMAT_R16G16B16A16_SINT => PixelFormat.RGBA16Sint,
+            VK_FORMAT_R16G16B16A16_UNORM => PixelFormat.RGBA16Unorm,
+            VK_FORMAT_R16G16B16A16_SNORM => PixelFormat.RGBA16Snorm,
+            VK_FORMAT_R16G16B16A16_SFLOAT => PixelFormat.RGBA16Float,
+            // 128-Bit formats
+            VK_FORMAT_R32G32B32A32_UINT => PixelFormat.RGBA32Uint,
+            VK_FORMAT_R32G32B32A32_SINT => PixelFormat.RGBA32Sint,
+            VK_FORMAT_R32G32B32A32_SFLOAT => PixelFormat.RGBA32Float,
+            // Depth-stencil formats
+            VK_FORMAT_D16_UNORM => PixelFormat.Depth16Unorm,
+            VK_FORMAT_D24_UNORM_S8_UINT => PixelFormat.Depth24UnormStencil8,
+            VK_FORMAT_D32_SFLOAT => PixelFormat.Depth32Float,
+            VK_FORMAT_D32_SFLOAT_S8_UINT => PixelFormat.Depth32FloatStencil8,
+            VK_FORMAT_S8_UINT => PixelFormat.Stencil8,
+            // Compressed BC formats
+            VK_FORMAT_BC1_RGBA_UNORM_BLOCK => PixelFormat.BC1RGBAUnorm,
+            VK_FORMAT_BC1_RGBA_SRGB_BLOCK => PixelFormat.BC1RGBAUnormSrgb,
+            VK_FORMAT_BC2_UNORM_BLOCK => PixelFormat.BC2RGBAUnorm,
+            VK_FORMAT_BC2_SRGB_BLOCK => PixelFormat.BC2RGBAUnormSrgb,
+            VK_FORMAT_BC3_UNORM_BLOCK => PixelFormat.BC3RGBAUnorm,
+            VK_FORMAT_BC3_SRGB_BLOCK => PixelFormat.BC3RGBAUnormSrgb,
+            VK_FORMAT_BC4_UNORM_BLOCK => PixelFormat.BC4RUnorm,
+            VK_FORMAT_BC4_SNORM_BLOCK => PixelFormat.BC4RSnorm,
+            VK_FORMAT_BC5_UNORM_BLOCK => PixelFormat.BC5RGUnorm,
+            VK_FORMAT_BC5_SNORM_BLOCK => PixelFormat.BC5RGSnorm,
+            VK_FORMAT_BC6H_UFLOAT_BLOCK => PixelFormat.BC6HRGBUfloat,
+            VK_FORMAT_BC6H_SFLOAT_BLOCK => PixelFormat.BC6HRGBFloat,
+            VK_FORMAT_BC7_UNORM_BLOCK => PixelFormat.BC7RGBAUnorm,
+            VK_FORMAT_BC7_SRGB_BLOCK => PixelFormat.BC7RGBAUnormSrgb,
+            // EAC/ETC compressed formats
+            VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK => PixelFormat.ETC2RGB8Unorm,
+            VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK => PixelFormat.ETC2RGB8UnormSrgb,
+            VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK => PixelFormat.ETC2RGB8A1Unorm,
+            VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK => PixelFormat.ETC2RGB8A1UnormSrgb,
+            VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK => PixelFormat.ETC2RGBA8Unorm,
+            VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK => PixelFormat.ETC2RGBA8UnormSrgb,
+            VK_FORMAT_EAC_R11_UNORM_BLOCK => PixelFormat.EACR11Unorm,
+            VK_FORMAT_EAC_R11_SNORM_BLOCK => PixelFormat.EACR11Snorm,
+            VK_FORMAT_EAC_R11G11_UNORM_BLOCK => PixelFormat.EACRG11Unorm,
+            VK_FORMAT_EAC_R11G11_SNORM_BLOCK => PixelFormat.EACRG11Snorm,
+            // ASTC compressed formats
+            VK_FORMAT_ASTC_4x4_UNORM_BLOCK => PixelFormat.ASTC4x4Unorm,
+            VK_FORMAT_ASTC_4x4_SRGB_BLOCK => PixelFormat.ASTC4x4UnormSrgb,
+            VK_FORMAT_ASTC_5x4_UNORM_BLOCK => PixelFormat.ASTC5x4Unorm,
+            VK_FORMAT_ASTC_5x4_SRGB_BLOCK => PixelFormat.ASTC5x4UnormSrgb,
+            VK_FORMAT_ASTC_5x5_UNORM_BLOCK => PixelFormat.ASTC5x5Unorm,
+            VK_FORMAT_ASTC_5x5_SRGB_BLOCK => PixelFormat.ASTC5x5UnormSrgb,
+            VK_FORMAT_ASTC_6x5_UNORM_BLOCK => PixelFormat.ASTC6x5Unorm,
+            VK_FORMAT_ASTC_6x5_SRGB_BLOCK => PixelFormat.ASTC6x5UnormSrgb,
+            VK_FORMAT_ASTC_6x6_UNORM_BLOCK => PixelFormat.ASTC6x6Unorm,
+            VK_FORMAT_ASTC_6x6_SRGB_BLOCK => PixelFormat.ASTC6x6UnormSrgb,
+            VK_FORMAT_ASTC_8x5_UNORM_BLOCK => PixelFormat.ASTC8x5Unorm,
+            VK_FORMAT_ASTC_8x5_SRGB_BLOCK => PixelFormat.ASTC8x5UnormSrgb,
+            VK_FORMAT_ASTC_8x6_UNORM_BLOCK => PixelFormat.ASTC8x6Unorm,
+            VK_FORMAT_ASTC_8x6_SRGB_BLOCK => PixelFormat.ASTC8x6UnormSrgb,
+            VK_FORMAT_ASTC_8x8_UNORM_BLOCK => PixelFormat.ASTC8x8Unorm,
+            VK_FORMAT_ASTC_8x8_SRGB_BLOCK => PixelFormat.ASTC8x8UnormSrgb,
+            VK_FORMAT_ASTC_10x5_UNORM_BLOCK => PixelFormat.ASTC10x5Unorm,
+            VK_FORMAT_ASTC_10x5_SRGB_BLOCK => PixelFormat.ASTC10x5UnormSrgb,
+            VK_FORMAT_ASTC_10x6_UNORM_BLOCK => PixelFormat.ASTC10x6Unorm,
+            VK_FORMAT_ASTC_10x6_SRGB_BLOCK => PixelFormat.ASTC10x6UnormSrgb,
+            VK_FORMAT_ASTC_10x8_UNORM_BLOCK => PixelFormat.ASTC10x8Unorm,
+            VK_FORMAT_ASTC_10x8_SRGB_BLOCK => PixelFormat.ASTC10x8UnormSrgb,
+            VK_FORMAT_ASTC_10x10_UNORM_BLOCK => PixelFormat.ASTC10x10Unorm,
+            VK_FORMAT_ASTC_10x10_SRGB_BLOCK => PixelFormat.ASTC10x10UnormSrgb,
+            VK_FORMAT_ASTC_12x10_UNORM_BLOCK => PixelFormat.ASTC12x10Unorm,
+            VK_FORMAT_ASTC_12x10_SRGB_BLOCK => PixelFormat.ASTC12x10UnormSrgb,
+            VK_FORMAT_ASTC_12x12_UNORM_BLOCK => PixelFormat.ASTC12x12Unorm,
+            VK_FORMAT_ASTC_12x12_SRGB_BLOCK => PixelFormat.ASTC12x12UnormSrgb,
+            // ASTC HDR compressed formats
+            VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK => PixelFormat.ASTC4x4HDR,
+            VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK => PixelFormat.ASTC5x4HDR,
+            VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK => PixelFormat.ASTC5x5HDR,
+            VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK => PixelFormat.ASTC6x5HDR,
+            VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK => PixelFormat.ASTC6x6HDR,
+            VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK => PixelFormat.ASTC8x5HDR,
+            VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK => PixelFormat.ASTC8x6HDR,
+            VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK => PixelFormat.ASTC8x8HDR,
+            VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK => PixelFormat.ASTC10x5HDR,
+            VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK => PixelFormat.ASTC10x6HDR,
+            VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK => PixelFormat.ASTC10x8HDR,
+            VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK => PixelFormat.ASTC10x10HDR,
+            VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK => PixelFormat.ASTC12x10HDR,
+            VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK => PixelFormat.ASTC12x12HDR,
+            //case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM: return PixelFormat.R8BG8Biplanar420Unorm;
+            //case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16: return PixelFormat.R10X6BG10X6Biplanar420Unorm;
+            _ => PixelFormat.Undefined,
         };
     }
 

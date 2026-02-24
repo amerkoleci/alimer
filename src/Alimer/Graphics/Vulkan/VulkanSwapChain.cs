@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Vulkan.VulkanUtils;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -14,11 +15,11 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     private readonly VkSurfaceKHR _surface;
     private VkSwapchainKHR _handle;
     private uint _acquireSemaphoreIndex;
-    private uint _imageIndex;
+    private uint _acquireImageIndex;
     private VkSemaphore[]? _acquireSemaphores;
     private VkSemaphore[]? _releaseSemaphores;
     private VulkanTexture[]? _backbufferTextures;
-    public readonly object LockObject = new();
+    private readonly Lock _lock = new();
 
     public VulkanSwapChain(VulkanGraphicsDevice device, in SwapChainDescriptor descriptor)
         : base(descriptor)
@@ -30,11 +31,11 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         VkInstanceApi instanceApi = device.VkAdapter.VkGraphicsManager.InstanceApi;
         _surface = CreateVkSurface();
 
-        AfterReset();
+        OnResize(descriptor.Width, descriptor.Height);
 
         VkSurfaceKHR CreateVkSurface()
         {
-            VkSurfaceKHR surface = VkSurfaceKHR.Null;
+            VkSurfaceKHR surface;
             switch (Surface)
             {
                 case Win32SwapChainSurface win32Surface:
@@ -116,12 +117,46 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     public VkSwapchainKHR Handle => _handle;
     public uint AcquireSemaphoreIndex => _acquireSemaphoreIndex;
     public VkSemaphore AcquireSemaphore => _acquireSemaphores![_acquireSemaphoreIndex];
-    public VkSemaphore ReleaseSemaphore => _releaseSemaphores![_imageIndex];
-    public uint ImageIndex => _imageIndex;
-    public VulkanTexture CurrentTexture => _backbufferTextures![_imageIndex];
+    public VkSemaphore ReleaseSemaphore => _releaseSemaphores![_acquireImageIndex];
+    public uint ImageIndex => _acquireImageIndex;
+    public VulkanTexture CurrentTexture => _backbufferTextures![_acquireImageIndex];
     public bool NeedAcquire { get; set; }
 
-    private void AfterReset()
+    /// <inheritdoc/>
+    protected override void Destroy()
+    {
+        for (int i = 0; i < _backbufferTextures!.Length; ++i)
+        {
+            _backbufferTextures[i].Dispose();
+        }
+
+        base.Destroy();
+    }
+
+    /// <inheritdoc/>
+    protected internal override void BackendDestroy()
+    {
+        for (uint i = 0; i < _backbufferTextures!.Length; ++i)
+        {
+            _device.DeviceApi.vkDestroySemaphore(_acquireSemaphores[i]);
+            _device.DeviceApi.vkDestroySemaphore(_releaseSemaphores[i]);
+        }
+
+        _device.DeviceApi.vkDestroySwapchainKHR(_handle, null);
+        _device.VkAdapter.VkGraphicsManager.InstanceApi.vkDestroySurfaceKHR(
+            _surface,
+            null);
+    }
+
+    /// <inheritdoc />
+    protected override void OnLabelChanged(string? newLabel)
+    {
+        _device.SetObjectName(VK_OBJECT_TYPE_SURFACE_KHR, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, _handle, newLabel);
+    }
+
+    /// <inheritdoc />
+    protected override void OnResize(int newWidth, int newHeight)
     {
         VkInstanceApi instanceApi = _device.VkAdapter.VkGraphicsManager.InstanceApi;
         instanceApi.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_device.PhysicalDevice, _surface, out VkSurfaceCapabilitiesKHR caps).CheckResult();
@@ -137,14 +172,14 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         VkSurfaceFormatKHR surfaceFormat = new()
         {
             format = _device.VkAdapter.ToVkFormat(ColorFormat),
-            colorSpace = VkColorSpaceKHR.SrgbNonLinear
+            colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
         };
         bool valid = false;
 
         bool allowHDR = true;
         foreach (VkSurfaceFormatKHR format in swapchainFormats)
         {
-            if (!allowHDR && format.colorSpace != VkColorSpaceKHR.SrgbNonLinear)
+            if (!allowHDR && format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 continue;
 
             if (format.format == surfaceFormat.format)
@@ -161,15 +196,29 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             surfaceFormat.colorSpace = VkColorSpaceKHR.SrgbNonLinear;
         }
 
+        // TODO: Color space
+        switch (surfaceFormat.colorSpace)
+        {
+            case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
+                //internal_state->colorSpace = ColorSpace::HDR_LINEAR;
+                break;
+            case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+                //internal_state->colorSpace = ColorSpace::HDR10_ST2084;
+                break;
+            default:
+            case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
+                //internal_state->colorSpace = ColorSpace::SRGB;
+                break;
+        }
+
         VkExtent2D swapChainExtent = default;
-        if (caps.currentExtent.width != 0xFFFFFFFF &&
-            caps.currentExtent.height != 0xFFFFFFFF)
+        if (caps.currentExtent.width != 0xFFFFFFFF && caps.currentExtent.height != 0xFFFFFFFF)
         {
             swapChainExtent = caps.currentExtent;
         }
         else
         {
-            swapChainExtent = new(Width, Height);
+            swapChainExtent = new(newWidth, newHeight);
             swapChainExtent.width = Math.Max(caps.minImageExtent.width, Math.Min(caps.maxImageExtent.width, swapChainExtent.width));
             swapChainExtent.height = Math.Max(caps.minImageExtent.height, Math.Min(caps.maxImageExtent.height, swapChainExtent.height));
         }
@@ -259,6 +308,37 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             _device.DeviceApi.vkDestroySwapchainKHR(createInfo.oldSwapchain);
         }
 
+        // We need to create a new semaphore or jump through a few hoops to wait for the current one to be unsignalled
+        // before we can use it again creating a new one is easiest. See also:
+        // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
+        // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
+        if (_acquireSemaphores is not null)
+        {
+            for (int i = 0; i < _acquireSemaphores!.Length; ++i)
+            {
+                _device.QueueDestroySemaphore(_acquireSemaphores[i]);
+            }
+            _acquireSemaphores = default;
+        }
+        if (_releaseSemaphores is not null)
+        {
+            for (int i = 0; i < _releaseSemaphores!.Length; ++i)
+            {
+                _device.QueueDestroySemaphore(_releaseSemaphores[i]);
+            }
+            _releaseSemaphores = default;
+        }
+
+        if (_backbufferTextures is not null)
+        {
+            for (int i = 0; i < _backbufferTextures!.Length; ++i)
+            {
+                _backbufferTextures[i].Dispose();
+            }
+
+            _backbufferTextures = default;
+        }
+
         NeedAcquire = true;
         _device.DeviceApi.vkGetSwapchainImagesKHR(_handle, out uint actualImageCount).CheckResult();
         Span<VkImage> swapChainImages = stackalloc VkImage[(int)actualImageCount];
@@ -266,11 +346,13 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         _acquireSemaphores = new VkSemaphore[actualImageCount];
         _releaseSemaphores = new VkSemaphore[actualImageCount];
         _backbufferTextures = new VulkanTexture[actualImageCount];
+        _acquireImageIndex = 0;
+        _acquireSemaphoreIndex = 0;
 
         for (int i = 0; i < actualImageCount; i++)
         {
             TextureDescriptor description = TextureDescriptor.Texture2D(
-                PixelFormat.BGRA8UnormSrgb, // createInfo.imageFormat.FromVkFormat(),
+                createInfo.imageFormat.FromVkFormat(),
                 createInfo.imageExtent.width,
                 createInfo.imageExtent.height,
                 usage: TextureUsage.RenderTarget
@@ -283,45 +365,6 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         }
     }
 
-    /// <inheritdoc/>
-    protected override void Destroy()
-    {
-        for (int i = 0; i < _backbufferTextures!.Length; ++i)
-        {
-            _backbufferTextures[i].Dispose();
-        }
-
-        base.Destroy();
-    }
-
-    /// <inheritdoc/>
-    protected internal override void BackendDestroy()
-    {
-        for (uint i = 0; i < _backbufferTextures!.Length; ++i)
-        {
-            _device.DeviceApi.vkDestroySemaphore(_acquireSemaphores[i]);
-            _device.DeviceApi.vkDestroySemaphore(_releaseSemaphores[i]);
-        }
-
-        _device.DeviceApi.vkDestroySwapchainKHR(_handle, null);
-        _device.VkAdapter.VkGraphicsManager.InstanceApi.vkDestroySurfaceKHR(
-            _surface,
-            null);
-    }
-
-    /// <inheritdoc />
-    protected override void OnLabelChanged(string? newLabel)
-    {
-        _device.SetObjectName(VK_OBJECT_TYPE_SURFACE_KHR, _handle, newLabel);
-        _device.SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, _handle, newLabel);
-    }
-
-    /// <inheritdoc />
-    protected override void OnResize(int newWidth, int newHeight)
-    {
-
-    }
-
     /// <inheritdoc />
     public override Texture? AcquireNextTexture()
     {
@@ -332,14 +375,15 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         }
 
         VkResult result = VK_SUCCESS;
-        lock (LockObject)
+        lock (_lock)
         {
             result = _device.DeviceApi.vkAcquireNextImageKHR(
                 Handle,
-                ulong.MaxValue,
+                TimeoutValue,
                 _acquireSemaphores![_acquireSemaphoreIndex],
                 VkFence.Null,
-                out _imageIndex);
+                out _acquireImageIndex
+                );
         }
 
         if (result != VK_SUCCESS)
@@ -347,15 +391,13 @@ internal unsafe partial class VulkanSwapChain : SwapChain
             // Handle outdated error in acquire
             if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
             {
-                //Device.WaitIdle();
-                //_queue.Device.UpdateSwapChain(vulkanSwapChain);
-                //return AcquireNextTexture();
-                return default;
+                OnResize(Width, Height);
+                return AcquireNextTexture();
             }
         }
 
         NeedAcquire = false;
-        return _backbufferTextures![_imageIndex];
+        return _backbufferTextures![_acquireImageIndex];
     }
 
     public void AdvanceFrame()

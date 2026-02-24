@@ -9,13 +9,13 @@ using XenoAtom.Collections;
 using static Alimer.Graphics.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Vulkan.VulkanUtils;
+using System.Collections.Concurrent;
 
 namespace Alimer.Graphics.Vulkan;
 
 internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 {
-    private const ulong TimeoutValue = 2000000000ul; // 2 seconds
-
     private readonly VulkanGraphicsAdapter _adapter;
     private readonly uint[] _queueFamilyIndices;
     private readonly uint[] _queueIndices;
@@ -52,6 +52,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkImageView _nullImageViewCubeArray = default;
     private readonly VkImageView _nullImageView3D = default;
     private readonly VkSampler _nullSampler = default;
+    protected readonly ConcurrentQueue<Tuple<VkSemaphore, ulong>> _deferredDestroySemaphores = new();
 
     public VulkanGraphicsDevice(VulkanGraphicsAdapter adapter, in GraphicsDeviceDescription description)
         : base(GraphicsBackend.Vulkan, description)
@@ -960,6 +961,28 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
+    protected override void ProcessDeletionQueue(bool force)
+    {
+        base.ProcessDeletionQueue(force);
+
+        while (!_deferredDestroySemaphores.IsEmpty)
+        {
+            if (_deferredDestroySemaphores.TryPeek(out Tuple<VkSemaphore, ulong>? item)
+                && (force || item.Item2 + MaxFramesInFlight < _frameCount))
+            {
+                if (_deferredDestroySemaphores.TryDequeue(out item))
+                {
+                    _deviceApi.vkDestroySemaphore(item.Item1);
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public override bool QueryFeatureSupport(Feature feature)
     {
         switch (feature)
@@ -1599,6 +1622,17 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 return 0;
             }
         });
+    }
+
+    public void QueueDestroySemaphore(VkSemaphore @object)
+    {
+        if (_shuttingDown)
+        {
+            _deviceApi.vkDestroySemaphore(@object);
+            return;
+        }
+
+        _deferredDestroySemaphores.Enqueue(Tuple.Create(@object, _frameCount));
     }
 
     public (VkDescriptorType DescriptorType, uint RegisterOffet) GetVkDescriptorType(BindGroupLayoutEntry entry)

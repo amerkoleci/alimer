@@ -196,8 +196,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
                 if (result != VK_SUCCESS)
                 {
                     // Handle outdated error in present
-                    if (result == VK_SUBOPTIMAL_KHR
-                        || result == VK_ERROR_OUT_OF_DATE_KHR)
+                    if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
                     {
                         //for (auto & swapchain : swapchain_updates)
                         //{

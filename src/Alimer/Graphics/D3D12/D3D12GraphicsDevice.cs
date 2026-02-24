@@ -658,7 +658,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     public D3D12UploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
-    public void Submit(in D3D12UploadContext context) => _copyAllocator.Submit(in context);
+    public void Submit(ref D3D12UploadContext context) => _copyAllocator.Submit(ref context);
 
     /// <inheritdoc />
     public override CommandQueue GetCommandQueue(CommandQueueType type) => _queues[(int)type];
