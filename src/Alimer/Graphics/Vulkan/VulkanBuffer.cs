@@ -177,10 +177,10 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
                 VkBufferMemoryBarrier2 barrier = new()
                 {
                     buffer = _handle,
-                    srcStageMask = VkPipelineStageFlags2.Transfer,
-                    dstStageMask = VkPipelineStageFlags2.AllCommands,
-                    srcAccessMask = VkAccessFlags2.TransferWrite,
-                    dstAccessMask = VkAccessFlags2.MemoryRead | VkAccessFlags2.MemoryWrite,
+                    srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
                     size = VK_WHOLE_SIZE,
                     srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                     dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
@@ -188,13 +188,13 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
                 if ((description.Usage & BufferUsage.Vertex) != 0)
                 {
-                    barrier.dstStageMask |= VkPipelineStageFlags2.VertexAttributeInput;
+                    barrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
                 }
 
                 if ((description.Usage & BufferUsage.Index) != 0)
                 {
-                    barrier.dstStageMask |= VkPipelineStageFlags2.IndexInput;
+                    barrier.dstStageMask |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
                 }
 
@@ -235,7 +235,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
                 _device.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
 
-                device.Submit(in context);
+                device.Submit(ref context);
             }
         }
     }
@@ -281,6 +281,8 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
 
         _handle = VkBuffer.Null;
     }
+
+    internal override void* GetMappedData() => pMappedData;
 
     /// <inheitdoc />
     protected override void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)

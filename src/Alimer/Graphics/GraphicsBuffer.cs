@@ -38,7 +38,8 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableR
     /// </summary>
     public abstract GPUAddress GpuAddress { get; }
 
-    public BufferStates CurrentState { get; internal set; }
+    internal BufferStates CurrentState { get; set; }
+    internal abstract void* GetMappedData();
 
     public void SetData<T>(in T source, uint offsetInBytes = 0)
         where T : unmanaged

@@ -30,6 +30,7 @@ using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_SAMPLER_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_COMPONENT_MAPPING;
+using System.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -459,139 +460,6 @@ internal static unsafe class D3D12Utils
         };
     }
 
-    public static D3D12TextureLayoutMapping ConvertTextureLayout(TextureLayout layout)
-    {
-        switch (layout)
-        {
-            case TextureLayout.Undefined:
-                return new(
-                    D3D12_BARRIER_LAYOUT_COMMON,
-                    D3D12_BARRIER_SYNC_NONE,
-                    D3D12_BARRIER_ACCESS_COMMON
-                    );
-
-            case TextureLayout.CopySource:
-                return new(
-                    D3D12_BARRIER_LAYOUT_COPY_SOURCE,
-                    D3D12_BARRIER_SYNC_COPY,
-                    D3D12_BARRIER_ACCESS_COPY_SOURCE
-                    );
-
-            case TextureLayout.CopyDest:
-                return new(
-                    D3D12_BARRIER_LAYOUT_COPY_DEST,
-                    D3D12_BARRIER_SYNC_COPY,
-                    D3D12_BARRIER_ACCESS_COPY_DEST
-                    );
-
-            case TextureLayout.ResolveSource:
-                return new(
-                    D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE,
-                    D3D12_BARRIER_SYNC_RESOLVE,
-                    D3D12_BARRIER_ACCESS_RESOLVE_SOURCE
-                    );
-
-            case TextureLayout.ResolveDest:
-                return new(
-                    D3D12_BARRIER_LAYOUT_RESOLVE_DEST,
-                    D3D12_BARRIER_SYNC_RESOLVE,
-                    D3D12_BARRIER_ACCESS_RESOLVE_DEST
-                    );
-
-            case TextureLayout.ShaderResource:
-                return new(
-                    D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
-                    D3D12_BARRIER_SYNC_ALL_SHADING,
-                    D3D12_BARRIER_ACCESS_SHADER_RESOURCE
-                    );
-
-            case TextureLayout.UnorderedAccess:
-                return new(
-                    D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
-                    D3D12_BARRIER_SYNC_ALL_SHADING,
-                    D3D12_BARRIER_ACCESS_UNORDERED_ACCESS
-                    );
-
-            case TextureLayout.RenderTarget:
-                return new(
-                    D3D12_BARRIER_LAYOUT_RENDER_TARGET,
-                    D3D12_BARRIER_SYNC_RENDER_TARGET,
-                    D3D12_BARRIER_ACCESS_RENDER_TARGET
-                    );
-
-            case TextureLayout.DepthWrite:
-                return new(
-                    D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE,
-                    D3D12_BARRIER_SYNC_DEPTH_STENCIL,
-                    D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE
-                    );
-
-            case TextureLayout.DepthRead:
-                return new(
-                    D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ,
-                    D3D12_BARRIER_SYNC_DEPTH_STENCIL,
-                    D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ
-                    );
-
-            case TextureLayout.Present:
-                return new(
-                    D3D12_BARRIER_LAYOUT_PRESENT,
-                    D3D12_BARRIER_SYNC_ALL,
-                    D3D12_BARRIER_ACCESS_COMMON
-                    );
-
-            case TextureLayout.ShadingRateSurface:
-                return new(
-                    D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE,
-                    D3D12_BARRIER_SYNC_PIXEL_SHADING,
-                    D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
-                    );
-
-            default:
-
-                return ThrowHelper.ThrowArgumentException<D3D12TextureLayoutMapping>();
-        }
-    }
-
-    public static D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(TextureLayout layout)
-    {
-        switch (layout)
-        {
-            case TextureLayout.Undefined:
-                return D3D12_RESOURCE_STATE_COMMON;
-
-            case TextureLayout.CopySource:
-                return D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-            case TextureLayout.CopyDest:
-                return D3D12_RESOURCE_STATE_COPY_DEST;
-
-            case TextureLayout.ShaderResource:
-                return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-
-            case TextureLayout.UnorderedAccess:
-                return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-
-            case TextureLayout.RenderTarget:
-                return D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-            case TextureLayout.DepthWrite:
-                return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-
-            case TextureLayout.DepthRead:
-                return D3D12_RESOURCE_STATE_DEPTH_READ;
-
-            case TextureLayout.Present:
-                return D3D12_RESOURCE_STATE_PRESENT;
-
-            case TextureLayout.ShadingRateSurface:
-                return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
-
-            default:
-                return ThrowHelper.ThrowArgumentException<D3D12_RESOURCE_STATES>("Unsupported texture layout");
-        }
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12RangeType(this BindGroupLayoutEntry entry)
     {
@@ -851,7 +719,84 @@ internal static unsafe class D3D12Utils
         return staticDesc;
     }
 
-    public static D3D12_RESOURCE_STATES ConvertBufferStateLegacy(this BufferStates states, CommandQueueType queueType)
+    public static ReadOnlySpan<byte> GetSemanticName(this VertexAttributeSemantic value)
+    {
+        return value switch
+        {
+            VertexAttributeSemantic.Position => "POSITION"u8,
+            VertexAttributeSemantic.Normal => "NORMAL"u8,
+            VertexAttributeSemantic.Tangent => "TANGENT"u8,
+            VertexAttributeSemantic.TexCoord => "TEXCOORD"u8,
+            VertexAttributeSemantic.Color => "COLOR"u8,
+            VertexAttributeSemantic.BlendIndices => "BLENDINDICES"u8,
+            VertexAttributeSemantic.BlendWeight => "BLENDWEIGHT"u8,
+            VertexAttributeSemantic.Custom => "CUSTOM"u8,
+            _ => default,
+        };
+    }
+
+    #region Buffer Barriers
+    public readonly record struct D3D12BufferStateMapping(BufferStates State, D3D12_BARRIER_SYNC Sync, D3D12_BARRIER_ACCESS Access);
+
+    private static readonly D3D12BufferStateMapping[] s_bufferStateMap =
+    [
+        new(BufferStates.CopyDest, D3D12_BARRIER_SYNC_COPY, D3D12_BARRIER_ACCESS_COPY_DEST),
+        new(BufferStates.CopySource, D3D12_BARRIER_SYNC_COPY, D3D12_BARRIER_ACCESS_COPY_SOURCE ),
+        new(BufferStates.ShaderResource, D3D12_BARRIER_SYNC_ALL_SHADING, D3D12_BARRIER_ACCESS_SHADER_RESOURCE),
+        new(BufferStates.UnorderedAccess, D3D12_BARRIER_SYNC_ALL_SHADING, D3D12_BARRIER_ACCESS_UNORDERED_ACCESS),
+        new(BufferStates.VertexBuffer, D3D12_BARRIER_SYNC_VERTEX_SHADING, D3D12_BARRIER_ACCESS_VERTEX_BUFFER ),
+        new(BufferStates.IndexBuffer, D3D12_BARRIER_SYNC_INDEX_INPUT, D3D12_BARRIER_ACCESS_INDEX_BUFFER),
+        new(BufferStates.ConstantBuffer, D3D12_BARRIER_SYNC_ALL_SHADING, D3D12_BARRIER_ACCESS_CONSTANT_BUFFER),
+        new(BufferStates.Predication, D3D12_BARRIER_SYNC_PREDICATION, D3D12_BARRIER_ACCESS_PREDICATION ),
+        #if TODO
+        new(BufferStates.IndirectArgument, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT },
+        new(BufferStates.StreamOut, VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT, VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT },
+        new(BufferStates.AccelerationStructureRead, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR },
+        new(BufferStates.AccelerationStructureWrite, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR },
+        new(BufferStates.AccelerationStructureBuildInput, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR},
+        new(BufferStates.OpacityMicromapWrite, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT },
+        new(BufferStates.OpacityMicromapBuildInput, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_SHADER_READ_BIT },
+            #endif // TODO
+    ];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12BufferStateMapping ConvertBufferState(BufferStates state)
+    {
+        BufferStates resultState = BufferStates.Undefined;
+        D3D12_BARRIER_SYNC resultSync = D3D12_BARRIER_SYNC_NONE;
+        D3D12_BARRIER_ACCESS resultAccess = D3D12_BARRIER_ACCESS_COMMON;
+
+        int numStateBits = s_bufferStateMap.Length;
+
+        uint stateTmp = (uint)state;
+        uint bitIndex = 0;
+
+        while (stateTmp != 0 && bitIndex < numStateBits)
+        {
+            uint bit = (1u << (int)bitIndex);
+
+            if ((stateTmp & bit) != 0)
+            {
+                ref D3D12BufferStateMapping mapping = ref s_bufferStateMap[bitIndex];
+
+                Debug.Assert((uint)mapping.State == bit);
+
+                resultState |= mapping.State;
+                resultSync |= mapping.Sync;
+                resultAccess |= mapping.Access;
+
+                stateTmp &= ~bit;
+            }
+
+            bitIndex++;
+        }
+
+        Debug.Assert(resultState == state);
+
+        return new(resultState, resultSync, resultAccess);
+    }
+
+    public static D3D12_RESOURCE_STATES ConvertBufferStateLegacy(BufferStates states, CommandQueueType queueType)
     {
         D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
 
@@ -863,7 +808,7 @@ internal static unsafe class D3D12Utils
 
         if ((states & BufferStates.ShaderResource) != 0)
         {
-            result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
             if (queueType == CommandQueueType.Graphics)
                 result |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
@@ -893,39 +838,117 @@ internal static unsafe class D3D12Utils
 
         return result;
     }
+    #endregion
 
-    public static ReadOnlySpan<byte> GetSemanticName(this VertexAttributeSemantic value)
+    #region Texture Barriers
+    public readonly record struct D3D12TextureLayoutMapping(D3D12_BARRIER_LAYOUT Layout, D3D12_BARRIER_SYNC Sync, D3D12_BARRIER_ACCESS Access);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static D3D12TextureLayoutMapping ConvertTextureLayout(TextureLayout layout)
     {
-        switch (value)
+        return layout switch
         {
-            case VertexAttributeSemantic.Position:
-                return "POSITION"u8;
-
-            case VertexAttributeSemantic.Normal:
-                return "NORMAL"u8;
-
-            case VertexAttributeSemantic.Tangent:
-                return "TANGENT"u8;
-
-            case VertexAttributeSemantic.TexCoord:
-                return "TEXCOORD"u8;
-
-            case VertexAttributeSemantic.Color:
-                return "COLOR"u8;
-
-            case VertexAttributeSemantic.BlendIndices:
-                return "BLENDINDICES"u8;
-
-            case VertexAttributeSemantic.BlendWeight:
-                return "BLENDWEIGHT"u8;
-
-            case VertexAttributeSemantic.Custom:
-                return "CUSTOM"u8;
-
-            default:
-                return default;
-        }
+            TextureLayout.Undefined => new(
+                                D3D12_BARRIER_LAYOUT_COMMON,
+                                D3D12_BARRIER_SYNC_NONE,
+                                D3D12_BARRIER_ACCESS_COMMON
+                                ),
+            TextureLayout.CopySource => new(
+                                D3D12_BARRIER_LAYOUT_COPY_SOURCE,
+                                D3D12_BARRIER_SYNC_COPY,
+                                D3D12_BARRIER_ACCESS_COPY_SOURCE
+                                ),
+            TextureLayout.CopyDest => new(
+                                D3D12_BARRIER_LAYOUT_COPY_DEST,
+                                D3D12_BARRIER_SYNC_COPY,
+                                D3D12_BARRIER_ACCESS_COPY_DEST
+                                ),
+            TextureLayout.ResolveSource => new(
+                                D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE,
+                                D3D12_BARRIER_SYNC_RESOLVE,
+                                D3D12_BARRIER_ACCESS_RESOLVE_SOURCE
+                                ),
+            TextureLayout.ResolveDest => new(
+                                D3D12_BARRIER_LAYOUT_RESOLVE_DEST,
+                                D3D12_BARRIER_SYNC_RESOLVE,
+                                D3D12_BARRIER_ACCESS_RESOLVE_DEST
+                                ),
+            TextureLayout.ShaderResource => new(
+                                D3D12_BARRIER_LAYOUT_SHADER_RESOURCE,
+                                D3D12_BARRIER_SYNC_ALL_SHADING,
+                                D3D12_BARRIER_ACCESS_SHADER_RESOURCE
+                                ),
+            TextureLayout.UnorderedAccess => new(
+                                D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS,
+                                D3D12_BARRIER_SYNC_ALL_SHADING,
+                                D3D12_BARRIER_ACCESS_UNORDERED_ACCESS
+                                ),
+            TextureLayout.RenderTarget => new(
+                                D3D12_BARRIER_LAYOUT_RENDER_TARGET,
+                                D3D12_BARRIER_SYNC_RENDER_TARGET,
+                                D3D12_BARRIER_ACCESS_RENDER_TARGET
+                                ),
+            TextureLayout.DepthWrite => new(
+                                D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE,
+                                D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                                D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE
+                                ),
+            TextureLayout.DepthRead => new(
+                                D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ,
+                                D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+                                D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ
+                                ),
+            TextureLayout.Present => new(
+                                D3D12_BARRIER_LAYOUT_PRESENT,
+                                D3D12_BARRIER_SYNC_ALL,
+                                D3D12_BARRIER_ACCESS_COMMON
+                                ),
+            TextureLayout.ShadingRateSurface => new(
+                                D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE,
+                                D3D12_BARRIER_SYNC_PIXEL_SHADING,
+                                D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
+                                ),
+            _ => ThrowHelper.ThrowArgumentException<D3D12TextureLayoutMapping>(),
+        };
     }
 
-    public readonly record struct D3D12TextureLayoutMapping(D3D12_BARRIER_LAYOUT Layout, D3D12_BARRIER_SYNC Sync, D3D12_BARRIER_ACCESS Access);
+    public static D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(TextureLayout layout)
+    {
+        switch (layout)
+        {
+            case TextureLayout.Undefined:
+                return D3D12_RESOURCE_STATE_COMMON;
+
+            case TextureLayout.CopySource:
+                return D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+            case TextureLayout.CopyDest:
+                return D3D12_RESOURCE_STATE_COPY_DEST;
+
+            case TextureLayout.ShaderResource:
+                return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+            case TextureLayout.UnorderedAccess:
+                return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+            case TextureLayout.RenderTarget:
+                return D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+            case TextureLayout.DepthWrite:
+                return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+            case TextureLayout.DepthRead:
+                return D3D12_RESOURCE_STATE_DEPTH_READ;
+
+            case TextureLayout.Present:
+                return D3D12_RESOURCE_STATE_PRESENT;
+
+            case TextureLayout.ShadingRateSurface:
+                return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
+
+            default:
+                return ThrowHelper.ThrowArgumentException<D3D12_RESOURCE_STATES>("Unsupported texture layout");
+        }
+    }
+    #endregion
 }

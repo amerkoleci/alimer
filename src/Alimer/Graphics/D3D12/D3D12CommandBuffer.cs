@@ -46,12 +46,13 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     private readonly D3D12RenderPassEncoder _renderPassEncoder;
     private readonly D3D12ComputePassEncoder _computePassEncoder;
 
-    private uint _numBarriersToFlush;
+    private uint _globalBarriersCount;
     private uint _textureBarriersCount;
+    private uint _bufferBarriersCount;
     private readonly D3D12_RESOURCE_BARRIER[] _resourceBarriers = new D3D12_RESOURCE_BARRIER[MaxBarriers];
-    //private readonly D3D12_GLOBAL_BARRIER[] _globalBarriers = new D3D12_GLOBAL_BARRIER[MaxBarriers];
+    private readonly D3D12_GLOBAL_BARRIER[] _globalBarriers = new D3D12_GLOBAL_BARRIER[MaxBarriers];
     private readonly D3D12_TEXTURE_BARRIER[] _textureBarriers = new D3D12_TEXTURE_BARRIER[MaxBarriers];
-    //private readonly D3D12_BUFFER_BARRIER[] _bufferBarriers = new D3D12_BUFFER_BARRIER[MaxBarriers];
+    private readonly D3D12_BUFFER_BARRIER[] _bufferBarriers = new D3D12_BUFFER_BARRIER[MaxBarriers];
 
     private D3D12PipelineLayout? _currentPipelineLayout;
 
@@ -123,9 +124,13 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _currentPipelineLayout = default;
         _bindGroupsDirty = false;
         _numBoundBindGroups = 0;
-        _numBarriersToFlush = 0;
+        _globalBarriersCount = 0;
         _textureBarriersCount = 0;
+        _bufferBarriersCount = 0;
+        Array.Clear(_resourceBarriers, 0, _resourceBarriers.Length);
+        Array.Clear(_globalBarriers, 0, _globalBarriers.Length);
         Array.Clear(_textureBarriers, 0, _textureBarriers.Length);
+        Array.Clear(_bufferBarriers, 0, _bufferBarriers.Length);
         Array.Clear(_boundBindGroups, 0, _boundBindGroups.Length);
 
         // Start the command list in a default state:
@@ -168,6 +173,73 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _encoderActive = false;
     }
 
+    public void BufferBarrier(D3D12Buffer buffer, BufferStates newState, bool commit = false)
+    {
+        if (buffer.ImmutableState || buffer.CurrentState == newState)
+            return;
+
+        if (_queue.D3DDevice.EnhancedBarriersSupported)
+        {
+            D3D12BufferStateMapping mappingBefore = ConvertBufferState(buffer.CurrentState);
+            D3D12BufferStateMapping mappingAfter = ConvertBufferState(newState);
+
+            Guard.IsTrue(_bufferBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffer barriers");
+
+            ref D3D12_BUFFER_BARRIER barrier = ref _bufferBarriers[_bufferBarriersCount++];
+            barrier.SyncBefore = mappingBefore.Sync;
+            barrier.SyncAfter = mappingAfter.Sync;
+            barrier.AccessBefore = mappingBefore.Access;
+            barrier.AccessAfter = mappingAfter.Access;
+            barrier.pResource = buffer.Handle;
+            barrier.Offset = 0;
+            barrier.Size = UINT64_MAX;
+
+            commit = _textureBarriersCount == MaxBarriers;
+
+            buffer.CurrentState = newState;
+        }
+        else
+        {
+            D3D12_RESOURCE_STATES oldStateLegacy = ConvertBufferStateLegacy(buffer.CurrentState, _queue.QueueType);
+            D3D12_RESOURCE_STATES newStateLegacy = ConvertBufferStateLegacy(newState, _queue.QueueType);
+
+            if (_queue.QueueType == CommandQueueType.Compute)
+            {
+                Guard.IsTrue((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
+                Guard.IsTrue((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
+            }
+            else if (_queue.QueueType == CommandQueueType.Copy)
+            {
+                Guard.IsTrue((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
+                Guard.IsTrue((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);
+            }
+
+            if (oldStateLegacy != newStateLegacy)
+            {
+                Guard.IsTrue(_globalBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
+
+                ref D3D12_RESOURCE_BARRIER barrier = ref _resourceBarriers[_globalBarriersCount++];
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Transition.pResource = buffer.Handle;
+                barrier.Transition.Subresource = 0;
+                barrier.Transition.StateBefore = oldStateLegacy;
+                barrier.Transition.StateAfter = newStateLegacy;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            }
+            else if (newStateLegacy == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+            {
+                InsertUAVBarrier(buffer.Handle, commit);
+            }
+        }
+
+        if (commit || _globalBarriersCount == MaxBarriers)
+        {
+            CommitBarriers();
+        }
+
+        buffer.CurrentState = newState;
+    }
+
     public void TextureBarrier(D3D12TextureView view, TextureLayout newLayout, bool commit = false)
     {
         D3D12Texture backendTexture = (D3D12Texture)view.Texture;
@@ -181,7 +253,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
                 TextureBarrier(backendTexture, newLayout, subresource, commit);
             }
         }
-
     }
 
     public void TextureBarrier(D3D12Texture resource, TextureLayout newLayout, uint subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false)
@@ -244,9 +315,9 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
             if (oldStateLegacy != newStateLegacy)
             {
-                Guard.IsTrue(_numBarriersToFlush < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
+                Guard.IsTrue(_globalBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
 
-                ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
+                ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_globalBarriersCount++];
                 barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 barrierDesc.Transition.pResource = resource.Handle;
                 barrierDesc.Transition.Subresource = subresource; // D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -272,7 +343,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             }
         }
 
-        if (commit || _numBarriersToFlush == MaxBarriers)
+        if (commit || _globalBarriersCount == MaxBarriers)
         {
             CommitBarriers();
         }
@@ -280,8 +351,8 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public void InsertUAVBarrier(ID3D12Resource* resource, bool commit = false)
     {
-        Guard.IsTrue(_numBarriersToFlush < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
-        ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_numBarriersToFlush++];
+        Guard.IsTrue(_globalBarriersCount < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
+        ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_globalBarriersCount++];
 
         barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
         barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -293,19 +364,20 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public void CommitBarriers()
     {
-        //if (!globalBarriers.empty() || !textureBarriers.empty() || !bufferBarriers.empty())
-        if (_textureBarriersCount > 0)
+        if (_globalBarriersCount > 0
+            || _textureBarriersCount > 0
+            || _bufferBarriersCount > 0)
         {
             uint numBarrierGroups = 0;
             D3D12_BARRIER_GROUP* barrierGroups = stackalloc D3D12_BARRIER_GROUP[3];
 
-            //if (!globalBarriers.empty())
-            //{
-            //    barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_GLOBAL;
-            //    barrierGroups[numBarrierGroups].NumBarriers = (UINT32)globalBarriers.size();
-            //    barrierGroups[numBarrierGroups].pGlobalBarriers = globalBarriers.data();
-            //    numBarrierGroups++;
-            //}
+            if (_globalBarriersCount > 0)
+            {
+                barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_GLOBAL;
+                barrierGroups[numBarrierGroups].NumBarriers = _globalBarriersCount;
+                barrierGroups[numBarrierGroups].pGlobalBarriers = (D3D12_GLOBAL_BARRIER*)Unsafe.AsPointer(ref UnsafeUtilities.GetReferenceUnsafe(_globalBarriers));
+                numBarrierGroups++;
+            }
 
             if (_textureBarriersCount > 0)
             {
@@ -315,28 +387,28 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
                 numBarrierGroups++;
             }
 
-            //if (!bufferBarriers.empty())
-            //{
-            //    barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_BUFFER;
-            //    barrierGroups[numBarrierGroups].NumBarriers = (UINT32)bufferBarriers.size();
-            //    barrierGroups[numBarrierGroups].pBufferBarriers = bufferBarriers.data();
-            //    numBarrierGroups++;
-            //}
+            if (_bufferBarriersCount > 0)
+            {
+                barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_BUFFER;
+                barrierGroups[numBarrierGroups].NumBarriers = _bufferBarriersCount;
+                barrierGroups[numBarrierGroups].pBufferBarriers = (D3D12_BUFFER_BARRIER*)Unsafe.AsPointer(ref UnsafeUtilities.GetReferenceUnsafe(_bufferBarriers));
+                numBarrierGroups++;
+            }
 
             _commandList7.Get()->Barrier(numBarrierGroups, barrierGroups);
 
-            //globalBarriers.clear();
+            _globalBarriersCount = 0;
             _textureBarriersCount = 0;
-            //bufferBarriers.clear();
+            _bufferBarriersCount = 0;
         }
-        else if (_numBarriersToFlush > 0)
+        else if (_globalBarriersCount > 0)
         {
             fixed (D3D12_RESOURCE_BARRIER* pBarriers = _resourceBarriers)
             {
-                _commandList6.Get()->ResourceBarrier(_numBarriersToFlush, pBarriers);
+                _commandList6.Get()->ResourceBarrier(_globalBarriersCount, pBarriers);
             }
 
-            _numBarriersToFlush = 0;
+            _globalBarriersCount = 0;
         }
     }
 
@@ -438,6 +510,35 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
 
         _bindGroupsDirty = false;
+    }
+
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
+    {
+        D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
+        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
+
+        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        CommitBarriers();
+
+        // Note: D3D12 inverts the order of source and destination parameters
+        _commandList6.Get()->CopyResource(backendDestBuffer.Handle, backendSrcBuffer.Handle);
+    }
+
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    {
+        D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
+        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
+
+        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        CommitBarriers();
+
+        // Note: D3D12 inverts the order of source and destination parameters
+        _commandList6.Get()->CopyBufferRegion(
+            backendDestBuffer.Handle, destinationOffset,
+            backendSrcBuffer.Handle, sourceOffset,
+            size);
     }
 
     public override void Present(SwapChain swapChain)

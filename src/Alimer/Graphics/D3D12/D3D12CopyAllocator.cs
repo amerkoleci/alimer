@@ -16,7 +16,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12CommandQueue> _queue;
     private readonly Lock _lock = new();
-    private readonly List<D3D12UploadContext> _freelist = [];
+    private readonly List<D3D12UploadContext> _freeList = [];
 
     public D3D12CopyAllocator(D3D12GraphicsDevice device)
     {
@@ -46,7 +46,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
     {
         _queue.Dispose();
 
-        foreach (D3D12UploadContext context in _freelist)
+        foreach (D3D12UploadContext context in _freeList)
         {
             context.CommandAllocator.Dispose();
             context.CommandList.Dispose();
@@ -64,14 +64,14 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         lock (_lock)
         {
             // Try to search for a staging buffer that can fit the request:
-            for (int i = 0; i < _freelist.Count; ++i)
+            for (int i = 0; i < _freeList.Count; ++i)
             {
-                if (_freelist[i].UploadBufferSize >= stagingSize)
+                if (_freeList[i].UploadBufferSize >= stagingSize)
                 {
                     // Swap the found context with the last one and remove it from the freelist
-                    context = _freelist[i];
-                    (_freelist[_freelist.Count - 1], _freelist[i]) = (_freelist[i], _freelist[_freelist.Count - 1]);
-                    _freelist.RemoveAt(_freelist.Count - 1);
+                    context = _freeList[i];
+                    (_freeList[_freeList.Count - 1], _freeList[i]) = (_freeList[i], _freeList[_freeList.Count - 1]);
+                    _freeList.RemoveAt(_freeList.Count - 1);
                     break;
                 }
             }
@@ -130,12 +130,12 @@ internal unsafe class D3D12CopyAllocator : IDisposable
 
         lock (_lock)
         {
-            _freelist.Add(context);
+            _freeList.Add(context);
         }
     }
 }
 
-internal unsafe struct D3D12UploadContext
+internal struct D3D12UploadContext
 {
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
     public ComPtr<ID3D12GraphicsCommandList> CommandList;
@@ -144,7 +144,7 @@ internal unsafe struct D3D12UploadContext
     public ulong UploadBufferSize;
     public D3D12Buffer UploadBuffer = null!;
 
-    public readonly bool IsValid => CommandList.Get() != null;
+    public readonly unsafe bool IsValid => CommandList.Get() != null;
 
     public D3D12UploadContext()
     {

@@ -203,6 +203,8 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         _handle.Get()->SetName(newLabel);
     }
 
+    internal override void* GetMappedData() => pMappedData;
+
     /// <inheitdoc />
     protected override void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
     {

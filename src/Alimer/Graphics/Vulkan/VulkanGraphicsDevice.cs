@@ -719,7 +719,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 VkImageMemoryBarrier2 barrier = new()
                 {
                     oldLayout = imageInfo.initialLayout,
-                    newLayout = VkImageLayout.General,
+                    newLayout = VK_IMAGE_LAYOUT_GENERAL,
                     srcStageMask = VkPipelineStageFlags2.Transfer,
                     srcAccessMask = 0,
                     dstStageMask = VkPipelineStageFlags2.AllCommands,
@@ -745,7 +745,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 barrier.subresourceRange.layerCount = 1;
                 _deviceApi.vkCmdPipelineBarrier2(uploadContext.TransitionCommandBuffer, &dependencyInfo);
 
-                Submit(in uploadContext);
+                Submit(ref uploadContext);
             }
 
             VkImageViewCreateInfo imageViewInfo = new();
@@ -905,6 +905,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         _copyAllocator.Dispose();
+
+        for (int i = 0; i < MaxFramesInFlight; i++)
+        {
+            _frameAllocators[i].Buffer?.Dispose();
+        }
 
         foreach (VkSampler sampler in _samplerCache.Values)
         {
@@ -1307,7 +1312,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public uint GetQueueIndex(CommandQueueType queueType) => _queueIndices[(int)queueType];
 
     public VulkanUploadContext Allocate(ulong size) => _copyAllocator.Allocate(size);
-    public void Submit(in VulkanUploadContext context) => _copyAllocator.Submit(in context);
+    public void Submit(ref VulkanUploadContext context) => _copyAllocator.Submit(ref context);
 
     public static void AddUniqueFamily(uint* sharingIndices, ref uint count, uint family)
     {

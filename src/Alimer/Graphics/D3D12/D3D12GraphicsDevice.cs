@@ -407,6 +407,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
         _copyAllocator.Dispose();
 
+        for (int i = 0; i < MaxFramesInFlight; i++)
+        {
+            _frameAllocators[i].Buffer?.Dispose();
+        }
+
         ProcessDeletionQueue(true);
         _frameCount = 0;
         _frameIndex = 0;

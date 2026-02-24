@@ -698,7 +698,11 @@ internal static class VulkanUtils
         return new VkComponentMapping(value.Red.ToVk(), value.Green.ToVk(), value.Blue.ToVk(), value.Alpha.ToVk());
     }
 
-    private static readonly VkBufferStateMapping[] s_bufferStateMap = [
+    #region Buffer Barriers
+    public readonly record struct VkBufferStateMapping(BufferStates State, VkPipelineStageFlags2 StageFlags, VkAccessFlags2 AccessMask);
+
+    private static readonly VkBufferStateMapping[] s_bufferStateMap =
+    [
         new(BufferStates.CopyDest, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT),
         new(BufferStates.CopySource, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT),
         new(BufferStates.ShaderResource, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT),
@@ -708,15 +712,56 @@ internal static class VulkanUtils
         new(BufferStates.ConstantBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_UNIFORM_READ_BIT),
         new(BufferStates.Predication, VK_PIPELINE_STAGE_2_CONDITIONAL_RENDERING_BIT_EXT, VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT),
 #if TODO
-            { ResourceStates::IndirectArgument, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT },
-            { ResourceStates::StreamOut, VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT, VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT },
-            { ResourceStates::AccelerationStructureRead, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR },
-            { ResourceStates::AccelerationStructureWrite, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR },
-            { ResourceStates::AccelerationStructureBuildInput, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR},
-            { ResourceStates::OpacityMicromapWrite, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT },
-            { ResourceStates::OpacityMicromapBuildInput, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_SHADER_READ_BIT },
+        new(ResourceStates.IndirectArgument, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT),
+        new(ResourceStates.StreamOut, VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT, VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT),
+        new(ResourceStates.AccelerationStructureRead, VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR),
+        new(ResourceStates.AccelerationStructureWrite, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR),
+        new(ResourceStates.AccelerationStructureBuildInput, VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR),
+        new(ResourceStates.OpacityMicromapWrite, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT),
+        new(ResourceStates.OpacityMicromapBuildInput, VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT, VK_ACCESS_2_SHADER_READ_BIT),
 #endif // TODO        
     ];
+
+
+    public static VkBufferStateMapping ConvertBufferState(BufferStates state)
+    {
+        BufferStates resultState = BufferStates.Undefined;
+        VkPipelineStageFlags2 resultStageFlags = VkPipelineStageFlags2.None;
+        VkAccessFlags2 resultAccessMask = VkAccessFlags2.None;
+
+        int numStateBits = s_bufferStateMap.Length;
+
+        uint stateTmp = (uint)state;
+        uint bitIndex = 0;
+
+        while (stateTmp != 0 && bitIndex < numStateBits)
+        {
+            uint bit = (1u << (int)bitIndex);
+
+            if ((stateTmp & bit) != 0)
+            {
+                ref VkBufferStateMapping mapping = ref s_bufferStateMap[bitIndex];
+
+                Debug.Assert((uint)mapping.State == bit);
+
+                resultState |= mapping.State;
+                resultAccessMask |= mapping.AccessMask;
+                resultStageFlags |= mapping.StageFlags;
+
+                stateTmp &= ~bit;
+            }
+
+            bitIndex++;
+        }
+
+        Debug.Assert(resultState == state);
+
+        return new(resultState, resultStageFlags, resultAccessMask);
+    }
+    #endregion
+
+    #region Texture Barriers
+    public readonly record struct VkImageLayoutMapping(VkImageLayout Layout, VkPipelineStageFlags2 StageFlags, VkAccessFlags2 AccessMask);
 
     public static VkImageLayoutMapping ConvertImageLayout(TextureLayout layout, bool depthOnlyFormat)
     {
@@ -785,43 +830,5 @@ internal static class VulkanUtils
             _ => ThrowHelper.ThrowArgumentException<VkImageLayoutMapping>(),
         };
     }
-
-    public static VkBufferStateMapping ConvertBufferState(BufferStates state)
-    {
-        BufferStates resultState = BufferStates.Undefined;
-        VkPipelineStageFlags2 resultStageFlags = VkPipelineStageFlags2.None;
-        VkAccessFlags2 resultAccessMask = VkAccessFlags2.None;
-
-        int numStateBits = s_bufferStateMap.Length;
-
-        uint stateTmp = (uint)state;
-        uint bitIndex = 0;
-
-        while (stateTmp != 0 && bitIndex < numStateBits)
-        {
-            uint bit = (1u << (int)bitIndex);
-
-            if ((stateTmp & bit) != 0)
-            {
-                ref VkBufferStateMapping mapping = ref s_bufferStateMap[bitIndex];
-
-                Debug.Assert((uint)mapping.State == bit);
-
-                resultState |= mapping.State;
-                resultAccessMask |= mapping.AccessMask;
-                resultStageFlags |= mapping.StageFlags;
-
-                stateTmp &= ~bit;
-            }
-
-            bitIndex++;
-        }
-
-        Debug.Assert(resultState == state);
-
-        return new(resultState, resultStageFlags, resultAccessMask);
-    }
-
-    public readonly record struct VkImageLayoutMapping(VkImageLayout Layout, VkPipelineStageFlags2 StageFlags, VkAccessFlags2 AccessMask);
-    public readonly record struct VkBufferStateMapping(BufferStates State, VkPipelineStageFlags2 StageFlags, VkAccessFlags2 AccessMask);
+    #endregion
 }

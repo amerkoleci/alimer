@@ -174,19 +174,6 @@ public static partial class MathUtilities
     /// <returns><paramref name="address" /> rounded up to the specified <paramref name="alignment" />.</returns>
     /// <remarks>This method does not account for an <paramref name="alignment" /> which is not a <c>power of two</c>.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int AlignUp(int address, int alignment)
-    {
-        Debug.Assert(BitOperations.IsPow2(alignment));
-
-        return (address + (alignment - 1)) & ~(alignment - 1);
-    }
-
-    /// <summary>Rounds a given address up to the nearest alignment.</summary>
-    /// <param name="address">The address to be aligned.</param>
-    /// <param name="alignment">The target alignment, which should be a power of two.</param>
-    /// <returns><paramref name="address" /> rounded up to the specified <paramref name="alignment" />.</returns>
-    /// <remarks>This method does not account for an <paramref name="alignment" /> which is not a <c>power of two</c>.</remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint AlignUp(uint address, uint alignment)
     {
         Debug.Assert(IsPow2(alignment));
@@ -218,16 +205,6 @@ public static partial class MathUtilities
         Debug.Assert(IsPow2(alignment));
 
         return (address + (alignment - 1)) & ~(alignment - 1);
-    }
-
-    public static T AlignUp<T>(T value, T size) where T : IBinaryInteger<T>
-    {
-        return (value + (size - T.One)) & -size;
-    }
-
-    public static T AlignDown<T>(T value, T size) where T : IBinaryInteger<T>
-    {
-        return value & -size;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

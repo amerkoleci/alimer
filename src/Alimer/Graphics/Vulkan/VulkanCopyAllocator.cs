@@ -10,7 +10,8 @@ namespace Alimer.Graphics.Vulkan;
 internal unsafe class VulkanCopyAllocator : IDisposable
 {
     private readonly VulkanGraphicsDevice _device;
-    private readonly List<VulkanUploadContext> _freelist = [];
+    private readonly Lock _lock = new();
+    private readonly List<VulkanUploadContext> _freeList = [];
 
     public VulkanCopyAllocator(VulkanGraphicsDevice device)
     {
@@ -20,7 +21,7 @@ internal unsafe class VulkanCopyAllocator : IDisposable
     public void Dispose()
     {
         _device.DeviceApi.vkQueueWaitIdle(_device.VkCopyQueue.Handle);
-        foreach (VulkanUploadContext context in _freelist)
+        foreach (VulkanUploadContext context in _freeList)
         {
             _device.DeviceApi.vkDestroyCommandPool(context.TransferCommandPool);
             _device.DeviceApi.vkDestroyCommandPool(context.TransitionCommandPool);
@@ -38,20 +39,20 @@ internal unsafe class VulkanCopyAllocator : IDisposable
     {
         VulkanUploadContext context = new();
 
-        lock (_freelist)
+        lock (_lock)
         {
             // Try to search for a staging buffer that can fit the request:
-            for (int i = 0; i < _freelist.Count; ++i)
+            for (int i = 0; i < _freeList.Count; ++i)
             {
-                if (_freelist[i].UploadBufferSize >= size)
+                if (_freeList[i].UploadBufferSize >= size)
                 {
-                    if (_device.DeviceApi.vkGetFenceStatus(_freelist[i].Fence) == VkResult.Success)
+                    if (_device.DeviceApi.vkGetFenceStatus(_freeList[i].Fence) == VkResult.Success)
                     {
-                        context = _freelist[i];
-                        VulkanUploadContext temp = _freelist[i];
-                        _freelist[i] = _freelist[_freelist.Count - 1];
-                        _freelist[_freelist.Count - 1] = temp;
-                        _freelist.RemoveAt(_freelist.Count - 1);
+                        context = _freeList[i];
+                        VulkanUploadContext temp = _freeList[i];
+                        _freeList[i] = _freeList[_freeList.Count - 1];
+                        _freeList[_freeList.Count - 1] = temp;
+                        _freeList.RemoveAt(_freeList.Count - 1);
                         break;
                     }
                 }
@@ -96,11 +97,10 @@ internal unsafe class VulkanCopyAllocator : IDisposable
         return context;
     }
 
-    public void Submit(in VulkanUploadContext context)
+    public void Submit(ref VulkanUploadContext context)
     {
         _device.DeviceApi.vkEndCommandBuffer(context.TransferCommandBuffer).CheckResult();
         _device.DeviceApi.vkEndCommandBuffer(context.TransitionCommandBuffer).CheckResult();
-
 
         // Copy queue first
         {
@@ -222,9 +222,9 @@ internal unsafe class VulkanCopyAllocator : IDisposable
             }
         }
 
-        lock (_freelist)
+        lock (_freeList)
         {
-            _freelist.Add(context);
+            _freeList.Add(context);
         }
     }
 }

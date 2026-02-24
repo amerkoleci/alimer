@@ -222,6 +222,46 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         return _renderPassEncoder;
     }
 
+
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
+    {
+        VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
+        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
+
+        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        CommitBarriers();
+
+        VkBufferCopy copy = new()
+        {
+            srcOffset = 0,
+            dstOffset = 0,
+            size = Math.Min(backendSrcBuffer.Size, backendDestBuffer.Size)
+        };
+
+        _deviceApi.vkCmdCopyBuffer(_commandBuffer, backendSrcBuffer.Handle, backendDestBuffer.Handle, 1, &copy);
+    }
+
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    {
+
+        VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
+        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
+
+        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        CommitBarriers();
+
+        VkBufferCopy copy = new()
+        {
+            srcOffset = sourceOffset,
+            dstOffset = destinationOffset,
+            size = size
+        };
+
+        _deviceApi.vkCmdCopyBuffer(_commandBuffer, backendSrcBuffer.Handle, backendDestBuffer.Handle, 1, &copy);
+    }
+
     public override void Present(SwapChain swapChain)
     {
         VulkanSwapChain backendSwapChain = (VulkanSwapChain)swapChain;

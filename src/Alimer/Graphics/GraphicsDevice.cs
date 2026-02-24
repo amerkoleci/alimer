@@ -15,12 +15,18 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected ulong _frameCount = 0;
     protected readonly ConcurrentQueue<Tuple<GraphicsObject, ulong>> _deferredDestroyObjects = new();
     protected bool _shuttingDown;
+    protected readonly GPULinearAllocator[] _frameAllocators;
 
     public GraphicsDevice(GraphicsBackend backend, in GraphicsDeviceDescription description)
         : base(description.Label)
     {
         Backend = backend;
         MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, Constants.DefaultMaxFramesInFlight), 3u);
+        _frameAllocators = new GPULinearAllocator[MaxFramesInFlight];
+        for (int i = 0; i < MaxFramesInFlight; i++)
+        {
+            _frameAllocators[i] = new GPULinearAllocator();
+        }
     }
 
     /// <summary>
@@ -93,6 +99,24 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// </summary>
     public uint FrameIndex => _frameIndex;
 
+    public uint LinearAllocatorAlignment
+    {
+        get
+        {
+            field = Math.Max(field, Limits.MinConstantBufferOffsetAlignment);
+            field = Math.Max(field, Limits.MinStorageBufferOffsetAlignment);
+            return field;
+        }
+    }
+
+    /// <summary>
+    /// Gets the frame allocator used for GPU memory management in the current rendering frame.
+    /// </summary>
+    /// <remarks>The frame allocator provides efficient, per-frame memory allocation for GPU resources.
+    /// Accessing this property allows developers to allocate temporary GPU memory that is automatically reset each
+    /// frame, which is useful for transient resource management during rendering operations.</remarks>
+    public GPULinearAllocator FrameAllocator => _frameAllocators[_frameIndex];
+
     public abstract bool QueryFeatureSupport(Feature feature);
 
     public abstract PixelFormatSupport QueryPixelFormatSupport(PixelFormat format);
@@ -119,6 +143,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     protected void AdvanceFrame()
     {
         // Begin new frame
+        _frameAllocators[_frameIndex].Reset();
         _frameCount++;
         _frameIndex = (uint)(_frameCount % MaxFramesInFlight);
     }

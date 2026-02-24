@@ -7,7 +7,7 @@ namespace Alimer.Graphics;
 /// Enum indicating <see cref="GraphicsBuffer"/> state.
 /// </summary>
 [Flags]
-public enum BufferStates : uint
+internal enum BufferStates : uint
 {
     Undefined = 0,
     CopyDest = 1 << 0,

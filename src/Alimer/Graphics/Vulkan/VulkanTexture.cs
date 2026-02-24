@@ -338,7 +338,7 @@ internal unsafe class VulkanTexture : Texture
                     &dependencyInfo
                     );
 
-                device.Submit(in context);
+                device.Submit(ref context);
             }
         }
         else if (initialLayout != TextureLayout.Undefined)
@@ -370,7 +370,7 @@ internal unsafe class VulkanTexture : Texture
 
             VkDevice.DeviceApi.vkCmdPipelineBarrier2(context.TransitionCommandBuffer, &dependencyInfo);
 
-            VkDevice.Submit(in context);
+            VkDevice.Submit(ref context);
 
             SetTextureLayout(initialLayout);
         }
