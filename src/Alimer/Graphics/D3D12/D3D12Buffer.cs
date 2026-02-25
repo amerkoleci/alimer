@@ -2,16 +2,15 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
 using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.Windows.E;
-using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -19,7 +18,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly nint _allocation;
+    private readonly ComPtr<D3D12MA_Allocation> _allocation;
     public readonly void* pMappedData;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescriptor description, void* initialData)
@@ -47,7 +46,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
 
         D3D12_RESOURCE_DESC1 resourceDesc = D3D12_RESOURCE_DESC1.Buffer(alignedSize, resourceFlags);
 
-        D3D12MA.ALLOCATION_DESC allocationDesc = new()
+        D3D12MA_ALLOCATION_DESC allocationDesc = new()
         {
             HeapType = D3D12_HEAP_TYPE_DEFAULT
         };
@@ -75,26 +74,24 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         HRESULT hr;
         if (device.EnhancedBarriersSupported)
         {
-            hr = D3D12MA.Allocator_CreateResource3(
-                device.MemoryAllocator,
+            hr = device.MemoryAllocator->CreateResource3(
                 &allocationDesc,
                 &resourceDesc,
                 initialLayout,
                 null,
                 0, null,
-                out _allocation,
+                _allocation.GetAddressOf(),
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
         else
         {
-            hr = D3D12MA.Allocator_CreateResource2(
-                device.MemoryAllocator,
+            hr = device.MemoryAllocator->CreateResource2(
                 &allocationDesc,
                 &resourceDesc,
                 initialStateLegacy,
                 null,
-                out _allocation,
+                _allocation.GetAddressOf(),
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
@@ -193,7 +190,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     /// <inheitdoc />
     protected internal override void BackendDestroy()
     {
-        _ = D3D12MA.Allocation_Release(_allocation);
+        _allocation.Dispose();
         _handle.Dispose();
     }
 

@@ -85,6 +85,9 @@ public abstract class CommandBuffer
         {
             allocator.Alignment = alignment;
 
+            // Dispose old buffer
+            allocator.Buffer?.Dispose();
+
             BufferDescriptor bufferDescriptor = new()
             {
                 Size = MathUtilities.AlignUp((bufferSize + sizeInBytes) * 2, allocator.Alignment),

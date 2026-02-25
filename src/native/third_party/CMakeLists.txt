@@ -158,19 +158,6 @@ target_sources(DirectX-Headers INTERFACE
 )
 target_include_directories(DirectX-Headers INTERFACE ${DIRECTX_HEADERS_INCLUDE_DIR})
 
-if (WIN32 OR WINDOWS_STORE)
-    # d3d12ma
-    set(D3D12_DIR "${CMAKE_CURRENT_SOURCE_DIR}/D3D12MemoryAllocator")
-    add_library(d3d12ma STATIC 
-        "${D3D12_DIR}/D3D12MemAlloc.cpp"
-        "${D3D12_DIR}/D3D12MemAlloc.h"
-    )
-    target_include_directories(d3d12ma PUBLIC ${D3D12_DIR})
-    target_link_libraries(d3d12ma PUBLIC DirectX-Headers)
-    target_compile_definitions(d3d12ma PUBLIC D3D12MA_USING_DIRECTX_HEADERS)
-    set_target_properties(d3d12ma PROPERTIES FOLDER "ThirdParty")
-endif ()
-
 if(ALIMER_PHYSICS)
     CPMAddPackage(
         NAME JoltPhysics
