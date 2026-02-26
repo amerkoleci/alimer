@@ -330,11 +330,11 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         Span<uint> optimized = stackalloc uint[indices.Length];
         OptimizeVertexCache(optimized, indices, (uint)vertices.Length);
 
-        Mesh engineMesh = new(vertices.Length, VertexPositionNormalTangentTexture.VertexAttributes, indices.Length, IndexFormat.Uint32);
+        Mesh engineMesh = new(Device, vertices.Length, VertexPositionNormalTangentTexture.VertexAttributes, indices.Length, IndexFormat.Uint32);
         engineMesh.SetVertices(vertices);
         engineMesh.SetIndices(optimized);
         engineMesh.RecalculateBounds();
-        engineMesh.CreateGpuData(Device);
+        engineMesh.Update();
 
         MeshAsset asset = new(engineMesh, materials)
         {

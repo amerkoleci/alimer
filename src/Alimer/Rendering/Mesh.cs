@@ -27,17 +27,20 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
     private GraphicsBuffer? _gpuVertexBuffer;
     private GraphicsBuffer? _gpuIndexBuffer;
 
-    public Mesh(int vertexCount,
+    public Mesh(GraphicsDevice device,
+        int vertexCount,
         Span<VertexAttribute> vertexAttributes,
         int indexCount,
         IndexFormat indexFormat = IndexFormat.Uint16,
         int vertexStride = 0)
     {
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
         Guard.IsGreaterThan(vertexCount, 0, nameof(vertexCount));
         Guard.IsNotEmpty(vertexAttributes, nameof(vertexAttributes));
         Guard.IsGreaterThan(indexCount, 0, nameof(indexCount));
         ArgumentOutOfRangeException.ThrowIfNegative(vertexStride, nameof(vertexStride));
 
+        Device = device;
         _vertexAttributes = vertexAttributes.ToArray();
         // Compute stride from vertex attributes if required
         if (vertexStride == 0)
@@ -61,6 +64,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         _indexBuffer = new CpuBuffer(indexCount, indexFormat == IndexFormat.Uint32 ? 4 : 2);
         _positionOffset = GetVertexAttributeOffset(VertexAttributeSemantic.Position);
     }
+
+    public GraphicsDevice Device { get; }
 
     /// <summary>
     /// The number of vertices in the vertex buffers.
@@ -107,10 +112,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
     }
 
     #region Gpu
-    public unsafe void CreateGpuData(GraphicsDevice device, bool clearCpuData = true)
+    public void Update(bool clearCpuData = true)
     {
-        Guard.IsNotNull(device, nameof(device));
-
         DestroyGpuData();
 
         // Subset maps a part of the mesh to a material:
@@ -125,8 +128,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         BufferDescriptor vertexBufferDesc = new(vertexBufferSize, BufferUsage.Vertex | BufferUsage.ShaderReadWrite);
         BufferDescriptor indexBufferDesc = new(indexBufferSize, BufferUsage.Index | BufferUsage.ShaderReadWrite);
 
-        _gpuVertexBuffer = device.CreateBuffer(vertexBufferDesc, _vertexBuffer.GetRawData());
-        _gpuIndexBuffer = device.CreateBuffer(indexBufferDesc, _indexBuffer.GetRawData());
+        _gpuVertexBuffer = Device.CreateBuffer(vertexBufferDesc, _vertexBuffer.GetRawData());
+        _gpuIndexBuffer = Device.CreateBuffer(indexBufferDesc, _indexBuffer.GetRawData());
 
         if (clearCpuData)
         {

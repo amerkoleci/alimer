@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Graphics;
@@ -112,6 +113,36 @@ public abstract class CommandBuffer
         Debug.Assert(allocation.IsValid());
         return allocation;
     }
+
+    public unsafe void UploadBufferData<T>(GraphicsBuffer buffer, ulong offset, ReadOnlySpan<T> data)
+        where T : unmanaged
+    {
+        if (data.Length is 0)
+        {
+            return;
+        }
+
+        uint sizeInBytes = (uint)(SizeOf<T>() * data.Length);
+        GPUAllocation allocation = Allocate(sizeInBytes);
+        data.CopyTo(new(allocation.Data, data.Length));
+
+        CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, sizeInBytes);
+    }
+
+    public unsafe void UploadBufferData<T>(GraphicsBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
+    {
+        if (buffer == null || sourceData == null)
+            return;
+
+        size = Math.Min(buffer.Size, size);
+        if (size == 0)
+            return;
+
+        GPUAllocation allocation = Allocate(size);
+        NativeMemory.Copy(sourceData, allocation.Data, (nuint)size);
+        CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, size);
+    }
+
 
     public void CopyBufferToBuffer(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
     {

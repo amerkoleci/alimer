@@ -223,10 +223,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     {
         UpdateFrame(time);
 
-        var frameDataTest = commandBuffer.Allocate<FrameConstants>();
-        var frameDataTest2 = commandBuffer.Allocate<FrameConstants>();
-
-
         RenderPassColorAttachment colorAttachment = new(output.DefaultView!, Colors.Black)
         {
             LoadAction = LoadAction.Clear,

@@ -31,8 +31,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
     public DrawTexturedFromFileCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Textured Cube from file", services, mainWindow)
     {
-        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-        _cubeMesh.CreateGpuData(GraphicsDevice);
+        _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
         _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
 

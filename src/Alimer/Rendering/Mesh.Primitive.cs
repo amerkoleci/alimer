@@ -8,13 +8,15 @@ namespace Alimer.Rendering;
 
 partial class Mesh
 {
-    public static Mesh CreateCube(float size, float uScale = 1.0f, float vScale = 1.0f)
+    public static Mesh CreateCube(GraphicsDevice device, float size, float uScale = 1.0f, float vScale = 1.0f)
     {
-        return CreateBox(new(size), uScale, vScale);
+        return CreateBox(device, new(size), uScale, vScale);
     }
 
-    public static Mesh CreateBox(Vector3 size, float uScale = 1.0f, float vScale = 1.0f)
+    public static Mesh CreateBox(GraphicsDevice device, Vector3 size, float uScale = 1.0f, float vScale = 1.0f)
     {
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
+
         Span<VertexPositionNormalTexture> vertices = stackalloc VertexPositionNormalTexture[24];
         Span<ushort> indices = stackalloc ushort[36];
 
@@ -80,15 +82,18 @@ partial class Mesh
             vbase += 4;
         }
 
-        Mesh mesh = new(24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.Uint16);
+        Mesh mesh = new(device, 24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.Uint16);
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
         mesh.RecalculateBounds();
+        mesh.Update();
         return mesh;
     }
 
-    public static Mesh CreateSphere(float radius = 0.5f, int tessellation = 16, float uScale = 1.0f, float vScale = 1.0f)
+    public static Mesh CreateSphere(GraphicsDevice device, float radius = 0.5f, int tessellation = 16, float uScale = 1.0f, float vScale = 1.0f)
     {
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
+
         if (tessellation < 3)
             tessellation = 3;
 
@@ -186,10 +191,11 @@ partial class Mesh
             }
         }
 
-        Mesh mesh = new(vertexCount, VertexPositionNormalTexture.VertexAttributes, indexCount, IndexFormat.Uint16);
+        Mesh mesh = new(device, vertexCount, VertexPositionNormalTexture.VertexAttributes, indexCount, IndexFormat.Uint16);
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
         mesh.RecalculateBounds();
+        mesh.Update();
         return mesh;
     }
 }

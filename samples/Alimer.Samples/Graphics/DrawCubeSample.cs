@@ -30,8 +30,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     public DrawCubeSample(IServiceRegistry services, Window mainWindow)
         : base("Graphics - Draw Cube", services, mainWindow)
     {
-        _cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-        _cubeMesh.CreateGpuData(GraphicsDevice);
+        _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
         _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
         _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, MemoryType.Upload));

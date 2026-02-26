@@ -8,12 +8,11 @@ namespace Alimer.Rendering;
 
 public static unsafe class VertexHelper
 {
-    public static Span<Vector3> GenerateNormals(
-        Span<Vector3> positions,
-        Span<uint> indices)
+    public static void GenerateNormals(
+        Span<Vector3> normals,
+        ReadOnlySpan<Vector3> positions,
+        ReadOnlySpan<uint> indices)
     {
-        Span<Vector3> normalBuffer = new Vector3[positions.Length];
-
         int indexCount = indices.IsEmpty
             ? positions.Length / sizeof(Vector3)
             : indices.Length;
@@ -39,21 +38,19 @@ public static unsafe class VertexHelper
             Vector3 v = p3 - p1;
 
             Vector3 faceNormal = Vector3.Normalize(Vector3.Cross(u, v));
-            normalBuffer[index1] += faceNormal;
-            normalBuffer[index2] += faceNormal;
-            normalBuffer[index3] += faceNormal;
+            normals[index1] += faceNormal;
+            normals[index2] += faceNormal;
+            normals[index3] += faceNormal;
         }
-
-        return normalBuffer;
     }
 
     public static void GenerateTangents(
         Span<Vector3> tangents,
-        Span<Vector3> positions,
-        Span<Vector2> texcoords,
-        IList<uint> indices)
+        ReadOnlySpan<Vector3> positions,
+        ReadOnlySpan<Vector2> texcoords,
+        ReadOnlySpan<uint> indices)
     {
-        int indexCount = indices.Count == 0 ? positions.Length / sizeof(Vector3) : indices.Count;
+        int indexCount = indices.IsEmpty ? positions.Length / sizeof(Vector3) : indices.Length;
 
         for (int i = 0; i < indexCount; i += 3)
         {
@@ -61,7 +58,7 @@ public static unsafe class VertexHelper
             int index2 = i + 1;
             int index3 = i + 2;
 
-            if (indices.Count > 0)
+            if (indices.Length > 0)
             {
                 index1 = (int)indices[index1];
                 index2 = (int)indices[index2];

@@ -50,8 +50,7 @@ public sealed class SceneCubeSample : SampleBase
         root.Children.Add(floorEntity);
 
         // Cube mesh
-        Mesh cubeMesh = ToDispose(Mesh.CreateCube(5.0f));
-        cubeMesh.CreateGpuData(GraphicsDevice);
+        Mesh cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
         PhysicallyBasedMaterial sharedMaterial = new()
         {
@@ -76,8 +75,7 @@ public sealed class SceneCubeSample : SampleBase
 
         // Cube 2 mesh
         {
-            Mesh smallCubeMesh = ToDispose(Mesh.CreateCube(1.0f));
-            smallCubeMesh.CreateGpuData(GraphicsDevice);
+            Mesh smallCubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 1.0f));
 
             for (int x = 0; x < xCount; x++)
             {
@@ -108,8 +106,7 @@ public sealed class SceneCubeSample : SampleBase
 
             Entity sphereEntity = new("Sphere", new Vector3(0.0f, 5.0f, 0.0f));
 
-            Mesh sphereMesh = ToDispose(Mesh.CreateSphere(0.5f));
-            sphereMesh.CreateGpuData(GraphicsDevice);
+            Mesh sphereMesh = ToDispose(Mesh.CreateSphere(GraphicsDevice, 0.5f));
 
             MeshComponent meshComponent = new(sphereMesh);
             sphereEntity.AddComponent(meshComponent);
