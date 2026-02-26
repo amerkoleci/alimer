@@ -30,14 +30,11 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
     public Mesh(GraphicsDevice device,
         int vertexCount,
         Span<VertexAttribute> vertexAttributes,
-        int indexCount,
-        IndexFormat indexFormat = IndexFormat.Uint16,
         int vertexStride = 0)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
         Guard.IsGreaterThan(vertexCount, 0, nameof(vertexCount));
         Guard.IsNotEmpty(vertexAttributes, nameof(vertexAttributes));
-        Guard.IsGreaterThan(indexCount, 0, nameof(indexCount));
         ArgumentOutOfRangeException.ThrowIfNegative(vertexStride, nameof(vertexStride));
 
         Device = device;
@@ -61,7 +58,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         }
 
         _vertexBuffer = new VertexBuffer(vertexCount, (int)vertexStride);
-        _indexBuffer = new CpuBuffer(indexCount, indexFormat == IndexFormat.Uint32 ? 4 : 2);
+        _indexBuffer = new CpuBuffer();
         _positionOffset = GetVertexAttributeOffset(VertexAttributeSemantic.Position);
     }
 
@@ -235,7 +232,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         _vertexBuffer.GetElementData(data, offset);
     }
 
-    public unsafe void SetAttributeData<T>(VertexAttributeSemantic semantic, Span<T> data)
+    public void SetAttributeData<T>(VertexAttributeSemantic semantic, Span<T> data)
         where T : unmanaged
     {
         VertexAttribute? attribute = GetVertexAttribute(semantic) ?? throw new InvalidOperationException($"Mesh does not contain attribute with semantic {semantic}.");
@@ -267,34 +264,61 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         new Span<T>(_vertexBuffer.GetRawData(), destination.Length).CopyTo(destination);
     }
 
-    public void SetIndices(ReadOnlySpan<ushort> source, int indexCount = 0)
+    public void SetIndices(ReadOnlySpan<ushort> source, int indexCount = 0, IndexFormat format = IndexFormat.Uint16)
     {
-        Guard.IsTrue(IndexFormat == IndexFormat.Uint16, nameof(source), "Index buffer is not of type UInt16.");
-
         if (indexCount == 0)
             indexCount = source.Length;
+
+        _indexBuffer.Resize(indexCount, format == IndexFormat.Uint32 ? 4 : 2);
 
         fixed (ushort* sourcePtr = source)
         {
-            NativeMemory.Copy(sourcePtr, _indexBuffer.GetRawData(), (uint)(indexCount * 2));
+            switch (format)
+            {
+                case IndexFormat.Uint16:
+                    NativeMemory.Copy(sourcePtr, _indexBuffer.GetRawData(), (uint)(indexCount * 2));
+                    break;
+                case IndexFormat.Uint32:
+                    uint* destPtr = (uint*)_indexBuffer.GetRawData();
+                    for (int i = 0; i < indexCount; i++)
+                    {
+                        destPtr[i] = sourcePtr[i];
+                    }
+                    break;
+            }
         }
     }
 
-    public void SetIndices(ReadOnlySpan<uint> source, int indexCount = 0)
+    public void SetIndices(ReadOnlySpan<uint> source, int indexCount = 0, IndexFormat format = IndexFormat.Uint32)
     {
-        Guard.IsTrue(IndexFormat == IndexFormat.Uint32, nameof(source), "Index buffer is not of type UInt32.");
-
         if (indexCount == 0)
             indexCount = source.Length;
 
+        _indexBuffer.Resize(indexCount, format == IndexFormat.Uint32 ? 4 : 2);
+
         fixed (uint* sourcePtr = source)
         {
-            NativeMemory.Copy(sourcePtr, _indexBuffer.GetRawData(), (uint)(indexCount * 4));
+            switch (format)
+            {
+                case IndexFormat.Uint16:
+                    ushort* destPtr = (ushort*)_indexBuffer.GetRawData();
+                    for (int i = 0; i < indexCount; i++)
+                    {
+                        destPtr[i] = (ushort)sourcePtr[i];
+                    }
+                    break;
+                case IndexFormat.Uint32:
+                    NativeMemory.Copy(sourcePtr, _indexBuffer.GetRawData(), (uint)(indexCount * 4));
+                    break;
+            }
         }
     }
 
-    public void GetIndices(Span<ushort> destination)
+    public int GetIndices(Span<ushort> destination)
     {
+        if (_indexBuffer.MemorySize == 0)
+            return 0;
+
         byte* sourcePtr = _indexBuffer.GetRawData();
         fixed (ushort* destinationPtr = destination)
         {
@@ -313,10 +337,15 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
                     break;
             }
         }
+
+        return _indexBuffer.ElementCount;
     }
 
-    public void GetIndices(Span<uint> destination)
+    public int GetIndices(Span<uint> destination)
     {
+        if (_indexBuffer.MemorySize == 0)
+            return 0;
+
         byte* sourcePtr = _indexBuffer.GetRawData();
         fixed (uint* destinationPtr = destination)
         {
@@ -336,6 +365,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
                     break;
             }
         }
+
+        return _indexBuffer.ElementCount;
     }
 
     public void RecalculateBounds()
@@ -388,7 +419,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         //public int MemorySize => ElementCount * ElementSize;
         public int MemorySize { get; private set; }
 
-        protected CpuBuffer()
+        public CpuBuffer()
         {
         }
 

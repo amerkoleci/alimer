@@ -11,7 +11,7 @@ namespace Alimer.Serialization;
 /// </summary>
 public partial class BinarySerializer
 {
-    private SerializerMode _mode;
+    private readonly SerializerMode _mode;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BinarySerializer" /> class.

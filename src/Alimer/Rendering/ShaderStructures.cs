@@ -26,7 +26,7 @@ public struct PerViewData : IShaderConstantBuffer
     public Matrix4x4 inverseViewMatrix;
     public Matrix4x4 inverseProjectionMatrix;
     public Vector3 cameraPosition;
-    private float _padding0; // Padding to align to 16 bytes
+    public uint activeLightCount;
 }
 
 public struct InstanceData : IShaderConstantBuffer

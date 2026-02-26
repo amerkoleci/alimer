@@ -114,6 +114,16 @@ internal unsafe static partial class AlimerApi
         public uint mipLevelCount;
     }
 
+    public struct ImageLevel
+    {
+        public uint width;
+        public uint height;
+        public PixelFormat format;
+        public uint rowPitch;
+        public uint slicePitch;
+        public byte* pixels;
+    }
+
     [LibraryImport(LibraryName)]
     public static partial ImageFileType alimerImageDetectFileType(void* data, nuint size);
 
@@ -131,6 +141,9 @@ internal unsafe static partial class AlimerApi
 
     [LibraryImport(LibraryName)]
     public static partial byte* alimerImageGetPixels(nint handle, nuint* dataSize);
+
+    [LibraryImport(LibraryName)]
+    public static partial ImageLevel* alimerImageGetLevel(nint handle, uint mipLevel, uint arrayOrDepthSlice);
     #endregion
 
     #region Font

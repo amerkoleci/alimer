@@ -49,7 +49,7 @@ struct ALIGNMENT PerViewData
     float4x4 inverseViewMatrix;
     float4x4 inverseProjectionMatrix;
     float3 cameraPosition;
-    float _padding0;
+    uint activeLightCount;
 };
 
 /* TODO: pack and use half*/
@@ -74,6 +74,8 @@ struct ALIGNMENT InstanceData
 #ifndef __cplusplus
 // Frame (space 3)
 ConstantBuffer<PerFrameData> frame : register(b0, space3);
+TextureCube<float4> environmentTexture : register(t0, space3);
+SamplerState environmentSampler : register(s0, space3);
 
 // View (space 2)
 ConstantBuffer<PerViewData> view : register(b0, space2);

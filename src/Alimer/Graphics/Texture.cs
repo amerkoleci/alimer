@@ -297,7 +297,7 @@ public abstract class Texture : GraphicsObject, IGraphicsBindableResource
 
     public static Texture FromStream(GraphicsDevice device, Stream stream, int channels = 4, bool srgb = true)
     {
-        Span<byte> data = stackalloc byte[(int)stream.Length];
+        Span<byte> data = stream.Length < 2048 ? stackalloc byte[(int)stream.Length] : new byte[(int)stream.Length];
         stream.ReadExactly(data);
         return FromMemory(device, data, channels, srgb);
     }
@@ -305,6 +305,30 @@ public abstract class Texture : GraphicsObject, IGraphicsBindableResource
     public static Texture FromMemory(GraphicsDevice device, Span<byte> data, int channels = 4, bool srgb = true)
     {
         using Image image = Image.FromMemory(data, channels, srgb);
-        return device.CreateTexture2D(image.Data, image.Format, (uint)image.Width, (uint)image.Height);
+
+        TextureDescriptor descriptor = new()
+        {
+            Label = image.Name,
+            Dimension = image.Dimension,
+            Format = image.Format,
+            Width = image.Width,
+            Height = image.Height,
+            DepthOrArrayLayers = image.Description.DepthOrArrayLayers,
+            MipLevelCount = image.MipLevelCount
+        };
+
+        int index = 0;
+        Span<TextureData> initData = stackalloc TextureData[(int)(descriptor.DepthOrArrayLayers * descriptor.MipLevelCount)];
+        for (uint arrayIndex = 0; arrayIndex < descriptor.DepthOrArrayLayers; arrayIndex++)
+        {
+            for (uint mipLevel = 0; mipLevel < descriptor.MipLevelCount; mipLevel++)
+            {
+                ImageData level = image.GetLevel(mipLevel, arrayIndex);
+                initData[index] = new TextureData(level.DataPointer, level.RowPitch, level.SlicePitch);
+                index++;
+            }
+        }
+
+        return device.CreateTexture(in descriptor, initData);
     }
 }

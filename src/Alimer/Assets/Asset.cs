@@ -8,8 +8,6 @@ namespace Alimer.Assets;
 /// </summary>
 public abstract class Asset : DisposableObject, IAsset
 {
-    private volatile uint _refCount = 1;
-
     /// <inheritdoc />
     public Guid Id { get; set; } = Guid.NewGuid();
 

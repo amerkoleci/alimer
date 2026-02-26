@@ -276,13 +276,15 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         fixed (T* initialDataPtr = initialData)
         {
             PixelFormatUtils.GetSurfaceInfo(format, width, height, out uint rowPitch, out uint slicePitch);
-            TextureData initData = new(initialDataPtr, rowPitch, slicePitch);
+            TextureData initData = new(new IntPtr(initialDataPtr), rowPitch, slicePitch);
 
             return CreateTextureCore(TextureDescriptor.Texture2D(format, width, height, mipLevelCount, arrayLayers, usage), &initData);
         }
     }
 
-    public Texture CreateTexture(in TextureDescriptor description)
+    public Texture CreateTexture(in TextureDescriptor description) => CreateTexture(description, []);
+
+    public Texture CreateTexture(in TextureDescriptor description, ReadOnlySpan<TextureData> initialData)
     {
         Guard.IsTrue(description.Format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
         Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescriptor.Width));
@@ -290,7 +292,17 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescriptor.Height));
         Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
 
-        return CreateTextureCore(description, default);
+        if (initialData.IsEmpty)
+        {
+            return CreateTextureCore(description, default);
+        }
+        else
+        {
+            fixed (TextureData* initialDataPtr = initialData)
+            {
+                return CreateTextureCore(in description, initialDataPtr);
+            }
+        }
     }
 
     public Sampler CreateSampler(in SamplerDescriptor descriptor)

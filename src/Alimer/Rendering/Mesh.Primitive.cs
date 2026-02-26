@@ -82,7 +82,7 @@ partial class Mesh
             vbase += 4;
         }
 
-        Mesh mesh = new(device, 24, VertexPositionNormalTexture.VertexAttributes, 36, IndexFormat.Uint16);
+        Mesh mesh = new(device, 24, VertexPositionNormalTexture.VertexAttributes);
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
         mesh.RecalculateBounds();
@@ -191,7 +191,7 @@ partial class Mesh
             }
         }
 
-        Mesh mesh = new(device, vertexCount, VertexPositionNormalTexture.VertexAttributes, indexCount, IndexFormat.Uint16);
+        Mesh mesh = new(device, vertexCount, VertexPositionNormalTexture.VertexAttributes);
         mesh.SetVertices(vertices);
         mesh.SetIndices(indices);
         mesh.RecalculateBounds();

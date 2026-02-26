@@ -238,7 +238,7 @@ internal unsafe class D3D12Texture : Texture
             {
                 ref TextureData subresourceData = ref initialData[i];
 
-                data[i].pData = subresourceData.DataPointer;
+                data[i].pData = subresourceData.DataPointer.ToPointer();
                 data[i].RowPitch = (nint)subresourceData.RowPitch;
                 data[i].SlicePitch = (nint)subresourceData.SlicePitch;
             }

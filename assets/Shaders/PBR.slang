@@ -28,24 +28,20 @@ struct SurfaceInfo
 
 float3 getDiffuseLightColor(in float3 N)
 {
-    // TODO
-    // float width, height, numberOfLevels;
-    // environmentTexture.GetDimensions(0, width, height, numberOfLevels);
+    float width, height, numberOfLevels;
+    environmentTexture.GetDimensions(0, width, height, numberOfLevels);
 
-    // const float diffuseLevel = float(numberOfLevels - 1);
-    // return environmentTexture.SampleLevel(environmentSampler, N, diffuseLevel).rgb;
-    return float3(1.0f, 1.0f, 1.0f);
+    const float diffuseLevel = float(numberOfLevels - 1);
+    return environmentTexture.SampleLevel(environmentSampler, N, diffuseLevel).rgb;
 }
 
 float3 getSpecularLightColor(in float3 R, in float roughness)
 {
-    // TODO
-    // float width, height, numberOfLevels;
-    // environmentTexture.GetDimensions(0, width, height, numberOfLevels);
-    //
-    // const float rough = numberOfLevels * roughness * (2.0f - roughness);
-    // return environmentTexture.SampleLevel(environmentSampler, R, rough).rgb;
-    return float3(1.0f, 1.0f, 1.0f);
+    float width, height, numberOfLevels;
+    environmentTexture.GetDimensions(0, width, height, numberOfLevels);
+
+    const float rough = numberOfLevels * roughness * (2.0f - roughness);
+    return environmentTexture.SampleLevel(environmentSampler, R, rough).rgb;
 }
 
 float3 pbrSurfaceColorIbl(in SurfaceInfo surface)

@@ -58,6 +58,11 @@ public record struct TextureDescriptor
     /// </summary>
     public string? Label;
 
+    public TextureDescriptor()
+    {
+
+    }
+
     public TextureDescriptor(
         TextureDimension dimension,
         PixelFormat format,

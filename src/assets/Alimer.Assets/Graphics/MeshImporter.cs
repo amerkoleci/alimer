@@ -69,6 +69,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
             buffers[i] = GltfUtils.LoadBinaryBuffer(binaryDataStream);
         }
 
+        IndexFormat indexFormat = IndexFormat.Uint16;
         for (int meshIndex = 0; meshIndex < gltf.Meshes.Length; meshIndex++)
         {
             Gltf2.Mesh mesh = gltf.Meshes[meshIndex];
@@ -118,6 +119,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
                     }
                     else if (stride == 4)
                     {
+                        indexFormat = IndexFormat.Uint32;
                         Span<uint> uintData = MemoryMarshal.Cast<byte, uint>(data);
                         for (int i = 0; i < indexCount; i += 3)
                         {
@@ -330,9 +332,9 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         Span<uint> optimized = stackalloc uint[indices.Length];
         OptimizeVertexCache(optimized, indices, (uint)vertices.Length);
 
-        Mesh engineMesh = new(Device, vertices.Length, VertexPositionNormalTangentTexture.VertexAttributes, indices.Length, IndexFormat.Uint32);
+        Mesh engineMesh = new(Device, vertices.Length, VertexPositionNormalTangentTexture.VertexAttributes);
         engineMesh.SetVertices(vertices);
-        engineMesh.SetIndices(optimized);
+        engineMesh.SetIndices(optimized, format: indexFormat);
         engineMesh.RecalculateBounds();
         engineMesh.Update();
 

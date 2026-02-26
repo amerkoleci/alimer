@@ -4,12 +4,13 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
+using Alimer.Serialization;
 using CommunityToolkit.Diagnostics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Assets;
 
-public sealed unsafe class Image : Asset, IDisposable
+public sealed unsafe class Image : Asset, IBinarySerializable
 {
     private readonly MipMapDescription[] _mipmaps;
     private readonly ImageData[] _levels;
@@ -105,7 +106,7 @@ public sealed unsafe class Image : Asset, IDisposable
                 throw new InvalidOperationException("Invalid Image dimension");
         }
 
-        _data = (byte*)NativeMemory.AllocZeroed((nuint)SizeInBytes);
+        _data = (byte*)NativeMemory.AllocZeroed(SizeInBytes);
         _levels = new ImageData[levelsCount];
         SetupImageArray(_data, SizeInBytes, description, _levels);
     }
@@ -228,6 +229,51 @@ public sealed unsafe class Image : Asset, IDisposable
         return _mipmaps[level];
     }
 
+    public ImageData GetLevel(uint mipLevel, uint arrayOrDepthSlice = 0u)
+    {
+        if (mipLevel >= Description.MipLevelCount)
+            return default;
+
+        uint index = 0;
+
+        switch (Description.Dimension)
+        {
+            case TextureDimension.Texture1D:
+            case TextureDimension.Texture2D:
+            //case TextureDimension.TextureCube:
+            {
+                if (arrayOrDepthSlice >= Description.DepthOrArrayLayers)
+                    return default;
+
+                index = arrayOrDepthSlice * MipLevelCount + mipLevel;
+                break;
+            }
+
+            case TextureDimension.Texture3D:
+            {
+                uint mipDepth = Description.DepthOrArrayLayers;
+
+                for (uint level = 0; level < mipLevel; ++level)
+                {
+                    index += mipDepth;
+                    if (mipDepth > 1)
+                        mipDepth >>= 1;
+                }
+
+                if (arrayOrDepthSlice >= mipDepth)
+                    return default;
+
+                index += arrayOrDepthSlice;
+                break;
+            }
+
+            default:
+                return default;
+        }
+
+        return _levels[(int)index];
+    }
+
     public static Image FromFile(string filePath, int channels = 4, bool srgb = true)
     {
         using FileStream stream = new(filePath, FileMode.Open);
@@ -241,39 +287,69 @@ public sealed unsafe class Image : Asset, IDisposable
         return FromMemory(data, channels, srgb);
     }
 
-    public static unsafe Image FromMemory(Span<byte> data, int channels = 4, bool srgb = true)
+    public static Image FromMemory(Span<byte> data, int channels = 4, bool srgb = true)
     {
         // TODO: Add DDS, ASTC, KTX1 and KTX2 loading
-        if (IsKTX1(data) || IsKTX2(data))
+        fixed (byte* dataPtr = data)
         {
-            throw new NotImplementedException("KTX1/KTX2 loading is not supported");
-        }
-        else
-        {
-            fixed (byte* dataPtr = data)
+            ImageFileType fileType = alimerImageDetectFileType(dataPtr, (uint)data.Length);
+
+#if TODO
+            if (IsKTX1(data) || IsKTX2(data))
             {
-                ImageFileType fileType = alimerImageDetectFileType(dataPtr, (uint)data.Length);
+                //ktxTexture* ktxTexture;
+                //KTX_error_code result = ktxTexture_CreateFromMemory(buffer.get(),
+                //    dataSize,
+                //    KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                //    &ktxTexture);
+
+                throw new NotImplementedException("KTX1/KTX2 loading is not supported");
+            }
+            else 
+#endif
+            {
                 nint handle = alimerImageCreateFromMemory(dataPtr, (uint)data.Length);
 
                 ImageDesc imageDesc;
                 nuint dataSize;
 
                 alimerImageGetDesc(handle, &imageDesc);
-                byte* pData = alimerImageGetPixels(handle, &dataSize);
-
-                byte[] imageData = new byte[dataSize];
-                fixed (byte* destDataPtr = imageData)
-                {
-                    NativeMemory.Copy(pData, destDataPtr, dataSize);
-                }
-
-                alimerImageDestroy(handle);
-
                 ImageDescription imageDescription = ImageDescription.Image2D(srgb ?
                     imageDesc.format.LinearToSrgbFormat() : imageDesc.format,
                     imageDesc.width,
-                    imageDesc.height);
-                return new(imageDescription, imageData);
+                    imageDesc.height,
+                    imageDesc.mipLevelCount,
+                    imageDesc.depthOrArrayLayers
+                    );
+
+                if (imageDesc.mipLevelCount == 1)
+                {
+                    byte* pData = alimerImageGetPixels(handle, &dataSize);
+
+                    byte[] imageData = new byte[dataSize];
+                    fixed (byte* destDataPtr = imageData)
+                    {
+                        NativeMemory.Copy(pData, destDataPtr, dataSize);
+                    }
+
+                    alimerImageDestroy(handle);
+
+                    return new(imageDescription, imageData);
+                }
+                else
+                {
+                    Image result = new(in imageDescription);
+
+                    for (uint miplevel = 0; miplevel < imageDescription.MipLevelCount; miplevel++)
+                    {
+                        ImageLevel* levelData = alimerImageGetLevel(handle, miplevel, 0u);
+                        ImageData imageData = result.GetLevel(miplevel);
+                        NativeMemory.Copy(levelData->pixels, imageData.DataPointer.ToPointer(), (nuint)imageData.RowPitch);
+                        //memcpy(levelData->pixels, ktxTexture->pData + offset, levelSize);
+                    }
+
+                    return result;
+                }
             }
         }
     }
@@ -455,5 +531,20 @@ public sealed unsafe class Image : Asset, IDisposable
         }
 
         return true;
+    }
+
+    public void Serialize(BinarySerializer serializer)
+    {
+        // TODO: Magic number and version
+        Debug.Assert((int)PixelFormat.Count <= byte.MaxValue);
+
+        if (serializer.IsReading)
+        {
+        }
+        else
+        {
+        }
+
+        throw new NotImplementedException();
     }
 }

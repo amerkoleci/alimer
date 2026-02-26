@@ -8,6 +8,7 @@ using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Alimer.Graphics.Vulkan.Vma;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -252,14 +253,14 @@ internal unsafe class VulkanTexture : Texture
                     for (uint z = 0; z < depth; ++z)
                     {
                         byte* dstSlice = (byte*)mappedData + copyOffset + dstSlicePitch * z;
-                        byte* srcSlice = (byte*)subresourceData.DataPointer + srcSlicePitch * z;
+                        byte* srcSlice = (byte*)subresourceData.DataPointer.ToPointer() + srcSlicePitch * z;
                         for (uint y = 0; y < numBlocksY; ++y)
                         {
-                            Unsafe.CopyBlockUnaligned(
-                                dstSlice + dstRowPitch * y,
+                            NativeMemory.Copy(
                                 srcSlice + srcRowPitch * y,
+                                dstSlice + dstRowPitch * y,
                                 dstRowPitch
-                            );
+                                );
                         }
                     }
 

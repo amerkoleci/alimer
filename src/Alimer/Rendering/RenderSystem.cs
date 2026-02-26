@@ -75,7 +75,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         {
             FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
                 "Frame BindGroupLayout",
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All),
+                new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // environmentTexture
+                new BindGroupLayoutEntry(new SamplerBindingLayout(SamplerBindingType.Filtering), 0)  // environmentSampler
                 ));
 
             FrameConstantBuffer = ToDispose(new ConstantBuffer<FrameConstants>(Device, label: "Frame Constant Buffer"));
@@ -85,7 +87,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         }
 
 
-        // Per frame (set 3)
+        // Per view (set 2)
         {
             ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
                 new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
@@ -250,7 +252,10 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     {
         UpdateCamera(camera);
 
+        // Set 2 (per view/camera)
         passEncoder.SetBindGroup(ViewBindGroupSpace, ViewBindGroup);
+
+        // Set 1 (per instance data)
         BindGroup instanceBindGroup = _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
         passEncoder.SetBindGroup(InstanceBindGroupSpace, instanceBindGroup);
 
@@ -350,7 +355,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // https://github.com/Aminator/DirectX12GameEngine/blob/master/DirectX12GameEngine.Rendering/Materials/MaterialAttributes.cs
         viewData.cameraPosition = camera.Entity!.Transform.Position;
-        //viewData.time = _elapsedTime;
+        viewData.activeLightCount = 0u;
 
         ViewConstantBuffer.SetData(viewData);
     }

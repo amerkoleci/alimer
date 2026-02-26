@@ -327,7 +327,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                     if (!found)
                     {
                         // Create a default sampler
-                        D3D12_SAMPLER_DESC samplerDesc = new();
+                        D3D12_SAMPLER_DESC samplerDesc = D3D12Utils.ToD3D12SamplerDesc(SamplerDescriptor.Default);
                         _device.Device->CreateSampler(&samplerDesc, descriptorHandle);
                         continue;
                     }
