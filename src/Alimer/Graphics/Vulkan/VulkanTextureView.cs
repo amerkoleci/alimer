@@ -17,6 +17,13 @@ internal unsafe class VulkanTextureView : TextureView
         _texture = texture;
         VkFormat = texture.VkDevice.VkAdapter.ToVkFormat(descriptor.Format);
 
+        uint arrayLayerCount = descriptor.ArrayLayerCount;
+        if (descriptor.Dimension == TextureViewDimension.ViewCube
+            || descriptor.Dimension == TextureViewDimension.ViewCubeArray)
+        {
+            arrayLayerCount *= 6;
+        }
+
         VkImageAspectFlags aspectFlags = VkFormat.GetImageAspectFlags(descriptor.Aspect);
         VkImageViewCreateInfo createInfo = new()
         {
@@ -30,7 +37,7 @@ internal unsafe class VulkanTextureView : TextureView
                 descriptor.BaseMipLevel,
                 descriptor.MipLevelCount,
                 descriptor.BaseArrayLayer,
-                descriptor.ArrayLayerCount
+                arrayLayerCount
                 )
         };
 

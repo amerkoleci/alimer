@@ -32,8 +32,8 @@ public sealed unsafe class Image : Asset, IBinarySerializable
         {
             case TextureDimension.Texture1D:
             case TextureDimension.Texture2D:
-                //case TextureDimension.TextureCube:
-                for (uint arrayIndex = 0; arrayIndex < ArrayLayers; ++arrayIndex)
+            case TextureDimension.TextureCube:
+                for (uint arrayIndex = 0; arrayIndex < ActualArrayLayers; ++arrayIndex)
                 {
                     uint mipWidth = Width;
                     uint mipHeight = Height;
@@ -159,6 +159,11 @@ public sealed unsafe class Image : Asset, IBinarySerializable
     public uint ArrayLayers => Description.Dimension != TextureDimension.Texture3D ? Description.DepthOrArrayLayers : 1;
 
     /// <summary>
+    /// Actual number of array layers (taking care of cubemap textures)
+    /// </summary>
+    internal uint ActualArrayLayers => (Description.Dimension == TextureDimension.TextureCube) ? 6 * ArrayLayers : ArrayLayers;
+
+    /// <summary>
     /// Get the number of mipmap levels in the.
     /// </summary>
     public uint MipLevelCount { get; }
@@ -240,9 +245,9 @@ public sealed unsafe class Image : Asset, IBinarySerializable
         {
             case TextureDimension.Texture1D:
             case TextureDimension.Texture2D:
-            //case TextureDimension.TextureCube:
+            case TextureDimension.TextureCube:
             {
-                if (arrayOrDepthSlice >= Description.DepthOrArrayLayers)
+                if (arrayOrDepthSlice >= ActualArrayLayers)
                     return default;
 
                 index = arrayOrDepthSlice * MipLevelCount + mipLevel;
@@ -371,14 +376,15 @@ public sealed unsafe class Image : Asset, IBinarySerializable
 
         int index = 0;
         byte* pEndBits = pixels + memorySize;
-
+        
         switch (description.Dimension)
         {
             case TextureDimension.Texture1D:
             case TextureDimension.Texture2D:
-            //case TextureDimension.TextureCube:
+            case TextureDimension.TextureCube:
             {
-                for (uint item = 0; item < description.DepthOrArrayLayers; ++item)
+                uint actualArrayLayers = (description.Dimension == TextureDimension.TextureCube) ? 6 * description.DepthOrArrayLayers : description.DepthOrArrayLayers;
+                for (uint item = 0; item < actualArrayLayers; ++item)
                 {
                     uint mipWidth = description.Width;
                     uint mipHeight = description.Height;

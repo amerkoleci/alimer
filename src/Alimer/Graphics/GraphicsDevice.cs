@@ -282,25 +282,31 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
     }
 
-    public Texture CreateTexture(in TextureDescriptor description) => CreateTexture(description, []);
+    public Texture CreateTexture(in TextureDescriptor descriptor) => CreateTexture(descriptor, []);
 
-    public Texture CreateTexture(in TextureDescriptor description, ReadOnlySpan<TextureData> initialData)
+    public Texture CreateTexture(in TextureDescriptor descriptor, ReadOnlySpan<TextureData> initialData)
     {
-        Guard.IsTrue(description.Format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
-        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(description.Width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(description.Height, 1, nameof(TextureDescriptor.Height));
-        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+        Guard.IsTrue(descriptor.Format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
+        Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
+        Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
+        Guard.IsGreaterThanOrEqualTo(descriptor.Height, 1, nameof(TextureDescriptor.Height));
+        Guard.IsGreaterThanOrEqualTo(descriptor.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+
+        if (descriptor.Dimension == TextureDimension.TextureCube)
+        {
+            Guard.IsTrue(descriptor.Width == descriptor.Height, nameof(TextureDescriptor.Width), nameof(TextureDescriptor.Height));
+            Guard.IsTrue(descriptor.DepthOrArrayLayers == 1 || descriptor.DepthOrArrayLayers % 6 == 0, nameof(TextureDescriptor.DepthOrArrayLayers));
+        }
 
         if (initialData.IsEmpty)
         {
-            return CreateTextureCore(description, default);
+            return CreateTextureCore(descriptor, default);
         }
         else
         {
             fixed (TextureData* initialDataPtr = initialData)
             {
-                return CreateTextureCore(in description, initialDataPtr);
+                return CreateTextureCore(in descriptor, initialDataPtr);
             }
         }
     }

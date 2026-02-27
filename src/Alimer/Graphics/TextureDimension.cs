@@ -20,12 +20,10 @@ public enum TextureDimension
     /// Three-dimensional Texture.
     /// </summary>
     Texture3D,
-#if TODO
     /// <summary>
     /// Cubemap Texture.
     /// </summary>
     TextureCube, 
-#endif
 
     Count
 }

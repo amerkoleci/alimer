@@ -29,31 +29,31 @@ internal unsafe class D3D12Texture : Texture
     private readonly uint* _numRows;
     private readonly void* pMappedData = default;
 
-    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor description, TextureData* initialData)
-        : base(description)
+    public D3D12Texture(D3D12GraphicsDevice device, in TextureDescriptor descriptor, TextureData* initialData)
+        : base(descriptor)
     {
         DXDevice = device;
-        DxgiFormat = (DXGI_FORMAT)description.Format.ToDxgiFormat();
-        bool isDepthStencil = description.Format.IsDepthStencilFormat();
+        DxgiFormat = (DXGI_FORMAT)descriptor.Format.ToDxgiFormat();
+        bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
 
         // If ShaderRead or ShaderWrite and depth format, set to typeless.
         if (isDepthStencil)
         {
-            if ((description.Usage & TextureUsage.ShaderRead) != 0
-                || (description.Usage & TextureUsage.ShaderWrite) != 0)
+            if ((descriptor.Usage & TextureUsage.ShaderRead) != 0
+                || (descriptor.Usage & TextureUsage.ShaderWrite) != 0)
             {
-                DxgiFormat = description.Format.GetTypelessFormatFromDepthFormat();
+                DxgiFormat = descriptor.Format.GetTypelessFormatFromDepthFormat();
             }
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
 
-        if ((description.Usage & TextureUsage.RenderTarget) != 0)
+        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
         {
             if (isDepthStencil)
             {
                 resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-                if ((description.Usage & TextureUsage.ShaderRead) == 0)
+                if ((descriptor.Usage & TextureUsage.ShaderRead) == 0)
                 {
                     resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
                 }
@@ -64,14 +64,14 @@ internal unsafe class D3D12Texture : Texture
             }
         }
 
-        if ((description.Usage & TextureUsage.ShaderWrite) != 0)
+        if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
         D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
         bool isShared = false;
-        if ((description.Usage & TextureUsage.Shared) != 0)
+        if ((descriptor.Usage & TextureUsage.Shared) != 0)
         {
             heapFlags |= D3D12_HEAP_FLAG_SHARED;
             isShared = true;
@@ -82,7 +82,7 @@ internal unsafe class D3D12Texture : Texture
         TextureLayout initialLayout = TextureLayout.Undefined;
         if (initialData == null)
         {
-            if ((description.Usage & TextureUsage.RenderTarget) != 0)
+            if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
             {
                 if (isDepthStencil)
                 {
@@ -93,11 +93,11 @@ internal unsafe class D3D12Texture : Texture
                     initialLayout = TextureLayout.RenderTarget;
                 }
             }
-            else if ((description.Usage & TextureUsage.ShaderWrite) != 0)
+            else if ((descriptor.Usage & TextureUsage.ShaderWrite) != 0)
             {
                 initialLayout = TextureLayout.UnorderedAccess;
             }
-            else if ((description.Usage & TextureUsage.ShaderRead) != 0)
+            else if ((descriptor.Usage & TextureUsage.ShaderRead) != 0)
             {
                 initialLayout = TextureLayout.ShaderResource;
             }
@@ -105,14 +105,14 @@ internal unsafe class D3D12Texture : Texture
 
         D3D12_RESOURCE_DESC1 resourceDesc = new()
         {
-            Dimension = description.Dimension.ToD3D12(),
+            Dimension = descriptor.Dimension.ToD3D12(),
             Alignment = 0,
-            Width = description.Width,
-            Height = description.Height,
-            DepthOrArraySize = (ushort)description.DepthOrArrayLayers,
-            MipLevels = (ushort)description.MipLevelCount,
+            Width = descriptor.Width,
+            Height = descriptor.Height,
+            DepthOrArraySize = (ushort)((descriptor.Dimension == TextureDimension.Texture3D) ? descriptor.DepthOrArrayLayers : ActualArrayLayers),
+            MipLevels = (ushort)descriptor.MipLevelCount,
             Format = DxgiFormat,
-            SampleDesc = new(description.SampleCount.ToSampleCount(), 0),
+            SampleDesc = new(descriptor.SampleCount.ToSampleCount(), 0),
             Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
             Flags = resourceFlags
         };
@@ -154,7 +154,7 @@ internal unsafe class D3D12Texture : Texture
         D3D12_CLEAR_VALUE clearValue = default;
         D3D12_CLEAR_VALUE* pClearValue = null;
 
-        if ((description.Usage & TextureUsage.RenderTarget) != 0)
+        if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
         {
             clearValue.Format = resourceDesc.Format;
             if (isDepthStencil)
@@ -167,8 +167,8 @@ internal unsafe class D3D12Texture : Texture
         // If shader read/write and depth format, set to typeless
         if (isDepthStencil)
         {
-            if ((description.Usage & TextureUsage.ShaderRead) != 0
-                || (description.Usage & TextureUsage.ShaderWrite) != 0)
+            if ((descriptor.Usage & TextureUsage.ShaderRead) != 0
+                || (descriptor.Usage & TextureUsage.ShaderWrite) != 0)
             {
                 pClearValue = null;
             }
@@ -225,9 +225,9 @@ internal unsafe class D3D12Texture : Texture
             _sharedHandle = sharedHandle;
         }
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
 
         // Issue data copy on request
@@ -245,7 +245,7 @@ internal unsafe class D3D12Texture : Texture
 
             D3D12UploadContext uploadContext = default;
             void* mappedData = null;
-            if (description.MemoryType == MemoryType.Upload)
+            if (descriptor.MemoryType == MemoryType.Upload)
             {
                 mappedData = pMappedData;
             }

@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
+using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Assets;
 
@@ -106,22 +107,23 @@ public record struct ImageDescription
             );
     }
 
-#if TODO
     public static ImageDescription ImageCube(
-PixelFormat format,
-uint size,
-uint mipLevelCount = 1,
-uint arrayLayers = 1)
+        PixelFormat format,
+        uint size,
+        uint mipLevelCount = 1,
+        uint arrayLayers = 1)
     {
+        Guard.IsTrue(arrayLayers == 1 || arrayLayers % 6 == 0);
+
         return new(
             TextureDimension.TextureCube,
             format,
             size,
             size,
-            arrayLayers * 6,
-            mipLevelCount);
-    } 
-#endif
+            arrayLayers,
+            mipLevelCount
+            );
+    }
 
     public static uint GetMipLevelCount(uint width, uint height, uint depth = 1, uint minDimension = 1, uint requiredAlignment = 1u)
     {

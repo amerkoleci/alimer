@@ -113,8 +113,8 @@ internal unsafe class D3D12TextureView : TextureView
                     break;
 
                 case TextureViewDimension.ViewCube:
-                    Debug.Assert(_texture.Dimension == TextureDimension.Texture2D);
-                    Debug.Assert(ArrayLayerCount % 6 == 0);
+                    Debug.Assert(_texture.Dimension == TextureDimension.TextureCube);
+                    Debug.Assert(ArrayLayerCount == 1 || ArrayLayerCount % 6 == 0);
 
                     viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
                     viewDesc.TextureCube.MostDetailedMip = BaseMipLevel;
@@ -142,7 +142,7 @@ internal unsafe class D3D12TextureView : TextureView
                     break;
 
                 case TextureViewDimension.ViewCubeArray:
-                    Debug.Assert(_texture.Dimension == TextureDimension.Texture2D);
+                    Debug.Assert(_texture.Dimension == TextureDimension.TextureCube);
                     Debug.Assert(ArrayLayerCount % 6 == 0);
 
                     viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
@@ -279,6 +279,7 @@ internal unsafe class D3D12TextureView : TextureView
                         viewDesc.Texture2DArray.ArraySize = ArrayLayerCount;
                         viewDesc.Texture2DArray.PlaneSlice = 0; // TODO
                         break;
+
                     case TextureViewDimension.View3D:
                         viewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
                         viewDesc.Texture3D.MipSlice = BaseMipLevel;

@@ -91,6 +91,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
             FrameConstantBuffer = ToDispose(new ConstantBuffer<FrameConstants>(Device, label: "Frame Constant Buffer"));
             FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
+                "Frame BindGroup",
                 new BindGroupEntry(0, FrameConstantBuffer.Handle),
                 new BindGroupEntry(0, DefaultEnvironmentTexture)
                 ));
@@ -100,11 +101,13 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         // Per view (set 2)
         {
             ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
+                "View BindGroupLayout",
                 new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
             ));
 
             ViewConstantBuffer = ToDispose(new ConstantBuffer<PerViewData>(Device, label: "View Constant Buffer"));
-            ViewBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
+            ViewBindGroup = ToDispose(ViewBindGroupLayout.CreateBindGroup(
+                "View BindGroup",
                 new BindGroupEntry(0, ViewConstantBuffer.Handle)
                 ));
         }

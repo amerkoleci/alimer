@@ -11,7 +11,7 @@ public sealed class UnlitMaterialFactory : GPUMaterialFactory<UnlitMaterial>
         : base(system)
     {
         _bindGroupLayout = system.Device.CreateBindGroupLayout(
-            "Unlit  Material BindGroupLayout",
+            "Unlit Material BindGroupLayout",
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Fragment),
             new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // baseColorTexture
             new BindGroupLayoutEntry(SamplerDescriptor.Default, 0, ShaderStages.Fragment),  // baseColorSampler

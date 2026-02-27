@@ -159,11 +159,11 @@ public record struct TextureDescriptor
         string? label = default)
     {
         return new(
-            TextureDimension.Texture2D,
+            TextureDimension.TextureCube,
             format,
             size,
             size,
-            arrayLayers * 6,
+            arrayLayers,
             mipLevelCount,
             usage,
             TextureSampleCount.Count1,

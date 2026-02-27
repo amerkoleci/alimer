@@ -39,18 +39,22 @@ internal unsafe class VulkanTexture : Texture
             case TextureDimension.Texture2D:
                 extent = new VkExtent3D(descriptor.Width, descriptor.Height, 1u);
                 arrayLayers = (uint)ArrayLayers;
-
-                if (descriptor.Width == descriptor.Height &&
-                    descriptor.DepthOrArrayLayers >= 6)
-                {
-                    flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-                }
                 break;
 
             case TextureDimension.Texture3D:
                 extent = new VkExtent3D(descriptor.Width, descriptor.Height, (uint)Depth);
                 arrayLayers = 1u;
-                flags |= VkImageCreateFlags.Array2DCompatible;
+                // When using 3D textures as render targets, we need to be able to create 2d array views.
+                if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
+                {
+                    flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+                }
+                break;
+
+            case TextureDimension.TextureCube:
+                extent = new VkExtent3D(descriptor.Width, descriptor.Height, 1u);
+                arrayLayers = (uint)ActualArrayLayers;
+                flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                 break;
         }
 

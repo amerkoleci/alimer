@@ -2,6 +2,7 @@
 
 * Complete PBR renderer (IBL + all) + lights
 * Improve Entity, Transform and Components with EntitySystem
+* Improve Mesh
 * Serialization
 * Profiler (using timestamp: Wicked)
 * Audio library based on miniaudio
@@ -11,10 +12,9 @@
 
 ## NEXT
 
+* Prefabs
 * Asset reloading, textures/shaders etc
-* Handle Shader reflection and RootSignature (D3D12) and PipelineLayout (Vulkan)
 * DDS and KTX, KTX2 loader
-* PBR rendering
-* Material System
-* Scene rendering
+* PBR rendering and improve material System
 * Network
+* Handle Shader reflection using Slang

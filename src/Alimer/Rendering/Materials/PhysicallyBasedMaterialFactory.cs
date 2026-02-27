@@ -71,6 +71,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
         _materialBuffer.SetData(materialData);
 
         BindGroup bindGroup = _bindGroupLayout.CreateBindGroup(
+            "PBR Material BindGroup",
             new BindGroupEntry(0, _materialBuffer),
             new BindGroupEntry(0, pbrMaterial.BaseColorTexture ?? System.OpaqueWhiteTexture),
             new BindGroupEntry(1, pbrMaterial.NormalTexture ?? System.DefaultNormalTexture),

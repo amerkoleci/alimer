@@ -15,6 +15,11 @@ public abstract class BindGroupLayout : GraphicsObject
 
     public BindGroupLayoutEntry[] Entries { get; }
 
+    public BindGroup CreateBindGroup(string label, params Span<BindGroupEntry> entries)
+    {
+        return CreateBindGroup(new BindGroupDescriptor(entries, label));
+    }
+
     public BindGroup CreateBindGroup(params Span<BindGroupEntry> entries)
     {
         return CreateBindGroup(new BindGroupDescriptor(entries));
