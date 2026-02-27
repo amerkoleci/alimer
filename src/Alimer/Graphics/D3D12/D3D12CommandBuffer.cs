@@ -541,6 +541,38 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             size);
     }
 
+    protected override void BeginQueryCore(QueryHeap queryHeap, uint index)
+    {
+        D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();
+
+        _commandList6.Get()->BeginQuery(backendQueryHeap.Handle, backendQueryHeap.BackendQueryType, index);
+    }
+
+    protected override void EndQueryCore(QueryHeap queryHeap, uint index)
+    {
+        D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();
+
+        _commandList6.Get()->EndQuery(backendQueryHeap.Handle, backendQueryHeap.BackendQueryType, index);
+    }
+
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
+    {
+        D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();
+        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
+        BufferBarrier(backendDestBuffer, BufferStates.CopyDest, true);
+
+        _commandList6.Get()->ResolveQueryData(
+            backendQueryHeap.Handle, backendQueryHeap.BackendQueryType,
+            index, count,
+            backendDestBuffer.Handle, destinationOffset
+            );
+    }
+
+    protected override void ResetQueryCore(QueryHeap queryHeap, uint index, uint count)
+    {
+        // Nothing on D3D12
+    }
+
     public override void Present(SwapChain swapChain)
     {
         D3D12SwapChain backendSwapChain = (D3D12SwapChain)swapChain;

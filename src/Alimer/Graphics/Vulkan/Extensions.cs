@@ -28,4 +28,12 @@ internal static class Extensions
             return (VulkanTextureView)textureView;
         }
     }
+
+    extension(QueryHeap queryHeap)
+    {
+        internal VulkanQueryHeap ToVk()
+        {
+            return (VulkanQueryHeap)queryHeap;
+        }
+    }
 }

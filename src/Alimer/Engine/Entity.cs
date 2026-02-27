@@ -1,16 +1,16 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Numerics;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using System.Linq;
 
 namespace Alimer.Engine;
+
+// TODO: Rework Entity, Transform and component logic
 
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]

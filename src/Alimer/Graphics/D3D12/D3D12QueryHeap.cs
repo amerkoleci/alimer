@@ -37,15 +37,21 @@ internal unsafe class D3D12QueryHeap : QueryHeap
 
         switch (descriptor.Type)
         {
+            case QueryType.Timestamp:
+                heapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+                BackendQueryType = D3D12_QUERY_TYPE_TIMESTAMP;
+                QueryResultSize = sizeof(ulong);
+                break;
+
             case QueryType.Occlusion:
                 heapDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
                 BackendQueryType = D3D12_QUERY_TYPE_OCCLUSION;
                 QueryResultSize = sizeof(ulong);
                 break;
 
-            case QueryType.Timestamp:
-                heapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-                BackendQueryType = D3D12_QUERY_TYPE_TIMESTAMP;
+            case QueryType.BinaryOcclusion:
+                heapDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+                BackendQueryType = D3D12_QUERY_TYPE_BINARY_OCCLUSION;
                 QueryResultSize = sizeof(ulong);
                 break;
 

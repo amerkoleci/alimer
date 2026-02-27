@@ -40,6 +40,11 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         OpaqueWhiteTexture = CreateTextureFromColor(Colors.White);
         TransparentBlackTexture = CreateTextureFromColor(Colors.Transparent);
         DefaultNormalTexture = CreateTextureFromColor(new Color(0.5f, 0.5f, 1.0f, 0f));
+
+        // A simple 1x1 black environment map
+        var environmentTextureDesc = TextureDescriptor.TextureCube(PixelFormat.RG11B10Float, 1, label: "Default Environment Map");
+        DefaultEnvironmentTexture = ToDispose(Device.CreateTexture(in environmentTextureDesc));
+
         ReadOnlySpan<uint> pixels = [
             0xFFFFFFFF,
             0x00000000,
@@ -77,12 +82,17 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                 "Frame BindGroupLayout",
                 new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All),
                 new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // environmentTexture
-                new BindGroupLayoutEntry(new SamplerBindingLayout(SamplerBindingType.Filtering), 0)  // environmentSampler
+                new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 0)  // environmentSampler
                 ));
+
+            // TODO: Configure environment texture/sampler in frame bind group
+            //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
+            //Texture environmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
 
             FrameConstantBuffer = ToDispose(new ConstantBuffer<FrameConstants>(Device, label: "Frame Constant Buffer"));
             FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
-                new BindGroupEntry(0, FrameConstantBuffer.Handle)
+                new BindGroupEntry(0, FrameConstantBuffer.Handle),
+                new BindGroupEntry(0, DefaultEnvironmentTexture)
                 ));
         }
 
@@ -127,6 +137,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture OpaqueWhiteTexture { get; }
     public Texture TransparentBlackTexture { get; }
     public Texture DefaultNormalTexture { get; }
+    public Texture DefaultEnvironmentTexture { get; }
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
@@ -224,6 +235,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera, GameTime time)
     {
         UpdateFrame(time);
+        UpdateLights();
 
         RenderPassColorAttachment colorAttachment = new(output.DefaultView!, Colors.Black)
         {
@@ -358,6 +370,14 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         viewData.activeLightCount = 0u;
 
         ViewConstantBuffer.SetData(viewData);
+    }
+
+    private void UpdateLights()
+    {
+        LightSystem? lightSystem = EntityManager?.Systems.Get<LightSystem>();
+
+        if (lightSystem is null)
+            return;
     }
 
     private Texture CreateTextureFromColor(in Color color)

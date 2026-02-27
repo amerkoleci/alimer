@@ -431,8 +431,8 @@ internal static class VulkanUtils
     {
         return value switch
         {
-            //QueryType.Occlusion or QueryType.BinaryOcclusion => VK_QUERY_TYPE_OCCLUSION,
-            QueryType.Occlusion => VK_QUERY_TYPE_OCCLUSION,
+            QueryType.Timestamp => VK_QUERY_TYPE_TIMESTAMP,
+            QueryType.Occlusion or QueryType.BinaryOcclusion  => VK_QUERY_TYPE_OCCLUSION,
             QueryType.PipelineStatistics => VK_QUERY_TYPE_PIPELINE_STATISTICS,
             _ => VK_QUERY_TYPE_TIMESTAMP,
         };

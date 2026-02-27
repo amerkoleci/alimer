@@ -12,7 +12,6 @@ public abstract class CommandBuffer
     protected bool _encoderActive;
     protected bool _hasLabel;
 
-
     protected CommandBuffer()
     {
     }
@@ -143,7 +142,6 @@ public abstract class CommandBuffer
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, size);
     }
 
-
     public void CopyBufferToBuffer(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
     {
         CopyBufferToBufferCore(sourceBuffer, destinationBuffer);
@@ -156,6 +154,44 @@ public abstract class CommandBuffer
 
     protected abstract void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer);
     protected abstract void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size);
+
+    #region QueryHeap
+
+    public void BeginQuery(QueryHeap queryHeap, uint index)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(queryHeap.Count, index);
+
+        BeginQueryCore(queryHeap, index);
+    }
+
+    public void EndQuery(QueryHeap queryHeap, uint index)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(queryHeap.Count, index);
+
+        EndQueryCore(queryHeap, index);
+    }
+
+    public void ResolveQuery(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(queryHeap.Count, index);
+
+        ResolveQueryCore(queryHeap, index, count, destinationBuffer, destinationOffset);
+    }
+
+    public void ResetQuery(QueryHeap queryHeap, uint index, uint count)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(queryHeap.Count, index);
+
+        ResetQueryCore(queryHeap, index, count);
+    }
+
+
+    protected abstract void BeginQueryCore(QueryHeap queryHeap, uint index);
+    protected abstract void EndQueryCore(QueryHeap queryHeap, uint index);
+
+    protected abstract void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset);
+    protected abstract void ResetQueryCore(QueryHeap queryHeap, uint index, uint count);
+    #endregion
 
     public abstract void Present(SwapChain swapChain);
 

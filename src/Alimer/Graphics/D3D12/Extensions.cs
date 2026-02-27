@@ -28,4 +28,12 @@ internal static class Extensions
             return (D3D12TextureView)textureView;
         }
     }
+
+    extension(QueryHeap queryHeap)
+    {
+        internal D3D12QueryHeap ToD3D12()
+        {
+            return (D3D12QueryHeap)queryHeap;
+        }
+    }
 }

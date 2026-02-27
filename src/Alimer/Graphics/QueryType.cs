@@ -9,13 +9,17 @@ namespace Alimer.Graphics;
 public enum QueryType
 {
     /// <summary>
+    /// Create a heap to contain timestamp queries
+    /// </summary>
+    Timestamp,
+    /// <summary>
     /// Used for occlusion query heap or occlusion queries
     /// </summary>
     Occlusion,
     /// <summary>
-    /// Create a heap to contain timestamp queries
+    /// Used for binary occlusion query heap or binary occlusion queries
     /// </summary>
-    Timestamp,
+    BinaryOcclusion,
     /// <summary>
     /// Create a heap to contain a structure of <see cref="QueryDataPipelineStatistics"/>
     /// </summary>

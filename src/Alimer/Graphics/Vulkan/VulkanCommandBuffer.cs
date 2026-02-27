@@ -455,4 +455,73 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         );
         _bindGroupsDirty = false;
     }
+
+    protected override void BeginQueryCore(QueryHeap queryHeap, uint index)
+    {
+        VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
+
+        switch (queryHeap.Type)
+        {
+            case QueryType.Timestamp:
+                break;
+
+            case QueryType.Occlusion:
+                _deviceApi.vkCmdBeginQuery(_commandBuffer, backendQueryHeap.Handle, index, VK_QUERY_CONTROL_PRECISE_BIT);
+                break;
+
+            default:
+                _deviceApi.vkCmdBeginQuery(_commandBuffer, backendQueryHeap.Handle, index, 0);
+                break;
+        }
+    }
+
+    protected override void EndQueryCore(QueryHeap queryHeap, uint index)
+    {
+        VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
+
+        switch (queryHeap.Type)
+        {
+            case QueryType.Timestamp:
+                _deviceApi.vkCmdWriteTimestamp2(_commandBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, backendQueryHeap.Handle, index);
+                break;
+
+            default:
+                _deviceApi.vkCmdEndQuery(_commandBuffer, backendQueryHeap.Handle, index);
+                break;
+        }
+    }
+
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
+    {
+        VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
+        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
+
+        VkQueryResultFlags flags = VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT;
+
+        switch (backendQueryHeap.Type)
+        {
+            case QueryType.BinaryOcclusion:
+                flags |= VK_QUERY_RESULT_PARTIAL_BIT;
+                break;
+            default:
+                break;
+        }
+
+        _deviceApi.vkCmdCopyQueryPoolResults(
+            _commandBuffer,
+            backendQueryHeap.Handle,
+            index,
+            count,
+            backendDestBuffer.Handle,
+            destinationOffset,
+            backendQueryHeap.QueryResultSize,
+            flags
+        );
+    }
+
+    protected override void ResetQueryCore(QueryHeap queryHeap, uint index, uint count)
+    {
+        VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
+        _deviceApi.vkCmdResetQueryPool(_commandBuffer, backendQueryHeap.Handle, index, count);
+    }
 }

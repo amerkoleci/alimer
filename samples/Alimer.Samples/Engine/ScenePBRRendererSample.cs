@@ -16,7 +16,7 @@ public sealed class ScenePBRRendererSample : SampleBase
 {
     private readonly Entity _cameraEntity;
     private readonly Entity _damagedHelmetEntity;
-    private readonly Texture _environmentMap;
+    //private readonly Texture _environmentMap;
 
     public ScenePBRRendererSample(IServiceRegistry services)
         : base("Engine - Scene Cube")
@@ -34,9 +34,8 @@ public sealed class ScenePBRRendererSample : SampleBase
 
         // GLTF mesh
         string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
-        string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
-
-        _environmentMap = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
+        //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
+        //_environmentMap = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
 
         MeshImporter meshImporter = new(GraphicsDevice);
         MeshMetadata meshMetadata = new()
