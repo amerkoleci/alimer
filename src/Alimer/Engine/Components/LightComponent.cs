@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Rendering;
+
 namespace Alimer.Engine;
 
 /// <summary>
@@ -13,5 +15,7 @@ public sealed partial class LightComponent : Component
     {
     }
 
+    public LightType LightType { get; set; } = LightType.Point;
+    public Color Color { get; set; } = Colors.White;
     public float Intensity { get; set; } = 1.0f;
 }

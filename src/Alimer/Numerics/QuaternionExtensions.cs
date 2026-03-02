@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Alimer.Numerics;
 
@@ -63,5 +64,34 @@ public static class QuaternionExtensions
     public static Quaternion FromEuler(this in Vector3 value)
     {
         return FromEuler(value.X, value.Y, value.Z);
+    }
+
+    extension(Quaternion)
+    {
+        public static Quaternion CreateFromRotationTo(in Vector3 start, in Vector3 end)
+        {
+            Vector3 normStart = Vector3.Normalize(start);
+            Vector3 normEnd = Vector3.Normalize(end);
+            float d = Vector3.Dot(normStart, normEnd);
+
+            if (d > -1.0f + MathUtilities.Epsilon)
+            {
+                Vector3 c = Vector3.Cross(normStart, normEnd);
+                float s = MathF.Sqrt((1.0f + d) * 2.0f);
+                float invS = 1.0f / s;
+
+                return new(c.X * invS, c.Y * invS, c.Z * invS, 0.5f * s);
+            }
+            else
+            {
+                Vector3 axis = Vector3.Cross(Vector3.Right, normStart);
+                if (axis.Length() < MathUtilities.Epsilon)
+                {
+                    axis = Vector3.Cross(Vector3.Up, normStart);
+                }
+
+                return Quaternion.CreateFromAxisAngle(axis, 180.0f);
+            }
+        }
     }
 }

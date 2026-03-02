@@ -5,6 +5,7 @@ using System.Numerics;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Numerics;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Rendering;
 
@@ -18,10 +19,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public const int InstanceBindGroupSpace = 1;
     public const int MaterialBindGroupSpace = 0;
 
-    // TODO: Max frames inflight
-    // TODO: Material system
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
-    //private readonly Dictionary<Mesh, List<GPUInstanceData>> _renderMeshInstances = [];
     private readonly RenderBatch _renderBatch;
 
     private readonly UnlitMaterial _defaultMaterial = new();
@@ -100,15 +98,23 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // Per view (set 2)
         {
+            uint hackBinding = 1; // Should be 0 
             ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
                 "View BindGroupLayout",
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All),
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.ShaderRead), hackBinding, ShaderStages.Fragment)
             ));
 
             ViewConstantBuffer = ToDispose(new ConstantBuffer<PerViewData>(Device, label: "View Constant Buffer"));
+
+            // Light structured buffer 
+            BufferDescriptor descriptor = new(SizeOf<LightData>() * 6, BufferUsage.ShaderRead, MemoryType.Upload, "Lights Structured Buffer");
+            LightsStructuredBuffer = ToDispose(Device.CreateBuffer(in descriptor));
+
             ViewBindGroup = ToDispose(ViewBindGroupLayout.CreateBindGroup(
                 "View BindGroup",
-                new BindGroupEntry(0, ViewConstantBuffer.Handle)
+                new BindGroupEntry(0, ViewConstantBuffer.Handle),
+                new BindGroupEntry(hackBinding, LightsStructuredBuffer)
                 ));
         }
 
@@ -148,7 +154,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     // Set 2 (per view/camera)
     public BindGroupLayout ViewBindGroupLayout { get; } // 2
-    public ConstantBuffer<PerViewData> ViewConstantBuffer { get; }
+    public ConstantBuffer<PerViewData> ViewConstantBuffer { get; } // b0
+    public GraphicsBuffer LightsStructuredBuffer { get; } // b1 // LightData
     public BindGroup ViewBindGroup { get; }
 
     // Set 3 (per frame)
@@ -359,6 +366,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private void UpdateCamera(CameraComponent camera)
     {
+        LightSystem? lightSystem = EntityManager?.Systems.Get<LightSystem>();
+
         PerViewData viewData = new()
         {
             viewMatrix = camera.ViewMatrix,
@@ -370,7 +379,12 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // https://github.com/Aminator/DirectX12GameEngine/blob/master/DirectX12GameEngine.Rendering/Materials/MaterialAttributes.cs
         viewData.cameraPosition = camera.Entity!.Transform.Position;
-        viewData.activeLightCount = 0u;
+        viewData.ambientLight = Vector3.One;
+        viewData.activeLightCount = 0;
+        if (lightSystem is not null)
+        {
+            viewData.activeLightCount = (uint)lightSystem.Lights.Count;
+        }
 
         ViewConstantBuffer.SetData(viewData);
     }
@@ -381,6 +395,28 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         if (lightSystem is null)
             return;
+
+        // Sort lights as well
+        int lightCount = lightSystem.Lights.Count;
+        Span<LightData> lightData = new LightData[lightSystem.Lights.Count];
+        int lightIndex = 0;
+
+        foreach (LightComponent light in lightSystem.Lights)
+        {
+            lightData[lightIndex] = new LightData
+            {
+                position = light.Entity!.WorldTransform.Translation,
+                direction = light.Entity!.Direction,
+                color = light.Color.ToVector3(),
+                intensity = light.Intensity,
+                type = (light.LightType == LightType.Directional) ? ShaderLightType.Directional : ShaderLightType.Point
+            };
+            lightIndex++;
+        }
+
+
+        LightsStructuredBuffer.SetData(lightData);
+        //DirectionalLightGroupBuffer.SetData(lightData.AsSpan(), Unsafe.SizeOf<Vector4>());
     }
 
     private Texture CreateTextureFromColor(in Color color)

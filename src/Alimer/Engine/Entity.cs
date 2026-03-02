@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Numerics;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -70,6 +71,9 @@ public partial class Entity
     public EntityComponentCollection Components { get; }
 
     [IgnoreDataMember]
+    public bool IsTransformHierarchyRoot => _parent is null;
+
+    [IgnoreDataMember]
     public Entity? Parent
     {
         get => _parent;
@@ -91,6 +95,32 @@ public partial class Entity
     [IgnoreDataMember]
     [JsonIgnore]
     public ref Matrix4x4 WorldTransform => ref Transform.WorldMatrix;
+
+    /// <summary>
+    /// Gets or sets the local space rotation.
+    /// </summary>
+    public Quaternion LocalRotation
+    {
+        get => Transform.Rotation;
+        set => Transform.Rotation = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the world space direction.
+    /// </summary>
+    public Vector3 Direction
+    {
+        get
+        {
+            return Vector3.Transform(Vector3.Forward, Transform.WorldRotation);
+        }
+        set
+        {
+            Vector3 localDirection = IsTransformHierarchyRoot ? value : Vector3.Transform(value, Quaternion.Inverse(_parent!.Transform.Rotation));
+            LocalRotation = Quaternion.CreateFromRotationTo(Vector3.Forward, localDirection);
+        }
+    }
+
 
     /// <summary>
     /// Adds the specified component to the entity and returns it.
@@ -192,7 +222,7 @@ public partial class Entity
     {
         foreach (Component component in Components)
         {
-            if (component is T typedComponent)
+            if (component is T)
             {
                 return true;
             }
@@ -214,7 +244,7 @@ public partial class Entity
         for (int i = 0; i < Components.Count; i++)
         {
             Component component = Components[i];
-            if (component is T typedComponent)
+            if (component is T)
             {
                 //component.OnDetach();
                 Components.RemoveAt(i);

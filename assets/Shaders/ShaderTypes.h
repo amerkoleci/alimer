@@ -49,7 +49,29 @@ struct ALIGNMENT PerViewData
     float4x4 inverseViewMatrix;
     float4x4 inverseProjectionMatrix;
     float3 cameraPosition;
+    float _padding0;
+    float3 ambientLight;
     uint activeLightCount;
+};
+
+enum class LightType
+{
+    Invalid,
+    Directional,
+    Point,
+    Spot,
+};
+
+struct ALIGNMENT LightData
+{
+    float3 position;
+    float3 direction;
+    float3 color;
+    float intensity;
+    float range;
+    float innerConeCos;
+    float outerConeCos;
+    uint type;
 };
 
 /* TODO: pack and use half*/
@@ -79,6 +101,7 @@ SamplerState environmentSampler : register(s0, space3);
 
 // View (space 2)
 ConstantBuffer<PerViewData> view : register(b0, space2);
+StructuredBuffer<LightData> lights : register(t1, space2); // Until we fix D3D12 and Vulkan BindGroup (should be t0)
 
 // Instance data + materials data (space 1)
 StructuredBuffer<InstanceData> instanceDataBuffer : register(t0, space1);

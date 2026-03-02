@@ -32,35 +32,67 @@ public sealed class ScenePBRRendererSample : SampleBase
         camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
         root.Children.Add(_cameraEntity);
 
-        // GLTF mesh
-        string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
-        //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
-        //_environmentMap = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
-
-        MeshImporter meshImporter = new(GraphicsDevice);
-        MeshMetadata meshMetadata = new()
         {
-            FileFullPath = Path.Combine(meshesPath, "DamagedHelmet.glb")
-        };
-        MeshAsset meshAsset = meshImporter.Import(meshMetadata).Result;
+            // GLTF mesh
+            string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
+            //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
+            //_environmentMap = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
 
-        Mesh damagedHelmetMesh = meshAsset.Mesh;
-        _= ToDispose(damagedHelmetMesh);
+            MeshImporter meshImporter = new(GraphicsDevice);
+            MeshMetadata meshMetadata = new()
+            {
+                FileFullPath = Path.Combine(meshesPath, "DamagedHelmet.glb")
+            };
+            MeshAsset meshAsset = meshImporter.Import(meshMetadata).Result;
 
-        {
+            Mesh damagedHelmetMesh = ToDispose(meshAsset.Mesh);
             _damagedHelmetEntity = new("Damaged Helmet", meshAsset.Translation);
             _damagedHelmetEntity.Transform.Rotation = meshAsset.Rotation;
             _damagedHelmetEntity.Transform.Scale = meshAsset.Scale;
 
             MeshComponent meshComponent = new(damagedHelmetMesh);
 
-            foreach(var material in meshAsset.Materials)
+            foreach (Material material in meshAsset.Materials)
             {
                 meshComponent.Materials.Add(ToDispose(material));
             }
 
             _damagedHelmetEntity.AddComponent(meshComponent);
             root.Children.Add(_damagedHelmetEntity);
+        }
+
+        // Lights
+        Entity directionalLightEntity = new("DirectionalLight")
+        {
+            Direction = new(0.5f, 1.0f, 0.25f)
+        };
+        LightComponent directionalLight = directionalLightEntity.AddComponent<LightComponent>();
+        directionalLight.LightType = LightType.Directional;
+        directionalLight.Color = Colors.Red;
+        root.Children.Add(directionalLightEntity);
+
+        // Point lights
+        int pointLightCount = 3;
+        float timestamp = 0.0f;
+        for (int i = 0; i < pointLightCount; i++)
+        {
+            float r = (i / pointLightCount) * MathF.PI * 2 + (timestamp / 1000);
+
+            Entity pointLightEntity = new($"PointLight_{i}")
+            {
+                Transform =
+                {
+                    Position = new Vector3(
+                        MathF.Sin(r) * 2.5f,
+                        MathF.Sin(timestamp / 1000 + (i / pointLightCount)) * 1.5f,
+                        MathF.Cos(r) * 2.5f
+                        )
+                }
+            };
+            LightComponent pointLight = pointLightEntity.AddComponent<LightComponent>();
+            pointLight.LightType = LightType.Point;
+            pointLight.Color = Colors.Green;
+            root.Children.Add(pointLightEntity);
         }
 
         Scene.RootEntity = root;

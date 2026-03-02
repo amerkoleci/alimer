@@ -113,7 +113,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
         VmaAllocationInfo allocationInfo;
         VkResult result = vmaCreateBuffer(device.Allocator, &createInfo, &memoryInfo, out _handle, out _allocation, &allocationInfo);
 
-        if (result != VkResult.Success)
+        if (result != VK_SUCCESS)
         {
             Log.Error("Vulkan: Failed to create buffer.");
             return;

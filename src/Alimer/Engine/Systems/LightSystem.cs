@@ -5,6 +5,8 @@ namespace Alimer.Engine;
 
 public sealed class LightSystem : EntitySystem<LightComponent>
 {
+    public IReadOnlyCollection<LightComponent> Lights => Components;
+
     public LightSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
     {

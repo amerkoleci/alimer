@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Numerics;
 using System.Collections;
 using System.ComponentModel;
 using Alimer.Numerics;
@@ -82,15 +83,7 @@ public partial class TransformComponent : Component, IEnumerable<TransformCompon
     }
 
     [JsonIgnore]
-    public Quaternion WorldRotation
-    {
-        get
-        {
-            // TODO
-            //_worldRotation = _parent->GetRotation() * localRotation;
-            return Rotation;
-        }
-    }
+    public Quaternion WorldRotation { get; private set; }
 
     [IgnoreDataMember]
     [JsonIgnore]
@@ -194,6 +187,7 @@ public partial class TransformComponent : Component, IEnumerable<TransformCompon
         if (Parent is null)
         {
             WorldMatrix = LocalMatrix;
+            WorldRotation = Rotation;
         }
         else
         {
@@ -203,6 +197,7 @@ public partial class TransformComponent : Component, IEnumerable<TransformCompon
             }
 
             WorldMatrix = LocalMatrix * Parent.WorldMatrix;
+            WorldRotation = Parent.Rotation * Rotation;
         }
     }
 }

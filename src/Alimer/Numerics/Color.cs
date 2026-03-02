@@ -2,12 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Serialization;
-//using static Alimer.Utilities.VectorUtilities;
+//using static Alimer.Utilities.VectorUtilities;f
 
 namespace Alimer.Numerics;
 
@@ -282,6 +283,10 @@ public readonly partial struct Color
         b = (byte)(Blue * 255.0f);
         a = (byte)(Alpha * 255.0f);
     }
+
+    public readonly Vector3 ToVector3() => new(Red, Green, Blue);
+
+    public readonly Vector4 ToVector4() => new(Red, Green, Blue, Alpha);
 
     /// <summary>Creates a new <see cref="Color" /> instance with <see cref="Blue" /> set to the specified value.</summary>
     /// <param name="blue">The new value of the blue component.</param>
