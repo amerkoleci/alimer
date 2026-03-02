@@ -2,8 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer;
 
@@ -80,7 +78,7 @@ public abstract class DisposableObject : IDisposableObject, IReferencable
     protected internal T ToDispose<T>(T objectToDispose)
         where T : notnull
     {
-        Guard.IsNotNull(objectToDispose, nameof(objectToDispose));
+        ArgumentNullException.ThrowIfNull(objectToDispose, nameof(objectToDispose));
 
         return _collector.Add(objectToDispose);
     }

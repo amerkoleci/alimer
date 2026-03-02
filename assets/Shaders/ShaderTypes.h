@@ -54,6 +54,13 @@ struct ALIGNMENT PerViewData
     uint activeLightCount;
 };
 
+enum class AlphaMode
+{
+    Opaque,
+    Mask,
+    Blend,
+};
+
 enum class LightType
 {
     Invalid,

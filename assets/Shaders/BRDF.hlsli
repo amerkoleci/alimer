@@ -17,7 +17,9 @@ float3 FresnelSchlickRoughness(float LdotH, float3 F0, float roughness)
     return F0 + (max(float3(v, v, v), F0) - F0) * pow(1.f - LdotH, 5.f);
 }
 
-float DistributionGGX(in float3 N, in float3 H, in float roughness)
+// GGX/Trowbridge-Reitz normal distribution function
+// Describes the distribution of microfacet normals
+float DistributionGGX(float3 N, float3 H, float roughness)
 {
     float a = roughness * roughness;
     float a2 = a * a;

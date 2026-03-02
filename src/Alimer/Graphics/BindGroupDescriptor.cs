@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Alimer.Utilities;
-using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
@@ -46,7 +45,7 @@ public struct BindGroupEntry
 
     public BindGroupEntry(uint binding, IGraphicsBindableResource resource, ulong offset = 0, ulong size = WholeSize, uint stride = 0)
     {
-        Guard.IsNotNull(resource, nameof(resource));
+        ArgumentNullException.ThrowIfNull(resource, nameof(resource));
 
         Binding = binding;
         Resource = resource;
@@ -80,7 +79,7 @@ public ref struct BindGroupDescriptor
 
     public BindGroupDescriptor(Span<BindGroupEntry> entries, string? label = default)
     {
-        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entries.Length, nameof(entries));
 
         //ConstantBufferEntries = constantBufferEntries;
         Entries = entries;

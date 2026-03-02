@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
 using GLTF2;
 
 namespace Alimer.Assets.Graphics;
@@ -150,8 +149,8 @@ public static class GltfUtils
 
     public static bool IsBinary(Stream stream)
     {
-        Guard.IsNotNull(stream, nameof(stream));
-        Guard.IsTrue(stream.CanSeek, nameof(stream), "A seekable stream is required for glTF/GLB format identification");
+        ArgumentNullException.ThrowIfNull(stream, nameof(stream));
+        ArgumentException.ThrowIfFalse(stream.CanSeek, nameof(stream), "A seekable stream is required for glTF/GLB format identification");
 
         long currPos = stream.Position;
 

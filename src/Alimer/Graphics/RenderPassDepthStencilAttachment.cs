@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
-
 namespace Alimer.Graphics;
 
 public record struct RenderPassDepthStencilAttachment
@@ -54,15 +52,15 @@ public record struct RenderPassDepthStencilAttachment
 
     public RenderPassDepthStencilAttachment(TextureView view)
     {
-        Guard.IsNotNull(view, nameof(view));
+        ArgumentNullException.ThrowIfNull(view, nameof(view));
 
         View = view;
     }
 
     public RenderPassDepthStencilAttachment(Texture texture)
     {
-        Guard.IsNotNull(texture, nameof(texture));
-        Guard.IsNotNull(texture.DefaultView, nameof(texture.DefaultView));
+        ArgumentNullException.ThrowIfNull(texture, nameof(texture));
+        ArgumentNullException.ThrowIfNull(texture.DefaultView, nameof(texture.DefaultView));
 
         View = texture.DefaultView;
     }

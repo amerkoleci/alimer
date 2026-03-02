@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples;
 
@@ -10,7 +9,7 @@ public abstract class SampleBase : DisposableObject
 {
     protected SampleBase(string name)
     {
-        Guard.IsNotNullOrEmpty(name, nameof(name));
+        ArgumentNullException.ThrowIfNullOrEmpty(name, nameof(name));
 
         Name = name;
     }

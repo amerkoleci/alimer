@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -34,17 +33,17 @@ public record struct RenderPassColorAttachment
     public TextureView? ResolveView;
 
     [SetsRequiredMembers]
-    public RenderPassColorAttachment([NotNull] TextureView view)
+    public RenderPassColorAttachment(TextureView view)
     {
-        Guard.IsNotNull(view, nameof(view));
+        ArgumentNullException.ThrowIfNull(view, nameof(view));
 
         View = view;
     }
 
     [SetsRequiredMembers]
-    public RenderPassColorAttachment([NotNull] TextureView view, in Color clearColor)
+    public RenderPassColorAttachment(TextureView view, in Color clearColor)
     {
-        Guard.IsNotNull(view, nameof(view));
+        ArgumentNullException.ThrowIfNull(view, nameof(view));
 
         View = view;
         LoadAction = LoadAction.Clear;

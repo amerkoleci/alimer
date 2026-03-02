@@ -29,6 +29,14 @@ internal static class Extensions
         }
     }
 
+    extension(Sampler sampler)
+    {
+        internal VulkanSampler ToVk()
+        {
+            return (VulkanSampler)sampler;
+        }
+    }
+
     extension(QueryHeap queryHeap)
     {
         internal VulkanQueryHeap ToVk()

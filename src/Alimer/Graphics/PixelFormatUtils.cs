@@ -1,8 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -158,7 +158,7 @@ public static class PixelFormatUtils
             return ref s_formatInfos[0]; // UNKNOWN
         }
 
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
         return ref s_formatInfos[(int)format];
     }
 
@@ -169,42 +169,42 @@ public static class PixelFormatUtils
     /// <returns></returns>
     public static uint GetFormatBytesPerBlock(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(uint)format].BytesPerBlock;
     }
 
     public static uint GetFormatPixelsPerBlock(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(uint)format].BlockWidth * s_formatInfos[(uint)format].BlockHeight;
     }
 
     public static FormatKind GetKind(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(uint)format].Kind;
     }
 
     public static bool IsInteger(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(int)format].Kind == FormatKind.Uint || s_formatInfos[(int)format].Kind == FormatKind.Sint;
     }
 
     public static bool IsSigned(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(int)format].Kind == FormatKind.Sint;
     }
 
     public static bool IsSrgb(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(int)format].Kind == FormatKind.UnormSrgb;
     }
@@ -348,7 +348,7 @@ public static class PixelFormatUtils
     /// <returns>true if the specified pixel format is compressed; otherwise, false.</returns>
     public static bool IsCompressedFormat(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(int)format].BlockWidth > 1;
     }
@@ -360,7 +360,7 @@ public static class PixelFormatUtils
     /// <returns></returns>
     public static uint GetFormatWidthCompressionRatio(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(int)format].BlockWidth;
     }
@@ -372,7 +372,7 @@ public static class PixelFormatUtils
     /// <returns></returns>
     public static uint GetFormatHeightCompressionRatio(this PixelFormat format)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
 
         return s_formatInfos[(int)format].BlockHeight;
     }
@@ -455,7 +455,7 @@ public static class PixelFormatUtils
     /// <returns></returns>
     public static uint GetFormatRowPitch(this PixelFormat format, uint width)
     {
-        Guard.IsTrue(width % GetFormatWidthCompressionRatio(format) == 0);
+        Debug.Assert(width % GetFormatWidthCompressionRatio(format) == 0);
 
         return (width / GetFormatWidthCompressionRatio(format)) * GetFormatBytesPerBlock(format);
     }
@@ -522,7 +522,7 @@ public static class PixelFormatUtils
                 return PixelFormat.ASTC12x12Unorm;
 
             default:
-                Guard.IsFalse(IsSrgb(format));
+                Debug.Assert(IsSrgb(format) == false);
                 return format;
         }
     }
@@ -704,7 +704,7 @@ public static class PixelFormatUtils
     public static void GetSurfaceInfo(in PixelFormat format, in uint width, in uint height,
         out uint rowPitch, out uint slicePitch, out uint widthCount, out uint heightCount)
     {
-        Guard.IsTrue(s_formatInfos[(int)format].Format == format);
+        Debug.Assert(s_formatInfos[(int)format].Format == format);
         ref PixelFormatInfo formatInfo = ref s_formatInfos[(int)format];
 
         widthCount = width;

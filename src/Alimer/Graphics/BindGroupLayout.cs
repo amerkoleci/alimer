@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
-
 namespace Alimer.Graphics;
 
 public abstract class BindGroupLayout : GraphicsObject
@@ -27,8 +25,8 @@ public abstract class BindGroupLayout : GraphicsObject
 
     public BindGroup CreateBindGroup(in BindGroupDescriptor descriptor)
     {
-        Guard.IsNotEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
-        Guard.IsGreaterThan(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
+        ArgumentException.ThrowIfEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
 
         // TODO: Validate that entries match layout and handle null resources.
 

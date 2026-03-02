@@ -1,12 +1,12 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Alimer.Assets;
 using Alimer.Graphics;
 using Alimer.Serialization;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
@@ -33,8 +33,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         int vertexStride = 0)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
-        Guard.IsGreaterThan(vertexCount, 0, nameof(vertexCount));
-        Guard.IsNotEmpty(vertexAttributes, nameof(vertexAttributes));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(vertexCount, 0, nameof(vertexCount));
+        ArgumentOutOfRangeException.ThrowIfZero(vertexAttributes.Length, nameof(vertexAttributes));
         ArgumentOutOfRangeException.ThrowIfNegative(vertexStride, nameof(vertexStride));
 
         Device = device;
@@ -148,7 +148,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
 
     public void Draw(RenderPassEncoder encoder, uint instanceCount = 1)
     {
-        Guard.IsNotNull(encoder, nameof(encoder));
+        ArgumentNullException.ThrowIfNull(encoder, nameof(encoder));
 
         encoder.SetVertexBuffer(0, _gpuVertexBuffer!);
         encoder.SetIndexBuffer(_gpuIndexBuffer!, IndexFormat);
@@ -227,7 +227,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
 
         int offset = attribute.Value.Offset;
         int attributeSize = attribute.Value.Format.GetSizeInBytes();
-        Guard.IsEqualTo(sizeof(T), attributeSize, nameof(T));
+        ArgumentOutOfRangeException.ThrowIfNotEqual(sizeof(T), attributeSize, nameof(T));
 
         _vertexBuffer.GetElementData(data, offset);
     }
@@ -239,7 +239,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
 
         int offset = attribute.Value.Offset;
         int attributeSize = attribute.Value.Format.GetSizeInBytes();
-        Guard.IsEqualTo(sizeof(T), attributeSize, nameof(T));
+        ArgumentOutOfRangeException.ThrowIfNotEqual(sizeof(T), attributeSize, nameof(T));
 
         _vertexBuffer.SetElementData(data, offset);
     }
@@ -247,7 +247,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
     public void SetVertices<T>(ReadOnlySpan<T> source, int vertexCount = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(sizeof(T) == VertexStride, nameof(T), "Size of T must match the element size of the vertex buffer.");
+        Debug.Assert(sizeof(T) == VertexStride, nameof(T), "Size of T must match the element size of the vertex buffer.");
 
         if (vertexCount == 0)
             vertexCount = _vertexBuffer.ElementCount;
@@ -258,8 +258,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
     public void GetVertices<T>(Span<T> destination)
         where T : unmanaged
     {
-        Guard.IsTrue(destination.Length == VertexCount);
-        Guard.IsTrue(sizeof(T) == VertexStride, nameof(T), "Size of T must match the element size of the vertex buffer.");
+        Debug.Assert(destination.Length == VertexCount);
+        Debug.Assert(sizeof(T) == VertexStride, nameof(T), "Size of T must match the element size of the vertex buffer.");
 
         new Span<T>(_vertexBuffer.GetRawData(), destination.Length).CopyTo(destination);
     }
@@ -475,7 +475,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         public void SetData<T>(int index, int offset, T value)
             where T : unmanaged
         {
-            Guard.IsEqualTo(sizeof(T), ElementSize, nameof(T));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(sizeof(T), ElementSize, nameof(T));
 
             if (index >= ElementCount)
                 return;

@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
@@ -36,11 +35,11 @@ public abstract  class CommandEncoder
 
     public void SetBindGroup(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
     {
-        Guard.IsGreaterThanOrEqualTo(groupIndex, 0, nameof(groupIndex));
-        Guard.IsNotNull(bindGroup, nameof(bindGroup));
+        ArgumentOutOfRangeException.ThrowIfLessThan(groupIndex, 0, nameof(groupIndex));
+        ArgumentNullException.ThrowIfNull(bindGroup, nameof(bindGroup));
 
         // TODO: Use GraphicsAdaterLimits.MaxBindGroups
-        Guard.IsLessThan(groupIndex, MaxBindGroups, nameof(groupIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(groupIndex, MaxBindGroups, nameof(groupIndex));
 
         SetBindGroupCore(groupIndex, bindGroup, dynamicBufferOffsets);
     }

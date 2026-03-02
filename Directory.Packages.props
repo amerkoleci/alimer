@@ -16,7 +16,6 @@
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.3.2" />
     
     <!-- Engine -->
-    <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.4.0" />
     <PackageVersion Include="XenoAtom.Collections" Version="1.2.0" />
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
@@ -27,7 +26,7 @@
     <PackageVersion Include="Vortice.Vulkan" Version="3.2.1" />
 
     <!-- Others -->
-    <PackageVersion Include="DotRecast.Recast" Version="2026.1.1" />
+    <PackageVersion Include="DotRecast.Recast" Version="2026.1.3" />
     
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />
     <PackageVersion Include="Hexa.NET.ImGuizmo" Version="$(ImGuiVersion)" />
@@ -35,7 +34,7 @@
     <PackageVersion Include="Hexa.NET.ImPlot" Version="$(ImGuiVersion)" />
 
     <!-- Tools -->
-    <PackageVersion Include="XenoAtom.CommandLine" Version="1.4.1" />
+    <PackageVersion Include="XenoAtom.CommandLine" Version="2.0.2" />
     
     <!-- Asset Pipeline -->
     <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />

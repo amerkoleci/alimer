@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static Alimer.Graphics.Constants;
@@ -183,7 +182,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             D3D12BufferStateMapping mappingBefore = ConvertBufferState(buffer.CurrentState);
             D3D12BufferStateMapping mappingAfter = ConvertBufferState(newState);
 
-            Guard.IsTrue(_bufferBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffer barriers");
+            Debug.Assert(_bufferBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffer barriers");
 
             ref D3D12_BUFFER_BARRIER barrier = ref _bufferBarriers[_bufferBarriersCount++];
             barrier.SyncBefore = mappingBefore.Sync;
@@ -205,18 +204,18 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
             if (_queue.QueueType == CommandQueueType.Compute)
             {
-                Guard.IsTrue((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
-                Guard.IsTrue((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
+                Debug.Assert((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
+                Debug.Assert((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
             }
             else if (_queue.QueueType == CommandQueueType.Copy)
             {
-                Guard.IsTrue((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
-                Guard.IsTrue((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);
+                Debug.Assert((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
+                Debug.Assert((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);
             }
 
             if (oldStateLegacy != newStateLegacy)
             {
-                Guard.IsTrue(_globalBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
+                Debug.Assert(_globalBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
 
                 ref D3D12_RESOURCE_BARRIER barrier = ref _resourceBarriers[_globalBarriersCount++];
                 barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -267,7 +266,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             D3D12TextureLayoutMapping mappingBefore = ConvertTextureLayout(currentLayout);
             D3D12TextureLayoutMapping mappingAfter = ConvertTextureLayout(newLayout);
 
-            Guard.IsTrue(_textureBarriersCount < MaxBarriers, "Exceeded arbitrary limit on texture barriers");
+            Debug.Assert(_textureBarriersCount < MaxBarriers, "Exceeded arbitrary limit on texture barriers");
 
             ref D3D12_TEXTURE_BARRIER barrier = ref _textureBarriers[_textureBarriersCount++];
 
@@ -304,18 +303,18 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
             if (_queue.QueueType == CommandQueueType.Compute)
             {
-                Guard.IsTrue((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
-                Guard.IsTrue((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
+                Debug.Assert((oldStateLegacy & s_ValidComputeResourceStates) == oldStateLegacy);
+                Debug.Assert((newStateLegacy & s_ValidComputeResourceStates) == newStateLegacy);
             }
             else if (_queue.QueueType == CommandQueueType.Copy)
             {
-                Guard.IsTrue((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
-                Guard.IsTrue((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);
+                Debug.Assert((oldStateLegacy & s_ValidCopyResourceStates) == oldStateLegacy);
+                Debug.Assert((newStateLegacy & s_ValidCopyResourceStates) == newStateLegacy);
             }
 
             if (oldStateLegacy != newStateLegacy)
             {
-                Guard.IsTrue(_globalBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
+                Debug.Assert(_globalBarriersCount < MaxBarriers, "Exceeded arbitrary limit on buffered barriers");
 
                 ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_globalBarriersCount++];
                 barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -351,7 +350,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public void InsertUAVBarrier(ID3D12Resource* resource, bool commit = false)
     {
-        Guard.IsTrue(_globalBarriersCount < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
+        Debug.Assert(_globalBarriersCount < _resourceBarriers.Length, "Exceeded arbitrary limit on buffered barriers");
         ref D3D12_RESOURCE_BARRIER barrierDesc = ref _resourceBarriers[_globalBarriersCount++];
 
         barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;

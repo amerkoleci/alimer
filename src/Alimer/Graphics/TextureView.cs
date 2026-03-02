@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using Alimer.Assets;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -13,7 +12,7 @@ public abstract class TextureView : IGraphicsBindableResource
 
     protected TextureView(Texture texture, in TextureViewDescriptor descriptor)
     {
-        Guard.IsNotNull(texture, nameof(texture));
+        ArgumentNullException.ThrowIfNull(texture, nameof(texture));
 
         Texture = texture;
         Dimension = descriptor.Dimension;

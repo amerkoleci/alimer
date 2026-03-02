@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
@@ -13,7 +12,7 @@ public sealed class SubMesh
 {
     internal SubMesh(Mesh mesh, int indexStart, int indexCount, int materialIndex = 0)
     {
-        Guard.IsNotNull(mesh, nameof(mesh));
+        ArgumentNullException.ThrowIfNull(mesh, nameof(mesh));
 
         Mesh = mesh;
         IndexStart = indexStart;

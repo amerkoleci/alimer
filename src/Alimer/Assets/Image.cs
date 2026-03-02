@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using Alimer.Serialization;
-using CommunityToolkit.Diagnostics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Assets;
@@ -18,10 +17,10 @@ public sealed unsafe class Image : Asset, IBinarySerializable
 
     public Image(in ImageDescription description)
     {
-        Guard.IsTrue(description.Format != PixelFormat.Undefined);
-        Guard.IsGreaterThanOrEqualTo(description.Width, 1);
-        Guard.IsGreaterThanOrEqualTo(description.Height, 1);
-        Guard.IsGreaterThanOrEqualTo(description.DepthOrArrayLayers, 1);
+        ArgumentOutOfRangeException.ThrowIfEqual(description.Format, PixelFormat.Undefined);
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.Width, 1u);
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.Height, 1u);
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.DepthOrArrayLayers, 1u);
 
         Description = description;
         MipLevelCount = description.MipLevelCount == 0 ? ImageDescription.GetMipLevelCount(Width, Height, Dimension == TextureDimension.Texture3D ? Depth : 1u) : description.MipLevelCount;
@@ -229,8 +228,9 @@ public sealed unsafe class Image : Asset, IBinarySerializable
     /// <returns>A description of a particular mipmap for this texture.</returns>
     public MipMapDescription GetMipMapDescription(uint level)
     {
-        Guard.IsGreaterThan(level, 0);
-        Guard.IsLessThan(level, MipLevelCount);
+        Debug.Assert(level >= 0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(level, MipLevelCount);
+
         return _mipmaps[level];
     }
 

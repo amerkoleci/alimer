@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using static Alimer.AlimerApi;
-using CommunityToolkit.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Alimer.Audio;
@@ -64,7 +63,7 @@ public sealed class AudioDevice : DisposableObject
         get => _masterVolume;
         set
         {
-            Guard.IsInRange(value, 0.0f, 1.0f, nameof(value));
+            //Guard.IsInRange(value, 0.0f, 1.0f, nameof(value));
 
             _masterVolume = value;
             alimerAudioEngineSetMasterVolume(_engine, value, VolumeUnit.Linear);

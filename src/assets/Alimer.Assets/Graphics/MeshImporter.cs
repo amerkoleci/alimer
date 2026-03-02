@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using CommunityToolkit.Diagnostics;
 using Silk.NET.Assimp;
 using GLTF2;
 using Texture = Alimer.Graphics.Texture;
@@ -82,9 +81,9 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
                 bool hasTangent = primitive.Attributes.TryGetValue("TANGENT", out int tangentIndex);
                 bool hasTexCoord0 = primitive.Attributes.TryGetValue("TEXCOORD_0", out int texCoord0Index);
 
-                Guard.IsTrue(hasPosition);
-                Guard.IsTrue(hasNormal);
-                Guard.IsTrue(hasTexCoord0);
+                ArgumentException.ThrowIfFalse(hasPosition);
+                ArgumentException.ThrowIfFalse(hasNormal);
+                ArgumentException.ThrowIfFalse(hasTexCoord0);
 
                 if (primitive.Indices.HasValue)
                 {
@@ -360,8 +359,8 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         }
 
         Silk.NET.Assimp.Mesh* mesh = scene->MMeshes[0];
-        Guard.IsTrue(mesh->MVertices is not null);
-        Guard.IsTrue(mesh->MNormals is not null);
+        ArgumentException.ThrowIfFalse(mesh->MVertices is not null);
+        ArgumentException.ThrowIfFalse(mesh->MNormals is not null);
 
         List<Vector3> positions = [];
         List<Vector3> normals = [];
@@ -398,7 +397,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         indices = new uint[(int)mesh->MNumFaces];
         for (int i = 0; i < (int)mesh->MNumFaces; ++i)
         {
-            Guard.IsTrue(mesh->MFaces[i].MNumIndices == 3);
+            ArgumentException.ThrowIfFalse(mesh->MFaces[i].MNumIndices == 3);
             indices[i + 0] = mesh->MFaces[i].MIndices[0];
             indices[i + 1] = mesh->MFaces[i].MIndices[1];
             indices[i + 2] = mesh->MFaces[i].MIndices[2];

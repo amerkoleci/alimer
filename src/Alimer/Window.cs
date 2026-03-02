@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer;
 
@@ -37,7 +36,7 @@ public sealed partial class Window
         get => _title;
         set
         {
-            Guard.IsNotNullOrEmpty(value, nameof(value));
+            ArgumentNullException.ThrowIfNullOrEmpty(value, nameof(value));
 
             if (_title != value)
             {

@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -203,7 +202,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public GraphicsBuffer CreateBuffer(in BufferDescriptor description, void* initialData)
     {
-        Guard.IsGreaterThanOrEqualTo(description.Size, 4, nameof(BufferDescriptor.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(BufferDescriptor.Size));
 
 #if VALIDATE_USAGE
         if ((description.Usage & BufferUsage.Predication) != 0 &&
@@ -224,7 +223,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public GraphicsBuffer CreateBuffer<T>(in BufferDescriptor description, ref T initialData) where T : unmanaged
     {
-        Guard.IsGreaterThanOrEqualTo(description.Size, 4, nameof(BufferDescriptor.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(BufferDescriptor.Size));
 
         fixed (void* initialDataPtr = &initialData)
         {
@@ -239,7 +238,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         where T : unmanaged
     {
         int typeSize = sizeof(T);
-        Guard.IsTrue(initialData.Length > 0, nameof(initialData));
+        ArgumentException.ThrowIfFalse(initialData.Length > 0, nameof(initialData));
 
         BufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
@@ -252,7 +251,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         where T : unmanaged
     {
         int typeSize = sizeof(T);
-        Guard.IsTrue(initialData.Length > 0, nameof(initialData));
+        ArgumentException.ThrowIfFalse(initialData.Length > 0, nameof(initialData));
 
         BufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
@@ -268,10 +267,10 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         )
         where T : unmanaged
     {
-        Guard.IsTrue(format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
-        Guard.IsGreaterThanOrEqualTo(width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(height, 1, nameof(TextureDescriptor.Height));
-        Guard.IsGreaterThanOrEqualTo(arrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+        ArgumentException.ThrowIfFalse(format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
+        ArgumentOutOfRangeException.ThrowIfLessThan(width, 1u, nameof(TextureDescriptor.Width));
+        ArgumentOutOfRangeException.ThrowIfLessThan(height, 1u, nameof(TextureDescriptor.Height));
+        ArgumentOutOfRangeException.ThrowIfLessThan(arrayLayers, 1u, nameof(TextureDescriptor.DepthOrArrayLayers));
 
         fixed (T* initialDataPtr = initialData)
         {
@@ -286,16 +285,16 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public Texture CreateTexture(in TextureDescriptor descriptor, ReadOnlySpan<TextureData> initialData)
     {
-        Guard.IsTrue(descriptor.Format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
-        Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(descriptor.Width, 1, nameof(TextureDescriptor.Width));
-        Guard.IsGreaterThanOrEqualTo(descriptor.Height, 1, nameof(TextureDescriptor.Height));
-        Guard.IsGreaterThanOrEqualTo(descriptor.DepthOrArrayLayers, 1, nameof(TextureDescriptor.DepthOrArrayLayers));
+        ArgumentException.ThrowIfFalse(descriptor.Format != PixelFormat.Undefined, nameof(TextureDescriptor.Format));
+        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Width, 1u, nameof(TextureDescriptor.Width));
+        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Width, 1u, nameof(TextureDescriptor.Width));
+        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Height, 1u, nameof(TextureDescriptor.Height));
+        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.DepthOrArrayLayers, 1u, nameof(TextureDescriptor.DepthOrArrayLayers));
 
         if (descriptor.Dimension == TextureDimension.TextureCube)
         {
-            Guard.IsTrue(descriptor.Width == descriptor.Height, nameof(TextureDescriptor.Width), nameof(TextureDescriptor.Height));
-            Guard.IsTrue(descriptor.DepthOrArrayLayers == 1 || descriptor.DepthOrArrayLayers % 6 == 0, nameof(TextureDescriptor.DepthOrArrayLayers));
+            ArgumentException.ThrowIfFalse(descriptor.Width == descriptor.Height, nameof(TextureDescriptor.Width), nameof(TextureDescriptor.Height));
+            ArgumentException.ThrowIfFalse(descriptor.DepthOrArrayLayers == 1 || descriptor.DepthOrArrayLayers % 6 == 0, nameof(TextureDescriptor.DepthOrArrayLayers));
         }
 
         if (initialData.IsEmpty)
@@ -352,8 +351,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public ShaderModule CreateShaderModule(in ShaderModuleDescriptor descriptor)
     {
-        Guard.IsTrue(descriptor.Stage != ShaderStages.None, nameof(ShaderModuleDescriptor.Stage));
-        Guard.IsFalse(descriptor.ByteCode.IsEmpty, nameof(ShaderModuleDescriptor.ByteCode));
+        ArgumentException.ThrowIfFalse(descriptor.Stage != ShaderStages.None, nameof(ShaderModuleDescriptor.Stage));
+        ArgumentException.ThrowIfTrue(descriptor.ByteCode.IsEmpty, nameof(ShaderModuleDescriptor.ByteCode));
 
         return CreateShaderModuleCore(in descriptor);
     }
@@ -368,21 +367,21 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
                 throw new GraphicsException($"{nameof(RenderPipelineDescriptor.MeshShader)} is required when creating mesh pipeline");
             }
 
-            Guard.IsTrue(descriptor.MeshShader.Stage == ShaderStages.Mesh, nameof(RenderPipelineDescriptor.MeshShader));
+            ArgumentException.ThrowIfFalse(descriptor.MeshShader.Stage == ShaderStages.Mesh, nameof(RenderPipelineDescriptor.MeshShader));
 
             if (descriptor.AmplificationShader is not null)
             {
-                Guard.IsTrue(descriptor.AmplificationShader.Stage == ShaderStages.Amplification, nameof(RenderPipelineDescriptor.AmplificationShader));
+                ArgumentException.ThrowIfFalse(descriptor.AmplificationShader.Stage == ShaderStages.Amplification, nameof(RenderPipelineDescriptor.AmplificationShader));
             }
         }
         else
         {
-            Guard.IsTrue(descriptor.VertexShader.Stage == ShaderStages.Vertex, nameof(RenderPipelineDescriptor.VertexShader));
+            ArgumentException.ThrowIfFalse(descriptor.VertexShader.Stage == ShaderStages.Vertex, nameof(RenderPipelineDescriptor.VertexShader));
         }
 
         if (descriptor.FragmentShader is not null)
         {
-            Guard.IsTrue(descriptor.FragmentShader.Stage == ShaderStages.Fragment, nameof(RenderPipelineDescriptor.FragmentShader));
+            ArgumentException.ThrowIfFalse(descriptor.FragmentShader.Stage == ShaderStages.Fragment, nameof(RenderPipelineDescriptor.FragmentShader));
         }
 
         return CreateRenderPipelineCore(in descriptor);
@@ -390,25 +389,25 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     public ComputePipeline CreateComputePipeline(in ComputePipelineDescriptor descriptor)
     {
-        Guard.IsNotNull(descriptor.ComputeShader, nameof(ComputePipelineDescriptor.ComputeShader));
-        Guard.IsTrue(descriptor.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescriptor.ComputeShader));
+        ArgumentNullException.ThrowIfNull(descriptor.ComputeShader, nameof(ComputePipelineDescriptor.ComputeShader));
+        ArgumentException.ThrowIfFalse(descriptor.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescriptor.ComputeShader));
 
         return CreateComputePipelineCore(in descriptor);
     }
 
     public QueryHeap CreateQueryHeap(in QueryHeapDescriptor descriptor)
     {
-        Guard.IsTrue(descriptor.Count > 0 && descriptor.Count < Constants.QuerySetMaxQueries);
+        ArgumentException.ThrowIfFalse(descriptor.Count > 0 && descriptor.Count < Constants.QuerySetMaxQueries);
 
         return CreateQueryHeapCore(descriptor);
     }
 
     public SwapChain CreateSwapChain(in SwapChainDescriptor descriptor)
     {
-        Guard.IsNotNull(descriptor.Surface, nameof(SwapChainDescriptor.Surface));
+        ArgumentNullException.ThrowIfNull(descriptor.Surface, nameof(SwapChainDescriptor.Surface));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(descriptor.Width, nameof(SwapChainDescriptor.Width));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(descriptor.Height, nameof(SwapChainDescriptor.Height));
-        Guard.IsTrue(descriptor.Format != PixelFormat.Undefined, nameof(SwapChainDescriptor.Format));
+        ArgumentException.ThrowIfFalse(descriptor.Format != PixelFormat.Undefined, nameof(SwapChainDescriptor.Format));
 
         return CreateSwapChainCore(descriptor);
     }
@@ -421,8 +420,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
-    protected abstract unsafe GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
-    protected abstract unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
+    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
+    protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor);
     protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor descriptor);

@@ -1,8 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Rendering;
 
@@ -28,7 +28,7 @@ public sealed class ShaderSystem : IDisposable
 
     public void Dispose()
     {
-        foreach(ShaderModule module in _shaderModules.Values)
+        foreach (ShaderModule module in _shaderModules.Values)
         {
             module.Dispose();
         }
@@ -37,7 +37,7 @@ public sealed class ShaderSystem : IDisposable
 
     public void AddPath(string path)
     {
-        Guard.IsTrue(Directory.Exists(path), nameof(path), $"The specified shader path '{path}' does not exist.");
+        Debug.Assert(Directory.Exists(path), $"The specified shader path '{path}' does not exist.");
 
         Paths.Add(path);
     }
@@ -50,7 +50,7 @@ public sealed class ShaderSystem : IDisposable
             return module;
         }
 
-        Guard.IsNotNull(Compiler);
+        ArgumentNullException.ThrowIfNull(Compiler);
         module = Compiler.Compile(name, stage, defines);
         if (module is null)
         {

@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Alimer.Graphics;
 using Alimer.Rendering;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Samples.Graphics;
 

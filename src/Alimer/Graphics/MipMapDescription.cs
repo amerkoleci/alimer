@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -19,9 +18,9 @@ public record struct MipMapDescription
         uint slicePitch,
         uint widthPacked, uint heightPacked)
     {
-        Guard.IsGreaterThanOrEqualTo(width, 1);
-        Guard.IsGreaterThanOrEqualTo(height, 1);
-        Guard.IsGreaterThanOrEqualTo(depth, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(width, 1u);
+        ArgumentOutOfRangeException.ThrowIfLessThan(height, 1u);
+        ArgumentOutOfRangeException.ThrowIfLessThan(depth, 1u);
 
         Width = width;
         Height = height;

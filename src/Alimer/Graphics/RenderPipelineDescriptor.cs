@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -57,7 +56,7 @@ public ref struct RenderPipelineDescriptor
         Span<PixelFormat> colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
     {
-        Guard.IsNotNull(layout, nameof(layout));
+        ArgumentNullException.ThrowIfNull(layout, nameof(layout));
 
         Layout = layout;
         VertexBufferLayouts = vertexBufferLayouts;

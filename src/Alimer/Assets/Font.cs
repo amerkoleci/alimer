@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Assets;
@@ -15,7 +14,7 @@ public sealed unsafe class Font : Asset
 
     private Font(nint handle)
     {
-        Guard.IsTrue(handle != 0);
+        Debug.Assert(handle != 0);
 
         _handle = handle;
 

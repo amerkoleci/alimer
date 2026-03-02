@@ -149,7 +149,7 @@ public readonly struct BindGroupLayoutEntry
         StorageTexture = storageTexture;
     }
 
-    public BindingInfoType BindingType
+    internal BindingInfoType BindingType
     {
         get
         {

@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Rendering;
@@ -18,7 +17,7 @@ public sealed unsafe class ConstantBuffer<T> : DisposableObject
 
     public ConstantBuffer(GraphicsDevice device, MemoryType memoryType = MemoryType.Upload, string? label = default)
     {
-        Guard.IsNotNull(device, nameof(device));
+        ArgumentNullException.ThrowIfNull(device, nameof(device));
 
         uint minConstantBufferOffsetAlignment = device.Limits.MinConstantBufferOffsetAlignment;
         uint typeSize = SizeOf<T>();

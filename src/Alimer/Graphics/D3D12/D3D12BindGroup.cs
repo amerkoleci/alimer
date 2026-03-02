@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Numerics;
-using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_RANGE_TYPE;
@@ -288,8 +287,7 @@ internal unsafe class D3D12BindGroup : BindGroup
 
                             case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
                             default:
-                                ThrowHelper.ThrowArgumentException(nameof(range.RangeType), "Invalid range type");
-                                break;
+                                throw new ArgumentException(nameof(range.RangeType), "Invalid range type");
                         }
                     }
                 }

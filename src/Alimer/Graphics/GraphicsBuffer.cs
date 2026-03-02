@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
+using System.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -45,7 +45,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableR
         where T : unmanaged
     {
         // TODO: Copy command buffer
-        Guard.IsTrue(MemoryType == MemoryType.Upload);
+        Debug.Assert(MemoryType == MemoryType.Upload);
 
         fixed (T* sourcePtr = &source)
         {
@@ -56,7 +56,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableR
     public void SetData<T>(Span<T> source, uint offsetInBytes = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(MemoryType == MemoryType.Upload);
+        Debug.Assert(MemoryType == MemoryType.Upload);
 
         fixed (T* sourcePtr = source)
         {
@@ -67,7 +67,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableR
     public void GetData<T>(ref T destination, uint offsetInBytes = 0)
         where T : unmanaged
     {
-        Guard.IsTrue(MemoryType != MemoryType.Private);
+        Debug.Assert(MemoryType != MemoryType.Private);
 
         fixed (T* destinationPtr = &destination)
         {

@@ -5,8 +5,8 @@ using Alimer.Graphics;
 using System.Runtime.InteropServices;
 using static Alimer.AlimerApi;
 using Alimer.Utilities;
-using CommunityToolkit.Diagnostics;
 using Alimer.Platforms.Apple;
+using System.Diagnostics;
 
 namespace Alimer;
 
@@ -83,7 +83,7 @@ partial class Window
                 // X11
                 nint x11_display = alimerGetX11Display(_window);
                 ulong x11_window = alimerGetX11Window(_window);
-                Guard.IsTrue(x11_display != 0 && x11_window != 0, "Failed to get X11 window information.");
+                Debug.Assert(x11_display != 0 && x11_window != 0, "Failed to get X11 window information.");
 
                 _surface = SwapChainSurface.CreateXlib(x11_display, x11_window);
             }

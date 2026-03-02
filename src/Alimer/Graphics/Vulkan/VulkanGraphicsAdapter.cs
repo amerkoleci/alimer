@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
@@ -236,7 +235,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
         if (Extensions.AccelerationStructure)
         {
-            Guard.IsTrue(Extensions.DeferredHostOperations);
+            Debug.Assert(Extensions.DeferredHostOperations);
 
             accelerationStructureFeatures = new();
             AddToFeatureChain(&accelerationStructureFeatures);
@@ -308,30 +307,30 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             throw new GraphicsException("Vulkan textureCompressionBC feature required or both textureCompressionETC2 and textureCompressionASTC required.");
         }
 
-        Guard.IsTrue(features2.features.robustBufferAccess);
-        Guard.IsTrue(features2.features.fullDrawIndexUint32);
-        Guard.IsTrue(features2.features.depthClamp);
-        Guard.IsTrue(features2.features.depthBiasClamp);
-        Guard.IsTrue(features2.features.fragmentStoresAndAtomics);
-        Guard.IsTrue(features2.features.imageCubeArray);
-        Guard.IsTrue(features2.features.independentBlend);
-        Guard.IsTrue(features2.features.sampleRateShading);
-        Guard.IsTrue(features2.features.shaderClipDistance);
-        Guard.IsTrue(features2.features.occlusionQueryPrecise);
+        Debug.Assert(features2.features.robustBufferAccess);
+        Debug.Assert(features2.features.fullDrawIndexUint32);
+        Debug.Assert(features2.features.depthClamp);
+        Debug.Assert(features2.features.depthBiasClamp);
+        Debug.Assert(features2.features.fragmentStoresAndAtomics);
+        Debug.Assert(features2.features.imageCubeArray);
+        Debug.Assert(features2.features.independentBlend);
+        Debug.Assert(features2.features.sampleRateShading);
+        Debug.Assert(features2.features.shaderClipDistance);
+        Debug.Assert(features2.features.occlusionQueryPrecise);
 
         // Bindless (https://github.com/gfx-rs/wgpu/blob/trunk/wgpu-hal/src/vulkan/adapter.rs)
-        Guard.IsTrue(features12.descriptorIndexing);
-        Guard.IsTrue(features12.runtimeDescriptorArray);
-        Guard.IsTrue(features12.descriptorBindingPartiallyBound);
-        Guard.IsTrue(features12.descriptorBindingVariableDescriptorCount);
-        Guard.IsTrue(features12.shaderSampledImageArrayNonUniformIndexing);
-        Guard.IsTrue(features12.timelineSemaphore);
+        Debug.Assert(features12.descriptorIndexing);
+        Debug.Assert(features12.runtimeDescriptorArray);
+        Debug.Assert(features12.descriptorBindingPartiallyBound);
+        Debug.Assert(features12.descriptorBindingVariableDescriptorCount);
+        Debug.Assert(features12.shaderSampledImageArrayNonUniformIndexing);
+        Debug.Assert(features12.timelineSemaphore);
 
         bool synchronization2 = features13.synchronization2 || synchronization2Features.synchronization2;
         bool dynamicRendering = features13.dynamicRendering || dynamicRenderingFeatures.dynamicRendering;
 
-        Guard.IsTrue(synchronization2);
-        Guard.IsTrue(dynamicRendering);
+        Debug.Assert(synchronization2);
+        Debug.Assert(dynamicRendering);
 
         Features2 = features2;
         Features11 = features11;

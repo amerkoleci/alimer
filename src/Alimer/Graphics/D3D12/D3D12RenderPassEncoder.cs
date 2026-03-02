@@ -12,7 +12,6 @@ using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOLVE_MODE;
-using CommunityToolkit.Diagnostics;
 using System.Diagnostics;
 using Alimer.Utilities;
 using System.Runtime.CompilerServices;
@@ -67,7 +66,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
             ref readonly RenderPassColorAttachment attachment = ref descriptor.ColorAttachments[slot];
-            Guard.IsTrue(attachment.View is not null);
+            Debug.Assert(attachment.View is not null);
 
             D3D12TextureView view = (D3D12TextureView)attachment.View;
 

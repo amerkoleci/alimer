@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -22,8 +21,8 @@ public ref struct ComputePipelineDescriptor
     [SetsRequiredMembers]
     public ComputePipelineDescriptor(ShaderModule computeShader, PipelineLayout layout)
     {
-        Guard.IsTrue(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
-        Guard.IsNotNull(layout, nameof(layout));
+        ArgumentException.ThrowIfFalse(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
+        ArgumentNullException.ThrowIfNull(layout, nameof(layout));
 
         ComputeShader = computeShader;
         Layout = layout;

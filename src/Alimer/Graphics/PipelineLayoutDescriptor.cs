@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
-
 namespace Alimer.Graphics;
 
 /// <summary>
@@ -32,7 +30,7 @@ public ref struct PipelineLayoutDescriptor
 
     public PipelineLayoutDescriptor(Span<BindGroupLayout> bindGroupLayouts, Span<PushConstantRange> pushConstantRanges)
     {
-        Guard.IsFalse(bindGroupLayouts.IsEmpty, nameof(bindGroupLayouts));
+        ArgumentOutOfRangeException.ThrowIfZero(bindGroupLayouts.Length, nameof(bindGroupLayouts));
 
         BindGroupLayouts = bindGroupLayouts;
         PushConstantRanges = pushConstantRanges;

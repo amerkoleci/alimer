@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
-
 namespace Alimer.Graphics;
 
 /// <summary>
@@ -23,7 +21,7 @@ public ref struct BindGroupLayoutDescriptor
 
     public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries, string? label = default)
     {
-        Guard.IsGreaterThan(entries.Length, 0, nameof(entries));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(entries.Length, 0, nameof(entries));
 
         Entries = entries;
         Label = label;

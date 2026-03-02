@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Utilities;
-using CommunityToolkit.Diagnostics;
 using SkiaSharp;
 using Vortice.Vulkan;
 using XenoAtom.Collections;
@@ -11,6 +10,7 @@ using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -423,7 +423,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         if (_adapter.Extensions.AccelerationStructure)
         {
-            Guard.IsTrue(_adapter.Extensions.DeferredHostOperations);
+            Debug.Assert(_adapter.Extensions.DeferredHostOperations);
 
             // Required by VK_KHR_acceleration_structure
             enabledDeviceExtensions.Add(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
@@ -1693,8 +1693,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 break;
 
             default:
-                ThrowHelper.ThrowInvalidOperationException();
-                break;
+                throw new InvalidOperationException($"Invalid BindingType: {entry.BindingType}");
         }
 
         uint registerOffset = GetRegisterOffset(vkDescriptorType, readOnlyStorage);
@@ -1728,8 +1727,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 return VulkanRegisterShift.Sampler;
 
             default:
-                ThrowHelper.ThrowInvalidOperationException();
-                return 0;
+                throw new InvalidOperationException();
         }
     }
 }

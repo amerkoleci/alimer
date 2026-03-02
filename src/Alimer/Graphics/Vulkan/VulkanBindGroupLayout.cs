@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
-using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Alimer.Utilities.MemoryUtilities;
 using static Vortice.Vulkan.Vulkan;
@@ -47,12 +46,12 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
                 continue;
             }
 
-            (VkDescriptorType DescriptorType, uint RegisterOffset) vk = device.GetVkDescriptorType(entry);
+            (VkDescriptorType DescriptorType, uint RegisterOffset) = device.GetVkDescriptorType(entry);
             
             _bindings[i] = new VkDescriptorSetLayoutBinding
             {
-                binding = entry.Binding + vk.RegisterOffset,
-                descriptorType = vk.DescriptorType,
+                binding = entry.Binding + RegisterOffset,
+                descriptorType = DescriptorType,
                 descriptorCount = Math.Max(entry.Count, 1u), // VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK ?
                 stageFlags = entry.Visibility.ToVk()
             };

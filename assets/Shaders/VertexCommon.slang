@@ -5,15 +5,13 @@
 // Material (space 0)
 
 [shader("vertex")]
-VertexOutput vertexMain(in VertexInput input,
-    uint vertexId: SV_VertexID, uint instanceId: SV_InstanceID
-)
+VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)
 {
     InstanceData instance = instanceDataBuffer[instanceId];
 
     float4x4 worldMatrix = instance.worldMatrix;
     //const float4 instanceColor = instance.color;
-    const uint materialIndex = instance.materialIndex;
+    //const uint materialIndex = instance.materialIndex;
     float4 worldPosition = mul(float4(input.Position, 1.0f), worldMatrix);
 
     VertexOutput output;

@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Assets.Graphics;
 
@@ -48,7 +47,7 @@ public class TextureAsset : AssetWithSource
     public Texture CreateRuntime(GraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
-        Guard.IsNotNull(Data, nameof(Data));
+        ArgumentNullException.ThrowIfNull(Data, nameof(Data));
 
         return device.CreateTexture2D(Data!, Format, (uint)Width, (uint)Height);
     }

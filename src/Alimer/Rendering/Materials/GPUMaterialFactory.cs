@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 using static Alimer.Rendering.RenderSystem;
 
 namespace Alimer.Rendering;
@@ -69,7 +68,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
     protected GPUMaterialFactory(RenderSystem system)
     {
-        Guard.IsNotNull(system, nameof(system));
+        ArgumentNullException.ThrowIfNull(system, nameof(system));
 
         System = system;
         _bindGroupLayout = ToDispose(CreateBindGroupLayout());

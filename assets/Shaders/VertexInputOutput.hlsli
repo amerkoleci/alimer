@@ -8,7 +8,8 @@
 #define USE_VERTEX_COLOR 0
 #endif
 
-struct VertexInput {
+struct VertexInput
+{
     float3 Position : POSITION;
     float3 Normal : NORMAL;
     float4 Tangent : TANGENT;
@@ -20,7 +21,8 @@ struct VertexInput {
 #endif
 };
 
-struct VertexOutput {
+struct VertexOutput
+{
     float4 Position : SV_POSITION;
     float3 WorldPosition : POSITION; // world-space position
     //float DepthVS : DEPTHVS;
@@ -30,6 +32,12 @@ struct VertexOutput {
     float3 Tangent : TANGENT;
     float3 Bitangent : BITANGENT;
     float3 Color : COLOR;
+};
+
+struct VertexFullscreenQuadOutput
+{
+    float4 Position : SV_POSITION;
+    float2 TexCoord : TEXCOORD0;
 };
 
 #endif // _ALIMER_VERTEX_INPUT_OUTPUT__

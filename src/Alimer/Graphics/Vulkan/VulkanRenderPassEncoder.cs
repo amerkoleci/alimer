@@ -6,7 +6,6 @@ using System.Numerics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Constants;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -61,7 +60,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
             ref readonly RenderPassColorAttachment attachment = ref descriptor.ColorAttachments[slot];
-            Guard.IsTrue(attachment.View is not null);
+            Debug.Assert(attachment.View is not null);
 
             VulkanTextureView view = (VulkanTextureView)attachment.View;
             VkImageView imageView = view.Handle;

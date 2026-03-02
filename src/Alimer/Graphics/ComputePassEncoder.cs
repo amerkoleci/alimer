@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -19,7 +18,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
 
     public void SetPipeline(ComputePipeline pipeline)
     {
-        Guard.IsNotNull(pipeline, nameof(pipeline));
+        ArgumentNullException.ThrowIfNull(pipeline, nameof(pipeline));
 
         SetPipelineCore(pipeline);
     }

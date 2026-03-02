@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
 
@@ -827,7 +826,7 @@ internal static class VulkanUtils
                                     VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
                                     VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR
                                 ),
-            _ => ThrowHelper.ThrowArgumentException<VkImageLayoutMapping>(),
+            _ => throw new ArgumentException(),
         };
     }
     #endregion

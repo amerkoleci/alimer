@@ -6,13 +6,11 @@ using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_DSV_FLAGS;
 using DescriptorIndex = System.UInt32;
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -358,8 +356,7 @@ internal unsafe class D3D12TextureView : TextureView
                         viewDesc.Texture2DArray.ArraySize = ArrayLayerCount;
                         break;
                     default:
-                        ThrowHelper.ThrowInvalidOperationException();
-                        break;
+                        throw new InvalidOperationException();
                 }
 
                 viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;

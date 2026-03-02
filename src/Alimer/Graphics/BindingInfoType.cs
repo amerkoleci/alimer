@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public enum BindingInfoType : byte
+internal enum BindingInfoType : byte
 {
     Undefined = 0,
     Buffer,

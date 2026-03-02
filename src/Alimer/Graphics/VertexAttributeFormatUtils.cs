@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using CommunityToolkit.Diagnostics;
+using System.Diagnostics;
 
 namespace Alimer.Graphics;
 
@@ -71,7 +71,7 @@ public static class VertexAttributeFormatUtils
             return ref s_vertexFormatInfos[0]; // Undefines
         }
 
-        Guard.IsTrue(s_vertexFormatInfos[(uint)format].Format == format);
+        Debug.Assert(s_vertexFormatInfos[(uint)format].Format == format);
         return ref s_vertexFormatInfos[(uint)format];
     }
 

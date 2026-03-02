@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_FLAGS;
@@ -33,7 +32,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         ShaderVisible = shaderVisible;
         Stride = device.Device->GetDescriptorHandleIncrementSize(type);
 
-        Guard.IsTrue(AllocateResources(numDescriptors));
+        _ = AllocateResources(numDescriptors);
     }
 
     public D3D12_DESCRIPTOR_HEAP_TYPE HeapType { get; }

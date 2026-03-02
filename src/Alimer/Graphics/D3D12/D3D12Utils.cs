@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.D3D_PRIMITIVE_TOPOLOGY;
 using static TerraFX.Interop.DirectX.D3D12;
@@ -106,7 +105,7 @@ internal static unsafe class D3D12Utils
                 return DXGI_FORMAT_R32G8X24_TYPELESS;
 
             default:
-                Guard.IsFalse(format.IsDepthFormat(), nameof(format));
+                Debug.Assert(format.IsDepthFormat() == false);
                 return (DXGI_FORMAT)format.ToDxgiFormat();
         }
     }
@@ -908,7 +907,7 @@ internal static unsafe class D3D12Utils
                                 D3D12_BARRIER_SYNC_PIXEL_SHADING,
                                 D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE
                                 ),
-            _ => ThrowHelper.ThrowArgumentException<D3D12TextureLayoutMapping>(),
+            _ => throw new ArgumentException(),
         };
     }
 
@@ -947,7 +946,7 @@ internal static unsafe class D3D12Utils
                 return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
 
             default:
-                return ThrowHelper.ThrowArgumentException<D3D12_RESOURCE_STATES>("Unsupported texture layout");
+                throw new ArgumentException("Unsupported texture layout");
         }
     }
     #endregion

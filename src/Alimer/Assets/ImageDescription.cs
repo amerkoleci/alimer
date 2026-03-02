@@ -1,8 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using Alimer.Graphics;
-using CommunityToolkit.Diagnostics;
 
 namespace Alimer.Assets;
 
@@ -113,7 +113,7 @@ public record struct ImageDescription
         uint mipLevelCount = 1,
         uint arrayLayers = 1)
     {
-        Guard.IsTrue(arrayLayers == 1 || arrayLayers % 6 == 0);
+        Debug.Assert(arrayLayers == 1 || arrayLayers % 6 == 0);
 
         return new(
             TextureDimension.TextureCube,
