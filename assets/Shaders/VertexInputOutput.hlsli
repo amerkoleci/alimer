@@ -4,6 +4,10 @@
 #ifndef _ALIMER_VERTEX_INPUT_OUTPUT__
 #define _ALIMER_VERTEX_INPUT_OUTPUT__
 
+#ifndef USE_VERTEX_UV1
+#define USE_VERTEX_UV1 0
+#endif
+
 #ifndef USE_VERTEX_COLOR
 #define USE_VERTEX_COLOR 0
 #endif
@@ -14,7 +18,10 @@ struct VertexInput
     float3 Normal : NORMAL;
     float4 Tangent : TANGENT;
     float2 TexCoord0 : TEXCOORD0;
-    //float2 TexCoord1 : TEXCOORD1;
+
+#if USE_VERTEX_COLOR
+    float2 TexCoord1 : TEXCOORD1;
+#endif
 
 #if USE_VERTEX_COLOR
     float3 Color : COLOR;
@@ -25,7 +32,6 @@ struct VertexOutput
 {
     float4 Position : SV_POSITION;
     float3 WorldPosition : POSITION; // world-space position
-    //float DepthVS : DEPTHVS;
     float3 Normal : NORMAL;
     float2 TexCoord0 : TEXCOORD0;
     float2 TexCoord1 : TEXCOORD1;

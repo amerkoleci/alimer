@@ -194,6 +194,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         foreach (MeshComponent meshComponent in Components)
         {
+            // Skip rendering if no mesh is assigned
             if (meshComponent.Mesh is null)
                 continue;
 

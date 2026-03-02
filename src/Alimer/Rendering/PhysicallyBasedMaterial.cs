@@ -18,6 +18,7 @@ public sealed class PhysicallyBasedMaterial : UnlitMaterial
     }
 
     public Texture? NormalTexture { get; set; }
+    public MaterialTextureUVChannel NormalTextureUVChannel { get; set; }
 
     [DefaultValue(1.0f)]
     public float NormalScale { get; set; } = 1.0f;
@@ -28,8 +29,10 @@ public sealed class PhysicallyBasedMaterial : UnlitMaterial
     [DefaultValue(1.0f)]
     public float RoughnessFactor { get; set; } = 1.0f;
     public Texture? MetallicRoughnessTexture { get; set; }
+    public MaterialTextureUVChannel MetallicRoughnessTextureUVChannel { get; set; }
     public Vector3 EmissiveFactor { get; set; } = Vector3.Zero;
     public Texture? EmissiveTexture { get; set; }
+    public MaterialTextureUVChannel EmissiveTextureUVChannel { get; set; }
     public Texture? OcclusionTexture { get; set; }
 
     [DefaultValue(1.0f)]

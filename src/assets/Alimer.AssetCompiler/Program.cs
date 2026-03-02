@@ -180,7 +180,7 @@ public partial class AssetCompilerApp
         AssetCompilerApp app = new()
         {
             GetCommandException = message => new CommandException(message),
-            GetOptionException = (message, paramName) => new OptionException(message, paramName)
+            GetOptionException = (message, paramName) => new CommandOptionException(message, paramName)
         };
         int age = 0;
         var inputFileNames = new List<string>();

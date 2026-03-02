@@ -86,10 +86,14 @@ struct ALIGNMENT PBRMaterialUniforms
 {
     float4 baseColorFactor;
     float3 emissiveFactor;
-    float _padding;
+    float normalScale;
     float2 metallicRoughnessFactor;
     float occlusionStrength;
     float alphaCutoff;
+    int baseColorUVSet;
+    int normalUVSet;
+    int metallicRoughnessUVSet;
+    int emissiveUVSet;
 };
 
 struct ALIGNMENT InstanceData

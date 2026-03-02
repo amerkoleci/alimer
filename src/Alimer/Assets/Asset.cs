@@ -9,7 +9,7 @@ namespace Alimer.Assets;
 public abstract class Asset : DisposableObject, IAsset
 {
     /// <inheritdoc />
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public AssetId Id { get; set; } = AssetId.New();
 
     /// <inheritdoc />
     public string Name { get; set; } = string.Empty;

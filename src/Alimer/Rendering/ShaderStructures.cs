@@ -66,13 +66,16 @@ public struct InstanceData : IShaderConstantBuffer
 }
 
 // Updated once per material
-public struct PBRMaterialData : IShaderConstantBuffer
+public struct PBRMaterialUniforms : IShaderConstantBuffer
 {
     public Color baseColorFactor;
     public Vector3 emissiveFactor;
-    private float _padding0; // Padding to align to 16 bytes
-    public float metallicFactor;
-    public float roughnessFactor;
-    public float normalScale;
+    public float normalScale; 
+    public float2 metallicRoughnessFactor;
     public float occlusionStrength;
+    public float alphaCutoff;
+    public int baseColorUVSet;
+    public int normalUVSet;
+    public int metallicRoughnessUVSet;
+    public int emissiveUVSet;
 }

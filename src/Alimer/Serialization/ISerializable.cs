@@ -4,7 +4,7 @@
 namespace Alimer.Serialization;
 
 /// <summary>
-/// Implement this interface to serialize datas with <see cref="ISerializer"/>.
+/// Implement this interface to serialize datas with <see cref="Serializer"/>.
 /// </summary>
 public interface ISerializable
 {
@@ -13,5 +13,5 @@ public interface ISerializable
     /// </summary>
     /// <param name="serializer">The textual serializer.</param>
     /// <returns></returns>
-    SerializationResult Serialize(ISerializer serializer);
+    SerializationResult Serialize(Serializer serializer);
 }

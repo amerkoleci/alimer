@@ -59,7 +59,8 @@ float3 pbrSurfaceColorIbl(in SurfaceInfo surface)
     return ambient;
 }
 
-float3 pbrSurfaceColor(in float3 L, in SurfaceInfo surface, in float3 lightColor, in float lightIntensity, in float attenuation)
+float3 pbrSurfaceColor(in float3 L, in SurfaceInfo surface, in float3 lightColor, in float lightIntensity,
+                       in float attenuation)
 {
     const float3 H = normalize(surface.V + L);
 
@@ -118,7 +119,8 @@ SamplerState pbrSampler : register(s0);
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {
-    const float4 baseColorMap = baseColorTexture.Sample(pbrSampler, input.TexCoord0);
+    float2 baseColorUV = material.baseColorUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;
+    const float4 baseColorMap = baseColorTexture.Sample(pbrSampler, baseColorUV);
 
     // float4 baseColor = material.baseColorFactor * baseColorTexture.Sample(SamplerLinearClamp, input.TexCoord0);
     float4 baseColor = material.baseColorFactor * baseColorMap;
@@ -129,19 +131,28 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
     surface.worldPos = input.WorldPosition;
     surface.V = normalize(view.cameraPosition.xyz - surface.worldPos);
 
-    // Should we normalize here?
-    float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Normal);
-    //[branch]
-    // if (material.textures[NORMALMAP].IsValid())
+    surface.N = normalize(input.Normal);
+
+    // Apply normal mapping if texture is available
+    [branch]
+    if (material.normalUVSet >= 0)
     {
-        float3 N = float3(normalTexture.Sample(pbrSampler, input.TexCoord0).rg, 1.f);
-        N = N * 2.f - 1.f;
-        // N.rg *= material.GetNormalMapStrength();
-        surface.N = normalize(mul(N, TBN));
-        if (!isFrontFace) // MATERIAL_DOUBLE_SIDED?
-        {
-            surface.N = -surface.N;
-        }
+        // Sample normal map and convert from [0,1] to [-1,1] range
+        float2 normalColorUV = material.normalUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;
+        float3 tangentNormal = normalTexture.Sample(pbrSampler, normalColorUV).rgb * 2.0f - 1.0f;
+        tangentNormal.rg *= material.normalScale;
+
+        // Construct tangent-space to world-space transformation matrix (TBN)
+        float3 T = normalize(input.Tangent.xyz);   // Tangent
+        float3 B = normalize(input.Bitangent.xyz); // Bitangent (w = handedness)
+        float3x3 TBN = float3x3(T, B, surface.N);
+
+        // Transform normal from tangent space to world space
+        surface.N = normalize(mul(tangentNormal, TBN));
+        //if (!isFrontFace) // MATERIAL_DOUBLE_SIDED?
+        //{
+        //    surface.N = -surface.N;
+        //}
     }
 
     surface.NdotV = saturate(dot(surface.N, surface.V));

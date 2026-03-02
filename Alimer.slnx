@@ -12,6 +12,7 @@
     <File Path="LICENSE" />
     <File Path="NuGet.config" />
     <File Path="README.md" />
+    <File Path="TODO.md" />
   </Folder>
   <Folder Name="/assets/">
     <Project Path="src/assets/Alimer.AssetCompiler/Alimer.AssetCompiler.csproj" />

@@ -40,6 +40,8 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
             case GraphicsBackend.Metal:
                 return Metal.MetalGraphicsManager.IsSupported;
 #endif
+            case GraphicsBackend.Null:
+                return true;
 
             default:
                 return false;
@@ -118,6 +120,9 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
                 }
                 break;
 #endif
+            case GraphicsBackend.Null:
+                manager = new NullGraphicsManager(in options);
+                break;
 
             default:
                 break;

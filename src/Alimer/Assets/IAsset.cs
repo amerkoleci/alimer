@@ -11,7 +11,7 @@ public interface IAsset : IReferencable
     /// <summary>
     /// Gets the unique identifier for this asset.
     /// </summary>
-	Guid Id { get; }
+	AssetId Id { get; }
 
     /// <summary>
     /// Gets the asset name.

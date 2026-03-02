@@ -12,7 +12,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     public unsafe PhysicallyBasedMaterialFactory(RenderSystem system)
         : base(system)
     {
-        BufferDescriptor bufferDescriptor = new((uint)sizeof(PBRMaterialData), BufferUsage.Constant, MemoryType.Upload, label: "PBR Material Buffer");
+        BufferDescriptor bufferDescriptor = new((uint)sizeof(PBRMaterialUniforms), BufferUsage.Constant, MemoryType.Upload, label: "PBR Material Buffer");
         _materialBuffer = ToDispose(system.Device.CreateBuffer(in bufferDescriptor));
     }
 
@@ -59,14 +59,18 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
             throw new ArgumentException("Material must be of type PhysicallyBasedMaterial", nameof(material));
 
         // TODO: Should be one material buffer per material
-        PBRMaterialData materialData = new()
+        PBRMaterialUniforms materialData = new()
         {
             baseColorFactor = pbrMaterial.BaseColorFactor,
             emissiveFactor = pbrMaterial.EmissiveFactor,
-            metallicFactor = pbrMaterial.MetallicFactor,
-            roughnessFactor = pbrMaterial.RoughnessFactor,
             normalScale = pbrMaterial.NormalScale,
-            occlusionStrength = pbrMaterial.OcclusionStrength
+            metallicRoughnessFactor = new(pbrMaterial.MetallicFactor, pbrMaterial.RoughnessFactor),
+            occlusionStrength = pbrMaterial.OcclusionStrength,
+            alphaCutoff = pbrMaterial.AlphaCutoff,
+            baseColorUVSet = (int)pbrMaterial.BaseColorUVChannel,
+            normalUVSet = (int)pbrMaterial.NormalTextureUVChannel,
+            emissiveUVSet = (int)pbrMaterial.EmissiveTextureUVChannel,
+            metallicRoughnessUVSet = (int)pbrMaterial.MetallicRoughnessTextureUVChannel,
         };
         _materialBuffer.SetData(materialData);
 

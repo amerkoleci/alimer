@@ -12,4 +12,8 @@ public enum SerializationResult
     /// Operation completed successfully.
     /// </summary>
 	Ok,
+    /// <summary>
+    /// A null value was encountered where one is not allowed.
+    /// </summary>
+	NullValue,
 }

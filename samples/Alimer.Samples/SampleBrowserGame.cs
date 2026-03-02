@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Text;
+using System.Text.Json;
 using Alimer.Graphics;
 using Alimer.Rendering;
 using Alimer.Samples.Graphics;
@@ -23,6 +24,28 @@ public sealed class SampleBrowserGame : Game
     protected override void Initialize()
     {
         base.Initialize();
+
+#if TODO
+        {
+            using MemoryStream memoryStream = new();
+            using (var serializer = Serializer.CreateJson(memoryStream, new JsonWriterOptions() { Indented = true }))
+            {
+                serializer.BeginObject("Inner");
+                serializer.Serialize("Value", (byte)123);
+                serializer.EndObject();
+            }
+            var json = Encoding.UTF8.GetString(memoryStream.ToArray());
+            memoryStream.Position = 0;
+            using (var deserializer = Deserializer.CreateJson(memoryStream))
+            {
+                deserializer.BeginObject("Inner");
+                //var value = deserializer.Deserialize<byte>("Value");
+                deserializer.EndObject();
+                //Console.WriteLine($"Deserialized value: {value}");
+            }
+        } 
+#endif
+
 
         // Setup shader system (until we have a proper asset pipeline)
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
@@ -77,6 +100,7 @@ public sealed class SampleBrowserGame : Game
 #if !WINDOWS
         preferredGraphicsBackend = GraphicsBackend.Vulkan;
         //preferredGraphicsBackend = GraphicsBackend.Metal;
+        //preferredGraphicsBackend = GraphicsBackend.Null;
 #endif
 
         using SampleBrowserGame game = new(preferredGraphicsBackend);

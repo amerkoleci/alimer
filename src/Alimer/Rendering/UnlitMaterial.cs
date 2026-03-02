@@ -17,6 +17,7 @@ public class UnlitMaterial : Material
 
     public Color BaseColorFactor { get; set; } = new(1.0f, 1.0f, 1.0f, 1.0f);
     public Texture? BaseColorTexture { get; set; }
+    public MaterialTextureUVChannel BaseColorUVChannel { get; set; }
 
     public bool DoubleSided { get; set; }
 
