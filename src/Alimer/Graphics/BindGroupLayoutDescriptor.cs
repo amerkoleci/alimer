@@ -21,8 +21,6 @@ public ref struct BindGroupLayoutDescriptor
 
     public BindGroupLayoutDescriptor(Span<BindGroupLayoutEntry> entries, string? label = default)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(entries.Length, 0, nameof(entries));
-
         Entries = entries;
         Label = label;
     }

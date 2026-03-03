@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Alimer.Serialization;
@@ -345,6 +346,64 @@ public partial class BinarySerializer
             value = BinaryPrimitives.ReadDoubleLittleEndian(buffer);
         }
     }
+
+    /// <summary>
+    /// Serializes a single <strong>double</strong> value.
+    /// </summary>
+    /// <param name="value">The value to serialize</param>
+    /// <remarks>
+    /// Note that depending on the serialization <see cref="Mode"/>, this method reads or writes the value.
+    /// </remarks>
+    public void Serialize(ref Half value)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+        if (Mode == SerializerMode.Write)
+        {
+            BinaryPrimitives.WriteHalfLittleEndian(buffer, value);
+            Stream.Write(buffer);
+        }
+        else
+        {
+            Stream.ReadExactly(buffer);
+            value = BinaryPrimitives.ReadHalfLittleEndian(buffer);
+        }
+    }
+
+#if TODO
+    public unsafe void SerializeEnum<T>(ref T value)
+        where T : struct, Enum
+    {
+        var test = Enum.GetValues<T>();
+        T* pValue = Unsafe.AsPointer(ref value);
+        fixed (T* pValue = &value)
+        {
+            int enumSize = Unsafe.SizeOf<T>();
+            switch (enumSize)
+            {
+                case 1:
+                {
+                    Serialize(ref *(byte*)pValue);
+                    break;
+                }
+                case 2:
+                {
+                    Serialize(ref *(short*)pValue);
+                    break;
+                }
+                case 4:
+                {
+                    Serialize(ref *(int*)pValue);
+                    break;
+                }
+                case 8:
+                {
+                    Serialize(ref *(long*)pValue);
+                    break;
+                }
+            }
+        }
+    } 
+#endif
 
     /// <summary>
     /// Serializes a single <strong>boolean</strong> value.

@@ -115,6 +115,35 @@ partial class BinarySerializer
     }
 
     /// <summary>
+    /// Serializes a single <see cref="Color"/> value.
+    /// </summary>
+    /// <param name="value">The value to serialize</param>
+    /// <remarks>
+    /// Note that depending on the serialization <see cref="Mode"/>, this method reads or writes the value.
+    /// </remarks>
+    public void Serialize(ref Color value)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        if (Mode == SerializerMode.Write)
+        {
+            BinaryPrimitives.WriteSingleLittleEndian(buffer, value.Red);
+            BinaryPrimitives.WriteSingleLittleEndian(buffer[4..], value.Green);
+            BinaryPrimitives.WriteSingleLittleEndian(buffer[8..], value.Blue);
+            BinaryPrimitives.WriteSingleLittleEndian(buffer[12..], value.Alpha);
+            Stream.Write(buffer);
+        }
+        else
+        {
+            Stream.ReadExactly(buffer);
+            float red = BinaryPrimitives.ReadSingleLittleEndian(buffer);
+            float green = BinaryPrimitives.ReadSingleLittleEndian(buffer[4..]);
+            float blue = BinaryPrimitives.ReadSingleLittleEndian(buffer[8..]);
+            float alpha = BinaryPrimitives.ReadSingleLittleEndian(buffer[12..]);
+            value = new(red, green, blue, alpha);
+        }
+    }
+
+    /// <summary>
     /// Serializes a single <see cref="Matrix3x2"/> value.
     /// </summary>
     /// <param name="value">The value to serialize</param>

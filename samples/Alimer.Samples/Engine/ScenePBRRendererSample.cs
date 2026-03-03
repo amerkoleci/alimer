@@ -68,7 +68,7 @@ public sealed class ScenePBRRendererSample : SampleBase
         };
         LightComponent directionalLight = directionalLightEntity.AddComponent<LightComponent>();
         directionalLight.LightType = LightType.Directional;
-        directionalLight.Color = Colors.Red;
+        directionalLight.Color = Colors.Gray;
         root.Children.Add(directionalLightEntity);
 
         // Point lights

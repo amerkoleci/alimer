@@ -84,14 +84,14 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                 ));
 
             // TODO: Configure environment texture/sampler in frame bind group
-            //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
-            //Texture environmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
+            string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
+            EnvironmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
 
             FrameConstantBuffer = ToDispose(new ConstantBuffer<FrameConstants>(Device, label: "Frame Constant Buffer"));
             FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
                 "Frame BindGroup",
                 new BindGroupEntry(0, FrameConstantBuffer.Handle),
-                new BindGroupEntry(0, DefaultEnvironmentTexture)
+                new BindGroupEntry(0, EnvironmentMap)
                 ));
         }
 
@@ -118,6 +118,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                 ));
         }
 
+        // Skybox renderer
+        SkyboxRenderer = ToDispose(new SkyboxRenderer(this));
+
         MainWindow.SizeChanged += OnCanvasSizeChanged;
         Resize(MainWindow.SizeInPixels);
     }
@@ -142,6 +145,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public Texture? MultisampleColorTexture { get; private set; }
     public Texture? DepthStencilTexture { get; private set; }
+    public Texture? EnvironmentMap { get; set; }
 
     public Texture OpaqueWhiteTexture { get; }
     public Texture TransparentBlackTexture { get; }
@@ -162,7 +166,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public BindGroupLayout FrameBindGroupLayout { get; } // 3
     public ConstantBuffer<FrameConstants> FrameConstantBuffer { get; }
     public BindGroup FrameBindGroup { get; }
-
+    public SkyboxRenderer SkyboxRenderer { get; }
     public ShaderSystem ShaderSystem { get; }
 
     /// <inheritdoc/>
@@ -267,6 +271,12 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // For each camera
         RenderCamera(renderPass, camera);
+
+        // Draw skybox from environment map
+        if (EnvironmentMap is not null)
+        {
+            SkyboxRenderer.Draw(renderPass);
+        }
 
         renderPass.EndEncoding();
     }

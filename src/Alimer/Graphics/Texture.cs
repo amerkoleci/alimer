@@ -7,7 +7,8 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics;
 
-public abstract class Texture : GraphicsObject, IGraphicsBindableResource
+[AssetReader(typeof(TextureAssetReader))]
+public abstract partial class Texture : GraphicsObject, IGraphicsBindableResource
 {
     private readonly TextureLayout[] _subresourceLayouts;
     protected readonly Dictionary<TextureViewDescriptor, TextureView> _views = [];
@@ -327,8 +328,8 @@ public abstract class Texture : GraphicsObject, IGraphicsBindableResource
         };
 
         int index = 0;
-        Span<TextureData> initData = stackalloc TextureData[(int)(descriptor.DepthOrArrayLayers * descriptor.MipLevelCount)];
-        for (uint arrayIndex = 0; arrayIndex < descriptor.DepthOrArrayLayers; arrayIndex++)
+        Span<TextureData> initData = stackalloc TextureData[(int)(image.ActualArrayLayers * descriptor.MipLevelCount)];
+        for (uint arrayIndex = 0; arrayIndex < image.ActualArrayLayers; arrayIndex++)
         {
             for (uint mipLevel = 0; mipLevel < descriptor.MipLevelCount; mipLevel++)
             {

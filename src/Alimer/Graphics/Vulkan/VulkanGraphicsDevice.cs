@@ -485,6 +485,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         if (_adapter.Extensions.DescriptorHeap)
         {
+            // Promoted to 1.4 but needed by VK_EXT_descriptor_heap
+            enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
             enabledDeviceExtensions.Add(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
 
             VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT = _adapter.DescriptorHeapFeaturesEXT;

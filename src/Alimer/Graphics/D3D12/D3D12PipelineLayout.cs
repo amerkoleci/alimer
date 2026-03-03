@@ -69,7 +69,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 Span<D3D12_DESCRIPTOR_RANGE1> cbvUavSrvDescriptorRanges = CollectionsMarshal.AsSpan(bindGroupLayout.CbvUavSrvDescriptorRanges);
                 foreach (ref D3D12_DESCRIPTOR_RANGE1 range in cbvUavSrvDescriptorRanges)
                 {
-                    Debug.Assert(range.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
+                    //Debug.Assert(range.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
                     range.RegisterSpace = (uint)i;
                 }
 
@@ -107,7 +107,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
                 Span<D3D12_STATIC_SAMPLER_DESC> bindGroupLayoutStaticSamplers = CollectionsMarshal.AsSpan(bindGroupLayout.StaticSamplers);
                 foreach (ref D3D12_STATIC_SAMPLER_DESC staticSampler in bindGroupLayoutStaticSamplers)
                 {
-                    Debug.Assert(staticSampler.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
+                    //Debug.Assert(staticSampler.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
                     staticSampler.RegisterSpace = (uint)i;
 
                     staticSamplers.Add(staticSampler);

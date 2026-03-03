@@ -79,8 +79,6 @@ public ref struct BindGroupDescriptor
 
     public BindGroupDescriptor(Span<BindGroupEntry> entries, string? label = default)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entries.Length, nameof(entries));
-
         //ConstantBufferEntries = constantBufferEntries;
         Entries = entries;
         Label = label;

@@ -472,11 +472,12 @@ static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
     }
 
     PixelFormat format = PixelFormat_RGBA8Unorm;
+    const bool needsTranscoding  = ktxTexture_NeedsTranscoding(ktx_texture);
     if (ktx_texture->classId == ktxTexture2_c)
     {
         ktxTexture2* ktx_texture2 = (ktxTexture2*)ktx_texture;
 
-        if (ktxTexture2_NeedsTranscoding(ktx_texture2))
+        if (needsTranscoding)
         {
             // Once transcoded, the ktxTexture object contains the texture data in a native GPU format (e.g. BC7)
             // Handle other formats (textureCompressionBC) See: https://raw.githubusercontent.com/KhronosGroup/Vulkan-Samples/main/samples/performance/texture_compression_basisu/texture_compression_basisu.cpp
@@ -992,4 +993,9 @@ Blob* alimerImageEncodeJPG(Image* image, int quality)
     }
 
     return nullptr;
+}
+
+uint32_t alimerVkFormatFromOpenGLInternalFormat(uint32_t glInternalformat)
+{
+    return vkGetFormatFromOpenGLInternalFormat(glInternalformat);
 }

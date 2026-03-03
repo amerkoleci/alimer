@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using Alimer.Serialization;
 using static Alimer.AlimerApi;
-
+using static Alimer.AlimerApi.KTX_error_code;
 namespace Alimer.Assets;
 
 public sealed unsafe class Image : Asset, IBinarySerializable
@@ -298,20 +298,119 @@ public sealed unsafe class Image : Asset, IBinarySerializable
         fixed (byte* dataPtr = data)
         {
             ImageFileType fileType = alimerImageDetectFileType(dataPtr, (uint)data.Length);
+            Image result;
 
-#if TODO
             if (IsKTX1(data) || IsKTX2(data))
             {
-                //ktxTexture* ktxTexture;
-                //KTX_error_code result = ktxTexture_CreateFromMemory(buffer.get(),
-                //    dataSize,
-                //    KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                //    &ktxTexture);
+                ktxTexture* ktxTexture;
+                KTX_error_code ktx_result = ktxTexture_CreateFromMemory(dataPtr, (uint)data.Length,
+                    (uint)ktxTextureCreateFlags.KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                    &ktxTexture);
 
-                throw new NotImplementedException("KTX1/KTX2 loading is not supported");
+                // Not ktx texture.
+                if (ktx_result != KTX_SUCCESS)
+                {
+                    //return false;
+                }
+
+                // We detect format from VkFormat
+                PixelFormat format = PixelFormat.Undefined;
+                bool needsTranscoding = ktxTexture_NeedsTranscoding(ktxTexture);
+                if (ktxTexture->classId == class_id.ktxTexture2_c)
+                {
+                    ktxTexture2* ktx_texture2 = (ktxTexture2*)ktxTexture;
+                    if (needsTranscoding)
+                    {
+                        // Once transcoded, the ktxTexture object contains the texture data in a native GPU format (e.g. BC7)
+                        // Handle other formats (textureCompressionBC) See: https://raw.githubusercontent.com/KhronosGroup/Vulkan-Samples/main/samples/performance/texture_compression_basisu/texture_compression_basisu.cpp
+                        ktx_result = ktxTexture2_TranscodeBasis(ktx_texture2, ktx_transcode_fmt.KTX_TTF_BC7_RGBA, 0);
+                    }
+
+                    format = Alimer.Graphics.Vulkan.VulkanUtils.FromVkFormat((Vortice.Vulkan.VkFormat)ktx_texture2->vkFormat);
+                }
+                else
+                {
+                    // KTX1
+                    ktxTexture1* ktx_texture1 = (ktxTexture1*)ktxTexture;
+
+                    format = Alimer.Graphics.Vulkan.VulkanUtils.FromVkFormat((Vortice.Vulkan.VkFormat)alimerVkFormatFromOpenGLInternalFormat(ktx_texture1->glInternalformat));
+
+                    // KTX-1 files don't contain color space information. Color data is normally
+                    // in sRGB, but the format we get back won't report that, so this will adjust it
+                    // if necessary.
+                    format = format.LinearToSrgbFormat();
+                }
+
+                ImageDescription imageDescription = default;
+                if (ktxTexture->baseDepth > 1)
+                {
+                    imageDescription = ImageDescription.Image3D(
+                        format,
+                        ktxTexture->baseWidth,
+                        ktxTexture->baseHeight,
+                        ktxTexture->baseDepth,
+                        ktxTexture->numLevels
+                    );
+                }
+                else if (ktxTexture->isCubemap && !ktxTexture->isArray)
+                {
+                    imageDescription = ImageDescription.ImageCube(
+                        format,
+                        ktxTexture->baseWidth,
+                        ktxTexture->numLevels,
+                        ktxTexture->numFaces / 6u
+                    );
+                }
+                else
+                {
+                    imageDescription = ImageDescription.Image2D(
+                        format,
+                        ktxTexture->baseWidth,
+                        ktxTexture->baseHeight,
+                        ktxTexture->numLevels,
+                        ktxTexture->isArray ? ktxTexture->numLayers : 1u
+                    );
+                }
+
+                result = new(in imageDescription);
+
+                // If the texture contains more than one layer, then populate the offsets otherwise take the mipmap level offsets
+                if (ktxTexture->isCubemap || ktxTexture->isArray)
+                {
+                    uint layerCount = ktxTexture->isCubemap ? ktxTexture->numFaces : ktxTexture->numLayers;
+
+                    for (uint layer = 0; layer < layerCount; layer++)
+                    {
+                        for (uint miplevel = 0; miplevel < ktxTexture->numLevels; miplevel++)
+                        {
+                            nuint offset;
+                            if (ktxTexture->isCubemap)
+                            {
+                                ktx_result = ktxTexture_GetImageOffset(ktxTexture, miplevel, 0, layer, &offset);
+                            }
+                            else
+                            {
+                                ktx_result = ktxTexture_GetImageOffset(ktxTexture, miplevel, layer, 0, &offset);
+                            }
+
+                            if (ktx_result != KTX_SUCCESS)
+                            {
+                                //LOGF("Error loading KTX texture");
+                            }
+
+                            nuint levelSize = ktxTexture_GetImageSize(ktxTexture, miplevel);
+                            //auto levelData = GetLevel(miplevel, layer);
+
+                            ImageData imageData = result.GetLevel(miplevel, layer);
+                            NativeMemory.Copy(ktxTexture->pData + offset, imageData.DataPointer.ToPointer(), levelSize);
+                            //memcpy(levelData->pixels, ktxTexture->pData + offset, levelSize);
+                        }
+                    }
+                }
+
+                ktxTexture_Destroy(ktxTexture);
             }
-            else 
-#endif
+            else
             {
                 nint handle = alimerImageCreateFromMemory(dataPtr, (uint)data.Length);
 
@@ -339,11 +438,11 @@ public sealed unsafe class Image : Asset, IBinarySerializable
 
                     alimerImageDestroy(handle);
 
-                    return new(imageDescription, imageData);
+                    result = new(imageDescription, imageData);
                 }
                 else
                 {
-                    Image result = new(in imageDescription);
+                    result = new(in imageDescription);
 
                     for (uint miplevel = 0; miplevel < imageDescription.MipLevelCount; miplevel++)
                     {
@@ -352,10 +451,11 @@ public sealed unsafe class Image : Asset, IBinarySerializable
                         NativeMemory.Copy(levelData->pixels, imageData.DataPointer.ToPointer(), (nuint)imageData.RowPitch);
                         //memcpy(levelData->pixels, ktxTexture->pData + offset, levelSize);
                     }
-
-                    return result;
                 }
             }
+
+
+            return result;
         }
     }
 
@@ -376,7 +476,7 @@ public sealed unsafe class Image : Asset, IBinarySerializable
 
         int index = 0;
         byte* pEndBits = pixels + memorySize;
-        
+
         switch (description.Dimension)
         {
             case TextureDimension.Texture1D:

@@ -129,6 +129,8 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
 
     SurfaceInfo surface;
     surface.worldPos = input.WorldPosition;
+
+    // Calculate view direction (fragment to camera)
     surface.V = normalize(view.cameraPosition.xyz - surface.worldPos);
 
     surface.N = normalize(input.Normal);
@@ -180,7 +182,7 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
     // reflectance equation
     float3 Lo = pbrSurfaceColorIbl(surface);
 
-    // Lights
+    // Calculate contribution from each light source
     for (uint i = 0; i < view.activeLightCount; i++)
     {
         LightData light = lights[i];

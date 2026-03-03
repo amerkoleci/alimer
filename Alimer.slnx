@@ -30,6 +30,7 @@
     <File Path="assets/Shaders/Math.hlsli" />
     <File Path="assets/Shaders/PBR.slang" />
     <File Path="assets/Shaders/ShaderTypes.h" />
+    <File Path="assets/Shaders/Skybox.slang" />
     <File Path="assets/Shaders/Sprite.slang" />
     <File Path="assets/Shaders/Unlit.slang" />
     <File Path="assets/Shaders/VertexCommon.slang" />

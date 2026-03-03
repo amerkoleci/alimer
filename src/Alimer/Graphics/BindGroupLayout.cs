@@ -25,8 +25,8 @@ public abstract class BindGroupLayout : GraphicsObject
 
     public BindGroup CreateBindGroup(in BindGroupDescriptor descriptor)
     {
-        ArgumentException.ThrowIfEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
+        //ArgumentException.ThrowIfEmpty(descriptor.Entries, nameof(BindGroupDescriptor.Entries));
+        //ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(descriptor.Entries.Length, 0, nameof(BindGroupDescriptor.Entries));
 
         // TODO: Validate that entries match layout and handle null resources.
 

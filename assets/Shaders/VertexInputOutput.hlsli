@@ -46,4 +46,15 @@ struct VertexFullscreenQuadOutput
     float2 TexCoord : TEXCOORD0;
 };
 
+struct VertexSkyboxInput
+{
+    float3 Position : POSITION;
+};
+
+struct VertexSkyboxOutput
+{
+    float4 Position : SV_POSITION;
+    float3 TexCoord : TEXCOORD0;
+};
+
 #endif // _ALIMER_VERTEX_INPUT_OUTPUT__
