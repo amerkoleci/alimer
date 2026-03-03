@@ -390,7 +390,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // https://github.com/Aminator/DirectX12GameEngine/blob/master/DirectX12GameEngine.Rendering/Materials/MaterialAttributes.cs
         viewData.cameraPosition = camera.Entity!.Transform.Position;
-        viewData.ambientLight = Vector3.One;
+        viewData.ambientLight = new Vector3(0.05f, 0.05f, 0.05f);
         viewData.activeLightCount = 0;
         if (lightSystem is not null)
         {

@@ -8,22 +8,15 @@ namespace Alimer;
 
 internal abstract partial class GamePlatform 
 {
-    public Action? Ready;
-
-    /// <summary>
-    /// Gets whether the multiple views are supported.
-    /// </summary>
-    public abstract bool SupportsMultipleViews { get; }
-
     /// <summary>
     /// Gets the main window.
     /// </summary>
     public abstract Window MainWindow { get; }
 
     /// <summary>
-    /// Gets the input configuration.
+    /// Gets the platform input manager.
     /// </summary>
-    public abstract IInputSourceConfiguration InputConfiguration { get; }
+    public abstract InputManager Input { get; }
 
     protected GamePlatform(Game game)
     {
@@ -38,7 +31,7 @@ internal abstract partial class GamePlatform
 
     protected internal void OnReady()
     {
-        Ready?.Invoke();
+        Game.OnPlatformReady();
     }
 
     protected internal void OnTick()

@@ -38,4 +38,9 @@ public interface IKeyboardInputSource : IInputSource
     /// Gets the set of keys that are currently pressed.
     /// </summary>
     IReadOnlySet<Keys> DownKeys { get; }
+
+    /// <summary>
+    /// Gets the current modifier key state.
+    /// </summary>
+    KeyModifiers Modifiers { get; }
 }

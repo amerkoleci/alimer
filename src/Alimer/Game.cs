@@ -37,7 +37,7 @@ public abstract class Game : DisposableObject, IGame
         //Platform.ConfigureServices(services);
         _assets = new AssetManager(_services);
         ConfigureServices(_services);
-        Input = new InputManager(_platform.InputConfiguration);
+        Input = _platform.Input;
 
         GraphicsManagerOptions graphicsManagerOptions = new()
         {
@@ -195,7 +195,6 @@ public abstract class Game : DisposableObject, IGame
         void Launch()
         {
             // Startup application
-            _platform.Ready = OnPlatformReady;
             _platform.RunMainLoop();
         }
 
@@ -337,7 +336,7 @@ public abstract class Game : DisposableObject, IGame
         }
     }
 
-    private void OnPlatformReady()
+    internal void OnPlatformReady()
     {
         InitializeBeforeRun();
     }

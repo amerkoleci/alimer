@@ -6,6 +6,7 @@ using System.Numerics;
 using Alimer.Assets.Graphics;
 using Alimer.Engine;
 using Alimer.Graphics;
+using Alimer.Input;
 using Alimer.Physics;
 using Alimer.Rendering;
 
@@ -24,6 +25,7 @@ public sealed class ScenePBRRendererSample : SampleBase
         Services = services;
         GraphicsDevice = services.GetService<GraphicsDevice>();
         Scene = services.GetService<SceneSystem>();
+        Input = services.GetService<InputManager>();
         Entity root = new();
 
         // Camera
@@ -101,10 +103,59 @@ public sealed class ScenePBRRendererSample : SampleBase
     public IServiceRegistry Services { get; }
     public GraphicsDevice GraphicsDevice { get; }
     public SceneSystem Scene { get; }
+    public InputManager Input { get; }
 
     public override void Update(GameTime time)
     {
         float deltaTime = (float)time.Elapsed.TotalSeconds;
+
+        // Camera movement
+        //if (InputManager.IsMouseButtonDown(MouseButton::Right))
+        //{
+        //    const Vector2 mouseMove = Input::GetMousePositionDelta();
+        //    yaw -= mouseMove.x * 0.1f;
+        //    pitch += mouseMove.y * 0.1f;
+        //    pitch = Clamp(pitch, -90.0f, 90.0f);
+        //    cameraEntity->SetLocalRotation(Quaternion::CreateFromYawPitchRoll(yaw, pitch, 0.f));
+        //}
+
+        float moveSpeed = (Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift)) ? 50.0f : 5.0f;
+
+        if (Input.IsKeyDown(Keys.W))
+        {
+            _cameraEntity.Translate(Vector3.Forward * deltaTime * moveSpeed);
+        }
+
+        if (Input.IsKeyDown(Keys.S))
+        {
+            _cameraEntity.Translate(Vector3.Backward * deltaTime * moveSpeed);
+        }
+
+        if (Input.IsKeyDown(Keys.A))
+        {
+            _cameraEntity.Translate(Vector3.Left * deltaTime * moveSpeed);
+        }
+
+        if (Input.IsKeyDown(Keys.D))
+        {
+            _cameraEntity.Translate(Vector3.Right * deltaTime * moveSpeed);
+        }
+
+        if (Input.IsKeyDown(Keys.PageUp))
+        {
+            _cameraEntity.Translate(Vector3.Up * deltaTime * moveSpeed);
+        }
+
+        if (Input.IsKeyDown(Keys.PageDown))
+        {
+            _cameraEntity.Translate(Vector3.Down * deltaTime * moveSpeed);
+        }
+
+        if (Input.IsKeyDown(Keys.Space))
+        {
+            //cameraEntity->LookAt(Vector3::Zero);
+        }
+
         //_damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
     }
 

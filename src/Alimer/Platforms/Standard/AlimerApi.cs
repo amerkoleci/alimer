@@ -92,10 +92,7 @@ partial class AlimerApi
     {
         public uint windowID;
         public Keys key;
-        public Bool8 alt;
-        public Bool8 ctrl;
-        public Bool8 shift;
-        public Bool8 system;
+        public KeyModifiers modifiers;
     }
 
     public struct TextInputEvent

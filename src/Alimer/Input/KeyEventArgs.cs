@@ -3,11 +3,10 @@
 
 namespace Alimer.Input;
 
-public abstract class KeyEventArgs : EventArgs
+public readonly struct KeyEventArgs
 {
-
     /// <summary>
     /// Gets the key associated with this instance.
     /// </summary>
-    public abstract Keys Key { get; }
+    public required Keys Key { get; init; }
 }

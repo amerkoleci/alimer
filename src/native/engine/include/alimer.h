@@ -260,6 +260,16 @@ typedef enum KeyboardKey {
     _KeyboardKey_Force32 = 0x7FFFFFFF
 } KeyboardKey;
 
+
+typedef Flags KeyModifiers;
+static const KeyModifiers KeyModifiers_None = 0;
+static const KeyModifiers KeyModifiers_Control = 0x0001;
+static const KeyModifiers KeyModifiers_Shift = 0x0002;
+static const KeyModifiers KeyModifiers_Alt = 0x0004;
+static const KeyModifiers KeyModifiers_Super = 0x0008;
+static const KeyModifiers KeyModifiers_CapsLock = 0x0010;
+static const KeyModifiers KeyModifiers_NumLock = 0x0020;
+
 typedef enum EventType {
     EventType_Unknown = 0,
     EventType_Quit,
@@ -524,10 +534,7 @@ typedef struct WindowEvent {
 typedef struct KeyEvent {
     uint32_t windowID;
     KeyboardKey key;
-    bool alt;
-    bool ctrl;
-    bool shift;
-    bool system;
+    KeyModifiers modifiers;
 } KeyEvent;
 
 typedef struct TextInputEvent {

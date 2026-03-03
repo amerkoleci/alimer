@@ -5,51 +5,73 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Input;
 
-internal class NativeKeyEventArgs : KeyEventArgs
-{
-    private Keys _key;
-
-    public void SetKey(Keys key)
-    {
-        _key = key;
-    }
-
-    public override Keys Key => _key;
-}
-
 internal class NativeKeyboard : KeyboardInputSourceBase
 {
-    private readonly NativeKeyEventArgs _keyArgs = new();
-
     public void HandleKeyEvent(in KeyEvent key, bool down)
     {
-        _keyArgs.SetKey(key.key);
+        KeyEventArgs args = new()
+        {
+            Key = key.key
+        };
 
         if (down)
         {
-            OnKeyDown(_keyArgs);
+            OnKeyDown(args);
         }
         else
         {
-            OnKeyUp(_keyArgs);
+            OnKeyUp(args);
         }
+
+
+        // Update modifiers
+        Modifiers = key.modifiers;
+    }
+
+    public void HandleTextInput(in TextInputEvent evt)
+    {
+
     }
 }
 
-internal class NativeInput : IInputSourceConfiguration
+internal class NativeGamepadDevice : GamepadDeviceBase
+{
+}
+
+internal class NativeInputManager : InputManager
 {
     private readonly NativeKeyboard _keyboard;
-    public IList<IInputSource> Sources { get; } = [];
+    private readonly List<NativeGamepadDevice> _gamepads = [];
 
-    public NativeInput()
+    public NativeInputManager()
     {
         _keyboard = new NativeKeyboard();
-
-        Sources.Add(_keyboard);
     }
 
-    public void HandleKeyEvent(in KeyEvent key, bool down)
+    public override IKeyboardInputSource Keyboard => _keyboard;
+
+    public override IReadOnlyList<IGamepadDevice> Gamepads => _gamepads;
+
+    public void HandleEvent(in PlatformEvent evt)
     {
-        _keyboard.HandleKeyEvent(in key, down);
+        switch (evt.type)
+        {
+            case EventType.KeyDown:
+            case EventType.KeyUp:
+                _keyboard.HandleKeyEvent(in evt.key, evt.type == EventType.KeyDown);
+                break;
+
+            case EventType.TextInput:
+                _keyboard.HandleTextInput(in evt.text);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    public void BeginFrame()
+    {
+        _keyboard.Update();
     }
 }

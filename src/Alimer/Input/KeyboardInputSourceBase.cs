@@ -25,6 +25,9 @@ public class KeyboardInputSourceBase : IKeyboardInputSource
     /// <inheritdoc/>
     public IReadOnlySet<Keys> DownKeys => _downKeys;
 
+    /// <inheritdoc/>
+    public KeyModifiers Modifiers { get; protected set; }
+
     public virtual void Scan()
     {
     }
@@ -49,7 +52,7 @@ public class KeyboardInputSourceBase : IKeyboardInputSource
         _keyEvents.Clear();
     }
 
-    protected virtual void OnKeyDown(KeyEventArgs e)
+    protected virtual void OnKeyDown(in KeyEventArgs e)
     {
         // TODO: Handle key repeat
         if (!_downKeys.Contains(e.Key))
@@ -61,7 +64,7 @@ public class KeyboardInputSourceBase : IKeyboardInputSource
         KeyDown?.Invoke(this, e);
     }
 
-    protected virtual void OnKeyUp(KeyEventArgs e)
+    protected virtual void OnKeyUp(in KeyEventArgs e)
     {
         if (_downKeys.Contains(e.Key))
         {

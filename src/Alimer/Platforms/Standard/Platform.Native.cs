@@ -11,7 +11,7 @@ namespace Alimer;
 
 internal unsafe class NativePlatform : GamePlatform
 {
-    private readonly NativeInput _input;
+    private readonly NativeInputManager _input;
     private readonly Window _window;
     private readonly Dictionary<uint, Window> _idLookup = [];
     private bool _exitRequested;
@@ -25,16 +25,13 @@ internal unsafe class NativePlatform : GamePlatform
             throw new InvalidOperationException($"Failed to initialise platform layer");
         }
 
-        _input = new NativeInput();
+        _input = new NativeInputManager();
         MainWindow = (_window = new Window(this, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
     }
 
     // <inheritdoc />
-    public override IInputSourceConfiguration InputConfiguration => _input;
-
-    // <inheritdoc />
-    public override bool SupportsMultipleViews => true;
+    public override InputManager Input => _input;
 
     // <inheritdoc />
     public override Window MainWindow { get; }
@@ -48,6 +45,8 @@ internal unsafe class NativePlatform : GamePlatform
 
         while (!_exitRequested)
         {
+            _input.BeginFrame();
+
             PlatformEvent @event = default;
             while (alimerPlatformPollEvent(&@event))
             {
@@ -89,9 +88,10 @@ internal unsafe class NativePlatform : GamePlatform
             case EventType.Window:
                 HandleWindowEvent(in evt.window);
                 break;
-            case EventType.KeyDown:
-            case EventType.KeyUp:
-                _input.HandleKeyEvent(in evt.key, evt.type == EventType.KeyDown);
+
+            default:
+                // Process event by input manager
+                _input.HandleEvent(in evt);
                 break;
         }
     }

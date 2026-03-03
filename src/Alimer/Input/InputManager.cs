@@ -6,61 +6,48 @@ using Alimer.Engine;
 
 namespace Alimer.Input;
 
-public partial class InputManager : GameSystem
+public abstract class InputManager
 {
-    private readonly List<IInputSource> _sources = [];
-    private readonly List<IKeyboardInputSource> _keyboardSources = [];
+    /// <summary>
+    /// Gets the keyboard input device.
+    /// </summary>
+    public abstract IKeyboardInputSource Keyboard { get; }
 
-    public IReadOnlyList<IInputSource> Sources => _sources;
-    public IEnumerable<IKeyboardInputSource> KeyboardSources => _keyboardSources;
-    public IKeyboardInputSource? Keyboard => _keyboardSources.Count > 0 ? _keyboardSources[0] : default;
+    /// <summary>
+    /// Gets the number of connected gamepads.
+    /// </summary>
+	public abstract IReadOnlyList<IGamepadDevice> Gamepads { get; }
 
-    public InputManager(IInputSourceConfiguration configuration)
+    protected InputManager()
     {
-        foreach (IInputSource inputSource in configuration.Sources)
-        {
-            AddSource(inputSource);
-        }
     }
 
-    public void AddSource(IInputSource source)
-    {
-        _sources.Add(source);
-
-        if (source is IKeyboardInputSource keyboardSource)
-        {
-            _keyboardSources.Add(keyboardSource);
-        }
-    }
-
+#if TODO
     public void Scan()
     {
         foreach (IInputSource source in Sources)
         {
             source.Scan();
         }
-    }
+    } 
+#endif
 
-    public void Update()
+    public virtual void Update()
     {
-        foreach (IInputSource source in Sources)
-        {
-            source.Update();
-        }
-    }
+    } 
 
     public bool IsKeyDown(Keys key)
     {
-        return Keyboard?.DownKeys.Contains(key) ?? false;
+        return Keyboard.DownKeys.Contains(key);
     }
 
     public bool IsKeyPressed(Keys key)
     {
-        return Keyboard?.PressedKeys.Contains(key) ?? false;
+        return Keyboard.PressedKeys.Contains(key);
     }
 
     public bool IsKeyReleased(Keys key)
     {
-        return Keyboard?.ReleasedKeys.Contains(key) ?? false;
+        return Keyboard.ReleasedKeys.Contains(key);
     }
 }

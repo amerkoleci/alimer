@@ -3,7 +3,7 @@
 
 namespace Alimer.Input;
 
-public enum Keys
+public enum Keys : byte
 {
     None = 0,
 

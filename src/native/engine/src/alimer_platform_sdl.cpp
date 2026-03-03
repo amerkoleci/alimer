@@ -180,6 +180,24 @@ namespace
         }
     }
 
+    constexpr KeyModifiers FromSDLModifiers(SDL_Keymod mod)
+    {
+        KeyModifiers result = KeyModifiers_None;
+        if ((mod & SDL_KMOD_CTRL) != 0)
+            result |= KeyModifiers_Control;
+        if ((mod & SDL_KMOD_SHIFT) != 0)
+            result |= KeyModifiers_Shift;
+        if ((mod & SDL_KMOD_ALT) != 0)
+            result |= KeyModifiers_Alt;
+        if ((mod & SDL_KMOD_GUI) != 0)
+            result |= KeyModifiers_Super;
+        if ((mod & SDL_KMOD_CAPS) != 0)
+            result |= KeyModifiers_CapsLock;
+        if ((mod & SDL_KMOD_NUM) != 0)
+            result |= KeyModifiers_NumLock;
+        return result;
+    }
+
     /*constexpr KeyModifiers FromSDLKeyModifiers(Uint16 mod)
     {
         KeyModifiers result = KeyModifiers::None;
@@ -268,10 +286,7 @@ namespace
                 ev.type = (e.type == SDL_EVENT_KEY_DOWN) ? EventType_KeyDown : EventType_KeyUp;
                 ev.key.windowID = e.key.windowID;
                 ev.key.key = FromSDLKeyboardKey(e.key.scancode);
-                ev.key.alt = (e.key.mod & SDL_KMOD_ALT) != 0;
-                ev.key.ctrl = (e.key.mod & SDL_KMOD_CTRL) != 0;
-                ev.key.shift = (e.key.mod & SDL_KMOD_SHIFT) != 0;
-                ev.key.system = (e.key.mod & SDL_KMOD_GUI) != 0;
+                ev.key.modifiers = FromSDLModifiers(e.key.mod);
                 break;
             case SDL_EVENT_TEXT_INPUT:
                 ev.type = EventType_TextInput;
@@ -313,6 +328,7 @@ namespace
             case SDL_EVENT_CLIPBOARD_UPDATE:
                 ev.type = EventType_ClipboardUpdate;
                 break;
+
             default:
                 if (e.type >= SDL_EVENT_WINDOW_FIRST && e.type <= SDL_EVENT_WINDOW_LAST)
                 {

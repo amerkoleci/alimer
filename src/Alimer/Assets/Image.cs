@@ -399,12 +399,26 @@ public sealed unsafe class Image : Asset, IBinarySerializable
                             }
 
                             nuint levelSize = ktxTexture_GetImageSize(ktxTexture, miplevel);
-                            //auto levelData = GetLevel(miplevel, layer);
 
                             ImageData imageData = result.GetLevel(miplevel, layer);
                             NativeMemory.Copy(ktxTexture->pData + offset, imageData.DataPointer.ToPointer(), levelSize);
-                            //memcpy(levelData->pixels, ktxTexture->pData + offset, levelSize);
                         }
+                    }
+                }
+                else
+                {
+                    for (uint miplevel = 0; miplevel < ktxTexture->numLevels; miplevel++)
+                    {
+                        nuint offset;
+                        ktx_result = ktxTexture_GetImageOffset(ktxTexture, miplevel, 0, 0, &offset);
+                        if (ktx_result != KTX_SUCCESS)
+                        {
+                            //LOGF("Error loading KTX texture");
+                        }
+
+                        nuint levelSize = ktxTexture_GetImageSize(ktxTexture, miplevel);
+                        ImageData imageData = result.GetLevel(miplevel);
+                        NativeMemory.Copy(ktxTexture->pData + offset, imageData.DataPointer.ToPointer(), levelSize);
                     }
                 }
 

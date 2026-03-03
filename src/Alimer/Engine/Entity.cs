@@ -265,6 +265,43 @@ public partial class Entity
         return Components.Remove(component);
     }
 
+    public void Translate(in Vector3 delta, TransformSpace space = TransformSpace.World)
+    {
+        switch (space)
+        {
+            case TransformSpace.Local:
+                // Note: local space translation disregards local scale for scale-independent movement speed
+                Transform.Position += Vector3.Transform(delta, Transform.Rotation);
+                break;
+
+            case TransformSpace.Parent:
+                Transform.Position += delta;
+                break;
+
+            case TransformSpace.World:
+                if (IsTransformHierarchyRoot)
+                {
+                    Transform.Position += delta;
+                }
+                else
+                {
+                    if (Matrix4x4.Invert(_parent!.WorldTransform, out Matrix4x4 inverseWorldTransform))
+                    {
+                        Transform.Position += Vector3.Transform(delta, inverseWorldTransform);
+                    }
+                }
+
+                break;
+        }
+
+        //MarkDirty();
+    }
+
+    public void Rotate(in Quaternion delta, TransformSpace space = TransformSpace.World)
+    {
+        Transform.Rotate(in delta, space);
+    }
+
     public override string ToString() => $"Entity {Name}";
 
     private void AddInternal(Entity entity)
