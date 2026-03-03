@@ -104,15 +104,16 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
         GITHUB_REPOSITORY libsdl-org/SDL
         GIT_TAG release-3.4.2
         OPTIONS
-            "SDL_SHARED OFF"
-            "SDL_STATIC ON"
-            "SDL_TIMERS ON"
+            "SDL_SHARED ON"
+            "SDL_STATIC OFF"
             "SDL_TEST_LIBRARY OFF"
             "SDL_DISABLE_INSTALL ON"
             "SDL_DISABLE_INSTALL_DOCS ON"
+            # Enable the subsystems we care about.
+            "SDL_TIMERS ON"
+            "SDL_AUDIO ON"
             # Disable everything we don't care about.
             "SDL_ATOMIC OFF"
-            "SDL_AUDIO ON"
             "SDL_RENDER OFF"
             "SDL_HAPTIC OFF"
             "SDL_POWER OFF"
@@ -127,7 +128,16 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
             "SDL_GPU OFF"
     )
 
-    set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
+    if (ALIMER_INSTALL)
+        install(TARGETS "SDL3-shared"
+            ARCHIVE DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION  ${CMAKE_INSTALL_BINDIR}
+        )
+    endif()
+    
+    set_property(TARGET "SDL3-shared" PROPERTY FOLDER "ThirdParty")
+    set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
 endif ()
 
 # vulkan
