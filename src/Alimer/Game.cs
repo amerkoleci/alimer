@@ -151,7 +151,6 @@ public abstract class Game : DisposableObject, IGame
         ShaderSystem.Dispose();
 
         GraphicsDevice.WaitIdle();
-        MainWindow.Destroy();
         GraphicsDevice.Dispose();
         AudioDevice.Dispose();
         GraphicsManager.Dispose();

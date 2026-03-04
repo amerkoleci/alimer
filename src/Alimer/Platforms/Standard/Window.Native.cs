@@ -3,7 +3,9 @@
 
 using Alimer.Graphics;
 using System.Runtime.InteropServices;
-using static Alimer.AlimerApi;
+using static Alimer.SDL3;
+using static Alimer.SDL3.SDL_WindowFlags;
+using static Alimer.SDL3.SDL_EventType;
 using Alimer.Utilities;
 using Alimer.Platforms.Apple;
 using System.Diagnostics;
@@ -12,51 +14,96 @@ namespace Alimer;
 
 partial class Window
 {
-    private readonly NativePlatform _platform;
+    private readonly SDLPlatform _platform;
     private readonly SwapChainSurface _surface;
     private bool _isFullscreen;
-    private readonly nint _window;
+    private nint _handle;
     public readonly uint Id;
 
-    internal unsafe Window(NativePlatform platform, WindowFlags flags)
+    internal Window(SDLPlatform platform, WindowFlags flags)
     {
         _platform = platform;
         _title = "Alimer";
 
-        WindowDesc desc = new()
-        {
-            title = Utf8CustomMarshaller.ConvertToUnmanaged(_title),
-            width = 1200,
-            height = 800,
-            flags = flags
-        };
+        bool fullscreen = flags.HasFlag(WindowFlags.Fullscreen);
 
-        _window = alimerWindowCreate(in desc);
-        if (_window == 0)
+        SDL_WindowFlags windowFlags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
+
+        if (fullscreen)
         {
-            throw new InvalidOperationException("Failed to create window");
+            windowFlags |= SDL_WINDOW_FULLSCREEN;
+        }
+        else
+        {
+            if (flags.HasFlag(WindowFlags.Hidden))
+                windowFlags |= SDL_WINDOW_HIDDEN;
+
+            if (flags.HasFlag(WindowFlags.Borderless))
+                windowFlags |= SDL_WINDOW_BORDERLESS;
+
+            if (flags.HasFlag(WindowFlags.Resizable))
+                windowFlags |= SDL_WINDOW_RESIZABLE;
+
+            if (flags.HasFlag(WindowFlags.Maximized))
+                windowFlags |= SDL_WINDOW_MAXIMIZED;
+
+            if (flags.HasFlag(WindowFlags.AlwaysOnTop))
+                windowFlags |= SDL_WINDOW_ALWAYS_ON_TOP;
         }
 
-        Id = alimerWindowGetID(_window);
-        alimerWindowSetCentered(_window);
+        _handle = SDL_CreateWindow(_title, 1200, 800, windowFlags);
+        if (_handle == 0)
+        {
+            throw new InvalidOperationException($"Alimer: SDL_CreateWindow Failed: {SDL_GetError()}");
+        }
+
+#if TODO
+        if (desc->icon.data)
+        {
+            SDL_Surface* surface = SDL_CreateSurfaceFrom(
+                static_cast<int>(desc->icon.width),
+                static_cast<int>(desc->icon.height),
+                SDL_PIXELFORMAT_RGBA8888,
+                (void*)desc->icon.data,
+                static_cast<int>(desc->icon.width * 4));
+            if (!surface)
+            {
+                alimerLogError(LogCategory_Platform, "Alimer: SDL_CreateSurfaceFrom Failed: %s", SDL_GetError());
+                SDL_DestroyWindow(handle);
+                return nullptr;
+            }
+
+            SDL_SetWindowIcon(handle, surface);
+            SDL_DestroySurface(surface);
+        } 
+#endif
+
+        Id = SDL_GetWindowID(_handle);
+        SDL_SetWindowPosition(_handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        _ = SDL_GetWindowSizeInPixels(_handle, out int width, out int height);
 
         // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
         // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
 
         // Native handle
+        var props = SDL_GetWindowProperties(_handle);
         if (OperatingSystem.IsWindows())
         {
-            _surface = SwapChainSurface.CreateWin32(alimerGetWin32Window(_window));
+            nint hwnd = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER);
+            _surface = SwapChainSurface.CreateWin32(hwnd);
         }
         else if (OperatingSystem.IsAndroid())
         {
-            // TODO
-            //Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(SDLWindowHandle), SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, IntPtr.Zero);
-            throw new PlatformNotSupportedException();
+            nint androidWindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER);
+            _surface = SwapChainSurface.CreateAndroid(androidWindow);
+        }
+        else if (OperatingSystem.IsIOS())
+        {
+            nint ui_window = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER);
         }
         else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
-            NSWindow nswindow = alimerGetCocoaWindow(_window);
+            NSWindow nswindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER);
 
             NSView contentView = nswindow.contentView;
 
@@ -71,21 +118,21 @@ partial class Window
         }
         else if (OperatingSystem.IsLinux())
         {
-            nint wayland_display = alimerGetWaylandDisplay(_window);
-            nint wayland_surface = alimerGetWaylandSurface(_window);
-
-            if (wayland_display != 0 && wayland_surface != 0)
-            {
-                _surface = SwapChainSurface.CreateWayland(wayland_display, wayland_surface);
-            }
-            else
+            if (SDL_GetCurrentVideoDriver().Equals("x11", StringComparison.OrdinalIgnoreCase))
             {
                 // X11
-                nint x11_display = alimerGetX11Display(_window);
-                ulong x11_window = alimerGetX11Window(_window);
+                nint x11_display = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_X11_DISPLAY_POINTER);
+                ulong x11_window = (ulong)SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER);
                 Debug.Assert(x11_display != 0 && x11_window != 0, "Failed to get X11 window information.");
 
                 _surface = SwapChainSurface.CreateXlib(x11_display, x11_window);
+            }
+            else if (SDL_GetCurrentVideoDriver().Equals("wayland", StringComparison.OrdinalIgnoreCase))
+            {
+                nint wayland_display = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER);
+                nint wayland_surface = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER);
+
+                _surface = SwapChainSurface.CreateWayland(wayland_display, wayland_surface);
             }
         }
         else
@@ -100,7 +147,14 @@ partial class Window
     /// <inheritdoc />
     public partial bool IsMinimized
     {
-        get => alimerWindowIsMinimized(_window);
+        get
+        {
+            if (_handle == 0)
+                return true;
+
+            SDL_WindowFlags flags = SDL_GetWindowFlags(_handle);
+            return (flags & SDL_WINDOW_MINIMIZED) != 0;
+        }
     }
 
     /// <inheritdoc />
@@ -112,7 +166,7 @@ partial class Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                alimerWindowSetFullscreen(_window, value);
+                _ = SDL_SetWindowFullscreen(_handle, value);
             }
         }
     }
@@ -122,12 +176,12 @@ partial class Window
     {
         get
         {
-            alimerWindowGetPosition(_window, out int x, out int y);
+            SDL_GetWindowPosition(_handle, out int x, out int y);
             return new(x, y);
         }
         set
         {
-            alimerWindowSetPosition(_window, value.X, value.Y);
+            SDL_SetWindowPosition(_handle, value.X, value.Y);
         }
     }
 
@@ -136,12 +190,12 @@ partial class Window
     {
         get
         {
-            alimerWindowGetSize(_window, out int width, out int height);
+            SDL_GetWindowSize(_handle, out int width, out int height);
             return new(width, height);
         }
         set
         {
-            alimerWindowSetSize(_window, value.Width, value.Height);
+            SDL_SetWindowSize(_handle, value.Width, value.Height);
         }
     }
 
@@ -150,48 +204,79 @@ partial class Window
     {
         get
         {
-            alimerWindowGetSizeInPixels(_window, out int width, out int height);
+            SDL_GetWindowSizeInPixels(_handle, out int width, out int height);
             return new(width, height);
+        }
+    }
+
+    internal void Destroy()
+    {
+        SwapChain?.Dispose();
+
+        if (_handle != 0)
+        {
+            SDL_DestroyWindow(_handle);
+            _handle = 0;
         }
     }
 
     public void Show()
     {
-        alimerWindowShow(_window);
+        SDL_ShowWindow(_handle);
+    }
+
+    public void Hide()
+    {
+        SDL_HideWindow(_handle);
+    }
+
+    public void Minimize()
+    {
+        SDL_MinimizeWindow(_handle);
+    }
+
+    public void Maximize()
+    {
+        SDL_MaximizeWindow(_handle);
+    }
+
+    public void Restore()
+    {
+        SDL_RestoreWindow(_handle);
     }
 
     private partial void SetTitle(string title)
     {
-        alimerWindowSetTitle(_window, title);
+        SDL_SetWindowTitle(_handle, title);
     }
 
-    internal void HandleEvent(in WindowEvent evt)
+    internal void HandleEvent(in SDL_WindowEvent evt)
     {
         switch (evt.type)
         {
-            case WindowEventType.Minimized:
+            case SDL_EVENT_WINDOW_MINIMIZED:
                 break;
 
-            case WindowEventType.Maximized:
-            case WindowEventType.Restored:
+            case SDL_EVENT_WINDOW_MAXIMIZED:
+            case SDL_EVENT_WINDOW_RESTORED:
                 break;
 
-            case WindowEventType.Resized:
+            case SDL_EVENT_WINDOW_RESIZED:
                 HandleResize(evt);
                 break;
 
-            case WindowEventType.SizeChanged:
+            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                 HandleResize(evt);
                 break;
 
-            case WindowEventType.CloseRequested:
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 Destroy();
                 _platform.WindowClosed(evt.windowID);
                 break;
         }
     }
 
-    private void HandleResize(in WindowEvent evt)
+    private void HandleResize(in SDL_WindowEvent evt)
     {
         OnSizeChanged();
     }

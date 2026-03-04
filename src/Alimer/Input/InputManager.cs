@@ -1,8 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Linq;
-using Alimer.Engine;
+using System.Collections.ObjectModel;
 
 namespace Alimer.Input;
 
@@ -11,12 +10,17 @@ public abstract class InputManager
     /// <summary>
     /// Gets the keyboard input device.
     /// </summary>
-    public abstract IKeyboardInputSource Keyboard { get; }
+    public abstract KeyboardDevice Keyboard { get; }
+
+    /// <summary>
+    /// Gets the pointer input device.
+    /// </summary>
+    public abstract PointerDevice Pointer { get; }
 
     /// <summary>
     /// Gets the number of connected gamepads.
     /// </summary>
-	public abstract IReadOnlyList<IGamepadDevice> Gamepads { get; }
+	public ObservableCollection<GamepadDevice> Gamepads { get; } = [];
 
     protected InputManager()
     {

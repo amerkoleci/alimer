@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="$(AlimerNativeDirectory)win-x64\SDL3.dll">
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
     <None Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">
       <PackagePath>runtimes\win-x64\native</PackagePath>
       <Pack>True</Pack>
@@ -37,12 +42,32 @@
       <Pack>True</Pack>
       <Visible>False</Visible>
     </None>
+    <None Include="$(AlimerNativeDirectory)linux-x64\libSDL3.so">
+      <PackagePath>runtimes\linux-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
     <None Include="$(AlimerNativeDirectory)linux-x64\libalimer_native.so">
       <PackagePath>runtimes\linux-x64\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>
     </None>
+    <None Include="$(AlimerNativeDirectory)linux-x64\libalimer_physics.so">
+      <PackagePath>runtimes\linux-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)osx\libSDL3.dylib">
+      <PackagePath>runtimes\osx\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
     <None Include="$(AlimerNativeDirectory)osx\libalimer_native.dylib">
+      <PackagePath>runtimes\osx\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)osx\libalimer_physics.dylib">
       <PackagePath>runtimes\osx\native</PackagePath>
       <Pack>True</Pack>
       <Visible>False</Visible>

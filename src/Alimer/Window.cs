@@ -108,9 +108,4 @@ public sealed partial class Window
     }
 
     private partial void SetTitle(string title);
-
-    internal void Destroy()
-    {
-        SwapChain?.Dispose();
-    }
 }

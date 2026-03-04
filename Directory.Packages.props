@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ImGuiVersion>2.2.10-prerelease</ImGuiVersion>
     <SkiaSharpVersion>3.119.2</SkiaSharpVersion>
-    <AvaloniaVersion>11.3.10</AvaloniaVersion>
+    <AvaloniaVersion>11.3.12</AvaloniaVersion>
     <CodeAnalysisVersion>5.0.0</CodeAnalysisVersion>
   </PropertyGroup>
 
@@ -37,7 +37,7 @@
     <PackageVersion Include="XenoAtom.CommandLine" Version="2.0.2" />
     
     <!-- Asset Pipeline -->
-    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.4" />
+    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.5" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.23.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.6" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.2.0" />
@@ -56,8 +56,8 @@
     <PackageVersion Include="CppAst" Version="0.24.0" />
     
     <!-- Tests -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageVersion Include="NUnit" Version="4.4.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageVersion Include="NUnit" Version="4.5.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="6.1.0" />
   </ItemGroup>
 

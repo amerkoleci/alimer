@@ -136,7 +136,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     /// <inheritdoc/>
     protected internal override void BackendDestroy()
     {
-        for (uint i = 0; i < _backbufferTextures!.Length; ++i)
+        for (uint i = 0; i < _acquireSemaphores!.Length; ++i)
         {
             _device.DeviceApi.vkDestroySemaphore(_acquireSemaphores[i]);
             _device.DeviceApi.vkDestroySemaphore(_releaseSemaphores[i]);
