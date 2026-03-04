@@ -140,6 +140,8 @@ internal unsafe static partial class SDL3
 
     #endregion
 
+    public enum SDL_JoystickID : uint;
+
     private const string LibraryName = "SDL3";
 
 
@@ -178,7 +180,7 @@ internal unsafe static partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void SDL_Quit();
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetError();
@@ -187,7 +189,7 @@ internal unsafe static partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial int SDL_GetVersion();
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetRevision();
@@ -210,7 +212,7 @@ internal unsafe static partial class SDL3
     public static partial long SDL_GetNumberProperty(SDL_PropertiesID props, ReadOnlySpan<byte> name, long defaultValue = 0);
 
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetCurrentVideoDriver();
@@ -223,7 +225,7 @@ internal unsafe static partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_SetClipboardText(string text);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalUsing(typeof(CallerOwnedStringMarshaller))]
     public static partial string SDL_GetClipboardText();
@@ -235,6 +237,30 @@ internal unsafe static partial class SDL3
     public static int SDL_VERSIONNUM_MICRO(int version) => ((version) % 1000);
     //public static bool SDL_VERSION_ATLEAST(int X, int Y, int Z) => SDL_VERSION >= SDL_VERSIONNUM(X, Y, Z);
     #endregion
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Keymod SDL_GetModState();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_MouseButtonFlags SDL_GetMouseState(out float x, out float y);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_MouseButtonFlags SDL_GetGlobalMouseState(out float x, out float y);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_WarpMouseInWindow(nint window, float x, float y);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_WarpMouseGlobal(float x, float y);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_CaptureMouse(SDLBool enabled);
+
     public enum SDL_SystemCursor
     {
         SDL_SYSTEM_CURSOR_DEFAULT,
@@ -260,38 +286,167 @@ internal unsafe static partial class SDL3
         SDL_SYSTEM_CURSOR_COUNT,
     }
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial nint SDL_CreateSystemCursor(SDL_SystemCursor id);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_SetCursor(nint cursor);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial nint SDL_GetCursor();
 
-
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial nint SDL_GetDefaultCursor();
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void SDL_DestroyCursor(nint cursor);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_ShowCursor();
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_HideCursor();
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_CursorVisible();
+
+    #region Gamepad
+
+    public enum SDL_GamepadType
+    {
+        SDL_GAMEPAD_TYPE_UNKNOWN = 0,
+        SDL_GAMEPAD_TYPE_STANDARD,
+        SDL_GAMEPAD_TYPE_XBOX360,
+        SDL_GAMEPAD_TYPE_XBOXONE,
+        SDL_GAMEPAD_TYPE_PS3,
+        SDL_GAMEPAD_TYPE_PS4,
+        SDL_GAMEPAD_TYPE_PS5,
+        SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO,
+        SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_LEFT,
+        SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT,
+        SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_PAIR,
+        SDL_GAMEPAD_TYPE_GAMECUBE,
+        SDL_GAMEPAD_TYPE_COUNT,
+    }
+
+    public enum SDL_GamepadButton
+    {
+        SDL_GAMEPAD_BUTTON_INVALID = -1,
+        SDL_GAMEPAD_BUTTON_SOUTH,
+        SDL_GAMEPAD_BUTTON_EAST,
+        SDL_GAMEPAD_BUTTON_WEST,
+        SDL_GAMEPAD_BUTTON_NORTH,
+        SDL_GAMEPAD_BUTTON_BACK,
+        SDL_GAMEPAD_BUTTON_GUIDE,
+        SDL_GAMEPAD_BUTTON_START,
+        SDL_GAMEPAD_BUTTON_LEFT_STICK,
+        SDL_GAMEPAD_BUTTON_RIGHT_STICK,
+        SDL_GAMEPAD_BUTTON_LEFT_SHOULDER,
+        SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
+        SDL_GAMEPAD_BUTTON_DPAD_UP,
+        SDL_GAMEPAD_BUTTON_DPAD_DOWN,
+        SDL_GAMEPAD_BUTTON_DPAD_LEFT,
+        SDL_GAMEPAD_BUTTON_DPAD_RIGHT,
+        SDL_GAMEPAD_BUTTON_MISC1,
+        SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1,
+        SDL_GAMEPAD_BUTTON_LEFT_PADDLE1,
+        SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2,
+        SDL_GAMEPAD_BUTTON_LEFT_PADDLE2,
+        SDL_GAMEPAD_BUTTON_TOUCHPAD,
+        SDL_GAMEPAD_BUTTON_MISC2,
+        SDL_GAMEPAD_BUTTON_MISC3,
+        SDL_GAMEPAD_BUTTON_MISC4,
+        SDL_GAMEPAD_BUTTON_MISC5,
+        SDL_GAMEPAD_BUTTON_MISC6,
+        SDL_GAMEPAD_BUTTON_COUNT,
+    }
+
+    public enum SDL_GamepadButtonLabel
+    {
+        SDL_GAMEPAD_BUTTON_LABEL_UNKNOWN,
+        SDL_GAMEPAD_BUTTON_LABEL_A,
+        SDL_GAMEPAD_BUTTON_LABEL_B,
+        SDL_GAMEPAD_BUTTON_LABEL_X,
+        SDL_GAMEPAD_BUTTON_LABEL_Y,
+        SDL_GAMEPAD_BUTTON_LABEL_CROSS,
+        SDL_GAMEPAD_BUTTON_LABEL_CIRCLE,
+        SDL_GAMEPAD_BUTTON_LABEL_SQUARE,
+        SDL_GAMEPAD_BUTTON_LABEL_TRIANGLE,
+    }
+
+    public enum SDL_GamepadAxis
+    {
+        SDL_GAMEPAD_AXIS_INVALID = -1,
+        SDL_GAMEPAD_AXIS_LEFTX,
+        SDL_GAMEPAD_AXIS_LEFTY,
+        SDL_GAMEPAD_AXIS_RIGHTX,
+        SDL_GAMEPAD_AXIS_RIGHTY,
+        SDL_GAMEPAD_AXIS_LEFT_TRIGGER,
+        SDL_GAMEPAD_AXIS_RIGHT_TRIGGER,
+        SDL_GAMEPAD_AXIS_COUNT,
+    }
+
+    public enum SDL_GamepadBindingType
+    {
+        SDL_GAMEPAD_BINDTYPE_NONE = 0,
+        SDL_GAMEPAD_BINDTYPE_BUTTON,
+        SDL_GAMEPAD_BINDTYPE_AXIS,
+        SDL_GAMEPAD_BINDTYPE_HAT,
+    }
+
+    public partial struct SDL_Gamepad
+    {
+    }
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Gamepad* SDL_OpenGamepad(SDL_JoystickID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Gamepad* SDL_GetGamepadFromID(SDL_JoystickID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_CloseGamepad(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial string SDL_GetGamepadName(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_GamepadType SDL_GetGamepadType(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_GamepadType SDL_GetGamepadTypeForID(SDL_JoystickID instance_id);
+
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial ushort SDL_GetGamepadVendor(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial ushort SDL_GetGamepadProduct(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial ushort SDL_GetGamepadProductVersion(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial ushort SDL_GetGamepadFirmwareVersion(SDL_Gamepad* gamepad);
+    #endregion
 
     #region Extensions
     private static void logError(string? expression)

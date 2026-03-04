@@ -3,11 +3,9 @@
 
 namespace Alimer.Input;
 
-public enum MouseButton
+public interface IInputSource
 {
-    Left,
-    Right,
-    Middle,
-    X1,
-    X2,
+    void Scan();
+
+    void Update();
 }

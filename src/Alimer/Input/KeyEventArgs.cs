@@ -9,4 +9,6 @@ public readonly struct KeyEventArgs
     /// Gets the key associated with this instance.
     /// </summary>
     public required Keys Key { get; init; }
+
+    public required bool IsDown { get; init; }
 }

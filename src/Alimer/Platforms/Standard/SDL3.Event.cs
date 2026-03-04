@@ -632,7 +632,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public byte axis;
         public byte padding1;
         public byte padding2;
@@ -647,7 +647,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public byte ball;
         public byte padding1;
         public byte padding2;
@@ -662,7 +662,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public byte hat;
         public byte value;
         public byte padding1;
@@ -675,7 +675,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public byte button;
         public SDLBool down;
         public byte padding1;
@@ -688,7 +688,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -697,7 +697,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public SDL_PowerState state;
         public int percent;
     }
@@ -708,7 +708,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public byte axis;
         public byte padding1;
         public byte padding2;
@@ -723,7 +723,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public byte button;
         public SDLBool down;
         public byte padding1;
@@ -736,7 +736,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -745,7 +745,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public int touchpad;
         public int finger;
         public float x;
@@ -759,7 +759,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_JoystickID which;
         public int sensor;
         public fixed float data[3];
         public ulong sensor_timestamp;

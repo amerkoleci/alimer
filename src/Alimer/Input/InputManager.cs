@@ -8,37 +8,35 @@ namespace Alimer.Input;
 public abstract class InputManager
 {
     /// <summary>
-    /// Gets the keyboard input device.
+    /// Gets the keyboard input source.
     /// </summary>
-    public abstract KeyboardDevice Keyboard { get; }
+    public abstract KeyboardInputSource Keyboard { get; }
 
     /// <summary>
-    /// Gets the pointer input device.
+    /// Gets the pointer input source.
     /// </summary>
-    public abstract PointerDevice Pointer { get; }
+    public abstract PointerInputSource Pointer { get; }
 
     /// <summary>
-    /// Gets the number of connected gamepads.
+    /// Gets the gamepad input source.
     /// </summary>
-	public ObservableCollection<GamepadDevice> Gamepads { get; } = [];
+    public abstract GamepadInputSource Gamepad { get; }
 
     protected InputManager()
     {
     }
 
-#if TODO
     public void Scan()
     {
-        foreach (IInputSource source in Sources)
-        {
-            source.Scan();
-        }
-    } 
-#endif
+        Gamepad.Scan();
+    }
 
-    public virtual void Update()
+    public void Update()
     {
-    } 
+        Keyboard.Update();
+        Pointer.Update();
+        Gamepad.Update();
+    }
 
     public bool IsKeyDown(Keys key)
     {
@@ -54,4 +52,8 @@ public abstract class InputManager
     {
         return Keyboard.ReleasedKeys.Contains(key);
     }
+
+    public bool IsMouseButtonDown(MouseButton button) => Pointer.IsButtonDown(button);
+    public bool IsMouseButtonPressed(MouseButton button) => Pointer.IsButtonPressed(button);
+    public bool IsMouseButtonReleased(MouseButton button) => Pointer.IsButtonReleased(button);
 }

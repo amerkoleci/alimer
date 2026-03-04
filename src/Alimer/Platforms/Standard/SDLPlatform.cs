@@ -133,6 +133,11 @@ internal unsafe class SDLPlatform : GamePlatform
                 _exitRequested = true;
                 break;
 
+            case SDL_EVENT_WINDOW_MOUSE_ENTER:
+            case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+                _input.HandleEvent(in evt);
+                break;
+
             default:
                 if (evt.type >= SDL_EVENT_WINDOW_FIRST
                     && evt.type <= SDL_EVENT_WINDOW_LAST)

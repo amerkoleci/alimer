@@ -11,9 +11,9 @@ namespace Alimer.Input;
 /// managing key events and key state tracking. The class exposes events for key press and release, and maintains sets
 /// of keys that are currently pressed, released, or held down. This enables consumers to query the current keyboard
 /// state and respond to user input in a consistent manner.</remarks>
-public abstract class KeyboardDevice : InputDevice
+public abstract class KeyboardInputSource : IInputSource
 {
-    private readonly List<KeyEventArgs> _keyEvents = [];
+    private readonly List<KeyEventArgs> _events = [];
     private readonly HashSet<Keys> _pressedKeys = [];
     private readonly HashSet<Keys> _releasedKeys = [];
     private readonly HashSet<Keys> _downKeys = [];
@@ -38,7 +38,6 @@ public abstract class KeyboardDevice : InputDevice
     /// </summary>
     public IReadOnlySet<Keys> ReleasedKeys => _releasedKeys;
 
-
     /// <summary>
     /// Gets the set of keys that are currently pressed.
     /// </summary>
@@ -58,9 +57,9 @@ public abstract class KeyboardDevice : InputDevice
         _pressedKeys.Clear();
         _releasedKeys.Clear();
 
-        foreach (KeyEventArgs keyEvent in _keyEvents)
+        foreach (KeyEventArgs keyEvent in _events)
         {
-            if (DownKeys.Contains(keyEvent.Key))
+            if (keyEvent.IsDown && DownKeys.Contains(keyEvent.Key))
             {
                 _pressedKeys.Add(keyEvent.Key);
             }
@@ -70,7 +69,7 @@ public abstract class KeyboardDevice : InputDevice
             }
         }
 
-        _keyEvents.Clear();
+        _events.Clear();
     }
 
     protected virtual void OnKeyDown(in KeyEventArgs e)
@@ -79,7 +78,7 @@ public abstract class KeyboardDevice : InputDevice
         if (!_downKeys.Contains(e.Key))
         {
             _downKeys.Add(e.Key);
-            _keyEvents.Add(e);
+            _events.Add(e);
         }
 
         KeyDown?.Invoke(this, e);
@@ -90,7 +89,7 @@ public abstract class KeyboardDevice : InputDevice
         if (_downKeys.Contains(e.Key))
         {
             _downKeys.Remove(e.Key);
-            _keyEvents.Add(e);
+            _events.Add(e);
         }
 
         KeyUp?.Invoke(this, e);

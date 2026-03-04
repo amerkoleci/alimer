@@ -3,6 +3,7 @@
 
 namespace Alimer.Input;
 
-public abstract class GamepadDevice : InputDevice
+public abstract class GamepadDevice
 {
+    public abstract void Update();
 }

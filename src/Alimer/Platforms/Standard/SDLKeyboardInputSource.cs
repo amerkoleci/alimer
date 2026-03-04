@@ -7,13 +7,19 @@ using static Alimer.SDL3.SDL_Keymod;
 
 namespace Alimer.Input;
 
-internal class SDLKeyboardDevice : KeyboardDevice
+internal class SDLKeyboardInputSource : KeyboardInputSource
 {
+    public void BeginFrame()
+    {
+
+    }
+
     public void HandleKeyEvent(in SDL_KeyboardEvent key, bool down)
     {
         KeyEventArgs args = new()
         {
-            Key = FromSDLKeyboardKey(key.scancode)
+            Key = FromSDLKeyboardKey(key.scancode),
+            IsDown = down,
         };
 
         if (down)
@@ -161,7 +167,7 @@ internal class SDLKeyboardDevice : KeyboardDevice
         };
     }
 
-    private static KeyModifiers FromSDLModifiers(SDL_Keymod mod)
+    public static KeyModifiers FromSDLModifiers(SDL_Keymod mod)
     {
         KeyModifiers result = KeyModifiers.None;
         if ((mod & SDL_KMOD_CTRL) != 0)
