@@ -22,7 +22,7 @@ internal unsafe class SDLPlatform : GamePlatform
     private readonly SDLInputManager _input;
 
     private readonly Window _window;
-    private readonly Dictionary<uint, Window> _idLookup = [];
+    private readonly Dictionary<SDL_WindowID, Window> _idLookup = [];
     private bool _exitRequested;
 
     public SDLPlatform(Game game, string appName = "Alimer")
@@ -32,7 +32,12 @@ internal unsafe class SDLPlatform : GamePlatform
 
         //SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");
         //SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
-        //SDL_SetHint(SDL_HINT_APP_NAME, settings.name.c_str());
+        SDL_SetHint(SDL_HINT_APP_NAME, appName);
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, false).LogErrorIfFailed(); // disable touch events generating synthetic mouse events on desktop platforms
+        SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, false).LogErrorIfFailed(); // disable mouse events generating synthetic touch events on mobile platforms
+        SDL_SetHint(SDL_HINT_PEN_TOUCH_EVENTS, false).LogErrorIfFailed();
+        SDL_SetHint(SDL_HINT_PEN_MOUSE_EVENTS, false).LogErrorIfFailed();
+        SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition"u8).LogErrorIfFailed();
 
 #if DEBUG
         SDL_SetLogPriority((int)SDL_LOG_CATEGORY_ERROR, SDL_LOG_PRIORITY_DEBUG);
@@ -167,7 +172,7 @@ internal unsafe class SDLPlatform : GamePlatform
         }
     }
 
-    internal void WindowClosed(uint windowID)
+    internal void WindowClosed(SDL_WindowID windowID)
     {
         _idLookup.Remove(windowID);
     }

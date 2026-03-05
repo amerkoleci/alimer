@@ -12,13 +12,13 @@ using System.Diagnostics;
 
 namespace Alimer;
 
-partial class Window
+unsafe partial class Window
 {
     private readonly SDLPlatform _platform;
     private readonly SwapChainSurface _surface;
     private bool _isFullscreen;
-    private nint _handle;
-    public readonly uint Id;
+    private SDL_Window* _handle;
+    internal readonly SDL_WindowID Id;
 
     internal Window(SDLPlatform platform, WindowFlags flags)
     {
@@ -52,7 +52,7 @@ partial class Window
         }
 
         _handle = SDL_CreateWindow(_title, 1200, 800, windowFlags);
-        if (_handle == 0)
+        if (_handle == null)
         {
             throw new InvalidOperationException($"Alimer: SDL_CreateWindow Failed: {SDL_GetError()}");
         }
@@ -149,7 +149,7 @@ partial class Window
     {
         get
         {
-            if (_handle == 0)
+            if (_handle == null)
                 return true;
 
             SDL_WindowFlags flags = SDL_GetWindowFlags(_handle);
@@ -213,10 +213,10 @@ partial class Window
     {
         SwapChain?.Dispose();
 
-        if (_handle != 0)
+        if (_handle != null)
         {
             SDL_DestroyWindow(_handle);
-            _handle = 0;
+            _handle = null;
         }
     }
 

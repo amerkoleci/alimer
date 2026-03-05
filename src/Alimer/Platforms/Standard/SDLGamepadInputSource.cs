@@ -11,6 +11,8 @@ internal class SDLGamepadInputSource : GamepadInputSource
 
     public void BeginFrame()
     {
+        SDL_UpdateGamepads();
+
         foreach (SDLGamepadDevice gamepad in _gamepads.Values)
         {
             gamepad.BeginFrame();

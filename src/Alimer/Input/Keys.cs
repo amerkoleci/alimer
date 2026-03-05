@@ -225,4 +225,6 @@ public enum Keys : byte
 
     Pa1 = 0xfd,
     OemClear = 0xfe,
+
+    Count
 }

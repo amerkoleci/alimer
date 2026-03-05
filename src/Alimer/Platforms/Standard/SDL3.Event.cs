@@ -290,16 +290,6 @@ internal static unsafe partial class SDL3
         SDL_KMOD_GUI = SDL_KMOD_RGUI | SDL_KMOD_LGUI,
     }
 
-    public enum SDL_PowerState
-    {
-        SDL_POWERSTATE_ERROR = -1,
-        SDL_POWERSTATE_UNKNOWN = 0,
-        SDL_POWERSTATE_ON_BATTERY = 1,
-        SDL_POWERSTATE_NO_BATTERY = 2,
-        SDL_POWERSTATE_CHARGING = 3,
-        SDL_POWERSTATE_CHARGED = 4,
-    }
-
     [Flags]
     public enum SDL_MouseButtonFlags : uint
     {
@@ -501,7 +491,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
+        public SDL_WindowID windowID;
         public int data1;
         public int data2;
     }
@@ -521,7 +511,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
+        public SDL_WindowID windowID;
         public uint which;
         public SDL_Scancode scancode;
         public uint key;
@@ -537,7 +527,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
+        public SDL_WindowID windowID;
         public byte* text;
         public int start;
         public int length;
@@ -549,7 +539,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
+        public SDL_WindowID windowID;
         public byte** candidates;
         public int num_candidates;
         public int selected_candidate;
@@ -565,7 +555,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
+        public SDL_WindowID windowID;
         public byte* text;
     }
 
@@ -575,7 +565,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_MouseID which;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -585,7 +575,7 @@ internal static unsafe partial class SDL3
         public uint reserved;
         public ulong timestamp;
         public uint windowID;
-        public uint which;
+        public SDL_MouseID which;
         public SDL_MouseButtonFlags state;
         public float x;
         public float y;
@@ -599,8 +589,8 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
-        public uint which;
+        public SDL_WindowID windowID;
+        public SDL_MouseID which;
         public byte button;
         public SDLBool down;
         public byte clicks;
@@ -615,8 +605,8 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
-        public uint which;
+        public SDL_WindowID windowID;
+        public SDL_MouseID which;
         public float x;
         public float y;
         public SDL_MouseWheelDirection direction;
@@ -793,7 +783,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint windowID;
+        public SDL_WindowID windowID;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -802,14 +792,14 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public ulong touchID;
-        public ulong fingerID;
+        public SDL_TouchID touchID;
+        public SDL_FingerID fingerID;
         public float x;
         public float y;
         public float dx;
         public float dy;
         public float pressure;
-        public uint windowID;
+        public SDL_WindowID windowID;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -920,7 +910,7 @@ internal static unsafe partial class SDL3
         public SDL_EventType type;
         public uint reserved;
         public ulong timestamp;
-        public uint which;
+        public SDL_SensorID which;
         public fixed float data[6];
         public ulong sensor_timestamp;
     }

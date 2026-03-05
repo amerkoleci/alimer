@@ -9,4 +9,5 @@ public readonly struct PointerPoint
     public required uint PointerId { get; init; }
     public required Vector2 Position { get; init; }
     public MouseButton Button { get; init; }
+    public float Pressure { get; init; }
 }

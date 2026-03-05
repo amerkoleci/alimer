@@ -13,5 +13,5 @@ public readonly struct PointerEventArgs
     /// <summary>
     /// Gets the key modifiers with this instance.
     /// </summary>
-    public required KeyModifiers KeyModifiers { get; init; }
+    public KeyModifiers KeyModifiers { get; init; }
 }

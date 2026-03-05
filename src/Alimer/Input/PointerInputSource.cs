@@ -16,6 +16,9 @@ public abstract class PointerInputSource : IInputSource
     public event EventHandler<PointerEventArgs>? PointerReleased;
     public event EventHandler<PointerEventArgs>? PointerWheelChanged;
 
+    public abstract bool HasMouse { get; }
+    public abstract bool HasTouch { get; }
+
     /// <summary>
     /// Gets the current position in pixels.
     /// </summary>
@@ -41,14 +44,6 @@ public abstract class PointerInputSource : IInputSource
     /// </summary>
     public abstract Cursor Cursor { get; set; }
 
-    public virtual void Scan()
-    {
-    }
-
-    public virtual void Update()
-    {
-    }
-
     /// <summary>
     /// Returns true if the button is currently held down.
     /// </summary>
@@ -69,6 +64,16 @@ public abstract class PointerInputSource : IInputSource
     /// <param name="button"></param>
     /// <returns></returns>
     public abstract bool IsButtonReleased(MouseButton button);
+
+    /// <summary>
+    /// Enables pointer capture outside window..
+    /// </summary>
+    public abstract void SetPointerCapture();
+
+    /// <summary>
+    /// Disables pointer capture outside window.
+    /// </summary>
+    public abstract void ReleasePointerCapture();
 
     protected virtual void OnPointerEntered(in PointerEventArgs e)
     {

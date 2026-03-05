@@ -10,8 +10,6 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 {
-    private readonly GraphicsDeviceLimits _limits;
-
     // Features
     public readonly VkVersion ApiVersion;
     public readonly VkPhysicalDeviceFeatures2 Features2 = default;

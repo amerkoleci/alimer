@@ -13,6 +13,7 @@ namespace Alimer.Engine;
 
 // TODO: Rework Entity, Transform and component logic
 
+[Expose]
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
 public partial class Entity

@@ -5,7 +5,4 @@ namespace Alimer.Input;
 
 public interface IInputSource
 {
-    void Scan();
-
-    void Update();
 }

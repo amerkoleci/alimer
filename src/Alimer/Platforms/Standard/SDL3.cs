@@ -13,6 +13,13 @@ internal unsafe static partial class SDL3
 {
     #region Constants
     public static ReadOnlySpan<byte> SDL_HINT_APP_NAME => "SDL_APP_NAME"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4 => "SDL_WINDOWS_CLOSE_ON_ALT_F4"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_TOUCH_MOUSE_EVENTS => "SDL_TOUCH_MOUSE_EVENTS"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_MOUSE_TOUCH_EVENTS => "SDL_MOUSE_TOUCH_EVENTS"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_PEN_MOUSE_EVENTS => "SDL_PEN_MOUSE_EVENTS"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_PEN_TOUCH_EVENTS => "SDL_PEN_TOUCH_EVENTS"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_IME_IMPLEMENTED_UI => "SDL_IME_IMPLEMENTED_UI"u8;
+    public static ReadOnlySpan<byte> SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS => "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"u8;
     #endregion
 
     #region Enums
@@ -105,12 +112,19 @@ internal unsafe static partial class SDL3
     }
     #endregion
 
-    #region Structs
-    #endregion
-
     #region Marshallers
+    public static string? PtrToStringUTF8(byte* ptr, bool free = false)
+    {
+        string? s = Marshal.PtrToStringUTF8((IntPtr)ptr);
+
+        if (free)
+            SDL_free(ptr);
+
+        return s;
+    }
+
     [CustomMarshaller(typeof(string), MarshalMode.ManagedToUnmanagedOut, typeof(SDLOwnedStringMarshaller))]
-    public static unsafe class SDLOwnedStringMarshaller
+    public static class SDLOwnedStringMarshaller
     {
         /// <summary>
         /// Converts an unmanaged string to a managed version.
@@ -122,7 +136,7 @@ internal unsafe static partial class SDL3
 
     // Custom marshaller for caller-owned strings returned by SDL.
     [CustomMarshaller(typeof(string), MarshalMode.ManagedToUnmanagedOut, typeof(CallerOwnedStringMarshaller))]
-    public static unsafe class CallerOwnedStringMarshaller
+    public static class CallerOwnedStringMarshaller
     {
         /// <summary>
         /// Converts an unmanaged string to a managed version.
@@ -135,19 +149,23 @@ internal unsafe static partial class SDL3
         /// Free the memory for a specified unmanaged string.
         /// </summary>
         public static void Free(byte* unmanaged)
-            => SDL_free((IntPtr)unmanaged);
+            => SDL_free(unmanaged);
     }
 
     #endregion
 
-    public enum SDL_JoystickID : uint;
-
     private const string LibraryName = "SDL3";
 
+    public enum SDL_KeyboardID : uint;
+    public enum SDL_MouseID : uint;
+    public enum SDL_TouchID : ulong;
+    public enum SDL_FingerID : ulong;
+    public enum SDL_SensorID : uint;
+    public enum SDL_JoystickID : uint;
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void SDL_free(nint mem);
+    public static partial void SDL_free(void* mem);
 
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -156,6 +174,11 @@ internal unsafe static partial class SDL3
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_SetHint(ReadOnlySpan<byte> name, ReadOnlySpan<byte> value);
+
+    public static SDLBool SDL_SetHint(ReadOnlySpan<byte> name, bool value)
+    {
+        return SDL_SetHint(name, value ? "1"u8 : "0"u8);
+    }
 
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -238,9 +261,35 @@ internal unsafe static partial class SDL3
     //public static bool SDL_VERSION_ATLEAST(int X, int Y, int Z) => SDL_VERSION >= SDL_VERSIONNUM(X, Y, Z);
     #endregion
 
+    #region Keyboard
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_HasKeyboard();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_KeyboardID* SDL_GetKeyboards(int* count);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial string SDL_GetKeyboardNameForID(SDL_KeyboardID instance_id);
+
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_Keymod SDL_GetModState();
+    #endregion
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_HasMouse();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_MouseID* SDL_GetMice(int* count);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial string SDL_GetMouseNameForID(SDL_MouseID instance_id);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -318,7 +367,144 @@ internal unsafe static partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_CursorVisible();
 
-    #region Gamepad
+    #region Touch
+    public enum SDL_TouchDeviceType
+    {
+        SDL_TOUCH_DEVICE_INVALID = -1,
+        SDL_TOUCH_DEVICE_DIRECT,
+        SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE,
+        SDL_TOUCH_DEVICE_INDIRECT_RELATIVE,
+    }
+
+    public partial struct SDL_Finger
+    {
+        public SDL_FingerID id;
+
+        public float x;
+
+        public float y;
+
+        public float pressure;
+    }
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_TouchID* SDL_GetTouchDevices(out int count);
+
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial string SDL_GetTouchDeviceName(SDL_TouchID touchID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_TouchDeviceType SDL_GetTouchDeviceType(SDL_TouchID touchID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Finger** SDL_GetTouchFingers(SDL_TouchID touchID, int* count);
+    #endregion
+
+    #region Sensor
+    public partial struct SDL_Sensor
+    {
+    }
+
+    public enum SDL_SensorType
+    {
+        SDL_SENSOR_INVALID = -1,
+        SDL_SENSOR_UNKNOWN,
+        SDL_SENSOR_ACCEL,
+        SDL_SENSOR_GYRO,
+        SDL_SENSOR_ACCEL_L,
+        SDL_SENSOR_GYRO_L,
+        SDL_SENSOR_ACCEL_R,
+        SDL_SENSOR_GYRO_R,
+        SDL_SENSOR_COUNT,
+    }
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_SensorID* SDL_GetSensors(int* count);
+
+    [LibraryImport(LibraryName, EntryPoint = "SDL_GetSensorNameForID")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial byte* Unsafe_SDL_GetSensorNameForID(SDL_SensorID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_SensorType SDL_GetSensorTypeForID(SDL_SensorID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SDL_GetSensorNonPortableTypeForID(SDL_SensorID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Sensor* SDL_OpenSensor(SDL_SensorID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Sensor* SDL_GetSensorFromID(SDL_SensorID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_PropertiesID SDL_GetSensorProperties(SDL_Sensor* sensor);
+
+    [LibraryImport(LibraryName, EntryPoint = "SDL_GetSensorName")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial byte* Unsafe_SDL_GetSensorName(SDL_Sensor* sensor);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_SensorType SDL_GetSensorType(SDL_Sensor* sensor);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SDL_GetSensorNonPortableType(SDL_Sensor* sensor);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_SensorID SDL_GetSensorID(SDL_Sensor* sensor);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetSensorData(SDL_Sensor* sensor, float* data, int num_values);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_CloseSensor(SDL_Sensor* sensor);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_UpdateSensors();
+
+    public const float SDL_STANDARD_GRAVITY = 9.80665f;
+    #endregion
+
+    #region Joystick + Gamepad
+    public enum SDL_JoystickType
+    {
+        SDL_JOYSTICK_TYPE_UNKNOWN,
+        SDL_JOYSTICK_TYPE_GAMEPAD,
+        SDL_JOYSTICK_TYPE_WHEEL,
+        SDL_JOYSTICK_TYPE_ARCADE_STICK,
+        SDL_JOYSTICK_TYPE_FLIGHT_STICK,
+        SDL_JOYSTICK_TYPE_DANCE_PAD,
+        SDL_JOYSTICK_TYPE_GUITAR,
+        SDL_JOYSTICK_TYPE_DRUM_KIT,
+        SDL_JOYSTICK_TYPE_ARCADE_PAD,
+        SDL_JOYSTICK_TYPE_THROTTLE,
+        SDL_JOYSTICK_TYPE_COUNT,
+    }
+
+    public enum SDL_JoystickConnectionState
+    {
+        SDL_JOYSTICK_CONNECTION_INVALID = -1,
+        SDL_JOYSTICK_CONNECTION_UNKNOWN,
+        SDL_JOYSTICK_CONNECTION_WIRED,
+        SDL_JOYSTICK_CONNECTION_WIRELESS,
+    }
+
 
     public enum SDL_GamepadType
     {
@@ -406,6 +592,10 @@ internal unsafe static partial class SDL3
     {
     }
 
+    public partial struct SDL_Joystick
+    {
+    }
+
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_Gamepad* SDL_OpenGamepad(SDL_JoystickID instance_id);
@@ -439,13 +629,113 @@ internal unsafe static partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial ushort SDL_GetGamepadProduct(SDL_Gamepad* gamepad);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial ushort SDL_GetGamepadProductVersion(SDL_Gamepad* gamepad);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial ushort SDL_GetGamepadFirmwareVersion(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_JoystickConnectionState SDL_GetGamepadConnectionState(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_PowerState SDL_GetGamepadPowerInfo(SDL_Gamepad* gamepad, int* percent);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GamepadConnected(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SDL_GetGamepadPlayerIndex(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_UpdateGamepads();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GamepadHasAxis(SDL_Gamepad* gamepad, SDL_GamepadAxis axis);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial short SDL_GetGamepadAxis(SDL_Gamepad* gamepad, SDL_GamepadAxis axis);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GamepadHasButton(SDL_Gamepad* gamepad, SDL_GamepadButton button);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetGamepadButton(SDL_Gamepad* gamepad, SDL_GamepadButton button);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SDL_GetNumGamepadTouchpads(SDL_Gamepad* gamepad);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SDL_GetNumGamepadTouchpadFingers(SDL_Gamepad* gamepad, int touchpad);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetGamepadTouchpadFinger(SDL_Gamepad* gamepad, int touchpad, int finger, SDLBool* down, float* x, float* y, float* pressure);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GamepadHasSensor(SDL_Gamepad* gamepad, SDL_SensorType type);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_SetGamepadSensorEnabled(SDL_Gamepad* gamepad, SDL_SensorType type, SDLBool enabled);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GamepadSensorEnabled(SDL_Gamepad* gamepad, SDL_SensorType type);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial float SDL_GetGamepadSensorDataRate(SDL_Gamepad* gamepad, SDL_SensorType type);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetGamepadSensorData(SDL_Gamepad* gamepad, SDL_SensorType type, float* data, int num_values);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_RumbleGamepad(SDL_Gamepad* gamepad, ushort low_frequency_rumble, ushort high_frequency_rumble, uint duration_ms);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_RumbleGamepadTriggers(SDL_Gamepad* gamepad, ushort left_rumble, ushort right_rumble, uint duration_ms);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_SetGamepadLED(SDL_Gamepad* gamepad, byte red, byte green, byte blue);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_SendGamepadEffect(SDL_Gamepad* gamepad, nint data, int size);
+    #endregion
+
+    #region PowerStatus
+    public enum SDL_PowerState
+    {
+        SDL_POWERSTATE_ERROR = -1,
+        SDL_POWERSTATE_UNKNOWN,
+        SDL_POWERSTATE_ON_BATTERY,
+        SDL_POWERSTATE_NO_BATTERY,
+        SDL_POWERSTATE_CHARGING,
+        SDL_POWERSTATE_CHARGED,
+    }
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_PowerState SDL_GetPowerInfo(int* seconds, int* percent);
     #endregion
 
     #region Extensions

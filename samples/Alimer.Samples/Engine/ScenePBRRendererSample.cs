@@ -127,32 +127,32 @@ public sealed class ScenePBRRendererSample : SampleBase
 
         if (Input.IsKeyDown(Keys.W))
         {
-            _cameraEntity.Translate(Vector3.Forward * deltaTime * moveSpeed);
+            _cameraEntity.Translate(Vector3.Forward * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
         if (Input.IsKeyDown(Keys.S))
         {
-            _cameraEntity.Translate(Vector3.Backward * deltaTime * moveSpeed);
+            _cameraEntity.Translate(Vector3.Backward * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
         if (Input.IsKeyDown(Keys.A))
         {
-            _cameraEntity.Translate(Vector3.Left * deltaTime * moveSpeed);
+            _cameraEntity.Translate(Vector3.Left * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
         if (Input.IsKeyDown(Keys.D))
         {
-            _cameraEntity.Translate(Vector3.Right * deltaTime * moveSpeed);
+            _cameraEntity.Translate(Vector3.Right * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
         if (Input.IsKeyDown(Keys.PageUp))
         {
-            _cameraEntity.Translate(Vector3.Up * deltaTime * moveSpeed);
+            _cameraEntity.Translate(Vector3.Up * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
         if (Input.IsKeyDown(Keys.PageDown))
         {
-            _cameraEntity.Translate(Vector3.Down * deltaTime * moveSpeed);
+            _cameraEntity.Translate(Vector3.Down * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
         if (Input.IsKeyDown(Keys.Space))

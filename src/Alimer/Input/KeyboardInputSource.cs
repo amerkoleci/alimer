@@ -13,85 +13,51 @@ namespace Alimer.Input;
 /// state and respond to user input in a consistent manner.</remarks>
 public abstract class KeyboardInputSource : IInputSource
 {
-    private readonly List<KeyEventArgs> _events = [];
-    private readonly HashSet<Keys> _pressedKeys = [];
-    private readonly HashSet<Keys> _releasedKeys = [];
-    private readonly HashSet<Keys> _downKeys = [];
+    /// <summary>
+    /// Occurs when a key is pressed or released while the control/window has focus.
+    /// </summary>
+    public event EventHandler<KeyEventArgs>? KeyEvent;
 
     /// <summary>
-    /// Occurs when a key is pressed while the control/window has focus.
+    /// Occurs when a text input is received.
     /// </summary>
-    public event EventHandler<KeyEventArgs>? KeyDown;
+    public event EventHandler<TextInputEventArgs>? TextInput;
 
-    /// <summary>
-    /// Occurs when a key is released while the control has focus.
-    /// </summary>
-    public event EventHandler<KeyEventArgs>? KeyUp;
-
-    /// <summary>
-    /// The keys that have been pressed since the last frame.
-    /// </summary>
-    public IReadOnlySet<Keys> PressedKeys => _pressedKeys;
-
-    /// <summary>
-    /// The keys that have been released since the last frame.
-    /// </summary>
-    public IReadOnlySet<Keys> ReleasedKeys => _releasedKeys;
-
-    /// <summary>
-    /// Gets the set of keys that are currently pressed.
-    /// </summary>
-    public IReadOnlySet<Keys> DownKeys => _downKeys;
+    public abstract bool HasKeyboard { get; }
 
     /// <summary>
     /// Gets the current modifier key state.
     /// </summary>
-    public KeyModifiers Modifiers { get; protected set; }
+    public abstract KeyModifiers Modifiers { get; }
 
-    public virtual void Scan()
+    /// <summary>
+    /// Returns true if the key is currently held down.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+	public abstract bool IsKeyDown(Keys key);
+
+    /// <summary>
+    /// Returns true if the key was just pressed this frame.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public abstract bool IsKeyPressed(Keys key);
+
+    /// <summary>
+    /// Returns true if the key was just released this frame.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public abstract bool IsKeyReleased(Keys key);
+
+    protected virtual void OnKeyEvent(in KeyEventArgs e)
     {
+        KeyEvent?.Invoke(this, e);
     }
 
-    public virtual void Update()
+    protected virtual void OnTextInput(in TextInputEventArgs e)
     {
-        _pressedKeys.Clear();
-        _releasedKeys.Clear();
-
-        foreach (KeyEventArgs keyEvent in _events)
-        {
-            if (keyEvent.IsDown && DownKeys.Contains(keyEvent.Key))
-            {
-                _pressedKeys.Add(keyEvent.Key);
-            }
-            else
-            {
-                _releasedKeys.Add(keyEvent.Key);
-            }
-        }
-
-        _events.Clear();
-    }
-
-    protected virtual void OnKeyDown(in KeyEventArgs e)
-    {
-        // TODO: Handle key repeat
-        if (!_downKeys.Contains(e.Key))
-        {
-            _downKeys.Add(e.Key);
-            _events.Add(e);
-        }
-
-        KeyDown?.Invoke(this, e);
-    }
-
-    protected virtual void OnKeyUp(in KeyEventArgs e)
-    {
-        if (_downKeys.Contains(e.Key))
-        {
-            _downKeys.Remove(e.Key);
-            _events.Add(e);
-        }
-
-        KeyUp?.Invoke(this, e);
+        TextInput?.Invoke(this, e);
     }
 }

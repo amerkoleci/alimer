@@ -22,36 +22,24 @@ public abstract class InputManager
     /// </summary>
     public abstract GamepadInputSource Gamepad { get; }
 
+    public bool HasKeyboard => Keyboard.HasKeyboard;
+    public bool HasMouse => Pointer.HasMouse;
+    public bool HasTouch => Pointer.HasTouch;
+
     protected InputManager()
     {
     }
 
-    public void Scan()
-    {
-        Gamepad.Scan();
-    }
-
     public void Update()
     {
-        Keyboard.Update();
-        Pointer.Update();
         Gamepad.Update();
     }
 
-    public bool IsKeyDown(Keys key)
-    {
-        return Keyboard.DownKeys.Contains(key);
-    }
+    public bool IsKeyDown(Keys key) => Keyboard.IsKeyDown(key);
 
-    public bool IsKeyPressed(Keys key)
-    {
-        return Keyboard.PressedKeys.Contains(key);
-    }
+    public bool IsKeyPressed(Keys key) => Keyboard.IsKeyPressed(key);
 
-    public bool IsKeyReleased(Keys key)
-    {
-        return Keyboard.ReleasedKeys.Contains(key);
-    }
+    public bool IsKeyReleased(Keys key) => Keyboard.IsKeyPressed(key);
 
     public bool IsMouseButtonDown(MouseButton button) => Pointer.IsButtonDown(button);
     public bool IsMouseButtonPressed(MouseButton button) => Pointer.IsButtonPressed(button);

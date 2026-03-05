@@ -6,7 +6,7 @@ using static Alimer.SDL3.SDL_EventType;
 
 namespace Alimer.Input;
 
-internal class SDLPointerInputSource : PointerInputSource
+internal unsafe class SDLPointerInputSource : PointerInputSource
 {
     private const int MaxMouseButtons = (int)MouseButton.X2 + 1;
 
@@ -32,6 +32,16 @@ internal class SDLPointerInputSource : PointerInputSource
         _previousButtons = _currentButtons;
         _delta = Vector2.Zero;
         _scroll = Vector2.Zero;
+    }
+
+    public override bool HasMouse => SDL_HasMouse();
+    public override bool HasTouch
+    {
+        get
+        {
+            _ = SDL_GetTouchDevices(out int count);
+            return count > 0;
+        }
     }
 
     /// <inheritdoc />
@@ -84,10 +94,22 @@ internal class SDLPointerInputSource : PointerInputSource
         return !_currentButtons[(int)button] && _previousButtons[(int)button];
     }
 
+    /// <inheritdoc />
+    public override void SetPointerCapture()
+    {
+        _ = SDL_CaptureMouse(true);
+    }
+
+    /// <inheritdoc />
+    public override void ReleasePointerCapture()
+    {
+        _ = SDL_CaptureMouse(false);
+    }
+
     public void HandleWindowMouseEnterOrLeaveEvent(in SDL_Event evt)
     {
         SDL_Keymod mod = SDL_GetModState();
-        nint window = SDL_GetWindowFromID(evt.window.windowID);
+        SDL_Window* window = SDL_GetWindowFromID(evt.window.windowID);
         bool isInContact = GetMousePosition(window, out Vector2 mousePosition);
         PointerPoint pointerPoint = new()
         {
@@ -148,7 +170,7 @@ internal class SDLPointerInputSource : PointerInputSource
         {
             IsInContact = false,
             Button = MouseButton.Left,
-            PointerId = evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            PointerId = (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
             Position = _position
         };
 
@@ -160,7 +182,6 @@ internal class SDLPointerInputSource : PointerInputSource
 
         OnPointerWheelChanged(in args);
     }
-
 
     public void HandleButtonEvent(in SDL_MouseButtonEvent evt)
     {
@@ -174,7 +195,7 @@ internal class SDLPointerInputSource : PointerInputSource
         {
             IsInContact = true,
             Button = button,
-            PointerId = evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            PointerId = (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
             Position = _position
         };
 
@@ -194,6 +215,59 @@ internal class SDLPointerInputSource : PointerInputSource
         }
     }
 
+    public void HandleFingerDown(in SDL_TouchFingerEvent evt)
+    {
+        PointerPoint pointerPoint = new()
+        {
+            IsInContact = true,
+            PointerId = (uint)evt.touchID, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            Position = new Vector2(evt.x, evt.y), // Normalized in the range 0...1
+            Pressure = evt.pressure // Normalized in the range 0...1
+        };
+
+        PointerEventArgs args = new()
+        {
+            CurrentPoint = pointerPoint,
+        };
+
+        OnPointerPressed(in args);
+    }
+
+    public void HandleFingerUp(in SDL_TouchFingerEvent evt)
+    {
+        PointerPoint pointerPoint = new()
+        {
+            IsInContact = true,
+            PointerId = (uint)evt.touchID, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            Position = new Vector2(evt.x, evt.y), // Normalized in the range 0...1
+            Pressure = evt.pressure // Normalized in the range 0...1
+        };
+
+        PointerEventArgs args = new()
+        {
+            CurrentPoint = pointerPoint,
+        };
+
+        OnPointerReleased(in args);
+    }
+
+    public void HandleFingerMotion(in SDL_TouchFingerEvent evt)
+    {
+        PointerPoint pointerPoint = new()
+        {
+            IsInContact = true,
+            PointerId = (uint)evt.touchID, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            Position = new Vector2(evt.x, evt.y), // Normalized in the range 0...1
+            Pressure = evt.pressure // Normalized in the range 0...1
+        };
+
+        PointerEventArgs args = new()
+        {
+            CurrentPoint = pointerPoint,
+        };
+
+        OnPointerMoved(in args);
+    }
 
     private static MouseButton ConvertButton(byte sdlButton)
     {
@@ -208,13 +282,12 @@ internal class SDLPointerInputSource : PointerInputSource
         };
     }
 
-    private static bool GetMousePosition(nint window, out Vector2 position)
+    private static bool GetMousePosition(SDL_Window* window, out Vector2 position)
     {
         SDL_MouseButtonFlags flags = SDL_GetGlobalMouseState(out float globalX, out float globalY);
 
         SDL_GetWindowPosition(window, out int windowX, out int windowY);
-        position = new(globalX - windowX, globalY - windowX);
+        position = new(globalX - windowX, globalY - windowY);
         return flags != 0;
     }
-
 }

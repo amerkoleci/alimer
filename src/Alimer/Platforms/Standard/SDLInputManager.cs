@@ -62,6 +62,18 @@ internal class SDLInputManager : InputManager
                 _pointer.HandleWheelEvent(in evt.wheel);
                 break;
 
+            case SDL_EVENT_FINGER_DOWN:
+                _pointer.HandleFingerDown(in evt.tfinger);
+                break;
+
+            case SDL_EVENT_FINGER_UP:
+                _pointer.HandleFingerUp(in evt.tfinger);
+                break;
+
+            case SDL_EVENT_FINGER_MOTION:
+                _pointer.HandleFingerMotion(in evt.tfinger);
+                break;
+
             case SDL_EVENT_GAMEPAD_ADDED:
                 _gamepad.HandleGamepadAdded(in evt.gdevice);
                 break;

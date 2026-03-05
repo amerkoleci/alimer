@@ -9,36 +9,69 @@ namespace Alimer.Input;
 
 internal class SDLKeyboardInputSource : KeyboardInputSource
 {
+    private bool[] _currentState = new bool[(int)Keys.Count];
+    private bool[] _previousState = new bool[(int)Keys.Count];
+    private KeyModifiers _modifiers;
+
+    public override bool HasKeyboard => SDL_HasKeyboard();
+    public override KeyModifiers Modifiers => _modifiers;
+
     public void BeginFrame()
     {
+        _previousState = _currentState;
 
     }
 
-    public void HandleKeyEvent(in SDL_KeyboardEvent key, bool down)
+    public override bool IsKeyDown(Keys key)
     {
+        int index = (int)key;
+        if (index < 0 || index >= (int)Keys.Count)
+            return false;
+
+        return _currentState[index];
+    }
+
+    public override bool IsKeyPressed(Keys key)
+    {
+        int index = (int)key;
+        if (index < 0 || index >= (int)Keys.Count)
+            return false;
+
+        return _currentState[index] && !_previousState[index];
+    }
+
+    public override bool IsKeyReleased(Keys key)
+    {
+        int index = (int)key;
+        if (index < 0 || index >= (int)Keys.Count)
+            return false;
+
+        return !_currentState[index] && _previousState[index];
+    }
+
+    public void HandleKeyEvent(in SDL_KeyboardEvent evt, bool down)
+    {
+        // Update modifiers
+        Keys key = FromSDLKeyboardKey(evt.scancode);
+        _currentState[(int)key] = down;
+        _modifiers = FromSDLModifiers(evt.mod);
+
         KeyEventArgs args = new()
         {
-            Key = FromSDLKeyboardKey(key.scancode),
+            Key = key,
             IsDown = down,
         };
-
-        if (down)
-        {
-            OnKeyDown(args);
-        }
-        else
-        {
-            OnKeyUp(args);
-        }
-
-
-        // Update modifiers
-        Modifiers = FromSDLModifiers(key.mod);
+        OnKeyEvent(in args);
     }
 
-    public void HandleTextInput(in SDL_TextInputEvent evt)
+    public unsafe void HandleTextInput(in SDL_TextInputEvent evt)
     {
+        TextInputEventArgs args = new()
+        {
+            Text = PtrToStringUTF8(evt.text)!
+        };
 
+        OnTextInput(in args);
     }
 
     private static Keys FromSDLKeyboardKey(SDL_Scancode code)

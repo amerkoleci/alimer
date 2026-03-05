@@ -4,7 +4,6 @@
 using Alimer.Numerics;
 using System.Collections;
 using System.ComponentModel;
-using Alimer.Numerics;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 

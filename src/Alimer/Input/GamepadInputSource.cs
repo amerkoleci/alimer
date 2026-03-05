@@ -12,10 +12,6 @@ public abstract class GamepadInputSource : IInputSource
     /// </summary>
     public ObservableCollection<GamepadDevice> Gamepads { get; } = [];
 
-    public virtual void Scan()
-    {
-    }
-
     public virtual void Update()
     {
         foreach (GamepadDevice gamepad in Gamepads)
