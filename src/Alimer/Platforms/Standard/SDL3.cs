@@ -598,6 +598,18 @@ internal unsafe static partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_HasGamepad();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_JoystickID* SDL_GetGamepads(int* count);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_IsGamepad(SDL_JoystickID instance_id);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_Gamepad* SDL_OpenGamepad(SDL_JoystickID instance_id);
 
     [LibraryImport(LibraryName)]

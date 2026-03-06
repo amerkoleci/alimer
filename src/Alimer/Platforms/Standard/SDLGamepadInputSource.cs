@@ -8,6 +8,23 @@ namespace Alimer.Input;
 internal class SDLGamepadInputSource : GamepadInputSource
 {
     private readonly Dictionary<SDL_JoystickID, SDLGamepadDevice> _gamepads = [];
+    
+    public unsafe SDLGamepadInputSource()
+    {
+        int count = 0;
+        SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
+        if (gamepads != null && count > 0)
+        {
+            for (int i = 0; i < count ; i++)
+            {
+                OnGamepadAdded(gamepads[i]);
+            }
+        }
+        SDL_free(gamepads);
+    }
+
+    /// <inheritdoc />
+    public override bool HasGamepad => SDL_HasGamepad();
 
     public void BeginFrame()
     {
@@ -19,16 +36,20 @@ internal class SDLGamepadInputSource : GamepadInputSource
         }
     }
 
-    public void HandleGamepadAdded(in SDL_GamepadDeviceEvent gdevice)
+    private void OnGamepadAdded(SDL_JoystickID id)
     {
-        SDL_JoystickID id = gdevice.which;
-
         if (!_gamepads.ContainsKey(id))
         {
             SDLGamepadDevice newGamepad = new(id);
             _gamepads.Add(id, newGamepad);
             Gamepads.Add(newGamepad);
         }
+    }
+
+    public void HandleGamepadAdded(in SDL_GamepadDeviceEvent gdevice)
+    {
+        SDL_JoystickID id = gdevice.which;
+        OnGamepadAdded(id);
     }
 
     public void HandleGamepadRemoved(in SDL_GamepadDeviceEvent gdevice)

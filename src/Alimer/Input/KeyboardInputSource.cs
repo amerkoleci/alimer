@@ -23,6 +23,9 @@ public abstract class KeyboardInputSource : IInputSource
     /// </summary>
     public event EventHandler<TextInputEventArgs>? TextInput;
 
+    /// <summary>
+    /// Return whether a keyboard is currently connected.
+    /// </summary>
     public abstract bool HasKeyboard { get; }
 
     /// <summary>

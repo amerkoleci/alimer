@@ -8,9 +8,9 @@ using Alimer.Assets.Graphics;
 namespace Alimer.Assets;
 
 [JsonPolymorphic]
-//[JsonDerivedType(typeof(ShaderMetadata), nameof(ShaderMetadata))]
+[JsonDerivedType(typeof(ShaderMetadata), nameof(ShaderMetadata))]
 [JsonDerivedType(typeof(TextureMetadata), nameof(TextureMetadata))]
-//[JsonDerivedType(typeof(FontMetadata), nameof(FontMetadata))]
+[JsonDerivedType(typeof(FontMetadata), nameof(FontMetadata))]
 public class AssetMetadata
 {
     [JsonPropertyOrder(-100)]

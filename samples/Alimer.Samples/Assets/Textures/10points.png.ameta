@@ -1,0 +1,5 @@
+{
+    "$type": "TextureMetadata",
+    "GenerateMipmaps": true,
+    "CompressionFormat": "BC7"
+}

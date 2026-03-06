@@ -20,13 +20,14 @@ public class AssetCompilerContext : IDisposable
     public AssetCompilerContext()
     {
         // Importers
-        //RegisterImporter<ShaderImporter>();
+        RegisterImporter<ShaderImporter>();
         RegisterImporter<TextureImporter>();
-        //RegisterImporter<FontImporter>();
+        RegisterImporter<FontImporter>();
 
         // Writers
+        RegisterWriter<ShaderWriter>();
         RegisterWriter<TextureWriter>();
-        //RegisterWriter<FontWriter>();
+        RegisterWriter<FontWriter>();
     }
 
 

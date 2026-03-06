@@ -22,9 +22,17 @@ public abstract class InputManager
     /// </summary>
     public abstract GamepadInputSource Gamepad { get; }
 
+    /// <summary>
+    /// Return whether a keyboard is currently connected.
+    /// </summary>
     public bool HasKeyboard => Keyboard.HasKeyboard;
     public bool HasMouse => Pointer.HasMouse;
     public bool HasTouch => Pointer.HasTouch;
+
+    /// <summary>
+    /// Return whether a gamepad is currently connected.
+    /// </summary>
+    public bool HasGamepad => Gamepad.HasGamepad;
 
     protected InputManager()
     {

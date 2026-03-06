@@ -3,6 +3,8 @@
 
 using SkiaSharp;
 using Alimer.Graphics;
+using System.Runtime.InteropServices;
+using BCnEncoder.Encoder;
 
 namespace Alimer.Assets.Graphics;
 
@@ -16,17 +18,74 @@ public sealed class TextureImporter : AssetImporter<TextureAsset, TextureMetadat
         //using Stream stream = await contentManager.FileProvider.OpenStreamAsync(Source, FileMode.Open, FileAccess.Read);
         using Stream stream = File.Open(metadata.FileFullPath, FileMode.Open, FileAccess.Read);
 
-        using SKBitmap bitmap = SKBitmap.Decode(stream);
-
-        // Convert from BGRA8 to RGBA8
-        using SKBitmap newBitmap = new(bitmap.Width, bitmap.Height, SKColorType.Rgba8888, bitmap.AlphaType);
-        ArgumentException.ThrowIfFalse(bitmap.CopyTo(newBitmap, SKColorType.Rgba8888));
-
-        TextureAsset asset = new(newBitmap.Width, newBitmap.Height, PixelFormat.RGBA8Unorm, newBitmap.Bytes)
+        using (SKBitmap bitmap = SKBitmap.Decode(stream))
         {
-            Source = metadata.FileFullPath,
-        };
+            SKBitmap inputImage = bitmap;
 
-        return Task.FromResult(asset);
+            // Resize if necessary
+            SKSizeI imageSize = new(bitmap.Width, bitmap.Height);
+            SKSizeI targetSize = default;
+            if (metadata.IsSizeInPercentage)
+            {
+                targetSize = new((int)(metadata.Width * imageSize.Width / 100.0f), (int)(metadata.Height * imageSize.Height / 100.0f));
+            }
+
+            SKSamplingOptions sampling = new(SKCubicResampler.Mitchell);
+
+            if (targetSize != imageSize)
+            {
+                inputImage = bitmap.ResizeImage(targetSize, sampling);
+            }
+
+            if (metadata.GenerateMipmaps)
+            {
+                // TODO
+                List<SKBitmap> mipLevels = bitmap.GenerateMipmaps(sampling);
+                return Task.FromResult(mipLevels[3].ToAsset());
+            }
+
+            return Task.FromResult(bitmap.ToAsset());
+        }
+    }
+
+    private void CompressTexture(TextureAsset texture, TextureMetadata metadata)
+    {
+        switch (metadata.CompressionFormat)
+        {
+            case TextureCompressionFormat.BC7:
+                BcEncoder encoder = new();
+                encoder.OutputOptions.GenerateMipMaps = false; // We've already generated mipmaps
+                encoder.OutputOptions.Format = BCnEncoder.Shared.CompressionFormat.Bc7;
+                encoder.OutputOptions.Quality = CompressionQuality.Balanced;
+
+                List<byte[]> compressedMips = [];
+                int mipWidth = texture.Width;
+                int mipHeight = texture.Height;
+
+                for (int i = 0; i < texture.MipLevels; i++)
+                {
+                    int mipSize = mipWidth * mipHeight * 4;
+                    byte[] mipData = texture.Data.Skip(i * mipSize).Take(mipSize).ToArray();
+                    byte[] compressedMip = encoder.EncodeToRawBytes(mipData,
+                        mipWidth,
+                        mipHeight,
+                        BCnEncoder.Encoder.PixelFormat.Rgba32,
+                        i,
+                        out mipWidth,
+                        out mipHeight);
+                    compressedMips.Add(compressedMip);
+
+                    mipWidth = Math.Max(1, mipWidth / 2);
+                    mipHeight = Math.Max(1, mipHeight / 2);
+                }
+
+                texture.Data = compressedMips.SelectMany(x => x).ToArray();
+                break;
+
+            // Add other compression formats as needed
+
+            default:
+                throw new ArgumentException($"Unsupported compression format: {metadata.CompressionFormat}");
+        }
     }
 }

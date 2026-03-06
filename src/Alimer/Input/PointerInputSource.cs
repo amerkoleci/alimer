@@ -16,7 +16,14 @@ public abstract class PointerInputSource : IInputSource
     public event EventHandler<PointerEventArgs>? PointerReleased;
     public event EventHandler<PointerEventArgs>? PointerWheelChanged;
 
+    /// <summary>
+    /// Return whether a mouse is currently connected.
+    /// </summary>
     public abstract bool HasMouse { get; }
+
+    /// <summary>
+    /// Return whether the device has touch.
+    /// </summary>
     public abstract bool HasTouch { get; }
 
     /// <summary>

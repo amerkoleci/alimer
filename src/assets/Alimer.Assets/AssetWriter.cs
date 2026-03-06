@@ -40,6 +40,14 @@ public sealed class AssetWriter : BinaryWriter
         Write(value.Height);
     }
 
+    public void Write(in RectI value)
+    {
+        Write(value.X);
+        Write(value.Y);
+        Write(value.Width);
+        Write(value.Height);
+    }
+
     public void Write(in Vector2 value)
     {
         Write(value.X);

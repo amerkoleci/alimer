@@ -8,6 +8,11 @@ namespace Alimer.Input;
 public abstract class GamepadInputSource : IInputSource
 {
     /// <summary>
+    /// Return whether a gamepad is currently connected.
+    /// </summary>
+    public abstract bool HasGamepad { get; }
+
+    /// <summary>
     /// Gets the number of connected gamepads.
     /// </summary>
     public ObservableCollection<GamepadDevice> Gamepads { get; } = [];

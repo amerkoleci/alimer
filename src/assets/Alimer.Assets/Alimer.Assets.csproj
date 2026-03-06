@@ -13,6 +13,13 @@
     <PackageReference Include="SkiaSharp.HarfBuzz" />
     <PackageReference Include="Silk.NET.Assimp" />
     <PackageReference Include="Alimer.Bindings.MeshOptimizer" />
+    <PackageReference Include="FreeTypeSharp" />
+    <PackageReference Include="BCnEncoder.Net" />
+    <PackageReference Include="Hexa.NET.DirectXTex" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Importers\" />
   </ItemGroup>
   
 
