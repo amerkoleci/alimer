@@ -29,7 +29,7 @@ public struct DisposeCollector : IDisposable
 
         for (int i = _disposables.Count - 1; i >= 0; i--)
         {
-            var objectToDispose = _disposables[i];
+            object objectToDispose = _disposables[i];
             DisposeObject(objectToDispose);
             _disposables.RemoveAt(i);
         }

@@ -12,8 +12,10 @@ public class NavigationSystem : EntitySystem<NavigationMeshComponent>
     {
     }
 
-    /// <inheritdoc/>
-    protected override void Destroy()
+    /// <summary>Finalizes an instance of the <see cref="NavigationSystem" /> class.</summary>
+    ~NavigationSystem() => Dispose(disposing: false);
+
+    protected override void Dispose(bool disposing)
     {
     }
 

@@ -157,11 +157,14 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     public bool TearingSupported { get; }
 
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
-        for (int i = 0; i < _adapters.Length; i++)
+        if (disposing)
         {
-            _adapters[i].Dispose();
+            for (int i = 0; i < _adapters.Length; i++)
+            {
+                _adapters[i].Dispose();
+            }
         }
 
 #if DEBUG

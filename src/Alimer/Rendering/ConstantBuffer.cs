@@ -9,7 +9,7 @@ namespace Alimer.Rendering;
 /// <summary>
 /// Shader constant buffer interface.
 /// </summary>
-public sealed unsafe class ConstantBuffer<T> : DisposableObject
+public sealed class ConstantBuffer<T> : DisposableObject
      where T : unmanaged
 {
     public readonly uint SizeInBytes;
@@ -26,10 +26,16 @@ public sealed unsafe class ConstantBuffer<T> : DisposableObject
         Handle = device.CreateBuffer(in descriptor);
     }
 
+    /// <summary>Finalizes an instance of the <see cref="ConstantBuffer" /> class.</summary>
+    ~ConstantBuffer() => Dispose(disposing: false);
+
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
-        Handle.Dispose();
+        if (disposing)
+        {
+            Handle.Dispose();
+        }
     }
 
     public void SetData(T data, uint offsetInBytes = 0)

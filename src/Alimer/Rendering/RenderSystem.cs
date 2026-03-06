@@ -169,20 +169,26 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public SkyboxRenderer SkyboxRenderer { get; }
     public ShaderSystem ShaderSystem { get; }
 
+    /// <summary>Finalizes an instance of the <see cref="RenderSystem" /> class.</summary>
+    ~RenderSystem() => Dispose(disposing: false);
+
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
-        base.Destroy();
+        base.Dispose(disposing);
 
-        // Dispose all material factories
-        foreach (IGPUMaterialFactory factory in _gpuMaterialFactories.Values)
+        if (disposing)
         {
-            factory.Dispose();
-        }
-        _gpuMaterialFactories.Clear();
+            // Dispose all material factories
+            foreach (IGPUMaterialFactory factory in _gpuMaterialFactories.Values)
+            {
+                factory.Dispose();
+            }
+            _gpuMaterialFactories.Clear();
 
-        MultisampleColorTexture?.Dispose();
-        DepthStencilTexture?.Dispose();
+            MultisampleColorTexture?.Dispose();
+            DepthStencilTexture?.Dispose();
+        }
     }
 
     public override void Update(GameTime time)

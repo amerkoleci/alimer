@@ -29,10 +29,16 @@ public sealed class UnlitMaterialFactory : GPUMaterialFactory<UnlitMaterial>
             );
     }
 
+    /// <summary>Finalizes an instance of the <see cref="UnlitMaterialFactory" /> class.</summary>
+    ~UnlitMaterialFactory() => Dispose(disposing: false);
+
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
-        _bindGroupLayout?.Dispose();
+        if (disposing)
+        {
+            _bindGroupLayout.Dispose();
+        }
     }
 
     protected override BindGroup CreateBindGroup(Material material) => throw new NotImplementedException();

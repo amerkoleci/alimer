@@ -401,7 +401,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public ID3D12CommandSignature* DispatchMeshIndirectCommandSignature => _dispatchMeshIndirectCommandSignature;
 
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
         WaitIdle();
         _shuttingDown = true;

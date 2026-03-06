@@ -26,7 +26,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
         _device.Device->CreateSampler(&desc, handle);
     }
 
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
     }
 }

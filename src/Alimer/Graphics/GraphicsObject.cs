@@ -24,14 +24,17 @@ public abstract class GraphicsObject : GraphicsObjectBase
     /// </summary>
     public abstract GraphicsDevice Device { get; }
 
-    /// <inheritdoc/>
-    protected override void Destroy()
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
-        Device.QueueDestroy(this);
+        if (disposing)
+        {
+            Device.QueueDestroy(this);
+        }
     }
 
     /// <summary>
     /// The safe moment to actually destroy object.
     /// </summary>
-    protected internal abstract void BackendDestroy();
+    protected internal abstract void Destroy();
 }

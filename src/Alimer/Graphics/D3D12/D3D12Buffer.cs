@@ -188,7 +188,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     public ulong AllocatedSize { get; }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _allocation.Dispose();
         _handle.Dispose();

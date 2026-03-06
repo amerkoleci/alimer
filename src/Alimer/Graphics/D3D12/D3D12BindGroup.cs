@@ -41,7 +41,7 @@ internal unsafe class D3D12BindGroup : BindGroup
     public uint DescriptorTableSamplers { get; private set; }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         if (DescriptorTableCbvUavSrv > 0)
         {
@@ -58,7 +58,7 @@ internal unsafe class D3D12BindGroup : BindGroup
     public override void Update(Span<BindGroupEntry> entries)
     {
         // Free existing descriptors
-        BackendDestroy();
+        Destroy();
 
         if (_layout.DescriptorTableSizeCbvUavSrv > 0)
         {

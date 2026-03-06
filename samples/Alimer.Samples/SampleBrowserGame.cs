@@ -60,8 +60,8 @@ public sealed class SampleBrowserGame : Game
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
         //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
-        //_runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
-        _runningSample = new DrawMeshSample(Services, MainWindow);
+        _runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
+        //_runningSample = new DrawMeshSample(Services, MainWindow);
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
@@ -71,12 +71,15 @@ public sealed class SampleBrowserGame : Game
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
-    /// <inheritdoc/>
-    protected override void Destroy()
-    {
-        _runningSample.Dispose();
 
-        base.Destroy();
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _runningSample.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     protected override void Update(GameTime time)

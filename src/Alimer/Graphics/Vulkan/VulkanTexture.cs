@@ -404,7 +404,7 @@ internal unsafe class VulkanTexture : Texture
     public VkFormat VkFormat { get; }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         DestroyViews();
 

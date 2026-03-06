@@ -274,7 +274,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     public uint GetStride(uint slot) => _strides[slot];
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _handle.Dispose();
     }

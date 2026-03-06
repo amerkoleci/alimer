@@ -126,7 +126,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     public uint DescriptorTableSizeSamplers = 0;
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
     }
 

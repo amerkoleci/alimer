@@ -27,7 +27,7 @@ internal unsafe class VulkanSampler : Sampler
     public VkSampler Handle { get; }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
     }
 

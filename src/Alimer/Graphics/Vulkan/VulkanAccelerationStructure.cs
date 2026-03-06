@@ -33,7 +33,7 @@ internal unsafe class VulkanAccelerationStructure : AccelerationStructure
     public override GraphicsDevice Device => throw new NotImplementedException();
 
     /// <inheritdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _device.DeviceApi.vkDestroyAccelerationStructureKHR(_handle);
         _handle = VkAccelerationStructureKHR.Null;

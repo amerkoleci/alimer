@@ -78,7 +78,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         Free(_pushConstantRanges);
         _device.DeviceApi.vkDestroyPipelineLayout(_handle);

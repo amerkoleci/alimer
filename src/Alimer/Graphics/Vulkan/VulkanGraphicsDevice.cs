@@ -892,8 +892,13 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VkImageView NullImage3DView => _nullImageView3D;
     public VkSampler NullSampler => _nullSampler;
 
-    /// <inheritdoc/>
-    protected override void Destroy()
+    /// <summary>
+    /// Finalizes an instance of the <see cref="VulkanGraphicsDevice" /> class.
+    /// </summary>
+    ~VulkanGraphicsDevice() => Dispose(disposing: false);
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
         WaitIdle();
         _shuttingDown = true;

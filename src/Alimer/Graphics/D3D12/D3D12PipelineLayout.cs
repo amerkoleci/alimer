@@ -185,7 +185,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _handle.Dispose();
     }

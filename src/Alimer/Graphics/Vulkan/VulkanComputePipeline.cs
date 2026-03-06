@@ -75,7 +75,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _device.DeviceApi.vkDestroyPipeline( _handle);
     }

@@ -61,7 +61,7 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     public ID3D12RootSignature* RootSignature => D3DLayout.Handle;
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _handle.Dispose();
     }

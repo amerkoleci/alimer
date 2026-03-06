@@ -29,7 +29,7 @@ internal class MetalGraphicsDevice : GraphicsDevice
     public override ulong TimestampFrequency { get; }
 
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
     }
 

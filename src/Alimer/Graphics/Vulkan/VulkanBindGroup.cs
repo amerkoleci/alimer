@@ -57,7 +57,7 @@ internal unsafe class VulkanBindGroup : BindGroup
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
     }
 

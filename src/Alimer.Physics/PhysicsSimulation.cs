@@ -37,8 +37,11 @@ public sealed class PhysicsSimulation : DisposableObject
 #endif
     }
 
+    /// <summary>Finalizes an instance of the <see cref="PhysicsSimulation" /> class.</summary>
+    ~PhysicsSimulation() => Dispose(disposing: false);
+
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
         alimerPhysicsWorldDestroy(World);
     }

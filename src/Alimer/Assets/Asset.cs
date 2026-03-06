@@ -6,7 +6,7 @@ namespace Alimer.Assets;
 /// <summary>
 /// Base class for Asset.
 /// </summary>
-public abstract class Asset : DisposableObject, IAsset
+public abstract class Asset : ReferencableObject, IAsset
 {
     /// <inheritdoc />
     public AssetId Id { get; set; } = AssetId.New();

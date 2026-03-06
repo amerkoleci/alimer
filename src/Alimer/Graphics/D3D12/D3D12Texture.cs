@@ -334,7 +334,7 @@ internal unsafe class D3D12Texture : Texture
     public ulong AllocatedSize { get; }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         DestroyViews();
 

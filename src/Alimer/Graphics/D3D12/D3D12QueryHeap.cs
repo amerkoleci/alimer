@@ -84,7 +84,7 @@ internal unsafe class D3D12QueryHeap : QueryHeap
     public override uint QueryResultSize { get; }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _handle.Dispose();
     }

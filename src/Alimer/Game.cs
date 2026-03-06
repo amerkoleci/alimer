@@ -138,7 +138,7 @@ public abstract class Game : DisposableObject, IGame
     public ShaderSystem ShaderSystem { get; }
 
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
         // Dispose game systems first.
         foreach (IGameSystem system in GameSystems)

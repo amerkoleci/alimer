@@ -161,19 +161,26 @@ internal unsafe class D3D12SwapChain : SwapChain
         CurrentBackBufferIndex = _handle.Get()->GetCurrentBackBufferIndex();
     }
 
-    /// <inheritdoc/>
-    protected override void Destroy()
+    /// <summary>
+    /// Finalizes an instance of the <see cref="D3D12SwapChain" /> class.
+    /// </summary>
+    ~D3D12SwapChain() => Dispose(disposing: false);
+
+    protected override void Dispose(bool disposing)
     {
-        for (int i = 0; i < _backbufferTextures!.Length; ++i)
+        if (disposing)
         {
-            _backbufferTextures[i].Dispose();
+            for (int i = 0; i < _backbufferTextures!.Length; ++i)
+            {
+                _backbufferTextures[i].Dispose();
+            }
         }
 
-        base.Destroy();
+        base.Dispose(disposing);
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         if (_swapChainPanelNative.Get() is not null)
         {
@@ -198,7 +205,7 @@ internal unsafe class D3D12SwapChain : SwapChain
 
             for (int i = 0; i < _backbufferTextures.Length; ++i)
             {
-                _backbufferTextures[i].BackendDestroy();
+                _backbufferTextures[i]. Destroy();
             }
         }
 

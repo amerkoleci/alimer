@@ -21,7 +21,7 @@ public enum MaterialTextureUVChannel
 /// <summary>
 /// Base material class.
 /// </summary>
-public abstract class Material : Asset, IDisposableObject
+public abstract class Material : Asset
 {
     public MaterialAlphaMode AlphaMode { get;set; } = MaterialAlphaMode.Opaque;
     public bool Transparent => AlphaMode == MaterialAlphaMode.Blend;

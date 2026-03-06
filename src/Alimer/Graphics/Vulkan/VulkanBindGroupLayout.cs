@@ -93,7 +93,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         Free(_bindings);
         VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(_handle);

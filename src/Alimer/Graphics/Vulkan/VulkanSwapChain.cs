@@ -123,18 +123,21 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     public bool NeedAcquire { get; set; }
 
     /// <inheritdoc/>
-    protected override void Destroy()
+    protected override void Dispose(bool disposing)
     {
-        for (int i = 0; i < _backbufferTextures!.Length; ++i)
+        if (disposing)
         {
-            _backbufferTextures[i].Dispose();
+            for (int i = 0; i < _backbufferTextures!.Length; ++i)
+            {
+                _backbufferTextures[i].Dispose();
+            }
         }
 
-        base.Destroy();
+        base.Dispose(disposing);
     }
 
     /// <inheritdoc/>
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         for (uint i = 0; i < _acquireSemaphores!.Length; ++i)
         {

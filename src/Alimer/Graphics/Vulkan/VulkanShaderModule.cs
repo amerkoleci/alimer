@@ -45,7 +45,7 @@ internal unsafe class VulkanShaderModule : ShaderModule
     public ref readonly VkPipelineShaderStageCreateInfo StageInfo => ref _stageInfo;
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         _device.DeviceApi.vkDestroyShaderModule(_handle);
     }

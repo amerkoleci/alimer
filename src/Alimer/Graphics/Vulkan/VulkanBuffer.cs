@@ -267,7 +267,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     }
 
     /// <inheitdoc />
-    protected internal override void BackendDestroy()
+    protected internal override void Destroy()
     {
         if (_allocation.IsNotNull)
         {
