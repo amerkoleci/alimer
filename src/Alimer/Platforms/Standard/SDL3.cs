@@ -78,37 +78,36 @@ internal unsafe static partial class SDL3
     #region Types
     public enum SDL_PropertiesID : uint;
 
-    public readonly record struct SDLBool : IEquatable<SDLBool>
+    public readonly struct SDLBool : IEquatable<SDLBool>
     {
         private readonly byte _value;
 
-        internal const byte FALSE_VALUE = 0;
-        internal const byte TRUE_VALUE = 1;
+        public static SDLBool True => new(true);
+        public static SDLBool False => new(false);
 
-        internal SDLBool(byte value)
+        internal SDLBool(bool boolValue)
         {
-            _value = value;
+            _value = boolValue ? (byte)1 : (byte)0;
         }
 
-        public static implicit operator bool(SDLBool b)
-        {
-            return b._value != FALSE_VALUE;
-        }
+        public static implicit operator bool(SDLBool value) => value._value != 0;
+        public static implicit operator SDLBool(bool boolValue) => new(boolValue);
 
-        public static implicit operator SDLBool(bool b)
-        {
-            return new SDLBool(b ? TRUE_VALUE : FALSE_VALUE);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(SDLBool left, SDLBool right) => left.Equals(right);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(SDLBool left, SDLBool right) => !left.Equals(right);
 
-        public bool Equals(SDLBool other)
-        {
-            return other._value == _value;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(SDLBool other) => other._value == _value;
 
-        public override int GetHashCode()
-        {
-            return _value.GetHashCode();
-        }
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is SDLBool rawBool && Equals(rawBool);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => _value.GetHashCode();
+
+        public override string ToString() => _value != 0 ? "True" : "False";
     }
     #endregion
 

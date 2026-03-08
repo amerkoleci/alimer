@@ -44,12 +44,14 @@ public abstract class InputManager
     }
 
     public bool IsKeyDown(Keys key) => Keyboard.IsKeyDown(key);
-
     public bool IsKeyPressed(Keys key) => Keyboard.IsKeyPressed(key);
-
     public bool IsKeyReleased(Keys key) => Keyboard.IsKeyPressed(key);
 
     public bool IsMouseButtonDown(MouseButton button) => Pointer.IsButtonDown(button);
     public bool IsMouseButtonPressed(MouseButton button) => Pointer.IsButtonPressed(button);
     public bool IsMouseButtonReleased(MouseButton button) => Pointer.IsButtonReleased(button);
+
+    public bool IsGamepadButtonDown(GamepadButton button) => Gamepad.IsButtonDown(button);
+    public bool IsGamepadButtonPressed(GamepadButton button) => Gamepad.IsButtonReleased(button);
+    public bool IsGamepadButtonReleased(GamepadButton button) => Gamepad.IsButtonReleased(button);
 }

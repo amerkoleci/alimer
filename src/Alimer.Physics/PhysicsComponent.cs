@@ -6,6 +6,7 @@ using Alimer.Engine;
 
 namespace Alimer.Physics;
 
+[Meta]
 [DefaultEntitySystem(typeof(PhysicsSystem))]
 public abstract partial class PhysicsComponent : Component
 {

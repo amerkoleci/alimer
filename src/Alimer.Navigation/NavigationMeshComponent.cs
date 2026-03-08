@@ -5,7 +5,8 @@ using Alimer.Engine;
 
 namespace Alimer.Navigation;
 
+[Meta]
 [DefaultEntitySystem(typeof(NavigationSystem))]
-public abstract class NavigationMeshComponent : Component
+public abstract partial class NavigationMeshComponent : Component
 {
 }

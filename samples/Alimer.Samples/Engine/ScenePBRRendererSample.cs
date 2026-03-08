@@ -125,32 +125,34 @@ public sealed class ScenePBRRendererSample : SampleBase
 
         float moveSpeed = (Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift)) ? 50.0f : 5.0f;
 
-        if (Input.IsKeyDown(Keys.W))
+        if (Input.IsKeyDown(Keys.W) || Input.IsGamepadButtonDown(GamepadButton.DPadUp))
         {
             _cameraEntity.Translate(Vector3.Forward * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
-        if (Input.IsKeyDown(Keys.S))
+        if (Input.IsKeyDown(Keys.S) || Input.IsGamepadButtonDown(GamepadButton.DPadDown))
         {
             _cameraEntity.Translate(Vector3.Backward * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
-        if (Input.IsKeyDown(Keys.A))
+        if (Input.IsKeyDown(Keys.A) || Input.IsGamepadButtonDown(GamepadButton.DPadLeft))
         {
             _cameraEntity.Translate(Vector3.Left * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
-        if (Input.IsKeyDown(Keys.D))
+        if (Input.IsKeyDown(Keys.D) || Input.IsGamepadButtonDown(GamepadButton.DPadRight))
         {
             _cameraEntity.Translate(Vector3.Right * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
-        if (Input.IsKeyDown(Keys.PageUp))
+        if (Input.IsKeyDown(Keys.PageUp)
+            || Input.IsGamepadButtonDown(GamepadButton.RightShoulder)
+            || Input.Gamepad.Gamepads.Count > 0 && Input.Gamepad.Gamepads[0].GetAxis(GamepadAxis.RightTrigger) > 0)
         {
             _cameraEntity.Translate(Vector3.Up * deltaTime * moveSpeed, TransformSpace.Local);
         }
 
-        if (Input.IsKeyDown(Keys.PageDown))
+        if (Input.IsKeyDown(Keys.PageDown) || Input.IsGamepadButtonDown(GamepadButton.LeftShoulder))
         {
             _cameraEntity.Translate(Vector3.Down * deltaTime * moveSpeed, TransformSpace.Local);
         }

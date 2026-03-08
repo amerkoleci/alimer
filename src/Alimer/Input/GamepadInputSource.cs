@@ -24,4 +24,37 @@ public abstract class GamepadInputSource : IInputSource
             gamepad.Update();
         }
     }
+
+    public bool IsButtonDown(GamepadButton button)
+    {
+        foreach (GamepadDevice gamepad in Gamepads)
+        {
+            if (gamepad.IsButtonDown(button))
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool IsButtonPressed(GamepadButton button)
+    {
+        foreach (GamepadDevice gamepad in Gamepads)
+        {
+            if (gamepad.IsButtonPressed(button))
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool IsButtonReleased(GamepadButton button)
+    {
+        foreach (GamepadDevice gamepad in Gamepads)
+        {
+            if (gamepad.IsButtonDown(button))
+                return true;
+        }
+
+        return false;
+    }
 }

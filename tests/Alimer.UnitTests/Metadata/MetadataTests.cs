@@ -1,0 +1,46 @@
+﻿// Copyright (c) Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+using NUnit.Framework;
+
+namespace Alimer.Metadata;
+
+[TestFixture(TestOf = typeof(MetadataRegistry))]
+public class MetadataTests
+{
+    [Test]
+    public void TestPrimitiveTypeMetadata()
+    {
+        bool found = MetadataRegistry.TryGetMetadata<int, IPrimitiveTypeMetadata>(out IPrimitiveTypeMetadata? metadata);
+        Assert.That(found, Is.True);
+
+        Assert.That(metadata, Is.Not.Null);
+        Assert.That(metadata.Type, Is.Not.Null);
+        //Assert.That(primitiveTypeMetadata.TypeInfo, Is.EqualTo(type));
+    }
+
+    [Test]
+    public void TestEnumMetadata()
+    {
+        IPrimitiveTypeMetadata intType = MetadataRegistry.GetPrimitiveTypeMetadata<int>();
+        EnumTypeMetadata<TestEnum> metadata = new(intType);
+        MetadataRegistry.Register(metadata);
+
+        IEnumTypeMetadata storedMetadata = MetadataRegistry.GetMetadata<TestEnum, IEnumTypeMetadata>();
+        Assert.That(storedMetadata, Is.Not.Null);
+        Assert.That(storedMetadata.UnderlyingType, Is.EqualTo(intType));
+
+        TestEnum enumCreated = (TestEnum)storedMetadata.CreateObject();
+        Assert.That(enumCreated, Is.EqualTo(TestEnum.Field1));
+    }
+
+    public enum TestEnum
+    {
+        Field1,
+        Field2,
+        Field3
+    }
+}

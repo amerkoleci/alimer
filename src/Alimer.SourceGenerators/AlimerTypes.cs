@@ -6,8 +6,8 @@ namespace Alimer.SourceGenerators;
 internal static class AlimerTypes
 {
     public const string Engine = "Alimer.Engine";
-    public const string ExposeAttribute = $"Alimer.ExposeAttribute";
+    public const string MetaAttribute = $"Alimer.MetaAttribute";
     public const string DefaultEntitySystemAttribute = $"{Engine}.DefaultEntitySystemAttribute";
 
-    public const string AssetType = $"{Engine}.AssetType";
+    //public const string AssetType = $"{Engine}.AssetType";
 }

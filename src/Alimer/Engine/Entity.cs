@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Numerics;
+using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -13,10 +14,10 @@ namespace Alimer.Engine;
 
 // TODO: Rework Entity, Transform and component logic
 
-[Expose]
+[Meta]
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public partial class Entity
+public partial class Entity : IEnumerable<Component>
 {
     private Entity? _parent;
     private string _name;
@@ -122,6 +123,9 @@ public partial class Entity
         }
     }
 
+    public IEnumerator<Component> GetEnumerator() => Components.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
     /// Adds the specified component to the entity and returns it.

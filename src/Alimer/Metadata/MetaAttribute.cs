@@ -4,9 +4,9 @@
 namespace Alimer;
 
 /// <summary>
-/// Attribute applied to class, struct or enum for type system exposure.
+/// Attribute applied to class, struct or enum for type metadata exposure.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum, Inherited = false, AllowMultiple = false)]
-public class ExposeAttribute : Attribute
+public class MetaAttribute : Attribute
 {
 }

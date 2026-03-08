@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
-[Expose]
+[Meta]
 [DataContract(Name = nameof(CameraComponent))]
 [Category("Rendering")]
 [DisplayName("Camera")]
