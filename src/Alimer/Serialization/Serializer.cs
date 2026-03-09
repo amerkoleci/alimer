@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Alimer.Serialization.Json;
 
 namespace Alimer.Serialization;
@@ -12,7 +13,7 @@ namespace Alimer.Serialization;
 /// <remarks>Derived classes must implement the serialization logic for specific types and formats. The class
 /// exposes methods for serializing primitive values and objects that implement the ISerializable interface. The Mode
 /// property indicates the current serialization mode, which may affect how data is processed.</remarks>
-public abstract class Serializer : IDisposable
+public abstract partial class Serializer : IDisposable
 {
     public static Serializer CreateJson(Stream stream, JsonWriterOptions options = default) => new JsonEngineSerializer(stream, options);
 

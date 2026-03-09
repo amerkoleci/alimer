@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
+using System.Runtime.Serialization;
 using Alimer.Engine;
 
 namespace Alimer.Physics;
@@ -10,7 +11,9 @@ namespace Alimer.Physics;
 [DefaultEntitySystem(typeof(PhysicsSystem))]
 public abstract partial class PhysicsComponent : Component
 {
+    [IgnoreDataMember]
     public PhysicsSimulation? Simulation { get; internal set; }
+    [IgnoreDataMember]
     public abstract Matrix4x4 PhysicsWorldTransform { get; set; }
 
     public void UpdateTransformComponent()

@@ -17,7 +17,7 @@ namespace Alimer.Engine;
 [Meta]
 [DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public partial class Entity : IEnumerable<Component>
+public partial class Entity //: IEnumerable<Component>
 {
     private Entity? _parent;
     private string _name;
@@ -125,7 +125,7 @@ public partial class Entity : IEnumerable<Component>
 
     public IEnumerator<Component> GetEnumerator() => Components.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    //IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
     /// Adds the specified component to the entity and returns it.

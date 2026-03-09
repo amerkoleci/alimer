@@ -2,14 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Numerics;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
 [Meta]
+//[GenerateShape]
 [DataContract(Name = nameof(CameraComponent))]
 [Category("Rendering")]
 [DisplayName("Camera")]

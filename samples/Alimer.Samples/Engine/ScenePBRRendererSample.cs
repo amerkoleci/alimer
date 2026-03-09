@@ -34,6 +34,10 @@ public sealed class ScenePBRRendererSample : SampleBase
         camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
         root.Children.Add(_cameraEntity);
 
+        var testJson = _cameraEntity.Serialize();
+        var json = testJson.ToJsonString();
+        var loaded = Entity.Deserialize(json);
+
         {
             // GLTF mesh
             string meshesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Meshes");
