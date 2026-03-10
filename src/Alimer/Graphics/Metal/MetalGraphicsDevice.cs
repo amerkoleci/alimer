@@ -15,6 +15,7 @@ internal class MetalGraphicsDevice : GraphicsDevice
     {
         _adapter = adapter;
         Device = adapter.Device;
+        _limits = new();
     }
 
     public MTLDevice Device { get; }

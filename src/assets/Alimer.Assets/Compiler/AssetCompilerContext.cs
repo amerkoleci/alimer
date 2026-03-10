@@ -1,8 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Text.Json;
 using Alimer.Assets.Graphics;
 using Alimer.Assets.Writers;
+using Alimer.Serialization;
 
 namespace Alimer.Assets.Compiler;
 
@@ -85,16 +87,11 @@ public class AssetCompilerContext : IDisposable
                 string outputFileName = Path.ChangeExtension(Path.GetFileNameWithoutExtension(assetFileName), assetWriter.FileExtension);
                 string outputFilePath = Path.Combine(outputDirectory, outputFileName);
 
-                using (MemoryStream ms = new())
-                {
-                    using (AssetWriter writer = new(ms))
-                    {
-                        assetWriter.Write(writer, asset);
-                    }
-
-                    byte[] assetData = ms.ToArray();
-                    File.WriteAllBytes(outputFilePath, assetData);
-                }
+                WriteByteStream writer = new(WriteByteStream.DefaultInitialBufferSize);
+                assetWriter.Write(ref writer, asset);
+                ReadOnlySpan<byte> assetData = writer.WrittenSpan;
+                //ReadOnlySpan<byte> assetData = writer.Compress().RemainingSpan;
+                File.WriteAllBytes(outputFilePath, assetData);
             }
             else
             {

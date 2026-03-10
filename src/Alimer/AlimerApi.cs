@@ -1,11 +1,11 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using Alimer.Assets;
 using Alimer.Graphics;
+
+#pragma warning disable CS0649
 
 namespace Alimer;
 

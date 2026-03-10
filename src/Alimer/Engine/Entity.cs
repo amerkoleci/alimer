@@ -73,8 +73,10 @@ public partial class Entity //: IEnumerable<Component>
     public EntityComponentCollection Components { get; }
 
     [IgnoreDataMember]
+    [JsonIgnore]
     public bool IsTransformHierarchyRoot => _parent is null;
 
+    [JsonIgnore]
     [IgnoreDataMember]
     public Entity? Parent
     {
@@ -90,8 +92,10 @@ public partial class Entity //: IEnumerable<Component>
         }
     }
 
+    [JsonIgnore]
     public EntityManager? EntityManager { get; internal set; }
 
+    [JsonIgnore]
     public TransformComponent Transform { get; private set; }
 
     [IgnoreDataMember]

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
+using Alimer.Serialization;
 
 namespace Alimer.Assets.Writers;
 
@@ -12,7 +13,7 @@ internal class FontWriter : AssetTypeWriter<FontAsset>
     public override string FileExtension => "afnt";
     public override string MagicNumber => "AFNT";
 
-    public override void Write(AssetWriter writer, FontAsset asset)
+    public override void Write(ref WriteByteStream writer, FontAsset asset)
     {
         // Write glyph information
         writer.Write(asset.Glyphs.Count);

@@ -24,7 +24,7 @@ public abstract partial class Component
     [JsonPropertyOrder(-10)]
     public virtual bool IsEnabled { get; set; } = true;
 
-    public JsonNode Serialize(Entity.SerializeOptions options = null)
+    public JsonNode Serialize(Entity.SerializeOptions? options = default)
     {
         var json = new JsonObject
         {

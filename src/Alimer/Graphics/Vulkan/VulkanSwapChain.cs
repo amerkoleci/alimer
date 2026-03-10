@@ -142,6 +142,10 @@ internal unsafe partial class VulkanSwapChain : SwapChain
         for (uint i = 0; i < _acquireSemaphores!.Length; ++i)
         {
             _device.DeviceApi.vkDestroySemaphore(_acquireSemaphores[i]);
+        }
+
+        for (uint i = 0; i < _releaseSemaphores!.Length; ++i)
+        {
             _device.DeviceApi.vkDestroySemaphore(_releaseSemaphores[i]);
         }
 

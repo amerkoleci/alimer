@@ -48,6 +48,24 @@ internal static unsafe partial class ObjectiveC
     public static partial void objc_msgSend(nint receiver, Selector selector, nint value);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, uint value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, ulong value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, float value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, double value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, CGSize value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial void objc_msgSend(nint receiver, Selector selector, CGRect value);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
@@ -74,6 +92,12 @@ internal static unsafe partial class ObjectiveC
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial byte* bytePtr_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial CGSize CGSize_objc_msgSend(nint receiver, Selector selector);
+
+    [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
+    public static partial CGRect CGRect_objc_msgSend(nint receiver, Selector selector);
 
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector, nint a, nuint b);

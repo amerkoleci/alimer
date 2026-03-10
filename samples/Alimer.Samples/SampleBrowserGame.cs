@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using Alimer.Engine;
@@ -65,13 +66,62 @@ public sealed class SampleBrowserGame : Game
         // _runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 
+        var testEntity = new Entity();
+        CameraComponent camera = testEntity.AddComponent<CameraComponent>();
+        camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
+
+        RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
+        //var testJson = testEntity.Serialize();
+        //var json = testJson.ToJsonString();
+        //var loaded = Entity.Deserialize(json);
+
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
         _runningSample = new ScenePBRRendererSample(Services);
 
+        WriteByteStream writer = new(4);
+        writer.Write(1);
+        writer.Write(true);
+        writer.Write(Vector3.One);
+        writer.Write(Matrix4x4.Identity);
+        writer.Write("HELLO WORLD");
+        writer.WriteEnum(LightType.Point);
+        var testObject = new MyByteWrite();
+        testObject.FieldA = 123;
+        writer.Write(testObject);
+
+        ReadOnlySpan<byte> span = writer.WrittenSpan;
+
+        // Read now
+        ReadByteStream readStream = new(span);
+        int readInt = readStream.Read<int>();
+        bool readBool = readStream.Read<bool>();
+        Vector3 readVector3 = readStream.Read<Vector3>();
+        Matrix4x4 readMatrix4x4 = readStream.Read<Matrix4x4>();
+        string readString = readStream.ReadString()!;
+        LightType readEnum = readStream.ReadEnum<LightType>();
+        MyByteWrite readMyByteWrite = readStream.ReadByteSerializable<MyByteWrite>();
+
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
+    class MyByteWrite : IByteSerializable
+    {
+        public int FieldA { get; set; }
+
+        public static object ReadObject(ref ReadByteStream stream)
+        {
+            MyByteWrite myByteWrite = new MyByteWrite();
+            myByteWrite.FieldA = stream.Read<int>();
+            return myByteWrite;
+        }
+
+        public static void WriteObject(ref WriteByteStream stream, object value)
+        {
+            MyByteWrite myByteWrite = (MyByteWrite)value;
+            stream.Write(myByteWrite.FieldA);
+        }
+    }
 
     protected override void Dispose(bool disposing)
     {

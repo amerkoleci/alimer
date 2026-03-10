@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
+using Alimer.Serialization;
 
 namespace Alimer.Assets.Writers;
 
@@ -12,7 +13,7 @@ internal class TextureWriter : AssetTypeWriter<TextureAsset>
     public override string FileExtension => "atex";
     public override string MagicNumber => "TEXB";
 
-    public override void Write(AssetWriter writer, TextureAsset asset)
+    public override void Write(ref WriteByteStream writer, TextureAsset asset)
     {
         // Write dimensions
         Debug.Assert((int)PixelFormat.Count <= byte.MaxValue);

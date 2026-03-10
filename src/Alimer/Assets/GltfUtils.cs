@@ -3,7 +3,7 @@
 
 using GLTF2;
 
-namespace Alimer.Assets.Graphics;
+namespace Alimer.Assets;
 
 public static class GltfUtils
 {
@@ -95,13 +95,13 @@ public static class GltfUtils
     {
         Gltf2.Buffer buffer = model.Buffers[bufferIndex];
 
-        var bufferData = LoadBinaryBufferUnchecked(buffer, externalReferenceSolver);
+        byte[]? bufferData = LoadBinaryBufferUnchecked(buffer, externalReferenceSolver) ?? throw new InvalidDataException($"The buffer is null");
 
         // As per https://github.com/KhronosGroup/glTF/issues/1026
         // Due to buffer padding, buffer length can be equal or larger than expected length by only 3 bytes
         if (bufferData.Length < buffer.ByteLength || (bufferData.Length - buffer.ByteLength) > 3)
         {
-            throw new InvalidDataException($"The buffer length is {bufferData.Length}, expected {buffer.ByteLength}");
+            throw new InvalidDataException($"The buffer length is {bufferData!.Length}, expected {buffer.ByteLength}");
         }
 
         return bufferData;

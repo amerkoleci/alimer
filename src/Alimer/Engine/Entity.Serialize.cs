@@ -7,6 +7,8 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using TerraFX.Interop.WinRT;
 
 namespace Alimer.Engine;
 
@@ -16,10 +18,21 @@ partial class Entity
     {
     }
 
-    public JsonObject? Serialize(SerializeOptions options = default)
+    public JsonObject? Serialize(SerializeOptions? options = default)
     {
         if (Flags.HasFlag(EntityFlags.NotSaved))
             return null;
+
+        var options2 = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            TypeInfoResolver = new SerializableTypeResolver(),
+            //Converters = { new SerializableTypeConverter() }
+        };
+
+        string jsonOps = JsonSerializer.Serialize(this, options2);
+        //string json2 = JsonSerializer.Serialize(this, EntityJsonContext.Default.Entity);
+        //var entityLoaded = JsonSerializer.Deserialize(json2, EntityJsonContext.Default.Entity);
 
         JsonObject json = new()
         {
@@ -45,7 +58,7 @@ partial class Entity
 
                 components.Add(result);
             }
-            catch (System.Exception e)
+            catch (Exception)
             {
             }
         }
@@ -81,25 +94,69 @@ partial class Entity
                 string componentTypeName = componentJson.GetPropertyValue("Type", "");
 
                 ITypeMetadata metadata = MetadataRegistry.GetMetadata(componentTypeName);
+                if (metadata.CreateObject is null)
+                {
+                    throw new InvalidOperationException("Metadata for type " + componentTypeName + " does not have a CreateObject function.");
+                }
+
                 //var componentType = MetadataRegistry.GetType<Component>(componentTypeName, true);
-                Component component = (Component)metadata.CreateObject()!;
-                component.Deserialize(componentJson); 
+                Component component = (Component)metadata.CreateObject();
+                component.Deserialize(componentJson);
                 entity.Components.Add(component);
             }
         }
 
         return entity;
     }
+
+    public class SerializableTypeResolver : DefaultJsonTypeInfoResolver
+    {
+        public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            JsonTypeInfo jsonTypeInfo = base.GetTypeInfo(type, options);
+
+            Type basePointType = typeof(Component);
+            if (jsonTypeInfo.Type == basePointType)
+            {
+                MetadataRegistry.Prepare();
+
+                jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+                {
+                    TypeDiscriminatorPropertyName = "__type",
+                    IgnoreUnrecognizedTypeDiscriminators = true,
+                    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
+                    //DerivedTypes =
+                    //{
+                    //    new JsonDerivedType(typeof(TransformComponent), nameof(TransformComponent)),
+                    //    new JsonDerivedType(typeof(CameraComponent), nameof(CameraComponent)),
+                    //}
+                };
+
+                //List<JsonDerivedType> derivedTypes = [];
+                IReadOnlySet<Type> subtypes = MetadataRegistry.GetSubtypes(typeof(Component));
+                foreach (Type subType in subtypes)
+                {
+                    jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(subType, subType.Name));
+                }
+            }
+
+            return jsonTypeInfo;
+        }
+    }
 }
 
 internal static class ModuleInit
 {
+#pragma warning disable CA2255
     [ModuleInitializer]
+#pragma warning restore CA2255
     public static void Register()
     {
-        var componentMetaData = new ObjectTypeMetadata(typeof(Component));
+        var componentMetaData = new ObjectTypeMetadata<Component>();
         MetadataRegistry.Register(componentMetaData);
-        MetadataRegistry.Register(new ObjectTypeMetadata(typeof(CameraComponent), () => new CameraComponent()));
+        MetadataRegistry.Register(new ObjectTypeMetadata<TransformComponent>(() => new TransformComponent()));
+        MetadataRegistry.Register(new ObjectTypeMetadata<CameraComponent>(() => new CameraComponent()));
+
     }
 }
 

@@ -38,31 +38,3 @@ internal readonly partial struct NSWindow
         set => objc_msgSend(Handle, s_sel_setContentView, value);
     }
 }
-
-internal readonly partial struct CAMetalLayer
-{
-    private static ObjectiveCClass s_class => new(nameof(CAMetalLayer));
-
-    public nint Handle { get; }
-
-    public CAMetalLayer(nint handle) => Handle = handle;
-
-    public static implicit operator CAMetalLayer(nint handle) => new(handle);
-    public static implicit operator nint(CAMetalLayer value) => value.Handle;
-
-    public static CAMetalLayer New() => s_class.AllocInit<CAMetalLayer>();
-
-    public static bool TryCast(nint layerPointer, out CAMetalLayer metalLayer)
-    {
-        NSObject layerObject = new(layerPointer);
-
-        if (layerObject.IsKindOfClass(s_class))
-        {
-            metalLayer = new CAMetalLayer(layerPointer);
-            return true;
-        }
-
-        metalLayer = default;
-        return false;
-    }
-}

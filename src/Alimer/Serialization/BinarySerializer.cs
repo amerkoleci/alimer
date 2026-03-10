@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Alimer.Serialization;
@@ -12,8 +11,6 @@ namespace Alimer.Serialization;
 /// </summary>
 public partial class BinarySerializer
 {
-    private readonly SerializerMode _mode;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="BinarySerializer" /> class.
     /// </summary>

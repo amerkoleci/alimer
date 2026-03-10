@@ -20,6 +20,7 @@ public partial class TransformComponent : Component, IEnumerable<TransformCompon
     private Quaternion _rotation = Quaternion.Identity;
     private Vector3 _scale = Vector3.One;
 
+    [JsonIgnore]
     public IEnumerable<TransformComponent> Children
     {
         get

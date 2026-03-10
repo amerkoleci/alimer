@@ -1,6 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Serialization;
+
 namespace Alimer.Assets;
 
 public abstract class AssetTypeWriter<TAsset> : IAssetTypeWriter
@@ -13,9 +15,9 @@ public abstract class AssetTypeWriter<TAsset> : IAssetTypeWriter
 
     public virtual ushort Version => 1;
 
-    public abstract void Write(AssetWriter writer, TAsset asset);
+    public abstract void Write(ref WriteByteStream writer, TAsset asset);
 
-    void IAssetTypeWriter.Write(AssetWriter writer, Asset asset)
+    void IAssetTypeWriter.Write(ref WriteByteStream writer, Asset asset)
     {
         if (asset is not TAsset typedAsset)
         {
@@ -23,9 +25,9 @@ public abstract class AssetTypeWriter<TAsset> : IAssetTypeWriter
         }
 
         // Write magic number and version
-        writer.WriteUTF8String(MagicNumber);
+        writer.Write(MagicNumber);
         writer.Write(Version); // Version 1
 
-        Write(writer, typedAsset);
+        Write(ref writer, typedAsset);
     }
 }

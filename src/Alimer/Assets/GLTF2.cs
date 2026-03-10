@@ -1,5 +1,6 @@
 ﻿// https://github.com/NoelFB/glTF2/blob/main/LICENSE
 
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -742,9 +743,10 @@ public partial class Gltf2
     /// All scalar float types are stored in float arrays.
     /// This utility parses them quickly without allocating.
     /// </summary>
-    private class FloatStructJsonConverter<T> : JsonConverter<T> where T : unmanaged
+    private class FloatStructJsonConverter<T> : JsonConverter<T>
+        where T : unmanaged
     {
-        private static unsafe readonly int s_count = sizeof(T) / 4;
+        private static readonly unsafe int s_count = sizeof(T) / 4;
 
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
@@ -815,14 +817,14 @@ public partial class Gltf2
         {
             if (serializeAsNumber)
             {
-                if (toJsonNumber.TryGetValue(value, out var num))
+                if (toJsonNumber.TryGetValue(value, out int num))
                     writer.WriteNumberValue(num);
                 else
                     writer.WriteNumberValue(0);
             }
             else
             {
-                if (toJsonString.TryGetValue(value, out var str))
+                if (toJsonString.TryGetValue(value, out string? str))
                     writer.WriteStringValue(str);
                 else
                     writer.WriteStringValue(string.Empty);

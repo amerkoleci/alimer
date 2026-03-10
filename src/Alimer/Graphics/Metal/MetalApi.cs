@@ -7,6 +7,8 @@ using NSUInteger = System.UInt64;
 using static Alimer.Platforms.Apple.ObjectiveC;
 using Alimer.Platforms.Apple;
 
+#pragma warning disable CS0649
+
 namespace Alimer.Graphics.Metal;
 
 internal static partial class MetalApi

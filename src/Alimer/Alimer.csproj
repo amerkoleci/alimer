@@ -6,6 +6,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <ExcludeWebGPU>true</ExcludeWebGPU>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
+    <!-- Catch compiler-mismatch issues -->
+    <WarningsAsErrors>CS9057</WarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,6 +50,13 @@
     <Compile Remove="Graphics/Metal/**/*" Condition="'$(ExcludeMetal)' == 'true'" />
   </ItemGroup>
 
+  <!--SourceGenerator -->
+  <ItemGroup>
+    <ProjectReference Include="..\Alimer.SourceGenerator\Alimer.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+    <None Include="$(ArtifactsPath)\bin\Alimer.SourceGenerator\$(Configuration)\Alimer.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="XenoAtom.Collections" />
     <PackageReference Include="SkiaSharp" />
@@ -60,19 +70,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alimer.SourceGenerators\Alimer.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Remove="System.Linq" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Rendering\Materials\" />
   </ItemGroup>
+
 
 </Project>

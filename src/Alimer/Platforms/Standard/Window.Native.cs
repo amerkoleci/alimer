@@ -99,7 +99,20 @@ unsafe partial class Window
         }
         else if (OperatingSystem.IsIOS())
         {
-            nint ui_window = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER);
+            UIWindow ui_window = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER);
+            UIView ui_view = ui_window.RootViewController.View;
+
+            if (!CAMetalLayer.TryCast(ui_view.layer, out CAMetalLayer metalLayer))
+            {
+                metalLayer = CAMetalLayer.New();
+                metalLayer.opaque = true;
+                metalLayer.frame = ui_view.frame;
+                metalLayer.drawableSize = ui_view.frame.size;
+
+                ui_view.layer.addSublayer(metalLayer.Handle);
+            }
+
+            _surface = SwapChainSurface.CreateMetalLayer(metalLayer.Handle);
         }
         else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
@@ -133,6 +146,10 @@ unsafe partial class Window
                 nint wayland_surface = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER);
 
                 _surface = SwapChainSurface.CreateWayland(wayland_display, wayland_surface);
+            }
+            else
+            {
+                throw new PlatformNotSupportedException();
             }
         }
         else

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Alimer.Assets.Graphics;
 using Alimer.Graphics;
+using Alimer.Serialization;
 
 namespace Alimer.Assets.Writers;
 
@@ -12,7 +13,7 @@ internal class ShaderWriter : AssetTypeWriter<ShaderAsset>
     public override string FileExtension => "ashd";
     public override string MagicNumber => "ASHD";
 
-    public override void Write(AssetWriter writer, ShaderAsset asset)
+    public override void Write(ref WriteByteStream writer, ShaderAsset asset)
     {
     }
 }

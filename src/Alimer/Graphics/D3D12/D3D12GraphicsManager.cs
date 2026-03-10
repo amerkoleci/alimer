@@ -24,7 +24,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
 {
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
 
-    private readonly ComPtr<IDXGIFactory6> _handle;
+    private readonly ComPtr<IDXGIFactory6> _handle = default;
     private readonly D3D12GraphicsAdapter[] _adapters;
 
     /// <summary>

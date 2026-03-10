@@ -8,6 +8,8 @@ using float3 = System.Numerics.Vector3;
 using float4 = System.Numerics.Vector4;
 using float4x4 = System.Numerics.Matrix4x4;
 
+#pragma warning disable CS0169 // warning CS0169: The field '_padding0' is never used
+
 namespace Alimer.Rendering;
 
 // TODO: Source generator for defined types

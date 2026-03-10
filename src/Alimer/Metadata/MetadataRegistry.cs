@@ -14,7 +14,6 @@ public enum MetadataTypeKind
     /// A primitive type (e.g `int`, `short`, `double`...)
     /// </summary>
     Primitive,
-    ValueType,
     Enum,
     Object,
 }
@@ -49,12 +48,7 @@ public interface ITypeMetadata
     int SizeOf { get; }
 }
 
-public interface IValueTypeMetadata : ITypeMetadata
-{
-    MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.ValueType;
-}
-
-public interface IPrimitiveTypeMetadata : IValueTypeMetadata
+public interface IPrimitiveTypeMetadata : ITypeMetadata
 {
     MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.Primitive;
     MetadataTypeVisibility ITypeMetadata.Visibility => MetadataTypeVisibility.Public;
@@ -114,17 +108,17 @@ public class PrimitiveTypeMetadata : IPrimitiveTypeMetadata
     public int SizeOf { get; }
 }
 
-public class EnumTypeMetadata<T, TUnderlying> : IEnumTypeMetadata
-    where T : struct, Enum
+public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
+    where TEnum : struct, Enum
     where TUnderlying : unmanaged
 {
     public EnumTypeMetadata(MetadataTypeVisibility visibility = MetadataTypeVisibility.Public)
-    //: base(typeof(T), MetadataRegistry.GetPrimitiveTypeMetadata<int>(), visibility)
     {
-        Type = typeof(T);
+        Type = typeof(TEnum);
         UnderlyingType = MetadataRegistry.GetPrimitiveTypeMetadata<TUnderlying>();
-        CreateObject = () => new T();
+        CreateObject = () => new TEnum();
         SizeOf = UnderlyingType.SizeOf;
+        IsFlags = typeof(TEnum).GetCustomAttribute<FlagsAttribute>() != null;
         Visibility = visibility;
     }
 
@@ -149,29 +143,15 @@ public sealed class PropertyMetadata
     public Type PropertyType { get; init; } = default!;
 }
 
-public class ObjectTypeMetadata : IObjectTypeMetadata
+public sealed class ObjectTypeMetadata<TObject> : IObjectTypeMetadata
 {
     public Type Type { get; }
 
     public IReadOnlyList<PropertyMetadata> Properties => throw new NotImplementedException();
 
-    public ObjectTypeMetadata(Type type, Func<object>? createObject = default)
+    public ObjectTypeMetadata(Func<object>? createObject = default)
     {
-        ArgumentNullException.ThrowIfNull(type, nameof(type));
-
-        Type = type;
-        var baseAttributes = type.GetCustomAttributes<System.Attribute>(true);
-
-        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-        {
-            var attributes = prop.GetCustomAttributes<System.Attribute>(true);
-            if (attributes.OfType<MetaAttribute>().Any() || baseAttributes.OfType<MetaAttribute>().Any())
-            {
-                // This is a property we want to include in the metadata.
-            }
-        }
-
-        //var test = MetadataRegistry.GetMetadata(type.BaseType.n);
+        Type = typeof(TObject);
         CreateObject = createObject;
         SizeOf = 0;
     }
@@ -184,6 +164,8 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
 public static class MetadataRegistry
 {
     private static readonly ConcurrentDictionary<Type, ITypeMetadata> s_types = new();
+    private static readonly ConcurrentDictionary<Type, HashSet<Type>> s_typesByBaseType = new();
+    private static readonly ConcurrentDictionary<Type, HashSet<Type>> s_typesByAncestor = new();
 
     private static readonly ConcurrentDictionary<Type, IEnumerable<PropertyMetadata>> s_properties = new();
 
@@ -218,6 +200,36 @@ public static class MetadataRegistry
             CreateObject = () => new T(),
         };
         s_types[type] = metadata;
+    }
+
+    public static IEnumTypeMetadata RegisterEnumType<TEnum, TUnderlying>(MetadataTypeVisibility visibility = MetadataTypeVisibility.Public)
+        where TEnum : struct,
+        Enum where TUnderlying : unmanaged
+    {
+        Type type = typeof(TEnum);
+        if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
+        {
+            if (existingMetadata is not IEnumTypeMetadata enumTypeMetadata)
+            {
+                throw new InvalidOperationException($"Metadata for type {type.FullName} is not of type {typeof(IEnumTypeMetadata).FullName}.");
+            }
+
+            return enumTypeMetadata;
+        }
+
+        EnumTypeMetadata<TEnum, TUnderlying> metadata = new(visibility)
+        {
+            Items = Enum.GetValues<TEnum>()
+                    .Select(value => new EnumItem(Enum.GetName(value)!, Convert.ToInt64(value)))
+                    .ToList()
+        };
+        s_types[type] = metadata;
+        return metadata;
+    }
+
+    public static void Prepare()
+    {
+        ComputeTypesByBaseType(s_types.Keys);
     }
 
     public static void Register(ITypeMetadata metadata)
@@ -286,6 +298,7 @@ public static class MetadataRegistry
 
         throw new InvalidOperationException($"No metadata found for type {type.FullName}");
     }
+
     public static ITypeMetadata GetMetadata(string typeName)
     {
         foreach (var kvp in s_types)
@@ -298,7 +311,6 @@ public static class MetadataRegistry
 
         throw new InvalidOperationException($"No metadata found for type name {typeName}");
     }
-
 
     public static TTypeMetadata GetMetadata<T, TTypeMetadata>()
         where TTypeMetadata : ITypeMetadata
@@ -337,6 +349,89 @@ public static class MetadataRegistry
 
         metadata = default;
         return false;
+    }
+
+
+    private static readonly IReadOnlySet<Type> s_emptyTypeSet = new HashSet<Type>();
+
+    public static IReadOnlySet<Type> GetSubtypes(Type type) =>
+        s_typesByBaseType.TryGetValue(type, out var subtypes)
+        ? subtypes
+        : s_emptyTypeSet;
+
+    public static IReadOnlySet<Type> GetDescendantSubtypes(Type type)
+    {
+        CacheDescendants(type);
+        return s_typesByAncestor[type];
+    }
+
+    private static void CacheDescendants(Type type)
+    {
+        if (s_typesByAncestor.ContainsKey(type))
+        {
+            return;
+        }
+
+        s_typesByAncestor[type] = FindDescendants(type);
+    }
+
+    private static void ComputeTypesByBaseType(IEnumerable<Type> types)
+    {
+        // Iterate through each type in the registry and its base types,
+        // constructing a flat map of base types to their immediately derived types.
+        // The beauty of this approach is that it discovers base types which may be
+        // in other modules, and works in reflection-free mode since BaseType is
+        // always supported by every C# environment, even AOT environments.
+        foreach (var type in types)
+        {
+            var lastType = type;
+            var baseType = type.BaseType;
+
+            // As far as we know, any type could be a base type.
+            if (!s_typesByBaseType.ContainsKey(type))
+            {
+                s_typesByBaseType[type] = [];
+            }
+
+            while (baseType != null)
+            {
+                if (!s_typesByBaseType.TryGetValue(baseType, out var existingSet))
+                {
+                    existingSet = [];
+                    s_typesByBaseType[baseType] = existingSet;
+                }
+                existingSet.Add(lastType);
+
+                lastType = baseType;
+                baseType = lastType.BaseType;
+            }
+        }
+    }
+
+
+    private static HashSet<Type> FindDescendants(Type type)
+    {
+        HashSet<Type> descendants = new();
+        Queue<Type> queue = new();
+        queue.Enqueue(type);
+
+        while (queue.Count > 0)
+        {
+            Type currentType = queue.Dequeue();
+            descendants.Add(currentType);
+
+            if (s_typesByBaseType.TryGetValue(currentType, out HashSet<Type>? children))
+            {
+                foreach (Type child in children)
+                {
+                    queue.Enqueue(child);
+                }
+            }
+        }
+
+        descendants.Remove(type);
+
+        return descendants;
     }
 
     public static IEnumerable<ITypeMetadata> GetAllTypes()

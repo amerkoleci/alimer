@@ -7,6 +7,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Alimer.Audio;
 
+#pragma warning disable CS0649
+
 namespace Alimer;
 
 unsafe partial class AlimerApi

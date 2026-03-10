@@ -25,11 +25,7 @@ public class MetadataTests
     [Test]
     public void TestEnumMetadata()
     {
-        EnumTypeMetadata<TestEnum, int> metadata = new()
-        {
-            Items = __CreateItems_TestEnum()
-        };
-        MetadataRegistry.Register(metadata);
+        MetadataRegistry.RegisterEnumType<TestEnum, int>();
 
         IPrimitiveTypeMetadata intType = MetadataRegistry.GetPrimitiveTypeMetadata<int>();
         IEnumTypeMetadata storedMetadata = MetadataRegistry.GetMetadata<TestEnum, IEnumTypeMetadata>();
@@ -39,17 +35,6 @@ public class MetadataTests
         TestEnum enumCreated = (TestEnum)storedMetadata.CreateObject();
         Assert.That(enumCreated, Is.EqualTo(TestEnum.Field1));
     }
-
-    private static IReadOnlyList<EnumItem> __CreateItems_TestEnum()
-    {
-        return new List<EnumItem>
-        {
-            new EnumItem(nameof(TestEnum.Field1), 0),
-            new EnumItem(nameof(TestEnum.Field2), 1),
-            new EnumItem(nameof(TestEnum.Field3), 2)
-        };
-    }
-
 
     public enum TestEnum
     {
