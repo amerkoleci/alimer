@@ -7,15 +7,17 @@ using NUnit.Framework;
 
 namespace Alimer.Serialization;
 
-[TestFixture(TestOf = typeof(BinarySerializer))]
-public class BinarySerializationTests
+[TestFixture]
+public class ByteStreamTests
 {
     [Theory]
     public void TestPrimitives()
     {
+        WriteByteStream writer = new();
+
+        bool testBool = true;
         byte testByte = byte.MaxValue;
         sbyte testSByte = sbyte.MinValue;
-        bool testBool = true;
         short testShort = short.MinValue;
         ushort testUShort = ushort.MaxValue;
         int testInt = int.MinValue;
@@ -25,39 +27,46 @@ public class BinarySerializationTests
         float testFloat = float.MinValue;
         double testDouble = double.MaxValue;
         string testString = "HELLO WORLD";
+        Guid testGuid = Guid.NewGuid();
+        TimeSpan testTimeSpan = TimeSpan.FromSeconds(65);
+        DateTime testDateTime = DateTime.Now;
 
-        using MemoryStream stream = new();
-        BinarySerializer serializer = new(stream, SerializerMode.Write);
-        serializer.Serialize(ref testByte);
-        serializer.Serialize(ref testSByte);
-        serializer.Serialize(ref testBool);
-        serializer.Serialize(ref testShort);
-        serializer.Serialize(ref testUShort);
-        serializer.Serialize(ref testInt);
-        serializer.Serialize(ref testUInt);
-        serializer.Serialize(ref testInt64);
-        serializer.Serialize(ref testUInt64);
-        serializer.Serialize(ref testFloat);
-        serializer.Serialize(ref testDouble);
-        serializer.Serialize(ref testString!);
+        writer.Write(testBool);
+        writer.Write(testByte);
+        writer.Write(testSByte);
+        writer.Write(testShort);
+        writer.Write(testUShort);
+        writer.Write(testInt);
+        writer.Write(testUInt);
+        writer.Write(testInt64);
+        writer.Write(testUInt64);
+        writer.Write(testFloat);
+        writer.Write(testDouble);
+        writer.Write(testString);
+        writer.Write(testGuid);
+        writer.Write(testTimeSpan);
+        writer.Write(testDateTime);
 
-        // Reset Stream
-        stream.Position = 0;
+        // Get written span
+        ReadOnlySpan<byte> span = writer.WrittenSpan;
 
-        // Deserialize
-        serializer.Mode = SerializerMode.Read;
-        serializer.Serialize(ref testByte);
-        serializer.Serialize(ref testSByte);
-        serializer.Serialize(ref testBool);
-        serializer.Serialize(ref testShort);
-        serializer.Serialize(ref testUShort);
-        serializer.Serialize(ref testInt);
-        serializer.Serialize(ref testUInt);
-        serializer.Serialize(ref testInt64);
-        serializer.Serialize(ref testUInt64);
-        serializer.Serialize(ref testFloat);
-        serializer.Serialize(ref testDouble);
-        serializer.Serialize(ref testString!);
+        // Read now
+        ReadByteStream readStream = new(span);
+        testBool = readStream.Read<bool>();
+        testByte = readStream.Read<byte>();
+        testSByte = readStream.Read<sbyte>();
+        testShort = readStream.Read<short>();
+        testUShort = readStream.Read<ushort>();
+        testInt = readStream.Read<int>();
+        testUInt = readStream.Read<uint>();
+        testInt64 = readStream.Read<long>();
+        testUInt64 = readStream.Read<ulong>();
+        testFloat = readStream.Read<float>();
+        testDouble = readStream.Read<double>();
+        testString = readStream.ReadString()!;
+        Guid readGuid = readStream.ReadGuid();
+        TimeSpan readTimeSpan = readStream.ReadTimeSpan();
+        DateTime readDateTime = readStream.ReadDateTime();
 
         // Compare
         Assert.That(() => testByte, Is.EqualTo(byte.MaxValue));
@@ -72,7 +81,11 @@ public class BinarySerializationTests
         Assert.That(() => testFloat, Is.EqualTo(float.MinValue));
         Assert.That(() => testDouble, Is.EqualTo(double.MaxValue));
         Assert.That(() => testString, Is.EqualTo("HELLO WORLD"));
+        Assert.That(() => readGuid, Is.EqualTo(testGuid));
+        Assert.That(() => readTimeSpan, Is.EqualTo(testTimeSpan));
+        Assert.That(() => readDateTime, Is.EqualTo(testDateTime));
     }
+
 
     [Theory]
     public void TestMathematics()
@@ -94,26 +107,25 @@ public class BinarySerializationTests
         Matrix3x2 matrix3x2 = matrix3X2TestValue;
         Matrix4x4 matrix4x4 = matrix4X4TestValue;
 
-        using MemoryStream stream = new();
-        BinarySerializer serializer = new(stream, SerializerMode.Write);
-        serializer.Serialize(ref vector2);
-        serializer.Serialize(ref vector3);
-        serializer.Serialize(ref vector4);
-        serializer.Serialize(ref quat);
-        serializer.Serialize(ref matrix3x2);
-        serializer.Serialize(ref matrix4x4);
+        WriteByteStream writer = new();
+        writer.Write(vector2);
+        writer.Write(vector3);
+        writer.Write(vector4);
+        writer.Write(quat);
+        writer.Write(matrix3x2);
+        writer.Write(matrix4x4);
 
-        // Reset Stream
-        stream.Position = 0;
+        // Get written span
+        ReadOnlySpan<byte> span = writer.WrittenSpan;
 
-        // Deserialize
-        serializer.Mode = SerializerMode.Read;
-        serializer.Serialize(ref vector2);
-        serializer.Serialize(ref vector3);
-        serializer.Serialize(ref vector4);
-        serializer.Serialize(ref quat);
-        serializer.Serialize(ref matrix3x2);
-        serializer.Serialize(ref matrix4x4);
+        // Read now
+        ReadByteStream readStream = new(span);
+        vector2 = readStream.Read<Vector2>();
+        vector3 = readStream.Read<Vector3>();
+        vector4 = readStream.Read<Vector4>();
+        quat = readStream.Read<Quaternion>();
+        matrix3x2 = readStream.Read<Matrix3x2>();
+        matrix4x4 = readStream.Read<Matrix4x4>();
 
         // Compare
         Assert.That(() => vector2TestValue, Is.EqualTo(vector2));
@@ -121,8 +133,8 @@ public class BinarySerializationTests
         Assert.That(() => vector4TestValue, Is.EqualTo(vector4));
         Assert.That(() => quatTestValue, Is.EqualTo(quat));
         Assert.That(() => matrix3x2, Is.EqualTo(matrix3X2TestValue));
-
     }
+
 
     [Theory]
     public void TestBinarySerializable()
@@ -135,17 +147,17 @@ public class BinarySerializationTests
             Format = PixelFormat.RGBA8Unorm
         };
 
-        using MemoryStream stream = new();
-        BinarySerializer serializer = new(stream, SerializerMode.Write);
-        serializer.Serialize(ref writeDesc);
+        WriteByteStream writer = new();
+        writer.Write(writeDesc);
 
-        // Reset Stream
-        stream.Position = 0;
+        // Get written span
+        ReadOnlySpan<byte> span = writer.WrittenSpan;
+
+        // Read now
+        ReadByteStream readStream = new(span);
 
         // Deserialize
-        TextureDesc readDesc = new();
-        serializer.Mode = SerializerMode.Read;
-        serializer.Serialize(ref readDesc);
+        TextureDesc readDesc = readStream.ReadSerializable<TextureDesc>();
 
         // Compare
         Assert.That(() => readDesc.Width, Is.EqualTo(writeDesc.Width));
@@ -154,12 +166,30 @@ public class BinarySerializationTests
         Assert.That(() => readDesc.Format, Is.EqualTo(writeDesc.Format));
     }
 
-    class TextureDesc : IBinarySerializable
+    struct TextureDesc : IBinarySerializable<TextureDesc>
     {
         public uint Width { get; set; }
         public uint Height { get; set; }
         public uint Depth { get; set; }
         public PixelFormat Format { get; set; }
+
+        public static TextureDesc Read(ref ReadByteStream stream, TextureDesc existingInstance)
+        {
+            existingInstance.Width = stream.Read<uint>();
+            existingInstance.Height = stream.Read<uint>();
+            existingInstance.Depth = stream.Read<uint>();
+            existingInstance.Format = stream.ReadEnum<PixelFormat>();
+
+            return existingInstance;
+        }
+
+        public static void Write(ref WriteByteStream stream, TextureDesc value)
+        {
+            stream.Write(value.Width);
+            stream.Write(value.Height);
+            stream.Write(value.Depth);
+            stream.WriteEnum(value.Format);
+        }
 
         public void Serialize(BinarySerializer serializer)
         {

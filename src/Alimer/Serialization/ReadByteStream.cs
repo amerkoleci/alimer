@@ -54,6 +54,22 @@ public unsafe ref struct ReadByteStream
         }
     }
 
+    public int Read(Span<byte> buffer)
+    {
+        int remaining = _size - _position;
+        if (remaining < 0)
+            remaining = 0;
+
+        int length = buffer.Length < remaining ? buffer.Length : remaining;
+
+        if (length <= 0) return 0;
+
+        _readSpan.Slice(_position, length).CopyTo(buffer);
+
+        _position += length;
+        return length;
+    }
+
     public T Read<T>()
         where T : unmanaged
     {
@@ -63,6 +79,34 @@ public unsafe ref struct ReadByteStream
         T value = Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(_readSpan.Slice(_position)));
         _position += sizeof(T);
         return value;
+    }
+
+    public Guid ReadGuid()
+    {
+        Span<byte> buffer = new byte[16];
+        _ = Read(buffer);
+        Guid guid = new(buffer);
+        return guid;
+    }
+
+    public TimeSpan ReadTimeSpan()
+    {
+        long ticks = Read<long>();
+        return new(ticks);
+    }
+
+    public DateTime ReadDateTime()
+    {
+        long ticks = Read<long>();
+        return DateTime.FromBinary(ticks);
+    }
+
+    public TEnum ReadEnum<TEnum, TUnderlying>()
+        where TEnum : unmanaged, Enum
+        where TUnderlying : unmanaged
+    {
+        TUnderlying underlying = Read<TUnderlying>();
+        return Unsafe.As<TUnderlying, TEnum>(ref underlying);
     }
 
     public TEnum ReadEnum<TEnum>()
@@ -99,9 +143,9 @@ public unsafe ref struct ReadByteStream
         return value;
     }
 
-    public T ReadByteSerializable<T>()
-        where T : IByteSerializable
+    public T ReadSerializable<T>(T? existingInstance = default)
+        where T : IBinarySerializable<T>
     {
-        return (T)T.ReadObject(ref this);
+        return T.Read(ref this, existingInstance);
     }
 }

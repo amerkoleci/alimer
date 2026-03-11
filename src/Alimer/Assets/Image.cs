@@ -9,7 +9,7 @@ using static Alimer.AlimerApi;
 using static Alimer.AlimerApi.KTX_error_code;
 namespace Alimer.Assets;
 
-public sealed unsafe class Image : Asset, IBinarySerializable
+public sealed unsafe class Image : Asset, IBinarySerializable<Image>
 {
     private readonly MipMapDescription[] _mipmaps;
     private readonly ImageData[] _levels;
@@ -292,7 +292,7 @@ public sealed unsafe class Image : Asset, IBinarySerializable
         return FromMemory(data, channels, srgb);
     }
 
-    public static Image FromMemory(Span<byte> data, int channels = 4, bool srgb = true)
+    public static Image FromMemory(ReadOnlySpan<byte> data, int channels = 4, bool srgb = true)
     {
         // TODO: Add DDS, ASTC, KTX1 and KTX2 loading
         fixed (byte* dataPtr = data)
@@ -590,7 +590,7 @@ public sealed unsafe class Image : Asset, IBinarySerializable
     } 
 #endif
 
-    private static bool IsKTX1(Span<byte> data)
+    private static bool IsKTX1(ReadOnlySpan<byte> data)
     {
         if (data.Length <= 12)
         {
@@ -607,7 +607,7 @@ public sealed unsafe class Image : Asset, IBinarySerializable
         return true;
     }
 
-    private static bool IsHDR(Span<byte> data)
+    private static bool IsHDR(ReadOnlySpan<byte> data)
     {
         if (data.Length <= 6)
         {
@@ -653,18 +653,19 @@ public sealed unsafe class Image : Asset, IBinarySerializable
         return true;
     }
 
-    public void Serialize(BinarySerializer serializer)
+    public static Image Read(ref ReadByteStream stream, Image? existingInstance)
     {
         // TODO: Magic number and version
         Debug.Assert((int)PixelFormat.Count <= byte.MaxValue);
 
-        if (serializer.IsReading)
-        {
-        }
-        else
-        {
-        }
+        ImageDescription description = stream.ReadSerializable<ImageDescription>();
+        //ImageDescription description = stream.ReadByteSerializable<ImageDescription>();
+        Image result = new Image(in description);
+        return result;
+    }
 
-        throw new NotImplementedException();
+    public static void Write(ref WriteByteStream stream, Image value)
+    {
+        stream.Write(value.Description);
     }
 }

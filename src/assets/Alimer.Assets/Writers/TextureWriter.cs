@@ -18,8 +18,8 @@ internal class TextureWriter : AssetTypeWriter<TextureAsset>
         // Write dimensions
         Debug.Assert((int)PixelFormat.Count <= byte.MaxValue);
 
-        writer.Write((byte)asset.Dimension);
-        writer.Write((byte)asset.Format);
+        writer.WriteEnum<TextureDimension, byte>(asset.Dimension);
+        writer.WriteEnum<PixelFormat, byte>(asset.Format);
         writer.Write(asset.Width);
         writer.Write(asset.Height);
         writer.Write(asset.DepthOrArrayLayers);

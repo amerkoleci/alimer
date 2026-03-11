@@ -2,113 +2,96 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-using TerraFX.Interop.WinRT;
+using Alimer.Serialization;
 
 namespace Alimer.Engine;
 
 partial class Entity
 {
-    public class SerializeOptions
-    {
-    }
+    internal const int Version = 1;
 
-    public JsonObject? Serialize(SerializeOptions? options = default)
+    public void Serialize(Serializer serializer)
     {
         if (Flags.HasFlag(EntityFlags.NotSaved))
-            return null;
+            return;
 
-        var options2 = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            TypeInfoResolver = new SerializableTypeResolver(),
-            //Converters = { new SerializableTypeConverter() }
-        };
-
-        string jsonOps = JsonSerializer.Serialize(this, options2);
-        //string json2 = JsonSerializer.Serialize(this, EntityJsonContext.Default.Entity);
-        //var entityLoaded = JsonSerializer.Deserialize(json2, EntityJsonContext.Default.Entity);
-
-        JsonObject json = new()
-        {
-            { "Id", Id },
-            { "Name", Name },
-        };
+        serializer.WriteVersion(Version);
+        serializer.Write(Keys.Id, Id);
+        serializer.Write(Keys.Name, Name);
 
         //json.Add("Position", JsonValue.Create(Transform.Position));
 
-        var components = new JsonArray();
-
-        foreach (Component component in Components)
+        if (Components.Count > 0)
         {
-            if (component is null) continue;
-
-            if (component is TransformComponent)
-                continue;
-
-            try
+            serializer.BeginArray(Keys.Components);
+            foreach (Component component in Components)
             {
-                var result = component.Serialize(options);
-                if (result is null) continue;
-
-                components.Add(result);
-            }
-            catch (Exception)
-            {
-            }
-        }
-
-        json.Add("Components", components);
-        return json;
-    }
-
-    public static Entity? Deserialize([StringSyntax(StringSyntaxAttribute.Json)] string json)
-    {
-        JsonObject node = (JsonObject)JsonNode.Parse(json)!;
-        return DeserializeElement(node);
-    }
-
-    public static Entity? DeserializeElement(JsonObject node)
-    {
-        var serializedVersion = (int)(node["Version"] ?? 0);
-        string name = node.GetPropertyValue("Name", string.Empty);
-
-        Entity entity = new Entity(name);
-
-        if (node["Components"] is JsonArray componentArray)
-        {
-            for (int componentIndex = 0; componentIndex < componentArray.Count; componentIndex++)
-            {
-                JsonNode? jsonNodeComponent = componentArray[componentIndex];
-
-                if (jsonNodeComponent is not JsonObject componentJson)
-                {
+                if (component is TransformComponent)
                     continue;
-                }
 
-                string componentTypeName = componentJson.GetPropertyValue("Type", "");
-
-                ITypeMetadata metadata = MetadataRegistry.GetMetadata(componentTypeName);
-                if (metadata.CreateObject is null)
+                try
                 {
-                    throw new InvalidOperationException("Metadata for type " + componentTypeName + " does not have a CreateObject function.");
+                    string componentTypeName = component.GetType().Name;
+                    serializer.BeginObject(default, componentTypeName, component.ComponentVersion);
+                    component.Serialize(serializer);
+                    serializer.EndObject();
                 }
-
-                //var componentType = MetadataRegistry.GetType<Component>(componentTypeName, true);
-                Component component = (Component)metadata.CreateObject();
-                component.Deserialize(componentJson);
-                entity.Components.Add(component);
+                catch (Exception)
+                {
+                }
             }
+            serializer.EndArray();
         }
-
-        return entity;
     }
 
+    public void Deserialize(Deserializer deserializer)
+    {
+        int version = deserializer.ReadVersion();
+        Id = deserializer.ReadGuid(Keys.Id, Id);
+        Name = deserializer.ReadString(Keys.Name, Name)!;
+
+        int componentCount = deserializer.BeginArray(Keys.Components);
+        if (componentCount > 0)
+        {
+            for (int i = 0; i < componentCount; i++)
+            {
+                if (deserializer.BeginObject())
+                {
+                    int componentVersion = deserializer.ReadVersion();
+                    string typeName = deserializer.ReadType();
+
+                    Component? component = default;
+                    switch (typeName)
+                    {
+                        case nameof(CameraComponent):
+                            component = new CameraComponent();
+                            break;
+                    }
+
+                    if (component != null)
+                    {
+                        component.Deserialize(deserializer);
+                    }
+                    deserializer.EndObject();
+                }
+            }
+
+            deserializer.EndArray();
+        }
+
+    }
+
+    internal static class Keys
+    {
+        public const string Id = "Id";
+        public const string Name = "Name";
+
+        public const string Components = "Components";
+    }
+
+#if TODO
     public class SerializableTypeResolver : DefaultJsonTypeInfoResolver
     {
         public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
@@ -142,7 +125,8 @@ partial class Entity
 
             return jsonTypeInfo;
         }
-    }
+    } 
+#endif
 }
 
 internal static class ModuleInit
@@ -157,19 +141,5 @@ internal static class ModuleInit
         MetadataRegistry.Register(new ObjectTypeMetadata<TransformComponent>(() => new TransformComponent()));
         MetadataRegistry.Register(new ObjectTypeMetadata<CameraComponent>(() => new CameraComponent()));
 
-    }
-}
-
-public static class JsonUtils
-{
-    public static T GetPropertyValue<T>(this JsonObject? node, string name, in T defaultValue)
-    {
-        if (node is null)
-            return defaultValue;
-
-        if (!node.TryGetPropertyValue(name, out JsonNode? value))
-            return defaultValue;
-
-        return value!.GetValue<T>();
     }
 }

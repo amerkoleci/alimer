@@ -3,13 +3,14 @@
 
 using System.Diagnostics;
 using Alimer.Graphics;
+using Alimer.Serialization;
 
 namespace Alimer.Assets;
 
 /// <summary>
 /// Structure that describes the <see cref="Image"/>.
 /// </summary>
-public record struct ImageDescription
+public record struct ImageDescription : IBinarySerializable<ImageDescription>
 {
     /// <summary>
     /// Gets or the dimension of <see cref="Image"/>
@@ -144,5 +145,30 @@ public record struct ImageDescription
         }
 
         return mipLevelCount;
+    }
+
+    public static ImageDescription Read(ref ReadByteStream stream, ImageDescription existingInstance)
+    {
+        Debug.Assert((int)PixelFormat.Count <= byte.MaxValue);
+
+        existingInstance.Dimension = stream.ReadEnum<TextureDimension, byte>();
+        existingInstance.Format = stream.ReadEnum<PixelFormat, byte>();
+        existingInstance.Width = stream.Read<uint>();
+        existingInstance.Height = stream.Read<uint>();
+        existingInstance.DepthOrArrayLayers = stream.Read<uint>();
+        existingInstance.MipLevelCount = stream.Read<uint>();
+        return existingInstance;
+    }
+
+    public static void Write(ref WriteByteStream stream, ImageDescription value)
+    {
+        Debug.Assert((int)PixelFormat.Count <= byte.MaxValue);
+
+        stream.WriteEnum<TextureDimension, byte>(value.Dimension);
+        stream.WriteEnum<PixelFormat, byte>(value.Format);
+        stream.Write(value.Width);
+        stream.Write(value.Height);
+        stream.Write(value.DepthOrArrayLayers);
+        stream.Write(value.MipLevelCount);
     }
 }

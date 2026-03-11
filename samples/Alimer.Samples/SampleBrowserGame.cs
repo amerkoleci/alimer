@@ -8,7 +8,6 @@ using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Physics;
 using Alimer.Rendering;
-using Alimer.Samples.Graphics;
 using Alimer.Serialization;
 
 namespace Alimer.Samples;
@@ -28,26 +27,31 @@ public sealed class SampleBrowserGame : Game
     {
         base.Initialize();
 
-#if TODO
         {
+            Guid guid = Guid.NewGuid();
             using MemoryStream memoryStream = new();
-            using (var serializer = Serializer.CreateJson(memoryStream, new JsonWriterOptions() { Indented = true }))
+            using (var serializer = Serializer.CreateJson(memoryStream, true, new JsonWriterOptions() { Indented = true }))
             {
+                var testEntity = new Entity("Test Entity");
+                CameraComponent camera = testEntity.AddComponent<CameraComponent>();
+                camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
+
+                RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
+                testEntity.Serialize(serializer);
+
+                //serializer.Write("Id", guid);
                 serializer.BeginObject("Inner");
-                serializer.Serialize("Value", (byte)123);
                 serializer.EndObject();
             }
             var json = Encoding.UTF8.GetString(memoryStream.ToArray());
+
             memoryStream.Position = 0;
             using (var deserializer = Deserializer.CreateJson(memoryStream))
             {
-                deserializer.BeginObject("Inner");
-                //var value = deserializer.Deserialize<byte>("Value");
-                deserializer.EndObject();
-                //Console.WriteLine($"Deserialized value: {value}");
+                var testLoadEntity = new Entity();
+                testLoadEntity.Deserialize(deserializer);
             }
-        } 
-#endif
+        }
 
 
         // Setup shader system (until we have a proper asset pipeline)
@@ -66,61 +70,11 @@ public sealed class SampleBrowserGame : Game
         // _runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 
-        var testEntity = new Entity();
-        CameraComponent camera = testEntity.AddComponent<CameraComponent>();
-        camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
-
-        RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
-        //var testJson = testEntity.Serialize();
-        //var json = testJson.ToJsonString();
-        //var loaded = Entity.Deserialize(json);
-
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
         _runningSample = new ScenePBRRendererSample(Services);
 
-        WriteByteStream writer = new(4);
-        writer.Write(1);
-        writer.Write(true);
-        writer.Write(Vector3.One);
-        writer.Write(Matrix4x4.Identity);
-        writer.Write("HELLO WORLD");
-        writer.WriteEnum(LightType.Point);
-        var testObject = new MyByteWrite();
-        testObject.FieldA = 123;
-        writer.Write(testObject);
-
-        ReadOnlySpan<byte> span = writer.WrittenSpan;
-
-        // Read now
-        ReadByteStream readStream = new(span);
-        int readInt = readStream.Read<int>();
-        bool readBool = readStream.Read<bool>();
-        Vector3 readVector3 = readStream.Read<Vector3>();
-        Matrix4x4 readMatrix4x4 = readStream.Read<Matrix4x4>();
-        string readString = readStream.ReadString()!;
-        LightType readEnum = readStream.ReadEnum<LightType>();
-        MyByteWrite readMyByteWrite = readStream.ReadByteSerializable<MyByteWrite>();
-
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
-    }
-
-    class MyByteWrite : IByteSerializable
-    {
-        public int FieldA { get; set; }
-
-        public static object ReadObject(ref ReadByteStream stream)
-        {
-            MyByteWrite myByteWrite = new MyByteWrite();
-            myByteWrite.FieldA = stream.Read<int>();
-            return myByteWrite;
-        }
-
-        public static void WriteObject(ref WriteByteStream stream, object value)
-        {
-            MyByteWrite myByteWrite = (MyByteWrite)value;
-            stream.Write(myByteWrite.FieldA);
-        }
     }
 
     protected override void Dispose(bool disposing)

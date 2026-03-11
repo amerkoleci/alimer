@@ -790,7 +790,8 @@ public partial class Gltf2
     /// Some enums are stored as strings, others as numbers.
     /// This handles both cases without throwing.
     /// </summary>
-    private class EnumJsonConverter<T>(bool serializeAsNumber, Dictionary<string, T> jsonValues) : JsonConverter<T> where T : struct, Enum
+    private class EnumJsonConverter<T>(bool serializeAsNumber, Dictionary<string, T> jsonValues) : JsonConverter<T>
+        where T : struct, Enum
     {
         private readonly bool serializeAsNumber = serializeAsNumber;
         private readonly Dictionary<string, T> fromJsonString = jsonValues;

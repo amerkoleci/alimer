@@ -2,12 +2,12 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Numerics;
+using Alimer.Serialization;
 using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
@@ -15,9 +15,8 @@ namespace Alimer.Engine;
 // TODO: Rework Entity, Transform and component logic
 
 [Meta]
-[DataContract]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public partial class Entity //: IEnumerable<Component>
+public partial class Entity : IEnumerable<Component>, ISerializable
 {
     private Entity? _parent;
     private string _name;
@@ -46,12 +45,10 @@ public partial class Entity //: IEnumerable<Component>
         Components.Add(Transform);
     }
 
-    [DataMember]
     [JsonPropertyOrder(0)]
     [Browsable(false)]
     public Guid Id { get; set; }
 
-    [DataMember]
     [JsonPropertyOrder(10)]
     public string Name
     {
@@ -59,25 +56,17 @@ public partial class Entity //: IEnumerable<Component>
         set => _name = value;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    [DataMember]
     [JsonPropertyOrder(20)]
     public EntityFlags Flags { get; set; } = EntityFlags.None;
 
-    [DataMember]
     public EntityCollection Children { get; }
 
-    [DataMember]
     public EntityComponentCollection Components { get; }
 
-    [IgnoreDataMember]
     [JsonIgnore]
     public bool IsTransformHierarchyRoot => _parent is null;
 
     [JsonIgnore]
-    [IgnoreDataMember]
     public Entity? Parent
     {
         get => _parent;
@@ -98,7 +87,6 @@ public partial class Entity //: IEnumerable<Component>
     [JsonIgnore]
     public TransformComponent Transform { get; private set; }
 
-    [IgnoreDataMember]
     [JsonIgnore]
     public ref Matrix4x4 WorldTransform => ref Transform.WorldMatrix;
 
@@ -129,7 +117,7 @@ public partial class Entity //: IEnumerable<Component>
 
     public IEnumerator<Component> GetEnumerator() => Components.GetEnumerator();
 
-    //IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
     /// Adds the specified component to the entity and returns it.

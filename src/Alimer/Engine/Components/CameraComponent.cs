@@ -55,7 +55,6 @@ public partial class CameraComponent : Component
     [JsonIgnore]
     public BoundingFrustum Frustum { get; set; }
 
-
     public void Update(float? screenAspectRatio = null)
     {
         if (Entity is null)

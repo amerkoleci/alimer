@@ -44,6 +44,28 @@ public unsafe ref struct WriteByteStream : IDisposable
     }
 
     /// <summary>
+    /// Returns the amount of data written to the underlying buffer so far.
+    /// </summary>
+    public readonly int WrittenCount => _index;
+
+    /// <summary>
+    /// Gets the data written to the underlying buffer so far, as a <see cref="ReadOnlyMemory{T}"/>.
+    /// </summary>
+    [UnscopedRef]
+    public readonly ReadOnlyMemory<byte> WrittenMemory
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            byte[]? array = _array;
+
+            ArgumentNullException.ThrowIfNull(array);
+
+            return array.AsMemory(0, _index);
+        }
+    }
+
+    /// <summary>
     /// Gets the data written to the underlying buffer so far, as a <see cref="ReadOnlySpan{T}"/>.
     /// </summary>
     [UnscopedRef]
@@ -99,6 +121,13 @@ public unsafe ref struct WriteByteStream : IDisposable
         Advance(size);
     }
 
+    public void WriteEnum<TEnum, TUnderlying>(TEnum value)
+        where TEnum : unmanaged, Enum
+        where TUnderlying : unmanaged
+    {
+        Write(Unsafe.As<TEnum, TUnderlying>(ref value));
+    }
+
     public void WriteEnum<TEnum>(TEnum value)
         where TEnum : unmanaged, Enum
     {
@@ -134,6 +163,33 @@ public unsafe ref struct WriteByteStream : IDisposable
                 throw new NotSupportedException($"Enum underlying type {underlyingType} is not supported.");
         }
     }
+    public void Write(scoped in Guid value)
+    {
+        Span<byte> buffer = stackalloc byte[16];
+        _ = value.TryWriteBytes(buffer);
+        Write(buffer);
+    }
+
+    public void Write(scoped in TimeSpan value)
+    {
+        Write(value.Ticks);
+    }
+
+    public void Write(scoped in DateTime value)
+    {
+        long ticks = value.ToBinary();
+        Write(ticks);
+    }
+
+    public void Write(scoped in TimeOnly value)
+    {
+        Write(value.Ticks);
+    }
+
+    public void Write(scoped in DateOnly value)
+    {
+        Write(value.DayNumber);
+    }
 
     public void Write(string? value)
     {
@@ -155,9 +211,9 @@ public unsafe ref struct WriteByteStream : IDisposable
     }
 
     public void Write<T>(T data)
-        where T : IByteSerializable
+        where T : IBinarySerializable<T>
     {
-        T.WriteObject(ref this, data);
+        T.Write(ref this, data);
     }
 
     /// <summary>

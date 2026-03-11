@@ -45,17 +45,19 @@ public abstract class DisposableObject : IDisposableObject
     /// <inheritdoc />
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _isDisposed, 1) == 0)
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc cref="Dispose()" />
     /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
     protected virtual void Dispose(bool disposing)
     {
+        if (Interlocked.Exchange(ref _isDisposed, 1) is not 0)
+        {
+            return;
+        }
+
         if (disposing)
         {
             _collector.Dispose();

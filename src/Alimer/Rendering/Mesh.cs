@@ -12,7 +12,7 @@ namespace Alimer.Rendering;
 
 // TODO: Mesh on GPU with CPU access
 
-public sealed unsafe partial class Mesh : Asset, IBinarySerializable
+public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
 {
     //private readonly UnsafeList<Vector3> _positions = [];
     private VertexAttribute[] _vertexAttributes;
@@ -398,9 +398,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable
         return false;
     }
 
-    public void Serialize(BinarySerializer serializer)
-    {
-    }
+    public static Mesh Read(ref ReadByteStream stream, Mesh? existingInstance) => throw new NotImplementedException();
+    public static void Write(ref WriteByteStream stream, Mesh value) => throw new NotImplementedException();
 
     public unsafe class CpuBuffer
     {

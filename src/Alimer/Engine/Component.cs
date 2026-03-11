@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.Serialization;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
+using Alimer.Serialization;
 
 namespace Alimer.Engine;
 
@@ -11,33 +9,37 @@ namespace Alimer.Engine;
 /// Defines a component that can be attached to an <see cref="Entity"/>.
 /// </summary>
 [Meta]
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "__type")]
-[JsonDerivedType(typeof(TransformComponent), "TransformComponent")]
-[JsonDerivedType(typeof(CameraComponent), "CameraComponent")]
-public abstract partial class Component
+public abstract partial class Component : ISerializable
 {
-    [IgnoreDataMember]
-    [JsonIgnore]
+    /// <summary>
+	/// The version of the component.
+	/// </summary>
+    public virtual int ComponentVersion => 0;
+
     public Entity? Entity { get; internal set; }
 
-    [JsonPropertyName("Enabled")]
-    [JsonPropertyOrder(-10)]
     public virtual bool IsEnabled { get; set; } = true;
 
-    public JsonNode Serialize(Entity.SerializeOptions? options = default)
+    public void Serialize(Serializer serializer)
     {
-        var json = new JsonObject
-        {
-            { "Type", GetType().Name },
-            { "Version", 1 },
-            { "Enabled", IsEnabled },
-        };
+        serializer.Write(Keys.IsEnabled, IsEnabled);
 
-        return json;
+        OnSerialize(serializer);
     }
 
-    public virtual void Deserialize(JsonObject json)
+    public void Deserialize(Deserializer deserializer)
     {
-        IsEnabled = json.GetPropertyValue("Enabled", true);
+        //IsEnabled = deserializer.ReadInt32(Keys.IsEnabled, IsEnabled ? 1 : 0) != 0;
+    }
+
+    protected virtual void OnSerialize(Serializer serializer)
+    {
+
+    }
+
+    internal static class Keys
+    {
+        public const string Id = "Id";
+        public const string IsEnabled = nameof(Component.IsEnabled);
     }
 }

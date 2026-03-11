@@ -16,12 +16,14 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
     private readonly HashSet<Entity> _entities = [];
     private readonly Dictionary<Type, List<EntitySystem>> _systemsPerComponentType = [];
 
-    public static bool RegisterSystemFactory<T>() where T : EntitySystem, new()
+    public static bool RegisterSystemFactory<T>()
+        where T : EntitySystem, new()
     {
         return s_registeredFactories.TryAdd(typeof(T), (services) => new T());
     }
 
-    public static bool RegisterSystemFactory<T>(Func<IServiceRegistry, T> factory) where T : EntitySystem
+    public static bool RegisterSystemFactory<T>(Func<IServiceRegistry, T> factory)
+        where T : EntitySystem
     {
         return s_registeredFactories.TryAdd(typeof(T), factory);
     }
@@ -209,6 +211,8 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
                     Systems.Add(system);
                     return;
                 }
+
+                //EntitySystem system = (EntitySystem)Activator.CreateInstance(entitySystemAttribute.Type, new[] { Services });
 
                 throw new InvalidOperationException("No EntitySystem registered");
             }

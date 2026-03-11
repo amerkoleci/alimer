@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Alimer.Serialization.Json;
 
 namespace Alimer.Serialization;
@@ -15,29 +14,39 @@ namespace Alimer.Serialization;
 /// property indicates the current serialization mode, which may affect how data is processed.</remarks>
 public abstract partial class Serializer : IDisposable
 {
-    public static Serializer CreateJson(Stream stream, JsonWriterOptions options = default) => new JsonEngineSerializer(stream, options);
+    public const string TypeKey = "__type";
+    public const string VersionKey = "__version";
 
-    /// <summary>
-    /// Serializes a single <strong>byte</strong> value.
-    /// </summary>
-    /// <param name="name">The property name to serialize.</param>
-    /// <param name="value">The value to serialize</param>
-    /// <returns>
-    /// <see cref="SerializationResult"/> describing the result of the serialization operation.
-    /// </returns>
-    public abstract SerializationResult Serialize(string name, byte value);
-
-	public abstract SerializationResult BeginObject(string name, string? typeName = default);
-    public abstract SerializationResult EndObject();
-
-    public SerializationResult Serialize<T>(T value)
-        where T : ISerializable
-    {
-        if (value is null)
-            return SerializationResult.NullValue;
-
-        return value.Serialize(this);
-    }
+    public static Serializer CreateJson(Stream stream, JsonWriterOptions options = default) => new JsonEngineSerializer(stream, false, options);
+    public static Serializer CreateJson(Stream stream, bool leaveOpen, JsonWriterOptions options = default) => new JsonEngineSerializer(stream, leaveOpen, options);
 
     public abstract void Dispose();
+
+    public abstract void Write(string propertyName, bool value);
+    public abstract void Write(string propertyName, byte value);
+    public abstract void Write(string propertyName, sbyte value);
+    public abstract void Write(string propertyName, short value);
+    public abstract void Write(string propertyName, ushort value);
+    public abstract void Write(string propertyName, int value);
+    public abstract void Write(string propertyName, uint value);
+    public abstract void Write(string propertyName, long value);
+    public abstract void Write(string propertyName, ulong value);
+    public abstract void Write(string propertyName, float value);
+    public abstract void Write(string propertyName, double value);
+    public abstract void Write(string propertyName, string value);
+    public abstract void Write(string propertyName, Guid value);
+
+    public void Write<TEnum>(string propertyName, scoped in TEnum value)
+        where TEnum : struct, Enum
+    {
+        Write(propertyName, value);
+    }
+
+    public void WriteType(string value) => Write(TypeKey, value);
+    public void WriteVersion(int value) => Write(VersionKey, value);
+
+    public abstract void BeginObject(string? propertyName = default, string? typeName = default, int? version = default);
+    public abstract void EndObject();
+    public abstract void BeginArray(string propertyName);
+    public abstract void EndArray();
 }
