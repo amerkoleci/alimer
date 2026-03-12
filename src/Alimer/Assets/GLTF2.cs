@@ -794,22 +794,26 @@ public partial class Gltf2
         where T : struct, Enum
     {
         private readonly bool serializeAsNumber = serializeAsNumber;
-        private readonly Dictionary<string, T> fromJsonString = jsonValues;
-        private readonly Dictionary<T, string> toJsonString = jsonValues.ToDictionary(it => it.Value, it => it.Key);
-        private static readonly Dictionary<int, T> fromJsonNumber = Enum.GetValues<T>().ToDictionary(it => (int)(object)it, it => it);
-        private static readonly Dictionary<T, int> toJsonNumber = Enum.GetValues<T>().ToDictionary(it => it, it => (int)(object)it);
+        private readonly Dictionary<string, T> _fromJsonString = jsonValues;
+        private readonly Dictionary<T, string> _toJsonString = jsonValues.ToDictionary(it => it.Value, it => it.Key);
+        private static readonly Dictionary<int, T> _fromJsonNumber = Enum.GetValues<T>().ToDictionary(it => (int)(object)it, it => it);
+        private static readonly Dictionary<T, int> _toJsonNumber = Enum.GetValues<T>().ToDictionary(it => it, it => (int)(object)it);
 
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonTokenType.String &&
-                reader.GetString() is { } str &&
-                fromJsonString.TryGetValue(str, out T result))
+            if (reader.TokenType == JsonTokenType.String
+                && reader.GetString() is { } str
+                && _fromJsonString.TryGetValue(str, out T result))
+            {
                 return result;
+            }
 
-            if (reader.TokenType == JsonTokenType.Number &&
-                reader.TryGetInt32(out int number) &&
-                fromJsonNumber.TryGetValue(number, out result))
+            if (reader.TokenType == JsonTokenType.Number
+                && reader.TryGetInt32(out int number)
+                && _fromJsonNumber.TryGetValue(number, out result))
+            {
                 return result;
+            }
 
             return default;
         }
@@ -818,14 +822,14 @@ public partial class Gltf2
         {
             if (serializeAsNumber)
             {
-                if (toJsonNumber.TryGetValue(value, out int num))
+                if (_toJsonNumber.TryGetValue(value, out int num))
                     writer.WriteNumberValue(num);
                 else
                     writer.WriteNumberValue(0);
             }
             else
             {
-                if (toJsonString.TryGetValue(value, out string? str))
+                if (_toJsonString.TryGetValue(value, out string? str))
                     writer.WriteStringValue(str);
                 else
                     writer.WriteStringValue(string.Empty);

@@ -6,7 +6,7 @@ using Alimer.Serialization;
 namespace Alimer.Engine;
 
 /// <summary>
-/// Defines a component that can be attached to an <see cref="Entity"/>.
+/// Defines a component that can be attached to an <see cref="Alimer.Engine.Entity"/>.
 /// </summary>
 [Meta]
 public abstract partial class Component : ISerializable
@@ -20,19 +20,22 @@ public abstract partial class Component : ISerializable
 
     public virtual bool IsEnabled { get; set; } = true;
 
-    public void Serialize(Serializer serializer)
+    public void Serialize(ObjectSerializer serializer)
     {
+        string componentTypeName = GetType().Name;
+        //using ObjectSerializer objectSerializer = serializer.BeginObject();
+        serializer.WriteType(componentTypeName);
+        serializer.WriteVersion(ComponentVersion);
         serializer.Write(Keys.IsEnabled, IsEnabled);
-
         OnSerialize(serializer);
     }
 
-    public void Deserialize(Deserializer deserializer)
+    public void Deserialize(ObjectDeserializer deserializer)
     {
-        //IsEnabled = deserializer.ReadInt32(Keys.IsEnabled, IsEnabled ? 1 : 0) != 0;
+        //IsEnabled = deserializer.ReadBool(Keys.IsEnabled, IsEnabled);
     }
 
-    protected virtual void OnSerialize(Serializer serializer)
+    protected virtual void OnSerialize(ObjectSerializer serializer)
     {
 
     }

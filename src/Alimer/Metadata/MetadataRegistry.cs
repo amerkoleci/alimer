@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Reflection;
 
 namespace Alimer;
@@ -18,40 +17,17 @@ public enum MetadataTypeKind
     Object,
 }
 
-/// <summary>
-/// Gets the visibility of an element.
-/// </summary>
-public enum MetadataTypeVisibility
-{
-    /// <summary>
-    /// `public` visibility
-    /// </summary>
-    Public,
-
-    /// <summary>
-    /// `protected` visibility
-    /// </summary>
-    Protected,
-
-    /// <summary>
-    /// `private` visibility
-    /// </summary>
-    Private,
-}
-
 public interface ITypeMetadata
 {
     Type Type { get; }
     MetadataTypeKind Kind { get; }
     Func<object>? CreateObject { get; set; }
-    MetadataTypeVisibility Visibility { get; }
     int SizeOf { get; }
 }
 
 public interface IPrimitiveTypeMetadata : ITypeMetadata
 {
     MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.Primitive;
-    MetadataTypeVisibility ITypeMetadata.Visibility => MetadataTypeVisibility.Public;
 }
 
 public interface IEnumTypeMetadata : ITypeMetadata
@@ -112,21 +88,19 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
     where TEnum : struct, Enum
     where TUnderlying : unmanaged
 {
-    public EnumTypeMetadata(MetadataTypeVisibility visibility = MetadataTypeVisibility.Public)
+    public EnumTypeMetadata()
     {
         Type = typeof(TEnum);
         UnderlyingType = MetadataRegistry.GetPrimitiveTypeMetadata<TUnderlying>();
         CreateObject = () => new TEnum();
         SizeOf = UnderlyingType.SizeOf;
         IsFlags = typeof(TEnum).GetCustomAttribute<FlagsAttribute>() != null;
-        Visibility = visibility;
     }
 
     public Type Type { get; }
     public IPrimitiveTypeMetadata UnderlyingType { get; }
     public Func<object>? CreateObject { get; set; }
     public int SizeOf { get; }
-    public MetadataTypeVisibility Visibility { get; set; }
     public bool IsFlags { get; }
     public required IReadOnlyList<EnumItem> Items { get; init; }
 }
@@ -143,22 +117,29 @@ public sealed class PropertyMetadata
     public Type PropertyType { get; init; } = default!;
 }
 
-public sealed class ObjectTypeMetadata<TObject> : IObjectTypeMetadata
+public class ObjectTypeMetadata : IObjectTypeMetadata
 {
     public Type Type { get; }
 
     public IReadOnlyList<PropertyMetadata> Properties => throw new NotImplementedException();
 
-    public ObjectTypeMetadata(Func<object>? createObject = default)
+    public ObjectTypeMetadata(Type type)
     {
-        Type = typeof(TObject);
-        CreateObject = createObject;
+        Type = type;
         SizeOf = 0;
     }
 
     public Func<object>? CreateObject { get; set; }
     public int SizeOf { get; }
-    public MetadataTypeVisibility Visibility { get; set; }
+}
+
+public sealed class ObjectTypeMetadata<TObject> : ObjectTypeMetadata
+{
+
+    public ObjectTypeMetadata()
+        : base(typeof(TObject))
+    {
+    }
 }
 
 public static class MetadataRegistry
@@ -202,7 +183,7 @@ public static class MetadataRegistry
         s_types[type] = metadata;
     }
 
-    public static IEnumTypeMetadata RegisterEnumType<TEnum, TUnderlying>(MetadataTypeVisibility visibility = MetadataTypeVisibility.Public)
+    public static IEnumTypeMetadata RegisterEnumType<TEnum, TUnderlying>()
         where TEnum : struct,
         Enum where TUnderlying : unmanaged
     {
@@ -211,13 +192,13 @@ public static class MetadataRegistry
         {
             if (existingMetadata is not IEnumTypeMetadata enumTypeMetadata)
             {
-                throw new InvalidOperationException($"Metadata for type {type.FullName} is not of type {typeof(IEnumTypeMetadata).FullName}.");
+                throw new InvalidOperationException($"Metadata for type {type.Name} is not of type {typeof(IEnumTypeMetadata).Name}.");
             }
 
             return enumTypeMetadata;
         }
 
-        EnumTypeMetadata<TEnum, TUnderlying> metadata = new(visibility)
+        EnumTypeMetadata<TEnum, TUnderlying> metadata = new()
         {
             Items = Enum.GetValues<TEnum>()
                     .Select(value => new EnumItem(Enum.GetName(value)!, Convert.ToInt64(value)))
@@ -225,6 +206,40 @@ public static class MetadataRegistry
         };
         s_types[type] = metadata;
         return metadata;
+    }
+
+    public static IObjectTypeMetadata RegisterObjectType(Type type, Func<object>? createObject = default)
+    {
+        if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
+        {
+            if (existingMetadata is not IObjectTypeMetadata objectTypeMetadata)
+            {
+                throw new InvalidOperationException($"Metadata for type {type.Name} is not of type {typeof(IObjectTypeMetadata).Name}.");
+            }
+
+            return objectTypeMetadata;
+        }
+
+        Type? baseType = type.BaseType;
+        if (baseType is not null && baseType != typeof(object))
+        {
+            RegisterObjectType(baseType);
+        }
+
+        ObjectTypeMetadata metadata = new(type)
+        {
+            CreateObject = createObject
+        };
+
+        s_types[type] = metadata;
+        return metadata;
+    }
+
+    public static IObjectTypeMetadata RegisterObjectType<TObject>()
+        where TObject : class, new()
+    {
+        Type type = typeof(TObject);
+        return RegisterObjectType(type, () => new TObject());
     }
 
     public static void Prepare()
@@ -312,6 +327,28 @@ public static class MetadataRegistry
         throw new InvalidOperationException($"No metadata found for type name {typeName}");
     }
 
+    public static T CreateInstance<T>()
+    {
+        ITypeMetadata metadata = GetMetadata(typeof(T));
+        if (metadata.CreateObject == null)
+        {
+            throw new InvalidOperationException($"Type {typeof(T).FullName} does not have a parameterless constructor or factory method.");
+        }
+
+        return (T)metadata.CreateObject();
+    }
+
+    public static T CreateInstance<T>(string typeName)
+    {
+        ITypeMetadata metadata = GetMetadata(typeName);
+        if (metadata.CreateObject == null)
+        {
+            throw new InvalidOperationException($"Type {typeName} does not have a parameterless constructor or factory method.");
+        }
+
+        return (T)metadata.CreateObject();
+    }
+
     public static TTypeMetadata GetMetadata<T, TTypeMetadata>()
         where TTypeMetadata : ITypeMetadata
     {
@@ -382,10 +419,10 @@ public static class MetadataRegistry
         // The beauty of this approach is that it discovers base types which may be
         // in other modules, and works in reflection-free mode since BaseType is
         // always supported by every C# environment, even AOT environments.
-        foreach (var type in types)
+        foreach (Type type in types)
         {
-            var lastType = type;
-            var baseType = type.BaseType;
+            Type lastType = type;
+            Type? baseType = type.BaseType;
 
             // As far as we know, any type could be a base type.
             if (!s_typesByBaseType.ContainsKey(type))
@@ -395,7 +432,7 @@ public static class MetadataRegistry
 
             while (baseType != null)
             {
-                if (!s_typesByBaseType.TryGetValue(baseType, out var existingSet))
+                if (!s_typesByBaseType.TryGetValue(baseType, out HashSet<Type>? existingSet))
                 {
                     existingSet = [];
                     s_typesByBaseType[baseType] = existingSet;

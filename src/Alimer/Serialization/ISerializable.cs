@@ -5,6 +5,6 @@ namespace Alimer.Serialization;
 
 public interface ISerializable
 {
-    void Serialize(Serializer serializer);
-    void Deserialize(Deserializer deserializer);
+    void Serialize(ObjectSerializer serializer);
+    void Deserialize(ObjectDeserializer deserializer);
 }

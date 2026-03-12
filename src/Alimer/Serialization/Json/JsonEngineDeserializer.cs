@@ -1,18 +1,42 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Text;
 using System.Text.Json;
 
 namespace Alimer.Serialization.Json;
 
-internal partial class JsonEngineDeserializer : Deserializer, IDisposable
+internal partial class JsonEngineDeserializer : Deserializer
 {
-    private readonly Stream _stream;
-    private readonly JsonReaderOptions _options;
     private readonly byte[] _buffer;
+    private readonly JsonReaderOptions _options;
     private readonly JsonElement _rootElement;
     private JsonElement _currentElement;
+    private readonly List<JsonElement> _elements = [];
     private JsonElement.ArrayEnumerator _currentArrayEnumerator;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonEngineSerializer" /> class.
+    /// </summary>
+    /// <param name="stream">The stream to read or write to.</param>
+    public JsonEngineDeserializer(string json)
+    {
+        _options = new JsonReaderOptions
+        {
+            AllowTrailingCommas = true,
+            CommentHandling = JsonCommentHandling.Skip
+        };
+
+        _buffer = Encoding.UTF8.GetBytes(json);
+        Utf8JsonReader reader = new(_buffer, _options);
+        _rootElement = JsonElement.ParseValue(ref reader);
+        if (_rootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonException("Expected start of JSON object.");
+        }
+
+        _currentElement = _rootElement;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonEngineSerializer" /> class.
@@ -20,7 +44,6 @@ internal partial class JsonEngineDeserializer : Deserializer, IDisposable
     /// <param name="stream">The stream to read or write to.</param>
     public JsonEngineDeserializer(Stream stream)
     {
-        _stream = stream;
         _options = new JsonReaderOptions
         {
             AllowTrailingCommas = true,
@@ -52,69 +75,10 @@ internal partial class JsonEngineDeserializer : Deserializer, IDisposable
         _currentElement = _rootElement;
     }
 
-    /// <inheritdoc />
-    public override void Dispose()
+    public override ObjectDeserializer BeginObject()
     {
-    }
-
-    //public override SerializationResult BeginObject(string name, string? typeName = null)
-    //{
-    //    ReadOnlySpan<byte> span = _buffer.AsSpan(_readerPosition);
-    //    Utf8JsonReader reader = new(span, _options);
-    //    reader.Read();
-    //    if (reader.TokenType != JsonTokenType.StartObject)
-    //    {
-    //        throw new JsonException("Expected start of JSON object.");
-    //    }
-
-    //    _readerPosition += (int)reader.BytesConsumed;
-    //    return SerializationResult.Ok;
-    //}
-
-    //public override SerializationResult EndObject()
-    //{
-    //    ReadOnlySpan<byte> span = _buffer.AsSpan(_readerPosition);
-    //    Utf8JsonReader reader = new(span, _options);
-    //    reader.Read();
-    //    if (reader.TokenType != JsonTokenType.EndObject)
-    //    {
-    //        throw new JsonException("Expected end of JSON object.");
-    //    }
-    //    _readerPosition += (int)reader.BytesConsumed;
-    //    return SerializationResult.Ok;
-    //}
-
-    /// <inheritdoc />
-    public override int ReadInt32(string propertyName, int defaultValue)
-    {
-        if (!_currentElement.TryGetProperty(propertyName, out JsonElement property))
-        {
-            //throw new JsonException($"Property '{name}' not found.");
-            return defaultValue;
-        }
-
-        return property.GetInt32();
-    }
-
-    public override string? ReadString(string propertyName, string? defaultValue = null)
-    {
-        if (!_currentElement.TryGetProperty(propertyName, out JsonElement property))
-        {
-            return defaultValue;
-        }
-
-        return property.GetString();
-    }
-
-    public override Guid ReadGuid(string propertyName, Guid defaultValue = default)
-    {
-        if (!_currentElement.TryGetProperty(propertyName, out JsonElement property))
-        {
-            return defaultValue;
-        }
-
-        string? guidString = property.GetString();
-        return string.IsNullOrEmpty(guidString) ? defaultValue : Guid.Parse(guidString);
+        _elements.Add(_currentElement);
+        return new JsonObjectDeserializer(this, _currentElement);
     }
 
     public override bool BeginObject(string? propertyName = null)
@@ -142,14 +106,18 @@ internal partial class JsonEngineDeserializer : Deserializer, IDisposable
             throw new JsonException($"Property '{propertyName}' is not an object.");
         }
 
-        // Store the object element for subsequent reads
+        _elements.Add(_currentElement);
         _currentElement = property;
         return true;
     }
 
-    public override void EndObject()
+    public void EndObject()
     {
-        _currentElement = _rootElement;
+        if (_elements.Count == 0)
+            throw new InvalidOperationException();
+
+        _currentElement = _elements[_elements.Count - 1];
+        _elements.RemoveAt(_elements.Count - 1);
     }
 
     public override int BeginArray(string propertyName)
@@ -164,8 +132,7 @@ internal partial class JsonEngineDeserializer : Deserializer, IDisposable
             throw new JsonException($"Property '{propertyName}' is not an array.");
         }
 
-        // Store the array element for subsequent reads
-        //_currentArray = property.EnumerateArray();
+        _elements.Add(_currentElement);
         _currentElement = property;
         _currentArrayEnumerator = property.EnumerateArray();
         return property.GetArrayLength();
@@ -173,8 +140,69 @@ internal partial class JsonEngineDeserializer : Deserializer, IDisposable
 
     public override void EndArray()
     {
-        // TODO: Stack with elements
+        EndObject();
+    }
 
-        _currentElement = _rootElement;
+    class JsonObjectDeserializer : ObjectDeserializer
+    {
+        private readonly JsonEngineDeserializer _deserializer;
+        private readonly JsonElement _jsonElement;
+
+        public JsonObjectDeserializer(JsonEngineDeserializer deserializer, JsonElement jsonElement)
+        {
+            _deserializer = deserializer;
+            _jsonElement = jsonElement;
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            _deserializer.EndObject();
+        }
+
+        /// <inheritdoc />
+        public override bool ReadBool(string propertyName, bool defaultValue = false)
+        {
+            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
+            {
+                return defaultValue;
+            }
+
+            return property.GetBoolean();
+        }
+
+        /// <inheritdoc />
+        public override int ReadInt32(string propertyName, int defaultValue)
+        {
+            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
+            {
+                return defaultValue;
+            }
+
+            return property.GetInt32();
+        }
+
+        /// <inheritdoc />
+        public override string? ReadString(string propertyName, string? defaultValue = null)
+        {
+            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
+            {
+                return defaultValue;
+            }
+
+            return property.GetString();
+        }
+
+        /// <inheritdoc />
+        public override Guid ReadGuid(string propertyName, Guid defaultValue = default)
+        {
+            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
+            {
+                return defaultValue;
+            }
+
+            string? guidString = property.GetString();
+            return string.IsNullOrEmpty(guidString) ? defaultValue : Guid.Parse(guidString);
+        }
     }
 }

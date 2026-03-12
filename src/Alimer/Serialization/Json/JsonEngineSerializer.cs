@@ -1,12 +1,8 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-using Alimer.Rendering;
 
 namespace Alimer.Serialization.Json;
 
@@ -32,7 +28,6 @@ internal partial class JsonEngineSerializer : Serializer, IDisposable
         _leaveOpen = leaveOpen;
 
         _writer = new Utf8JsonWriter(stream, options);
-        _writer.WriteStartObject();
     }
 
     ~JsonEngineSerializer()
@@ -56,7 +51,6 @@ internal partial class JsonEngineSerializer : Serializer, IDisposable
 
         if (disposing)
         {
-            _writer.WriteEndObject();
             _writer.Flush();
             _writer.Dispose();
 
@@ -75,12 +69,64 @@ internal partial class JsonEngineSerializer : Serializer, IDisposable
         _writer.Flush();
     }
 
-    ///// <inheritdoc />
-    //public override IObjectSerializer Serialize(string name, byte value)
-    //{
-    //    _writer.WriteNumber(name, value);
-    //    return SerializationResult.Ok;
-    //}
+    /// <inheritdoc />
+    public override ObjectSerializer BeginObject()
+    {
+        return new JsonObjectSerializer(_writer, false);
+    }
+
+    /// <inheritdoc />
+    public override ObjectSerializer BeginArray()
+    {
+        return new JsonObjectSerializer(_writer, true);
+    }
+}
+
+class JsonObjectSerializer : ObjectSerializer
+{
+    private Utf8JsonWriter _writer;
+    private readonly bool _isArray;
+
+    public JsonObjectSerializer(Utf8JsonWriter writer, bool isArray, string? propertyName = default)
+    {
+        _writer = writer;
+        _isArray = isArray;
+
+        if (isArray)
+        {
+            if (string.IsNullOrEmpty(propertyName))
+            {
+                _writer.WriteStartArray();
+            }
+            else
+            {
+                _writer.WriteStartArray(propertyName);
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(propertyName))
+            {
+                _writer.WriteStartObject();
+            }
+            else
+            {
+                _writer.WriteStartObject(propertyName);
+            }
+        }
+    }
+
+    public override void Dispose()
+    {
+        if (_isArray)
+        {
+            _writer.WriteEndArray();
+        }
+        else
+        {
+            _writer.WriteEndObject();
+        }
+    }
 
     /// <inheritdoc />
     public override void Write(string propertyName, bool value)
@@ -161,43 +207,27 @@ internal partial class JsonEngineSerializer : Serializer, IDisposable
     }
 
     /// <inheritdoc />
-    public override void BeginObject(string? propertyName, string? typeName = default, int? version = default)
+    public override void Write(string propertyName, scoped ReadOnlySpan<float> values)
     {
-        if (string.IsNullOrEmpty(propertyName))
-        {
-            _writer.WriteStartObject();
-        }
-        else
-        {
-            _writer.WriteStartObject(propertyName);
-        }
-
-        if (!string.IsNullOrEmpty(typeName))
-        {
-            _writer.WriteString(TypeKey, typeName);
-        }
-
-        if (version.HasValue)
-        {
-            _writer.WriteNumber(VersionKey, version.Value);
-        }
+        var result = new StringBuilder();
+        result.Append("[ ");
+        result.Append($"{values[0]}");
+        for (int i = 1; i < values.Length; i++)
+            result.Append($", {values[i]}");
+        result.Append(" ]");
+        _writer.WritePropertyName(propertyName);
+        _writer.WriteRawValue(result.ToString());
     }
 
     /// <inheritdoc />
-    public override void EndObject()
+    public override ObjectSerializer BeginArray(string? propertyName = default)
     {
-        //JsonMetadataServices.GetEnumConverter<>.Write()
-
-        _writer.WriteEndObject();
+        return new JsonObjectSerializer(_writer, true, propertyName);
     }
 
-    public override void BeginArray(string propertyName)
+    /// <inheritdoc />
+    public override ObjectSerializer BeginObject(string? propertyName = default)
     {
-        _writer.WriteStartArray(propertyName);
-    }
-
-    public override void EndArray()
-    {
-        _writer.WriteEndArray();
+        return new JsonObjectSerializer(_writer, false, propertyName);
     }
 }

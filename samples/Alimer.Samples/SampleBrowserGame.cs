@@ -28,28 +28,25 @@ public sealed class SampleBrowserGame : Game
         base.Initialize();
 
         {
-            Guid guid = Guid.NewGuid();
+            var testEntity = new Entity("Test Entity");
+            CameraComponent camera = testEntity.AddComponent<CameraComponent>();
+            camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
+            RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
+
             using MemoryStream memoryStream = new();
             using (var serializer = Serializer.CreateJson(memoryStream, true, new JsonWriterOptions() { Indented = true }))
             {
-                var testEntity = new Entity("Test Entity");
-                CameraComponent camera = testEntity.AddComponent<CameraComponent>();
-                camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
-
-                RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
-                testEntity.Serialize(serializer);
-
-                //serializer.Write("Id", guid);
-                serializer.BeginObject("Inner");
-                serializer.EndObject();
+                using ObjectSerializer objectSerializer = serializer.BeginObject();
+                testEntity.Serialize(objectSerializer);
             }
             var json = Encoding.UTF8.GetString(memoryStream.ToArray());
 
-            memoryStream.Position = 0;
-            using (var deserializer = Deserializer.CreateJson(memoryStream))
+            // Deserialize
             {
+                var deserializer = Deserializer.CreateJson(json);
+                using ObjectDeserializer objectDeserializer = deserializer.BeginObject();
                 var testLoadEntity = new Entity();
-                testLoadEntity.Deserialize(deserializer);
+                testLoadEntity.Deserialize(objectDeserializer);
             }
         }
 
