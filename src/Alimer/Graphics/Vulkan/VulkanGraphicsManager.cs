@@ -33,218 +33,216 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         VkResult result = VK_SUCCESS;
 
         // Create instance first.
+        vkEnumerateInstanceLayerProperties(out uint availableInstanceLayerCount).CheckResult();
+        Span<VkLayerProperties> availableInstanceLayers = stackalloc VkLayerProperties[(int)availableInstanceLayerCount];
+        vkEnumerateInstanceLayerProperties(availableInstanceLayers).CheckResult();
+
+        uint extensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(null, &extensionCount, null).CheckResult();
+        VkExtensionProperties* availableInstanceExtensions = stackalloc VkExtensionProperties[(int)extensionCount];
+        vkEnumerateInstanceExtensionProperties(null, &extensionCount, availableInstanceExtensions).CheckResult();
+
+        UnsafeList<Utf8String> instanceExtensions = [];
+        UnsafeList<Utf8String> instanceLayers = [];
+        bool validationFeatures = false;
+        bool hasPortability = false;
+        for (int i = 0; i < extensionCount; i++)
         {
-            vkEnumerateInstanceLayerProperties(out uint availableInstanceLayerCount).CheckResult();
-            Span<VkLayerProperties> availableInstanceLayers = stackalloc VkLayerProperties[(int)availableInstanceLayerCount];
-            vkEnumerateInstanceLayerProperties(availableInstanceLayers).CheckResult();
-
-            uint extensionCount = 0;
-            vkEnumerateInstanceExtensionProperties(null, &extensionCount, null).CheckResult();
-            VkExtensionProperties* availableInstanceExtensions = stackalloc VkExtensionProperties[(int)extensionCount];
-            vkEnumerateInstanceExtensionProperties(null, &extensionCount, availableInstanceExtensions).CheckResult();
-
-            UnsafeList<Utf8String> instanceExtensions = [];
-            UnsafeList<Utf8String> instanceLayers = [];
-            bool validationFeatures = false;
-            bool hasPortability = false;
-            for (int i = 0; i < extensionCount; i++)
+            Utf8String extensionName = new(availableInstanceExtensions[i].extensionName);
+            if (extensionName == VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
             {
-                Utf8String extensionName = new(availableInstanceExtensions[i].extensionName);
-                if (extensionName == VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
-                {
-                    DebugUtils = true;
-                    instanceExtensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-                }
-                else if (extensionName == VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
-                {
-                    instanceExtensions.Add(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-                }
-                else if (extensionName == VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)
-                {
-                    hasPortability = true;
-                    instanceExtensions.Add(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-                }
-                else if (extensionName == VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME)
-                {
-                    instanceExtensions.Add(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
-                }
-                else if (extensionName == VK_KHR_XLIB_SURFACE_EXTENSION_NAME)
-                {
-                    HasXlibSurface = true;
-                }
-                else if (extensionName == VK_KHR_XCB_SURFACE_EXTENSION_NAME)
-                {
-                    HasXcbSurface = true;
-                }
-                else if (extensionName == VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME)
-                {
-                    HasWaylandSurface = true;
-                }
+                DebugUtils = true;
+                instanceExtensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
             }
-            instanceExtensions.Add(VK_KHR_SURFACE_EXTENSION_NAME);
-
-            // Enable surface extensions depending on os
-            if (OperatingSystem.IsAndroid())
+            else if (extensionName == VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
             {
-                instanceExtensions.Add(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-            }
-            else if (OperatingSystem.IsWindows())
-            {
-                instanceExtensions.Add(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-            }
-            else if (OperatingSystem.IsLinux())
-            {
-                if (HasXlibSurface)
-                {
-                    instanceExtensions.Add(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
-                }
-                else if (HasXcbSurface)
-                {
-                    instanceExtensions.Add(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-                }
-
-                if (HasWaylandSurface)
-                {
-                    instanceExtensions.Add(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-                }
-            }
-            else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
-            {
-                instanceExtensions.Add(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
                 instanceExtensions.Add(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            }
+            else if (extensionName == VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)
+            {
+                hasPortability = true;
                 instanceExtensions.Add(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
             }
-
-            //if (HasHeadlessSurface)
-            //{
-            //    instanceExtensions.Add(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
-            //}
-
-            if (options.ValidationMode != GraphicsValidationMode.Disabled)
+            else if (extensionName == VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME)
             {
-                // Determine the optimal validation layers to enable that are necessary for useful debugging
-                UnsafeList<Utf8String> validationLayers =
-                [
-                    VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME
-                ];
-                if (ValidateLayers(validationLayers, availableInstanceLayers))
-                {
-                    instanceLayers.Add(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME);
-                }
+                instanceExtensions.Add(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+            }
+            else if (extensionName == VK_KHR_XLIB_SURFACE_EXTENSION_NAME)
+            {
+                HasXlibSurface = true;
+            }
+            else if (extensionName == VK_KHR_XCB_SURFACE_EXTENSION_NAME)
+            {
+                HasXcbSurface = true;
+            }
+            else if (extensionName == VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME)
+            {
+                HasWaylandSurface = true;
+            }
+        }
+        instanceExtensions.Add(VK_KHR_SURFACE_EXTENSION_NAME);
+
+        // Enable surface extensions depending on os
+        if (OperatingSystem.IsAndroid())
+        {
+            instanceExtensions.Add(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            instanceExtensions.Add(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            if (HasXlibSurface)
+            {
+                instanceExtensions.Add(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+            }
+            else if (HasXcbSurface)
+            {
+                instanceExtensions.Add(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
             }
 
-            if (options.ValidationMode == GraphicsValidationMode.Gpu)
+            if (HasWaylandSurface)
             {
-                vkEnumerateInstanceExtensionProperties(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME, out uint propertyCount).CheckResult();
-                Span<VkExtensionProperties> availableLayerInstanceExtensions = stackalloc VkExtensionProperties[(int)propertyCount];
-                vkEnumerateInstanceExtensionProperties(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME, availableLayerInstanceExtensions).CheckResult();
-                for (int i = 0; i < availableLayerInstanceExtensions.Length; i++)
+                instanceExtensions.Add(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+            }
+        }
+        else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
+        {
+            instanceExtensions.Add(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+            instanceExtensions.Add(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            instanceExtensions.Add(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        }
+
+        //if (HasHeadlessSurface)
+        //{
+        //    instanceExtensions.Add(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+        //}
+
+        if (options.ValidationMode != GraphicsValidationMode.Disabled)
+        {
+            // Determine the optimal validation layers to enable that are necessary for useful debugging
+            UnsafeList<Utf8String> validationLayers =
+            [
+                VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME
+            ];
+            if (ValidateLayers(validationLayers, availableInstanceLayers))
+            {
+                instanceLayers.Add(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME);
+            }
+        }
+
+        if (options.ValidationMode == GraphicsValidationMode.Gpu)
+        {
+            vkEnumerateInstanceExtensionProperties(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME, out uint propertyCount).CheckResult();
+            Span<VkExtensionProperties> availableLayerInstanceExtensions = stackalloc VkExtensionProperties[(int)propertyCount];
+            vkEnumerateInstanceExtensionProperties(VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME, availableLayerInstanceExtensions).CheckResult();
+            for (int i = 0; i < availableLayerInstanceExtensions.Length; i++)
+            {
+                fixed (byte* pExtensionName = availableLayerInstanceExtensions[i].extensionName)
                 {
-                    fixed (byte* pExtensionName = availableLayerInstanceExtensions[i].extensionName)
+                    Utf8String extensionName = new(pExtensionName);
+                    if (extensionName == VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)
                     {
-                        Utf8String extensionName = new(pExtensionName);
-                        if (extensionName == VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME)
-                        {
-                            validationFeatures = true;
-                            instanceExtensions.Add(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
-                        }
+                        validationFeatures = true;
+                        instanceExtensions.Add(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
                     }
                 }
             }
+        }
 
-            VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = new();
+        VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = new();
 
-            Utf8ReadOnlyString pApplicationName = Label.GetUtf8Span();
-            Utf8ReadOnlyString pEngineName = "Alimer"u8;
+        Utf8ReadOnlyString pApplicationName = Label.GetUtf8Span();
+        Utf8ReadOnlyString pEngineName = "Alimer"u8;
 
-            VkApplicationInfo appInfo = new()
+        VkApplicationInfo appInfo = new()
+        {
+            pApplicationName = pApplicationName,
+            applicationVersion = new VkVersion(1, 0, 0),
+            pEngineName = pEngineName,
+            engineVersion = new VkVersion(1, 0, 0),
+            apiVersion = VK_API_VERSION_1_3
+        };
+
+        using Utf8StringArray vkLayerNames = new(instanceLayers);
+        using Utf8StringArray vkInstanceExtensions = new(instanceExtensions);
+
+        VkInstanceCreateInfo createInfo = new()
+        {
+            flags = hasPortability ? VkInstanceCreateFlags.EnumeratePortabilityKHR : VkInstanceCreateFlags.None,
+            pApplicationInfo = &appInfo,
+            enabledLayerCount = vkLayerNames.Length,
+            ppEnabledLayerNames = vkLayerNames,
+            enabledExtensionCount = vkInstanceExtensions.Length,
+            ppEnabledExtensionNames = vkInstanceExtensions
+        };
+
+        if (options.ValidationMode != GraphicsValidationMode.Disabled && DebugUtils)
+        {
+            debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
+            debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
+
+            if (options.ValidationMode == GraphicsValidationMode.Verbose)
             {
-                pApplicationName = pApplicationName,
-                applicationVersion = new VkVersion(1, 0, 0),
-                pEngineName = pEngineName,
-                engineVersion = new VkVersion(1, 0, 0),
-                apiVersion = VK_API_VERSION_1_3
-            };
-
-            using Utf8StringArray vkLayerNames = new(instanceLayers);
-            using Utf8StringArray vkInstanceExtensions = new(instanceExtensions);
-
-            VkInstanceCreateInfo createInfo = new()
-            {
-                flags = hasPortability ? VkInstanceCreateFlags.EnumeratePortabilityKHR : VkInstanceCreateFlags.None,
-                pApplicationInfo = &appInfo,
-                enabledLayerCount = vkLayerNames.Length,
-                ppEnabledLayerNames = vkLayerNames,
-                enabledExtensionCount = vkInstanceExtensions.Length,
-                ppEnabledExtensionNames = vkInstanceExtensions
-            };
-
-            if (options.ValidationMode != GraphicsValidationMode.Disabled && DebugUtils)
-            {
-                debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
-                debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
-
-                if (options.ValidationMode == GraphicsValidationMode.Verbose)
-                {
-                    debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Verbose;
-                    debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Info;
-                }
-
-                debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
-                createInfo.pNext = &debugUtilsCreateInfo;
+                debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Verbose;
+                debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Info;
             }
 
-            VkValidationFeaturesEXT validationFeaturesInfo = new();
+            debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
+            createInfo.pNext = &debugUtilsCreateInfo;
+        }
 
-            if (options.ValidationMode == GraphicsValidationMode.Gpu && validationFeatures)
+        VkValidationFeaturesEXT validationFeaturesInfo = new();
+
+        if (options.ValidationMode == GraphicsValidationMode.Gpu && validationFeatures)
+        {
+            VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[2]
             {
-                VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[2]
-                {
                     VkValidationFeatureEnableEXT.GpuAssistedReserveBindingSlot,
                     VkValidationFeatureEnableEXT.GpuAssisted
                 };
 
-                validationFeaturesInfo.enabledValidationFeatureCount = 2;
-                validationFeaturesInfo.pEnabledValidationFeatures = enabledValidationFeatures;
-                validationFeaturesInfo.pNext = createInfo.pNext;
+            validationFeaturesInfo.enabledValidationFeatureCount = 2;
+            validationFeaturesInfo.pEnabledValidationFeatures = enabledValidationFeatures;
+            validationFeaturesInfo.pNext = createInfo.pNext;
 
-                createInfo.pNext = &validationFeaturesInfo;
-            }
+            createInfo.pNext = &validationFeaturesInfo;
+        }
 
-            result = vkCreateInstance(&createInfo, null, out _instance);
-            if (result != VkResult.Success)
-            {
-                throw new InvalidOperationException($"Failed to create vulkan instance: {result}");
-            }
-            _instanceApi = GetApi(_instance);
+        result = vkCreateInstance(&createInfo, null, out _instance);
+        if (result != VkResult.Success)
+        {
+            throw new InvalidOperationException($"Failed to create vulkan instance: {result}");
+        }
+        _instanceApi = GetApi(_instance);
 
-            if (options.ValidationMode != GraphicsValidationMode.Disabled && DebugUtils)
-            {
-                _instanceApi.vkCreateDebugUtilsMessengerEXT(&debugUtilsCreateInfo, null, out _debugMessenger).CheckResult();
-            }
+        if (options.ValidationMode != GraphicsValidationMode.Disabled && DebugUtils)
+        {
+            _instanceApi.vkCreateDebugUtilsMessengerEXT(&debugUtilsCreateInfo, null, out _debugMessenger).CheckResult();
+        }
 
 #if DEBUG
-            Log.Info($"Created VkInstance with version: {appInfo.apiVersion.Major}.{appInfo.apiVersion.Minor}.{appInfo.apiVersion.Patch}");
+        Log.Info($"Created VkInstance with version: {appInfo.apiVersion.Major}.{appInfo.apiVersion.Minor}.{appInfo.apiVersion.Patch}");
 
-            if (createInfo.enabledLayerCount > 0)
+        if (createInfo.enabledLayerCount > 0)
+        {
+            Log.Info($"Enabled {createInfo.enabledLayerCount} Validation Layers:");
+
+            for (uint i = 0; i < createInfo.enabledLayerCount; ++i)
             {
-                Log.Info($"Enabled {createInfo.enabledLayerCount} Validation Layers:");
-
-                for (uint i = 0; i < createInfo.enabledLayerCount; ++i)
-                {
-                    string layerName = VkStringInterop.ConvertToManaged(createInfo.ppEnabledLayerNames[i])!;
-                    Log.Info($"\t{layerName}");
-                }
+                string layerName = VkStringInterop.ConvertToManaged(createInfo.ppEnabledLayerNames[i])!;
+                Log.Info($"\t{layerName}");
             }
-
-            Log.Info($"Enabled {createInfo.enabledExtensionCount} Instance Extensions:");
-            for (uint i = 0; i < createInfo.enabledExtensionCount; ++i)
-            {
-                string extensionName = VkStringInterop.ConvertToManaged(createInfo.ppEnabledExtensionNames[i])!;
-                Log.Info($"\t{extensionName}");
-            }
-#endif
         }
+
+        Log.Info($"Enabled {createInfo.enabledExtensionCount} Instance Extensions:");
+        for (uint i = 0; i < createInfo.enabledExtensionCount; ++i)
+        {
+            string extensionName = VkStringInterop.ConvertToManaged(createInfo.ppEnabledExtensionNames[i])!;
+            Log.Info($"\t{extensionName}");
+        }
+#endif
 
         // Enumerate adapters (physical devices)
         _instanceApi.vkEnumeratePhysicalDevices(out uint adapterCount).CheckResult();

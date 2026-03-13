@@ -315,6 +315,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Debug.Assert(features2.features.sampleRateShading);
         Debug.Assert(features2.features.shaderClipDistance);
         Debug.Assert(features2.features.occlusionQueryPrecise);
+        Debug.Assert(features12.timelineSemaphore);
 
         // Bindless (https://github.com/gfx-rs/wgpu/blob/trunk/wgpu-hal/src/vulkan/adapter.rs)
         Debug.Assert(features12.descriptorIndexing);
@@ -322,7 +323,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Debug.Assert(features12.descriptorBindingPartiallyBound);
         Debug.Assert(features12.descriptorBindingVariableDescriptorCount);
         Debug.Assert(features12.shaderSampledImageArrayNonUniformIndexing);
-        Debug.Assert(features12.timelineSemaphore);
 
         bool synchronization2 = features13.synchronization2 || synchronization2Features.synchronization2;
         bool dynamicRendering = features13.dynamicRendering || dynamicRenderingFeatures.dynamicRendering;

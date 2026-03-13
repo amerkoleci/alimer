@@ -654,6 +654,30 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             pDynamicStates = _pDynamicStates
         };
 
+        if (_adapter.Features12.descriptorIndexing
+            && _adapter.Features12.runtimeDescriptorArray
+            && _adapter.Features12.descriptorBindingPartiallyBound
+            && _adapter.Features12.shaderSampledImageArrayNonUniformIndexing
+            && _adapter.Features12.descriptorBindingVariableDescriptorCount
+            && _adapter.Features12.shaderSampledImageArrayNonUniformIndexing
+            && _adapter.Features12.shaderStorageBufferArrayNonUniformIndexing
+            && _adapter.Features12.shaderStorageImageArrayNonUniformIndexing
+            && _adapter.Features12.shaderUniformTexelBufferArrayNonUniformIndexing
+            && _adapter.Features12.shaderStorageTexelBufferArrayNonUniformIndexing
+            && _adapter.Features12.descriptorBindingSampledImageUpdateAfterBind
+            && _adapter.Features12.descriptorBindingStorageImageUpdateAfterBind
+            && _adapter.Features12.descriptorBindingStorageBufferUpdateAfterBind
+            && _adapter.Features12.descriptorBindingUniformTexelBufferUpdateAfterBind
+            && _adapter.Features12.descriptorBindingStorageTexelBufferUpdateAfterBind
+            && _adapter.Features12.descriptorBindingUpdateUnusedWhilePending
+            && _adapter.Features12.descriptorBindingPartiallyBound
+            //&& extendedFeatures.mutableDescriptorTypeFeatures.mutableDescriptorType
+            )
+        {
+            Bindless = true;
+            BindlessDescriptorSet = new VulkanBindlessDescriptorSet(this);
+        }
+
         // Pipeline Cache
         {
             // TODO: Add cache from disk
@@ -885,6 +909,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public ref readonly VkPipelineDynamicStateCreateInfo DynamicStateInfo => ref _dynamicStateInfo;
 
     public VkPipelineCache PipelineCache { get; }
+    public bool Bindless { get; }
+    public VulkanBindlessDescriptorSet BindlessDescriptorSet { get; }
 
     public VkBuffer NullBuffer => _nullBuffer;
     public VkImageView NullImage1DView => _nullImageView1D;
@@ -944,6 +970,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         _deviceApi.vkDestroyImageView(_nullImageViewCube);
         _deviceApi.vkDestroyImageView(_nullImageViewCubeArray);
         _deviceApi.vkDestroyImageView(_nullImageView3D);
+
+        BindlessDescriptorSet?.Dispose();
 
         ProcessDeletionQueue(true);
         _frameCount = 0;
@@ -1085,12 +1113,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             case Feature.Predication:
                 return _adapter.ConditionalRenderingFeatures.conditionalRendering;
 
-            case Feature.DescriptorIndexing:
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.runtimeDescriptorArray);
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.descriptorBindingPartiallyBound);
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.descriptorBindingVariableDescriptorCount);
-                //Guard.IsTrue(PhysicalDeviceFeatures1_2.shaderSampledImageArrayNonUniformIndexing);
-                return _adapter.Features12.descriptorIndexing;
+            case Feature.Bindless:
+                return Bindless;
 
             case Feature.VariableRateShading:
                 return _adapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate;

@@ -7,6 +7,6 @@ namespace Alimer.Navigation;
 
 [Meta]
 [DefaultEntitySystem(typeof(NavigationSystem))]
-public abstract partial class NavigationMeshComponent : Component
+public partial class NavigationMeshComponent : Component
 {
 }

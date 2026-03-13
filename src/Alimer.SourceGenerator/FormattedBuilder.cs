@@ -31,5 +31,11 @@ internal class FormattedBuilder(StringBuilder builder)
         return this;
     }
 
+    public FormattedBuilder AppendLineNoIndent(string line)
+    {
+        builder.AppendLine(line);
+        return this;
+    }
+
     public override string ToString() => builder.ToString();
 }

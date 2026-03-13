@@ -52,6 +52,7 @@ public abstract class ObjectSerializer : IDisposable
 
     public void Write(string propertyName, Quaternion value)
     {
+
         ReadOnlySpan<float> values = MemoryMarshal.Cast<Quaternion, float>([value]);
         Write(propertyName, values);
     }

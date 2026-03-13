@@ -52,3 +52,4 @@ launchSettings.json
 src/native/build*/
 src/native/win-x64-sdk/
 /samples/Alimer.Samples/*.user
+.generated/

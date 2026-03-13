@@ -7,9 +7,10 @@ namespace Alimer.Navigation;
 
 public class NavigationSystem : EntitySystem<NavigationMeshComponent>
 {
-    public NavigationSystem()
+    public NavigationSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
     {
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
     }
 
     /// <summary>Finalizes an instance of the <see cref="NavigationSystem" /> class.</summary>

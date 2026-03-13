@@ -29,7 +29,7 @@ public enum Feature
     CacheCoherentUMA,
     Predication,
 
-    DescriptorIndexing,
+    Bindless,
     VariableRateShading,
     VariableRateShadingTier2,
     RayTracing,

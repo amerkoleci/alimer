@@ -11,38 +11,6 @@ internal static class Extensions
 {
     public static string FullName(this ITypeSymbol type) => type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-    public static bool DerivesFrom(this ITypeSymbol symbol, string name, bool exact = false)
-    {
-        if (symbol == null) return false;
-        if (exact && symbol.FullName() == name) return true;
-        if (!exact && symbol.FullName().StartsWith(name)) return true;
-
-        foreach (var i in symbol.AllInterfaces)
-        {
-            if (exact && i.FullName() == name) return true;
-            if (!exact && i.FullName().StartsWith(name)) return true;
-        }
-
-        return symbol.BaseType.DerivesFrom(name, exact);
-    }
-
-    public static bool DerivesFrom(this ITypeSymbol symbol, ITypeSymbol search)
-    {
-        if (symbol == null) return false;
-        if (symbol.MetadataName == search.MetadataName)
-            return true;
-        return symbol.BaseType.DerivesFrom(search);
-    }
-
-    public static string AsString(this Accessibility accessibility)
-        => accessibility switch
-        {
-            Accessibility.Internal => "internal",
-            Accessibility.Public => "public",
-            Accessibility.Private => "private",
-            Accessibility.Protected => "protected",
-            _ => "public"
-        };
 
     public static bool IsEnum(this SyntaxNode node) => node is EnumDeclarationSyntax;
 

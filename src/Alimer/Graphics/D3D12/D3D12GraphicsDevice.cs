@@ -565,8 +565,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.CacheCoherentUMA:
                 return _adapter.Features.CacheCoherentUMA();
 
-            case Feature.DescriptorIndexing:
-                return true;
+            case Feature.Bindless:
+                // Check for bindless resources support
+                if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3
+                    && _adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
+                {
+                    return true;
+                }
+
+                return false;
 
             case Feature.VariableRateShading:
                 return _adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1;

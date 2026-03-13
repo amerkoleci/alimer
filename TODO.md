@@ -5,17 +5,17 @@
 * Improve Mesh
 * Serialization
 * Profiler (using timestamp: Wicked)
+* Bindless RHI support
 * Render Graph + Post Process Effects
 * Audio library based on miniaudio
 * Complete platform layer Game/Window/Input)
-* Font rendering using stb_truetype (similar as MoonWorks)
-* Font msdf (see: https://github.com/AdaEngine/AdaEngine/blob/main/Sources/AtlasFontGenerator/atlas_font_gen.cpp)
+* Font rendering using stb_truetype and msdf (see: https://github.com/AdaEngine/AdaEngine/blob/main/Sources/AtlasFontGenerator/atlas_font_gen.cpp)
 
 ## NEXT
 
 * Prefabs
 * Asset reloading, textures/shaders etc
-* DDS and KTX, KTX2 loader
-* PBR rendering and improve material System
 * Network
 * Handle Shader reflection using Slang
+* RayTracing support
+* Meshlet support

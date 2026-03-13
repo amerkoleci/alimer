@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Alimer.Engine;
 
 namespace Alimer;
 
@@ -107,33 +108,68 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
 
 public sealed class PropertyMetadata
 {
-    public required string Name { get; init; }
+    public PropertyMetadata(MemberInfo memberInfo)
+    {
+        ArgumentNullException.ThrowIfNull(memberInfo, nameof(memberInfo));
 
-    /// <summary>
-    /// The declaring type of the property or field.
-    /// </summary>
-    public required Type DeclaringType { get; init; } = null!;
+        MemberInfo = memberInfo;
+        Name = memberInfo.Name;
+        DeclaringType = memberInfo.DeclaringType;
+        if (memberInfo is PropertyInfo propertyInfo)
+        {
+            PropertyType = propertyInfo.PropertyType;
+            IsField = false;
 
-    public Type PropertyType { get; init; } = default!;
+            Getter = propertyInfo.CanRead ? (object instance) => propertyInfo.GetValue(instance) : null;
+            Setter = propertyInfo.CanWrite ? (object instance, object? value) => propertyInfo.SetValue(instance, value) : null;
+        }
+        else if (memberInfo is FieldInfo fieldInfo)
+        {
+            IsField = true;
+            PropertyType = fieldInfo.FieldType;
+
+            Getter = instance => fieldInfo.GetValue(instance);
+            Setter = (instance, value) => fieldInfo.SetValue(instance, value);
+        }
+        else
+        {
+            throw new ArgumentException("MemberInfo must be of type PropertyInfo or FieldInfo.", nameof(memberInfo));
+        }
+
+    }
+
+    public string Name { get; }
+    public MemberInfo MemberInfo { get; }
+    public Type? DeclaringType { get;  }
+    public Type PropertyType { get;  }
+    public bool IsField { get; }
+    public bool HasDefaultValue { get; set; }
+    public Func<object, object?>? Getter { get; set; }
+    public Action<object, object?>? Setter { get; set; }
 }
 
 public class ObjectTypeMetadata : IObjectTypeMetadata
 {
     public Type Type { get; }
 
-    public IReadOnlyList<PropertyMetadata> Properties => throw new NotImplementedException();
+    public IReadOnlyList<PropertyMetadata> Properties { get; }
 
-    public ObjectTypeMetadata(Type type)
+    public ObjectTypeMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
     {
         Type = type;
         SizeOf = 0;
+
+        Properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            .Where(property => property.CanRead && property.CanWrite)
+            .Select(property => new PropertyMetadata(property))
+            .ToList();
     }
 
     public Func<object>? CreateObject { get; set; }
     public int SizeOf { get; }
 }
 
-public sealed class ObjectTypeMetadata<TObject> : ObjectTypeMetadata
+public sealed class ObjectTypeMetadata<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TObject> : ObjectTypeMetadata
 {
 
     public ObjectTypeMetadata()
@@ -166,6 +202,9 @@ public static class MetadataRegistry
         RegisterPrimitiveType<double>();
         RegisterPrimitiveType<decimal>();
         RegisterPrimitiveType<char>();
+
+        // Known engine types
+        RegisterObjectType(typeof(Component));
     }
 
     public static unsafe void RegisterPrimitiveType<T>()
@@ -208,7 +247,7 @@ public static class MetadataRegistry
         return metadata;
     }
 
-    public static IObjectTypeMetadata RegisterObjectType(Type type, Func<object>? createObject = default)
+    public static IObjectTypeMetadata RegisterObjectType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllProperties)] Type type, Func<object>? createObject = default)
     {
         if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
         {
@@ -221,7 +260,9 @@ public static class MetadataRegistry
         }
 
         Type? baseType = type.BaseType;
-        if (baseType is not null && baseType != typeof(object))
+        if (baseType is not null
+            && baseType != typeof(Component)
+            && baseType != typeof(object))
         {
             RegisterObjectType(baseType);
         }
@@ -235,7 +276,7 @@ public static class MetadataRegistry
         return metadata;
     }
 
-    public static IObjectTypeMetadata RegisterObjectType<TObject>()
+    public static IObjectTypeMetadata RegisterObjectType<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllProperties)] TObject>()
         where TObject : class, new()
     {
         Type type = typeof(TObject);
@@ -312,6 +353,17 @@ public static class MetadataRegistry
         }
 
         throw new InvalidOperationException($"No metadata found for type {type.FullName}");
+    }
+
+    public static TTypeMetadata GetMetadata<TTypeMetadata>(Type type)
+        where TTypeMetadata : ITypeMetadata
+    {
+        ITypeMetadata metadata = GetMetadata(type);
+        if (metadata is not TTypeMetadata typedMetadata)
+        {
+            throw new InvalidOperationException($"Metadata for type {type.FullName} is not of type {typeof(TTypeMetadata).FullName}.");
+        }
+        return typedMetadata;
     }
 
     public static ITypeMetadata GetMetadata(string typeName)
