@@ -910,7 +910,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
     public VkPipelineCache PipelineCache { get; }
     public bool Bindless { get; }
-    public VulkanBindlessDescriptorSet BindlessDescriptorSet { get; }
+    public VulkanBindlessDescriptorSet? BindlessDescriptorSet { get; }
 
     public VkBuffer NullBuffer => _nullBuffer;
     public VkImageView NullImage1DView => _nullImageView1D;

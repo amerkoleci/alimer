@@ -323,11 +323,33 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->RSSetViewports((uint)count, d3d12Viewports);
     }
 
-    public override void SetScissorRect(in RectI rect)
+    public override void SetScissorRect(in RectI scissorRect)
     {
-        RECT scissorRect = new(rect.Left, rect.Top, rect.Right, rect.Bottom);
-        _commandBuffer.CommandList->RSSetScissorRects(1, &scissorRect);
+        RECT d3dScissorRect = new(scissorRect.Left, scissorRect.Top, scissorRect.Right, scissorRect.Bottom);
+        _commandBuffer.CommandList->RSSetScissorRects(1, &d3dScissorRect);
     }
+
+    public override void SetScissorRects(ReadOnlySpan<RectI> scissorRects, int count = 0)
+    {
+        if (count == 0)
+            count = scissorRects.Length;
+
+#if VALIDATE_USAGE
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(count, D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE, nameof(count));
+#endif
+
+        RECT* d3dScissorRects = stackalloc RECT[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            ref readonly RectI scissorRect = ref scissorRects[(int)i];
+
+            d3dScissorRects[i] = new(scissorRect.Left, scissorRect.Top, scissorRect.Right, scissorRect.Bottom);
+        }
+
+        _commandBuffer.CommandList->RSSetScissorRects((uint)count, d3dScissorRects);
+    }
+
 
     public override void SetStencilReference(uint reference)
     {

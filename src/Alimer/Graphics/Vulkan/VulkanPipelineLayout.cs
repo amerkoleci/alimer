@@ -19,11 +19,23 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
         _device = device;
 
         int setLayoutCount = descriptor.BindGroupLayouts.Length;
+
+        if (device.Bindless)
+        {
+            setLayoutCount += 1;
+        }
         VkDescriptorSetLayout* pSetLayouts = stackalloc VkDescriptorSetLayout[setLayoutCount];
 
-        for (int i = 0; i < setLayoutCount; i++)
+        for (int i = 0; i < descriptor.BindGroupLayouts.Length; i++)
         {
             pSetLayouts[i] = ((VulkanBindGroupLayout)descriptor.BindGroupLayouts[i]).Handle;
+        }
+
+        if (device.Bindless)
+        {
+            BindlessLayoutFirstIndex = descriptor.BindGroupLayouts.Length;
+            int startIndex = BindlessLayoutFirstIndex;
+            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.Samplers.DescriptorSetLayout;
         }
 
         int pushConstantRangeCount = descriptor.PushConstantRanges.Length;
@@ -34,7 +46,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             {
                 _pushConstantRanges[i] = new VkPushConstantRange()
                 {
-                    stageFlags = VkShaderStageFlags.All,
+                    stageFlags = VK_SHADER_STAGE_ALL,
                     offset = offset,
                     size = descriptor.PushConstantRanges[i].Size,
                 };
@@ -52,7 +64,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
         };
 
         VkResult result = _device.DeviceApi.vkCreatePipelineLayout(in createInfo, out _handle);
-        if (result != VkResult.Success)
+        if (result != VK_SUCCESS)
         {
             Log.Error($"Vulkan: Failed to create {nameof(PipelineLayout)}.");
             return;
@@ -70,6 +82,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     public VkPipelineLayout Handle => _handle;
 
     public ref VkPushConstantRange GetPushConstantRange(uint index) => ref _pushConstantRanges[index];
+    public int BindlessLayoutFirstIndex { get; }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)

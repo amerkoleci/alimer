@@ -148,18 +148,18 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     /// <param name="indirectBufferOffset"></param>
     public void DrawIndexedIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
-        CommandEncoder.ValidateIndirectBuffer(indirectBuffer);
-        CommandEncoder.ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
 
         DrawIndexedIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
     public void DrawIndexedIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
     {
-        CommandEncoder.ValidateIndirectBuffer(indirectBuffer);
-        CommandEncoder.ValidateIndirectOffset(indirectBufferOffset);
-        CommandEncoder.ValidateIndirectBuffer(countBuffer);
-        CommandEncoder.ValidateIndirectOffset(countBufferOffset);
+        ValidateIndirectBuffer(indirectBuffer);
+        ValidateIndirectOffset(indirectBufferOffset);
+        ValidateIndirectBuffer(countBuffer);
+        ValidateIndirectOffset(countBufferOffset);
 
         DrawIndexedIndirectCountCore(indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxCount);
     }
@@ -195,7 +195,8 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     protected abstract void SetPipelineCore(RenderPipeline pipeline);
     public abstract void SetViewport(in Viewport viewport);
     public abstract void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0);
-    public abstract void SetScissorRect(in RectI rect);
+    public abstract void SetScissorRect(in RectI scissorRect);
+    public abstract void SetScissorRects(ReadOnlySpan<RectI> scissorRects, int count = 0);
     public abstract void SetStencilReference(uint reference);
     public abstract void SetBlendColor(in Color color);
     public abstract void SetShadingRate(ShadingRate rate);

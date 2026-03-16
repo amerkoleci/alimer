@@ -8,20 +8,13 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes a push constant range in <see cref="PipelineLayout"/>.
 /// </summary>
-public readonly record struct PushConstantRange
+public readonly struct PushConstantRange
 {
     [SetsRequiredMembers]
     public PushConstantRange(uint shaderRegister, uint size)
     {
         ShaderRegister = shaderRegister;
         Size = size;
-    }
-
-    [SetsRequiredMembers]
-    public PushConstantRange(uint shaderRegister, int size)
-    {
-        ShaderRegister = shaderRegister;
-        Size = (uint)size;
     }
 
     /// <summary>
@@ -31,5 +24,4 @@ public readonly record struct PushConstantRange
 
     /// Size in bytes.
     public required uint Size { get; init; }
-
 }

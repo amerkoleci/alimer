@@ -177,7 +177,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
             return;
 
         VulkanRenderPipeline backendPipeline = (VulkanRenderPipeline)pipeline;
-        _commandBuffer.SetPipelineLayout(backendPipeline.VkLayout);
+        _commandBuffer.SetPipelineLayout(backendPipeline.VkLayout, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         _deviceApi.vkCmdBindPipeline(_commandBuffer.Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, backendPipeline.Handle);
         _currentPipeline = backendPipeline;
@@ -213,9 +213,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
     public override void SetViewports(ReadOnlySpan<Viewport> viewports, int count = 0)
     {
         if (count == 0)
-        {
             count = viewports.Length;
-        }
         VkViewport* vkViewports = stackalloc VkViewport[count];
 
         for (int i = 0; i < count; i++)
@@ -233,18 +231,33 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
             };
         }
 
-        _deviceApi.vkCmdSetViewport(_commandBuffer.Handle, firstViewport: 0, 1, vkViewports);
+        _deviceApi.vkCmdSetViewport(_commandBuffer.Handle, 0, (uint)count, vkViewports);
     }
 
-    public override void SetScissorRect(in RectI rect)
+    public override void SetScissorRect(in RectI scissorRect)
     {
-        VkRect2D vkRect = new(rect.X, rect.Y, (uint)rect.Width, (uint)rect.Height);
-        _deviceApi.vkCmdSetScissor(_commandBuffer.Handle, 0, 1, &vkRect);
+        VkRect2D vkScissorRect = new(scissorRect.X, scissorRect.Y, (uint)scissorRect.Width, (uint)scissorRect.Height);
+        _deviceApi.vkCmdSetScissor(_commandBuffer.Handle, 0, 1, &vkScissorRect);
+    }
+
+    public override void SetScissorRects(ReadOnlySpan<RectI> scissorRects, int count = 0)
+    {
+        if (count == 0)
+            count = scissorRects.Length;
+        VkRect2D* vkScissorRects = stackalloc VkRect2D[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            ref readonly RectI scissorRect = ref scissorRects[(int)i];
+
+            vkScissorRects[i] = new(scissorRect.X, scissorRect.Y, (uint)scissorRect.Width, (uint)scissorRect.Height);
+        }
+        _deviceApi.vkCmdSetScissor(_commandBuffer.Handle, 0, (uint)count, vkScissorRects);
     }
 
     public override void SetStencilReference(uint reference)
     {
-        _deviceApi.vkCmdSetStencilReference(_commandBuffer.Handle, VkStencilFaceFlags.FrontAndBack, reference);
+        _deviceApi.vkCmdSetStencilReference(_commandBuffer.Handle, VK_STENCIL_FACE_FRONT_AND_BACK, reference);
     }
 
     public override void SetBlendColor(in Color color)

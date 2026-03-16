@@ -65,7 +65,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
             return;
 
         VulkanComputePipeline backendPipeline = (VulkanComputePipeline)pipeline;
-        _commandBuffer.SetPipelineLayout(backendPipeline.VkLayout);
+        _commandBuffer.SetPipelineLayout(backendPipeline.VkLayout, VK_PIPELINE_BIND_POINT_COMPUTE);
 
         _deviceApi.vkCmdBindPipeline(_commandBuffer.Handle, VK_PIPELINE_BIND_POINT_COMPUTE, backendPipeline.Handle);
         _currentPipeline = backendPipeline;

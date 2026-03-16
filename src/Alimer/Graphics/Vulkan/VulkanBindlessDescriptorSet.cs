@@ -13,6 +13,7 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanBindlessDescriptorSet : IDisposable
 {
+    private const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
     private const uint BINDLESS_RESOURCE_CAPACITY = 500000;
     private const uint BINDLESS_SAMPLER_CAPACITY = 256; // it is chosen to be addressable by 8 bits
 
@@ -25,18 +26,34 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         // Bindless samplers
         VkPhysicalDeviceVulkan12Properties properties12 = device.VkAdapter.Properties12;
         Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BINDLESS_SAMPLER_CAPACITY, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
+        DescriptorSetCount = 1;
     }
 
 
-    /// <inheritdoc />
     public VulkanGraphicsDevice Device { get; }
 
     public VulkanBindlessDescriptorHeap Samplers { get; }
+    public int DescriptorSetCount { get; }
 
     public void Dispose()
     {
         Samplers.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    public void Bind(VkCommandBuffer commandBuffer, VulkanPipelineLayout pipelineLayout, VkPipelineBindPoint bindPoint)
+    {
+        uint firstSet = (uint)pipelineLayout.BindlessLayoutFirstIndex;
+        Span<VkDescriptorSet> descriptorSets = stackalloc VkDescriptorSet[DescriptorSetCount];
+        descriptorSets[0] = Samplers.DescriptorSet;
+
+        Device.DeviceApi.vkCmdBindDescriptorSets(
+            commandBuffer,
+            bindPoint,
+            pipelineLayout.Handle,
+            firstSet,
+            descriptorSets
+        );
     }
 }
 
@@ -139,7 +156,7 @@ internal unsafe class VulkanBindlessDescriptorHeap : IDisposable
 
     public uint Allocate()
     {
-        lock(_lock)
+        lock (_lock)
         {
             if (_freeList.Count > 0)
             {

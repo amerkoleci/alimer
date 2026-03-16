@@ -47,10 +47,14 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 /* Bindless */
 // TODO: Allow engine side static sampler configuration and remove definitions in code
 
+#ifndef ALIMER_BINDLESS
+#define ALIMER_BINDLESS 1
+#endif
+
 #if defined(ALIMER_BINDLESS)
-#ifdef __spirv__
 /* VkDescriptorType */
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
+#ifdef __spirv__
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 1001;
 static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 1002;
 
@@ -58,8 +62,8 @@ static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 1002;
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindlessTexture2D[];
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
 #else
-SamplerState    bindlessSamplers[]      : register(space1000);
-Texture2D       bindlessTexture2D[]     : register(space1001);
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
+Texture2D bindlessTexture2D[] : register(t0, space1001);
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
 #endif
 #endif /* defined(ALIMER_BINDLESS)  */

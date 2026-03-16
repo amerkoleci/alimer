@@ -141,7 +141,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             _deviceApi.vkCmdSetScissor(_commandBuffer, 0, 16, scissors);
 
             _deviceApi.vkCmdSetBlendConstants(_commandBuffer, 1.0f, 1.0f, 1.0f, 1.0f);
-            _deviceApi.vkCmdSetStencilReference(_commandBuffer, VkStencilFaceFlags.FrontAndBack, ~0u);
+            _deviceApi.vkCmdSetStencilReference(_commandBuffer, VK_STENCIL_FACE_FRONT_AND_BACK, ~0u);
 
             if (_queue.VkDevice.VkAdapter.Features2.features.depthBounds == true)
             {
@@ -415,13 +415,22 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     }
 
 
-    public void SetPipelineLayout(VulkanPipelineLayout newPipelineLayout)
+    public void SetPipelineLayout(VulkanPipelineLayout newPipelineLayout, VkPipelineBindPoint bindPoint)
     {
         if (_currentPipelineLayout == newPipelineLayout)
             return;
 
         _currentPipelineLayout = newPipelineLayout;
         //_currentPipelineLayout.AddRef();
+
+        // Bind bindless descriptor sets
+        if (_queue.VkDevice.Bindless)
+        {
+            if (_queue.QueueType != CommandQueueType.Copy)
+            {
+                _queue.VkDevice.BindlessDescriptorSet.Bind(_commandBuffer, _currentPipelineLayout, bindPoint);
+            }
+        }
     }
 
     public void SetPushConstants(uint pushConstantIndex, void* data, int size)

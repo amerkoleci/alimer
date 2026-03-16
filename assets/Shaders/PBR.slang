@@ -116,6 +116,8 @@ Texture2D<float4> occlusionTexture : register(t4);
 // Texture2D<float4> transmissionTexture : register(t5, space1);
 SamplerState pbrSampler : register(s0);
 
+uniform SamplerState.Handle testAmer;
+
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {

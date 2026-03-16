@@ -59,6 +59,7 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool MeshShader;
     public bool ConditionalRendering;
     public bool UnifiedImageLayouts;
+    public bool MutableDescriptorType;
     public bool DescriptorHeap;
     public bool Win32FullScreenExclusive;
 
@@ -192,6 +193,10 @@ internal struct VulkanPhysicalDeviceExtensions
                 else if (extensionName == VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME)
                 {
                     extensions.UnifiedImageLayouts = true;
+                }
+                else if (extensionName == VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME)
+                {
+                    extensions.MutableDescriptorType = true;
                 }
                 else if (extensionName == VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME)
                 {

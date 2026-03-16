@@ -132,12 +132,21 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
         fixed (D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = staticSamplersSpan)
         {
+            D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+            flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+            if (device.Bindless)
+            {
+                flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+                flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+            }
+
             D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc = new(
                 (uint)rootParameterCount,
                 rootParameters,
                 (uint)staticSamplers.Count,
                 staticSamplerDescs,
-                D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+                flags
             );
 
             using ComPtr<ID3DBlob> rootSignatureBlob = default;

@@ -4,34 +4,34 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
-using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
-using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT2;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
-using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12MemAlloc;
-using static TerraFX.Interop.Windows.Windows;
 using Alimer.Utilities;
 using SkiaSharp;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
+using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
+using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
+using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_FEATURE;
+using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
+using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT2;
+using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
+using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
+using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
+using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
+using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
+using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
+using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
+using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
+using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
+using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12MemAlloc;
+using static TerraFX.Interop.DirectX.DirectX;
+using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static TerraFX.Interop.Windows.Windows;
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
@@ -363,6 +363,14 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
         }
 
+        // Check for bindless resources support
+        if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3
+            && _adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
+        {
+            Bindless = true;
+            BindlessDescriptorSet = new D3D12BindlessDescriptorSet(this);
+        }
+
         ulong timestampFrequency;
         ThrowIfFailed(D3D12GraphicsQueue.Handle->GetTimestampFrequency(&timestampFrequency));
         TimestampFrequency = timestampFrequency;
@@ -399,6 +407,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public ID3D12CommandSignature* DrawIndirectCommandSignature => _drawIndirectCommandSignature;
     public ID3D12CommandSignature* DrawIndexedIndirectCommandSignature => _drawIndexedIndirectCommandSignature;
     public ID3D12CommandSignature* DispatchMeshIndirectCommandSignature => _dispatchMeshIndirectCommandSignature;
+    public bool Bindless { get; }
+    public D3D12BindlessDescriptorSet? BindlessDescriptorSet { get; }
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
@@ -435,6 +445,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _drawIndirectCommandSignature.Dispose();
         _drawIndexedIndirectCommandSignature.Dispose();
         _dispatchMeshIndirectCommandSignature.Dispose();
+        BindlessDescriptorSet?.Dispose();
 
         // Allocator.
         if (_memoryAllocator.Get() is not null)
@@ -566,14 +577,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 return _adapter.Features.CacheCoherentUMA();
 
             case Feature.Bindless:
-                // Check for bindless resources support
-                if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3
-                    && _adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
-                {
-                    return true;
-                }
-
-                return false;
+                return Bindless;
 
             case Feature.VariableRateShading:
                 return _adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1;

@@ -20,7 +20,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
 
         VkDescriptorSetLayoutCreateFlags flags = VkDescriptorSetLayoutCreateFlags.None;
         LayoutBindingCount = description.Entries.Length;
-        _bindings = AllocateArray<VkDescriptorSetLayoutBinding>((nuint)LayoutBindingCount);
+        _bindings = AllocateArray<VkDescriptorSetLayoutBinding>((uint)LayoutBindingCount);
 
         bool isPush = false;
         if (isPush)
@@ -47,7 +47,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
             }
 
             (VkDescriptorType DescriptorType, uint RegisterOffset) = device.GetVkDescriptorType(entry);
-            
+
             _bindings[i] = new VkDescriptorSetLayoutBinding
             {
                 binding = entry.Binding + RegisterOffset,
