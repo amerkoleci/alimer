@@ -54,14 +54,14 @@ public abstract class GraphicsSampleBase : SampleBase
     {
         using Stream stream = OpenEmbeddedAssetStream(name);
         byte[] bytes = new byte[stream.Length];
-        using (MemoryStream ms = new MemoryStream(bytes))
+        using (MemoryStream ms = new(bytes))
         {
             stream.CopyTo(ms);
             return bytes;
         }
     }
 
-    protected ShaderModule LoadShader(string name, ShaderStages stage, Utf8String entryPoint)
+    protected ShaderModule LoadShader(string name, ShaderStages stage, string entryPoint)
     {
         string shaderFormat = GraphicsDevice.Backend == GraphicsBackend.Vulkan ? "spirv" : "dxil";
 
@@ -72,18 +72,32 @@ public abstract class GraphicsSampleBase : SampleBase
         return GraphicsDevice.CreateShaderModule(in descriptor);
     }
 
-    [Obsolete("Use CompileShaderModuleNew instead.")]
     protected ShaderModule CompileShaderModule(
         string fileName,
         ShaderStages stage,
-        Utf8String entryPoint,
-        Dictionary<string, string>? defines = default)
+        string entryPoint,
+        Dictionary<string, string>? defines = default,
+        string[]? searchPaths = null)
     {
-        ShaderFormat shaderFormat = GraphicsDevice.Backend == GraphicsBackend.Vulkan ? ShaderFormat.SPIRV : ShaderFormat.DXIL;
-
+        // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
-        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".hlsl");
-        string shaderSource = File.ReadAllText(shaderSourceFileName);
+        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".slang");
+        // DXC
+        ShaderFormat shaderFormat = ShaderFormat.SPIRV;
+        switch (GraphicsDevice.Backend)
+        {
+            case GraphicsBackend.D3D12:
+                shaderFormat = ShaderFormat.DXIL;
+                break;
+
+            case GraphicsBackend.Metal:
+                shaderFormat = ShaderFormat.Metal;
+                break;
+
+            case GraphicsBackend.Vulkan:
+                shaderFormat = ShaderFormat.SPIRV;
+                break;
+        }
 
         ShaderCompilationOptions options = new()
         {
@@ -92,9 +106,15 @@ public abstract class GraphicsSampleBase : SampleBase
             ShaderStage = stage,
             EntryPoint = entryPoint.ToString()!,
             IncludeDirs =
-            {
-                shadersPath
-            },
+                {
+                    shadersPath
+                },
+            PackMatrixRowMajor = true,
+            ShiftSpaceCount = 4,
+            SpirvBShift = VulkanRegisterShift.ContantBuffer,
+            SpirvTShift = VulkanRegisterShift.SRV,
+            SpirvUShift = VulkanRegisterShift.UAV,
+            SpirvSShift = VulkanRegisterShift.Sampler
         };
 
         if (defines != null && defines.Count > 0)
@@ -105,6 +125,7 @@ public abstract class GraphicsSampleBase : SampleBase
             }
         }
 
+        string shaderSource = File.ReadAllText(shaderSourceFileName);
         using ShaderCompilationResult result = ShaderCompiler.Instance.Compile(shaderSource, in options);
         if (result.Failed)
         {
@@ -112,99 +133,6 @@ public abstract class GraphicsSampleBase : SampleBase
         }
 
         ShaderModuleDescriptor descriptor = new(stage, result.GetByteCode(), entryPoint);
-        return GraphicsDevice.CreateShaderModule(in descriptor);
-    }
-
-    protected ShaderModule CompileShaderModuleNew(
-        string fileName,
-        ShaderStages stage,
-        Utf8String entryPoint,
-        Dictionary<string, string>? defines = default,
-        string[]? searchPaths = null)
-    {
-        // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html
-        string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
-        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".slang");
-
-        // TODO: ShaderLibrary (without -entry and -stage)
-        List<string> arguments =
-        [
-            shaderSourceFileName,
-            "-entry", entryPoint.ToString()!,
-            "-stage", stage.ToString().ToLowerInvariant(),
-            "-matrix-layout-row-major",
-            "-preserve-params"
-        ];
-
-        if (defines is not null)
-        {
-            foreach (KeyValuePair<string, string> definePair in defines)
-            {
-                arguments.AddRange(["-D", $"{definePair.Key}={definePair.Value}"]);
-            }
-        }
-
-        if (searchPaths is not null)
-        {
-            foreach (string path in searchPaths)
-            {
-                arguments.AddRange(["-I", path]);
-            }
-        }
-
-        switch (GraphicsDevice.Backend)
-        {
-            case GraphicsBackend.D3D12:
-                arguments.AddRange(["-profile", "sm_6_6", "-target", "dxil"]);
-                break;
-
-            case GraphicsBackend.Metal:
-                arguments.AddRange(["-target", "metal"]);
-                break;
-
-            case GraphicsBackend.Vulkan:
-                arguments.AddRange([
-                    "-fvk-use-dx-layout",
-                    "-fvk-use-dx-position-w",
-                    "-fvk-use-entrypoint-name",
-                    "-target",
-                    "spirv"]
-                    );
-
-                const uint ShiftSpaceCount = 8;
-
-                for (int space = 0; space < ShiftSpaceCount; space++)
-                {
-                    arguments.Add("-fvk-b-shift");
-                    arguments.Add($"{VulkanRegisterShift.ContantBuffer}");
-                    arguments.Add($"{space}");
-
-                    arguments.Add("-fvk-t-shift");
-                    arguments.Add($"{VulkanRegisterShift.SRV}");
-                    arguments.Add($"{space}");
-
-                    arguments.Add("-fvk-u-shift");
-                    arguments.Add($"{VulkanRegisterShift.UAV}");
-                    arguments.Add($"{space}");
-
-                    arguments.Add("-fvk-s-shift");
-                    arguments.Add($"{VulkanRegisterShift.Sampler}");
-                    arguments.Add($"{space}");
-                }
-                break;
-        }
-
-        byte[] bytecode = SlangCompiler.CompileWithReflection([.. arguments], out SlangReflection reflection);
-        switch (GraphicsDevice.Backend)
-        {
-            case GraphicsBackend.Metal:
-                string byteCodeStr = System.Text.Encoding.UTF8.GetString(bytecode);
-                break;
-        }
-
-        //var result = SlangCompiler.Compile([.. arguments]);
-
-        ShaderModuleDescriptor descriptor = new(stage, bytecode, entryPoint);
         return GraphicsDevice.CreateShaderModule(in descriptor);
     }
 }

@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Numerics;
 using Alimer.Graphics;
 
-namespace Alimer.Samples.Graphics;
+namespace Alimer.Samples;
 
 [Description("Graphics - DrawIndexed Quad")]
 public sealed class DrawIndexedQuadSample : GraphicsSampleBase
@@ -35,8 +35,8 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
         };
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
 
-        using ShaderModule vertexShader = CompileShaderModuleNew("Triangle", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModuleNew("Triangle", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModule("Triangle", ShaderStages.Vertex, "vertexMain");
+        using ShaderModule fragmentShader = CompileShaderModule("Triangle", ShaderStages.Fragment, "fragmentMain");
 
 
         var vertexBufferLayout = new VertexBufferLayout[1]

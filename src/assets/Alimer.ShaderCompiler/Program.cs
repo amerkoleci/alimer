@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
-using Slangc.NET;
 
 namespace Alimer.Shaders;
 
@@ -16,7 +15,7 @@ class Program
         if (args.Length > 1)
         {
             outputDirectory = args[1];
-            
+
         }
         else
         {
@@ -35,22 +34,6 @@ class Program
         //}
         Compile(inputDirectory, outputDirectory);
 
-#if FILES
-        for (int i = 2; i < args.Length; i++)
-        {
-            string arg = args[i];
-
-            Console.WriteLine($"Compile SPIRV: {arg}");
-            Compile(outputDirectory, arg, ShaderFormat.SPIRV, ShaderStages.Vertex, "vertexMain");
-            Compile(outputDirectory, arg, ShaderFormat.SPIRV, ShaderStages.Fragment, "fragmentMain");
-
-            Console.WriteLine($"Compile DXIL: {arg}");
-            Compile(outputDirectory, arg, ShaderFormat.DXIL, ShaderStages.Vertex, "vertexMain");
-            Compile(outputDirectory, arg, ShaderFormat.DXIL, ShaderStages.Fragment, "fragmentMain");
-        } 
-#endif
-
-
         return 0;
     }
 
@@ -60,18 +43,30 @@ class Program
         foreach (string shaderFile in shaderFiles)
         {
             Console.WriteLine($"Compile SPIRV: {shaderFile}");
+#if SLANG_COMPILER
             CompileSlang(outputDirectory, shaderFile, ShaderFormat.SPIRV, ShaderStages.Vertex);
             CompileSlang(outputDirectory, shaderFile, ShaderFormat.SPIRV, ShaderStages.Fragment);
+#else
+            Compile(outputDirectory, shaderFile, ShaderFormat.SPIRV, ShaderStages.Vertex);
+            Compile(outputDirectory, shaderFile, ShaderFormat.SPIRV, ShaderStages.Fragment);
+#endif
 
             Console.WriteLine($"Compile DXIL: {shaderFile}");
+#if SLANG_COMPILER
             CompileSlang(outputDirectory, shaderFile, ShaderFormat.DXIL, ShaderStages.Vertex);
             CompileSlang(outputDirectory, shaderFile, ShaderFormat.DXIL, ShaderStages.Fragment);
+#else
+            Compile(outputDirectory, shaderFile, ShaderFormat.DXIL, ShaderStages.Vertex);
+            Compile(outputDirectory, shaderFile, ShaderFormat.DXIL, ShaderStages.Fragment);
+#endif
 
-            Console.WriteLine($"Compile Metal: {shaderFile}");
-            CompileSlang(outputDirectory, shaderFile, ShaderFormat.Metal, ShaderStages.Vertex);
-            CompileSlang(outputDirectory, shaderFile, ShaderFormat.Metal, ShaderStages.Fragment);
+            //Console.WriteLine($"Compile Metal: {shaderFile}");
+            //CompileSlang(outputDirectory, shaderFile, ShaderFormat.Metal, ShaderStages.Vertex);
+            //CompileSlang(outputDirectory, shaderFile, ShaderFormat.Metal, ShaderStages.Fragment);
         }
     }
+
+#if SLANG_COMPILER
 
     // https://www.khronos.org/assets/uploads/developers/presentations/Vulkan_BOF_Using_Slang_with_Vulkan_SIGG24.pdf
     private static void CompileSlang(string outputDirectory, string shaderSourceFileName,
@@ -183,13 +178,31 @@ class Program
         }
 
         File.WriteAllBytes(Path.Combine(outputDirectory, outputFile), byteCode);
-    }
+    } 
+#endif
 
-    private static void Compile(string outputDirectory, string shaderSourceFileName,
-        ShaderFormat shaderFormat, ShaderStages stage, string entryPoint)
+    private static void Compile(string outputDirectory, string shaderSourceFileName, ShaderFormat shaderFormat, ShaderStages stage)
     {
         string shadersPath = Path.GetDirectoryName(shaderSourceFileName)!;
         string shaderSource = File.ReadAllText(shaderSourceFileName);
+
+        string entryPoint = "main";
+        switch (stage)
+        {
+            case ShaderStages.Vertex:
+                entryPoint = "vertexMain";
+                break;
+            case ShaderStages.Fragment:
+                entryPoint = "fragmentMain";
+                break;
+            default:
+                throw new NotSupportedException($"Shader stage '{stage}' is not supported.");
+        }
+
+        if (!shaderSource.Contains(entryPoint))
+        {
+            return;
+        }
 
         ShaderCompilationOptions options = new()
         {
@@ -224,11 +237,12 @@ class Program
         switch (options.ShaderFormat)
         {
             case ShaderFormat.DXIL:
-                //outputFile = Path.ChangeExtension(outputFile, ".cso");
                 outputFile = Path.ChangeExtension(outputFile, ".bin");
                 break;
             case ShaderFormat.SPIRV:
-                //outputFile = Path.ChangeExtension(outputFile, ".spv");
+                outputFile = Path.ChangeExtension(outputFile, ".bin");
+                break;
+            case ShaderFormat.Metal:
                 outputFile = Path.ChangeExtension(outputFile, ".bin");
                 break;
         }

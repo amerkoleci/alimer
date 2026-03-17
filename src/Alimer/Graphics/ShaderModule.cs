@@ -18,5 +18,5 @@ public abstract class ShaderModule : GraphicsObject
     /// <summary>
     /// The name of the entry point function.
     /// </summary>
-    public Utf8String EntryPoint { get; }
+    public string EntryPoint { get; }
 }

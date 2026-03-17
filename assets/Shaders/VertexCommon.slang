@@ -40,7 +40,7 @@ VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)
     output.Color = input.Color;
 #else
     // output.Color = instanceColor.xyz;
-    output.Color = float3(1.0f);
+    output.Color = float3(1.0f, 1.0f, 1.0f);
 #endif
     return output;
 }

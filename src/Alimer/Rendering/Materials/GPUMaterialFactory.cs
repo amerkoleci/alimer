@@ -106,7 +106,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
     public abstract ShaderModule CreateFragmentShaderModule(Span<VertexBufferLayout> geometryLayout, Material material);
 
-    protected virtual unsafe PipelineLayout CreatePipelineLayout(bool skinned)
+    protected virtual PipelineLayout CreatePipelineLayout(bool skinned)
     {
         Span<BindGroupLayout> bindGroupLayouts = [_bindGroupLayout,
             System.InstanceBindGroupLayout,

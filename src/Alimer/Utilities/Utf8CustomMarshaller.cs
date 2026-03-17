@@ -26,7 +26,7 @@ public static unsafe class Utf8CustomMarshaller
         int lengthPlus1 = UTF8EncodingRelaxed.Default.GetByteCount(managed) + 1;
         byte* pointer = (byte*)NativeMemory.Alloc((nuint)lengthPlus1);
         var span = new Span<byte>(pointer, lengthPlus1);
-        int length = UTF8EncodingRelaxed.Default.GetBytes((ReadOnlySpan<char>)managed, span);
+        int length = UTF8EncodingRelaxed.Default.GetBytes(managed, span);
         span[length] = 0;
         return pointer;
     }

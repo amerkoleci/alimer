@@ -22,8 +22,14 @@ struct PushConstants {
 };
 
 // Bindings
+#ifdef __spirv__
 [[vk::push_constant]] PushConstants pushConstants;
-Texture2D<float4> imguiTexture : register(t0, space0);
+#else
+ConstantBuffer<PushConstants> pushConstants : register(b999, space0);
+#endif
+
+SamplerState imguiSampler : register(s0);
+Texture2D<float4> imguiTexture : register(t0);
 
 [shader("vertex")]
 VSOutput vertexMain(VSInput input)
@@ -40,10 +46,10 @@ VSOutput vertexMain(VSInput input)
     return output;
 }
 
-[[shader("fragment")]]
+[shader("pixel")]
 float4 fragmentMain(VSOutput input) : SV_TARGET
 {
     // Sample font texture and multiply by color
-    float4 color = input.Color * imguiTexture.Sample(input.TexCoord);
+    float4 color = input.Color * imguiTexture.Sample(imguiSampler, input.TexCoord);
     return color;
 }

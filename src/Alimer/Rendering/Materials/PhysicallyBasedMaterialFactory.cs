@@ -42,6 +42,19 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
             );
     }
 
+    protected override unsafe PipelineLayout CreatePipelineLayout(bool skinned)
+    {
+        Span<BindGroupLayout> bindGroupLayouts = [_bindGroupLayout,
+            System.InstanceBindGroupLayout,
+            System.ViewBindGroupLayout,
+            System.FrameBindGroupLayout];
+
+        PushConstantRange pushConstantRange = new(999, (uint)sizeof(PBRPushConstants));
+
+        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts, [pushConstantRange]);
+        return System.Device.CreatePipelineLayout(in descriptor);
+    }
+
     public override ShaderModule CreateFragmentShaderModule(Span<VertexBufferLayout> geometryLayout, Material material)
     {
         if (material is not PhysicallyBasedMaterial pbrMaterial)
@@ -91,5 +104,11 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     private static bool IsFullyRough(PhysicallyBasedMaterial material)
     {
         return material.RoughnessFactor == 1.0 && material.MetallicRoughnessTexture is null;
+    }
+
+    struct PBRPushConstants
+    {
+        public uint baseColorTextureIndex;
+        public uint samplerIndex;
     }
 }

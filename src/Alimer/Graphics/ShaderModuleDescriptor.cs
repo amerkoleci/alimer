@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="Sampler"/>.
+/// Structure that describes the <see cref="ShaderModule"/>.
 /// </summary>
 public ref struct ShaderModuleDescriptor
 {
@@ -14,15 +14,20 @@ public ref struct ShaderModuleDescriptor
     /// <summary>
     /// The name of the entry point.
     /// </summary>
-    public Utf8String EntryPoint;
+    public string EntryPoint;
+
+    /// <summary>
+    /// Gets or sets the label of <see cref="ShaderModule"/>.
+    /// </summary>
+    public string? Label;
 
     public ShaderModuleDescriptor(ShaderStages stage, ReadOnlySpan<byte> byteCode)
     {
         Stage = stage;
         ByteCode = byteCode;
-        EntryPoint = "main"u8;
+        EntryPoint = "main";
     }
-    public ShaderModuleDescriptor(ShaderStages stage, ReadOnlySpan<byte> byteCode, Utf8String entryPoint)
+    public ShaderModuleDescriptor(ShaderStages stage, ReadOnlySpan<byte> byteCode, string entryPoint)
     {
         Stage = stage;
         ByteCode = byteCode;

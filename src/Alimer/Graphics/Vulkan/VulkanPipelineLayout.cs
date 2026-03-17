@@ -20,9 +20,9 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
 
         int setLayoutCount = descriptor.BindGroupLayouts.Length;
 
-        if (device.Bindless)
+        if (device.BindlessDescriptorSet is not null)
         {
-            setLayoutCount += 1;
+            setLayoutCount += device.BindlessDescriptorSet.DescriptorSetCount;
         }
         VkDescriptorSetLayout* pSetLayouts = stackalloc VkDescriptorSetLayout[setLayoutCount];
 
@@ -31,11 +31,12 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             pSetLayouts[i] = ((VulkanBindGroupLayout)descriptor.BindGroupLayouts[i]).Handle;
         }
 
-        if (device.Bindless)
+        if (device.BindlessDescriptorSet is not null)
         {
             BindlessLayoutFirstIndex = descriptor.BindGroupLayouts.Length;
             int startIndex = BindlessLayoutFirstIndex;
             pSetLayouts[startIndex++] = device.BindlessDescriptorSet.Samplers.DescriptorSetLayout;
+            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.SampledImages.DescriptorSetLayout;
         }
 
         int pushConstantRangeCount = descriptor.PushConstantRanges.Length;

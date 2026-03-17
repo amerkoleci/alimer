@@ -1,13 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Vortice.Vulkan;
-using static Vortice.Vulkan.Vulkan;
-using static Alimer.Graphics.Constants;
-using System.Diagnostics;
-using static Alimer.Utilities.MemoryUtilities;
-using static Alimer.Utilities.MarshalUtilities;
 using Alimer.Utilities;
+using Vortice.Vulkan;
+using static Alimer.Utilities.MarshalUtilities;
+using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -22,36 +19,40 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
         _device = device;
         VkLayout = (VulkanPipelineLayout)descriptor.Layout;
 
-        VkPipelineShaderStageCreateInfo stage = new()
+        fixed (byte* entryPoint = descriptor.ComputeShader.EntryPoint.GetUtf8Span())
         {
-            stage = VK_SHADER_STAGE_COMPUTE_BIT,
-            module = ((VulkanShaderModule)descriptor.ComputeShader).Handle,
-            pName = (byte*)descriptor.ComputeShader.EntryPoint
-        };
+            VkPipelineShaderStageCreateInfo stage = new()
+            {
+                stage = VK_SHADER_STAGE_COMPUTE_BIT,
+                module = ((VulkanShaderModule)descriptor.ComputeShader).Handle,
+                pName = entryPoint
+            };
 
-        VkComputePipelineCreateInfo createInfo = new()
-        {
-            stage = stage,
-            layout = VkLayout.Handle,
-            basePipelineHandle = VkPipeline.Null,
-            basePipelineIndex = 0
-        };
+            VkComputePipelineCreateInfo createInfo = new()
+            {
+                stage = stage,
+                layout = VkLayout.Handle,
+                basePipelineHandle = VkPipeline.Null,
+                basePipelineIndex = 0
+            };
 
-        VkPipeline pipeline;
-        VkResult result = _device.DeviceApi.vkCreateComputePipelines(
-            device.PipelineCache,
-            1, &createInfo,
-            null,
-            &pipeline
-            );
+            VkPipeline pipeline;
+            VkResult result = _device.DeviceApi.vkCreateComputePipelines(
+                device.PipelineCache,
+                1, &createInfo,
+                null,
+                &pipeline
+                );
 
-        if (result != VK_SUCCESS)
-        {
-            Log.Error("Vulkan: Failed to create Compute Pipeline.");
-            return;
+            if (result != VK_SUCCESS)
+            {
+                Log.Error("Vulkan: Failed to create Compute Pipeline.");
+                return;
+            }
+
+            _handle = pipeline;
         }
 
-        _handle = pipeline;
 
         if (!string.IsNullOrEmpty(descriptor.Label))
         {
@@ -77,6 +78,6 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _device.DeviceApi.vkDestroyPipeline( _handle);
+        _device.DeviceApi.vkDestroyPipeline(_handle);
     }
 }

@@ -14,7 +14,7 @@ public struct ShaderCompilationOptions
     public Dictionary<string, string> Defines { get; } = [];
     public List<string> IncludeDirs { get; } = [];
 
-    public DxcShaderModel ShaderModel { get; set; } = DxcShaderModel.Model6_5;
+    public DxcShaderModel ShaderModel { get; set; } = DxcShaderModel.Model6_6;
 
     /// <summary>
     /// -Od
@@ -41,21 +41,18 @@ public struct ShaderCompilationOptions
     public bool Debug { get; set; }
     public bool AllResourcesBound { get; set; }
 
-    public bool PackMatrixRowMajor { get; set; } = true;
+    public bool PackMatrixRowMajor { get; set; } 
     public bool PackMatrixColumnMajor { get; set; }
 
     public bool StripReflection { get; set; } = true;
     public bool StripDebug { get; set; } = true;
 
-    //public StringView vulkanVersion = "1.3";
-
-    public int SpvTargetEnvMajor { get; set; } = 1;
-    public int SpvTargetEnvMinor { get; set; } = 2;
+    public string SpvTargetEnv { get; set; } = "1.3";
 
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources
     /// </summary>
-    public uint ShiftSpaceCount { get; set; } = 8;
+    public uint ShiftSpaceCount { get; set; } = 4;
 
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources

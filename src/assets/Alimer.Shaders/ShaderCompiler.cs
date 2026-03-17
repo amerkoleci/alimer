@@ -7,12 +7,12 @@ using Alimer.Graphics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using Vortice.SPIRV.Reflect;
-using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXC;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.Windows.CLSID;
 using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
+using static TerraFX.Interop.Windows.CLSID;
+using static TerraFX.Interop.Windows.Windows;
+using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
 
 namespace Alimer.Shaders;
 
@@ -109,13 +109,23 @@ public sealed unsafe partial class ShaderCompiler
         arguments.Add("-D");
         arguments.Add("COMPILER_DXC");
 
-        if (options.ShaderFormat == ShaderFormat.SPIRV)
+        switch(options.ShaderFormat)
         {
-            arguments.Add("-D");
-            arguments.Add("SPIRV");
+            case ShaderFormat.DXIL:
+                arguments.Add("-D");
+                arguments.Add("DXIL");
+                break;
+            case ShaderFormat.SPIRV:
+                arguments.Add("-D");
+                arguments.Add("SPIRV");
 
-            arguments.Add("-D");
-            arguments.Add("VULKAN");
+                arguments.Add("-D");
+                arguments.Add("VULKAN");
+                break;
+            case ShaderFormat.Metal:
+                arguments.Add("-D");
+                arguments.Add("METAL");
+                break;
         }
 
         if (options.Defines.Count > 0)
@@ -183,8 +193,9 @@ public sealed unsafe partial class ShaderCompiler
 
         if (options.ShaderFormat == ShaderFormat.SPIRV)
         {
+            // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SPIR-V.rst
             arguments.Add("-spirv");
-            arguments.Add($"-fspv-target-env=vulkan{options.SpvTargetEnvMajor}.{options.SpvTargetEnvMinor}");
+            arguments.Add($"-fspv-target-env=vulkan{options.SpvTargetEnv}");
 
             arguments.Add("-fvk-use-dx-layout");
             arguments.Add("-fvk-use-dx-position-w");
@@ -207,6 +218,17 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add($"{options.SpirvSShift}");
                 arguments.Add($"{space}");
             }
+
+            // Requires VK_EXT_mutable_descriptor_type (36.25% coverage)
+            // -fvk-bind-sampler-heap <binding> <set>
+            // -fvk-bind-resource-heap <binding> <set>
+            // -fvk-bind-counter-heap <binding> <set>:
+            //arguments.Add("-fvk-bind-sampler-heap");
+            //arguments.Add("-fvk-bind-resource-heap");
+        }
+        else if (options.ShaderFormat == ShaderFormat.Metal)
+        {
+            arguments.Add("-metal");
         }
         else
         {

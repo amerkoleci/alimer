@@ -116,11 +116,26 @@ Texture2D<float4> occlusionTexture : register(t4);
 // Texture2D<float4> transmissionTexture : register(t5, space1);
 SamplerState pbrSampler : register(s0);
 
-uniform SamplerState.Handle testAmer;
+// Bindless
+#if defined(ALIMER_BINDLESS)
+// uniform Texture2D<float4>.Handle baseColorTexture;
+// uniform SamplerState.Handle pbrSampler;
+
+struct PBRPushConstants {
+    uint32_t baseColorTextureIndex;
+    uint32_t samplerIndex;
+};
+
+ALIMER_PUSH_CONSTANTS(PBRPushConstants, push);
+#endif
 
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {
+#if defined(ALIMER_BINDLESS)
+    Texture2D<float4> baseColorTexture = bindlessTexture2D[push.baseColorTextureIndex];
+#endif
+
     float2 baseColorUV = material.baseColorUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;
     const float4 baseColorMap = baseColorTexture.Sample(pbrSampler, baseColorUV);
 

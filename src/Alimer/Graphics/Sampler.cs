@@ -81,4 +81,9 @@ public abstract class Sampler : GraphicsObject, IGraphicsBindableResource
     /// Gets the <see cref="SamplerBorderColor"/> border color for clamped texture values.
     /// </summary>
     public SamplerBorderColor BorderColor { get; }
+
+    /// <summary>
+    /// Gets the bindless index of the resource
+    /// </summary>
+    public uint BindlessIndex { get; protected set; } = uint.MaxValue;
 }

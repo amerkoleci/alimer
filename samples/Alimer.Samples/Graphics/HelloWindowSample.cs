@@ -4,7 +4,7 @@
 using System.ComponentModel;
 using Alimer.Graphics;
 
-namespace Alimer.Samples.Graphics;
+namespace Alimer.Samples;
 
 [Description("Graphics - Hello Window")]
 public sealed class HelloWindowSample : GraphicsSampleBase

@@ -8,7 +8,7 @@ using Alimer.Graphics;
 using Alimer.Input;
 using Alimer.Rendering;
 
-namespace Alimer.Samples.Graphics;
+namespace Alimer.Samples;
 
 [Description("Graphics - Draw Textured Cube from File")]
 public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
@@ -56,8 +56,8 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
 
-        using ShaderModule vertexShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModuleNew("TexturedCube", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModule("TexturedCube", ShaderStages.Vertex, "vertexMain");
+        using ShaderModule fragmentShader = CompileShaderModule("TexturedCube", ShaderStages.Fragment, "fragmentMain");
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {

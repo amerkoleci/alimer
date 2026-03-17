@@ -26,18 +26,21 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         // Bindless samplers
         VkPhysicalDeviceVulkan12Properties properties12 = device.VkAdapter.Properties12;
         Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BINDLESS_SAMPLER_CAPACITY, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
-        DescriptorSetCount = 1;
+        SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BINDLESS_RESOURCE_CAPACITY, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
+        DescriptorSetCount = 2;
     }
 
 
     public VulkanGraphicsDevice Device { get; }
 
     public VulkanBindlessDescriptorHeap Samplers { get; }
+    public VulkanBindlessDescriptorHeap SampledImages { get; }
     public int DescriptorSetCount { get; }
 
     public void Dispose()
     {
         Samplers.Dispose();
+        SampledImages.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -46,6 +49,7 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         uint firstSet = (uint)pipelineLayout.BindlessLayoutFirstIndex;
         Span<VkDescriptorSet> descriptorSets = stackalloc VkDescriptorSet[DescriptorSetCount];
         descriptorSets[0] = Samplers.DescriptorSet;
+        descriptorSets[1] = SampledImages.DescriptorSet;
 
         Device.DeviceApi.vkCmdBindDescriptorSets(
             commandBuffer,

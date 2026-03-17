@@ -7,7 +7,7 @@ using System.Numerics;
 using Alimer.Graphics;
 using Alimer.Rendering;
 
-namespace Alimer.Samples.Graphics;
+namespace Alimer.Samples;
 
 [Description("Graphics - Draw Cube")]
 public unsafe sealed class DrawCubeSample : GraphicsSampleBase
@@ -53,8 +53,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0, _bindGroupLayout1));
 
-        using ShaderModule vertexShader = CompileShaderModuleNew("Cube", ShaderStages.Vertex, "vertexMain"u8);
-        using ShaderModule fragmentShader = CompileShaderModuleNew("Cube", ShaderStages.Fragment, "fragmentMain"u8);
+        using ShaderModule vertexShader = CompileShaderModule("Cube", ShaderStages.Vertex, "vertexMain");
+        using ShaderModule fragmentShader = CompileShaderModule("Cube", ShaderStages.Fragment, "fragmentMain");
 
         var vertexBufferLayout = new VertexBufferLayout[1]
         {

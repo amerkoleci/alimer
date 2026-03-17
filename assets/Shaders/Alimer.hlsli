@@ -14,7 +14,9 @@
 
 // Compiler detection (see: https://github.com/microsoft/DirectXShaderCompiler/wiki/Predefined-Version-Macros)
 #ifdef __hlsl_dx_compiler
-    #ifdef __spirv__
+    #if defined(METAL)
+        #define ALIMER_METAL
+    #elif defined(__spirv__)
         #define ALIMER_SPIRV
         #define ALIMER_PRINTF_AVAILABLE
     #else
@@ -24,10 +26,8 @@
 
 #ifdef __spirv__
 #   define ALIMER_PUSH_CONSTANTS(type, name) [[vk::push_constant]] type name
-#   define ALIMER_VERTEX_ATTRIBUTE(type, name, loc) [[vk::location(loc)]] type name : ALIMER_MERGE_TOKENS(ATTRIBUTE, loc)
 #else
 #   define ALIMER_PUSH_CONSTANTS(type, name) ConstantBuffer<type> name : register(b999, space0)
-#   define ALIMER_VERTEX_ATTRIBUTE(type, name, loc) type name : ALIMER_MERGE_TOKENS(ATTRIBUTE, loc)
 #endif
 
 #include "Math.hlsli"
@@ -47,15 +47,15 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 /* Bindless */
 // TODO: Allow engine side static sampler configuration and remove definitions in code
 
-#ifndef ALIMER_BINDLESS
-#define ALIMER_BINDLESS 1
-#endif
+//#ifndef ALIMER_BINDLESS
+//#define ALIMER_BINDLESS 1
+//#endif
 
 #if defined(ALIMER_BINDLESS)
 /* VkDescriptorType */
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
-#ifdef __spirv__
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 1001;
+#ifdef __spirv__
 static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 1002;
 
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
@@ -63,7 +63,7 @@ static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 1002;
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
 #else
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
-Texture2D bindlessTexture2D[] : register(t0, space1001);
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindlessTexture2D[];
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
 #endif
 #endif /* defined(ALIMER_BINDLESS)  */

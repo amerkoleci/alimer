@@ -26,12 +26,6 @@ struct DrawData2
     float4 color;
 };
 
-#if defined(ALIMER_SPIRV)
-sdasd
-#elif defined(ALIMER_DXIL)
-sdasd
-#endif
-
 //ALIMER_PUSH_CONSTANTS(DrawData, draw);
 ConstantBuffer<DrawData> draw : register(b0, space0);
 //ConstantBuffer<DrawData2> draw2 : register(b0, space1);
