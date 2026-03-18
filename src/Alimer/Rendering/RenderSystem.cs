@@ -314,7 +314,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
                 foreach (var materialPair in materialList)
                 {
-                    var material = materialPair.Key;
+                    var materialBindGroup = materialPair.Key;
                     var instances = materialPair.Value;
 
                     // TODO: GPUBindGroups
@@ -323,14 +323,14 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                     //    passEncoder.setBindGroup(i++, bindGroup);
                     //}
 
-                    passEncoder.SetBindGroup(0, material);
+                    passEncoder.SetBindGroup(0, materialBindGroup);
 
-                    // Update per-object data (after set pipeline)
-                    //InstanceData drawData = new()
-                    //{
-                    //    worldMatrix = instances.Transforms[0]
-                    //};
-                    //passEncoder.SetPushConstants(0, drawData);
+                    PBRPushConstants pushConstants = new()
+                    {
+                        baseColorTextureIndex = 1,
+                        samplerIndex = 0
+                    };
+                    passEncoder.SetPushConstants(pushConstants);
 
                     uint instanceCount = instances.InstanceCount + instances.FirstInstance;
                     passEncoder.DrawIndexed((uint)geometry.IndexCount, instanceCount, (uint)geometry.IndexStart, 0, instances.FirstInstance);
@@ -464,27 +464,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             {
                 factory.Remove(material);
             }
-        }
-    }
-
-    class RenderPrimitive
-    {
-        public readonly SubMesh Geometry;
-        public readonly GPURenderPipeline Pipeline;
-        public readonly GPUMaterialBindGroups BindGroups;
-
-        public RenderPrimitive(SubMesh geometry, GPURenderPipeline pipeline, BindGroup bindGroup)
-        {
-            Geometry = geometry;
-            Pipeline = pipeline;
-            BindGroups = new GPUMaterialBindGroups(bindGroup);
-        }
-
-        public RenderPrimitive(SubMesh geometry, GPURenderPipeline pipeline, GPUMaterialBindGroups? bindGroups)
-        {
-            Geometry = geometry;
-            Pipeline = pipeline;
-            BindGroups = bindGroups ?? new GPUMaterialBindGroups();
         }
     }
 }

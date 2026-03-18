@@ -10,7 +10,7 @@ using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Rendering;
 
-using InstanceDictionary = Dictionary</*GPUMaterialBindGroups*/BindGroup, GPUBatchEntry>;
+using InstanceDictionary = Dictionary<BindGroup, GPUBatchEntry>;
 //using GeometryDictionary = Dictionary<SubMesh, InstanceDictionary>;
 //using PipelineMaterials = Dictionary<GPURenderPipeline, MaterialGeometry>;
 
@@ -75,7 +75,7 @@ public sealed unsafe class RenderBatch : DisposableObject
         }
     }
 
-    public void AddRenderable(SubMesh geometry, GPURenderPipeline pipeline, /*GPUMaterialBindGroups*/BindGroup bindGroups, GPUInstanceData instance)
+    public void AddRenderable(SubMesh geometry, GPURenderPipeline pipeline, BindGroup bindGroups, GPUInstanceData instance)
     {
         if (!_pipelineGeometries.TryGetValue(pipeline, out Dictionary<SubMesh, InstanceDictionary>? geometryMaterials))
         {

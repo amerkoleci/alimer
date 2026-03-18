@@ -16,18 +16,6 @@ public enum RenderOrder
     Last = 4
 }
 
-public class GPUMaterialBindGroups
-{
-    public int FirstBindGroupIndex = 0;
-    public bool CastsShadow = true;
-    public BindGroup[] BindGroups = [];
-
-    public GPUMaterialBindGroups(params BindGroup[] groups)
-    {
-        BindGroups = groups;
-    }
-}
-
 public class GPURenderPipeline
 {
     private static int s_nextPipelineId = 1;

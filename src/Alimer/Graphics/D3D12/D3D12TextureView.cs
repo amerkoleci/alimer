@@ -1,16 +1,16 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using TerraFX.Interop.DirectX;
+using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
+using static TerraFX.Interop.DirectX.D3D12_DSV_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.D3D12_DSV_FLAGS;
+using static Alimer.Graphics.Constants;
 using DescriptorIndex = System.UInt32;
-using System.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -19,6 +19,7 @@ internal unsafe class D3D12TextureView : TextureView
     private readonly D3D12Texture _texture;
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
+    private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
 
     public D3D12TextureView(D3D12Texture texture, in TextureViewDescriptor descriptor)
         : base(texture, in descriptor)
@@ -37,6 +38,19 @@ internal unsafe class D3D12TextureView : TextureView
             {
                 RTVFormat = descriptor.Format.ToDxgiRTVFormat();
                 RTV = GetRTV(RTVFormat);
+            }
+        }
+
+        if (texture.DXDevice.Bindless)
+        {
+            if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
+            {
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvViewDesc = GetSRVDescriptor();
+                _bindlessSRVIndex = texture.DXDevice.AllocateBindlessSRV(texture.Handle, in srvViewDesc);
+            }
+
+            if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
+            {
             }
         }
     }

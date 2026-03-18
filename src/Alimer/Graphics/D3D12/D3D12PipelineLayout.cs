@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static Alimer.Graphics.Constants;
 using static Alimer.Utilities.UnsafeUtilities;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
@@ -16,6 +17,8 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12PipelineLayout : PipelineLayout
 {
+    private const uint PushConstantsShaderRegister = 999; // b999 in shader
+
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12RootSignature> _handle;
     private readonly uint[] _cbvUavSrvRootParameterIndex;
@@ -54,8 +57,8 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             }
         }
 
-        int pushConstantRangeCount = descriptor.PushConstantRanges.Length;
-        rootParameterCount += pushConstantRangeCount;
+        // One for push constants
+        rootParameterCount += 1;
         uint rootParameterIndex = 0;
         D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[rootParameterCount];
 
@@ -115,18 +118,8 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             }
         }
 
-        if (pushConstantRangeCount > 0)
-        {
-            PushConstantsBaseIndex = rootParameterIndex;
-
-            for (int i = 0; i < pushConstantRangeCount; i++)
-            {
-                ref readonly PushConstantRange pushConstantRange = ref descriptor.PushConstantRanges[i];
-
-                rootParameters[rootParameterIndex].InitAsConstants(pushConstantRange.Size / 4, pushConstantRange.ShaderRegister);
-                rootParameterIndex++;
-            }
-        }
+        PushConstantsBaseIndex = rootParameterIndex;
+        rootParameters[rootParameterIndex++].InitAsConstants(PushConstantsSize / 4, PushConstantsShaderRegister);
 
         Span<D3D12_STATIC_SAMPLER_DESC> staticSamplersSpan = CollectionsMarshal.AsSpan(staticSamplers);
 

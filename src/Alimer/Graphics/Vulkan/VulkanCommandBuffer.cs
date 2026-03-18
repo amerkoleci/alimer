@@ -433,17 +433,16 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    public void SetPushConstants(uint pushConstantIndex, void* data, int size)
+    public void SetPushConstants(void* data, uint size, uint offset)
     {
-        Debug.Assert(size <= _queue.VkDevice.Limits.MaxPushConstantsSize);
+        Debug.Assert(size <= _queue.VkDevice.VkAdapter.Properties2.properties.limits.maxPushConstantsSize);
         Debug.Assert(_currentPipelineLayout != null);
 
-        ref readonly VkPushConstantRange range = ref _currentPipelineLayout.GetPushConstantRange(pushConstantIndex);
         _deviceApi.vkCmdPushConstants(_commandBuffer.Handle,
             _currentPipelineLayout.Handle,
-            range.stageFlags,
-            range.offset,
-            (uint)size,
+            VK_SHADER_STAGE_ALL,
+            offset,
+            size,
             data);
     }
 

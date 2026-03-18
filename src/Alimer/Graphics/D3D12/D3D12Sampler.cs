@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using TerraFX.Interop.DirectX;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -9,6 +10,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12_SAMPLER_DESC _desc;
+    private readonly int _bindlessIndex = InvalidBindlessIndex;
 
     public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescriptor description)
         : base(description)
@@ -19,6 +21,8 @@ internal sealed unsafe class D3D12Sampler : Sampler
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
+    /// <inheritdoc />
+    public override int BindlessIndex => _bindlessIndex;
 
     public void CreateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE handle)
     {

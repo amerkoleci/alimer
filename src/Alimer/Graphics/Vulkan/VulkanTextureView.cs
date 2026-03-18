@@ -3,6 +3,7 @@
 
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -10,6 +11,7 @@ internal unsafe class VulkanTextureView : TextureView
 {
     private readonly VulkanTexture _texture;
     private VkImageView _handle = VkImageView.Null;
+    private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
 
     public VulkanTextureView(VulkanTexture texture, in TextureViewDescriptor descriptor)
         : base(texture, descriptor)
@@ -45,6 +47,39 @@ internal unsafe class VulkanTextureView : TextureView
         if (result != VK_SUCCESS)
         {
             Log.Error($"Vulkan: Failed to create ImageView, error: {result}");
+        }
+
+        if (texture.VkDevice.Bindless)
+        {
+            if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
+            {
+                _bindlessSRVIndex = texture.VkDevice.BindlessDescriptorSet!.SampledImages.Allocate();
+
+                if (_bindlessSRVIndex != InvalidBindlessIndex)
+                {
+                    VkDescriptorImageInfo imageInfo = new()
+                    {
+                        imageView = _handle,
+                        imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                    };
+
+                    VkWriteDescriptorSet write = new()
+                    {
+                        dstSet = texture.VkDevice.BindlessDescriptorSet!.SampledImages.DescriptorSet,
+                        dstBinding = 0,
+                        dstArrayElement = (uint)_bindlessSRVIndex,
+                        descriptorCount = 1,
+                        descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        pImageInfo = &imageInfo
+                    };
+
+                    texture.VkDevice.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+                }
+            }
+
+            if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
+            {
+            }
         }
     }
 

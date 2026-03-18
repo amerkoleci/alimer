@@ -18,20 +18,25 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandle = default;
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible = default;
     private D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisible = default;
-    private readonly object _mutex = new();
-    private bool[] _allocatedDescriptors = Array.Empty<bool>();
+    private readonly Lock _lock = new();
+    private bool[] _allocatedDescriptors = [];
     private DescriptorIndex _searchStart;
+    private DescriptorIndex _searchBindlessStart;
 
     private const DescriptorIndex InvalidDescriptorIndex = ~0u;
 
-    public D3D12DescriptorAllocator(D3D12GraphicsDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint numDescriptors, bool shaderVisible)
+    public D3D12DescriptorAllocator(D3D12GraphicsDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint numDescriptors, bool shaderVisible, uint nonBindlessCount = 0)
     {
         _device = device;
         HeapType = type;
         NumDescriptors = numDescriptors;
         ShaderVisible = shaderVisible;
         Stride = device.Device->GetDescriptorHandleIncrementSize(type);
-
+        if (ShaderVisible)
+        {
+            _searchBindlessStart = 0;
+            _searchStart = numDescriptors - nonBindlessCount;
+        }
         _ = AllocateResources(numDescriptors);
     }
 
@@ -51,16 +56,27 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         _shaderVisibleHeap.Dispose();
     }
 
+    public DescriptorIndex AllocateBindlessDescriptor()
+    {
+        return AllocateDescriptors(true, 1);
+    }
+
     public DescriptorIndex AllocateDescriptors(uint count = 1)
     {
-        lock (_mutex)
+        return AllocateDescriptors(false, count);
+    }
+
+    private DescriptorIndex AllocateDescriptors(bool bindless, uint count)
+    {
+        lock (_lock)
         {
             DescriptorIndex foundIndex = 0;
             uint freeCount = 0;
             bool found = false;
+            DescriptorIndex startIndex = bindless ? _searchBindlessStart : _searchStart;
 
             // Find a contiguous range of 'count' indices for which _allocatedDescriptors[index] is false
-            for (DescriptorIndex index = _searchStart; index < NumDescriptors; index++)
+            for (DescriptorIndex index = startIndex; index < NumDescriptors; index++)
             {
                 if (_allocatedDescriptors[index])
                     freeCount = 0;
@@ -94,7 +110,14 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             }
 
             NumAllocatedDescriptors += count;
-            _searchStart = foundIndex + count;
+            if (bindless && ShaderVisible)
+            {
+                _searchBindlessStart = foundIndex + count;
+            }
+            else
+            {
+                _searchStart = foundIndex + count;
+            }
             return foundIndex;
         }
     }
@@ -104,7 +127,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         if (count == 0)
             return;
 
-        lock (_mutex)
+        lock (_lock)
         {
             for (DescriptorIndex index = baseIndex; index < baseIndex + count; index++)
             {

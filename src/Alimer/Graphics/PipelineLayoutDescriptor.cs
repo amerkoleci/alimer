@@ -10,8 +10,6 @@ public ref struct PipelineLayoutDescriptor
 {
     public Span<BindGroupLayout> BindGroupLayouts;
 
-    public Span<PushConstantRange> PushConstantRanges;
-
     /// <summary>
     /// The label of <see cref="PipelineLayout"/>.
     /// </summary>
@@ -20,19 +18,11 @@ public ref struct PipelineLayoutDescriptor
     public PipelineLayoutDescriptor()
     {
         BindGroupLayouts = [];
-        PushConstantRanges = [];
     }
 
     public PipelineLayoutDescriptor(Span<BindGroupLayout> bindGroupLayouts)
-        : this(bindGroupLayouts, [])
-    {
-    }
-
-    public PipelineLayoutDescriptor(Span<BindGroupLayout> bindGroupLayouts, Span<PushConstantRange> pushConstantRanges)
     {
         ArgumentOutOfRangeException.ThrowIfZero(bindGroupLayouts.Length, nameof(bindGroupLayouts));
-
         BindGroupLayouts = bindGroupLayouts;
-        PushConstantRanges = pushConstantRanges;
     }
 }

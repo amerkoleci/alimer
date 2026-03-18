@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
 using SkiaSharp;
+using static Alimer.Graphics.Constants;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
@@ -210,8 +211,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         DepthStencilViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, depthStencilViewHeapSize, false);
 
         // Shader visible descriptor heaps
-        ShaderResourceViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true);
-        SamplerHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize, true);
+        ShaderResourceViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true, nonBindlessCount: 1024);
+        SamplerHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize, true, nonBindlessCount: 32);
 
         // Create command signatures
         {
@@ -298,7 +299,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             TextureDepthPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
 
             MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
-            MaxPushConstantsSize = sizeof(uint) * kMaxRootSignatureSize / 1,
 
             MaxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
             MaxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE,
@@ -364,11 +364,10 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         // Check for bindless resources support
-        if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3
-            && _adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
+        if (_adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
         {
             Bindless = true;
-            BindlessDescriptorSet = new D3D12BindlessDescriptorSet(this);
+            BindlessDescriptorSet = new D3D12BindlessDescriptorSet(this, MaxNonSamplerDescriptors, MaxSamplerDescriptors);
         }
 
         ulong timestampFrequency;
@@ -815,6 +814,28 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             Device = (nint)Device,
             Queue = (nint)D3D12GraphicsQueue.Handle
         });
+    }
+
+    public int AllocateBindlessSRV(ID3D12Resource* resource, in D3D12_SHADER_RESOURCE_VIEW_DESC desc)
+    {
+        int bindlessSRVIndex = BindlessDescriptorSet!.Resources.Allocate();
+
+        if (bindlessSRVIndex != InvalidBindlessIndex)
+        {
+            Debug.Assert(bindlessSRVIndex < BindlessDescriptorSet!.Resources.Capacity);
+
+            uint descriptorIndex = ShaderResourceViewHeap.AllocateBindlessDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
+
+            fixed (D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc = &desc)
+            {
+                Device->CreateShaderResourceView(resource, pDesc, descriptorHandle);
+            }
+
+            ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
+        }
+
+        return bindlessSRVIndex;
     }
 
     [UnmanagedCallersOnly]

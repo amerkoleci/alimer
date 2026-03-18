@@ -190,9 +190,9 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetPushConstantsCore(uint pushConstantIndex, void* data, int size)
+    protected override void SetPushConstantsCore(void* data, uint size, uint offset)
     {
-        _commandBuffer.SetPushConstants(pushConstantIndex, data, size);
+        _commandBuffer.SetPushConstants(data, size, offset);
     }
 
     public override void SetViewport(in Viewport viewport)

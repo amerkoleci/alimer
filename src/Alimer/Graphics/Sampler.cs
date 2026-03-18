@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+
 namespace Alimer.Graphics;
 
 public abstract class Sampler : GraphicsObject, IGraphicsBindableResource
@@ -85,5 +86,5 @@ public abstract class Sampler : GraphicsObject, IGraphicsBindableResource
     /// <summary>
     /// Gets the bindless index of the resource
     /// </summary>
-    public uint BindlessIndex { get; protected set; } = uint.MaxValue;
+    public abstract int BindlessIndex { get; }
 }

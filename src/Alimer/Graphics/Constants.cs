@@ -21,4 +21,7 @@ public static class Constants
     public const uint MipLevelCountUndefined = uint.MaxValue;
     public const uint ArrayLayerCountUndefined = uint.MaxValue;
     public const ulong WholeSize = ulong.MaxValue;
+
+    public const int InvalidBindlessIndex = -1;
+    public const int PushConstantsSize = 128; // 128 bytes is the minimum guaranteed size for push constants in Vulkan
 }

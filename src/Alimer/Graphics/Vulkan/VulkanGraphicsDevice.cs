@@ -846,7 +846,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             TextureDepthPitchAlignment = MathUtilities.LeastCommonMultiple((uint)vkLimits.optimalBufferCopyOffsetAlignment, leastCommonMultipleStrideAccrossAllFormats),
 
             MaxBufferSize = _adapter.Properties13.maxBufferSize,
-            MaxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize,
             MaxColorAttachments = properties2.properties.limits.maxColorAttachments,
             MaxViewports = properties2.properties.limits.maxViewports,
 

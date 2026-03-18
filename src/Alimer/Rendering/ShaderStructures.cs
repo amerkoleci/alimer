@@ -81,3 +81,9 @@ public struct PBRMaterialUniforms : IShaderConstantBuffer
     public int metallicRoughnessUVSet;
     public int emissiveUVSet;
 }
+
+public struct PBRPushConstants
+{
+    public uint baseColorTextureIndex;
+    public uint samplerIndex;
+}

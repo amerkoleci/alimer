@@ -49,9 +49,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
             System.ViewBindGroupLayout,
             System.FrameBindGroupLayout];
 
-        PushConstantRange pushConstantRange = new(999, (uint)sizeof(PBRPushConstants));
-
-        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts, [pushConstantRange]);
+        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
         return System.Device.CreatePipelineLayout(in descriptor);
     }
 
@@ -104,11 +102,5 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     private static bool IsFullyRough(PhysicallyBasedMaterial material)
     {
         return material.RoughnessFactor == 1.0 && material.MetallicRoughnessTexture is null;
-    }
-
-    struct PBRPushConstants
-    {
-        public uint baseColorTextureIndex;
-        public uint samplerIndex;
     }
 }

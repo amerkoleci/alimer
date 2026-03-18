@@ -23,7 +23,6 @@ public struct GraphicsDeviceLimits
     public uint TextureDepthPitchAlignment;
 
     public ulong MaxBufferSize;
-    public uint MaxPushConstantsSize;
     public uint MaxColorAttachments;
     public uint MaxViewports;
 

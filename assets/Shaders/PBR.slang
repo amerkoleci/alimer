@@ -108,7 +108,6 @@ float3 pbrPointLight(in LightData light, in SurfaceInfo surface)
 
 // Material (space 0)
 ConstantBuffer<PBRMaterialUniforms> material : register(b0);
-Texture2D<float4> baseColorTexture : register(t0);
 Texture2D<float4> normalTexture : register(t1);
 Texture2D<float4> metallicRoughnessTexture : register(t2);
 Texture2D<float4> emissiveTexture : register(t3);
@@ -126,14 +125,16 @@ struct PBRPushConstants {
     uint32_t samplerIndex;
 };
 
-ALIMER_PUSH_CONSTANTS(PBRPushConstants, push);
+ALIMER_PUSH_CONSTANTS(PBRPushConstants);
+#else
+Texture2D<float4> baseColorTexture : register(t0);
 #endif
 
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {
 #if defined(ALIMER_BINDLESS)
-    Texture2D<float4> baseColorTexture = bindlessTexture2D[push.baseColorTextureIndex];
+    Texture2D<float4> baseColorTexture = bindlessTexture2D[pushConstants.baseColorTextureIndex];
 #endif
 
     float2 baseColorUV = material.baseColorUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;

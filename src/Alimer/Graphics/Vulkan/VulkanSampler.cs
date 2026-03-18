@@ -3,12 +3,14 @@
 
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanSampler : Sampler
 {
     private readonly VulkanGraphicsDevice _device;
+    private readonly int _bindlessIndex = InvalidBindlessIndex;
 
     public VulkanSampler(VulkanGraphicsDevice device, in SamplerDescriptor descriptor)
         : base(descriptor)
@@ -23,9 +25,9 @@ internal unsafe class VulkanSampler : Sampler
 
         if (device.Bindless)
         {
-            BindlessIndex = device.BindlessDescriptorSet!.Samplers.Allocate();
+            _bindlessIndex = device.BindlessDescriptorSet!.Samplers.Allocate();
 
-            if (BindlessIndex != uint.MaxValue)
+            if (_bindlessIndex != InvalidBindlessIndex)
             {
                 VkDescriptorImageInfo imageInfo = new()
                 {
@@ -36,7 +38,7 @@ internal unsafe class VulkanSampler : Sampler
                 {
                     dstSet = device.BindlessDescriptorSet!.Samplers.DescriptorSet,
                     dstBinding = 0,
-                    dstArrayElement = BindlessIndex,
+                    dstArrayElement = (uint)_bindlessIndex,
                     descriptorCount = 1,
                     descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
                     pImageInfo = &imageInfo
@@ -50,6 +52,7 @@ internal unsafe class VulkanSampler : Sampler
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
     public VkSampler Handle { get; }
+    public override int BindlessIndex => _bindlessIndex;
 
     /// <inheitdoc />
     protected internal override void Destroy()

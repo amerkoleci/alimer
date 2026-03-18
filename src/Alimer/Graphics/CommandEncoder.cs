@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using static Alimer.Graphics.Constants;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Graphics;
 
@@ -44,23 +45,23 @@ public abstract  class CommandEncoder
         SetBindGroupCore(groupIndex, bindGroup, dynamicBufferOffsets);
     }
 
-    public unsafe void SetPushConstants<T>(uint pushConstantIndex, T data)
+    public unsafe void SetPushConstants<T>(T data, uint offset = 0)
          where T : unmanaged
     {
-        SetPushConstantsCore(pushConstantIndex, &data, sizeof(T));
+        SetPushConstantsCore(&data, SizeOf<T>(), offset);
     }
 
-    public unsafe void SetPushConstants<T>(uint pushConstantIndex, ReadOnlySpan<T> data)
+    public unsafe void SetPushConstants<T>(ReadOnlySpan<T> data, uint offset = 0)
         where T : unmanaged
     {
-        int sizeInBytes = data.Length * sizeof(T);
+        uint sizeInBytes = (uint)data.Length * SizeOf<T>();
 
         fixed (void* ptr = data)
-            SetPushConstantsCore(pushConstantIndex, ptr, sizeInBytes);
+            SetPushConstantsCore(ptr, sizeInBytes, offset);
     }
 
     protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets);
-    protected abstract unsafe void SetPushConstantsCore(uint pushConstantIndex, void* data, int size);
+    protected abstract unsafe void SetPushConstantsCore(void* data, uint size, uint offset);
 
     #region Validation
     [Conditional("VALIDATE_USAGE")]
