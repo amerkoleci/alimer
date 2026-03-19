@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -252,7 +252,7 @@ SDL_FORCE_INLINE Uint16 SDL_Swap16(Uint16 x)
 #elif defined(__x86_64__)
 SDL_FORCE_INLINE Uint16 SDL_Swap16(Uint16 x)
 {
-  __asm__("xchgb %b0,%h0": "=Q"(x):"0"(x));
+  __asm__("xchgb %b0,%h0": "=abcd"(x):"0"(x));
     return x;
 }
 #elif (defined(__powerpc__) || defined(__ppc__))

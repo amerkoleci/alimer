@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -178,7 +178,7 @@ static void _BDisplayModeToSdlDisplayMode(display_mode *bmode, SDL_DisplayMode *
     get_refresh_rate(*bmode, &mode->refresh_rate_numerator, &mode->refresh_rate_denominator);
 
 #if WRAP_BMODE
-    SDL_DisplayModeData *data = (SDL_DisplayModeData*)SDL_calloc(1, sizeof(SDL_DisplayModeData));
+    SDL_DisplayModeData *data = (SDL_DisplayModeData *)SDL_calloc(1, sizeof(SDL_DisplayModeData));
     data->bmode = bmode;
 
     mode->internal = data;

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -156,9 +156,9 @@ bool SDL_SetClipboardData(SDL_ClipboardDataCallback callback, SDL_ClipboardClean
     }
 
     char **mime_types_copy = SDL_CopyClipboardMimeTypes(mime_types, num_mime_types, true);
-    if (!mime_types_copy)
+    if (!mime_types_copy) {
         return SDL_SetError("unable to copy current mime types");
-
+	}
     SDL_SendClipboardUpdate(true, mime_types_copy, num_mime_types);
     return true;
 }
@@ -203,7 +203,7 @@ void *SDL_GetClipboardData(const char *mime_type, size_t *size)
         return NULL;
     }
 
-    if (!mime_type) {
+    CHECK_PARAM(!mime_type) {
         SDL_InvalidParamError("mime_type");
         return NULL;
     }
@@ -252,7 +252,7 @@ bool SDL_HasClipboardData(const char *mime_type)
         return SDL_UninitializedVideo();
     }
 
-    if (!mime_type) {
+    CHECK_PARAM(!mime_type) {
         return SDL_InvalidParamError("mime_type");
     }
 
@@ -439,9 +439,9 @@ bool SDL_SetPrimarySelectionText(const char *text)
     }
 
     char **mime_types = SDL_CopyClipboardMimeTypes((const char **)_this->clipboard_mime_types, _this->num_clipboard_mime_types, true);
-    if (!mime_types)
+    if (!mime_types) {
         return SDL_SetError("unable to copy current mime types");
-
+	}
     SDL_SendClipboardUpdate(true, mime_types, _this->num_clipboard_mime_types);
     return true;
 }

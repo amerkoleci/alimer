@@ -63,7 +63,9 @@ if (NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     set(SDL_DIALOG OFF CACHE BOOL "" FORCE)
     add_subdirectory(SDL EXCLUDE_FROM_ALL)
     set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
-    set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
+    if (SDL_SHARED)
+        set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
+    endif ()
 endif()
 
 # RHI

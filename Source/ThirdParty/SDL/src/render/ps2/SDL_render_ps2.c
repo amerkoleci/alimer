@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -454,6 +454,7 @@ static bool PS2_RenderGeometry(SDL_Renderer *renderer, void *vertices, SDL_Rende
         GSTEXTURE *ps2_tex = (GSTEXTURE *)cmd->data.draw.texture->internal;
 
         switch (cmd->data.draw.texture_scale_mode) {
+        case SDL_SCALEMODE_PIXELART:
         case SDL_SCALEMODE_NEAREST:
             ps2_tex->Filter = GS_FILTER_NEAREST;
             break;
@@ -664,8 +665,42 @@ static bool PS2_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_P
 
     gsGlobal = gsKit_init_global_custom(RENDER_QUEUE_OS_POOLSIZE, RENDER_QUEUE_PER_POOLSIZE);
 
-    gsGlobal->Mode = GS_MODE_NTSC;
-    gsGlobal->Height = 448;
+    // GS interlaced/progressive
+    if (SDL_GetHintBoolean(SDL_HINT_PS2_GS_PROGRESSIVE, false)) {
+        gsGlobal->Interlace = GS_NONINTERLACED;
+    } else {
+        gsGlobal->Interlace = GS_INTERLACED;
+    }
+    
+    // GS width/height
+    gsGlobal->Width = 0;
+    gsGlobal->Height = 0;
+    const char *hint = SDL_GetHint(SDL_HINT_PS2_GS_WIDTH);
+    if (hint) {
+        gsGlobal->Width = SDL_atoi(hint);
+    }
+    hint = SDL_GetHint(SDL_HINT_PS2_GS_HEIGHT);
+    if (hint) {
+        gsGlobal->Height = SDL_atoi(hint);
+    }
+    if (gsGlobal->Width <= 0) {
+        gsGlobal->Width = 640;
+    }
+    if (gsGlobal->Height <= 0) {
+        gsGlobal->Height = 448;
+    }
+
+    // GS region
+    hint = SDL_GetHint(SDL_HINT_PS2_GS_MODE);
+    if (hint) {
+        if (SDL_strcasecmp(SDL_GetHint(SDL_HINT_PS2_GS_MODE), "NTSC") == 0) {
+            gsGlobal->Mode = GS_MODE_NTSC;
+        }
+
+        if (SDL_strcasecmp(SDL_GetHint(SDL_HINT_PS2_GS_MODE), "PAL") == 0) {
+            gsGlobal->Mode = GS_MODE_PAL;
+        }
+    }
 
     gsGlobal->PSM = GS_PSM_CT24;
     gsGlobal->PSMZ = GS_PSMZ_16S;
@@ -717,6 +752,7 @@ static bool PS2_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_P
     renderer->window = window;
 
     renderer->name = PS2_RenderDriver.name;
+    renderer->npot_texture_wrap_unsupported = true;
     SDL_AddSupportedTextureFormat(renderer, SDL_PIXELFORMAT_ABGR1555);
     SDL_AddSupportedTextureFormat(renderer, SDL_PIXELFORMAT_ABGR8888);
     SDL_SetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 1024);

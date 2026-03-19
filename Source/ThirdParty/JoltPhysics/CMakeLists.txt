@@ -1,4 +1,5 @@
-set(PHYSICS_REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+# When turning this option on, the library will be compiled using assertions. By default asserts are enabled in Debug build.
+option(USE_ASSERTS "Enable asserts" OFF)
 
 # When turning this option on, the library will be compiled using doubles for positions. This allows for much bigger worlds.
 option(DOUBLE_PRECISION "Use double precision math" OFF)
@@ -6,20 +7,26 @@ option(DOUBLE_PRECISION "Use double precision math" OFF)
 # When turning this option on, the library will be compiled with debug symbols
 option(GENERATE_DEBUG_SYMBOLS "Generate debug symbols" OFF)
 
+# Which type of debug symbols to generate, e.g. using source-map when compiling with emscripten makes compilation a lot faster
+set(JPH_DEBUG_SYMBOL_FORMAT "" CACHE STRING "Which type of debug symbols to generate")
+
 # When turning this option on, the library will override the default CMAKE_CXX_FLAGS_DEBUG/RELEASE values, otherwise they will use the platform defaults
-option(OVERRIDE_CXX_FLAGS "Override CMAKE_CXX_FLAGS_DEBUG/RELEASE" OFF)
+option(OVERRIDE_CXX_FLAGS "Override CMAKE_CXX_FLAGS_DEBUG/RELEASE" ON)
 
 # When turning this option on, the library will be compiled in such a way to attempt to keep the simulation deterministic across platforms
 option(CROSS_PLATFORM_DETERMINISTIC "Cross platform deterministic" OFF)
 
-# When turning this option on, the library will be compiled for ARM (aarch64-linux-gnu), requires compiling with clang
-option(CROSS_COMPILE_ARM "Cross compile to aarch64-linux-gnu" OFF)
+# When turning this option on, the library will be compiled for ARM using the CROSS_COMPILE_ARM_TARGET architecture, requires compiling with clang
+option(CROSS_COMPILE_ARM "Cross compile to the CROSS_COMPILE_ARM_TARGET architecture" OFF)
+
+# When cross compiling to ARM this specifies which target to use. Can be 'aarch64-linux-gnu' for 64-bit or 'arm-linux-gnueabihf' for 32-bit
+set(CROSS_COMPILE_ARM_TARGET "aarch64-linux-gnu" CACHE STRING "The target to use")
 
 # When turning this option on, Jolt will be compiled as a shared library and public symbols will be exported.
 option(BUILD_SHARED_LIBS "Compile Jolt as a shared library" OFF)
 
 # When turning this option on, the library will be compiled with interprocedural optimizations enabled, also known as link-time optimizations or link-time code generation.
-# Note that if you turn this on you need to use SET_INTERPROCEDURAL_OPTIMIZATION() or set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) to enable LTO specificly for your own project as well.
+# Note that if you turn this on you need to use SET_INTERPROCEDURAL_OPTIMIZATION() or set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) to enable LTO specifically for your own project as well.
 # If you don't do this you may get an error: /usr/bin/ld: libJolt.a: error adding symbols: file format not recognized
 option(INTERPROCEDURAL_OPTIMIZATION "Enable interprocedural optimizations" ON)
 
@@ -54,6 +61,10 @@ option(USE_FMADD "Enable FMADD" ON)
 # See: https://caniuse.com/?search=WebAssembly%20SIMD (Safari got support in March 2023 and was the last major browser to get support).
 option(USE_WASM_SIMD "Enable SIMD for WASM" ${ALIMER_USE_WASM_SIMD})
 
+# Enable 64 bit WASM instead of the default 32 bit WASM. Note that this currently requires special commandline flags in browsers and nodejs to enable.
+# E.g. use 'node --experimental-wasm-memory64 UnitTests.js' to run the unit tests in nodejs in 64 bit.
+option(JPH_USE_WASM64 "Enable 64 bit WASM" OFF)
+
 # Enable all warnings
 option(ENABLE_ALL_WARNINGS "Enable all warnings and warnings as errors" ON)
 
@@ -62,6 +73,9 @@ option(TRACK_BROADPHASE_STATS "Track Broadphase Stats" OFF)
 
 # Setting to periodically trace narrowphase stats to help determine which collision queries could be optimized
 option(TRACK_NARROWPHASE_STATS "Track Narrowphase Stats" OFF)
+
+# Setting to track simulation timings per body
+option(JPH_TRACK_SIMULATION_STATS "Track Simulation Stats" OFF)
 
 # Enable the debug renderer in the Debug and Release builds. Note that DEBUG_RENDERER_IN_DISTRIBUTION will override this setting.
 option(DEBUG_RENDERER_IN_DEBUG_AND_RELEASE "Enable debug renderer in Debug and Release builds" ON)
@@ -77,6 +91,11 @@ option(PROFILER_IN_DEBUG_AND_RELEASE "Enable the profiler in Debug and Release b
 # Note that enabling this reduces the performance of the library.
 option(PROFILER_IN_DISTRIBUTION "Enable the profiler in all builds" OFF)
 
+# Ability to use the external profiler using CMake config. Defines preprocessor JPH_EXTERNAL_PROFILE.
+# Use external profiler set using ProfileStartMeasurement and ProfileEndMeasurement to profile.
+# Option is available only when profiling is enabled using PROFILER_IN_DEBUG_AND_RELEASE or PROFILER_IN_DISTRIBUTION.
+option(JPH_USE_EXTERNAL_PROFILE "Use external profiler when profiling is enabled" OFF)
+
 # Setting this option will force the library to use malloc/free instead of allowing the user to override the memory allocator
 option(DISABLE_CUSTOM_ALLOCATOR "Disable support for a custom memory allocator" OFF)
 
@@ -87,10 +106,45 @@ option(USE_STD_VECTOR "Use std::vector instead of own Array class" OFF)
 option(ENABLE_OBJECT_STREAM "Compile the ObjectStream class and RTTI attribute information" ON)
 
 # Enable installation
-option(ENABLE_INSTALL "Generate installation target" OFF)
+#option(ENABLE_INSTALL "Generate installation target"  OFF) Alimer: we don't need this for now
 
+include(CMakeDependentOption)
+
+# Enable Vulkan instead of DirectX
+cmake_dependent_option(JPH_ENABLE_VULKAN "Enable Vulkan" ON "LINUX" OFF)
+
+# Enable link time optimization in Release and Distribution mode if requested and available
+function(SET_INTERPROCEDURAL_OPTIMIZATION)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF PARENT_SCOPE)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_DISTRIBUTION OFF PARENT_SCOPE)
+
+	# On ARM, whole program optimization triggers an internal compiler error during code gen, so we don't turn it on
+	# When compiling as a shared lib with MinGW, turning on LTO causes errors of the form 'ld.exe: cannot export symbol X wrong type (4 vs 3)'
+	if (INTERPROCEDURAL_OPTIMIZATION
+		AND NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
+		AND NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM")
+		AND (NOT CROSS_COMPILE_ARM OR ("${CROSS_COMPILE_ARM_TARGET}" STREQUAL "aarch64-linux-gnu"))
+		AND NOT (MINGW AND BUILD_SHARED_LIBS))
+		include(CheckIPOSupported)
+		check_ipo_supported(RESULT IS_IPO_SUPPORTED OUTPUT IPO_CHECK_OUTPUT)
+
+		if (IS_IPO_SUPPORTED)
+			message("Interprocedural optimizations are turned on")
+			set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON PARENT_SCOPE)
+			set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_DISTRIBUTION ON PARENT_SCOPE)
+		else()
+			message("Warning: Interprocedural optimizations are not supported for this target, turn off the option INTERPROCEDURAL_OPTIMIZATION to disable this warning")
+		endif()
+	endif()
+endfunction()
+SET_INTERPROCEDURAL_OPTIMIZATION()
+
+# Set repository root
+set(PHYSICS_REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Make Jolt Library
 include(${CMAKE_CURRENT_SOURCE_DIR}/Jolt/Jolt.cmake)
 if (XCODE)
 	# Ensure that we enable SSE4.2 for the x86_64 build, XCode builds multiple architectures
-	set_property(TARGET Jolt PROPERTY XCODE_ATTRIBUTE_OTHER_CPLUSPLUSFLAGS[arch=x86_64] "$(inherited) -msse4.2 -mpopcnt") 
+	set_property(TARGET Jolt PROPERTY XCODE_ATTRIBUTE_OTHER_CPLUSPLUSFLAGS[arch=x86_64] "$(inherited) -msse4.2 -mpopcnt")
 endif()

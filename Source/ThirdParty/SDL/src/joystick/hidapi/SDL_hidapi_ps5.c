@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -42,12 +42,6 @@
 #define GYRO_RES_PER_DEGREE             1024.0f
 #define ACCEL_RES_PER_G                 8192.0f
 #define BLUETOOTH_DISCONNECT_TIMEOUT_MS 500
-
-#define LOAD16(A, B)       (Sint16)((Uint16)(A) | (((Uint16)(B)) << 8))
-#define LOAD32(A, B, C, D) ((((Uint32)(A)) << 0) |  \
-                            (((Uint32)(B)) << 8) |  \
-                            (((Uint32)(C)) << 16) | \
-                            (((Uint32)(D)) << 24))
 
 enum
 {
@@ -230,7 +224,7 @@ typedef struct
 {
     SDL_HIDAPI_Device *device;
     SDL_Joystick *joystick;
-    bool is_nacon_dongle;
+    bool is_dongle;
     bool use_alternate_report;
     bool sensors_supported;
     bool lightbar_supported;
@@ -515,8 +509,10 @@ static bool HIDAPI_DriverPS5_InitDevice(SDL_HIDAPI_Device *device)
             ctx->touchpad_supported = true;
             ctx->use_alternate_report = true;
         } else if (device->vendor_id == USB_VENDOR_RAZER &&
-                   device->product_id == USB_PRODUCT_RAZER_KITSUNE) {
-            // The Razer Kitsune doesn't respond to the detection protocol, but has a touchpad
+                   (device->product_id == USB_PRODUCT_RAZER_KITSUNE ||
+                    device->product_id == USB_PRODUCT_RAZER_RAIJU_V3_PRO_PS5_WIRED ||
+                    device->product_id == USB_PRODUCT_RAZER_RAIJU_V3_PRO_PS5_WIRELESS)) {
+            // The Razer Kitsune and Raiju don't respond to the detection protocol, but have a touchpad
             joystick_type = SDL_JOYSTICK_TYPE_ARCADE_STICK;
             ctx->touchpad_supported = true;
             ctx->use_alternate_report = true;
@@ -524,9 +520,13 @@ static bool HIDAPI_DriverPS5_InitDevice(SDL_HIDAPI_Device *device)
     }
     ctx->effects_supported = (ctx->lightbar_supported || ctx->vibration_supported || ctx->playerled_supported);
 
-    if (device->vendor_id == USB_VENDOR_NACON_ALT &&
-        device->product_id == USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS5_WIRELESS) {
-        ctx->is_nacon_dongle = true;
+    if ((device->vendor_id == USB_VENDOR_NACON_ALT &&
+         device->product_id == USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS5_WIRELESS) ||
+        (device->vendor_id == USB_VENDOR_RAZER &&
+         (device->product_id == USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS5_WIRELESS ||
+          device->product_id == USB_PRODUCT_RAZER_WOLVERINE_V2_PRO_PS5_WIRELESS ||
+          device->product_id == USB_PRODUCT_RAZER_RAIJU_V3_PRO_PS5_WIRELESS))) {
+        ctx->is_dongle = true;
     }
 
     device->joystick_type = joystick_type;
@@ -540,7 +540,7 @@ static bool HIDAPI_DriverPS5_InitDevice(SDL_HIDAPI_Device *device)
     }
     HIDAPI_SetDeviceSerial(device, serial);
 
-    if (ctx->is_nacon_dongle) {
+    if (ctx->is_dongle) {
         // We don't know if this is connected yet, wait for reports
         return true;
     }
@@ -823,7 +823,7 @@ static void HIDAPI_DriverPS5_SetEnhancedModeAvailable(SDL_DriverPS5_Context *ctx
     if (ctx->sensors_supported) {
         // Standard DualSense sensor update rate is 250 Hz over USB
         float update_rate = 250.0f;
-        
+
         if (ctx->device->is_bluetooth) {
             // Bluetooth sensor update rate appears to be 1000 Hz
             update_rate = 1000.0f;
@@ -964,6 +964,10 @@ static bool HIDAPI_DriverPS5_OpenJoystick(SDL_HIDAPI_Device *device, SDL_Joystic
     joystick->nhats = 1;
     joystick->firmware_version = ctx->firmware_version;
 
+    if (ctx->is_dongle) {
+        joystick->connection_state = SDL_JOYSTICK_CONNECTION_WIRELESS;
+    }
+
     SDL_AddHintCallback(SDL_HINT_JOYSTICK_ENHANCED_REPORTS,
                         SDL_PS5EnhancedReportsChanged, ctx);
     SDL_AddHintCallback(SDL_HINT_JOYSTICK_HIDAPI_PS5_PLAYER_LED,
@@ -1062,10 +1066,11 @@ static bool HIDAPI_DriverPS5_InternalSendJoystickEffect(SDL_DriverPS5_Context *c
 
     if (ctx->device->is_bluetooth) {
         data[0] = k_EPS5ReportIdBluetoothEffects;
-        data[1] = 0x02; // Magic value
+        data[1] = 0x00; // Tag and sequence
+        data[2] = 0x10; // Magic value
 
         report_size = 78;
-        offset = 2;
+        offset = 3;
     } else {
         data[0] = k_EPS5ReportIdUsbEffects;
 
@@ -1464,15 +1469,16 @@ static bool HIDAPI_DriverPS5_IsPacketValid(SDL_DriverPS5_Context *ctx, Uint8 *da
 {
     switch (data[0]) {
     case k_EPS5ReportIdState:
-        if (ctx->is_nacon_dongle && size >= (1 + sizeof(PS5StatePacketAlt_t))) {
+        if (ctx->is_dongle && size >= (1 + sizeof(PS5StatePacketAlt_t))) {
             // The report timestamp doesn't change when the controller isn't connected
             PS5StatePacketAlt_t *packet = (PS5StatePacketAlt_t *)&data[1];
             if (SDL_memcmp(packet->rgucPacketSequence, ctx->last_state.state.rgucPacketSequence, sizeof(packet->rgucPacketSequence)) == 0) {
                 return false;
             }
-            if (ctx->last_state.alt_state.rgucAccelX[0] == 0 && ctx->last_state.alt_state.rgucAccelX[1] == 0 &&
-                ctx->last_state.alt_state.rgucAccelY[0] == 0 && ctx->last_state.alt_state.rgucAccelY[1] == 0 &&
-                ctx->last_state.alt_state.rgucAccelZ[0] == 0 && ctx->last_state.alt_state.rgucAccelZ[1] == 0) {
+            if (ctx->last_state.state.rgucPacketSequence[0] == 0 &&
+                ctx->last_state.state.rgucPacketSequence[1] == 0 &&
+                ctx->last_state.state.rgucPacketSequence[2] == 0 &&
+                ctx->last_state.state.rgucPacketSequence[3] == 0) {
                 // We don't have any state to compare yet, go ahead and copy it
                 SDL_memcpy(&ctx->last_state, &data[1], sizeof(PS5StatePacketAlt_t));
                 return false;
@@ -1571,7 +1577,7 @@ static bool HIDAPI_DriverPS5_UpdateDevice(SDL_HIDAPI_Device *device)
         }
     }
 
-    if (ctx->is_nacon_dongle) {
+    if (ctx->is_dongle) {
         if (packet_count == 0) {
             if (device->num_joysticks > 0) {
                 // Check to see if it looks like the device disconnected
