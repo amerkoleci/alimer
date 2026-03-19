@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2019-2026 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -215,6 +215,7 @@ static const D3D12_HEAP_FLAGS RESOURCE_CLASS_HEAP_FLAGS =
 static const D3D12_RESIDENCY_PRIORITY D3D12_RESIDENCY_PRIORITY_NONE = D3D12_RESIDENCY_PRIORITY(0);
 
 static const D3D12_HEAP_TYPE D3D12_HEAP_TYPE_GPU_UPLOAD_COPY = (D3D12_HEAP_TYPE)5;
+static const D3D12_RESOURCE_FLAGS D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT_COPY = (D3D12_RESOURCE_FLAGS)0x400;
 
 #ifndef _D3D12MA_ENUM_DECLARATIONS
 
@@ -816,11 +817,9 @@ static bool ValidateAllocateMemoryParameters(
     return pAllocDesc &&
         pAllocInfo &&
         ppAllocation &&
-        (pAllocInfo->Alignment == 0 ||
-            pAllocInfo->Alignment == D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT ||
-            pAllocInfo->Alignment == D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT) &&
-        pAllocInfo->SizeInBytes != 0 &&
-        pAllocInfo->SizeInBytes % (64ull * 1024) == 0;
+        IsPow2(pAllocInfo->Alignment) &&
+        pAllocInfo->SizeInBytes > 0 &&
+        pAllocInfo->SizeInBytes % 4 == 0;
 }
 
 #endif // _D3D12MA_FUNCTIONS
@@ -7816,12 +7815,17 @@ HRESULT AllocatorPimpl::GetResourceAllocationInfo(
 #ifdef __ID3D12Device1_INTERFACE_DEFINED__
 
 #if D3D12MA_TIGHT_ALIGNMENT_SUPPORTED
-    if (IsTightAlignmentEnabled() &&
+    if (IsTightAlignmentEnabled())
+    {
         // Don't allow USE_TIGHT_ALIGNMENT together with ALLOW_CROSS_ADAPTER as there is a D3D Debug Layer error:
         // D3D12 ERROR: ID3D12Device::GetResourceAllocationInfo: D3D12_RESOURCE_DESC::Flag D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT will be ignored since D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER is set. [ STATE_CREATION ERROR #599: CREATERESOURCE_INVALIDMISCFLAGS]
-        (inOutResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER) == 0)
-    {
-        inOutResourceDesc.Flags |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+        // Also don't allow it together with D3D12_TEXTURE_LAYOUT_64KB_*_SWIZZLE, as there is this error (see issue #86):
+        // D3D12 ERROR: ID3D12Device::GetResourceAllocationInfo: D3D12_RESOURCE_DESC::Flag D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT is not valid when the layout is either D3D12_TEXTURE_LAYOUT_64KB_STANDARD_SWIZZLE or D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE (...). [ STATE_CREATION ERROR #599: CREATERESOURCE_INVALIDMISCFLAGS]
+        if((inOutResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER) == 0
+            && (inOutResourceDesc.Layout != D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE && inOutResourceDesc.Layout != D3D12_TEXTURE_LAYOUT_64KB_STANDARD_SWIZZLE))
+        {
+            inOutResourceDesc.Flags |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+        }
     }
 #endif // #if D3D12MA_TIGHT_ALIGNMENT_SUPPORTED
 
@@ -7849,6 +7853,7 @@ HRESULT AllocatorPimpl::GetResourceAllocationInfo(
 
 #if D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT
     if (inOutResourceDesc.Alignment == 0 &&
+        (inOutResourceDesc.Flags & D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT_COPY) == 0 &&
         (inOutResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D ||
             inOutResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D ||
             inOutResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D) &&
@@ -9878,7 +9883,7 @@ HRESULT Allocator::AllocateMemory(
         return E_INVALIDARG;
     }
     D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
-        return m_Pimpl->AllocateMemory(pAllocDesc, pAllocInfo, ppAllocation);
+    return m_Pimpl->AllocateMemory(pAllocDesc, pAllocInfo, ppAllocation);
 }
 
 HRESULT Allocator::CreateAliasingResource(

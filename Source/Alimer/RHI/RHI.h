@@ -16,6 +16,7 @@
 
 namespace Alimer
 {
+    using BindlessIndex = int32_t;
     using DeviceAddress = uint64_t;
 
     /* Constants */
@@ -35,9 +36,9 @@ namespace Alimer
 
     static constexpr uint32_t kQuerySetMaxQueries = 8192;
     static constexpr uint64_t kWholeSize = ~0ULL;
-    static constexpr uint32_t kInvalidBindlessIndex = static_cast<uint32_t>(-1);
     static constexpr uint32_t kUUIDSize = 16u;
     static constexpr uint32_t kLUIDSize = 8u;
+    static constexpr BindlessIndex kInvalidBindlessIndex = -1;
 
     // These shifts are made so that Vulkan resource bindings slots don't interfere with each other across shader stages:
     // These are also used during shader compilation

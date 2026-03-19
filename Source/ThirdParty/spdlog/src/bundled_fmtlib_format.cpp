@@ -3,17 +3,17 @@
 // All rights reserved.
 
 #ifndef SPDLOG_COMPILED_LIB
-    #error Please define SPDLOG_COMPILED_LIB to compile this file.
+#error Please define SPDLOG_COMPILED_LIB to compile this file.
 #endif
 
 #if !defined(SPDLOG_FMT_EXTERNAL) && !defined(SPDLOG_USE_STD_FORMAT)
 
-    #include <spdlog/fmt/bundled/format-inl.h>
+#include <spdlog/fmt/bundled/format-inl.h>
 
 FMT_BEGIN_NAMESPACE
 
 #if FMT_USE_LOCALE
-template FMT_API locale_ref::locale_ref(const std::locale& loc);
+template FMT_API locale_ref::locale_ref(const std::locale& loc);  // DEPRECATED!
 template FMT_API auto locale_ref::get<std::locale>() const -> std::locale;
 #endif
 

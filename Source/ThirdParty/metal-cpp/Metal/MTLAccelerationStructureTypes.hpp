@@ -27,7 +27,8 @@
 #include "MTLResource.hpp"
 #include "MTLStageInputOutputDescriptor.hpp"
 
-#include "../Foundation/NSRange.hpp"
+#include "../Foundation/Foundation.hpp"
+#include <cstdint>
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -116,6 +117,23 @@ struct ComponentTransform
 
 }
 
+namespace MTL4
+{
+
+struct BufferRange
+{
+    BufferRange() = default;
+    BufferRange(uint64_t bufferAddress);
+    BufferRange(uint64_t bufferAddress, uint64_t length);
+
+    static MTL4::BufferRange Make(uint64_t bufferAddress, uint64_t length);
+
+    uint64_t          bufferAddress;
+    uint64_t          length;
+} _MTL_PACKED;
+
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 _MTL_INLINE MTL::PackedFloat3::PackedFloat3()
@@ -184,11 +202,18 @@ _MTL_INLINE const MTL::PackedFloat3& MTL::PackedFloat4x3::operator[](int idx) co
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+#if __apple_build_version__ > 16000026
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnan-infinity-disabled"
+#endif // __apple_build_version__ > 16000026
 _MTL_INLINE MTL::AxisAlignedBoundingBox::AxisAlignedBoundingBox()
     : min(INFINITY, INFINITY, INFINITY)
     , max(-INFINITY, -INFINITY, -INFINITY)
 {
 }
+#if __apple_build_version__ > 16000026
+#pragma clang diagnostic pop
+#endif // if __apple_build_version__ > 16000026
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -241,3 +266,27 @@ _MTL_INLINE const float& MTL::PackedFloatQuaternion::operator[](int idx) const
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+_MTL_INLINE MTL4::BufferRange::BufferRange(uint64_t bufferAddress)
+: bufferAddress(bufferAddress)
+, length(-1)
+{
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+_MTL_INLINE MTL4::BufferRange::BufferRange(uint64_t bufferAddress, uint64_t length)
+: bufferAddress(bufferAddress)
+, length(length)
+{
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+_MTL_INLINE MTL4::BufferRange MTL4::BufferRange::Make(uint64_t bufferAddress, uint64_t length)
+{
+    return MTL4::BufferRange(bufferAddress, length);
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+

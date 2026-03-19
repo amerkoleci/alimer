@@ -231,7 +231,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     rapidjson
     #ktx
     #miniaudio
-    #tinygltf
+    cgltf
     Jolt
     ShaderMakeBlob
 )

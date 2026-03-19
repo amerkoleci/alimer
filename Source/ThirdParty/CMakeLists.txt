@@ -37,6 +37,10 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/unordered_dense/include/ankerl
 add_subdirectory(lz4)
 set_property(TARGET lz4 PROPERTY FOLDER "ThirdParty")
 
+# cgltf
+add_subdirectory(cgltf)
+set_property(TARGET cgltf PROPERTY FOLDER "ThirdParty")
+
 # SDL3
 if (NOT (EMSCRIPTEN OR ANDROID OR WINDOWS_STORE))
     set(SDL_SHARED OFF CACHE BOOL "" FORCE)
