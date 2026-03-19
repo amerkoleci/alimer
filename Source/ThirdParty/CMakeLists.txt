@@ -137,6 +137,17 @@ if(ALIMER_RHI_METAL)
     target_link_libraries(alimer-rhi-metal-cpp INTERFACE "-framework Metal")
 endif (ALIMER_RHI_METAL)
 
+# DXC
+if (ALIMER_SHADER_COMPILER)
+    add_library(dxc INTERFACE)
+    set(DXC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dxc/include)
+    target_sources(dxc INTERFACE 
+        ${DXC_INCLUDE_DIR}/dxcapi.h
+        ${DXC_INCLUDE_DIR}/WinAdapter.h
+    )
+    target_include_directories(dxc INTERFACE ${DXC_INCLUDE_DIR})
+endif ()
+
 # Jolt Physics
 set(OBJECT_LAYER_BITS 32)
 set(ENABLE_OBJECT_STREAM OFF)
