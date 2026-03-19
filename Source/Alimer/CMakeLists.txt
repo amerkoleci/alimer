@@ -109,9 +109,9 @@ target_include_directories(${TARGET_NAME} PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ThirdParty>
 )
 
-#if (ALIMER_SHADER_COMPILER)
-#    add_dependencies(${TARGET_NAME} AlimerShaders)
-#endif ()
+if (ALIMER_SHADER_COMPILER)
+    add_dependencies(${TARGET_NAME} AlimerShaders)
+endif ()
 
 # Compiler-specific setup
 if (MSVC)

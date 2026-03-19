@@ -47,7 +47,7 @@ function(add_sample SAMPLE_NAME)
     endif()
 
     if (ALIMER_SHADER_COMPILER)
-     #   add_dependencies(${SAMPLE_NAME} SamplesShaders)
+        add_dependencies(${SAMPLE_NAME} SamplesShaders)
     endif ()
 endfunction()
 

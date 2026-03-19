@@ -7842,7 +7842,7 @@ namespace Alimer
 
     bool VulkanRHIFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
     {
-#if defined(_WIVK_USE_PLATFORM_WIN32_KHRN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
         return true;

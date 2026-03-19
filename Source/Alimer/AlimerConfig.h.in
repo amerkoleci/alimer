@@ -29,8 +29,6 @@
 #cmakedefine ALIMER_RHI_VULKAN
 #cmakedefine ALIMER_RHI_D3D12
 #cmakedefine ALIMER_RHI_METAL
-#cmakedefine ALIMER_RHI_WEBGPU
-#cmakedefine ALIMER_D3D12_AGILITY_SDK
 
 /* Scripting */
 #cmakedefine ALIMER_CSHARP_BINDINGS

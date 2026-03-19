@@ -1,5 +1,5 @@
 # Shaders
-#add_subdirectory(Shaders)
+add_subdirectory(Shaders)
 
 # Samples Assets
-#add_subdirectory(Samples)
+add_subdirectory(Samples)
