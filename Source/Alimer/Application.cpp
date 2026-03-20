@@ -77,9 +77,13 @@ void Application::Run()
 
 void Application::Tick()
 {
+    //Profiler::BeginFrame();
+    // Start the Dear ImGui frame
+    //ImGuiHelper::BeginFrame();
     _timer.Tick();
     DoUpdate();
     Render();
+    //Input::Update();
 }
 
 void Application::RequestExit()
@@ -125,14 +129,38 @@ void Application::Render()
     {
         return;
     }
+
+    if (!BeginDraw())
+    {
+        return;
+    }
+
+    // ImGui
+    OnGui();
+
+    RHICommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(QueueType::Graphics, "Frame");
+    //RHITexture* swapChainTexture = _mainWindow->GetSwapChain()->AcquireNextTexture();
+    RHITexture* swapChainTexture = commandBuffer->AcquireSwapChainTexture(_mainWindow->GetSwapChain());
+    if (swapChainTexture != nullptr)
+    {
+        Draw(commandBuffer, swapChainTexture);
+    }
+
+    //commandBuffer->Present(MainWindow.SwapChain!);
+
+    // Execute 
+    //GraphicsDevice.GraphicsQueue.Execute(commandBuffer);
+
+    //Profiler::EndFrame(commandBuffer);
+    EndDraw();
 }
 
 bool Application::BeginDraw()
 {
-    return false; // !mainWindow->IsMinimized() && !GRHIDevice->IsDeviceLost();
+    return !_mainWindow->IsMinimized() && !_rhiDevice->IsDeviceLost();
 }
 
 void Application::EndDraw()
 {
-    //GRHIDevice->CommitFrame();
+    _rhiDevice->CommitFrame();
 }

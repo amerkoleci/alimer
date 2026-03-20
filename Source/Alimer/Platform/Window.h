@@ -69,6 +69,7 @@ namespace Alimer
         [[nodiscard]] WindowImpl* GetImpl() const noexcept { return _impl; }
         [[nodiscard]] RHISurface* GetSurface() const noexcept { return _surface.Get(); }
         [[nodiscard]] RHISwapChain* GetSwapChain() const noexcept { return _swapChain.Get(); }
+        PixelFormat GetColorFormat() const noexcept { return _colorFormat; }
 
     private:
         /* Called by Application */

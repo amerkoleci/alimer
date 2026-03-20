@@ -76,7 +76,7 @@ namespace Alimer
         virtual void Setup() {}
         virtual void Initialize() {}
         virtual void Update() {}
-        //virtual void OnDraw([[maybe_unused]] GraphicsContext& context, [[maybe_unused]] const RenderPassDesc& mainRenderPass) {}
+        virtual void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) {}
         virtual bool BeginDraw();
         virtual void EndDraw();
 
@@ -88,7 +88,6 @@ namespace Alimer
         bool _running{ false };
         bool _exitRequested{ false };
         bool _isActive{ false };
-        bool _headless{ false };
         Timer _timer;
         RHIDeviceRef _rhiDevice;
 

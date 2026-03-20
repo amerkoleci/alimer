@@ -206,6 +206,9 @@ void Window::CreateSurface(RHIFactory* factory)
 #elif defined(SDL_PLATFORM_MACOS)
     void* layer = SDL_Metal_GetLayer(_impl->view);
     _surface = factory->CreateSurface(layer, nullptr);
+#elif defined(SDL_PLATFORM_ANDROID)
+    void* window = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
+    _surface = factory->CreateSurface(window, nullptr);
 #elif defined(SDL_PLATFORM_LINUX)
     if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
     {

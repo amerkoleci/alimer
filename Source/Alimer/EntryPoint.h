@@ -12,19 +12,6 @@
 #endif
 #endif
 
-#if defined(_WIN32) && defined(ALIMER_D3D12_AGILITY_SDK)
-#ifndef D3D12_SDK_VERSION
-#define	D3D12_SDK_VERSION	( 610 )
-#endif
-
-extern "C"
-{
-    // Used to enable the "Agility SDK" components
-    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
-    __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\";
-}
-#endif /* defined(_WIN32) && defined(ALIMER_D3D12_AGILITY_SDK) */
-
 #if defined(_WIN32) && defined(_DEBUG) && !defined(ALIMER_WIN32_CONSOLE)
 #define ALIMER_DEFINE_APPLICATION(class_name) \
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow) \

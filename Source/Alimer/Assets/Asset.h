@@ -4,7 +4,6 @@
 #pragma once
 
 #include "Alimer/Core/Object.h"
-#include "Alimer/Core/UUID.h"
 #include "Alimer/Assets/AssetRef.h"
 
 namespace Alimer
@@ -38,7 +37,7 @@ namespace Alimer
         /// Return name id of the asset.
         [[nodiscard]] const StringId32& GetNameId() const { return nameId; }
         /// Return id of the asset.
-        [[nodiscard]] UUID GetID() const { return id; }
+        //[[nodiscard]] UUID GetID() const { return id; }
         /// Return memory use in bytes, possibly approximate.
         [[nodiscard]] uint32_t GetMemoryUse() const { return memoryUse; }
 
@@ -46,7 +45,7 @@ namespace Alimer
         /// Set memory use in bytes, possibly approximate.
         void SetMemoryUse(uint32_t size);
 
-        UUID id;
+        //UUID id;
         /// Asset name.
         std::string name;
         /// Asset name id.

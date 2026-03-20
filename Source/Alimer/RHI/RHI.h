@@ -728,10 +728,8 @@ namespace Alimer
         TextureSwizzle alpha = TextureSwizzle::Alpha;
     };
 
-    struct TextureDesc
+    struct TextureDescriptor
     {
-        /// The name of the texture for debugging purposes.
-        const char* label = nullptr;
         TextureType type = TextureType::Texture2D;
         PixelFormat format = PixelFormat::RGBA8Unorm;
         uint32_t width = 1;
@@ -740,7 +738,31 @@ namespace Alimer
         uint32_t mipLevelCount = 1;
         TextureSampleCount sampleCount = TextureSampleCount::Count1;
         TextureUsage usage = TextureUsage::ShaderRead;
+        const char* label = nullptr;
         //MemoryType memoryType = MemoryType::Private;
+
+        static constexpr TextureDescriptor Texture2D(
+            PixelFormat format,
+            uint width,
+            uint height,
+            uint mipLevelCount = 1,
+            uint arrayLayers = 1,
+            TextureUsage usage = TextureUsage::ShaderRead,
+            TextureSampleCount sampleCount = TextureSampleCount::Count1,
+            const char* label = nullptr)
+        {
+            TextureDescriptor desc;
+            desc.type = TextureType::Texture2D;
+            desc.format = format;
+            desc.width = width;
+            desc.height = height;
+            desc.depthOrArrayLayers = arrayLayers;
+            desc.mipLevelCount = mipLevelCount;
+            desc.sampleCount = sampleCount;
+            desc.usage = usage;
+            desc.label = label;
+            return desc;
+        }
     };
 
     struct TextureData
@@ -1299,7 +1321,7 @@ namespace Alimer
     class ALIMER_API RHITexture : public RHIResource
     {
     protected:
-        RHITexture(const TextureDesc& desc)
+        RHITexture(const TextureDescriptor& desc)
             : RHIResource(Type::Texture)
             , type(desc.type)
             , format(desc.format)
@@ -1488,6 +1510,26 @@ namespace Alimer
         inline bool IsValid() const { return data != nullptr && buffer != nullptr; }
     };
 
+    class ALIMER_API CommandEncoder
+    {
+    public:
+        virtual ~CommandEncoder() = default;
+
+        virtual void End() = 0;
+    };
+
+    class ALIMER_API ComputeCommandEncoder : public CommandEncoder
+    {
+    public:
+        virtual ~ComputeCommandEncoder() = default;
+    };
+
+    class ALIMER_API RenderCommandEncoder : public CommandEncoder
+    {
+    public:
+        virtual ~RenderCommandEncoder() = default;
+    };
+
     class ALIMER_API RHICommandBuffer
     {
     public:
@@ -1524,9 +1566,9 @@ namespace Alimer
         virtual void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
         virtual void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) = 0;
 
-        void BeginRenderPass(const RenderPassDesc& desc);
-        void EndRenderPass();
+        RenderCommandEncoder* BeginRenderPass(const RenderPassDesc& desc);
 
+        /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
         virtual RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) = 0;
 
         virtual void SetViewport(const Viewport& viewport) = 0;
@@ -1572,8 +1614,7 @@ namespace Alimer
         void Reset(uint32_t frameIndex);
 
         virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-        virtual void BeginRenderPassCore(const RenderPassDesc& desc) = 0;
-        virtual void EndRenderPassCore() = 0;
+        virtual RenderCommandEncoder* BeginRenderPassCore(const RenderPassDesc& desc) = 0;
 
         struct GPULinearAllocator
         {
@@ -1587,7 +1628,7 @@ namespace Alimer
         };
 
         uint32_t _frameIndex{ 0 };
-        bool insideRenderPass{ false };
+        bool _encoderActive{ false };
         GPULinearAllocator frameAllocators[kNumFramesInFlight];
         ShadingRate currentShadingRate{ ShadingRate::Invalid };
     };
@@ -1605,8 +1646,8 @@ namespace Alimer
         virtual uint64_t CommitFrame() = 0;
 
         RHIBufferRef CreateBuffer(const BufferDesc& desc, const void* initialData = nullptr);
-        RHITextureRef CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
-        RHITextureRef CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDesc& desc);
+        RHITextureRef CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData = nullptr);
+        RHITextureRef CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor);
         RHISamplerRef CreateSampler(const SamplerDesc& desc);
 
         RHIShaderModuleRef CreateShaderModule(const ShaderModuleDesc& desc);
@@ -1623,13 +1664,13 @@ namespace Alimer
 
         virtual void WriteShadingRateValue(ShadingRate rate, void* dest) const = 0;
 
-        virtual RHICommandBuffer* BeginCommandBuffer(QueueType queue, const std::string& label = "") = 0;
+        virtual RHICommandBuffer* BeginCommandBuffer(QueueType queue, std::string_view label = "") = 0;
 
         virtual RHIAdapter* GetAdapter() const = 0;
 
         constexpr bool IsDeviceLost() const noexcept { return _deviceLost; }
-        constexpr uint64_t GetFrameCount() const noexcept { return frameCount; }
-        constexpr uint32_t GetFrameIndex() const noexcept { return frameIndex; }
+        constexpr uint64_t GetFrameCount() const noexcept { return _frameCount; }
+        constexpr uint32_t GetFrameIndex() const noexcept { return _frameIndex; }
 
 
         [[nodiscard]] virtual bool QueryFeatureSupport(RHIFeature feature) = 0;
@@ -1640,10 +1681,10 @@ namespace Alimer
 
     protected:
         virtual void InitResources();
-        virtual bool ValidateTextureDesc(const TextureDesc& desc);
+        virtual bool ValidateTextureDesc(const TextureDescriptor& desc);
         virtual RHIBufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) = 0;
-        virtual RHITextureRef CreateTextureCore(const TextureDesc& desc, const TextureData* initialData) = 0;
-        virtual RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDesc& desc) = 0;
+        virtual RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) = 0;
+        virtual RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) = 0;
         virtual RHISamplerRef CreateSamplerCore(const SamplerDesc& desc) = 0;
         virtual RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
         virtual RHIBindGroupLayoutRef CreateBindGroupLayoutCore(const BindGroupLayoutDesc& desc) = 0;
@@ -1656,8 +1697,8 @@ namespace Alimer
         virtual RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) = 0;
 
         bool _deviceLost{ false };
-        uint64_t frameCount{};
-        uint32_t frameIndex{};
+        uint64_t _frameCount{};
+        uint32_t _frameIndex{};
 
         //uint32_t uploadBufferTextureRowAlignment = 1u;
         //uint32_t uploadBufferTextureSliceAlignment = 1u;

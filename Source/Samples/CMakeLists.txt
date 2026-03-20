@@ -26,17 +26,6 @@ function(add_sample SAMPLE_NAME)
         FOLDER "Samples"
     )
 
-    # Copy Agility SDK dll
-    if(ALIMER_RHI_D3D12 AND ALIMER_D3D12_AGILITY_SDK)
-        add_custom_command(TARGET ${SAMPLE_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SAMPLE_NAME}>/D3D12"
-	        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${D3D12_CORE_DLL}" "$<TARGET_FILE_DIR:${SAMPLE_NAME}>/D3D12"
-            COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> -E copy_if_different "${D3D12_CORE_PDB}" "$<TARGET_FILE_DIR:${SAMPLE_NAME}>/D3D12"
-            COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> -E copy_if_different "${D3D12_SDK_LAYERS_DLL}" "$<TARGET_FILE_DIR:${SAMPLE_NAME}>/D3D12"
-            COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> -E copy_if_different "${D3D12_SDK_LAYERS_PDB}" "$<TARGET_FILE_DIR:${SAMPLE_NAME}>/D3D12"
-        )
-    endif ()
-
     if(ALIMER_INSTALL)
         install(
             TARGETS ${SAMPLE_NAME}
@@ -52,4 +41,4 @@ function(add_sample SAMPLE_NAME)
 endfunction()
 
 # Add samples
-add_sample(01_HelloWorld)
+add_sample(RHISamples)

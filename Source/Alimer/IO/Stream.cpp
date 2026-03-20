@@ -203,13 +203,6 @@ Vector<uint8_t> Stream::ReadBuffer()
     return result;
 }
 
-UUID Stream::ReadUUID()
-{
-    uint64_t ret;
-    Read(&ret, sizeof ret);
-    return ret;
-}
-
 Vector2 Stream::ReadVector2()
 {
     float data[2];
@@ -287,11 +280,6 @@ bool Stream::Write(uint32_t value)
 bool Stream::Write(uint64_t value)
 {
     return Write(&value, sizeof(uint64_t)) == sizeof(uint64_t);
-}
-
-bool Stream::Write(const UUID& value)
-{
-    return Write(static_cast<uint64_t>(value));
 }
 
 bool Stream::Write(int8_t value)

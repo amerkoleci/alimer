@@ -4,7 +4,6 @@
 #pragma once
 
 #include "Alimer/Core/String.h"
-#include "Alimer/Core/UUID.h"
 #include "Alimer/Core/Vector.h"
 #include "Alimer/IO/Types.h"
 
@@ -81,8 +80,6 @@ namespace Alimer
         void ReadBytes(Vector<uint8_t>& data, size_t count = 0);
 		/// Read a byte buffer, with size prepended as a VLE value.
         Vector<uint8_t> ReadBuffer();
-        /// Read a UUID .
-        UUID ReadUUID();
         /// Read a Vector2.
         Vector2 ReadVector2();
         /// Read a Vector3.
@@ -149,8 +146,6 @@ namespace Alimer
         bool WriteVLE(size_t value);
 		/// Write a text line. Char codes 13 & 10 will be automatically appended.
 		bool WriteLine(const std::string& value);
-        /// Write UUID value.
-        bool Write(const UUID& value);
         /// Write a Vector2.
         bool WriteVector2(const Vector2& value);
         /// Write a Vector3.

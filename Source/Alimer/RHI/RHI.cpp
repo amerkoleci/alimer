@@ -191,7 +191,7 @@ namespace Alimer
     void RHICommandBuffer::PreDispatchValidation()
     {
 #if defined(_DEBUG)
-        ALIMER_ASSERT_MSG(!insideRenderPass, "Dispatch needs to happen Outside render pass.");
+        //ALIMER_ASSERT_MSG(!insideRenderPass, "Dispatch needs to happen Outside render pass.");
 #endif
     }
 
@@ -205,33 +205,22 @@ namespace Alimer
     void RHICommandBuffer::Reset(uint32_t frameIndex)
     {
         _frameIndex = frameIndex;
-        insideRenderPass = false;
+        _encoderActive = false;
         currentShadingRate = ShadingRate::Invalid;
         frameAllocators[frameIndex].Reset();
     }
 
-    void RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
+    RenderCommandEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     {
-        if (insideRenderPass)
+        if (_encoderActive)
         {
-            LOGE("Cannot begin render pass while inside render pass");
-            return;
+            LOGE("Cannot begin render pass while another CommandEncoder already active");
+            return nullptr;
         }
 
-        BeginRenderPassCore(desc);
-        insideRenderPass = true;
-    }
-
-    void RHICommandBuffer::EndRenderPass()
-    {
-        if (!insideRenderPass)
-        {
-            LOGE("Cannot end render without BeginRenderPass first");
-            return;
-        }
-
-        EndRenderPassCore();
-        insideRenderPass = false;
+        RenderCommandEncoder* renderPassEncoder =BeginRenderPassCore(desc);
+        _encoderActive = true;
+        return renderPassEncoder;
     }
 
 #if defined(ALIMER_RHI_VULKAN)
@@ -373,7 +362,7 @@ namespace Alimer
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
     }
 
-    bool RHIDevice::ValidateTextureDesc(const TextureDesc& desc)
+    bool RHIDevice::ValidateTextureDesc(const TextureDescriptor& desc)
     {
         if (desc.width == 0 || desc.height == 0 || desc.depthOrArrayLayers == 0)
         {
@@ -397,33 +386,33 @@ namespace Alimer
         return true;
     }
 
-    RHITextureRef RHIDevice::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+    RHITextureRef RHIDevice::CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData)
     {
-        if (!ValidateTextureDesc(desc))
+        if (!ValidateTextureDesc(descriptor))
         {
             return nullptr;
         }
 
-        TextureDesc creationDesc = desc;
+        TextureDescriptor creationDesc = descriptor;
         if (creationDesc.mipLevelCount == 0)
         {
-            creationDesc.mipLevelCount = GetMipLevelCount(desc.width, desc.height, desc.depthOrArrayLayers);
+            creationDesc.mipLevelCount = GetMipLevelCount(descriptor.width, descriptor.height, descriptor.depthOrArrayLayers);
         }
 
         return CreateTextureCore(creationDesc, initialData);
     }
 
-    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDesc& desc)
+    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor)
     {
-        if (!ValidateTextureDesc(desc))
+        if (!ValidateTextureDesc(descriptor))
         {
             return nullptr;
         }
 
-        TextureDesc creationDesc = desc;
+        TextureDescriptor creationDesc = descriptor;
         if (creationDesc.mipLevelCount == 0)
         {
-            creationDesc.mipLevelCount = GetMipLevelCount(desc.width, desc.height, desc.depthOrArrayLayers);
+            creationDesc.mipLevelCount = GetMipLevelCount(descriptor.width, descriptor.height, descriptor.depthOrArrayLayers);
         }
 
         return CreateTextureFromNativeHandleCore(handle, creationDesc);

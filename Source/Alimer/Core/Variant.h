@@ -4,7 +4,6 @@
 #pragma once
 
 #include "Alimer/Core/RefCounted.h"
-#include "Alimer/Core/UUID.h"
 #include "Alimer/Math/Quaternion.h"
 #include "Alimer/Math/Color.h"
 #include "Alimer/Math/Matrix3x2.h"
@@ -110,7 +109,7 @@ namespace Alimer
     template <> inline VariantType GetVariantType<ByteVector>() { return VariantType::ByteVector; }
     template <> inline VariantType GetVariantType<StringVector>() { return VariantType::StringVector; }
     template <> inline VariantType GetVariantType<StringId32>() { return VariantType::UInt32; }
-    template <> inline VariantType GetVariantType<UUID>() { return VariantType::UInt64; }
+    //template <> inline VariantType GetVariantType<UUID>() { return VariantType::UInt64; }
     template <> inline VariantType GetVariantType<void*>() { return VariantType::Pointer; }
     template <> inline VariantType GetVariantType<RefCounted*>() { return VariantType::RefPtr; }
     template <> inline VariantType GetVariantType<AssetRef>() { return VariantType::AssetRef; }
