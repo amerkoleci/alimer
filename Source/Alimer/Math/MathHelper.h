@@ -164,6 +164,13 @@ namespace Alimer
         return 0 == ((size_t)value & (alignment - 1));
     }
 
+    template <typename T>
+    constexpr T DivideByMultiple(T value, size_t alignment)
+    {
+        return (T)((value + alignment - 1) / alignment);
+    }
+
+
     /// Return remainder of X/Y for float values.
     template <class T, typename std::enable_if<std::is_floating_point<T>::value>::type* = nullptr>
     inline T Mod(T x, T y) { return fmod(x, y); }

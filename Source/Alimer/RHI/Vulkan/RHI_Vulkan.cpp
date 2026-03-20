@@ -82,6 +82,8 @@ namespace Alimer
 {
     namespace
     {
+        static_assert(sizeof(GPUAddress) == sizeof(VkDeviceAddress), "GPUAddress mismatch");
+
         static_assert(sizeof(ClearColorValue) == sizeof(VkClearColorValue), "ClearColorValue mismatch");
         static_assert(offsetof(ClearColorValue, float32) == offsetof(VkClearColorValue, float32), "ClearColorValue mismatch");
         static_assert(offsetof(ClearColorValue, int32) == offsetof(VkClearColorValue, int32), "ClearColorValue mismatch");
@@ -979,7 +981,7 @@ namespace Alimer
         uint64_t GetAllocatedSize() const { return allocatedSize; }
         void SetLabel(const char* label) override;
         void* GetMappedData() const override { return pMappedData; }
-        DeviceAddress GetDeviceAddress() const override { return deviceAddress; }
+        GPUAddress GetGPUAddress() const override { return deviceAddress; }
         RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
     };
 
@@ -1122,7 +1124,7 @@ namespace Alimer
         uint32_t bindlessFirstSet = 0;
     };
 
-    struct VulkanComputePipeline final : public RHIComputePipeline
+    struct VulkanComputePipeline final : public ComputePipeline
     {
         VulkanDevice* device = nullptr;
         VulkanPipelineLayoutReflection reflection{};
@@ -1143,18 +1145,6 @@ namespace Alimer
         VkPipeline handle = VK_NULL_HANDLE;
 
         ~VulkanRenderPipeline() override;
-        void SetLabel(const char* label) override;
-    };
-
-    struct VulkanRayTracingPipeline final : public RHIRayTracingPipeline
-    {
-        VulkanDevice* device = nullptr;
-        VulkanPipelineLayoutReflection reflection{};
-
-        SharedPtr<VulkanPipelineLayout> layout;
-        VkPipeline handle = VK_NULL_HANDLE;
-
-        ~VulkanRayTracingPipeline() override;
         void SetLabel(const char* label) override;
     };
 
@@ -1248,11 +1238,33 @@ namespace Alimer
         VulkanComputeCommandEncoder(VulkanDevice* device, VulkanRHICommandBuffer* commandBuffer);
         ~VulkanComputeCommandEncoder() override;
 
+        void Reset(VkCommandBuffer commandBuffer);
+        void Begin(const ComputePassDescriptor& descriptor);
+
+        void PushDebugGroup(std::string_view groupLabel) override;
+        void PopDebugGroup() override;
+        void InsertDebugMarker(std::string_view markerLabel) override;
+
+        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) override;
+        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
+
+        void SetPipeline(ComputePipeline* pipeline) override;
+        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
+        void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+
         void End() override;
+        RHICommandBuffer* GetCommandBuffer() const override;
 
     private:
+        void ClearState();
+        void PrepareDispatch();
+
         VulkanDevice* _device;
         VulkanRHICommandBuffer* _commandBuffer;
+        VkCommandBuffer _vkCommandBuffer = VK_NULL_HANDLE;
+        bool _hasLabel{ false };
+        SharedPtr<VulkanComputePipeline> _currentPipeline;
     };
 
     class VulkanRenderCommandEncoder final : public RenderCommandEncoder
@@ -1263,11 +1275,52 @@ namespace Alimer
         VulkanRenderCommandEncoder(VulkanDevice* device, VulkanRHICommandBuffer* commandBuffer);
         ~VulkanRenderCommandEncoder() override;
 
+        void Reset(VkCommandBuffer commandBuffer);
+        void Begin(const RenderPassDesc& descriptor);
+
+        void PushDebugGroup(std::string_view groupLabel) override;
+        void PopDebugGroup() override;
+        void InsertDebugMarker(std::string_view markerLabel) override;
+
+        void SetViewport(const Viewport& viewport) override;
+        void SetViewports(const Viewport* viewports, uint32_t count) override;
+        void SetScissorRect(const ScissorRect& rect) override;
+        void SetScissorRects(const ScissorRect* scissorRects, uint32_t count) override;
+        void SetStencilReference(uint32_t referenceValue) override;
+        void SetBlendColor(const Color& color) override;
+        void SetShadingRate(ShadingRate rate) override;
+        void SetDepthBounds(float minBounds, float maxBounds) override;
+
+        void SetPipeline(RHIRenderPipeline* pipeline) override;
+        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
+
+        void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
+        void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
+        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType) override;
+
+        void PrepareDraw();
+        void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
+        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
+        void DrawIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ) override;
+        void DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
+
         void End() override;
 
+        RHICommandBuffer* GetCommandBuffer() const override;
+
     private:
+        void ClearState();
+
         VulkanDevice* _device;
         VulkanRHICommandBuffer* _commandBuffer;
+        VkCommandBuffer _vkCommandBuffer = VK_NULL_HANDLE;
+        bool _hasLabel{ false };
+        ShadingRate _currentShadingRate{ ShadingRate::Invalid };
+        SharedPtr<VulkanRenderPipeline> _currentPipeline;
+        SharedPtr<VulkanPipelineLayout> _currentPipelineLayout;
     };
 
     class VulkanRHICommandBuffer final : public RHICommandBuffer
@@ -1280,9 +1333,10 @@ namespace Alimer
 
         void Begin(uint32_t frameIndex, std::string_view label);
         VkCommandBuffer End();
+        void EndEncoding();
 
         RHIDevice* GetDevice() const override;
-        VkCommandBuffer GetHandle() const { return commandBuffer; }
+
         void PushDebugGroup(std::string_view name) override;
         void PopDebugGroup() override;
         void InsertDebugMarker(std::string_view name) override;
@@ -1292,16 +1346,8 @@ namespace Alimer
         void TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout);
         void CommitBarriers();
 
-        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) override;
-        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
-
-        void SetPipeline(RHIRenderPipeline* pipeline) override;
-        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
         void SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup) override;
         void FlushBindGroups();
-
-        void PrepareDispatch();
-        void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
         void BeginQuery(const RHIQueryHeap* heap, uint32_t index) override;
         void EndQuery(const RHIQueryHeap* heap, uint32_t index) override;
@@ -1311,28 +1357,8 @@ namespace Alimer
         /* GraphicsContext */
         RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) override;
 
+        ComputeCommandEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
         RenderCommandEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
-        void SetViewport(const Viewport& viewport) override;
-        void SetViewports(const Viewport* viewports, uint32_t count) override;
-        void SetScissorRect(const ScissorRect& rect) override;
-        void SetScissorRects(const ScissorRect* scissorRects, uint32_t count) override;
-        void SetStencilReference(uint32_t referenceValue) override;
-        void SetBlendColor(const Color& color) override;
-        void SetShadingRate(ShadingRate rate) override;
-        void SetDepthBounds(float minBounds, float maxBounds) override;
-
-        void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
-        void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
-        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType) override;
-
-        void PrepareDraw();
-        void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
-        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-        void DrawIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DispatchMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ) override;
-        void DispatchMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DispatchMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
 
         void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
         void EndPredication() override;
@@ -1358,16 +1384,14 @@ namespace Alimer
         std::vector<VkImageMemoryBarrier2> imageBarriers;
         std::vector<VkBufferMemoryBarrier2> bufferBarriers;
 
-        VulkanRenderCommandEncoder* _renderPassEncoder;
-        VulkanComputeCommandEncoder* _computePassEncoder;
+        VulkanRenderCommandEncoder* _renderCommandEncoder;
+        VulkanComputeCommandEncoder* _computeCommandEncoder;
 
         bool bindGroupsDirty{ false };
         uint32_t numBoundBindGroups{ 0 };
         SharedPtr<VulkanBindGroup> boundBindGroups[kMaxBindGroups] = {};
         VkDescriptorSet descriptorSets[kMaxBindGroups] = {};
 
-        SharedPtr<VulkanRenderPipeline> currentPipeline;
-        SharedPtr<VulkanPipelineLayout> currentPipelineLayout;
         std::vector<SharedPtr<VulkanSwapChain>> presentSwapChains;
     };
 
@@ -1454,6 +1478,7 @@ namespace Alimer
 
     class VulkanDevice final : public RHIDevice
     {
+        friend class VulkanRenderCommandEncoder;
         friend class VulkanRHICommandBuffer;
         friend struct VulkanQueue;
         friend struct VulkanBindGroup;
@@ -1487,9 +1512,8 @@ namespace Alimer
 
         RHIPipelineLayoutRef CreatePipelineLayoutCore(const PipelineLayoutDesc& desc) override;
         RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) override;
-        RHIComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) override;
+        ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) override;
         RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
-        RHIRayTracingPipelineRef CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc) override;
         RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) override;
         RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
         void UpdateSwapChain(VulkanSwapChain* swapChain);
@@ -2155,24 +2179,6 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
     }
 
-    /* VulkanRayTracingPipeline */
-    VulkanRayTracingPipeline::~VulkanRayTracingPipeline()
-    {
-        const uint64_t frameCount = device->GetFrameCount();
-        device->destroyMutex.lock();
-        if (handle)
-        {
-            device->destroyedPipelines.push_back(std::make_pair(handle, frameCount));
-        }
-        handle = VK_NULL_HANDLE;
-        device->destroyMutex.unlock();
-    }
-
-    void VulkanRayTracingPipeline::SetLabel(const char* label)
-    {
-        device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<uint64_t>(handle), label);
-    }
-
     /* VulkanQueryHeap */
     VulkanQueryHeap::~VulkanQueryHeap()
     {
@@ -2240,9 +2246,141 @@ namespace Alimer
 
     }
 
-    void VulkanComputeCommandEncoder::End()
+    void VulkanComputeCommandEncoder::Reset(VkCommandBuffer commandBuffer)
+    {
+        _vkCommandBuffer = commandBuffer;
+        ClearState();
+    }
+
+    void VulkanComputeCommandEncoder::Begin(const ComputePassDescriptor& descriptor)
+    {
+        ClearState();
+
+        if (descriptor.label)
+        {
+            _commandBuffer->PushDebugGroup(descriptor.label);
+            _hasLabel = true;
+        }
+        else
+        {
+            _hasLabel = false;
+        }
+    }
+
+    void VulkanComputeCommandEncoder::PushDebugGroup(std::string_view groupLabel)
+    {
+        _commandBuffer->PushDebugGroup(groupLabel);
+    }
+
+    void VulkanComputeCommandEncoder::PopDebugGroup()
+    {
+        _commandBuffer->PopDebugGroup();
+    }
+
+    void VulkanComputeCommandEncoder::InsertDebugMarker(std::string_view markerLabel)
+    {
+        _commandBuffer->InsertDebugMarker(markerLabel);
+    }
+
+    void VulkanComputeCommandEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
+    {
+        auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
+        auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
+
+        _commandBuffer->BufferBarrier(backendSrcBuffer, BufferStates::CopySource);
+        _commandBuffer->BufferBarrier(backendDestBuffer, BufferStates::CopyDest);
+        _commandBuffer->CommitBarriers();
+
+        VkBufferCopy copy = {};
+        copy.srcOffset = 0;
+        copy.dstOffset = 0;
+        copy.size = Min(backendSrcBuffer->GetSize(), backendDestBuffer->GetSize());
+
+        _device->vkCmdCopyBuffer(_vkCommandBuffer,
+            backendSrcBuffer->handle,
+            backendDestBuffer->handle,
+            1, &copy
+        );
+    }
+
+    void VulkanComputeCommandEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
+    {
+        auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
+        auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
+
+        _commandBuffer->BufferBarrier(backendSrcBuffer, BufferStates::CopySource);
+        _commandBuffer->BufferBarrier(backendDestBuffer, BufferStates::CopyDest);
+        _commandBuffer->CommitBarriers();
+
+        VkBufferCopy copy = {};
+        copy.srcOffset = sourceOffset;
+        copy.dstOffset = destinationOffset;
+        copy.size = size;
+
+        _device->vkCmdCopyBuffer(_vkCommandBuffer,
+            backendSrcBuffer->handle,
+            backendDestBuffer->handle,
+            1, &copy
+        );
+    }
+
+    void VulkanComputeCommandEncoder::SetPipeline(ComputePipeline* pipeline)
+    {
+        if (_currentPipeline.Get() == pipeline)
+            return;
+
+        VulkanComputePipeline* backendPipeline = static_cast<VulkanComputePipeline*>(pipeline);
+        _device->vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, backendPipeline->handle);
+        _currentPipeline = backendPipeline;
+    }
+
+    void VulkanComputeCommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
 
+    }
+
+    void VulkanComputeCommandEncoder::ClearState()
+    {
+        _hasLabel = false;
+        _currentPipeline.Reset();
+    }
+
+    void VulkanComputeCommandEncoder::PrepareDispatch()
+    {
+        _commandBuffer->FlushBindGroups();
+    }
+
+    void VulkanComputeCommandEncoder::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    {
+        PrepareDispatch();
+
+        _device->vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
+    }
+
+    void VulkanComputeCommandEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    {
+        PrepareDispatch();
+
+        auto backendIndirectBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
+        _device->vkCmdDispatchIndirect(_vkCommandBuffer, backendIndirectBuffer->handle, indirectBufferOffset);
+    }
+
+
+    void VulkanComputeCommandEncoder::End()
+    {
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
+    }
+
+    RHICommandBuffer* VulkanComputeCommandEncoder::GetCommandBuffer() const
+    {
+        return _commandBuffer;
     }
 
     /* VulkanRenderCommandEncoder */
@@ -2258,18 +2396,449 @@ namespace Alimer
 
     }
 
+    void VulkanRenderCommandEncoder::ClearState()
+    {
+        _hasLabel = false;
+        _currentShadingRate = ShadingRate::Invalid;
+        _currentPipeline.Reset();
+        _currentPipelineLayout.Reset();
+    }
+
+    void VulkanRenderCommandEncoder::Reset(VkCommandBuffer commandBuffer)
+    {
+        _vkCommandBuffer = commandBuffer;
+        ClearState();
+    }
+
+    void VulkanRenderCommandEncoder::Begin(const RenderPassDesc& descriptor)
+    {
+        if (descriptor.label)
+        {
+            _commandBuffer->PushDebugGroup(descriptor.label);
+            _hasLabel = true;
+        }
+        else
+        {
+            _hasLabel = false;
+        }
+
+        VkRect2D renderArea = {};
+        renderArea.extent.width = _device->_adapter->properties2.properties.limits.maxFramebufferWidth;
+        renderArea.extent.height = _device->_adapter->properties2.properties.limits.maxFramebufferHeight;
+        uint32_t layerCount = _device->_adapter->properties2.properties.limits.maxFramebufferLayers;
+
+        uint32_t colorAttachmentCount = 0;
+        VkRenderingAttachmentInfo colorAttachments[kMaxColorAttachments] = {};
+        VkRenderingAttachmentInfo depthAttachment = {};
+        VkRenderingAttachmentInfo stencilAttachment = {};
+
+        PixelFormat depthStencilFormat = descriptor.depthStencilAttachment != nullptr ? descriptor.depthStencilAttachment->view->GetFormat() : PixelFormat::Undefined;
+        const bool hasDepthOrStencil = descriptor.depthStencilAttachment != nullptr;
+
+        for (uint32_t i = 0; i < descriptor.colorAttachmentCount; ++i)
+        {
+            ALIMER_VERIFY(descriptor.colorAttachments[i].view != nullptr);
+
+            const RenderPassColorAttachment& attachment = descriptor.colorAttachments[i];
+            VulkanTextureView* view = static_cast<VulkanTextureView*>(attachment.view);
+
+            renderArea.extent.width = std::min(renderArea.extent.width, view->GetWidth());
+            renderArea.extent.height = std::min(renderArea.extent.height, view->GetHeight());
+            layerCount = std::min(layerCount, view->GetArrayLayerCount());
+
+            VkRenderingAttachmentInfo& attachmentInfo = colorAttachments[colorAttachmentCount++];
+            attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            attachmentInfo.imageView = view->handle;
+            attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachmentInfo.loadOp = ToVk(attachment.loadAction);
+            attachmentInfo.storeOp = ToVk(attachment.storeAction);
+            attachmentInfo.clearValue.color.float32[0] = attachment.clearColor.float32[0];
+            attachmentInfo.clearValue.color.float32[1] = attachment.clearColor.float32[1];
+            attachmentInfo.clearValue.color.float32[2] = attachment.clearColor.float32[2];
+            attachmentInfo.clearValue.color.float32[3] = attachment.clearColor.float32[3];
+
+            // Barrier
+            _commandBuffer->TextureBarrier(view, TextureLayout::RenderTarget);
+        }
+
+        if (hasDepthOrStencil)
+        {
+            const RenderPassDepthStencilAttachment& attachment = *descriptor.depthStencilAttachment;
+
+            VulkanTextureView* view = static_cast<VulkanTextureView*>(attachment.view);
+
+            renderArea.extent.width = std::min(renderArea.extent.width, view->GetWidth());
+            renderArea.extent.height = std::min(renderArea.extent.height, view->GetHeight());
+            layerCount = std::min(layerCount, view->GetTexture()->GetArrayLayers());
+
+            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            depthAttachment.imageView = view->handle;
+            depthAttachment.imageLayout = attachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+            depthAttachment.loadOp = ToVk(attachment.depthLoadAction);
+            depthAttachment.storeOp = ToVk(attachment.depthStoreAction);
+            depthAttachment.clearValue.depthStencil.depth = attachment.depthClearValue;
+
+            // Barrier
+            _commandBuffer->TextureBarrier(view, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite);
+        }
+        _commandBuffer->CommitBarriers();
+
+        VkRenderingInfo renderingInfo = {};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.pNext = nullptr;
+        renderingInfo.flags = 0;
+        renderingInfo.renderArea = renderArea;
+        renderingInfo.layerCount = layerCount;
+        renderingInfo.viewMask = 0;
+        renderingInfo.colorAttachmentCount = colorAttachmentCount;
+        renderingInfo.pColorAttachments = colorAttachmentCount > 0 ? colorAttachments : nullptr;
+        renderingInfo.pDepthAttachment = hasDepthOrStencil ? &depthAttachment : nullptr;
+        renderingInfo.pStencilAttachment = hasDepthOrStencil && !IsDepthOnlyFormat(depthStencilFormat) ? &depthAttachment : nullptr;
+
+        _device->vkCmdBeginRendering(_vkCommandBuffer, &renderingInfo);
+
+        // The viewport and scissor default to cover all of the attachments
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = static_cast<float>(renderArea.extent.height);
+        viewport.width = static_cast<float>(renderArea.extent.width);
+        viewport.height = -static_cast<float>(renderArea.extent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        _device->vkCmdSetViewport(_vkCommandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissorRect{};
+        scissorRect.offset.x = 0;
+        scissorRect.offset.y = 0;
+        scissorRect.extent.width = renderArea.extent.width;
+        scissorRect.extent.height = renderArea.extent.height;
+        _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, &scissorRect);
+    }
+
+    void VulkanRenderCommandEncoder::PushDebugGroup(std::string_view groupLabel)
+    {
+        _commandBuffer->PushDebugGroup(groupLabel);
+    }
+
+    void VulkanRenderCommandEncoder::PopDebugGroup()
+    {
+        _commandBuffer->PopDebugGroup();
+    }
+
+    void VulkanRenderCommandEncoder::InsertDebugMarker(std::string_view markerLabel)
+    {
+        _commandBuffer->InsertDebugMarker(markerLabel);
+    }
+
+    void VulkanRenderCommandEncoder::SetViewport(const Viewport& viewport)
+    {
+        // Flip viewport to match DirectX coordinate system
+        VkViewport vkViewport{};
+        vkViewport.x = viewport.x;
+        vkViewport.y = viewport.height - viewport.y;
+        vkViewport.width = viewport.width;
+        vkViewport.height = -viewport.height;
+        vkViewport.minDepth = viewport.minDepth;
+        vkViewport.maxDepth = viewport.maxDepth;
+        _device->vkCmdSetViewport(_vkCommandBuffer, 0, 1, &vkViewport);
+    }
+
+    void VulkanRenderCommandEncoder::SetViewports(const Viewport* viewports, uint32_t count)
+    {
+        ALIMER_ASSERT(viewports != nullptr);
+        ALIMER_ASSERT(count < _device->_adapter->GetLimits().maxViewports);
+
+        VkViewport vkViewports[kMaxViewportsAndScissors] = {};
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            // Flip viewport to match DirectX coordinate system
+            vkViewports[i].x = viewports[i].x;
+            vkViewports[i].y = viewports[i].height - viewports[i].y;
+            vkViewports[i].width = viewports[i].width;
+            vkViewports[i].height = -viewports[i].height;
+            vkViewports[i].minDepth = viewports[i].minDepth;
+            vkViewports[i].maxDepth = viewports[i].maxDepth;
+        }
+
+        _device->vkCmdSetViewport(_vkCommandBuffer, 0, count, vkViewports);
+    }
+
+    void VulkanRenderCommandEncoder::SetScissorRect(const ScissorRect& rect)
+    {
+        _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, (VkRect2D*)&rect);
+    }
+
+    void VulkanRenderCommandEncoder::SetScissorRects(const ScissorRect* scissorRects, uint32_t count)
+    {
+        ALIMER_ASSERT(scissorRects != nullptr);
+        ALIMER_ASSERT(count < _device->_adapter->GetLimits().maxViewports);
+
+        _device->vkCmdSetScissor(_vkCommandBuffer, 0, count, (const VkRect2D*)scissorRects);
+    }
+
+
+    void VulkanRenderCommandEncoder::SetStencilReference(uint32_t reference)
+    {
+        _device->vkCmdSetStencilReference(_vkCommandBuffer, VK_STENCIL_FACE_FRONT_AND_BACK, reference);
+    }
+
+    void VulkanRenderCommandEncoder::SetBlendColor(const Color& color)
+    {
+        const float blendColor[4] = { color.r, color.g, color.b, color.a };
+        _device->vkCmdSetBlendConstants(_vkCommandBuffer, blendColor);
+    }
+
+    void VulkanRenderCommandEncoder::SetShadingRate(ShadingRate rate)
+    {
+        if (_device->_adapter->fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE
+            && _currentShadingRate != rate)
+        {
+            _currentShadingRate = rate;
+
+            VkExtent2D fragmentSize;
+            switch (rate)
+            {
+                case ShadingRate::Rate1x1:
+                    fragmentSize.width = 1;
+                    fragmentSize.height = 1;
+                    break;
+                case ShadingRate::Rate1x2:
+                    fragmentSize.width = 1;
+                    fragmentSize.height = 2;
+                    break;
+                case ShadingRate::Rate2x1:
+                    fragmentSize.width = 2;
+                    fragmentSize.height = 1;
+                    break;
+                case ShadingRate::Rate2x2:
+                    fragmentSize.width = 2;
+                    fragmentSize.height = 2;
+                    break;
+                case ShadingRate::Rate2x4:
+                    fragmentSize.width = 2;
+                    fragmentSize.height = 4;
+                    break;
+                case ShadingRate::Rate4x2:
+                    fragmentSize.width = 4;
+                    fragmentSize.height = 2;
+                    break;
+                case ShadingRate::Rate4x4:
+                    fragmentSize.width = 4;
+                    fragmentSize.height = 4;
+                    break;
+                default:
+                    break;
+            }
+
+            VkFragmentShadingRateCombinerOpKHR combiner[] = {
+                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
+            };
+
+            if (_device->_adapter->fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps == VK_TRUE)
+            {
+                if (_device->_adapter->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
+                {
+                    combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
+                }
+                if (_device->_adapter->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+                {
+                    combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
+                }
+            }
+            else
+            {
+                if (_device->_adapter->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
+                {
+                    combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+                }
+                if (_device->_adapter->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
+                {
+                    combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+                }
+            }
+
+            _device->vkCmdSetFragmentShadingRateKHR(_vkCommandBuffer, &fragmentSize, combiner);
+        }
+    }
+
+    void VulkanRenderCommandEncoder::SetDepthBounds(float minBounds, float maxBounds)
+    {
+        if (_device->_adapter->features2.features.depthBounds == VK_TRUE)
+        {
+            _device->vkCmdSetDepthBounds(_vkCommandBuffer, minBounds, maxBounds);
+        }
+        else
+        {
+            LOGW("DepthBounds is not supported");
+        }
+    }
+
+    void VulkanRenderCommandEncoder::SetPipeline(RHIRenderPipeline* pipeline)
+    {
+        if (_currentPipeline.Get() == pipeline)
+            return;
+
+        VulkanRenderPipeline* newPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
+        VulkanPipelineLayout* newPipelineLayout = newPipeline->layout.Get();
+
+        if (_currentPipelineLayout.Get() != newPipelineLayout)
+        {
+
+        }
+
+        _device->vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline->handle);
+
+        _currentPipeline = newPipeline;
+        _currentPipelineLayout = newPipelineLayout;
+    }
+
+    void VulkanRenderCommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    {
+        ALIMER_ASSERT_MSG(_currentPipelineLayout.Get() != nullptr, "No PipelineLayout bound");
+
+#if defined(_DEBUG)
+        if (size > _device->_adapter->properties2.properties.limits.maxPushConstantsSize)
+        {
+            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", _device->_adapter->properties2.properties.limits.maxPushConstantsSize, size);
+            return;
+        }
+#endif
+
+        const VkPushConstantRange& range = _currentPipelineLayout->pushConstantRange;
+        _device->vkCmdPushConstants(_vkCommandBuffer, _currentPipelineLayout->handle, range.stageFlags, offset, size, data);
+    }
+
+    void VulkanRenderCommandEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
+    {
+        auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
+
+        _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, 1u, &backendBuffer->handle, &offset);
+    }
+
+    void VulkanRenderCommandEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
+    {
+        ALIMER_ASSERT(buffers != nullptr);
+        ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
+        ALIMER_ASSERT(count <= _device->_adapter->properties2.properties.limits.maxVertexInputBindings);
+
+        VkBuffer vkBuffers[kMaxVertexBuffers];
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            if (buffers[i] == nullptr)
+            {
+                vkBuffers[i] = _device->nullBuffer;
+            }
+            else
+            {
+                vkBuffers[i] = static_cast<const VulkanBuffer*>(buffers[i])->handle;
+            }
+        }
+
+        _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, count, vkBuffers, offsets);
+    }
+
+    void VulkanRenderCommandEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType)
+    {
+        auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
+        const VkIndexType vkIndexType = (indexType == IndexType::UInt16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+
+        _device->vkCmdBindIndexBuffer(_vkCommandBuffer, vulkanBuffer->handle, offset, vkIndexType);
+    }
+
+    void VulkanRenderCommandEncoder::PrepareDraw()
+    {
+        //ALIMER_ASSERT(insideRenderPass);
+
+        _commandBuffer->FlushBindGroups();
+    }
+
+    void VulkanRenderCommandEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        PrepareDraw();
+
+        _device->vkCmdDraw(_vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void VulkanRenderCommandEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+    {
+        PrepareDraw();
+
+        _device->vkCmdDrawIndexed(_vkCommandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    void VulkanRenderCommandEncoder::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
+    {
+        ALIMER_ASSERT(buffer);
+        PrepareDraw();
+
+        auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
+        _device->vkCmdDrawIndirect(_vkCommandBuffer, vulkanBuffer->handle, offset, 1, (uint32_t)sizeof(DrawIndirectCommand));
+    }
+
+    void VulkanRenderCommandEncoder::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    {
+        ALIMER_ASSERT(indirectBuffer);
+        PrepareDraw();
+
+        auto backendBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
+        _device->vkCmdDrawIndexedIndirect(_vkCommandBuffer, backendBuffer->handle, indirectBufferOffset, 1, (uint32_t)sizeof(DrawIndexedIndirectCommand));
+    }
+
+    void VulkanRenderCommandEncoder::DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
+    {
+        PrepareDraw();
+
+        _device->vkCmdDrawMeshTasksEXT(_vkCommandBuffer, threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+    }
+
+    void VulkanRenderCommandEncoder::DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    {
+        ALIMER_ASSERT(indirectBuffer);
+        PrepareDraw();
+
+        auto backendIndirectBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
+        _device->vkCmdDrawMeshTasksIndirectEXT(_vkCommandBuffer,
+            backendIndirectBuffer->handle,
+            indirectBufferOffset,
+            1,
+            sizeof(DispatchIndirectCommand)
+        );
+    }
+
+    void VulkanRenderCommandEncoder::DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
+    {
+        ALIMER_ASSERT(indirectBuffer);
+        ALIMER_ASSERT(countBuffer);
+
+        auto backendIndirectBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
+        auto vulkanCountBuffer = static_cast<const VulkanBuffer*>(countBuffer);
+
+        PrepareDraw();
+        _device->vkCmdDrawMeshTasksIndirectCountEXT(_vkCommandBuffer,
+            backendIndirectBuffer->handle, indirectBufferOffset,
+            vulkanCountBuffer->handle, countBufferOffset,
+            maxCount, sizeof(DispatchIndirectCommand));
+    }
+
     void VulkanRenderCommandEncoder::End()
     {
-        _device->vkCmdEndRendering(_commandBuffer->GetHandle());
+        _device->vkCmdEndRendering(_vkCommandBuffer);
 
-        //if (_hasLabel)
-        //{
-        //    PopDebugGroup();
-        //    _hasLabel = false;
-        //}
-        //
-        //_commandBuffer.EndEncoding();
-        //Reset();
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
+    }
+
+    RHICommandBuffer* VulkanRenderCommandEncoder::GetCommandBuffer() const
+    {
+        return _commandBuffer;
     }
 
     /* VulkanRHICommandBuffer */
@@ -2299,12 +2868,15 @@ namespace Alimer
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &semaphore));
 
-        _renderPassEncoder = new VulkanRenderCommandEncoder(device, this);
-        _computePassEncoder = new VulkanComputeCommandEncoder(device, this);
+        _renderCommandEncoder = new VulkanRenderCommandEncoder(device, this);
+        _computeCommandEncoder = new VulkanComputeCommandEncoder(device, this);
     }
 
     VulkanRHICommandBuffer::~VulkanRHICommandBuffer()
     {
+        SafeDelete(_renderCommandEncoder);
+        SafeDelete(_computeCommandEncoder);
+
         for (uint32_t i = 0; i < kMaxBindGroups; ++i)
         {
             boundBindGroups[i].Reset();
@@ -2324,8 +2896,6 @@ namespace Alimer
         RHICommandBuffer::Reset(frameIndex);
         waits.clear();
         hasPendingWaits.store(false);
-        currentPipeline.Reset();
-        currentPipelineLayout.Reset();
         presentSwapChains.clear();
         memoryBarriers.clear();
         imageBarriers.clear();
@@ -2391,6 +2961,9 @@ namespace Alimer
             }
         }
 
+        _renderCommandEncoder->Reset(commandBuffer);
+        _computeCommandEncoder->Reset(commandBuffer);
+
         hasLabel = !label.empty();
         if (hasLabel)
         {
@@ -2415,6 +2988,11 @@ namespace Alimer
 
         VK_CHECK(device->vkEndCommandBuffer(commandBuffer));
         return commandBuffer;
+    }
+
+    void VulkanRHICommandBuffer::EndEncoding()
+    {
+        _encoderActive = false;
     }
 
     RHIDevice* VulkanRHICommandBuffer::GetDevice() const
@@ -2566,83 +3144,6 @@ namespace Alimer
         numBarriersToCommit = 0;
     }
 
-    void VulkanRHICommandBuffer::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
-    {
-        auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
-        auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
-
-        BufferBarrier(backendSrcBuffer, BufferStates::CopySource);
-        BufferBarrier(backendDestBuffer, BufferStates::CopyDest);
-        CommitBarriers();
-
-        VkBufferCopy copy = {};
-        copy.srcOffset = 0;
-        copy.dstOffset = 0;
-        copy.size = Min(backendSrcBuffer->GetSize(), backendDestBuffer->GetSize());
-
-        device->vkCmdCopyBuffer(commandBuffer,
-            backendSrcBuffer->handle,
-            backendDestBuffer->handle,
-            1, &copy
-        );
-    }
-
-    void VulkanRHICommandBuffer::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
-    {
-        auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
-        auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
-
-        BufferBarrier(backendSrcBuffer, BufferStates::CopySource);
-        BufferBarrier(backendDestBuffer, BufferStates::CopyDest);
-        CommitBarriers();
-
-        VkBufferCopy copy = {};
-        copy.srcOffset = sourceOffset;
-        copy.dstOffset = destinationOffset;
-        copy.size = size;
-
-        device->vkCmdCopyBuffer(commandBuffer,
-            backendSrcBuffer->handle,
-            backendDestBuffer->handle,
-            1, &copy
-        );
-    }
-
-    void VulkanRHICommandBuffer::SetPipeline(RHIRenderPipeline* pipeline)
-    {
-        if (currentPipeline.Get() == pipeline)
-            return;
-
-        VulkanRenderPipeline* newPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
-        VulkanPipelineLayout* newPipelineLayout = newPipeline->layout.Get();
-
-        if (currentPipelineLayout.Get() != newPipelineLayout)
-        {
-
-        }
-
-        device->vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline->handle);
-
-        currentPipeline = newPipeline;
-        currentPipelineLayout = newPipelineLayout;
-    }
-
-    void VulkanRHICommandBuffer::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
-    {
-        ALIMER_ASSERT_MSG(currentPipelineLayout.Get() != nullptr, "No PipelineLayout bound");
-
-#if defined(_DEBUG)
-        if (size > device->_adapter->properties2.properties.limits.maxPushConstantsSize)
-        {
-            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", device->_adapter->properties2.properties.limits.maxPushConstantsSize, size);
-            return;
-        }
-#endif
-
-        const VkPushConstantRange& range = currentPipelineLayout->pushConstantRange;
-        device->vkCmdPushConstants(commandBuffer, currentPipelineLayout->handle, range.stageFlags, offset, size, data);
-    }
-
     void VulkanRHICommandBuffer::SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup)
     {
         ALIMER_VERIFY(bindGroup != nullptr);
@@ -2659,6 +3160,7 @@ namespace Alimer
 
     void VulkanRHICommandBuffer::FlushBindGroups()
     {
+#if TODO
         if (!currentPipelineLayout)
             return;
 
@@ -2678,18 +3180,8 @@ namespace Alimer
             0, nullptr
         );
         bindGroupsDirty = false;
-    }
+#endif
 
-    void VulkanRHICommandBuffer::PrepareDispatch()
-    {
-        FlushBindGroups();
-    }
-
-    void VulkanRHICommandBuffer::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
-    {
-        PrepareDispatch();
-
-        device->vkCmdDispatch(commandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
     void VulkanRHICommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
@@ -2811,362 +3303,16 @@ namespace Alimer
         return swapChainTexture;
     }
 
-    RenderCommandEncoder* VulkanRHICommandBuffer::BeginRenderPassCore(const RenderPassDesc& desc)
+    ComputeCommandEncoder* VulkanRHICommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
     {
-        VkRect2D renderArea = {};
-        renderArea.extent.width = device->_adapter->properties2.properties.limits.maxFramebufferWidth;
-        renderArea.extent.height = device->_adapter->properties2.properties.limits.maxFramebufferHeight;
-        uint32_t layerCount = device->_adapter->properties2.properties.limits.maxFramebufferLayers;
-
-        uint32_t colorAttachmentCount = 0;
-        VkRenderingAttachmentInfo colorAttachments[kMaxColorAttachments] = {};
-        VkRenderingAttachmentInfo depthAttachment = {};
-        VkRenderingAttachmentInfo stencilAttachment = {};
-
-        PixelFormat depthStencilFormat = desc.depthStencilAttachment != nullptr ? desc.depthStencilAttachment->view->GetFormat() : PixelFormat::Undefined;
-        const bool hasDepthOrStencil = desc.depthStencilAttachment != nullptr;
-
-        for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
-        {
-            ALIMER_VERIFY(desc.colorAttachments[i].view != nullptr);
-
-            const RenderPassColorAttachment& attachment = desc.colorAttachments[i];
-            VulkanTextureView* view = static_cast<VulkanTextureView*>(attachment.view);
-
-            renderArea.extent.width = std::min(renderArea.extent.width, view->GetWidth());
-            renderArea.extent.height = std::min(renderArea.extent.height, view->GetHeight());
-            layerCount = std::min(layerCount, view->GetArrayLayerCount());
-
-            VkRenderingAttachmentInfo& attachmentInfo = colorAttachments[colorAttachmentCount++];
-            attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            attachmentInfo.imageView = view->handle;
-            attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            attachmentInfo.loadOp = ToVk(attachment.loadAction);
-            attachmentInfo.storeOp = ToVk(attachment.storeAction);
-            attachmentInfo.clearValue.color.float32[0] = attachment.clearColor.float32[0];
-            attachmentInfo.clearValue.color.float32[1] = attachment.clearColor.float32[1];
-            attachmentInfo.clearValue.color.float32[2] = attachment.clearColor.float32[2];
-            attachmentInfo.clearValue.color.float32[3] = attachment.clearColor.float32[3];
-
-            // Barrier
-            TextureBarrier(view, TextureLayout::RenderTarget);
-        }
-
-        if (hasDepthOrStencil)
-        {
-            const RenderPassDepthStencilAttachment& attachment = *desc.depthStencilAttachment;
-
-            VulkanTextureView* view = static_cast<VulkanTextureView*>(attachment.view);
-
-            renderArea.extent.width = std::min(renderArea.extent.width, view->GetWidth());
-            renderArea.extent.height = std::min(renderArea.extent.height, view->GetHeight());
-            layerCount = std::min(layerCount, view->GetTexture()->GetArrayLayers());
-
-            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            depthAttachment.imageView = view->handle;
-            depthAttachment.imageLayout = attachment.depthReadOnly ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-            depthAttachment.loadOp = ToVk(attachment.depthLoadAction);
-            depthAttachment.storeOp = ToVk(attachment.depthStoreAction);
-            depthAttachment.clearValue.depthStencil.depth = attachment.depthClearValue;
-
-            // Barrier
-            TextureBarrier(view, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite);
-        }
-        CommitBarriers();
-
-        VkRenderingInfo renderingInfo = {};
-        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo.pNext = nullptr;
-        renderingInfo.flags = 0;
-        renderingInfo.renderArea = renderArea;
-        renderingInfo.layerCount = layerCount;
-        renderingInfo.viewMask = 0;
-        renderingInfo.colorAttachmentCount = colorAttachmentCount;
-        renderingInfo.pColorAttachments = colorAttachmentCount > 0 ? colorAttachments : nullptr;
-        renderingInfo.pDepthAttachment = hasDepthOrStencil ? &depthAttachment : nullptr;
-        renderingInfo.pStencilAttachment = hasDepthOrStencil && !IsDepthOnlyFormat(depthStencilFormat) ? &depthAttachment : nullptr;
-
-        device->vkCmdBeginRendering(commandBuffer, &renderingInfo);
-
-        // The viewport and scissor default to cover all of the attachments
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = static_cast<float>(renderArea.extent.height);
-        viewport.width = static_cast<float>(renderArea.extent.width);
-        viewport.height = -static_cast<float>(renderArea.extent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        device->vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissorRect{};
-        scissorRect.offset.x = 0;
-        scissorRect.offset.y = 0;
-        scissorRect.extent.width = renderArea.extent.width;
-        scissorRect.extent.height = renderArea.extent.height;
-        device->vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-
-        return _renderPassEncoder;
+        _computeCommandEncoder->Begin(descriptor);
+        return _computeCommandEncoder;
     }
 
-    void VulkanRHICommandBuffer::SetViewport(const Viewport& viewport)
+    RenderCommandEncoder* VulkanRHICommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
     {
-        // Flip viewport to match DirectX coordinate system
-        VkViewport vkViewport{};
-        vkViewport.x = viewport.x;
-        vkViewport.y = viewport.height - viewport.y;
-        vkViewport.width = viewport.width;
-        vkViewport.height = -viewport.height;
-        vkViewport.minDepth = viewport.minDepth;
-        vkViewport.maxDepth = viewport.maxDepth;
-        device->vkCmdSetViewport(commandBuffer, 0, 1, &vkViewport);
-    }
-
-    void VulkanRHICommandBuffer::SetViewports(const Viewport* viewports, uint32_t count)
-    {
-        ALIMER_ASSERT(viewports != nullptr);
-        ALIMER_ASSERT(count < device->_adapter->GetLimits().maxViewports);
-
-        VkViewport vkViewports[kMaxViewportsAndScissors] = {};
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            // Flip viewport to match DirectX coordinate system
-            vkViewports[i].x = viewports[i].x;
-            vkViewports[i].y = viewports[i].height - viewports[i].y;
-            vkViewports[i].width = viewports[i].width;
-            vkViewports[i].height = -viewports[i].height;
-            vkViewports[i].minDepth = viewports[i].minDepth;
-            vkViewports[i].maxDepth = viewports[i].maxDepth;
-        }
-
-        device->vkCmdSetViewport(commandBuffer, 0, count, vkViewports);
-    }
-
-    void VulkanRHICommandBuffer::SetScissorRect(const ScissorRect& rect)
-    {
-        device->vkCmdSetScissor(commandBuffer, 0, 1, (VkRect2D*)&rect);
-    }
-
-    void VulkanRHICommandBuffer::SetScissorRects(const ScissorRect* scissorRects, uint32_t count)
-    {
-        ALIMER_ASSERT(scissorRects != nullptr);
-        ALIMER_ASSERT(count < device->_adapter->GetLimits().maxViewports);
-
-        device->vkCmdSetScissor(commandBuffer, 0, count, (const VkRect2D*)scissorRects);
-    }
-
-
-    void VulkanRHICommandBuffer::SetStencilReference(uint32_t reference)
-    {
-        device->vkCmdSetStencilReference(commandBuffer, VK_STENCIL_FRONT_AND_BACK, reference);
-    }
-
-    void VulkanRHICommandBuffer::SetBlendColor(const Color& color)
-    {
-        const float blendColor[4] = { color.r, color.g, color.b, color.a };
-        device->vkCmdSetBlendConstants(commandBuffer, blendColor);
-    }
-
-    void VulkanRHICommandBuffer::SetShadingRate(ShadingRate rate)
-    {
-        if (device->_adapter->fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE
-            && currentShadingRate != rate)
-        {
-            currentShadingRate = rate;
-
-            VkExtent2D fragmentSize;
-            switch (rate)
-            {
-                case ShadingRate::Rate1x1:
-                    fragmentSize.width = 1;
-                    fragmentSize.height = 1;
-                    break;
-                case ShadingRate::Rate1x2:
-                    fragmentSize.width = 1;
-                    fragmentSize.height = 2;
-                    break;
-                case ShadingRate::Rate2x1:
-                    fragmentSize.width = 2;
-                    fragmentSize.height = 1;
-                    break;
-                case ShadingRate::Rate2x2:
-                    fragmentSize.width = 2;
-                    fragmentSize.height = 2;
-                    break;
-                case ShadingRate::Rate2x4:
-                    fragmentSize.width = 2;
-                    fragmentSize.height = 4;
-                    break;
-                case ShadingRate::Rate4x2:
-                    fragmentSize.width = 4;
-                    fragmentSize.height = 2;
-                    break;
-                case ShadingRate::Rate4x4:
-                    fragmentSize.width = 4;
-                    fragmentSize.height = 4;
-                    break;
-                default:
-                    break;
-            }
-
-            VkFragmentShadingRateCombinerOpKHR combiner[] = {
-                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
-                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
-            };
-
-            if (device->_adapter->fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps == VK_TRUE)
-            {
-                if (device->_adapter->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
-                {
-                    combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
-                }
-                if (device->_adapter->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
-                {
-                    combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
-                }
-            }
-            else
-            {
-                if (device->_adapter->fragmentShadingRateFeatures.primitiveFragmentShadingRate == VK_TRUE)
-                {
-                    combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
-                }
-                if (device->_adapter->fragmentShadingRateFeatures.attachmentFragmentShadingRate == VK_TRUE)
-                {
-                    combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
-                }
-            }
-
-            device->vkCmdSetFragmentShadingRateKHR(
-                commandBuffer,
-                &fragmentSize,
-                combiner
-            );
-        }
-    }
-
-    void VulkanRHICommandBuffer::SetDepthBounds(float minBounds, float maxBounds)
-    {
-        if (device->_adapter->features2.features.depthBounds == VK_TRUE)
-        {
-            device->vkCmdSetDepthBounds(commandBuffer, minBounds, maxBounds);
-        }
-        else
-        {
-            LOGW("DepthBounds is not supported");
-        }
-    }
-
-    void VulkanRHICommandBuffer::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
-    {
-        auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
-
-        device->vkCmdBindVertexBuffers(commandBuffer, slot, 1u, &backendBuffer->handle, &offset);
-    }
-
-    void VulkanRHICommandBuffer::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
-    {
-        ALIMER_ASSERT(buffers != nullptr);
-        ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
-        ALIMER_ASSERT(count <= device->_adapter->properties2.properties.limits.maxVertexInputBindings);
-
-        VkBuffer vkBuffers[kMaxVertexBuffers];
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            if (buffers[i] == nullptr)
-            {
-                vkBuffers[i] = device->nullBuffer;
-            }
-            else
-            {
-                vkBuffers[i] = static_cast<const VulkanBuffer*>(buffers[i])->handle;
-            }
-        }
-
-        device->vkCmdBindVertexBuffers(commandBuffer, slot, count, vkBuffers, offsets);
-    }
-
-    void VulkanRHICommandBuffer::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType)
-    {
-        auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
-        const VkIndexType vkIndexType = (indexType == IndexType::UInt16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
-
-        device->vkCmdBindIndexBuffer(commandBuffer, vulkanBuffer->handle, offset, vkIndexType);
-    }
-
-    void VulkanRHICommandBuffer::PrepareDraw()
-    {
-        //ALIMER_ASSERT(insideRenderPass);
-
-        FlushBindGroups();
-    }
-
-    void VulkanRHICommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
-    {
-        PrepareDraw();
-
-        device->vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
-    }
-
-    void VulkanRHICommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
-    {
-        PrepareDraw();
-
-        device->vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
-    }
-
-    void VulkanRHICommandBuffer::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
-    {
-        ALIMER_ASSERT(buffer);
-        PrepareDraw();
-
-        auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
-        device->vkCmdDrawIndirect(commandBuffer, vulkanBuffer->handle, offset, 1, (uint32_t)sizeof(DrawIndirectCommand));
-    }
-
-    void VulkanRHICommandBuffer::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
-    {
-        ALIMER_ASSERT(indirectBuffer);
-        PrepareDraw();
-
-        auto backendBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
-        device->vkCmdDrawIndexedIndirect(commandBuffer, backendBuffer->handle, indirectBufferOffset, 1, (uint32_t)sizeof(DrawIndexedIndirectCommand));
-    }
-
-    void VulkanRHICommandBuffer::DispatchMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
-    {
-        PrepareDraw();
-
-        device->vkCmdDrawMeshTasksEXT(commandBuffer, threadGroupCountX, threadGroupCountY, threadGroupCountZ);
-    }
-
-    void VulkanRHICommandBuffer::DispatchMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
-    {
-        ALIMER_ASSERT(indirectBuffer);
-        PrepareDraw();
-
-        auto backendIndirectBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
-        device->vkCmdDrawMeshTasksIndirectEXT(commandBuffer,
-            backendIndirectBuffer->handle,
-            indirectBufferOffset,
-            1,
-            sizeof(DispatchIndirectCommand)
-        );
-    }
-
-    void VulkanRHICommandBuffer::DispatchMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
-    {
-        ALIMER_ASSERT(indirectBuffer);
-        ALIMER_ASSERT(countBuffer);
-
-        auto backendIndirectBuffer = static_cast<const VulkanBuffer*>(indirectBuffer);
-        auto vulkanCountBuffer = static_cast<const VulkanBuffer*>(countBuffer);
-
-        PrepareDraw();
-        device->vkCmdDrawMeshTasksIndirectCountEXT(commandBuffer,
-            backendIndirectBuffer->handle, indirectBufferOffset,
-            vulkanCountBuffer->handle, countBufferOffset,
-            maxCount, sizeof(DispatchIndirectCommand));
+        _renderCommandEncoder->Begin(descriptor);
+        return _renderCommandEncoder;
     }
 
     void VulkanRHICommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
@@ -3685,6 +3831,7 @@ namespace Alimer
         }
 
         // Begin new frame
+        _frameAllocators[_frameIndex].Reset();
         _frameCount++;
         _frameIndex = _frameCount % kNumFramesInFlight;
 
@@ -3751,7 +3898,7 @@ namespace Alimer
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::ShaderWrite))
+        if (CheckBitsAny(desc.usage, BufferUsage::ShaderReadWrite))
         {
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
         }
@@ -3907,7 +4054,7 @@ namespace Alimer
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::ShaderWrite))
+                if (CheckBitsAny(desc.usage, BufferUsage::ShaderReadWrite))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
@@ -5038,7 +5185,7 @@ namespace Alimer
         return vulkanBindGroup;
     }
 
-    RHIComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDesc& desc)
+    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDesc& desc)
     {
         SharedPtr<VulkanComputePipeline> pipeline(new VulkanComputePipeline());
         pipeline->device = this;
@@ -5370,46 +5517,6 @@ namespace Alimer
         if (result != VK_SUCCESS)
         {
             LOGE("Vulkan: Failed to create RenderPipeline");
-            return nullptr;
-        }
-
-        if (desc.label)
-        {
-            pipeline->SetLabel(desc.label);
-        }
-
-        return pipeline;
-    }
-
-    RHIRayTracingPipelineRef VulkanDevice::CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc)
-    {
-        SharedPtr<VulkanRayTracingPipeline> pipeline(new VulkanRayTracingPipeline());
-        pipeline->device = this;
-        //pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
-
-        Vector<VkPipelineShaderStageCreateInfo> stages;
-        Vector<VkRayTracingShaderGroupCreateInfoKHR> groups;
-
-        const VkRayTracingPipelineCreateInfoKHR createInfo = {
-            .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
-            .stageCount = static_cast<uint32_t>(stages.size()),
-            .pStages = stages.data(),
-            .groupCount = static_cast<uint32_t>(groups.size()),
-            .pGroups = groups.data(),
-            .maxPipelineRayRecursionDepth = desc.maxRayRecursionDepth,
-            .layout = nullptr,
-        };
-        VkResult result = vkCreateRayTracingPipelinesKHR(handle,
-            VK_NULL_HANDLE,
-            pipelineCache,
-            1, &createInfo,
-            nullptr,
-            &pipeline->handle);
-
-
-        if (result != VK_SUCCESS)
-        {
-            LOGE("Vulkan: Failed to create RayTracingPipeline");
             return nullptr;
         }
 

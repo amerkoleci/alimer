@@ -17,7 +17,7 @@
 namespace Alimer
 {
     using BindlessIndex = int32_t;
-    using DeviceAddress = uint64_t;
+    using GPUAddress = uint64_t;
 
     /* Constants */
     static constexpr uint32_t kNumFramesInFlight = 2;
@@ -187,14 +187,14 @@ namespace Alimer
         /// Supports Constant buffer access.
         Constant = 1 << 2,
         ShaderRead = 1 << 3,
-        ShaderWrite = 1 << 4,
-        ShaderReadWrite = ShaderRead | ShaderWrite,
+        /// Supports shader read and write access.
+        ShaderReadWrite = 1 << 4,
         /// Supports indirect buffer access for indirect draw/dispatch.
         Indirect = 1 << 5,
-        /// Supports predication access for conditional rendering.
-        Predication = 1 << 6,
         /// Supports ray tracing acceleration structure usage.
-        RayTracing = 1 << 7,
+        RayTracing = 1 << 6,
+        /// Supports predication access for conditional rendering.
+        Predication = 1 << 7,
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(BufferUsage);
 
@@ -650,7 +650,7 @@ namespace Alimer
     class RHIPipelineLayout;
     class RHIBindGroup;
     class RHICommandQueue;
-    class RHIComputePipeline;
+    class ComputePipeline;
     class RHIRenderPipeline;
     class RHIRayTracingPipeline;
     class RHISurface;
@@ -668,7 +668,7 @@ namespace Alimer
     using RHIBindGroupLayoutRef = SharedPtr<RHIBindGroupLayout>;
     using RHIPipelineLayoutRef = SharedPtr<RHIPipelineLayout>;
     using RHIBindGroupRef = SharedPtr<RHIBindGroup>;
-    using RHIComputePipelineRef = SharedPtr<RHIComputePipeline>;
+    using ComputePipelineRef = SharedPtr<ComputePipeline>;
     using RHIRenderPipelineRef = SharedPtr<RHIRenderPipeline>;
     using RHIRayTracingPipelineRef = SharedPtr<RHIRayTracingPipeline>;
     using RHIQueryHeapRef = SharedPtr<RHIQueryHeap>;
@@ -885,7 +885,7 @@ namespace Alimer
         StorageTextureBindingLayout storageTexture;
     };
 
-    struct ShaderModuleDesc 
+    struct ShaderModuleDesc
     {
         const char* label = nullptr;
         size_t byteCodeSize;
@@ -1049,12 +1049,6 @@ namespace Alimer
         RHIShaderModuleRef shader;
     };
 
-    struct RayTracingPipelineDesc
-    {
-        const char* label = nullptr;
-        uint32_t maxRayRecursionDepth = 1;
-    };
-
     struct QueryHeapDesc
     {
         const char* label = nullptr;
@@ -1091,11 +1085,17 @@ namespace Alimer
         bool            stencilReadOnly = false;
     };
 
+    struct ComputePassDescriptor
+    {
+        const char* label = nullptr;
+    };
+
     struct RenderPassDesc
     {
         uint32_t                                colorAttachmentCount = 0;
-        const RenderPassColorAttachment*        colorAttachments = nullptr;
+        const RenderPassColorAttachment* colorAttachments = nullptr;
         const RenderPassDepthStencilAttachment* depthStencilAttachment = nullptr;
+        const char* label = nullptr;
     };
 
     struct RHISwapChainDesc
@@ -1270,60 +1270,32 @@ namespace Alimer
         RHIObject() = default;
     };
 
-    class ALIMER_API RHIResource : public RHIObject
-    {
-    public:
-        enum class Type
-        {
-            Unknown,
-            Buffer,
-            Texture,
-            RayTracingAccelerationStructure,
-        };
-
-        constexpr bool IsBuffer() const { return type == Type::Buffer; }
-        constexpr bool IsTexture() const { return type == Type::Texture; }
-        constexpr bool IsRayTracingAccelerationStructure() const { return type == Type::RayTracingAccelerationStructure; }
-
-    protected:
-        RHIResource(Type type)
-            : type{ type }
-        {
-
-        }
-
-        Type type;
-    };
-
-    class ALIMER_API RHIBuffer : public RHIResource
+    class ALIMER_API RHIBuffer : public RHIObject
     {
     public:
         [[nodiscard]] uint64_t GetSize() const { return size; }
         [[nodiscard]] BufferUsage GetUsage() const { return usage; }
         [[nodiscard]] uint32_t GetStride() const { return stride; }
         [[nodiscard]] virtual void* GetMappedData() const = 0;
-        [[nodiscard]] virtual DeviceAddress GetDeviceAddress() const = 0;
+        [[nodiscard]] virtual GPUAddress GetGPUAddress() const = 0;
 
     protected:
         RHIBuffer(const BufferDesc& desc)
-            : RHIResource(Type::Buffer)
-            , size(desc.size)
+            : size(desc.size)
             , usage(desc.usage)
             , stride(desc.stride)
-        {
-        }
+        {}
 
         uint64_t size;
         BufferUsage usage = BufferUsage::None;
         uint32_t stride;
     };
 
-    class ALIMER_API RHITexture : public RHIResource
+    class ALIMER_API RHITexture : public RHIObject
     {
     protected:
         RHITexture(const TextureDescriptor& desc)
-            : RHIResource(Type::Texture)
-            , type(desc.type)
+            : type(desc.type)
             , format(desc.format)
             , width(desc.width)
             , height(desc.height)
@@ -1331,8 +1303,7 @@ namespace Alimer
             , mipLevelCount(desc.mipLevelCount)
             , sampleCount(desc.sampleCount)
             , usage(desc.usage)
-        {
-        }
+        {}
 
     public:
         [[nodiscard]] constexpr TextureType GetType() const { return type; }
@@ -1404,8 +1375,7 @@ namespace Alimer
             , baseArrayLayer(desc.baseArrayLayer)
             , arrayLayerCount(desc.arrayLayerCount)
             , swizzle(desc.swizzle)
-        {
-        }
+        {}
 
     public:
         [[nodiscard]] const RHITexture* GetTexture() const { return texture; }
@@ -1438,8 +1408,7 @@ namespace Alimer
     };
 
     class ALIMER_API RHIShaderModule : public RHIObject
-    {
-    };
+    {};
 
     class ALIMER_API RHIBindGroupLayout : public RHIObject
     {
@@ -1470,17 +1439,11 @@ namespace Alimer
         virtual QueueType GetType() const = 0;
     };
 
-    class ALIMER_API RHIComputePipeline : public RHIObject
-    {
-    };
+    class ALIMER_API ComputePipeline : public RHIObject
+    {};
 
     class ALIMER_API RHIRenderPipeline : public RHIObject
-    {
-    };
-
-    class ALIMER_API RHIRayTracingPipeline : public RHIObject
-    {
-    };
+    {};
 
     class ALIMER_API RHIQueryHeap : public RHIObject
     {
@@ -1490,8 +1453,7 @@ namespace Alimer
     };
 
     class ALIMER_API RHISurface : public RHIObject
-    {
-    };
+    {};
 
     class ALIMER_API RHISwapChain : public RHIObject
     {
@@ -1510,47 +1472,36 @@ namespace Alimer
         inline bool IsValid() const { return data != nullptr && buffer != nullptr; }
     };
 
+    class RHICommandBuffer;
+
     class ALIMER_API CommandEncoder
     {
     public:
         virtual ~CommandEncoder() = default;
 
+        virtual void PushDebugGroup(std::string_view groupLabel) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(std::string_view markerLabel) = 0;
+
+        // Do we expose barriers?
+
         virtual void End() = 0;
+
+        /// Returns the command buffer that is currently encoding commands.
+        virtual RHICommandBuffer* GetCommandBuffer() const = 0;
     };
 
     class ALIMER_API ComputeCommandEncoder : public CommandEncoder
     {
     public:
         virtual ~ComputeCommandEncoder() = default;
-    };
-
-    class ALIMER_API RenderCommandEncoder : public CommandEncoder
-    {
-    public:
-        virtual ~RenderCommandEncoder() = default;
-    };
-
-    class ALIMER_API RHICommandBuffer
-    {
-    public:
-        /// Destructor.
-        virtual ~RHICommandBuffer() = default;
-
-        virtual RHIDevice* GetDevice() const = 0;
-
-        virtual void PushDebugGroup(std::string_view name) = 0;
-        virtual void PopDebugGroup() = 0;
-        virtual void InsertDebugMarker(std::string_view name) = 0;
 
         GPUAllocation AllocateGPU(uint64_t size);
-        virtual void UpdateBuffer(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size = 0);
+        virtual void UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size = 0);
         virtual void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) = 0;
         virtual void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) = 0;
 
-        virtual void SetPipeline(RHIRenderPipeline* pipeline) = 0;
-
-        /// Bind a BindGroup.
-        virtual void SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup) = 0;
+        virtual void SetPipeline(ComputePipeline* pipeline) = 0;
         virtual void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) = 0;
 
         template<typename T>
@@ -1560,16 +1511,20 @@ namespace Alimer
         }
 
         void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+        void Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX = 64u);
+        void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8u, uint32_t groupSizeY = 8u);
+        void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
+        void DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset = 0);
 
-        virtual void BeginQuery(const RHIQueryHeap* heap, uint32_t index) = 0;
-        virtual void EndQuery(const RHIQueryHeap* heap, uint32_t index) = 0;
-        virtual void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
-        virtual void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) = 0;
+    protected:
+        virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        virtual void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    };
 
-        RenderCommandEncoder* BeginRenderPass(const RenderPassDesc& desc);
-
-        /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
-        virtual RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) = 0;
+    class ALIMER_API RenderCommandEncoder : public CommandEncoder
+    {
+    public:
+        virtual ~RenderCommandEncoder() = default;
 
         virtual void SetViewport(const Viewport& viewport) = 0;
         virtual void SetViewports(const Viewport* viewports, uint32_t count) = 0;
@@ -1579,6 +1534,15 @@ namespace Alimer
         virtual void SetBlendColor(const Color& color) = 0;
         virtual void SetShadingRate(ShadingRate rate) = 0;
         virtual void SetDepthBounds(float minBounds, float maxBounds) = 0;
+
+        virtual void SetPipeline(RHIRenderPipeline* pipeline) = 0;
+        virtual void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) = 0;
+
+        template<typename T>
+        void SetPushConstants(const T& data, uint32_t offset = 0)
+        {
+            SetPushConstants(&data, sizeof(T), offset);
+        }
 
         /// Bind a vertex buffer.
         virtual void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset = 0) = 0;
@@ -1598,39 +1562,64 @@ namespace Alimer
         /// Draw primitives with indirect parameters and indexed vertices
         virtual void DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset = 0) = 0;
 
-        virtual void DispatchMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ) = 0;
-        virtual void DispatchMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
-        virtual void DispatchMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) = 0;
+        virtual void DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ) = 0;
+        virtual void DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
+        virtual void DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) = 0;
 
+    };
+
+    class ALIMER_API RHICommandBuffer
+    {
+    public:
+        /// Destructor.
+        virtual ~RHICommandBuffer() = default;
+
+        /// Returns the GPU device that this command buffer belongs to.
+        virtual RHIDevice* GetDevice() const = 0;
+
+        virtual void PushDebugGroup(std::string_view name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(std::string_view name) = 0;
+
+        /// Bind a BindGroup.
+        virtual void SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup) = 0;
+
+        virtual void BeginQuery(const RHIQueryHeap* heap, uint32_t index) = 0;
+        virtual void EndQuery(const RHIQueryHeap* heap, uint32_t index) = 0;
+        virtual void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
+        virtual void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) = 0;
+
+        ComputeCommandEncoder* BeginComputePass(const ComputePassDescriptor& descriptor);
+        RenderCommandEncoder* BeginRenderPass(const RenderPassDesc& desc);
+
+        /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
+        virtual RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) = 0;
+
+        
         virtual void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) = 0;
         virtual void EndPredication() = 0;
 
         virtual RHINativeHandle GetNativeHandle(RHINativeHandleType type) { (void)type; return nullptr; }
 
-    private:
-        void PreDispatchValidation();
-
     protected:
         void Reset(uint32_t frameIndex);
 
-        virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        virtual ComputeCommandEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) = 0;
         virtual RenderCommandEncoder* BeginRenderPassCore(const RenderPassDesc& desc) = 0;
-
-        struct GPULinearAllocator
-        {
-            RHIBufferRef buffer;
-            uint64_t offset = 0ull;
-
-            void Reset()
-            {
-                offset = 0ull;
-            }
-        };
 
         uint32_t _frameIndex{ 0 };
         bool _encoderActive{ false };
-        GPULinearAllocator frameAllocators[kNumFramesInFlight];
-        ShadingRate currentShadingRate{ ShadingRate::Invalid };
+    };
+
+    struct GPULinearAllocator
+    {
+        RHIBufferRef buffer;
+        uint64_t offset = 0ull;
+
+        void Reset()
+        {
+            offset = 0ull;
+        }
     };
 
     class ALIMER_API RHIDevice : public RHIObject
@@ -1646,6 +1635,7 @@ namespace Alimer
         virtual uint64_t CommitFrame() = 0;
 
         RHIBufferRef CreateBuffer(const BufferDesc& desc, const void* initialData = nullptr);
+        RHIBufferRef CreateBuffer(uint64_t size, BufferUsage usage = BufferUsage::ShaderReadWrite, const void* initialData = nullptr, const char* label = nullptr);
         RHITextureRef CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData = nullptr);
         RHITextureRef CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor);
         RHISamplerRef CreateSampler(const SamplerDesc& desc);
@@ -1655,9 +1645,8 @@ namespace Alimer
         RHIPipelineLayoutRef CreatePipelineLayout(const PipelineLayoutDesc& desc);
         RHIBindGroupRef CreateBindGroup(RHIBindGroupLayout* layout, const BindGroupDesc& desc);
 
-        RHIComputePipelineRef CreateComputePipeline(const ComputePipelineDesc& desc);
+        ComputePipelineRef CreateComputePipeline(const ComputePipelineDesc& desc);
         RHIRenderPipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc);
-        RHIRayTracingPipelineRef CreateRayTracingPipeline(const RayTracingPipelineDesc& desc);
         RHIQueryHeapRef CreateQueryHeap(const QueryHeapDesc& desc);
 
         RHISwapChainRef CreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc);
@@ -1678,6 +1667,7 @@ namespace Alimer
         //[[nodiscard]] virtual bool QueryVertexFormatSupport(VertexFormat format) = 0;
 
         [[nodiscard]] constexpr uint64_t GetTimestampFrequency() const { return _timestampFrequency; }
+        [[nodiscard]] GPULinearAllocator& GetFrameAllocator() { return _frameAllocators[_frameIndex]; }
 
     protected:
         virtual void InitResources();
@@ -1690,9 +1680,8 @@ namespace Alimer
         virtual RHIBindGroupLayoutRef CreateBindGroupLayoutCore(const BindGroupLayoutDesc& desc) = 0;
         virtual RHIPipelineLayoutRef CreatePipelineLayoutCore(const PipelineLayoutDesc& desc) = 0;
         virtual RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) = 0;
-        virtual RHIComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) = 0;
+        virtual ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) = 0;
         virtual RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDesc& desc) = 0;
-        virtual RHIRayTracingPipelineRef CreateRayTracingPipelineCore(const RayTracingPipelineDesc& desc) = 0;
         virtual RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) = 0;
         virtual RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) = 0;
 
@@ -1705,6 +1694,7 @@ namespace Alimer
 
         uint64_t _timestampFrequency = 0;
         Vector<RHISamplerRef> staticSamplers;
+        GPULinearAllocator _frameAllocators[kNumFramesInFlight];
     };
 
     class ALIMER_API RHIAdapter
@@ -1800,8 +1790,7 @@ namespace Alimer
         ShaderMacro(const std::string& _name, const std::string& _definition)
             : name(_name)
             , definition(_definition)
-        {
-        }
+        {}
     };
 
     ALIMER_API RHIShaderModuleRef RHILoadShader(RHIDevice* device, ShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines = nullptr);

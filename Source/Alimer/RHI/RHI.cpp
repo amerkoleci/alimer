@@ -138,16 +138,16 @@ namespace Alimer
         return it->second.Get();
     }
 
-    /* RHICommandBuffer */
-    GPUAllocation RHICommandBuffer::AllocateGPU(uint64_t size)
+    /* ComputeCommandEncoder */
+    GPUAllocation ComputeCommandEncoder::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
             return {};
         }
 
-        RHIDevice* device = GetDevice();
-        GPULinearAllocator& allocator = frameAllocators[_frameIndex];
+        RHIDevice* device = GetCommandBuffer()->GetDevice();
+        GPULinearAllocator& allocator = device->GetFrameAllocator();
         const uint64_t alignment = Max(device->GetAdapter()->GetLimits().minConstantBufferOffsetAlignment, device->GetAdapter()->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();
@@ -174,7 +174,7 @@ namespace Alimer
         return allocation;
     }
 
-    void RHICommandBuffer::UpdateBuffer(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void ComputeCommandEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -188,26 +188,67 @@ namespace Alimer
         CopyBufferToBuffer(allocation.buffer.Get(), allocation.offset, buffer, offset, size);
     }
 
-    void RHICommandBuffer::PreDispatchValidation()
+    void ComputeCommandEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-#if defined(_DEBUG)
-        //ALIMER_ASSERT_MSG(!insideRenderPass, "Dispatch needs to happen Outside render pass.");
-#endif
-    }
-
-    void RHICommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
-    {
-        PreDispatchValidation();
-
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
+    void ComputeCommandEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    {
+        Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1u, 1u);
+    }
+
+    void ComputeCommandEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    {
+        Dispatch(DivideByMultiple(threadCountX, groupSizeX), DivideByMultiple(threadCountY, groupSizeX), 1u);
+    }
+
+    void ComputeCommandEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    {
+        Dispatch(
+            DivideByMultiple(threadCountX, groupSizeX),
+            DivideByMultiple(threadCountY, groupSizeY),
+            DivideByMultiple(threadCountZ, groupSizeZ)
+        );
+    }
+
+    void ComputeCommandEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    {
+#if defined(_DEBUG)
+        if (!CheckBitsAny(indirectBuffer->GetUsage(), BufferUsage::Indirect))
+        {
+            LOGE("DispatchIndirect: indirectBuffer parameter must have been created with Indirect buffer usage");
+            return;
+        }
+
+        if ((indirectBufferOffset % 4) != 0)
+        {
+            LOGE("DispatchIndirect: indirectBufferOffset must be a multiple of 4.");
+            return;
+        }
+#endif
+
+        DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    /* RHICommandBuffer */
     void RHICommandBuffer::Reset(uint32_t frameIndex)
     {
         _frameIndex = frameIndex;
         _encoderActive = false;
-        currentShadingRate = ShadingRate::Invalid;
-        frameAllocators[frameIndex].Reset();
+    }
+
+    ComputeCommandEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
+    {
+        if (_encoderActive)
+        {
+            LOGE("Cannot begin compute pass while another CommandEncoder already active");
+            return nullptr;
+        }
+
+        ComputeCommandEncoder* computePassEncoder = BeginComputePassCore(descriptor);
+        _encoderActive = true;
+        return computePassEncoder;
     }
 
     RenderCommandEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
@@ -218,7 +259,7 @@ namespace Alimer
             return nullptr;
         }
 
-        RenderCommandEncoder* renderPassEncoder =BeginRenderPassCore(desc);
+        RenderCommandEncoder* renderPassEncoder = BeginRenderPassCore(desc);
         _encoderActive = true;
         return renderPassEncoder;
     }
@@ -247,6 +288,21 @@ namespace Alimer
         }
 
         return CreateBufferCore(desc, initialData);
+    }
+
+    RHIBufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
+    {
+        if (size > GetAdapter()->GetLimits().maxBufferSize)
+        {
+            LOGE("Buffer size too large: {}, limit: {}", size, GetAdapter()->GetLimits().maxBufferSize);
+            return nullptr;
+        }
+
+        BufferDesc bufferDesc{};
+        bufferDesc.label = label;
+        bufferDesc.size = size;
+        bufferDesc.usage = usage;
+        return CreateBufferCore(bufferDesc, initialData);
     }
 
     void RHIDevice::InitResources()
@@ -478,17 +534,12 @@ namespace Alimer
         return CreateRenderPipelineCore(desc);
     }
 
-    RHIComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
+    ComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
     {
         ALIMER_ASSERT(desc.layout != nullptr);
         ALIMER_ASSERT(desc.shader != nullptr);
 
         return CreateComputePipelineCore(desc);
-    }
-
-    RHIRayTracingPipelineRef RHIDevice::CreateRayTracingPipeline(const RayTracingPipelineDesc& desc)
-    {
-        return CreateRayTracingPipelineCore(desc);
     }
 
     RHIQueryHeapRef RHIDevice::CreateQueryHeap(const QueryHeapDesc& desc)
