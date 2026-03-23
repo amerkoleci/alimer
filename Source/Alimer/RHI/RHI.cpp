@@ -188,6 +188,18 @@ namespace Alimer
         CopyBufferToBuffer(allocation.buffer.Get(), allocation.offset, buffer, offset, size);
     }
 
+    /* RenderPassEncoder */
+    void ComputePassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    {
+        if (size > kMaxPushConstantsSize)
+        {
+            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
+            return;
+        }
+
+        SetPushConstantsCore(data, size, offset);
+    }
+
     void ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         DispatchCore(groupCountX, groupCountY, groupCountZ);
@@ -229,6 +241,18 @@ namespace Alimer
 #endif
 
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
+    }
+
+    /* RenderPassEncoder */
+    void RenderPassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    {
+        if (size > kMaxPushConstantsSize)
+        {
+            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
+            return;
+        }
+
+        SetPushConstantsCore(data, size, offset);
     }
 
     /* RHICommandBuffer */

@@ -14,7 +14,9 @@
 
 // Compiler detection (see: https://github.com/microsoft/DirectXShaderCompiler/wiki/Predefined-Version-Macros)
 #ifdef __hlsl_dx_compiler
-    #ifdef __spirv__
+    #if defined(METAL)
+        #define ALIMER_METAL
+    #elif defined(__spirv__)
         #define ALIMER_SPIRV
         #define ALIMER_PRINTF_AVAILABLE
     #else
@@ -22,12 +24,12 @@
     #endif
 #endif
 
-#ifdef __spirv__
+#if defined(ALIMER_METAL)
+#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> pushConstants : register(b0)
+#elif defined(ALIMER_SPIRV)
 #   define ALIMER_PUSH_CONSTANTS(type, name) [[vk::push_constant]] type name
-#   define ALIMER_VERTEX_ATTRIBUTE(type, name, loc) [[vk::location(loc)]] type name : ALIMER_MERGE_TOKENS(ATTRIBUTE, loc)
 #else
 #   define ALIMER_PUSH_CONSTANTS(type, name) ConstantBuffer<type> name : register(b999, space0)
-#   define ALIMER_VERTEX_ATTRIBUTE(type, name, loc) type name : ALIMER_MERGE_TOKENS(ATTRIBUTE, loc)
 #endif
 
 #include "Math.hlsli"
@@ -47,7 +49,7 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 /* Bindless */
 // TODO: Allow engine side static sampler configuration and remove definitions in code
 
-#ifdef __spirv__
+#if defined(ALIMER_SPIRV)
 /* VkDescriptorType */
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 1001;
@@ -56,6 +58,19 @@ static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 1002;
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindlessTexture2D[];
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
+#elif ALIMER_SHADER_MODEL >= 66
+template<typename T>
+struct BindlessResource
+{
+	T operator[](uint index) { return (T)ResourceDescriptorHeap[index]; }
+};
+template<>
+struct BindlessResource<SamplerState>
+{
+	SamplerState operator[](uint index) { return (SamplerState)SamplerDescriptorHeap[index]; }
+};
+static const BindlessResource<SamplerState> bindlessSamplers;
+static const BindlessResource<Texture2D> bindlessTexture2D;
 #else
 SamplerState    bindlessSamplers[]      : register(space1000);
 Texture2D       bindlessTexture2D[]     : register(space1001);

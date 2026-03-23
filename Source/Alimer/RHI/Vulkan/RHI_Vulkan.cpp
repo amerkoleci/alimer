@@ -1066,7 +1066,6 @@ namespace Alimer
         std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
         std::vector<uint32_t> layoutBindingsOriginal;
         VkDescriptorSetLayout handle = VK_NULL_HANDLE;
-        bool isBindless = false;
 
         ~VulkanBindGroupLayout() override;
         void SetLabel(const char* label) override;
@@ -1222,7 +1221,7 @@ namespace Alimer
         void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
 
         void SetPipeline(ComputePipeline* pipeline) override;
-        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
+        void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
         void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
         void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
@@ -1265,7 +1264,7 @@ namespace Alimer
         void SetDepthBounds(float minBounds, float maxBounds) override;
 
         void SetPipeline(RenderPipeline* pipeline) override;
-        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
+        void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
 
         void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
         void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
@@ -1367,14 +1366,64 @@ namespace Alimer
         std::vector<SharedPtr<VulkanSwapChain>> presentSwapChains;
     };
 
+    struct VulkanBindlessDescriptorHeap final
+    {
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        Vector<BindlessIndex> freeList;
+        std::mutex locker;
+
+        void Init(VulkanDevice* device, VkDescriptorType type, uint32_t descriptorCount);
+        void Destroy(VulkanDevice* device);
+
+        BindlessIndex Allocate()
+        {
+            std::scoped_lock lck(locker);
+            if (!freeList.empty())
+            {
+                BindlessIndex index = freeList.back();
+                freeList.pop_back();
+                return index;
+            }
+
+            return kInvalidBindlessIndex;
+        }
+
+        void Free(BindlessIndex index)
+        {
+            if (index < 0)
+                return;
+
+            std::scoped_lock lck(locker);
+            freeList.push_back(index);
+        }
+    };
+
     struct VulkanBindlessManager final
     {
     public:
+        enum DESCRIPTOR_SET
+        {
+            DESCRIPTOR_SET_BINDINGS,
+            DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE,
+
+            DESCRIPTOR_SET_COUNT,
+        };
+
         VulkanDevice* device;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        bool mutableDescriptorType;
+        VulkanBindlessDescriptorHeap bindlessSampledImages;
 
         VulkanBindlessManager(VulkanDevice* device_);
         ~VulkanBindlessManager();
+
+        void BindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint);
+
+    private:
+        VkDescriptorSetLayout bindingsSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSet descriptorSets[DESCRIPTOR_SET_COUNT] = {};
     };
 
     struct PhysicalDeviceVideoExtensions final
@@ -1427,6 +1476,9 @@ namespace Alimer
         bool meshShader;
         bool conditionalRendering;
         bool unifiedImageLayouts;
+        bool mutableDescriptorType;
+        bool descriptorHeap;
+
         PhysicalDeviceVideoExtensions video{};
         bool win32_full_screen_exclusive;
     };
@@ -1460,8 +1512,10 @@ namespace Alimer
 
     class VulkanDevice final : public RHIDevice
     {
-        friend class VulkanRenderPassEncoder;
         friend class VulkanCommandBuffer;
+        friend class VulkanComputePassEncoder;
+        friend class VulkanRenderPassEncoder;
+        friend struct VulkanBindlessManager;
         friend struct VulkanQueue;
         friend struct VulkanBindGroup;
 
@@ -1524,6 +1578,26 @@ namespace Alimer
         VulkanQueue& GetComputeQueue() { return queues[ecast(QueueType::Compute)]; }
         VulkanQueue& GetCopyQueue() { return queues[ecast(QueueType::Copy)]; }
 
+        /* Null resources */
+        VkBuffer		nullBuffer = VK_NULL_HANDLE;
+        VmaAllocation	nullBufferAllocation = VK_NULL_HANDLE;
+        VkBufferView	nullBufferView = VK_NULL_HANDLE;
+        VkSampler		nullSampler = VK_NULL_HANDLE;
+        VmaAllocation	nullImageAllocation1D = VK_NULL_HANDLE;
+        VmaAllocation	nullImageAllocation2D = VK_NULL_HANDLE;
+        VmaAllocation	nullImageAllocation3D = VK_NULL_HANDLE;
+        VkImage			nullImage1D = VK_NULL_HANDLE;
+        VkImage			nullImage2D = VK_NULL_HANDLE;
+        VkImage			nullImage3D = VK_NULL_HANDLE;
+        VkImageView		nullImageView1D = VK_NULL_HANDLE;
+        VkImageView		nullImageView1DArray = VK_NULL_HANDLE;
+        VkImageView		nullImageView2D = VK_NULL_HANDLE;
+        VkImageView		nullImageView2DArray = VK_NULL_HANDLE;
+        VkImageView		nullImageViewCube = VK_NULL_HANDLE;
+        VkImageView		nullImageViewCubeArray = VK_NULL_HANDLE;
+        VkImageView		nullImageView3D = VK_NULL_HANDLE;
+        std::vector<VkSampler> vkStaticSamplers;
+
         // Deletion queue objects
         std::mutex destroyMutex;
         std::deque<std::pair<VmaAllocation, uint64_t>> destroyedAllocations;
@@ -1573,25 +1647,6 @@ namespace Alimer
         // Caches
         Vector<VkDescriptorPool> descriptorSetPools;
         UnorderedMap<size_t, VkSampler> samplerCache;
-
-        VkBuffer		nullBuffer = VK_NULL_HANDLE;
-        VmaAllocation	nullBufferAllocation = VK_NULL_HANDLE;
-        VkBufferView	nullBufferView = VK_NULL_HANDLE;
-        VkSampler		nullSampler = VK_NULL_HANDLE;
-        VmaAllocation	nullImageAllocation1D = VK_NULL_HANDLE;
-        VmaAllocation	nullImageAllocation2D = VK_NULL_HANDLE;
-        VmaAllocation	nullImageAllocation3D = VK_NULL_HANDLE;
-        VkImage			nullImage1D = VK_NULL_HANDLE;
-        VkImage			nullImage2D = VK_NULL_HANDLE;
-        VkImage			nullImage3D = VK_NULL_HANDLE;
-        VkImageView		nullImageView1D = VK_NULL_HANDLE;
-        VkImageView		nullImageView1DArray = VK_NULL_HANDLE;
-        VkImageView		nullImageView2D = VK_NULL_HANDLE;
-        VkImageView		nullImageView2DArray = VK_NULL_HANDLE;
-        VkImageView		nullImageViewCube = VK_NULL_HANDLE;
-        VkImageView		nullImageViewCubeArray = VK_NULL_HANDLE;
-        VkImageView		nullImageView3D = VK_NULL_HANDLE;
-        std::vector<VkSampler> vkStaticSamplers;
 
         std::vector<std::unique_ptr<VulkanCommandBuffer>> commandBuffers;
         uint32_t cmdBuffersCount = 0;
@@ -1645,6 +1700,8 @@ namespace Alimer
         VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures{};
         VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
         VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures{};
+        VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures{};
+        VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT{};
 
         // Properties
         VkPhysicalDeviceProperties2 properties2 = {};
@@ -1660,6 +1717,7 @@ namespace Alimer
         VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = {};
         VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = {};
         VkPhysicalDeviceMemoryProperties2 memoryProperties2 = {};
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapPropertiesEXT = {};
 
         VulkanRHIAdapter(VulkanRHIFactory* factory_, VkPhysicalDevice handle_);
         bool Init();
@@ -2313,9 +2371,15 @@ namespace Alimer
         _currentPipeline = backendPipeline;
     }
 
-    void VulkanComputePassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void VulkanComputePassEncoder::SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset)
     {
-
+        _device->vkCmdPushConstants(_vkCommandBuffer,
+            _device->bindlessManager->pipelineLayout,
+            VK_SHADER_STAGE_ALL,
+            offset,
+            size,
+            data
+        );
     }
 
     void VulkanComputePassEncoder::ClearState()
@@ -2660,22 +2724,20 @@ namespace Alimer
 
         VulkanRenderPipeline* newPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
         _device->vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline->handle);
-        // TODO: Bind bindless
+        _device->bindlessManager->BindDescriptorSets(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         _currentPipeline = newPipeline;
     }
 
-    void VulkanRenderPassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void VulkanRenderPassEncoder::SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset)
     {
-#if defined(_DEBUG)
-        if (size > kMaxPushConstantsSize)
-        {
-            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
-            return;
-        }
-#endif
-
-        //_device->vkCmdPushConstants(_vkCommandBuffer, _currentPipelineLayout->handle, VK_SHADER_STAGE_ALL, offset, size, data);
+        _device->vkCmdPushConstants(_vkCommandBuffer,
+            _device->bindlessManager->pipelineLayout,
+            VK_SHADER_STAGE_ALL,
+            offset,
+            size,
+            data
+        );
     }
 
     void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
@@ -3316,10 +3378,226 @@ namespace Alimer
         }
     }
 
+    void VulkanBindlessDescriptorHeap::Init(VulkanDevice* device, VkDescriptorType type, uint32_t descriptorCount)
+    {
+        descriptorCount = std::min(descriptorCount, 500000u);
+
+        const VkDescriptorPoolSize poolSize = {
+            .type = type,
+            .descriptorCount = descriptorCount
+        };
+
+        const VkDescriptorPoolCreateInfo poolCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+            .maxSets = 1,
+            .poolSizeCount = 1,
+            .pPoolSizes = &poolSize,
+        };
+        VK_CHECK(device->vkCreateDescriptorPool(device->GetHandle(), &poolCreateInfo, nullptr, &descriptorPool));
+
+        const VkDescriptorSetLayoutBinding setLayoutBinding = {
+            .binding = 0,
+            .descriptorType = type,
+            .descriptorCount = descriptorCount,
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .pImmutableSamplers = nullptr,
+        };
+
+        const VkDescriptorBindingFlags bindingFlags =
+            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+
+        const VkDescriptorSetLayoutBindingFlagsCreateInfo setLayoutBindingFlagsCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount = 1,
+            .pBindingFlags = &bindingFlags
+        };
+
+        const VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = &setLayoutBindingFlagsCreateInfo,
+            .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            .bindingCount = 1,
+            .pBindings = &setLayoutBinding,
+        };
+        VK_CHECK(device->vkCreateDescriptorSetLayout(device->GetHandle(), &setLayoutCreateInfo, nullptr, &descriptorSetLayout));
+
+        const VkDescriptorSetVariableDescriptorCountAllocateInfo setVariableDescriptorCountAllocateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+            .descriptorSetCount = 1,
+            .pDescriptorCounts = &descriptorCount
+        };
+
+        const VkDescriptorSetAllocateInfo allocateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext = &setVariableDescriptorCountAllocateInfo,
+            .descriptorPool = descriptorPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = &descriptorSetLayout,
+        };
+        VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &descriptorSet));
+
+        for (uint32_t i = 0; i < descriptorCount; ++i)
+        {
+            freeList.push_back((BindlessIndex)(descriptorCount - i - 1));
+        }
+
+        // Descriptor safety feature:
+        //	We init null descriptors for bindless index = 0 for access safety
+        //	Because shader compiler sometimes incorrectly loads descriptor outside of safety branch
+        //	Note: these are never freed, this is intentional
+        if (type != VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        {
+            BindlessIndex index = Allocate();
+            ALIMER_ASSERT_MSG(index == 0, "Bindless descriptor safety feature error: descriptor index must be 0!");
+
+            VkWriteDescriptorSet writeDescriptorSet = {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptorSet,
+                .dstBinding = 0,
+                .dstArrayElement = (uint32_t)index,
+                .descriptorCount = 1,
+                .descriptorType = type,
+            };
+
+            VkDescriptorImageInfo imageInfo = {};
+            VkDescriptorBufferInfo bufferInfo = {};
+
+            switch (type)
+            {
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                    imageInfo.imageView = device->nullImageView2D;
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    writeDescriptorSet.pImageInfo = &imageInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                    writeDescriptorSet.pTexelBufferView = &device->nullBufferView;
+                    break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                    bufferInfo.buffer = device->nullBuffer;
+                    bufferInfo.range = VK_WHOLE_SIZE;
+                    writeDescriptorSet.pBufferInfo = &bufferInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                    imageInfo.imageView = device->nullImageView2D;
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    writeDescriptorSet.pImageInfo = &imageInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_SAMPLER:
+                    imageInfo.sampler = device->nullSampler;
+                    writeDescriptorSet.pImageInfo = &imageInfo;
+                    break;
+                default:
+                    ALIMER_ASSERT_FAIL("Bindless: Descriptor safety feature error: descriptor type not handled!");
+                    break;
+            }
+
+            device->vkUpdateDescriptorSets(device->GetHandle(), 1, &writeDescriptorSet, 0, nullptr);
+        }
+    }
+
+    void VulkanBindlessDescriptorHeap::Destroy(VulkanDevice* device)
+    {
+        if (descriptorSetLayout != VK_NULL_HANDLE)
+        {
+            device->vkDestroyDescriptorSetLayout(device->GetHandle(), descriptorSetLayout, nullptr);
+            descriptorSetLayout = VK_NULL_HANDLE;
+        }
+
+        if (descriptorPool != VK_NULL_HANDLE)
+        {
+            device->vkDestroyDescriptorPool(device->GetHandle(), descriptorPool, nullptr);
+            descriptorPool = VK_NULL_HANDLE;
+        }
+    }
+
     /* VulkanBindlessManager */
     VulkanBindlessManager::VulkanBindlessManager(VulkanDevice* device_)
         : device(device_)
     {
+        // TODO: Handle MutableDescriptorType
+        mutableDescriptorType = false;
+
+        std::vector<VkDescriptorSetLayout> setLayouts;
+        if (mutableDescriptorType)
+        {
+        }
+        else
+        {
+            // First set (space0)
+            Vector<VkDescriptorSetLayoutBinding> layoutBindings;
+            Vector<VkDescriptorBindingFlags> layoutBindingsFlags;
+
+            const VkDescriptorBindingFlags bindingFlags =
+                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+                | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+                | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+                ;
+
+            for (size_t i = 0; i < layoutBindings.size(); ++i)
+            {
+                layoutBindingsFlags.push_back(bindingFlags);
+            }
+
+            // Create entries for static samples
+            for (size_t samplerIndex = 0; samplerIndex < device->vkStaticSamplers.size(); samplerIndex++)
+            {
+                VkSampler sampler = device->vkStaticSamplers[samplerIndex];
+
+                uint32_t binding = kImmutableSamplerSlotBegin + static_cast<uint32_t>(samplerIndex);
+
+                VkDescriptorSetLayoutBinding layoutBinding = {};
+                layoutBinding.binding = binding + VULKAN_BINDING_SHIFT_S;
+                layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                layoutBinding.descriptorCount = 1;
+                layoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+                layoutBinding.pImmutableSamplers = &sampler;
+
+                layoutBindings.push_back(layoutBinding);
+                //layout->layoutBindingsOriginal.push_back(binding);
+            }
+
+            const VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo = {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+                .bindingCount = (uint32_t)layoutBindingsFlags.size(),
+                .pBindingFlags = layoutBindingsFlags.data()
+            };
+
+            const VkDescriptorSetLayoutCreateInfo layoutInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .pNext = &bindingFlagsInfo,
+                .bindingCount = (uint32_t)layoutBindings.size(),
+                .pBindings = layoutBindings.data()
+            };
+
+            VK_CHECK(device->vkCreateDescriptorSetLayout(device->GetHandle(), &layoutInfo, nullptr, &bindingsSetLayout));
+
+            // Bindless now
+            VkPhysicalDeviceVulkan12Properties properties12 = device_->_adapter->properties12;
+            bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, std::min(kBindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
+
+            // Setup set layouts
+            setLayouts.push_back(bindingsSetLayout);
+            setLayouts.push_back(bindlessSampledImages.descriptorSetLayout);
+
+            // Setup descriptor sets
+            const VkDescriptorSetAllocateInfo allocateInfo = {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                .descriptorPool = device_->descriptorSetPools.back(),
+                .descriptorSetCount = 1,
+                .pSetLayouts = &bindingsSetLayout,
+            };
+            VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+            VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &descriptorSet));
+
+            descriptorSets[DESCRIPTOR_SET_BINDINGS] = descriptorSet;
+            descriptorSets[DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE] = bindlessSampledImages.descriptorSet;
+        }
+
         // Pipeline layout
         const VkPushConstantRange pushConstantRange{
             .stageFlags = VK_SHADER_STAGE_ALL,
@@ -3329,6 +3607,8 @@ namespace Alimer
 
         const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = (uint32_t)setLayouts.size(),
+            .pSetLayouts = setLayouts.data(),
             .pushConstantRangeCount = 1u,
             .pPushConstantRanges = &pushConstantRange
         };
@@ -3343,7 +3623,31 @@ namespace Alimer
 
     VulkanBindlessManager::~VulkanBindlessManager()
     {
+        if (!mutableDescriptorType)
+        {
+            bindlessSampledImages.Destroy(device);
+        }
+
+        if (bindingsSetLayout != VK_NULL_HANDLE)
+        {
+            device->vkDestroyDescriptorSetLayout(device->GetHandle(), bindingsSetLayout, nullptr);
+            bindingsSetLayout = VK_NULL_HANDLE;
+        }
+
         device->vkDestroyPipelineLayout(device->GetHandle(), pipelineLayout, nullptr);
+    }
+
+    void VulkanBindlessManager::BindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint)
+    {
+        device->vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout,
+            0,
+            ALIMER_STATIC_ARRAY_SIZE(descriptorSets),
+            descriptorSets,
+            0, nullptr
+        );
     }
 
     /* VulkanDevice */
@@ -3563,7 +3867,6 @@ namespace Alimer
             }
 
             copyAllocator.Init(this);
-            bindlessManager = new VulkanBindlessManager(this);
 
             // Pipeline Cache
             {
@@ -3725,9 +4028,6 @@ namespace Alimer
             VK_CHECK(vkCreateImageView(handle, &imageViewInfo, nullptr, &nullImageView3D));
         }
 
-        // Allocate at least one descriptor pool.
-        descriptorSetPools.emplace_back(CreateDescriptorSetPool());
-
         // Null and immutable samplers
         {
             SamplerDesc samplerDesc{};
@@ -3741,6 +4041,12 @@ namespace Alimer
                 vkStaticSamplers.push_back(sampler->handle);
             }
         }
+
+        // Allocate at least one descriptor pool.
+        descriptorSetPools.emplace_back(CreateDescriptorSetPool());
+
+        // Init bindless manager
+        bindlessManager = new VulkanBindlessManager(this);
 
         LOGI("Vulkan: Initialized with success");
     }
@@ -4800,7 +5106,7 @@ namespace Alimer
         }
 #endif // TODO_REFL
 
-        //
+        // TODO: Shift sets here instead in shader compiler
         VkShaderModuleCreateInfo moduleInfo = {};
         moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         moduleInfo.codeSize = spvReflectGetCodeSize(&reflectModule);
@@ -4827,15 +5133,6 @@ namespace Alimer
         layout->layoutBindings.reserve(bindingLayoutCount);
         layout->layoutBindingsOriginal.reserve(bindingLayoutCount);
 
-        std::vector<VkDescriptorBindingFlags> vkBindingFlags;
-        vkBindingFlags.reserve(bindingLayoutCount);
-
-        constexpr VkDescriptorBindingFlags bindlessBindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-            | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-            | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-            //| VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
-            ;
-
         for (size_t i = 0; i < bindingLayoutCount; ++i)
         {
             const BindGroupLayoutEntry& entry = desc.entries[i];
@@ -4855,7 +5152,6 @@ namespace Alimer
                 layoutBinding.pImmutableSamplers = &sampler;
                 layout->layoutBindings.push_back(layoutBinding);
                 layout->layoutBindingsOriginal.push_back(entry.binding);
-                vkBindingFlags.push_back(bindlessBindingFlags);
                 continue;
             }
 
@@ -4929,8 +5225,6 @@ namespace Alimer
 
             layout->layoutBindings.push_back(layoutBinding);
             layout->layoutBindingsOriginal.push_back(entry.binding);
-
-            vkBindingFlags.push_back(bindlessBindingFlags);
         }
 
         // Create entries for static samples
@@ -4956,18 +5250,6 @@ namespace Alimer
         createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         createInfo.bindingCount = (uint32_t)layout->layoutBindings.size();
         createInfo.pBindings = layout->layoutBindings.data();
-
-        // Bindless
-        VkDescriptorSetLayoutBindingFlagsCreateInfo setLayoutBindingFlags = {};
-        if (layout->isBindless)
-        {
-            setLayoutBindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-            setLayoutBindingFlags.bindingCount = static_cast<uint32_t>(vkBindingFlags.size());
-            setLayoutBindingFlags.pBindingFlags = vkBindingFlags.data();
-
-            createInfo.pNext = &setLayoutBindingFlags;
-            createInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        }
 
         VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &layout->handle);
         if (result != VK_SUCCESS)
@@ -6607,6 +6889,21 @@ namespace Alimer
             addToFeatureChain(&conditionalRenderingFeatures);
         }
 
+        if (extensions.unifiedImageLayouts)
+        {
+            unifiedImageLayoutsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR;
+            addToFeatureChain(&unifiedImageLayoutsFeatures);
+        }
+
+        if (extensions.descriptorHeap)
+        {
+            descriptorHeapFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
+            addToFeatureChain(&descriptorHeapFeaturesEXT);
+
+            descriptorHeapPropertiesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
+            addToPropertiesChain(&descriptorHeapPropertiesEXT);
+        }
+
         factory->vkGetPhysicalDeviceFeatures2(handle, &features2);
         factory->vkGetPhysicalDeviceProperties2(handle, &properties2);
 
@@ -6949,6 +7246,18 @@ namespace Alimer
         if (extensions.conditionalRendering)
         {
             enabledDeviceExtensions.push_back(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
+        }
+
+        if (extensions.unifiedImageLayouts)
+        {
+            enabledDeviceExtensions.push_back(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
+        }
+
+        if (extensions.descriptorHeap)
+        {
+            // Promoted to 1.4 but needed by VK_EXT_descriptor_heap
+            enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+            enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
         }
 
         if (extensions.video.queue)
@@ -7664,6 +7973,14 @@ namespace Alimer
             else if (strcmp(vk_extensions[i].extensionName, VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME) == 0)
             {
                 extensions.unifiedImageLayouts = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME) == 0)
+            {
+                extensions.mutableDescriptorType = true;
+            }
+            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME) == 0)
+            {
+                extensions.descriptorHeap = true;
             }
             else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_QUEUE_EXTENSION_NAME) == 0)
             {

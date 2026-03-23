@@ -93,6 +93,12 @@ void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTextu
     RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
+    struct PushData
+    {
+        Color color = Colors::White;
+    } data;
+
+    renderPass->SetPushConstants(data);
     renderPass->Draw(3);
     renderPass->End();
 }

@@ -40,6 +40,10 @@ namespace Alimer
     static constexpr uint32_t kLUIDSize = 8u;
     static constexpr BindlessIndex kInvalidBindlessIndex = -1;
 
+    /// Bindless descriptor limits -> the device can allocate less than this, depending on capabilities
+    static constexpr uint32_t kBindlessResourceCapacity = 500000;
+    static constexpr uint32_t kBindlessSamplerCapacity = 256;
+
     // These shifts are made so that Vulkan resource bindings slots don't interfere with each other across shader stages:
     // These are also used during shader compilation
     enum
@@ -1502,7 +1506,7 @@ namespace Alimer
         virtual void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) = 0;
 
         virtual void SetPipeline(ComputePipeline* pipeline) = 0;
-        virtual void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) = 0;
+        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0);
 
         template<typename T>
         void SetPushConstants(const T& data, uint32_t offset = 0)
@@ -1517,6 +1521,7 @@ namespace Alimer
         void DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset = 0);
 
     protected:
+        virtual void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) = 0;
         virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
         virtual void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
     };
@@ -1536,7 +1541,7 @@ namespace Alimer
         virtual void SetDepthBounds(float minBounds, float maxBounds) = 0;
 
         virtual void SetPipeline(RenderPipeline* pipeline) = 0;
-        virtual void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) = 0;
+        void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0);
 
         template<typename T>
         void SetPushConstants(const T& data, uint32_t offset = 0)
@@ -1566,6 +1571,8 @@ namespace Alimer
         virtual void DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
         virtual void DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) = 0;
 
+    protected:
+        virtual void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) = 0;
     };
 
     class ALIMER_API RHICommandBuffer
