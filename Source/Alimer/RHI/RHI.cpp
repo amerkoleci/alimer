@@ -138,8 +138,8 @@ namespace Alimer
         return it->second.Get();
     }
 
-    /* ComputeCommandEncoder */
-    GPUAllocation ComputeCommandEncoder::AllocateGPU(uint64_t size)
+    /* ComputePassEncoder */
+    GPUAllocation ComputePassEncoder::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
@@ -174,7 +174,7 @@ namespace Alimer
         return allocation;
     }
 
-    void ComputeCommandEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void ComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -188,22 +188,22 @@ namespace Alimer
         CopyBufferToBuffer(allocation.buffer.Get(), allocation.offset, buffer, offset, size);
     }
 
-    void ComputeCommandEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    void ComputeCommandEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    void ComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1u, 1u);
     }
 
-    void ComputeCommandEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    void ComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), DivideByMultiple(threadCountY, groupSizeX), 1u);
     }
 
-    void ComputeCommandEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    void ComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -212,7 +212,7 @@ namespace Alimer
         );
     }
 
-    void ComputeCommandEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void ComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
 #if defined(_DEBUG)
         if (!CheckBitsAny(indirectBuffer->GetUsage(), BufferUsage::Indirect))
@@ -238,7 +238,7 @@ namespace Alimer
         _encoderActive = false;
     }
 
-    ComputeCommandEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
     {
         if (_encoderActive)
         {
@@ -246,12 +246,12 @@ namespace Alimer
             return nullptr;
         }
 
-        ComputeCommandEncoder* computePassEncoder = BeginComputePassCore(descriptor);
+        ComputePassEncoder* computePassEncoder = BeginComputePassCore(descriptor);
         _encoderActive = true;
         return computePassEncoder;
     }
 
-    RenderCommandEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
+    RenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -259,7 +259,7 @@ namespace Alimer
             return nullptr;
         }
 
-        RenderCommandEncoder* renderPassEncoder = BeginRenderPassCore(desc);
+        RenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
         _encoderActive = true;
         return renderPassEncoder;
     }
@@ -509,37 +509,39 @@ namespace Alimer
         return CreateBindGroupCore(layout, desc);
     }
 
-    RHIRenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDesc& desc)
+    RenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDescriptor& descriptor)
     {
         // Vertex shader is necessary when not using mesh shaders
-        if (desc.vertexShader == nullptr)
+        if (descriptor.vertexShader == nullptr)
         {
-            if (desc.amplificationShader == nullptr && desc.meshShader == nullptr)
+            if (descriptor.meshShader == nullptr)
             {
-                LOGE("Vertex shader is required when creating mesh pipeline");
+                LOGE("Mesh shader is required when creating mesh pipeline");
                 return nullptr;
             }
         }
 
-        if (desc.vertexInput)
+        if (descriptor.vertexBufferLayoutCount > 0)
         {
-            const VertexInputDesc* vertexInput = desc.vertexInput;
-            for (uint32_t attributeIndex = 0; attributeIndex < vertexInput->attributeCount; ++attributeIndex)
+            for (uint32_t bufferIndex = 0; bufferIndex < descriptor.vertexBufferLayoutCount; ++bufferIndex)
             {
-                const VertexAttribute& attribute = vertexInput->attributes[attributeIndex];
-                ALIMER_ASSERT(attribute.format != VertexFormat::Undefined);
+                const VertexBufferLayout& vertexBufferLayout = descriptor.vertexBufferLayouts[bufferIndex];
+                for (uint32_t attributeIndex = 0; attributeIndex < vertexBufferLayout.attributeCount; ++attributeIndex)
+                {
+                    const VertexAttribute& vertexAttribute = vertexBufferLayout.attributes[attributeIndex];
+                    ALIMER_ASSERT(vertexAttribute.format != VertexAttributeFormat::Undefined);
+                }
             }
         }
 
-        return CreateRenderPipelineCore(desc);
+        return CreateRenderPipelineCore(descriptor);
     }
 
-    ComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
+    ComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDescriptor& descriptor)
     {
-        ALIMER_ASSERT(desc.layout != nullptr);
-        ALIMER_ASSERT(desc.shader != nullptr);
+        ALIMER_ASSERT(descriptor.shader != nullptr);
 
-        return CreateComputePipelineCore(desc);
+        return CreateComputePipelineCore(descriptor);
     }
 
     RHIQueryHeapRef RHIDevice::CreateQueryHeap(const QueryHeapDesc& desc)
@@ -840,66 +842,68 @@ namespace Alimer
         }
     }
 
-    static const VertexFormatInfo s_VertexFormatTable[] = {
-        {VertexFormat::Undefined,           0, 0,   VertexFormatKind::Float},
-        {VertexFormat::UByte,               1, 1,   VertexFormatKind::Uint},
-        {VertexFormat::UByte2,              2, 2,   VertexFormatKind::Uint},
-        {VertexFormat::UByte4,              4, 4,   VertexFormatKind::Uint},
-        {VertexFormat::Byte,                1, 1,   VertexFormatKind::Sint},
-        {VertexFormat::Byte2,               2, 2,   VertexFormatKind::Sint},
-        {VertexFormat::Byte4,               4, 4,   VertexFormatKind::Sint},
-        {VertexFormat::UByteNormalized,     1, 1,   VertexFormatKind::Unorm},
-        {VertexFormat::UByte2Normalized,    2, 2,   VertexFormatKind::Unorm},
-        {VertexFormat::UByte4Normalized,    4, 4,   VertexFormatKind::Unorm},
-        {VertexFormat::ByteNormalized,      2, 2,    VertexFormatKind::Snorm},
-        {VertexFormat::Byte2Normalized,     2, 2,   VertexFormatKind::Snorm},
-        {VertexFormat::Byte4Normalized,     4, 4,   VertexFormatKind::Snorm},
+    static const VertexAttributeFormatInfo s_VertexFormatTable[] = {
+        {VertexAttributeFormat::Undefined,          0, 0,   VertexFormatKind::Float},
+        {VertexAttributeFormat::Uint8,              1, 1,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint8x2,            2, 2,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint8x4,            4, 4,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Sint8,              1, 1,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint8x2,            2, 2,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint8x4,            4, 4,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Unorm8,             1, 1,   VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Unorm8x2,           2, 2,   VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Unorm8x4,           4, 4,   VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Snorm8,             1, 1,   VertexFormatKind::Snorm},
+        {VertexAttributeFormat::Snorm8x2,           2, 2,   VertexFormatKind::Snorm},
+        {VertexAttributeFormat::Snorm8x4,           4, 4,   VertexFormatKind::Snorm},
 
-        {VertexFormat::UShort,              2, 1,   VertexFormatKind::Uint},
-        {VertexFormat::UShort2,             4, 2,   VertexFormatKind::Uint},
-        {VertexFormat::UShort4,             8, 4,   VertexFormatKind::Uint},
-        {VertexFormat::Short,               4, 1,   VertexFormatKind::Sint},
-        {VertexFormat::Short2,              4, 2,   VertexFormatKind::Sint},
-        {VertexFormat::Short4,              8, 4,   VertexFormatKind::Sint},
-        {VertexFormat::UShortNormalized,    2, 1,   VertexFormatKind::Unorm},
-        {VertexFormat::UShort2Normalized,   4, 2,   VertexFormatKind::Unorm},
-        {VertexFormat::UShort4Normalized,   8, 4,   VertexFormatKind::Unorm},
-        {VertexFormat::ShortNormalized,     2, 1,   VertexFormatKind::Snorm},
-        {VertexFormat::Short2Normalized,    4, 2,   VertexFormatKind::Snorm},
-        {VertexFormat::Short4Normalized,    8, 4,   VertexFormatKind::Snorm},
+        {VertexAttributeFormat::Uint16,             2, 1,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint16x2,           4, 2,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint16x4,           8, 4,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Sint8,              4, 1,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint8x2,            4, 2,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint8x4,            8, 4,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Unorm16,            2, 1,   VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Unorm16x2,          4, 2,   VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Unorm16x4,          8, 4,   VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Snorm16,            2, 1,   VertexFormatKind::Snorm},
+        {VertexAttributeFormat::Snorm16x2,          4, 2,   VertexFormatKind::Snorm},
+        {VertexAttributeFormat::Snorm16x4,          8, 4,   VertexFormatKind::Snorm},
 
-        {VertexFormat::Half,                2, 1,   VertexFormatKind::Float},
-        {VertexFormat::Half2,               4, 2,   VertexFormatKind::Float},
-        {VertexFormat::Half4,               8, 4,   VertexFormatKind::Float},
-        {VertexFormat::Float,               4, 1,   VertexFormatKind::Float},
-        {VertexFormat::Float2,              8, 2,   VertexFormatKind::Float},
-        {VertexFormat::Float3,              12, 3,  VertexFormatKind::Float},
-        {VertexFormat::Float4,              16, 4,  VertexFormatKind::Float},
+        {VertexAttributeFormat::Float16,            2, 1,   VertexFormatKind::Float},
+        {VertexAttributeFormat::Float16x2,          4, 2,   VertexFormatKind::Float},
+        {VertexAttributeFormat::Float16x4,          8, 4,   VertexFormatKind::Float},
+        {VertexAttributeFormat::Float32,            4, 1,   VertexFormatKind::Float},
+        {VertexAttributeFormat::Float32x2,          8, 2,   VertexFormatKind::Float},
+        {VertexAttributeFormat::Float32x3,          12, 3,  VertexFormatKind::Float},
+        {VertexAttributeFormat::Float32x4,          16, 4,  VertexFormatKind::Float},
 
-        {VertexFormat::UInt,                4, 1,   VertexFormatKind::Uint},
-        {VertexFormat::UInt2,               8, 2,   VertexFormatKind::Uint},
-        {VertexFormat::UInt3,               12, 3,  VertexFormatKind::Uint},
-        {VertexFormat::UInt4,               16, 4,  VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint32,             4, 1,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint32x2,           8, 2,   VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint32x3,           12, 3,  VertexFormatKind::Uint},
+        {VertexAttributeFormat::Uint32x4,           16, 4,  VertexFormatKind::Uint},
 
-        {VertexFormat::Int,                 4, 1,   VertexFormatKind::Sint},
-        {VertexFormat::Int2,                8, 2,   VertexFormatKind::Sint},
-        {VertexFormat::Int3,                12, 3,  VertexFormatKind::Sint},
-        {VertexFormat::Int4,                16, 4,  VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint32,             4, 1,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint32x2,           8, 2,   VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint32x3,           12, 3,  VertexFormatKind::Sint},
+        {VertexAttributeFormat::Sint32x4,           16, 4,  VertexFormatKind::Sint},
 
-        {VertexFormat::UInt1010102Normalized, 4, 4, VertexFormatKind::Uint},
+        //new(VertexFormat.Int1010102Normalized,    32, 4, FormatKind.Unorm),
+        {VertexAttributeFormat::Unorm10_10_10_2, 4, 4, VertexFormatKind::Unorm},
+        {VertexAttributeFormat::Unorm8x4BGRA, 4, 4, VertexFormatKind::Unorm},
         //{VertexFormat::RG11B10Float,   32, 4,  VertexFormatKind::Float},
         //{VertexFormat::RGB9E5Float,   32, 4, VertexFormatKind::Float},
     };
 
     static_assert(
-        sizeof(s_VertexFormatTable) / sizeof(VertexFormatInfo) == size_t(VertexFormat::Count),
+        sizeof(s_VertexFormatTable) / sizeof(VertexAttributeFormatInfo) == size_t(VertexAttributeFormat::Count),
         "The format info table doesn't have the right number of elements"
         );
 
-    const VertexFormatInfo& GetVertexFormatInfo(VertexFormat format)
+    const VertexAttributeFormatInfo& GetVertexAttributeFormatInfo(VertexAttributeFormat format)
     {
-        ALIMER_ASSERT(format != VertexFormat::Undefined);
-        ALIMER_ASSERT(ecast(format) < ecast(VertexFormat::Count));
+        ALIMER_ASSERT(format != VertexAttributeFormat::Undefined);
+        ALIMER_ASSERT(ecast(format) < ecast(VertexAttributeFormat::Count));
         ALIMER_ASSERT(s_VertexFormatTable[ecast(format)].format == format);
 
         return s_VertexFormatTable[ecast(format)];

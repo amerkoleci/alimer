@@ -2,8 +2,8 @@
 #include <Alimer/Shaders/ShaderDefinitions.h>
 
 struct VertexInput {
-    float3 Position : ATTRIBUTE0;
-    float4 Color    : ATTRIBUTE1;
+    float3 Position : POSITION;
+    float4 Color : COLOR;
 };
 
 struct VertexOutput {
@@ -11,7 +11,7 @@ struct VertexOutput {
     float4 Color    : COLOR;
 };
 
-VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
+VertexOutput vertexMain(in VertexInput input)
 {
     VertexOutput output;
     output.Position = float4(input.Position, 1.0f);

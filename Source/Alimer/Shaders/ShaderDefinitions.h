@@ -10,7 +10,6 @@
 #define PER_MATERIAL_BIND_GROUP 3
 
 #define MAX_BIND_GROUPS 4
-#define MAX_PUSH_CONSTANTS_SIZE 128 
 #define START_BINDLESS_SPACE 1000
 
 #ifdef __cplusplus

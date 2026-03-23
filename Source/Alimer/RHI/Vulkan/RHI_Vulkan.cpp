@@ -181,55 +181,57 @@ namespace Alimer
             lastStruct->pNext = newStruct;
         }
 
-        constexpr VkFormat ToVkVertexFormat(VertexFormat format)
+        constexpr VkFormat ToVkVertexFormat(VertexAttributeFormat format)
         {
             switch (format)
             {
-                case VertexFormat::UByte:               return VK_FORMAT_R8_UINT;
-                case VertexFormat::UByte2:              return VK_FORMAT_R8G8_UINT;
-                case VertexFormat::UByte4:              return VK_FORMAT_R8G8B8A8_UINT;
-                case VertexFormat::Byte:                return VK_FORMAT_R8_SINT;
-                case VertexFormat::Byte2:               return VK_FORMAT_R8G8_SINT;
-                case VertexFormat::Byte4:               return VK_FORMAT_R8G8B8A8_SINT;
-                case VertexFormat::UByteNormalized:     return VK_FORMAT_R8_UNORM;
-                case VertexFormat::UByte2Normalized:    return VK_FORMAT_R8G8_UNORM;
-                case VertexFormat::UByte4Normalized:    return VK_FORMAT_R8G8B8A8_UNORM;
-                case VertexFormat::ByteNormalized:      return VK_FORMAT_R8_SNORM;
-                case VertexFormat::Byte2Normalized:     return VK_FORMAT_R8G8_SNORM;
-                case VertexFormat::Byte4Normalized:     return VK_FORMAT_R8G8B8A8_SNORM;
+                case VertexAttributeFormat::Uint8:              return VK_FORMAT_R8_UINT;
+                case VertexAttributeFormat::Uint8x2:            return VK_FORMAT_R8G8_UINT;
+                case VertexAttributeFormat::Uint8x4:            return VK_FORMAT_R8G8B8A8_UINT;
+                case VertexAttributeFormat::Sint8:              return VK_FORMAT_R8_SINT;
+                case VertexAttributeFormat::Sint8x2:            return VK_FORMAT_R8G8_SINT;
+                case VertexAttributeFormat::Sint8x4:            return VK_FORMAT_R8G8B8A8_SINT;
+                case VertexAttributeFormat::Unorm8:             return VK_FORMAT_R8_UNORM;
+                case VertexAttributeFormat::Unorm8x2:           return VK_FORMAT_R8G8_UNORM;
+                case VertexAttributeFormat::Unorm8x4:           return VK_FORMAT_R8G8B8A8_UNORM;
+                case VertexAttributeFormat::Snorm8:             return VK_FORMAT_R8_SNORM;
+                case VertexAttributeFormat::Snorm8x2:           return VK_FORMAT_R8G8_SNORM;
+                case VertexAttributeFormat::Snorm8x4:           return VK_FORMAT_R8G8B8A8_SNORM;
 
-                case VertexFormat::UShort:              return VK_FORMAT_R16_UINT;
-                case VertexFormat::UShort2:             return VK_FORMAT_R16G16_UINT;
-                case VertexFormat::UShort4:             return VK_FORMAT_R16G16B16A16_UINT;
-                case VertexFormat::Short:               return VK_FORMAT_R16_SINT;
-                case VertexFormat::Short2:              return VK_FORMAT_R16G16_SINT;
-                case VertexFormat::Short4:              return VK_FORMAT_R16G16B16A16_SINT;
-                case VertexFormat::UShortNormalized:    return VK_FORMAT_R16_UNORM;
-                case VertexFormat::UShort2Normalized:   return VK_FORMAT_R16G16_UNORM;
-                case VertexFormat::UShort4Normalized:   return VK_FORMAT_R16G16B16A16_UNORM;
-                case VertexFormat::ShortNormalized:     return VK_FORMAT_R16_SNORM;
-                case VertexFormat::Short2Normalized:    return VK_FORMAT_R16G16_SNORM;
-                case VertexFormat::Short4Normalized:    return VK_FORMAT_R16G16B16A16_SNORM;
-                case VertexFormat::Half:                return VK_FORMAT_R16_SFLOAT;
-                case VertexFormat::Half2:               return VK_FORMAT_R16G16_SFLOAT;
-                case VertexFormat::Half4:               return VK_FORMAT_R16G16B16A16_SFLOAT;
+                case VertexAttributeFormat::Uint16:             return VK_FORMAT_R16_UINT;
+                case VertexAttributeFormat::Uint16x2:           return VK_FORMAT_R16G16_UINT;
+                case VertexAttributeFormat::Uint16x4:           return VK_FORMAT_R16G16B16A16_UINT;
+                case VertexAttributeFormat::Sint16:             return VK_FORMAT_R16_SINT;
+                case VertexAttributeFormat::Sint16x2:           return VK_FORMAT_R16G16_SINT;
+                case VertexAttributeFormat::Sint16x4:           return VK_FORMAT_R16G16B16A16_SINT;
+                case VertexAttributeFormat::Unorm16:            return VK_FORMAT_R16_UNORM;
+                case VertexAttributeFormat::Unorm16x2:          return VK_FORMAT_R16G16_UNORM;
+                case VertexAttributeFormat::Unorm16x4:          return VK_FORMAT_R16G16B16A16_UNORM;
+                case VertexAttributeFormat::Snorm16:            return VK_FORMAT_R16_SNORM;
+                case VertexAttributeFormat::Snorm16x2:          return VK_FORMAT_R16G16_SNORM;
+                case VertexAttributeFormat::Snorm16x4:          return VK_FORMAT_R16G16B16A16_SNORM;
+                case VertexAttributeFormat::Float16:            return VK_FORMAT_R16_SFLOAT;
+                case VertexAttributeFormat::Float16x2:          return VK_FORMAT_R16G16_SFLOAT;
+                case VertexAttributeFormat::Float16x4:          return VK_FORMAT_R16G16B16A16_SFLOAT;
 
-                case VertexFormat::Float:               return VK_FORMAT_R32_SFLOAT;
-                case VertexFormat::Float2:              return VK_FORMAT_R32G32_SFLOAT;
-                case VertexFormat::Float3:              return VK_FORMAT_R32G32B32_SFLOAT;
-                case VertexFormat::Float4:              return VK_FORMAT_R32G32B32A32_SFLOAT;
+                case VertexAttributeFormat::Float32:            return VK_FORMAT_R32_SFLOAT;
+                case VertexAttributeFormat::Float32x2:          return VK_FORMAT_R32G32_SFLOAT;
+                case VertexAttributeFormat::Float32x3:          return VK_FORMAT_R32G32B32_SFLOAT;
+                case VertexAttributeFormat::Float32x4:          return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-                case VertexFormat::UInt:                return VK_FORMAT_R32_UINT;
-                case VertexFormat::UInt2:               return VK_FORMAT_R32G32_UINT;
-                case VertexFormat::UInt3:               return VK_FORMAT_R32G32B32_UINT;
-                case VertexFormat::UInt4:               return VK_FORMAT_R32G32B32A32_UINT;
+                case VertexAttributeFormat::Uint32:             return VK_FORMAT_R32_UINT;
+                case VertexAttributeFormat::Uint32x2:           return VK_FORMAT_R32G32_UINT;
+                case VertexAttributeFormat::Uint32x3:           return VK_FORMAT_R32G32B32_UINT;
+                case VertexAttributeFormat::Uint32x4:           return VK_FORMAT_R32G32B32A32_UINT;
 
-                case VertexFormat::Int:                 return VK_FORMAT_R32_SINT;
-                case VertexFormat::Int2:                return VK_FORMAT_R32G32_SINT;
-                case VertexFormat::Int3:                return VK_FORMAT_R32G32B32_SINT;
-                case VertexFormat::Int4:                return VK_FORMAT_R32G32B32A32_SINT;
+                case VertexAttributeFormat::Sint32:             return VK_FORMAT_R32_SINT;
+                case VertexAttributeFormat::Sint32x2:           return VK_FORMAT_R32G32_SINT;
+                case VertexAttributeFormat::Sint32x3:           return VK_FORMAT_R32G32B32_SINT;
+                case VertexAttributeFormat::Sint32x4:           return VK_FORMAT_R32G32B32A32_SINT;
 
-                case VertexFormat::UInt1010102Normalized:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+                    //case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
+                case VertexAttributeFormat::Unorm10_10_10_2:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+                case VertexAttributeFormat::Unorm8x4BGRA:   return VK_FORMAT_B8G8R8A8_UNORM;
                     //case VertexFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
                     //case VertexFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
@@ -570,7 +572,6 @@ namespace Alimer
                 case PrimitiveTopology::LineStrip:      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
                 case PrimitiveTopology::TriangleList:   return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
                 case PrimitiveTopology::TriangleStrip:  return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-                case PrimitiveTopology::PatchList:      return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
                 default:
                     ALIMER_UNREACHABLE();
                     return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
@@ -1098,50 +1099,20 @@ namespace Alimer
         void Update(size_t entryCount, const BindGroupEntry* entries) override;
     };
 
-    struct VulkanBindingUsage final
-    {
-        bool used = false;
-        VkDescriptorSetLayoutBinding binding = {};
-    };
-
-    struct VulkanDescriptorSetLayout final
-    {
-        //uint32_t set = 0;
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
-        std::vector<VkImageViewType> imageViewTypes;
-    };
-
-    struct VulkanPipelineLayoutReflection final
-    {
-        UnorderedMap<uint32_t, VulkanDescriptorSetLayout> layoutBindings;
-        VkPushConstantRange pushConstantRange = {};
-        //std::vector<VkDeviceSize> uniformBufferSizes;
-        UnorderedMap<uint32_t, VkDeviceSize> uniformBufferSizes;
-        std::vector<uint32_t> uniformBufferDynamicSlots;
-
-        std::vector<VulkanBindingUsage> bindlessBindings;
-        std::vector<VkDescriptorSet> bindlessSets;
-        uint32_t bindlessFirstSet = 0;
-    };
-
     struct VulkanComputePipeline final : public ComputePipeline
     {
         VulkanDevice* device = nullptr;
-        VulkanPipelineLayoutReflection reflection{};
-
-        SharedPtr<VulkanPipelineLayout> layout;
         VkPipeline handle = VK_NULL_HANDLE;
 
         ~VulkanComputePipeline() override;
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanRenderPipeline final : public RHIRenderPipeline
+    struct VulkanRenderPipeline final : public RenderPipeline
     {
         VulkanDevice* device = nullptr;
-        VulkanPipelineLayoutReflection reflection{};
+        //VulkanPipelineLayoutReflection reflection{};
 
-        SharedPtr<VulkanPipelineLayout> layout;
         VkPipeline handle = VK_NULL_HANDLE;
 
         ~VulkanRenderPipeline() override;
@@ -1230,13 +1201,15 @@ namespace Alimer
         inline bool IsValid() const { return transferCommandBuffer != VK_NULL_HANDLE; }
     };
 
-    class VulkanComputeCommandEncoder final : public ComputeCommandEncoder
+    class VulkanCommandBuffer;
+
+    class VulkanComputePassEncoder final : public ComputePassEncoder
     {
-        friend class VulkanRHICommandBuffer;
+        friend class VulkanCommandBuffer;
 
     public:
-        VulkanComputeCommandEncoder(VulkanDevice* device, VulkanRHICommandBuffer* commandBuffer);
-        ~VulkanComputeCommandEncoder() override;
+        VulkanComputePassEncoder(VulkanDevice* device, VulkanCommandBuffer* commandBuffer);
+        ~VulkanComputePassEncoder() override;
 
         void Reset(VkCommandBuffer commandBuffer);
         void Begin(const ComputePassDescriptor& descriptor);
@@ -1261,19 +1234,19 @@ namespace Alimer
         void PrepareDispatch();
 
         VulkanDevice* _device;
-        VulkanRHICommandBuffer* _commandBuffer;
+        VulkanCommandBuffer* _commandBuffer;
         VkCommandBuffer _vkCommandBuffer = VK_NULL_HANDLE;
         bool _hasLabel{ false };
         SharedPtr<VulkanComputePipeline> _currentPipeline;
     };
 
-    class VulkanRenderCommandEncoder final : public RenderCommandEncoder
+    class VulkanRenderPassEncoder final : public RenderPassEncoder
     {
-        friend class VulkanRHICommandBuffer;
+        friend class VulkanCommandBuffer;
 
     public:
-        VulkanRenderCommandEncoder(VulkanDevice* device, VulkanRHICommandBuffer* commandBuffer);
-        ~VulkanRenderCommandEncoder() override;
+        VulkanRenderPassEncoder(VulkanDevice* device, VulkanCommandBuffer* commandBuffer);
+        ~VulkanRenderPassEncoder() override;
 
         void Reset(VkCommandBuffer commandBuffer);
         void Begin(const RenderPassDesc& descriptor);
@@ -1291,12 +1264,12 @@ namespace Alimer
         void SetShadingRate(ShadingRate rate) override;
         void SetDepthBounds(float minBounds, float maxBounds) override;
 
-        void SetPipeline(RHIRenderPipeline* pipeline) override;
+        void SetPipeline(RenderPipeline* pipeline) override;
         void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) override;
 
         void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
         void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
-        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType) override;
+        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format) override;
 
         void PrepareDraw();
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
@@ -1315,21 +1288,20 @@ namespace Alimer
         void ClearState();
 
         VulkanDevice* _device;
-        VulkanRHICommandBuffer* _commandBuffer;
+        VulkanCommandBuffer* _commandBuffer;
         VkCommandBuffer _vkCommandBuffer = VK_NULL_HANDLE;
         bool _hasLabel{ false };
         ShadingRate _currentShadingRate{ ShadingRate::Invalid };
         SharedPtr<VulkanRenderPipeline> _currentPipeline;
-        SharedPtr<VulkanPipelineLayout> _currentPipelineLayout;
     };
 
-    class VulkanRHICommandBuffer final : public RHICommandBuffer
+    class VulkanCommandBuffer final : public RHICommandBuffer
     {
         friend class VulkanDevice;
 
     public:
-        VulkanRHICommandBuffer(VulkanDevice* device, QueueType queueType, uint32_t id);
-        ~VulkanRHICommandBuffer() override;
+        VulkanCommandBuffer(VulkanDevice* device, QueueType queueType, uint32_t id);
+        ~VulkanCommandBuffer() override;
 
         void Begin(uint32_t frameIndex, std::string_view label);
         VkCommandBuffer End();
@@ -1357,8 +1329,8 @@ namespace Alimer
         /* GraphicsContext */
         RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) override;
 
-        ComputeCommandEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
-        RenderCommandEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
+        ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
+        RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
 
         void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
         void EndPredication() override;
@@ -1375,7 +1347,7 @@ namespace Alimer
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         VkSemaphore semaphore = VK_NULL_HANDLE;
 
-        std::vector<VulkanRHICommandBuffer*> waits;
+        std::vector<VulkanCommandBuffer*> waits;
         std::atomic_bool hasPendingWaits{ false };
         bool hasLabel = false;
 
@@ -1384,8 +1356,8 @@ namespace Alimer
         std::vector<VkImageMemoryBarrier2> imageBarriers;
         std::vector<VkBufferMemoryBarrier2> bufferBarriers;
 
-        VulkanRenderCommandEncoder* _renderCommandEncoder;
-        VulkanComputeCommandEncoder* _computeCommandEncoder;
+        VulkanRenderPassEncoder* _renderPassEncoder;
+        VulkanComputePassEncoder* _computePassEncoder;
 
         bool bindGroupsDirty{ false };
         uint32_t numBoundBindGroups{ 0 };
@@ -1393,6 +1365,16 @@ namespace Alimer
         VkDescriptorSet descriptorSets[kMaxBindGroups] = {};
 
         std::vector<SharedPtr<VulkanSwapChain>> presentSwapChains;
+    };
+
+    struct VulkanBindlessManager final
+    {
+    public:
+        VulkanDevice* device;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
+        VulkanBindlessManager(VulkanDevice* device_);
+        ~VulkanBindlessManager();
     };
 
     struct PhysicalDeviceVideoExtensions final
@@ -1478,8 +1460,8 @@ namespace Alimer
 
     class VulkanDevice final : public RHIDevice
     {
-        friend class VulkanRenderCommandEncoder;
-        friend class VulkanRHICommandBuffer;
+        friend class VulkanRenderPassEncoder;
+        friend class VulkanCommandBuffer;
         friend struct VulkanQueue;
         friend struct VulkanBindGroup;
 
@@ -1502,8 +1484,6 @@ namespace Alimer
         RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) override;
         RHISamplerRef CreateSamplerCore(const SamplerDesc& desc) override;
 
-        VkDescriptorSetLayout GetOrCreateDescriptorSetLayout(const VulkanDescriptorSetLayout& setLayout);
-        VkPipelineLayout GetOrCreatePipelineLayout(const VulkanPipelineLayoutReflection& reflection);
         VkSampler GetOrCreateVulkanSampler(const SamplerDesc* desc);
         VkDescriptorPool CreateDescriptorSetPool();
 
@@ -1512,8 +1492,8 @@ namespace Alimer
 
         RHIPipelineLayoutRef CreatePipelineLayoutCore(const PipelineLayoutDesc& desc) override;
         RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) override;
-        ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) override;
-        RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDesc& desc) override;
+        ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
+        RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
         RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) override;
         RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
         void UpdateSwapChain(VulkanSwapChain* swapChain);
@@ -1532,7 +1512,7 @@ namespace Alimer
 
         bool QueryFeatureSupport(RHIFeature feature) override;
         PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) override;
-        bool QueryVertexFormatSupport(VertexFormat format);
+        bool QueryVertexFormatSupport(VertexAttributeFormat format);
         RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
@@ -1585,13 +1565,12 @@ namespace Alimer
         mutable CopyAllocator copyAllocator;
 
         VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+        VulkanBindlessManager* bindlessManager;
 
         std::vector<VkDynamicState> psoDynamicStates;
         VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
 
         // Caches
-        UnorderedMap<size_t, VkDescriptorSetLayout> descriptorSetLayoutCache;
-        UnorderedMap<size_t, VkPipelineLayout> pipelineLayoutCache;
         Vector<VkDescriptorPool> descriptorSetPools;
         UnorderedMap<size_t, VkSampler> samplerCache;
 
@@ -1614,7 +1593,7 @@ namespace Alimer
         VkImageView		nullImageView3D = VK_NULL_HANDLE;
         std::vector<VkSampler> vkStaticSamplers;
 
-        std::vector<std::unique_ptr<VulkanRHICommandBuffer>> commandBuffers;
+        std::vector<std::unique_ptr<VulkanCommandBuffer>> commandBuffers;
         uint32_t cmdBuffersCount = 0;
         std::mutex cmdBuffersLocker;
     };
@@ -2233,26 +2212,26 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, reinterpret_cast<uint64_t>(handle), label);
     }
 
-    /* VulkanComputeCommandEncoder */
-    VulkanComputeCommandEncoder::VulkanComputeCommandEncoder(VulkanDevice* device, VulkanRHICommandBuffer* commandBuffer)
+    /* VulkanComputePassEncoder */
+    VulkanComputePassEncoder::VulkanComputePassEncoder(VulkanDevice* device, VulkanCommandBuffer* commandBuffer)
         : _device(device)
         , _commandBuffer(commandBuffer)
     {
 
     }
 
-    VulkanComputeCommandEncoder::~VulkanComputeCommandEncoder()
+    VulkanComputePassEncoder::~VulkanComputePassEncoder()
     {
 
     }
 
-    void VulkanComputeCommandEncoder::Reset(VkCommandBuffer commandBuffer)
+    void VulkanComputePassEncoder::Reset(VkCommandBuffer commandBuffer)
     {
         _vkCommandBuffer = commandBuffer;
         ClearState();
     }
 
-    void VulkanComputeCommandEncoder::Begin(const ComputePassDescriptor& descriptor)
+    void VulkanComputePassEncoder::Begin(const ComputePassDescriptor& descriptor)
     {
         ClearState();
 
@@ -2267,22 +2246,22 @@ namespace Alimer
         }
     }
 
-    void VulkanComputeCommandEncoder::PushDebugGroup(std::string_view groupLabel)
+    void VulkanComputePassEncoder::PushDebugGroup(std::string_view groupLabel)
     {
         _commandBuffer->PushDebugGroup(groupLabel);
     }
 
-    void VulkanComputeCommandEncoder::PopDebugGroup()
+    void VulkanComputePassEncoder::PopDebugGroup()
     {
         _commandBuffer->PopDebugGroup();
     }
 
-    void VulkanComputeCommandEncoder::InsertDebugMarker(std::string_view markerLabel)
+    void VulkanComputePassEncoder::InsertDebugMarker(std::string_view markerLabel)
     {
         _commandBuffer->InsertDebugMarker(markerLabel);
     }
 
-    void VulkanComputeCommandEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
+    void VulkanComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2303,7 +2282,7 @@ namespace Alimer
         );
     }
 
-    void VulkanComputeCommandEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
+    void VulkanComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2324,7 +2303,7 @@ namespace Alimer
         );
     }
 
-    void VulkanComputeCommandEncoder::SetPipeline(ComputePipeline* pipeline)
+    void VulkanComputePassEncoder::SetPipeline(ComputePipeline* pipeline)
     {
         if (_currentPipeline.Get() == pipeline)
             return;
@@ -2334,30 +2313,30 @@ namespace Alimer
         _currentPipeline = backendPipeline;
     }
 
-    void VulkanComputeCommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void VulkanComputePassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
 
     }
 
-    void VulkanComputeCommandEncoder::ClearState()
+    void VulkanComputePassEncoder::ClearState()
     {
         _hasLabel = false;
         _currentPipeline.Reset();
     }
 
-    void VulkanComputeCommandEncoder::PrepareDispatch()
+    void VulkanComputePassEncoder::PrepareDispatch()
     {
         _commandBuffer->FlushBindGroups();
     }
 
-    void VulkanComputeCommandEncoder::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void VulkanComputePassEncoder::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         PrepareDispatch();
 
         _device->vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    void VulkanComputeCommandEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanComputePassEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -2366,7 +2345,7 @@ namespace Alimer
     }
 
 
-    void VulkanComputeCommandEncoder::End()
+    void VulkanComputePassEncoder::End()
     {
         if (_hasLabel)
         {
@@ -2378,39 +2357,38 @@ namespace Alimer
         ClearState();
     }
 
-    RHICommandBuffer* VulkanComputeCommandEncoder::GetCommandBuffer() const
+    RHICommandBuffer* VulkanComputePassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
     }
 
-    /* VulkanRenderCommandEncoder */
-    VulkanRenderCommandEncoder::VulkanRenderCommandEncoder(VulkanDevice* device, VulkanRHICommandBuffer* commandBuffer)
+    /* VulkanRenderPassEncoder */
+    VulkanRenderPassEncoder::VulkanRenderPassEncoder(VulkanDevice* device, VulkanCommandBuffer* commandBuffer)
         : _device(device)
         , _commandBuffer(commandBuffer)
     {
 
     }
 
-    VulkanRenderCommandEncoder::~VulkanRenderCommandEncoder()
+    VulkanRenderPassEncoder::~VulkanRenderPassEncoder()
     {
 
     }
 
-    void VulkanRenderCommandEncoder::ClearState()
+    void VulkanRenderPassEncoder::ClearState()
     {
         _hasLabel = false;
         _currentShadingRate = ShadingRate::Invalid;
         _currentPipeline.Reset();
-        _currentPipelineLayout.Reset();
     }
 
-    void VulkanRenderCommandEncoder::Reset(VkCommandBuffer commandBuffer)
+    void VulkanRenderPassEncoder::Reset(VkCommandBuffer commandBuffer)
     {
         _vkCommandBuffer = commandBuffer;
         ClearState();
     }
 
-    void VulkanRenderCommandEncoder::Begin(const RenderPassDesc& descriptor)
+    void VulkanRenderPassEncoder::Begin(const RenderPassDesc& descriptor)
     {
         if (descriptor.label)
         {
@@ -2516,22 +2494,22 @@ namespace Alimer
         _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, &scissorRect);
     }
 
-    void VulkanRenderCommandEncoder::PushDebugGroup(std::string_view groupLabel)
+    void VulkanRenderPassEncoder::PushDebugGroup(std::string_view groupLabel)
     {
         _commandBuffer->PushDebugGroup(groupLabel);
     }
 
-    void VulkanRenderCommandEncoder::PopDebugGroup()
+    void VulkanRenderPassEncoder::PopDebugGroup()
     {
         _commandBuffer->PopDebugGroup();
     }
 
-    void VulkanRenderCommandEncoder::InsertDebugMarker(std::string_view markerLabel)
+    void VulkanRenderPassEncoder::InsertDebugMarker(std::string_view markerLabel)
     {
         _commandBuffer->InsertDebugMarker(markerLabel);
     }
 
-    void VulkanRenderCommandEncoder::SetViewport(const Viewport& viewport)
+    void VulkanRenderPassEncoder::SetViewport(const Viewport& viewport)
     {
         // Flip viewport to match DirectX coordinate system
         VkViewport vkViewport{};
@@ -2544,7 +2522,7 @@ namespace Alimer
         _device->vkCmdSetViewport(_vkCommandBuffer, 0, 1, &vkViewport);
     }
 
-    void VulkanRenderCommandEncoder::SetViewports(const Viewport* viewports, uint32_t count)
+    void VulkanRenderPassEncoder::SetViewports(const Viewport* viewports, uint32_t count)
     {
         ALIMER_ASSERT(viewports != nullptr);
         ALIMER_ASSERT(count < _device->_adapter->GetLimits().maxViewports);
@@ -2564,12 +2542,12 @@ namespace Alimer
         _device->vkCmdSetViewport(_vkCommandBuffer, 0, count, vkViewports);
     }
 
-    void VulkanRenderCommandEncoder::SetScissorRect(const ScissorRect& rect)
+    void VulkanRenderPassEncoder::SetScissorRect(const ScissorRect& rect)
     {
         _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, (VkRect2D*)&rect);
     }
 
-    void VulkanRenderCommandEncoder::SetScissorRects(const ScissorRect* scissorRects, uint32_t count)
+    void VulkanRenderPassEncoder::SetScissorRects(const ScissorRect* scissorRects, uint32_t count)
     {
         ALIMER_ASSERT(scissorRects != nullptr);
         ALIMER_ASSERT(count < _device->_adapter->GetLimits().maxViewports);
@@ -2578,18 +2556,18 @@ namespace Alimer
     }
 
 
-    void VulkanRenderCommandEncoder::SetStencilReference(uint32_t reference)
+    void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
     {
         _device->vkCmdSetStencilReference(_vkCommandBuffer, VK_STENCIL_FACE_FRONT_AND_BACK, reference);
     }
 
-    void VulkanRenderCommandEncoder::SetBlendColor(const Color& color)
+    void VulkanRenderPassEncoder::SetBlendColor(const Color& color)
     {
         const float blendColor[4] = { color.r, color.g, color.b, color.a };
         _device->vkCmdSetBlendConstants(_vkCommandBuffer, blendColor);
     }
 
-    void VulkanRenderCommandEncoder::SetShadingRate(ShadingRate rate)
+    void VulkanRenderPassEncoder::SetShadingRate(ShadingRate rate)
     {
         if (_device->_adapter->fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE
             && _currentShadingRate != rate)
@@ -2663,7 +2641,7 @@ namespace Alimer
         }
     }
 
-    void VulkanRenderCommandEncoder::SetDepthBounds(float minBounds, float maxBounds)
+    void VulkanRenderPassEncoder::SetDepthBounds(float minBounds, float maxBounds)
     {
         if (_device->_adapter->features2.features.depthBounds == VK_TRUE)
         {
@@ -2675,49 +2653,39 @@ namespace Alimer
         }
     }
 
-    void VulkanRenderCommandEncoder::SetPipeline(RHIRenderPipeline* pipeline)
+    void VulkanRenderPassEncoder::SetPipeline(RenderPipeline* pipeline)
     {
         if (_currentPipeline.Get() == pipeline)
             return;
 
         VulkanRenderPipeline* newPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
-        VulkanPipelineLayout* newPipelineLayout = newPipeline->layout.Get();
-
-        if (_currentPipelineLayout.Get() != newPipelineLayout)
-        {
-
-        }
-
         _device->vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline->handle);
+        // TODO: Bind bindless
 
         _currentPipeline = newPipeline;
-        _currentPipelineLayout = newPipelineLayout;
     }
 
-    void VulkanRenderCommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void VulkanRenderPassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
-        ALIMER_ASSERT_MSG(_currentPipelineLayout.Get() != nullptr, "No PipelineLayout bound");
-
 #if defined(_DEBUG)
-        if (size > _device->_adapter->properties2.properties.limits.maxPushConstantsSize)
+        if (size > kMaxPushConstantsSize)
         {
-            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", _device->_adapter->properties2.properties.limits.maxPushConstantsSize, size);
+            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
             return;
         }
 #endif
 
-        const VkPushConstantRange& range = _currentPipelineLayout->pushConstantRange;
-        _device->vkCmdPushConstants(_vkCommandBuffer, _currentPipelineLayout->handle, range.stageFlags, offset, size, data);
+        //_device->vkCmdPushConstants(_vkCommandBuffer, _currentPipelineLayout->handle, VK_SHADER_STAGE_ALL, offset, size, data);
     }
 
-    void VulkanRenderCommandEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
+    void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
     {
         auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
 
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, 1u, &backendBuffer->handle, &offset);
     }
 
-    void VulkanRenderCommandEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
+    void VulkanRenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
     {
         ALIMER_ASSERT(buffers != nullptr);
         ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
@@ -2739,36 +2707,40 @@ namespace Alimer
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, count, vkBuffers, offsets);
     }
 
-    void VulkanRenderCommandEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType)
+    void VulkanRenderPassEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format)
     {
-        auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
-        const VkIndexType vkIndexType = (indexType == IndexType::UInt16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+        if (format == IndexFormat::Undefined)
+        {
+            LOGE("Invalid index format, cannot be IndexFormat.Undefined.");
+            return;
+        }
 
-        _device->vkCmdBindIndexBuffer(_vkCommandBuffer, vulkanBuffer->handle, offset, vkIndexType);
+        auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
+        const VkIndexType vkIndexType = (format == IndexFormat::Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+
+        _device->vkCmdBindIndexBuffer(_vkCommandBuffer, backendBuffer->handle, offset, vkIndexType);
     }
 
-    void VulkanRenderCommandEncoder::PrepareDraw()
+    void VulkanRenderPassEncoder::PrepareDraw()
     {
-        //ALIMER_ASSERT(insideRenderPass);
-
         _commandBuffer->FlushBindGroups();
     }
 
-    void VulkanRenderCommandEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void VulkanRenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         PrepareDraw();
 
         _device->vkCmdDraw(_vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    void VulkanRenderCommandEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+    void VulkanRenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
     {
         PrepareDraw();
 
         _device->vkCmdDrawIndexed(_vkCommandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    void VulkanRenderCommandEncoder::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
+    void VulkanRenderPassEncoder::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
     {
         ALIMER_ASSERT(buffer);
         PrepareDraw();
@@ -2777,7 +2749,7 @@ namespace Alimer
         _device->vkCmdDrawIndirect(_vkCommandBuffer, vulkanBuffer->handle, offset, 1, (uint32_t)sizeof(DrawIndirectCommand));
     }
 
-    void VulkanRenderCommandEncoder::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRenderPassEncoder::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -2786,14 +2758,14 @@ namespace Alimer
         _device->vkCmdDrawIndexedIndirect(_vkCommandBuffer, backendBuffer->handle, indirectBufferOffset, 1, (uint32_t)sizeof(DrawIndexedIndirectCommand));
     }
 
-    void VulkanRenderCommandEncoder::DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
+    void VulkanRenderPassEncoder::DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
     {
         PrepareDraw();
 
         _device->vkCmdDrawMeshTasksEXT(_vkCommandBuffer, threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
-    void VulkanRenderCommandEncoder::DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRenderPassEncoder::DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -2807,7 +2779,7 @@ namespace Alimer
         );
     }
 
-    void VulkanRenderCommandEncoder::DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
+    void VulkanRenderPassEncoder::DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
     {
         ALIMER_ASSERT(indirectBuffer);
         ALIMER_ASSERT(countBuffer);
@@ -2822,7 +2794,7 @@ namespace Alimer
             maxCount, sizeof(DispatchIndirectCommand));
     }
 
-    void VulkanRenderCommandEncoder::End()
+    void VulkanRenderPassEncoder::End()
     {
         _device->vkCmdEndRendering(_vkCommandBuffer);
 
@@ -2836,13 +2808,13 @@ namespace Alimer
         ClearState();
     }
 
-    RHICommandBuffer* VulkanRenderCommandEncoder::GetCommandBuffer() const
+    RHICommandBuffer* VulkanRenderPassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
     }
 
-    /* VulkanRHICommandBuffer */
-    VulkanRHICommandBuffer::VulkanRHICommandBuffer(VulkanDevice* device_, QueueType queueType_, uint32_t id_)
+    /* VulkanCommandBuffer */
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, QueueType queueType_, uint32_t id_)
         : device(device_)
         , queueType(queueType_)
         , id(id_)
@@ -2868,14 +2840,14 @@ namespace Alimer
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &semaphore));
 
-        _renderCommandEncoder = new VulkanRenderCommandEncoder(device, this);
-        _computeCommandEncoder = new VulkanComputeCommandEncoder(device, this);
+        _renderPassEncoder = new VulkanRenderPassEncoder(device, this);
+        _computePassEncoder = new VulkanComputePassEncoder(device, this);
     }
 
-    VulkanRHICommandBuffer::~VulkanRHICommandBuffer()
+    VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        SafeDelete(_renderCommandEncoder);
-        SafeDelete(_computeCommandEncoder);
+        SafeDelete(_renderPassEncoder);
+        SafeDelete(_computePassEncoder);
 
         for (uint32_t i = 0; i < kMaxBindGroups; ++i)
         {
@@ -2891,7 +2863,7 @@ namespace Alimer
         device->vkDestroySemaphore(device->handle, semaphore, nullptr);
     }
 
-    void VulkanRHICommandBuffer::Begin(uint32_t frameIndex, std::string_view label)
+    void VulkanCommandBuffer::Begin(uint32_t frameIndex, std::string_view label)
     {
         RHICommandBuffer::Reset(frameIndex);
         waits.clear();
@@ -2961,8 +2933,8 @@ namespace Alimer
             }
         }
 
-        _renderCommandEncoder->Reset(commandBuffer);
-        _computeCommandEncoder->Reset(commandBuffer);
+        _renderPassEncoder->Reset(commandBuffer);
+        _computePassEncoder->Reset(commandBuffer);
 
         hasLabel = !label.empty();
         if (hasLabel)
@@ -2972,7 +2944,7 @@ namespace Alimer
         }
     }
 
-    VkCommandBuffer VulkanRHICommandBuffer::End()
+    VkCommandBuffer VulkanCommandBuffer::End()
     {
         for (auto& swapChain : presentSwapChains)
         {
@@ -2990,17 +2962,17 @@ namespace Alimer
         return commandBuffer;
     }
 
-    void VulkanRHICommandBuffer::EndEncoding()
+    void VulkanCommandBuffer::EndEncoding()
     {
         _encoderActive = false;
     }
 
-    RHIDevice* VulkanRHICommandBuffer::GetDevice() const
+    RHIDevice* VulkanCommandBuffer::GetDevice() const
     {
         return device;
     }
 
-    void VulkanRHICommandBuffer::PushDebugGroup(std::string_view name)
+    void VulkanCommandBuffer::PushDebugGroup(std::string_view name)
     {
         if (!device->_adapter->debugUtils)
             return;
@@ -3015,7 +2987,7 @@ namespace Alimer
         device->_adapter->factory->vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label);
     }
 
-    void VulkanRHICommandBuffer::PopDebugGroup()
+    void VulkanCommandBuffer::PopDebugGroup()
     {
         if (!device->_adapter->debugUtils)
             return;
@@ -3023,7 +2995,7 @@ namespace Alimer
         device->_adapter->factory->vkCmdEndDebugUtilsLabelEXT(commandBuffer);
     }
 
-    void VulkanRHICommandBuffer::InsertDebugMarker(std::string_view name)
+    void VulkanCommandBuffer::InsertDebugMarker(std::string_view name)
     {
         if (!device->_adapter->debugUtils)
             return;
@@ -3038,7 +3010,7 @@ namespace Alimer
         device->_adapter->factory->vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &label);
     }
 
-    void VulkanRHICommandBuffer::BufferBarrier(const VulkanBuffer* buffer, BufferStates newState)
+    void VulkanCommandBuffer::BufferBarrier(const VulkanBuffer* buffer, BufferStates newState)
     {
         if (buffer->currentState == newState)
             return;
@@ -3067,7 +3039,7 @@ namespace Alimer
             CommitBarriers();
     }
 
-    void VulkanRHICommandBuffer::TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, TextureAspect aspect)
+    void VulkanCommandBuffer::TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, TextureAspect aspect)
     {
         const uint32_t mipLevelCount = texture->GetMipLevelCount();
         const uint32_t subresource = CalculateSubresource(baseMiplevel, baseArrayLayer, mipLevelCount);
@@ -3112,7 +3084,7 @@ namespace Alimer
         }
     }
 
-    void VulkanRHICommandBuffer::TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout)
+    void VulkanCommandBuffer::TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout)
     {
         const VulkanTexture* backendTexture = static_cast<const VulkanTexture*>(view->GetTexture());
         TextureBarrier(backendTexture, newLayout,
@@ -3122,7 +3094,7 @@ namespace Alimer
         );
     }
 
-    void VulkanRHICommandBuffer::CommitBarriers()
+    void VulkanCommandBuffer::CommitBarriers()
     {
         if (!memoryBarriers.empty() || !bufferBarriers.empty() || !imageBarriers.empty())
         {
@@ -3144,7 +3116,7 @@ namespace Alimer
         numBarriersToCommit = 0;
     }
 
-    void VulkanRHICommandBuffer::SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup)
+    void VulkanCommandBuffer::SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup)
     {
         ALIMER_VERIFY(bindGroup != nullptr);
         ALIMER_VERIFY(groupIndex < kMaxBindGroups);
@@ -3158,7 +3130,7 @@ namespace Alimer
         }
     }
 
-    void VulkanRHICommandBuffer::FlushBindGroups()
+    void VulkanCommandBuffer::FlushBindGroups()
     {
 #if TODO
         if (!currentPipelineLayout)
@@ -3184,7 +3156,7 @@ namespace Alimer
 
     }
 
-    void VulkanRHICommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
+    void VulkanCommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
@@ -3204,7 +3176,7 @@ namespace Alimer
         }
     }
 
-    void VulkanRHICommandBuffer::EndQuery(const RHIQueryHeap* heap, uint32_t index)
+    void VulkanCommandBuffer::EndQuery(const RHIQueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
@@ -3222,7 +3194,7 @@ namespace Alimer
         }
     }
 
-    void VulkanRHICommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
+    void VulkanCommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         auto vulkanDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -3250,13 +3222,13 @@ namespace Alimer
         );
     }
 
-    void VulkanRHICommandBuffer::ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count)
+    void VulkanCommandBuffer::ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         device->vkCmdResetQueryPool(commandBuffer, vulkanHeap->handle, index, count);
     }
 
-    RHITexture* VulkanRHICommandBuffer::AcquireSwapChainTexture(RHISwapChain* swapChain)
+    RHITexture* VulkanCommandBuffer::AcquireSwapChainTexture(RHISwapChain* swapChain)
     {
         VulkanSwapChain* backendSwapChain = (VulkanSwapChain*)swapChain;
         const size_t swapChainAcquireSemaphoreIndex = backendSwapChain->acquireSemaphoreIndex;
@@ -3303,19 +3275,19 @@ namespace Alimer
         return swapChainTexture;
     }
 
-    ComputeCommandEncoder* VulkanRHICommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
     {
-        _computeCommandEncoder->Begin(descriptor);
-        return _computeCommandEncoder;
+        _computePassEncoder->Begin(descriptor);
+        return _computePassEncoder;
     }
 
-    RenderCommandEncoder* VulkanRHICommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
+    RenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
     {
-        _renderCommandEncoder->Begin(descriptor);
-        return _renderCommandEncoder;
+        _renderPassEncoder->Begin(descriptor);
+        return _renderPassEncoder;
     }
 
-    void VulkanRHICommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
+    void VulkanCommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
     {
         if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
         {
@@ -3336,12 +3308,42 @@ namespace Alimer
         }
     }
 
-    void VulkanRHICommandBuffer::EndPredication()
+    void VulkanCommandBuffer::EndPredication()
     {
         if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
         {
             device->vkCmdEndConditionalRenderingEXT(commandBuffer);
         }
+    }
+
+    /* VulkanBindlessManager */
+    VulkanBindlessManager::VulkanBindlessManager(VulkanDevice* device_)
+        : device(device_)
+    {
+        // Pipeline layout
+        const VkPushConstantRange pushConstantRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset = 0,
+            .size = kMaxPushConstantsSize
+        };
+
+        const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pushConstantRangeCount = 1u,
+            .pPushConstantRanges = &pushConstantRange
+        };
+
+        const VkResult result = device->vkCreatePipelineLayout(device->GetHandle(), &pipelineLayoutInfo, nullptr, &pipelineLayout);
+        if (result != VK_SUCCESS)
+        {
+            LOGE("Vulkan: Failed to create PipelineLayout, error: {}", VkResultToString(result));
+            return;
+        }
+    }
+
+    VulkanBindlessManager::~VulkanBindlessManager()
+    {
+        device->vkDestroyPipelineLayout(device->GetHandle(), pipelineLayout, nullptr);
     }
 
     /* VulkanDevice */
@@ -3366,6 +3368,7 @@ namespace Alimer
             }
         }
 
+        SafeDelete(bindlessManager);
         copyAllocator.Shutdown();
 
         vmaDestroyBuffer(allocator, nullBuffer, nullBufferAllocation);
@@ -3390,20 +3393,6 @@ namespace Alimer
 
         // Release caches
         {
-            // DescriptorSetLayouts
-            for (auto& it : descriptorSetLayoutCache)
-            {
-                vkDestroyDescriptorSetLayout(handle, it.second, nullptr);
-            }
-            descriptorSetLayoutCache.clear();
-
-            // PipelineLayouts
-            for (auto& it : pipelineLayoutCache)
-            {
-                vkDestroyPipelineLayout(handle, it.second, nullptr);
-            }
-            pipelineLayoutCache.clear();
-
             // Samplers
             for (auto& it : samplerCache)
             {
@@ -3574,6 +3563,21 @@ namespace Alimer
             }
 
             copyAllocator.Init(this);
+            bindlessManager = new VulkanBindlessManager(this);
+
+            // Pipeline Cache
+            {
+                // TODO: Add cache from disk
+                const VkPipelineCacheCreateInfo pipelineCacheCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+                };
+
+                result = vkCreatePipelineCache(handle, &pipelineCacheCreateInfo, nullptr, &pipelineCache);
+                if (result != VK_SUCCESS)
+                {
+                    VK_LOG_ERROR(result, "Failed to create pipeline cache");
+                }
+            }
 
             // Dynamic PSO states
             psoDynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
@@ -3764,7 +3768,7 @@ namespace Alimer
             cmdBuffersCount = 0;
             for (uint32_t cmd = 0; cmd < cmd_last; ++cmd)
             {
-                VulkanRHICommandBuffer& commandBuffer = *commandBuffers[cmd].get();
+                VulkanCommandBuffer& commandBuffer = *commandBuffers[cmd].get();
                 VkCommandBuffer vkCommandBuffer = commandBuffer.End();
 
                 VulkanQueue& queue = queues[ecast(commandBuffer.queueType)];
@@ -4556,106 +4560,6 @@ namespace Alimer
         return sampler;
     }
 
-    VkDescriptorSetLayout VulkanDevice::GetOrCreateDescriptorSetLayout(const VulkanDescriptorSetLayout& setLayout)
-    {
-        size_t hash = 0;
-        size_t i = 0;
-        for (auto& x : setLayout.bindings)
-        {
-            HashCombine(hash, x.binding);
-            HashCombine(hash, x.descriptorCount);
-            HashCombine(hash, x.descriptorType);
-            HashCombine(hash, x.stageFlags);
-            // Does it makes sense?
-            HashCombine(hash, setLayout.imageViewTypes[i++]);
-        }
-
-        auto it = descriptorSetLayoutCache.find(hash);
-        if (it == descriptorSetLayoutCache.end())
-        {
-            VkDescriptorSetLayoutCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            createInfo.bindingCount = (uint32_t)setLayout.bindings.size();
-            createInfo.pBindings = setLayout.bindings.data();
-
-            // Bindless
-            const bool isBindless = false;
-            VkDescriptorSetLayoutBindingFlagsCreateInfo setLayoutBindingFlags = {};
-            if (isBindless)
-            {
-                //    setLayoutBindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-                //    setLayoutBindingFlags.bindingCount = static_cast<uint32_t>(vkBindingFlags.size());
-                //    setLayoutBindingFlags.pBindingFlags = vkBindingFlags.data();
-
-                createInfo.pNext = &setLayoutBindingFlags;
-                createInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-            }
-
-            VkDescriptorSetLayout newDescriptorSetLayout;
-            const VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &newDescriptorSetLayout);
-            if (result != VK_SUCCESS)
-            {
-                LOGE("Vulkan: Failed to create DescriptorSetLayout, error: {}", VkResultToString(result));
-                return VK_NULL_HANDLE;
-            }
-
-            descriptorSetLayoutCache[hash] = newDescriptorSetLayout;
-            return newDescriptorSetLayout;
-        }
-
-        return it->second;
-    }
-
-    VkPipelineLayout VulkanDevice::GetOrCreatePipelineLayout(const VulkanPipelineLayoutReflection& reflection)
-    {
-        size_t hash = 0;
-        std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-
-        for (auto& pair : reflection.layoutBindings)
-        {
-            descriptorSetLayouts.push_back(GetOrCreateDescriptorSetLayout(pair.second));
-            HashCombine(hash, descriptorSetLayouts.back());
-        }
-        for (auto& x : reflection.bindlessBindings)
-        {
-            HashCombine(hash, x.used);
-            HashCombine(hash, x.binding.binding);
-            HashCombine(hash, x.binding.descriptorCount);
-            HashCombine(hash, x.binding.descriptorType);
-            HashCombine(hash, x.binding.stageFlags);
-        }
-        HashCombine(hash, reflection.pushConstantRange.stageFlags);
-        HashCombine(hash, reflection.pushConstantRange.offset);
-        HashCombine(hash, reflection.pushConstantRange.size);
-
-        auto it = pipelineLayoutCache.find(hash);
-        if (it == pipelineLayoutCache.end())
-        {
-            VkPipelineLayoutCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-            createInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-            createInfo.pSetLayouts = descriptorSetLayouts.data();
-            if (reflection.pushConstantRange.size > 0)
-            {
-                createInfo.pushConstantRangeCount = 1u;
-                createInfo.pPushConstantRanges = &reflection.pushConstantRange;
-            }
-
-            VkPipelineLayout newPipelineLayout;
-            const VkResult result = vkCreatePipelineLayout(handle, &createInfo, nullptr, &newPipelineLayout);
-            if (result != VK_SUCCESS)
-            {
-                LOGE("Vulkan: Failed to create PipelineLayout, error: {}", VkResultToString(result));
-                return VK_NULL_HANDLE;
-            }
-
-            pipelineLayoutCache[hash] = newPipelineLayout;
-            return newPipelineLayout;
-        }
-
-        return it->second;
-    }
-
     VkSampler VulkanDevice::GetOrCreateVulkanSampler(const SamplerDesc* desc)
     {
         size_t hash = 0;
@@ -5088,19 +4992,6 @@ namespace Alimer
             descriptorSetLayouts[i] = StaticCast<VulkanBindGroupLayout>(desc.bindGroupLayouts[i])->handle;
         }
 
-        // Push constants
-        if (desc.pushConstantRange != nullptr)
-        {
-            uint32_t offset = 0;
-
-            VkPushConstantRange& range = layout->pushConstantRange;
-            range = {};
-            range.stageFlags = ToVkShaderStageFlags(desc.pushConstantRange->visibility);
-            range.offset = offset;
-            range.size = desc.pushConstantRange->size;
-            offset += range.size;
-        }
-
         VkPipelineLayoutCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         createInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
@@ -5185,11 +5076,10 @@ namespace Alimer
         return vulkanBindGroup;
     }
 
-    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDesc& desc)
+    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDescriptor& desc)
     {
         SharedPtr<VulkanComputePipeline> pipeline(new VulkanComputePipeline());
         pipeline->device = this;
-        pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
 
         VkPipelineShaderStageCreateInfo stage = StaticCast<VulkanShaderModule>(desc.shader)->stageInfo;
         ALIMER_ASSERT(stage.stage == VK_SHADER_STAGE_COMPUTE_BIT);
@@ -5198,7 +5088,7 @@ namespace Alimer
             .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
             .flags = 0,
             .stage = stage,
-            .layout = pipeline->layout->handle,
+            .layout = bindlessManager->pipelineLayout,
             .basePipelineHandle = VK_NULL_HANDLE,
             .basePipelineIndex = -1,
         };
@@ -5218,11 +5108,10 @@ namespace Alimer
         return pipeline;
     }
 
-    RHIRenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDesc& desc)
+    RenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDescriptor& desc)
     {
         SharedPtr<VulkanRenderPipeline> pipeline(new VulkanRenderPipeline());
         pipeline->device = this;
-        pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
 
         // ShaderStages
         std::vector<VkPipelineShaderStageCreateInfo> stages;
@@ -5244,54 +5133,51 @@ namespace Alimer
                 stages.push_back(StaticCast<VulkanShaderModule>(desc.fragmentShader)->stageInfo);
         }
 
-        // sort because dynamic offsets array is tightly packed to match slot numbers:
-        std::sort(pipeline->reflection.uniformBufferDynamicSlots.begin(), pipeline->reflection.uniformBufferDynamicSlots.end());
-
         // VertexInputState (need always be specified when using VertexShader)
         VkPipelineVertexInputStateCreateInfo vertexInputState{};
         vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         std::vector<VkVertexInputBindingDescription> vertexBindings;
         std::vector<VkVertexInputAttributeDescription> vertexAttributes;
-        if (desc.vertexInput)
+
+        uint32_t attributeLocation = 0;
+        if (desc.vertexBufferLayoutCount > 0)
         {
-            const VertexInputDesc* vertexInput = desc.vertexInput;
-
-            vertexBindings.resize(vertexInput->bufferCount);
-            vertexAttributes.resize(vertexInput->attributeCount);
-
-            for (uint32_t bufferIndex = 0; bufferIndex < vertexInput->bufferCount; ++bufferIndex)
+            for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexBufferLayoutCount; ++bufferIndex)
             {
-                const VertexBufferLayout& layout = vertexInput->buffers[bufferIndex];
-                vertexBindings[bufferIndex].binding = bufferIndex;
-                vertexBindings[bufferIndex].stride = layout.stride;
-                vertexBindings[bufferIndex].inputRate = ToVk(layout.stepMode);
+                const VertexBufferLayout& vertexBufferLayout = desc.vertexBufferLayouts[bufferIndex];
 
-                // Compute stride from attributes
-                if (vertexBindings[bufferIndex].stride == 0)
+                VkVertexInputBindingDescription& vertexBinding = vertexBindings.emplace_back();
+                vertexBinding.binding = bufferIndex;
+                vertexBinding.stride = vertexBufferLayout.stride;
+                vertexBinding.inputRate = ToVk(vertexBufferLayout.stepMode);
+
+                uint32_t currentOffset = 0;
+                const bool computeStride = vertexBinding.stride == 0;
+                for (uint32_t attributeIndex = 0; attributeIndex < vertexBufferLayout.attributeCount; ++attributeIndex)
                 {
-                    for (uint32_t attributeIndex = 0; attributeIndex < vertexInput->attributeCount; ++attributeIndex)
-                    {
-                        const VertexAttribute& attribute = vertexInput->attributes[attributeIndex];
+                    const VertexAttribute& attribute = vertexBufferLayout.attributes[attributeIndex];
 
-                        const VertexFormatInfo& vertexFormatInfo = GetVertexFormatInfo(attribute.format);
-                        vertexBindings[bufferIndex].stride += vertexFormatInfo.byteSize;
+                    VkVertexInputAttributeDescription& vertexAttribute = vertexAttributes.emplace_back();
+                    vertexAttribute.location = attributeLocation;
+                    vertexAttribute.binding = bufferIndex;
+                    vertexAttribute.format = ToVkVertexFormat(attribute.format);
+                    vertexAttribute.offset = attribute.offset != 0 ? attribute.offset : currentOffset;
+
+                    const VertexAttributeFormatInfo& formatInfo = GetVertexAttributeFormatInfo(attribute.format);
+                    currentOffset += formatInfo.byteSize;
+                    attributeLocation++;
+
+                    // Compute stride from attributes if necessary
+                    if (computeStride)
+                    {
+                        vertexBinding.stride += formatInfo.byteSize;
                     }
                 }
             }
 
-            for (uint32_t attributeIndex = 0; attributeIndex < vertexInput->attributeCount; ++attributeIndex)
-            {
-                const VertexAttribute& attribute = vertexInput->attributes[attributeIndex];
-
-                vertexAttributes[attributeIndex].location = attribute.location;
-                vertexAttributes[attributeIndex].binding = attribute.bufferIndex;
-                vertexAttributes[attributeIndex].format = ToVkVertexFormat(attribute.format);
-                vertexAttributes[attributeIndex].offset = attribute.offset;
-            }
-
-            vertexInputState.vertexBindingDescriptionCount = vertexInput->bufferCount;
+            vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindings.size());
             vertexInputState.pVertexBindingDescriptions = vertexBindings.data();
-            vertexInputState.vertexAttributeDescriptionCount = vertexInput->attributeCount;
+            vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributes.size());
             vertexInputState.pVertexAttributeDescriptions = vertexAttributes.data();
         }
 
@@ -5308,18 +5194,6 @@ namespace Alimer
             default:
                 inputAssemblyState.primitiveRestartEnable = VK_FALSE;
                 break;
-        }
-
-        // TessellationState
-        VkPipelineTessellationStateCreateInfo tessellationState{};
-        tessellationState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        if (inputAssemblyState.topology == VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
-        {
-            tessellationState.patchControlPoints = desc.patchControlPoints;
-        }
-        else
-        {
-            tessellationState.patchControlPoints = 0;
         }
 
         // ViewportState
@@ -5480,7 +5354,7 @@ namespace Alimer
         createInfo.pStages = stages.data();
         createInfo.pVertexInputState = &vertexInputState;
         createInfo.pInputAssemblyState = &inputAssemblyState;
-        createInfo.pTessellationState = (inputAssemblyState.topology == VK_PRIMITIVE_TOPOLOGY_PATCH_LIST) ? &tessellationState : nullptr;
+        createInfo.pTessellationState = nullptr;
         createInfo.pViewportState = &viewportState;
         createInfo.pRasterizationState = &rasterizationState;
         createInfo.pMultisampleState = &multisampleState;
@@ -5494,15 +5368,7 @@ namespace Alimer
         }
         createInfo.pColorBlendState = &blendState;
         createInfo.pDynamicState = &dynamicStateInfo;
-        if (pipeline->layout)
-        {
-            createInfo.layout = pipeline->layout->handle;
-        }
-        else
-        {
-            VkPipelineLayout pipelineLayout = GetOrCreatePipelineLayout(pipeline->reflection);
-            createInfo.layout = pipelineLayout;
-        }
+        createInfo.layout = bindlessManager->pipelineLayout;
         createInfo.renderPass = VK_NULL_HANDLE;
         createInfo.subpass = 0;
         createInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -5870,7 +5736,7 @@ namespace Alimer
         uint32_t index = cmdBuffersCount++;
         if (index >= commandBuffers.size())
         {
-            commandBuffers.push_back(std::make_unique<VulkanRHICommandBuffer>(this, queue, index));
+            commandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(this, queue, index));
         }
         cmdBuffersLocker.unlock();
 
@@ -6195,7 +6061,7 @@ namespace Alimer
         return result;
     }
 
-    bool VulkanDevice::QueryVertexFormatSupport(VertexFormat format)
+    bool VulkanDevice::QueryVertexFormatSupport(VertexAttributeFormat format)
     {
         const VkFormat vkFormat = ToVkVertexFormat(format);
         if (vkFormat == VK_FORMAT_UNDEFINED)

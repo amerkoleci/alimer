@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
 #include "DrawTriangle.h"
+#include <array>
 
 struct VertexPositionColor
 {
@@ -28,9 +29,9 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     Sample::Initialize(device, windowSize, colorFormat, depthStencilFormat);
 
     const VertexPositionColor vertices[] = {
-            {Vector3(0.0f, 0.5f, 0.5f), Colors::Red},
-            {Vector3(0.5f, -0.5f, 0.5f), Colors::Lime},
-            {Vector3(-0.5f, -0.5f, 0.5f), Colors::Blue}
+            {Vector3(0.0f, 0.5f, 0.f), Colors::Red},
+            {Vector3(-0.5f, -0.5f, 0.f), Colors::Lime},
+            {Vector3(0.5f, -0.5f, 0.f), Colors::Blue}
     };
 
     _vertexBuffer = device->CreateBuffer(sizeof(vertices), BufferUsage::Vertex, vertices);
@@ -42,14 +43,19 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     RHIShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Triangle");
     RHIShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Triangle", &macros);
 
-    PipelineLayoutDesc pipelineLayoutDesc = {};
-    _pipelineLayout = device->CreatePipelineLayout(pipelineLayoutDesc);
+    std::array<VertexAttribute, 2> vertexAttributes = {
+        VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },
+        VertexAttribute{ VertexAttributeSemantic::Color, VertexAttributeFormat::Unorm8x4, offsetof(VertexPositionColor, color) }
+    };
 
-    RenderPipelineDesc pipelineDesc{};
+    VertexBufferLayout vertexBufferLayout = {};
+    vertexBufferLayout.attributeCount = static_cast<uint32_t>(vertexAttributes.size());
+    vertexBufferLayout.attributes = vertexAttributes.data();
+
+    RenderPipelineDescriptor pipelineDesc{};
     pipelineDesc.label = "Triangle";
-    pipelineDesc.layout = _pipelineLayout;
-    //pipelineDesc.vertexInput.bufferCount = 1u;
-    //pipelineDesc.vertex.buffers = &vertexBufferLayout;
+    pipelineDesc.vertexBufferLayoutCount = 1u;
+    pipelineDesc.vertexBufferLayouts = &vertexBufferLayout;
     pipelineDesc.vertexShader = vertexShader;
     pipelineDesc.fragmentShader = fragmentShader;
     pipelineDesc.colorAttachmentCount = 1u;
@@ -84,7 +90,7 @@ void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTextu
         renderPassDescriptor.depthStencilAttachment = &depthStencilAttachment;
     }
 
-    RenderCommandEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
+    RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     renderPass->Draw(3);

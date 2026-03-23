@@ -94,14 +94,20 @@ namespace Alimer
             : packedValue(packedValue_)
         {
         }
+        explicit ColorRgba(_In_reads_(4) const uint8_t* pArray) noexcept
+            : r(pArray[0])
+            , g(pArray[1])
+            , b(pArray[2])
+            , a(pArray[3])
+        {
+        }
+
+        ColorRgba(float r_, float g_, float b_, float a_) noexcept;
+        explicit ColorRgba(_In_reads_(4) const float* pArray) noexcept;
 
         operator uint32_t () const noexcept { return packedValue; }
 
         ColorRgba& operator= (const uint32_t color) noexcept { packedValue = color; return *this; }
-
-        static ColorRgba FromFloat3(float r, float g, float b) noexcept;
-        static ColorRgba FromFloat4(float r, float g, float b, float a) noexcept;
-        static ColorRgba FromFloat4(_In_reads_(4) const float* data) noexcept;
     };
 
     /// Class specifying a floating-point rgba color.

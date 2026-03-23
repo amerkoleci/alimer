@@ -54,14 +54,21 @@ namespace
     }
 
     // XMStoreUByteN4
-    inline ColorRgba simd_store_color_rgba(simd_float4_param vector) noexcept
+    inline void simd_store_color_rgba(ColorRgba* pResult, simd_float4_param vector) noexcept
     {
-        ColorRgba result;
-#if defined(ALIMER_USE_SSE)
+#if defined(ALIMER_USE_NEON)
+        float32x4_t R = vmaxq_f32(vector, vdupq_n_f32(0));
+        R = vminq_f32(R, vdupq_n_f32(1.0f));
+        R = vmulq_n_f32(R, 255.0f);
+        uint32x4_t vInt32 = vcvtq_u32_f32(R);
+        uint16x4_t vInt16 = vqmovn_u32(vInt32);
+        uint8x8_t vInt8 = vqmovn_u16(vcombine_u16(vInt16, vInt16));
+        vst1_lane_u32(&pResult->packedValue, vreinterpret_u32_u8(vInt8), 0);
+#elif defined(ALIMER_USE_SSE)
         static const VectorF32 ScaleUByteN4 = { { { 255.0f, 255.0f * 256.0f * 0.5f, 255.0f * 256.0f * 256.0f, 255.0f * 256.0f * 256.0f * 256.0f * 0.5f } } };
-        static const VectorF32 MaskUByteN4 = { { { 0xFF, 0xFF << (8 - 1), 0xFF << 16, 0xFF << (24 - 1) } } };
+        static const VectorI32 MaskUByteN4 = { { { 0xFF, 0xFF << (8 - 1), 0xFF << 16, 0xFF << (24 - 1) } } };
         // Clamp to bounds
-        __m128 vResult = _mm_max_ps(vector, g_XMZero);
+        simd_float4 vResult = _mm_max_ps(vector, g_XMZero);
         vResult = _mm_min_ps(vResult, g_XMOne);
         // Scale by multiplication
         vResult = _mm_mul_ps(vResult, ScaleUByteN4);
@@ -79,17 +86,8 @@ namespace
         vResulti2 = _mm_add_epi32(vResulti2, vResulti2);
         // i = x|y|z|w
         vResulti = _mm_or_si128(vResulti, vResulti2);
-        _mm_store_ss(reinterpret_cast<float*>(&result.packedValue), _mm_castsi128_ps(vResulti));
-#elif defined(ALIMER_USE_NEON)
-        float32x4_t R = vmaxq_f32(vector, vdupq_n_f32(0));
-        R = vminq_f32(R, vdupq_n_f32(1.0f));
-        R = vmulq_n_f32(R, 255.0f);
-        uint32x4_t vInt32 = vcvtq_u32_f32(R);
-        uint16x4_t vInt16 = vqmovn_u32(vInt32);
-        uint8x8_t vInt8 = vqmovn_u16(vcombine_u16(vInt16, vInt16));
-        vst1_lane_u32(&result.packedValue, vreinterpret_u32_u8(vInt8), 0);
+        _mm_store_ss(reinterpret_cast<float*>(&pResult->packedValue), _mm_castsi128_ps(vResulti));
 #endif
-        return result;
     }
 #else
     static constexpr Vector3 g_Vector3UByteMax = { 255.0f, 255.0f, 255.0f };
@@ -131,57 +129,35 @@ ColorBgra ColorBgra::FromFloat4(_In_reads_(4) const float* data) noexcept
 #endif
 }
 
-ColorRgba ColorRgba::FromFloat3(float r, float g, float b) noexcept
+ColorRgba::ColorRgba(float r_, float g_, float b_, float a_) noexcept
 {
 #if defined(ALIMER_USE_SSE) || defined(ALIMER_USE_NEON)
-    return simd_store_color_rgba(simd_make_float4(r, g, b, 1.0f));
+    simd_store_color_rgba(this, simd_make_float4(r_, g_, b_, a_));
 #else
-    Vector3 N = Vector3::Saturate(Vector3(r, g, b));
-    N *= g_Vector3UByteMax;
-    N = Vector3::Truncate(N);
-
-    return ColorRgba(
-        static_cast<uint8_t>(N.x),
-        static_cast<uint8_t>(N.y),
-        static_cast<uint8_t>(N.z),
-        255);
-#endif
-}
-
-
-ColorRgba ColorRgba::FromFloat4(float r, float g, float b, float a) noexcept
-{
-#if defined(ALIMER_USE_SSE) || defined(ALIMER_USE_NEON)
-    return simd_store_color_rgba(simd_make_float4(r, g, b, a));
-#else
-    Vector4 N = Vector4::Saturate(Vector4(r, g, b, a));
+    Vector4 N = Vector4::Saturate({r_, g_, b_, a_});
     N *= g_Vector4UByteMax;
     N = Vector4::Truncate(N);
 
-    return ColorRgba(
-        static_cast<uint8_t>(N.x),
-        static_cast<uint8_t>(N.y),
-        static_cast<uint8_t>(N.z),
-        static_cast<uint8_t>(N.w)
-    );
+    r = static_cast<uint8_t>(N.x);
+    g = static_cast<uint8_t>(N.y);
+    b = static_cast<uint8_t>(N.z);
+    a = static_cast<uint8_t>(N.w);
 #endif
 }
 
-ColorRgba ColorRgba::FromFloat4(_In_reads_(4) const float* data) noexcept
+ColorRgba::ColorRgba(_In_reads_(4) const float* pArray) noexcept
 {
 #if defined(ALIMER_USE_SSE) || defined(ALIMER_USE_NEON)
-    return simd_store_color_rgba(simd_make_float4(data));
+   simd_store_color_rgba(this, simd_make_float4(pArray));
 #else
-    Vector4 N = Vector4::Saturate(Vector4(data));
+    Vector4 N = Vector4::Saturate(Vector4(pArray));
     N *= g_Vector4UByteMax;
     N = Vector4::Truncate(N);
 
-    return ColorRgba(
-        static_cast<uint8_t>(N.x),
-        static_cast<uint8_t>(N.y),
-        static_cast<uint8_t>(N.z),
-        static_cast<uint8_t>(N.w)
-    );
+    r = static_cast<uint8_t>(N.x);
+    g = static_cast<uint8_t>(N.y);
+    b = static_cast<uint8_t>(N.z);
+    a = static_cast<uint8_t>(N.w);
 #endif
 }
 
@@ -401,50 +377,7 @@ uint32_t Color::ToBgra() const
 
 ColorRgba Color::ToRgba() const
 {
-    // XMStoreUByteN4
-    ColorRgba result;
-#if defined(ALIMER_USE_SSE)
-    static const VectorF32 ScaleUByteN4 = { { { 255.0f, 255.0f * 256.0f * 0.5f, 255.0f * 256.0f * 256.0f, 255.0f * 256.0f * 256.0f * 256.0f * 0.5f } } };
-    static const VectorF32 MaskUByteN4 = { { { 0xFF, 0xFF << (8 - 1), 0xFF << 16, 0xFF << (24 - 1) } } };
-    // Clamp to bounds
-    __m128 vResult = _mm_max_ps(simd_make_float4(r, g, b, a), g_XMZero);
-    vResult = _mm_min_ps(vResult, g_XMOne);
-    // Scale by multiplication
-    vResult = _mm_mul_ps(vResult, ScaleUByteN4);
-    // Convert to int
-    __m128i vResulti = _mm_cvttps_epi32(vResult);
-    // Mask off any fraction
-    vResulti = _mm_and_si128(vResulti, MaskUByteN4);
-    // Do a horizontal or of 4 entries
-    __m128i vResulti2 = _mm_shuffle_epi32(vResulti, _MM_SHUFFLE(3, 2, 3, 2));
-    // x = x|z, y = y|w
-    vResulti = _mm_or_si128(vResulti, vResulti2);
-    // Move Z to the x position
-    vResulti2 = _mm_shuffle_epi32(vResulti, _MM_SHUFFLE(1, 1, 1, 1));
-    // Perform a single bit left shift to fix y|w
-    vResulti2 = _mm_add_epi32(vResulti2, vResulti2);
-    // i = x|y|z|w
-    vResulti = _mm_or_si128(vResulti, vResulti2);
-    _mm_store_ss(reinterpret_cast<float*>(&result.packedValue), _mm_castsi128_ps(vResulti));
-#elif defined(ALIMER_USE_NEON)
-    float32x4_t R = vmaxq_f32(simd_make_float4(r, g, b, a), vdupq_n_f32(0));
-    R = vminq_f32(R, vdupq_n_f32(1.0f));
-    R = vmulq_n_f32(R, 255.0f);
-    uint32x4_t vInt32 = vcvtq_u32_f32(R);
-    uint16x4_t vInt16 = vqmovn_u32(vInt32);
-    uint8x8_t vInt8 = vqmovn_u16(vcombine_u16(vInt16, vInt16));
-    vst1_lane_u32(&result.packedValue, vreinterpret_u32_u8(vInt8), 0);
-#else
-    Vector4 N = Vector4::Saturate(Vector4(r, g, b, a));
-    N *= g_Vector4UByteMax;
-    N = Vector4::Truncate(N);
-
-    result.r = static_cast<uint8_t>(N.x);
-    result.g = static_cast<uint8_t>(N.y);
-    result.b = static_cast<uint8_t>(N.z);
-    result.a = static_cast<uint8_t>(N.w);
-#endif
-    return result;
+    return ColorRgba(r, g, b, a);
 }
 
 Vector3 Color::ToHSL() const

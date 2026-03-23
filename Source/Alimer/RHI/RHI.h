@@ -23,7 +23,7 @@ namespace Alimer
     static constexpr uint32_t kNumFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
     static constexpr uint32_t kMaxBindGroups = MAX_BIND_GROUPS;
-    static constexpr uint32_t kMaxPushConstantsSize = MAX_PUSH_CONSTANTS_SIZE;
+    static constexpr uint32_t kMaxPushConstantsSize = 128;
     static constexpr uint32_t kMaxViewportsAndScissors = 16;
     static constexpr uint32_t kMaxVertexBuffers = 16;
     static constexpr uint32_t kMaxVertexAttributes = 16;
@@ -424,50 +424,68 @@ namespace Alimer
         Clamp
     };
 
-    enum class VertexFormat : uint32_t
+    enum class VertexAttributeSemantic : uint32_t
+    {
+        Undefined,
+        Position,
+        Normal,
+        Tangent,
+        TexCoord,
+        Color,
+        BlendIndices,
+        BlendWeight,
+
+        Custom
+    };
+
+    enum class VertexAttributeFormat : uint32_t
     {
         Undefined = 0,
-        UByte,
-        UByte2,
-        UByte4,
-        Byte,
-        Byte2,
-        Byte4,
-        UByteNormalized,
-        UByte2Normalized,
-        UByte4Normalized,
-        ByteNormalized,
-        Byte2Normalized,
-        Byte4Normalized,
-        UShort,
-        UShort2,
-        UShort4,
-        Short,
-        Short2,
-        Short4,
-        UShortNormalized,
-        UShort2Normalized,
-        UShort4Normalized,
-        ShortNormalized,
-        Short2Normalized,
-        Short4Normalized,
-        Half,
-        Half2,
-        Half4,
-        Float,
-        Float2,
-        Float3,
-        Float4,
-        UInt,
-        UInt2,
-        UInt3,
-        UInt4,
-        Int,
-        Int2,
-        Int3,
-        Int4,
+        Uint8,
+        Uint8x2,
+        Uint8x4,
+        Sint8,
+        Sint8x2,
+        Sint8x4,
+        Unorm8,
+        Unorm8x2,
+        Unorm8x4,
+        Snorm8,
+        Snorm8x2,
+        Snorm8x4,
 
-        UInt1010102Normalized,
+        Uint16,
+        Uint16x2,
+        Uint16x4,
+        Sint16,
+        Sint16x2,
+        Sint16x4,
+        Unorm16,
+        Unorm16x2,
+        Unorm16x4,
+        Snorm16,
+        Snorm16x2,
+        Snorm16x4,
+        Float16,
+        Float16x2,
+        Float16x4,
+
+        Float32,
+        Float32x2,
+        Float32x3,
+        Float32x4,
+        Uint32,
+        Uint32x2,
+        Uint32x3,
+        Uint32x4,
+        Sint32,
+        Sint32x2,
+        Sint32x3,
+        Sint32x4,
+
+        //Int1010102Normalized,
+        Unorm10_10_10_2,
+        Unorm8x4BGRA,
         //RG11B10Float,
         //RGB9E5Float,
 
@@ -482,10 +500,15 @@ namespace Alimer
         Instance = 1
     };
 
-    enum class IndexType : uint32_t
+    /// Index buffer element format.
+    enum class IndexFormat : uint32_t
     {
-        UInt16,
-        UInt32,
+        /// Undefined index format, used to disable index buffer stripping <see cref="RenderPipelineDescriptor.StripIndexFormat"/>.
+        Undefined,
+        /// 16-bit unsigned integer indices.
+        Uint16,
+        /// 32-bit unsigned integer indices.
+        Uint32,
     };
 
     enum class PrimitiveTopology : uint32_t
@@ -495,7 +518,6 @@ namespace Alimer
         LineStrip,
         TriangleList,
         TriangleStrip,
-        PatchList,
     };
 
     enum class LoadAction : uint32_t
@@ -517,8 +539,8 @@ namespace Alimer
         Vertex = ALIMER_BIT(0),
         Fragment = ALIMER_BIT(1),
         Compute = ALIMER_BIT(2),
-        Amplification = ALIMER_BIT(3),
-        Mesh = ALIMER_BIT(4),
+        Mesh = ALIMER_BIT(3),
+        Amplification = ALIMER_BIT(4),
 
         All = 0x3FFF,
     };
@@ -651,8 +673,7 @@ namespace Alimer
     class RHIBindGroup;
     class RHICommandQueue;
     class ComputePipeline;
-    class RHIRenderPipeline;
-    class RHIRayTracingPipeline;
+    class RenderPipeline;
     class RHISurface;
     class RHISwapChain;
     class RHIQueryHeap;
@@ -669,8 +690,7 @@ namespace Alimer
     using RHIPipelineLayoutRef = SharedPtr<RHIPipelineLayout>;
     using RHIBindGroupRef = SharedPtr<RHIBindGroup>;
     using ComputePipelineRef = SharedPtr<ComputePipeline>;
-    using RHIRenderPipelineRef = SharedPtr<RHIRenderPipeline>;
-    using RHIRayTracingPipelineRef = SharedPtr<RHIRayTracingPipeline>;
+    using RenderPipelineRef = SharedPtr<RenderPipeline>;
     using RHIQueryHeapRef = SharedPtr<RHIQueryHeap>;
     using RHISurfaceRef = SharedPtr<RHISurface>;
     using RHISwapChainRef = SharedPtr<RHISwapChain>;
@@ -899,22 +919,11 @@ namespace Alimer
         const BindGroupLayoutEntry* entries = nullptr;
     };
 
-    struct PushConstantRange
-    {
-        /// The shader stage the constants will be accessible to.
-        ShaderStages visibility = ShaderStages::All;
-        /// Size in bytes.
-        uint32_t size = 0;
-        /// Register index to bind to (supplied in shader).
-        uint32_t shaderRegister = 0;
-    };
-
     struct PipelineLayoutDesc
     {
         const char* label = nullptr;
         size_t bindGroupLayoutCount = 0;
         const RHIBindGroupLayoutRef* bindGroupLayouts = nullptr;
-        const PushConstantRange* pushConstantRange = nullptr;
     };
 
     struct BindGroupEntry
@@ -946,23 +955,16 @@ namespace Alimer
 
     struct VertexAttribute
     {
-        uint32_t        location = 0;
-        uint32_t        bufferIndex = 0;
-        VertexFormat    format = VertexFormat::Undefined;
-        uint32_t        offset = 0;
+        VertexAttributeSemantic semantic = VertexAttributeSemantic::Undefined;
+        VertexAttributeFormat format = VertexAttributeFormat::Undefined;
+        uint32_t offset = 0;
+        uint32_t semanticIndex = 0;
     };
 
     struct VertexBufferLayout
     {
-        uint32_t            binding = 0;
-        uint32_t            stride = 0;
-        VertexStepMode      stepMode = VertexStepMode::Vertex;
-    };
-
-    struct VertexInputDesc
-    {
-        uint32_t bufferCount = 0;
-        const VertexBufferLayout* buffers = nullptr;
+        uint32_t stride = 0;
+        VertexStepMode stepMode = VertexStepMode::Vertex;
         uint32_t attributeCount = 0;
         const VertexAttribute* attributes = nullptr;
     };
@@ -1017,24 +1019,25 @@ namespace Alimer
         bool depthBoundsTestEnable = false;
     };
 
-    struct RenderPipelineDesc
+    struct RenderPipelineDescriptor
     {
         const char* label = nullptr;
-        RHIPipelineLayout* layout = nullptr;
 
         RHIShaderModuleRef vertexShader = nullptr;
         RHIShaderModuleRef fragmentShader = nullptr;
-        RHIShaderModuleRef amplificationShader = nullptr;
         RHIShaderModuleRef meshShader = nullptr;
+        RHIShaderModuleRef amplificationShader = nullptr;
 
-        const VertexInputDesc* vertexInput = nullptr;
+        uint32_t vertexBufferLayoutCount = 0;
+        const VertexBufferLayout* vertexBufferLayouts = nullptr;
 
         BlendState blendState{};
         RasterizerState rasterizerState{};
         DepthStencilState depthStencilState{};
 
         PrimitiveTopology primitiveTopology = PrimitiveTopology::TriangleList;
-        uint32_t patchControlPoints = 0;
+
+        IndexFormat stripIndexFormat = IndexFormat::Undefined;
 
         uint32_t           colorAttachmentCount = 0;
         const PixelFormat* colorAttachmentFormats = nullptr;
@@ -1042,10 +1045,9 @@ namespace Alimer
         TextureSampleCount sampleCount = TextureSampleCount::Count1;
     };
 
-    struct ComputePipelineDesc
+    struct ComputePipelineDescriptor
     {
         const char* label = nullptr;
-        RHIPipelineLayout* layout = nullptr;
         RHIShaderModuleRef shader;
     };
 
@@ -1408,20 +1410,18 @@ namespace Alimer
     };
 
     class ALIMER_API RHIShaderModule : public RHIObject
-    {};
+    {
+    public:
+    };
 
     class ALIMER_API RHIBindGroupLayout : public RHIObject
     {
     public:
-
-    protected:
     };
 
     class ALIMER_API RHIPipelineLayout : public RHIObject
     {
     public:
-
-    protected:
     };
 
     class ALIMER_API RHIBindGroup : public RHIObject
@@ -1442,7 +1442,7 @@ namespace Alimer
     class ALIMER_API ComputePipeline : public RHIObject
     {};
 
-    class ALIMER_API RHIRenderPipeline : public RHIObject
+    class ALIMER_API RenderPipeline : public RHIObject
     {};
 
     class ALIMER_API RHIQueryHeap : public RHIObject
@@ -1491,10 +1491,10 @@ namespace Alimer
         virtual RHICommandBuffer* GetCommandBuffer() const = 0;
     };
 
-    class ALIMER_API ComputeCommandEncoder : public CommandEncoder
+    class ALIMER_API ComputePassEncoder : public CommandEncoder
     {
     public:
-        virtual ~ComputeCommandEncoder() = default;
+        virtual ~ComputePassEncoder() = default;
 
         GPUAllocation AllocateGPU(uint64_t size);
         virtual void UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size = 0);
@@ -1521,10 +1521,10 @@ namespace Alimer
         virtual void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
     };
 
-    class ALIMER_API RenderCommandEncoder : public CommandEncoder
+    class ALIMER_API RenderPassEncoder : public CommandEncoder
     {
     public:
-        virtual ~RenderCommandEncoder() = default;
+        virtual ~RenderPassEncoder() = default;
 
         virtual void SetViewport(const Viewport& viewport) = 0;
         virtual void SetViewports(const Viewport* viewports, uint32_t count) = 0;
@@ -1535,7 +1535,7 @@ namespace Alimer
         virtual void SetShadingRate(ShadingRate rate) = 0;
         virtual void SetDepthBounds(float minBounds, float maxBounds) = 0;
 
-        virtual void SetPipeline(RHIRenderPipeline* pipeline) = 0;
+        virtual void SetPipeline(RenderPipeline* pipeline) = 0;
         virtual void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0) = 0;
 
         template<typename T>
@@ -1551,7 +1551,7 @@ namespace Alimer
         virtual void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) = 0;
 
         /// Bind an index buffer.
-        virtual void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
+        virtual void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format) = 0;
 
         /// Draw non-indexed geometry.
         virtual void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) = 0;
@@ -1589,8 +1589,8 @@ namespace Alimer
         virtual void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
         virtual void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) = 0;
 
-        ComputeCommandEncoder* BeginComputePass(const ComputePassDescriptor& descriptor);
-        RenderCommandEncoder* BeginRenderPass(const RenderPassDesc& desc);
+        ComputePassEncoder* BeginComputePass(const ComputePassDescriptor& descriptor);
+        RenderPassEncoder* BeginRenderPass(const RenderPassDesc& desc);
 
         /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
         virtual RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) = 0;
@@ -1604,8 +1604,8 @@ namespace Alimer
     protected:
         void Reset(uint32_t frameIndex);
 
-        virtual ComputeCommandEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) = 0;
-        virtual RenderCommandEncoder* BeginRenderPassCore(const RenderPassDesc& desc) = 0;
+        virtual ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) = 0;
+        virtual RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) = 0;
 
         uint32_t _frameIndex{ 0 };
         bool _encoderActive{ false };
@@ -1645,8 +1645,8 @@ namespace Alimer
         RHIPipelineLayoutRef CreatePipelineLayout(const PipelineLayoutDesc& desc);
         RHIBindGroupRef CreateBindGroup(RHIBindGroupLayout* layout, const BindGroupDesc& desc);
 
-        ComputePipelineRef CreateComputePipeline(const ComputePipelineDesc& desc);
-        RHIRenderPipelineRef CreateRenderPipeline(const RenderPipelineDesc& desc);
+        ComputePipelineRef CreateComputePipeline(const ComputePipelineDescriptor& descriptor);
+        RenderPipelineRef CreateRenderPipeline(const RenderPipelineDescriptor& descriptor);
         RHIQueryHeapRef CreateQueryHeap(const QueryHeapDesc& desc);
 
         RHISwapChainRef CreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc);
@@ -1680,8 +1680,8 @@ namespace Alimer
         virtual RHIBindGroupLayoutRef CreateBindGroupLayoutCore(const BindGroupLayoutDesc& desc) = 0;
         virtual RHIPipelineLayoutRef CreatePipelineLayoutCore(const PipelineLayoutDesc& desc) = 0;
         virtual RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) = 0;
-        virtual ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDesc& desc) = 0;
-        virtual RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDesc& desc) = 0;
+        virtual ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) = 0;
+        virtual RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) = 0;
         virtual RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) = 0;
         virtual RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) = 0;
 
@@ -1772,14 +1772,14 @@ namespace Alimer
         Float,
     };
 
-    struct VertexFormatInfo
+    struct VertexAttributeFormatInfo
     {
-        VertexFormat format;
+        VertexAttributeFormat format;
         uint32_t byteSize;
         uint32_t componentCount;
-        VertexFormatKind baseType;
+        VertexFormatKind kind;
     };
-    ALIMER_API const VertexFormatInfo& GetVertexFormatInfo(VertexFormat format);
+    ALIMER_API const VertexAttributeFormatInfo& GetVertexAttributeFormatInfo(VertexAttributeFormat format);
 
     /* Shader loading */
     struct ShaderMacro
