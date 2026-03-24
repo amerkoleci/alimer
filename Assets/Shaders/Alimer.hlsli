@@ -25,11 +25,11 @@
 #endif
 
 #if defined(ALIMER_METAL)
-#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> pushConstants : register(b0)
+#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> push : register(b0)
 #elif defined(ALIMER_SPIRV)
-#   define ALIMER_PUSH_CONSTANTS(type, name) [[vk::push_constant]] type name
+#   define ALIMER_PUSH_CONSTANTS(Type) [[vk::push_constant]] Type push
 #else
-#   define ALIMER_PUSH_CONSTANTS(type, name) ConstantBuffer<type> name : register(b999, space0)
+#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> push : register(b999, space0)
 #endif
 
 #include "Math.hlsli"
@@ -51,12 +51,17 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 
 #if defined(ALIMER_SPIRV)
 /* VkDescriptorType */
-static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
-static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 1001;
-static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 1002;
+static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 1;
+//static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 2;
+//static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
 
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindlessTexture2D[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2DArray bindlessTexture2DArray[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCube bindlessTextureCube[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCube<half4> bindlessTextureCube_half4[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCubeArray bindlessTextureCubeArray[];
+
+//[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
 //ByteAddressBuffer bindlessBuffers[] : register(space1);
 #elif ALIMER_SHADER_MODEL >= 66
 template<typename T>

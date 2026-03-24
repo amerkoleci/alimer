@@ -46,13 +46,13 @@ namespace Alimer
 
     // These shifts are made so that Vulkan resource bindings slots don't interfere with each other across shader stages:
     // These are also used during shader compilation
-    enum
+    namespace VulkanRegisterShift
     {
-        VULKAN_BINDING_SHIFT_B = 0,
-        VULKAN_BINDING_SHIFT_T = 1000, // SRV
-        VULKAN_BINDING_SHIFT_U = 2000, // UAV
-        VULKAN_BINDING_SHIFT_S = 3000, // Sampler
-    };
+        static constexpr uint32_t kContantBuffer = 0;   // b
+        static constexpr uint32_t kSRV = 1000;          // t
+        static constexpr uint32_t kUAV = 2000;          // u
+        static constexpr uint32_t kSampler = 3000;      // s
+    }
 
     /* Enums */
     enum class GraphicsAPI : uint8_t
@@ -202,7 +202,8 @@ namespace Alimer
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(BufferUsage);
 
-    enum class TextureType : uint32_t
+    /// Defines dimension of Texture
+    enum class TextureDimension : uint32_t
     {
         /// One-dimensional Texture.
         Texture1D,
@@ -305,27 +306,6 @@ namespace Alimer
         /// Create a heap to contain a structure of `PipelineStatistics`
         PipelineStatistics,
     };
-
-    /// Pipeline statistics available for the PipelineStatistics query type.
-    enum class PipelineStatisticsFlags : uint64_t
-    {
-        None = 0,
-        InputAssemblyVertices = ALIMER_BIT(0),     /// Number of vertices read by input assembler.
-        InputAssemblyPrimitives = ALIMER_BIT(1),   /// Number of primitives read by the input assembler.
-        VSInvocations = ALIMER_BIT(2),  /// Number of times a vertex shader was invoked.
-        GSInvocations = ALIMER_BIT(3),  /// Number of times a geometry shader was invoked.
-        GSPrimitives = ALIMER_BIT(4),   /// Number of primitives output by a geometry shader.
-        CInvocations = ALIMER_BIT(5),   /// Number of primitives that were sent to the rasterizer.
-        CPrimitives = ALIMER_BIT(6),    /// Number of primitives that were rendered (the number of primitives output by the Primitive Clipping stage).
-        FragmentShaderInvocations = ALIMER_BIT(7),  /// Number of times a fragment shader was invoked.
-        HSInvocations = ALIMER_BIT(8),  /// Number of times a hull shader was invoked.
-        DSInvocations = ALIMER_BIT(9),  /// Number of times a domain shader was invoked.
-        ComputeShaderInvocations = ALIMER_BIT(10), /// Number of times a compute shader was invoked.
-        All =
-        InputAssemblyVertices | InputAssemblyPrimitives | VSInvocations | GSInvocations | GSPrimitives | CInvocations | CPrimitives |
-        FragmentShaderInvocations | HSInvocations | DSInvocations | ComputeShaderInvocations
-    };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(Alimer::PipelineStatisticsFlags);
 
     enum class CompareFunction : uint32_t
     {
@@ -673,7 +653,6 @@ namespace Alimer
     class RHISampler;
     class RHIShaderModule;
     class RHIBindGroupLayout;
-    class RHIPipelineLayout;
     class RHIBindGroup;
     class RHICommandQueue;
     class ComputePipeline;
@@ -691,7 +670,6 @@ namespace Alimer
     using RHISamplerRef = SharedPtr<RHISampler>;
     using RHIShaderModuleRef = SharedPtr<RHIShaderModule>;
     using RHIBindGroupLayoutRef = SharedPtr<RHIBindGroupLayout>;
-    using RHIPipelineLayoutRef = SharedPtr<RHIPipelineLayout>;
     using RHIBindGroupRef = SharedPtr<RHIBindGroup>;
     using ComputePipelineRef = SharedPtr<ComputePipeline>;
     using RenderPipelineRef = SharedPtr<RenderPipeline>;
@@ -754,7 +732,7 @@ namespace Alimer
 
     struct TextureDescriptor
     {
-        TextureType type = TextureType::Texture2D;
+        TextureDimension dimension = TextureDimension::Texture2D;
         PixelFormat format = PixelFormat::RGBA8Unorm;
         uint32_t width = 1;
         uint32_t height = 1;
@@ -765,24 +743,88 @@ namespace Alimer
         const char* label = nullptr;
         //MemoryType memoryType = MemoryType::Private;
 
+        static constexpr TextureDescriptor Texture1D(
+            PixelFormat format,
+            uint32_t width,
+            uint32_t mipLevelCount = 1,
+            uint32_t arrayLayers = 1,
+            TextureUsage usage = TextureUsage::ShaderRead,
+            const char* label = nullptr)
+        {
+            TextureDescriptor desc;
+            desc.dimension = TextureDimension::Texture1D;
+            desc.format = format;
+            desc.width = width;
+            desc.height = 1u;
+            desc.depthOrArrayLayers = arrayLayers;
+            desc.mipLevelCount = mipLevelCount;
+            desc.sampleCount = TextureSampleCount::Count1;
+            desc.usage = usage;
+            desc.label = label;
+            return desc;
+        }
+
         static constexpr TextureDescriptor Texture2D(
             PixelFormat format,
-            uint width,
-            uint height,
-            uint mipLevelCount = 1,
-            uint arrayLayers = 1,
+            uint32_t width,
+            uint32_t height,
+            uint32_t mipLevelCount = 1,
+            uint32_t arrayLayers = 1,
             TextureUsage usage = TextureUsage::ShaderRead,
             TextureSampleCount sampleCount = TextureSampleCount::Count1,
             const char* label = nullptr)
         {
             TextureDescriptor desc;
-            desc.type = TextureType::Texture2D;
+            desc.dimension = TextureDimension::Texture2D;
             desc.format = format;
             desc.width = width;
             desc.height = height;
             desc.depthOrArrayLayers = arrayLayers;
             desc.mipLevelCount = mipLevelCount;
             desc.sampleCount = sampleCount;
+            desc.usage = usage;
+            desc.label = label;
+            return desc;
+        }
+
+        static constexpr TextureDescriptor Texture3D(
+            PixelFormat format,
+            uint32_t width,
+            uint32_t height,
+            uint32_t depth,
+            uint32_t mipLevelCount = 1,
+            TextureUsage usage = TextureUsage::ShaderRead,
+            const char* label = nullptr)
+        {
+            TextureDescriptor desc;
+            desc.dimension = TextureDimension::Texture3D;
+            desc.format = format;
+            desc.width = width;
+            desc.height = height;
+            desc.depthOrArrayLayers = depth;
+            desc.mipLevelCount = mipLevelCount;
+            desc.sampleCount = TextureSampleCount::Count1;
+            desc.usage = usage;
+            desc.label = label;
+            return desc;
+        }
+
+        static constexpr TextureDescriptor TextureCube(
+            PixelFormat format,
+            uint32_t size,
+            uint32_t mipLevelCount = 1,
+            uint32_t arrayLayers = 1,
+            TextureUsage usage = TextureUsage::ShaderRead,
+            const char* label = nullptr)
+        {
+            TextureDescriptor desc;
+            desc.dimension = TextureDimension::TextureCube;
+            desc.format = format;
+            desc.width = size;
+            desc.height = size;
+            desc.depthOrArrayLayers = arrayLayers;
+            desc.mipLevelCount = mipLevelCount;
+            desc.sampleCount = TextureSampleCount::Count1;
             desc.usage = usage;
             desc.label = label;
             return desc;
@@ -923,13 +965,6 @@ namespace Alimer
         const BindGroupLayoutEntry* entries = nullptr;
     };
 
-    struct PipelineLayoutDesc
-    {
-        const char* label = nullptr;
-        size_t bindGroupLayoutCount = 0;
-        const RHIBindGroupLayoutRef* bindGroupLayouts = nullptr;
-    };
-
     struct BindGroupEntry
     {
         uint32_t            binding = 0;
@@ -1061,9 +1096,7 @@ namespace Alimer
         /// ie: Timestamp, Occlusion, PipelineStatistics
         QueryType type = QueryType::Timestamp;
         /// Total size of the heap in number of queries.
-        uint32_t count;
-        /// Mask of pipeline statistics that the pool will collect. Only valid for the QueryType::PipelineStatistics type.
-        PipelineStatisticsFlags pipelineStatisticsMask = PipelineStatisticsFlags::None;
+        uint32_t count = 1u;
     };
 
     struct RenderPassColorAttachment
@@ -1127,7 +1160,7 @@ namespace Alimer
         RHIValidationMode validationMode = RHIValidationMode::Disabled;
     };
 
-    struct RHIAdapterLimits
+    struct RHIDeviceLimits
     {
         /// The maximum dimesion of 1D texture.
         uint32_t maxTextureDimension1D = 0;
@@ -1301,7 +1334,7 @@ namespace Alimer
     {
     protected:
         RHITexture(const TextureDescriptor& desc)
-            : type(desc.type)
+            : dimension(desc.dimension)
             , format(desc.format)
             , width(desc.width)
             , height(desc.height)
@@ -1312,7 +1345,7 @@ namespace Alimer
         {}
 
     public:
-        [[nodiscard]] constexpr TextureType GetType() const { return type; }
+        [[nodiscard]] constexpr TextureDimension GetDimension() const { return dimension; }
         [[nodiscard]] constexpr PixelFormat GetFormat() const { return format; }
         [[nodiscard]] constexpr uint32_t GetWidth(uint32_t mipLevel = 0) const
         {
@@ -1326,7 +1359,7 @@ namespace Alimer
 
         [[nodiscard]] constexpr uint32_t GetDepth(uint32_t mipLevel = 0) const
         {
-            if (type != TextureType::Texture3D)
+            if (dimension != TextureDimension::Texture3D)
             {
                 return 1;
             }
@@ -1336,7 +1369,7 @@ namespace Alimer
 
         [[nodiscard]] constexpr uint32_t GetArrayLayers() const
         {
-            if (type == TextureType::Texture3D)
+            if (dimension == TextureDimension::Texture3D)
             {
                 return 1;
             }
@@ -1355,7 +1388,7 @@ namespace Alimer
         virtual RHITextureViewRef CreateView(const TextureViewDesc& desc)  const = 0;
 
     protected:
-        TextureType type;
+        TextureDimension dimension;
         PixelFormat format;
         uint32_t width;
         uint32_t height;
@@ -1419,11 +1452,6 @@ namespace Alimer
     };
 
     class ALIMER_API RHIBindGroupLayout : public RHIObject
-    {
-    public:
-    };
-
-    class ALIMER_API RHIPipelineLayout : public RHIObject
     {
     public:
     };
@@ -1602,7 +1630,7 @@ namespace Alimer
         /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
         virtual RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) = 0;
 
-        
+
         virtual void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) = 0;
         virtual void EndPredication() = 0;
 
@@ -1649,7 +1677,6 @@ namespace Alimer
 
         RHIShaderModuleRef CreateShaderModule(const ShaderModuleDesc& desc);
         RHIBindGroupLayoutRef CreateBindGroupLayout(const BindGroupLayoutDesc& desc);
-        RHIPipelineLayoutRef CreatePipelineLayout(const PipelineLayoutDesc& desc);
         RHIBindGroupRef CreateBindGroup(RHIBindGroupLayout* layout, const BindGroupDesc& desc);
 
         ComputePipelineRef CreateComputePipeline(const ComputePipelineDescriptor& descriptor);
@@ -1668,7 +1695,8 @@ namespace Alimer
         constexpr uint64_t GetFrameCount() const noexcept { return _frameCount; }
         constexpr uint32_t GetFrameIndex() const noexcept { return _frameIndex; }
 
-
+        /// Return the device limits.
+        [[nodiscard]] const RHIDeviceLimits& GetLimits() const { return _limits; }
         [[nodiscard]] virtual bool QueryFeatureSupport(RHIFeature feature) = 0;
         [[nodiscard]] virtual PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) = 0;
         //[[nodiscard]] virtual bool QueryVertexFormatSupport(VertexFormat format) = 0;
@@ -1685,12 +1713,14 @@ namespace Alimer
         virtual RHISamplerRef CreateSamplerCore(const SamplerDesc& desc) = 0;
         virtual RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
         virtual RHIBindGroupLayoutRef CreateBindGroupLayoutCore(const BindGroupLayoutDesc& desc) = 0;
-        virtual RHIPipelineLayoutRef CreatePipelineLayoutCore(const PipelineLayoutDesc& desc) = 0;
         virtual RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) = 0;
         virtual ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) = 0;
         virtual RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) = 0;
         virtual RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) = 0;
         virtual RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) = 0;
+
+        RHIDeviceLimits _limits{};
+        uint64_t _timestampFrequency = 0;
 
         bool _deviceLost{ false };
         uint64_t _frameCount{};
@@ -1699,7 +1729,6 @@ namespace Alimer
         //uint32_t uploadBufferTextureRowAlignment = 1u;
         //uint32_t uploadBufferTextureSliceAlignment = 1u;
 
-        uint64_t _timestampFrequency = 0;
         Vector<RHISamplerRef> staticSamplers;
         GPULinearAllocator _frameAllocators[kNumFramesInFlight];
     };
@@ -1714,12 +1743,8 @@ namespace Alimer
         /// Return the physical adapter properties.
         [[nodiscard]] const RHIAdapterProperties& GetAdapterProperties() const { return _properties; }
 
-        /// Return the adapter limits.
-        [[nodiscard]] const RHIAdapterLimits& GetLimits() const { return _limits; }
-
     protected:
         RHIAdapterProperties _properties{};
-        RHIAdapterLimits _limits{};
     };
 
     class ALIMER_API RHIFactory : public RHIObject

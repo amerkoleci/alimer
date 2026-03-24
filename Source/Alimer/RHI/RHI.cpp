@@ -108,7 +108,7 @@ namespace Alimer
             creationDesc.mipLevelCount = Min(creationDesc.mipLevelCount, mipLevelCount - creationDesc.baseMipLevel);
         }
 
-        const uint32_t textureArrayLayerCount = GetArrayLayers() * (type == TextureType::TextureCube ? 6 : 1);
+        const uint32_t textureArrayLayerCount = GetArrayLayers() * (dimension == TextureDimension::TextureCube ? 6 : 1);
         creationDesc.baseArrayLayer = Min(creationDesc.baseArrayLayer, textureArrayLayerCount);
         creationDesc.arrayLayerCount = Min(creationDesc.arrayLayerCount, textureArrayLayerCount - creationDesc.baseArrayLayer);
 
@@ -148,7 +148,7 @@ namespace Alimer
 
         RHIDevice* device = GetCommandBuffer()->GetDevice();
         GPULinearAllocator& allocator = device->GetFrameAllocator();
-        const uint64_t alignment = Max(device->GetAdapter()->GetLimits().minConstantBufferOffsetAlignment, device->GetAdapter()->GetLimits().minStorageBufferOffsetAlignment);
+        const uint64_t alignment = Max(device->GetLimits().minConstantBufferOffsetAlignment, device->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();
         const uint64_t freeSpace = bufferSize - allocator.offset;
@@ -305,9 +305,9 @@ namespace Alimer
 
     RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
-        if (desc.size > GetAdapter()->GetLimits().maxBufferSize)
+        if (desc.size > _limits.maxBufferSize)
         {
-            LOGE("Buffer size too large: {}, limit: {}", desc.size, GetAdapter()->GetLimits().maxBufferSize);
+            LOGE("Buffer size too large: {}, limit: {}", desc.size, _limits.maxBufferSize);
             return nullptr;
         }
 
@@ -316,9 +316,9 @@ namespace Alimer
 
     RHIBufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
     {
-        if (size > GetAdapter()->GetLimits().maxBufferSize)
+        if (size > _limits.maxBufferSize)
         {
-            LOGE("Buffer size too large: {}, limit: {}", size, GetAdapter()->GetLimits().maxBufferSize);
+            LOGE("Buffer size too large: {}, limit: {}", size, _limits.maxBufferSize);
             return nullptr;
         }
 
@@ -456,7 +456,7 @@ namespace Alimer
             return false;
         }
 
-        if ((desc.type == TextureType::Texture1D || desc.type == TextureType::Texture3D)
+        if ((desc.dimension == TextureDimension::Texture1D || desc.dimension == TextureDimension::Texture3D)
             && desc.sampleCount != TextureSampleCount::Count1)
         {
             LOGE("1D and 3D Textures must use TextureSampleCount.Count1.");
@@ -517,11 +517,6 @@ namespace Alimer
     RHIBindGroupLayoutRef RHIDevice::CreateBindGroupLayout(const BindGroupLayoutDesc& desc)
     {
         return CreateBindGroupLayoutCore(desc);
-    }
-
-    RHIPipelineLayoutRef RHIDevice::CreatePipelineLayout(const PipelineLayoutDesc& desc)
-    {
-        return CreatePipelineLayoutCore(desc);
     }
 
     RHIBindGroupRef RHIDevice::CreateBindGroup(RHIBindGroupLayout* layout, const BindGroupDesc& desc)

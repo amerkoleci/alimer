@@ -31,54 +31,54 @@ namespace Alimer
         {
             switch (format)
             {
-                case VertexFormat::Uint8:               return MTL::VertexFormatUChar;
-                case VertexFormat::Uint8x2:             return MTL::VertexFormatUChar2;
-                case VertexFormat::Uint8x4:             return MTL::VertexFormatUChar4;
-                case VertexFormat::Sint8:               return MTL::VertexFormatChar;
-                case VertexFormat::Sint8x2:             return MTL::VertexFormatChar;
-                case VertexFormat::Sint8x4:             return MTL::VertexFormatChar4;
-                case VertexFormat::Unorm8:              return MTL::VertexFormatUCharNormalized;
-                case VertexFormat::Unorm8x2:            return MTL::VertexFormatUChar2Normalized;
-                case VertexFormat::Unorm8x4:            return MTL::VertexFormatUChar4Normalized;
-                case VertexFormat::Snorm8:              return MTL::VertexFormatCharNormalized;
-                case VertexFormat::Snorm8x2:            return MTL::VertexFormatChar2Normalized;
-                case VertexFormat::Snorm8x4:            return MTL::VertexFormatChar4Normalized;
+                case VertexAttributeFormat::Uint8:               return MTL::VertexFormatUChar;
+                case VertexAttributeFormat::Uint8x2:             return MTL::VertexFormatUChar2;
+                case VertexAttributeFormat::Uint8x4:             return MTL::VertexFormatUChar4;
+                case VertexAttributeFormat::Sint8:               return MTL::VertexFormatChar;
+                case VertexAttributeFormat::Sint8x2:             return MTL::VertexFormatChar;
+                case VertexAttributeFormat::Sint8x4:             return MTL::VertexFormatChar4;
+                case VertexAttributeFormat::Unorm8:              return MTL::VertexFormatUCharNormalized;
+                case VertexAttributeFormat::Unorm8x2:            return MTL::VertexFormatUChar2Normalized;
+                case VertexAttributeFormat::Unorm8x4:            return MTL::VertexFormatUChar4Normalized;
+                case VertexAttributeFormat::Snorm8:              return MTL::VertexFormatCharNormalized;
+                case VertexAttributeFormat::Snorm8x2:            return MTL::VertexFormatChar2Normalized;
+                case VertexAttributeFormat::Snorm8x4:            return MTL::VertexFormatChar4Normalized;
 
-                case VertexFormat::Uint16:              return MTL::VertexFormatUShort;
-                case VertexFormat::Uint16x2:            return MTL::VertexFormatUShort2;
-                case VertexFormat::Uint16x4:            return MTL::VertexFormatUShort4;
-                case VertexFormat::Sint16:              return MTL::VertexFormatShort;
-                case VertexFormat::Sint16x2:            return MTL::VertexFormatShort2;
-                case VertexFormat::Sint16x4:            return MTL::VertexFormatShort4;
-                case VertexFormat::Unorm16:             return MTL::VertexFormatUShortNormalized;
-                case VertexFormat::Unorm16x2:           return MTL::VertexFormatUShort2Normalized;
-                case VertexFormat::Unorm16x4:           return MTL::VertexFormatUShort4Normalized;
-                case VertexFormat::Snorm16:             return MTL::VertexFormatShortNormalized;
-                case VertexFormat::Snorm16x2:           return MTL::VertexFormatShort2Normalized;
-                case VertexFormat::Snorm16x4:           return MTL::VertexFormatShort4Normalized;
-                case VertexFormat::Float16:             return MTL::VertexFormatHalf;
-                case VertexFormat::Float16x2:           return MTL::VertexFormatHalf2;
-                case VertexFormat::Float16x4:           return MTL::VertexFormatHalf4;
+                case VertexAttributeFormat::Uint16:              return MTL::VertexFormatUShort;
+                case VertexAttributeFormat::Uint16x2:            return MTL::VertexFormatUShort2;
+                case VertexAttributeFormat::Uint16x4:            return MTL::VertexFormatUShort4;
+                case VertexAttributeFormat::Sint16:              return MTL::VertexFormatShort;
+                case VertexAttributeFormat::Sint16x2:            return MTL::VertexFormatShort2;
+                case VertexAttributeFormat::Sint16x4:            return MTL::VertexFormatShort4;
+                case VertexAttributeFormat::Unorm16:             return MTL::VertexFormatUShortNormalized;
+                case VertexAttributeFormat::Unorm16x2:           return MTL::VertexFormatUShort2Normalized;
+                case VertexAttributeFormat::Unorm16x4:           return MTL::VertexFormatUShort4Normalized;
+                case VertexAttributeFormat::Snorm16:             return MTL::VertexFormatShortNormalized;
+                case VertexAttributeFormat::Snorm16x2:           return MTL::VertexFormatShort2Normalized;
+                case VertexAttributeFormat::Snorm16x4:           return MTL::VertexFormatShort4Normalized;
+                case VertexAttributeFormat::Float16:             return MTL::VertexFormatHalf;
+                case VertexAttributeFormat::Float16x2:           return MTL::VertexFormatHalf2;
+                case VertexAttributeFormat::Float16x4:           return MTL::VertexFormatHalf4;
 
-                case VertexFormat::Float32:             return MTL::VertexFormatFloat;
-                case VertexFormat::Float32x2:           return MTL::VertexFormatFloat2;
-                case VertexFormat::Float32x3:           return MTL::VertexFormatFloat3;
-                case VertexFormat::Float32x4:           return MTL::VertexFormatFloat4;
+                case VertexAttributeFormat::Float32:             return MTL::VertexFormatFloat;
+                case VertexAttributeFormat::Float32x2:           return MTL::VertexFormatFloat2;
+                case VertexAttributeFormat::Float32x3:           return MTL::VertexFormatFloat3;
+                case VertexAttributeFormat::Float32x4:           return MTL::VertexFormatFloat4;
 
-                case VertexFormat::Uint32:              return MTL::VertexFormatUInt;
-                case VertexFormat::Uint32x2:            return MTL::VertexFormatUInt2;
-                case VertexFormat::Uint32x3:            return MTL::VertexFormatUInt3;
-                case VertexFormat::Uint32x4:            return MTL::VertexFormatUInt4;
+                case VertexAttributeFormat::Uint32:              return MTL::VertexFormatUInt;
+                case VertexAttributeFormat::Uint32x2:            return MTL::VertexFormatUInt2;
+                case VertexAttributeFormat::Uint32x3:            return MTL::VertexFormatUInt3;
+                case VertexAttributeFormat::Uint32x4:            return MTL::VertexFormatUInt4;
 
-                case VertexFormat::Sint32:              return MTL::VertexFormatInt;
-                case VertexFormat::Sint32x2:            return MTL::VertexFormatInt2;
-                case VertexFormat::Sint32x3:            return MTL::VertexFormatInt3;
-                case VertexFormat::Sint32x4:            return MTL::VertexFormatInt4;
+                case VertexAttributeFormat::Sint32:              return MTL::VertexFormatInt;
+                case VertexAttributeFormat::Sint32x2:            return MTL::VertexFormatInt2;
+                case VertexAttributeFormat::Sint32x3:            return MTL::VertexFormatInt3;
+                case VertexAttributeFormat::Sint32x4:            return MTL::VertexFormatInt4;
 
-                case VertexFormat::Unorm10_10_10_2:     return MTL::VertexFormatUInt1010102Normalized;
-                case VertexFormat::Unorm8x4BGRA:        return MTL::VertexFormatUChar4Normalized_BGRA;
-                    //case VertexFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-                    //case VertexFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+                case VertexAttributeFormat::Unorm10_10_10_2:     return MTL::VertexFormatUInt1010102Normalized;
+                case VertexAttributeFormat::Unorm8x4BGRA:        return MTL::VertexFormatUChar4Normalized_BGRA;
+                    //case VertexAttributeFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+                    //case VertexAttributeFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
                 default:
                     return MTL::VertexFormatInvalid;

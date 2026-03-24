@@ -14,7 +14,6 @@
 
 #ifdef __cplusplus
 using bool32 = uint32_t;
-using uint = uint32_t;
 using float2 = Alimer::Vector2;
 using float3 = Alimer::Vector3;
 using float4 = Alimer::Vector4;
@@ -36,26 +35,26 @@ static constexpr uint32_t kImmutableSamplerSlotBegin = 100;
 
 struct DispatchIndirectCommand
 {
-    uint x;
-    uint y;
-    uint z;
+    uint32_t x;
+    uint32_t y;
+    uint32_t z;
 };
 
 struct DrawIndirectCommand
 {
-    uint vertexCount;
-    uint instanceCount;
-    uint firstVertex;
-    uint firstInstance;
+    uint32_t vertexCount;
+    uint32_t instanceCount;
+    uint32_t firstVertex;
+    uint32_t firstInstance;
 };
 
 struct DrawIndexedIndirectCommand
 {
-    uint indexCount;
-    uint instanceCount;
-    uint firstIndex;
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
     int  baseVertex;
-    uint firstInstance;
+    uint32_t firstInstance;
 };
 
 #endif

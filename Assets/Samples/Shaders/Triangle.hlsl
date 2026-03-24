@@ -21,9 +21,12 @@ VertexOutput vertexMain(in VertexInput input)
 
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
+    //Texture2D texture = bindlessTexture2D[0];
+    //float4 baseColor = texture.Sample(SamplerPointClamp, input.Position.xy);
 #if VARIANT
     return float4(1.0f, 0.0f, 0.0f, 1.0f);
 #else
+    //return input.Color * push.color * baseColor;
     return input.Color;
 #endif
 }

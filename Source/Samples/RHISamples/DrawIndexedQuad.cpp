@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Distributed under the MIT license. See the LICENSE file in the project root for more information.
 
-#include "DrawTriangle.h"
+#include "DrawIndexedQuad.h"
 #include <array>
 
 struct VertexPositionColor
@@ -24,18 +24,24 @@ struct VertexPositionColor
     ColorRgba color;
 };
 
-void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat)
+void DrawIndexedQuad::Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat)
 {
     Sample::Initialize(device, windowSize, colorFormat, depthStencilFormat);
 
     const VertexPositionColor vertices[] = {
-            {Vector3(0.0f, 0.5f, 0.f), Colors::Red},
-            {Vector3(-0.5f, -0.5f, 0.f), Colors::Lime},
-            {Vector3(0.5f, -0.5f, 0.f), Colors::Blue}
+        {Vector3(-0.5f, 0.5f, 0.5f), Colors::Blue},
+        {Vector3(0.5f,  0.5f, 0.5f), Colors::Red},
+        {Vector3(0.5f, -0.5f, 0.5f), Colors::Lime},
+        {Vector3(-0.5f, -0.5f, 0.5f), Colors::Yellow},
     };
 
     _vertexBuffer = device->CreateBuffer(sizeof(vertices), BufferUsage::Vertex, vertices);
 
+    const uint16_t indices[] = {
+        0, 2, 1,    // first triangle
+        0, 3, 2,    // second triangle
+    };
+    _indexBuffer = device->CreateBuffer(sizeof(indices), BufferUsage::Index, indices);
 
     std::vector<ShaderMacro> macros = {
         { "VARIANT", "0" }
@@ -53,7 +59,7 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     vertexBufferLayout.attributes = vertexAttributes.data();
 
     RenderPipelineDescriptor pipelineDesc{};
-    pipelineDesc.label = "Triangle";
+    pipelineDesc.label = "IndexedQuad";
     pipelineDesc.vertexBufferLayoutCount = 1u;
     pipelineDesc.vertexBufferLayouts = &vertexBufferLayout;
     pipelineDesc.vertexShader = vertexShader;
@@ -64,7 +70,7 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     _renderPipeline = device->CreateRenderPipeline(pipelineDesc);
 }
 
-void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTexture)
+void DrawIndexedQuad::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTexture)
 {
     RenderPassColorAttachment colorAttachment;
     colorAttachment.view = outputTexture->GetDefaultView();
@@ -93,12 +99,13 @@ void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTextu
     RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
+    renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);
     struct PushData
     {
         Color color = Colors::Orange;
     } data;
 
     renderPass->SetPushConstants(data);
-    renderPass->Draw(3);
+    renderPass->DrawIndexed(6);
     renderPass->End();
 }

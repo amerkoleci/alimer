@@ -68,7 +68,7 @@ namespace fs = filesystem;
 #define COUNT_OF(a) (sizeof(a) / sizeof(a[0]))
 
 #define USE_GLOBAL_OPTIMIZATION_LEVEL 0xFF
-#define SPIRV_SPACES_NUM 8
+#define SPIRV_SPACES_NUM 1 // Shift only space0
 #define PDB_DIR "PDB"
 
 #ifdef _MSC_VER
