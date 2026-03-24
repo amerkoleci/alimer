@@ -138,8 +138,8 @@ namespace Alimer
         return it->second.Get();
     }
 
-    /* ComputePassEncoder */
-    GPUAllocation ComputePassEncoder::AllocateGPU(uint64_t size)
+    /* RHIComputePassEncoder */
+    GPUAllocation RHIComputePassEncoder::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
@@ -147,7 +147,7 @@ namespace Alimer
         }
 
         RHIDevice* device = GetCommandBuffer()->GetDevice();
-        GPULinearAllocator& allocator = device->GetFrameAllocator();
+        RHILinearAllocator& allocator = device->GetFrameAllocator();
         const uint64_t alignment = Max(device->GetLimits().minConstantBufferOffsetAlignment, device->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();
@@ -174,7 +174,7 @@ namespace Alimer
         return allocation;
     }
 
-    void ComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void RHIComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -189,7 +189,7 @@ namespace Alimer
     }
 
     /* RenderPassEncoder */
-    void ComputePassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void RHIComputePassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
         if (size > kMaxPushConstantsSize)
         {
@@ -200,22 +200,22 @@ namespace Alimer
         SetPushConstantsCore(data, size, offset);
     }
 
-    void ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void RHIComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    void ComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    void RHIComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1u, 1u);
     }
 
-    void ComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    void RHIComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), DivideByMultiple(threadCountY, groupSizeX), 1u);
     }
 
-    void ComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    void RHIComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -224,7 +224,7 @@ namespace Alimer
         );
     }
 
-    void ComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void RHIComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
 #if defined(_DEBUG)
         if (!CheckBitsAny(indirectBuffer->GetUsage(), BufferUsage::Indirect))
@@ -243,8 +243,8 @@ namespace Alimer
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    /* RenderPassEncoder */
-    void RenderPassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    /* RHIRenderPassEncoder */
+    void RHIRenderPassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
         if (size > kMaxPushConstantsSize)
         {
@@ -262,7 +262,7 @@ namespace Alimer
         _encoderActive = false;
     }
 
-    ComputePassEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
+    RHIComputePassEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
     {
         if (_encoderActive)
         {
@@ -270,12 +270,12 @@ namespace Alimer
             return nullptr;
         }
 
-        ComputePassEncoder* computePassEncoder = BeginComputePassCore(descriptor);
+        RHIComputePassEncoder* computePassEncoder = BeginComputePassCore(descriptor);
         _encoderActive = true;
         return computePassEncoder;
     }
 
-    RenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
+    RHIRenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -283,7 +283,7 @@ namespace Alimer
             return nullptr;
         }
 
-        RenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
+        RHIRenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
         _encoderActive = true;
         return renderPassEncoder;
     }
@@ -514,21 +514,7 @@ namespace Alimer
         return CreateShaderModuleCore(desc);
     }
 
-    RHIBindGroupLayoutRef RHIDevice::CreateBindGroupLayout(const BindGroupLayoutDesc& desc)
-    {
-        return CreateBindGroupLayoutCore(desc);
-    }
-
-    RHIBindGroupRef RHIDevice::CreateBindGroup(RHIBindGroupLayout* layout, const BindGroupDesc& desc)
-    {
-        ALIMER_ASSERT(layout);
-        ALIMER_ASSERT(desc.entryCount > 0);
-        ALIMER_ASSERT(desc.entries != nullptr);
-
-        return CreateBindGroupCore(layout, desc);
-    }
-
-    RenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDescriptor& descriptor)
+    RHIRenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDescriptor& descriptor)
     {
         // Vertex shader is necessary when not using mesh shaders
         if (descriptor.vertexShader == nullptr)
@@ -556,7 +542,7 @@ namespace Alimer
         return CreateRenderPipelineCore(descriptor);
     }
 
-    ComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDescriptor& descriptor)
+    RHIComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDescriptor& descriptor)
     {
         ALIMER_ASSERT(descriptor.shader != nullptr);
 
@@ -585,22 +571,22 @@ namespace Alimer
     }
 
     /* RHIFactory */
-    bool RHIFactory::IsSupported(GraphicsAPI backend)
+    bool IsRHIBackendSupported(RHIBackendType backend)
     {
         switch (backend)
         {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            case GraphicsAPI::D3D12:
+            case RHIBackendType::D3D12:
                 return D3D12_IsSupported();
 #endif
 
 #if defined(ALIMER_RHI_VULKAN)
-            case GraphicsAPI::Vulkan:
+            case RHIBackendType::Vulkan:
                 return Vulkan_IsSupported();
 #endif
 
 #if defined(ALIMER_RHI_METAL)
-            case GraphicsAPI::Metal:
+            case RHIBackendType::Metal:
                 return false;
 #endif
 
@@ -609,43 +595,43 @@ namespace Alimer
         }
     }
 
-    GraphicsAPI RHIFactory::GetPlatformPreferredApi()
+    RHIBackendType GetPlatformPreferredRHIBackend()
     {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
         if (D3D12_IsSupported())
         {
-            return GraphicsAPI::D3D12;
+            return RHIBackendType::D3D12;
         }
 #endif
 #if defined(ALIMER_RHI_VULKAN)
         if (Vulkan_IsSupported())
         {
-            return GraphicsAPI::Vulkan;
+            return RHIBackendType::Vulkan;
         }
 #endif
 #if defined(ALIMER_RHI_METAL)
         if (Metal_IsSupported())
         {
-            return GraphicsAPI::Metal;
+            return RHIBackendType::Metal;
         }
 #endif
 
-        return GraphicsAPI::Null;
+        return RHIBackendType::Null;
     }
 
     RHIFactoryRef RHIFactory::Create(const RHIFactoryDesc& desc)
     {
-        GraphicsAPI api = desc.preferredApi;
-        if (api == GraphicsAPI::Count)
+        RHIBackendType backend = desc.preferredBackend;
+        if (backend == RHIBackendType::Count)
         {
-            api = GetPlatformPreferredApi();
+            backend = GetPlatformPreferredRHIBackend();
         }
 
         RHIFactoryRef factory;
-        switch (api)
+        switch (backend)
         {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            case GraphicsAPI::D3D12:
+            case RHIBackendType::D3D12:
                 if (D3D12_IsSupported())
                 {
                     GRHIDevice = D3D12_CreateDevice(appName, desc);
@@ -659,7 +645,7 @@ namespace Alimer
 #endif
 
 #if defined(ALIMER_RHI_VULKAN)
-            case GraphicsAPI::Vulkan:
+            case RHIBackendType::Vulkan:
                 if (Vulkan_IsSupported())
                 {
                     factory = Vulkan_CreateFactory(desc);
@@ -710,13 +696,14 @@ namespace Alimer
         return _adapters[index];
     }
 
-    const std::string ToString(GraphicsAPI type)
+    const std::string ToString(RHIBackendType type)
     {
         switch (type)
         {
-            case GraphicsAPI::Null:         return "Null";
-            case GraphicsAPI::Vulkan:       return "Vulkan";
-            case GraphicsAPI::D3D12:        return "D3D12";
+            case RHIBackendType::Null:         return "Null";
+            case RHIBackendType::Vulkan:       return "Vulkan";
+            case RHIBackendType::D3D12:        return "D3D12";
+            case RHIBackendType::Metal:        return "Metal";
             default:                        return "<UNKNOWN>";
         }
     }
@@ -837,30 +824,6 @@ namespace Alimer
             depthStencil->frontFace.passOp != StencilOperation::Keep;
     }
 
-    DescriptorType GetDescriptorType(const BindGroupLayoutEntry& entry)
-    {
-        if (entry.buffer.type != BufferBindingType::Undefined)
-        {
-            return DescriptorType::Buffer;
-        }
-        else if (entry.sampler.type != SamplerBindingType::Undefined || entry.sampler.staticSampler != nullptr)
-        {
-            return DescriptorType::Sampler;
-        }
-        else if (entry.texture.sampleType != TextureSampleType::Undefined)
-        {
-            return DescriptorType::Texture;
-        }
-        else if (entry.storageTexture.access != StorageTextureAccess::Undefined)
-        {
-            return DescriptorType::StorageTexture;
-        }
-        else
-        {
-            return DescriptorType::Undefined;
-        }
-    }
-
     static const VertexAttributeFormatInfo s_VertexFormatTable[] = {
         {VertexAttributeFormat::Undefined,          0, 0,   VertexFormatKind::Float},
         {VertexAttributeFormat::Uint8,              1, 1,   VertexFormatKind::Uint},
@@ -932,7 +895,7 @@ namespace Alimer
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
-        if (device->GetGraphicsAPI() == GraphicsAPI::D3D12)
+        if (device->GetBackend() == RHIBackendType::D3D12)
         {
             dxil = true;
         }

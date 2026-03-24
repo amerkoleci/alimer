@@ -90,7 +90,7 @@ void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTextu
         renderPassDescriptor.depthStencilAttachment = &depthStencilAttachment;
     }
 
-    RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
+    RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     struct PushData

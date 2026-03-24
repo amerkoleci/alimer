@@ -14,6 +14,6 @@ public:
 private:
     RHIBufferRef _vertexBuffer;
     RHIBufferRef _indexBuffer;
-    RenderPipelineRef _renderPipeline;
+    RHIRenderPipelineRef _renderPipeline;
 };
 

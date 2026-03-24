@@ -4,14 +4,6 @@
 #ifndef _SHADER_DEFINITIONS_H_
 #define _SHADER_DEFINITIONS_H_
 
-#define PER_FRAME_BIND_GROUP 0
-#define PER_VIEW_BIND_GROUP 1
-#define PER_DRAW_BIND_GROUP 2
-#define PER_MATERIAL_BIND_GROUP 3
-
-#define MAX_BIND_GROUPS 4
-#define START_BINDLESS_SPACE 1000
-
 #ifdef __cplusplus
 using bool32 = uint32_t;
 using float2 = Alimer::Vector2;

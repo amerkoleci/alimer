@@ -959,7 +959,6 @@ namespace Alimer
     public:
         VkBuffer handle = VK_NULL_HANDLE;
         VmaAllocation allocation = nullptr;
-        mutable BufferStates currentState = BufferStates::Undefined;
 
         uint64_t allocatedSize{};
         VkDeviceAddress deviceAddress{};
@@ -984,6 +983,10 @@ namespace Alimer
         void* GetMappedData() const override { return pMappedData; }
         GPUAddress GetGPUAddress() const override { return deviceAddress; }
         RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
+        void SetCurrentState(BufferStates state) const
+        {
+            currentState = state;
+        }
     };
 
     struct VulkanTexture final : public RHITexture
@@ -1059,34 +1062,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanBindGroupLayout final : public RHIBindGroupLayout
-    {
-        VulkanDevice* device = nullptr;
-
-        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-        std::vector<uint32_t> layoutBindingsOriginal;
-        VkDescriptorSetLayout handle = VK_NULL_HANDLE;
-
-        ~VulkanBindGroupLayout() override;
-        void SetLabel(const char* label) override;
-    };
-
-    struct VulkanBindGroup final : public RHIBindGroup
-    {
-        VulkanDevice* device = nullptr;
-        SharedPtr<VulkanBindGroupLayout> bindGroupLayout;
-
-        VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
-        VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-
-        ~VulkanBindGroup() override;
-        RHIBindGroupLayout* GetBindGroupLayout() const override { return bindGroupLayout.Get(); }
-
-        void SetLabel(const char* label) override;
-        void Update(size_t entryCount, const BindGroupEntry* entries) override;
-    };
-
-    struct VulkanComputePipeline final : public ComputePipeline
+    struct VulkanComputePipeline final : public RHIComputePipeline
     {
         VulkanDevice* device = nullptr;
         VkPipeline handle = VK_NULL_HANDLE;
@@ -1095,7 +1071,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanRenderPipeline final : public RenderPipeline
+    struct VulkanRenderPipeline final : public RHIRenderPipeline
     {
         VulkanDevice* device = nullptr;
         //VulkanPipelineLayoutReflection reflection{};
@@ -1190,7 +1166,7 @@ namespace Alimer
 
     class VulkanCommandBuffer;
 
-    class VulkanComputePassEncoder final : public ComputePassEncoder
+    class VulkanComputePassEncoder final : public RHIComputePassEncoder
     {
         friend class VulkanCommandBuffer;
 
@@ -1208,7 +1184,7 @@ namespace Alimer
         void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) override;
         void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
 
-        void SetPipeline(ComputePipeline* pipeline) override;
+        void SetPipeline(RHIComputePipeline* pipeline) override;
         void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
         void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
         void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
@@ -1227,7 +1203,7 @@ namespace Alimer
         SharedPtr<VulkanComputePipeline> _currentPipeline;
     };
 
-    class VulkanRenderPassEncoder final : public RenderPassEncoder
+    class VulkanRenderPassEncoder final : public RHIRenderPassEncoder
     {
         friend class VulkanCommandBuffer;
 
@@ -1251,7 +1227,7 @@ namespace Alimer
         void SetShadingRate(ShadingRate rate) override;
         void SetDepthBounds(float minBounds, float maxBounds) override;
 
-        void SetPipeline(RenderPipeline* pipeline) override;
+        void SetPipeline(RHIRenderPipeline* pipeline) override;
         void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
 
         void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
@@ -1305,7 +1281,6 @@ namespace Alimer
         void TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout);
         void CommitBarriers();
 
-        void SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup) override;
         void FlushBindGroups();
 
         void BeginQuery(const RHIQueryHeap* heap, uint32_t index) override;
@@ -1316,8 +1291,8 @@ namespace Alimer
         /* GraphicsContext */
         RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) override;
 
-        ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
-        RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
+        RHIComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
+        RHIRenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
 
         void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
         void EndPredication() override;
@@ -1345,11 +1320,6 @@ namespace Alimer
 
         VulkanRenderPassEncoder* _renderPassEncoder;
         VulkanComputePassEncoder* _computePassEncoder;
-
-        bool bindGroupsDirty{ false };
-        uint32_t numBoundBindGroups{ 0 };
-        SharedPtr<VulkanBindGroup> boundBindGroups[kMaxBindGroups] = {};
-        VkDescriptorSet descriptorSets[kMaxBindGroups] = {};
 
         std::vector<SharedPtr<VulkanSwapChain>> presentSwapChains;
     };
@@ -1514,7 +1484,7 @@ namespace Alimer
         VulkanDevice(VulkanRHIAdapter* adapter, const RHIDeviceDesc& desc);
         ~VulkanDevice() override;
 
-        GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
+        RHIBackendType GetBackend() const override { return RHIBackendType::Vulkan; }
         void SetLabel(const char* label) override;
         bool WaitIdle() override;
         uint64_t CommitFrame() override;
@@ -1528,11 +1498,8 @@ namespace Alimer
         VkDescriptorPool CreateDescriptorSetPool();
 
         RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
-        RHIBindGroupLayoutRef CreateBindGroupLayoutCore(const BindGroupLayoutDesc& desc) override;
-
-        RHIBindGroupRef CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc) override;
-        ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
-        RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
+        RHIComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
+        RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
         RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) override;
         RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
         void UpdateSwapChain(VulkanSwapChain* swapChain);
@@ -1737,7 +1704,7 @@ namespace Alimer
         VulkanRHIFactory(const RHIFactoryDesc& desc);
         ~VulkanRHIFactory() override;
 
-        GraphicsAPI GetGraphicsAPI() const override { return GraphicsAPI::Vulkan; }
+        RHIBackendType GetBackend() const override { return RHIBackendType::Vulkan; }
 
         RHISurfaceRef CreateSurface(void* window, void* display) override;
 
@@ -1935,218 +1902,6 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_SHADER_MODULE, reinterpret_cast<uint64_t>(stageInfo.module), label);
     }
 
-    /* VulkanBindGroupLayout */
-    VulkanBindGroupLayout::~VulkanBindGroupLayout()
-    {
-        const uint64_t frameCount = device->GetFrameCount();
-        device->destroyMutex.lock();
-        if (handle)
-        {
-            device->destroyedDescriptorSetLayouts.push_back(std::make_pair(handle, frameCount));
-        }
-        handle = VK_NULL_HANDLE;
-        device->destroyMutex.unlock();
-    }
-
-    void VulkanBindGroupLayout::SetLabel(const char* label)
-    {
-        device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(handle), label);
-    }
-
-    /* VulkanBindGroup */
-    VulkanBindGroup::~VulkanBindGroup()
-    {
-        const uint64_t frameCount = device->GetFrameCount();
-        device->destroyMutex.lock();
-        device->destroyedDescriptorSets.push_back(std::make_pair(std::make_pair(descriptorPool, descriptorSet), frameCount));
-        device->destroyMutex.unlock();
-    }
-
-    void VulkanBindGroup::SetLabel(const char* label)
-    {
-        device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, reinterpret_cast<uint64_t>(descriptorSet), label);
-    }
-
-    void VulkanBindGroup::Update(size_t entryCount, const BindGroupEntry* entries)
-    {
-        // collect all of the descriptor write data
-        const size_t layoutBindingCount = bindGroupLayout->layoutBindings.size();
-        uint32_t descriptorWriteCount = 0;
-        std::vector<VkWriteDescriptorSet> descriptorWrites(layoutBindingCount);
-        std::vector<VkDescriptorImageInfo> descriptorImageInfo;
-        std::vector<VkDescriptorBufferInfo> descriptorBufferInfo;
-        //std::vector<VkWriteDescriptorSetAccelerationStructureKHR> accelStructWriteInfo;
-
-        descriptorImageInfo.reserve(layoutBindingCount);
-        descriptorBufferInfo.reserve(layoutBindingCount);
-
-        // Generates a VkWriteDescriptorSet in descriptorWriteInfo
-        auto generateWriteDescriptorData =
-            [&](uint32_t bindingLocation,
-                VkDescriptorType descriptorType,
-                VkDescriptorImageInfo* imageInfo,
-                VkDescriptorBufferInfo* bufferInfo,
-                VkBufferView* bufferView,
-                const void* pNext = nullptr)
-            {
-                descriptorWrites[descriptorWriteCount].pNext = pNext;
-                descriptorWrites[descriptorWriteCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[descriptorWriteCount].dstSet = descriptorSet;
-                descriptorWrites[descriptorWriteCount].dstBinding = bindingLocation;
-                descriptorWrites[descriptorWriteCount].dstArrayElement = 0;
-                descriptorWrites[descriptorWriteCount].descriptorCount = 1;
-                descriptorWrites[descriptorWriteCount].descriptorType = descriptorType;
-                descriptorWrites[descriptorWriteCount].pImageInfo = imageInfo;
-                descriptorWrites[descriptorWriteCount].pBufferInfo = bufferInfo;
-                descriptorWrites[descriptorWriteCount].pTexelBufferView = bufferView;
-
-                descriptorWriteCount++;
-            };
-
-        // TODO: Handle null descriptors
-        for (size_t bindingIndex = 0; bindingIndex < layoutBindingCount; ++bindingIndex)
-        {
-            const VkDescriptorSetLayoutBinding& layoutBinding = bindGroupLayout->layoutBindings[bindingIndex];
-
-            if (layoutBinding.pImmutableSamplers != nullptr)
-                continue;
-
-            VkDescriptorType descriptorType = layoutBinding.descriptorType;
-
-            SharedPtr<VulkanBuffer> backendBuffer;
-            SharedPtr<VulkanTextureView> backendTextureView;
-            SharedPtr<VulkanSampler> backendSampler;
-
-            const BindGroupEntry* foundEntry = nullptr;
-            for (size_t i = 0; i < entryCount; ++i)
-            {
-                const BindGroupEntry& entry = entries[i];
-
-                uint32_t originalBinding = bindGroupLayout->layoutBindingsOriginal[bindingIndex]; // layoutBinding.binding - registerOffset;
-
-                if (entry.binding != originalBinding)
-                    continue;
-
-                switch (layoutBinding.descriptorType)
-                {
-                    case VK_DESCRIPTOR_TYPE_SAMPLER:
-                        backendSampler = entry.sampler ? StaticCast<VulkanSampler>(entry.sampler) : nullptr;
-                        if (backendSampler == nullptr)
-                            continue;
-                        break;
-
-                    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                        backendTextureView = entry.textureView ? StaticCast<VulkanTextureView>(entry.textureView) : nullptr;
-                        if (backendTextureView == nullptr)
-                            continue;
-                        break;
-
-                    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-                    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-                    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-                        backendBuffer = entry.buffer ? StaticCast<VulkanBuffer>(entry.buffer) : nullptr;
-                        if (backendBuffer == nullptr || !CheckBitsAny(backendBuffer->GetUsage(), BufferUsage::ShaderReadWrite))
-                            continue;
-                        break;
-
-                    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                        backendBuffer = entry.buffer ? StaticCast<VulkanBuffer>(entry.buffer) : nullptr;
-                        if (backendBuffer == nullptr)
-                            continue;
-                        break;
-
-                        //case VkDescriptorType.AccelerationStructureKHR:
-                        //    return shaderResource;
-
-                    default:
-                        break;
-                }
-
-                foundEntry = &entry;
-                break;
-            }
-
-            switch (layoutBinding.descriptorType)
-            {
-                case VK_DESCRIPTOR_TYPE_SAMPLER:
-                {
-                    auto& samplerImageInfo = descriptorImageInfo.emplace_back();
-                    samplerImageInfo.sampler = foundEntry != nullptr ? backendSampler->handle : device->nullSampler;
-
-                    ALIMER_ASSERT(samplerImageInfo.sampler != VK_NULL_HANDLE);
-                    generateWriteDescriptorData(layoutBinding.binding,
-                        layoutBinding.descriptorType,
-                        &samplerImageInfo, nullptr, nullptr);
-                }
-                break;
-
-                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                {
-                    auto& imageInfo = descriptorImageInfo.emplace_back();
-                    if (backendTextureView)
-                    {
-                        imageInfo.imageView = backendTextureView->handle;
-                        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    }
-                    else
-                    {
-                        imageInfo.imageView = device->nullImageView2D;
-                        imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-                    }
-
-                    ALIMER_ASSERT(imageInfo.imageView != VK_NULL_HANDLE);
-                    generateWriteDescriptorData(layoutBinding.binding,
-                        layoutBinding.descriptorType,
-                        &imageInfo, nullptr, nullptr);
-                }
-                break;
-
-                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                {
-                    VkDescriptorBufferInfo& bufferInfo = descriptorBufferInfo.emplace_back();
-                    if (backendBuffer != nullptr)
-                    {
-                        bufferInfo.buffer = backendBuffer->handle;
-                        bufferInfo.offset = Min(foundEntry->offset, backendBuffer->GetSize());
-                        bufferInfo.range = foundEntry->size;
-                        if (bufferInfo.range == 0)
-                        {
-                            //bufferInfo.range = backendBuffer->GetSize() - bufferInfo.offset;
-                            bufferInfo.range = VK_WHOLE_SIZE;
-                        }
-                        else
-                        {
-                            bufferInfo.range = Min(bufferInfo.range, backendBuffer->GetSize() - bufferInfo.offset);
-                        }
-                    }
-                    else
-                    {
-                        bufferInfo.buffer = device->nullBuffer;
-                        bufferInfo.range = VK_WHOLE_SIZE;
-                    }
-
-                    ALIMER_ASSERT(bufferInfo.buffer != VK_NULL_HANDLE);
-                    generateWriteDescriptorData(layoutBinding.binding,
-                        layoutBinding.descriptorType,
-                        nullptr, &bufferInfo, nullptr);
-                }
-                break;
-            }
-        }
-
-        device->vkUpdateDescriptorSets(
-            device->handle,
-            descriptorWriteCount,
-            descriptorWrites.data(),
-            0,
-            nullptr
-        );
-    }
-
     /* VulkanComputePipeline */
     VulkanComputePipeline::~VulkanComputePipeline()
     {
@@ -2328,7 +2083,7 @@ namespace Alimer
         );
     }
 
-    void VulkanComputePassEncoder::SetPipeline(ComputePipeline* pipeline)
+    void VulkanComputePassEncoder::SetPipeline(RHIComputePipeline* pipeline)
     {
         if (_currentPipeline.Get() == pipeline)
             return;
@@ -2686,7 +2441,7 @@ namespace Alimer
         }
     }
 
-    void VulkanRenderPassEncoder::SetPipeline(RenderPipeline* pipeline)
+    void VulkanRenderPassEncoder::SetPipeline(RHIRenderPipeline* pipeline)
     {
         if (_currentPipeline.Get() == pipeline)
             return;
@@ -2880,12 +2635,6 @@ namespace Alimer
         SafeDelete(_renderPassEncoder);
         SafeDelete(_computePassEncoder);
 
-        for (uint32_t i = 0; i < kMaxBindGroups; ++i)
-        {
-            boundBindGroups[i].Reset();
-            descriptorSets[i] = VK_NULL_HANDLE;
-        }
-
         for (uint32_t i = 0; i < kNumFramesInFlight; ++i)
         {
             device->vkDestroyCommandPool(device->handle, commandPools[i], nullptr);
@@ -2907,22 +2656,11 @@ namespace Alimer
         VK_CHECK(device->vkResetCommandPool(device->handle, commandPools[frameIndex], 0));
         commandBuffer = commandBuffers[frameIndex];
 
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        beginInfo.pInheritanceInfo = nullptr; // Optional
+        const VkCommandBufferBeginInfo beginInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
         VK_CHECK(device->vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-        if (queueType != QueueType::Copy)
-        {
-            bindGroupsDirty = false;
-            numBoundBindGroups = 0;
-            for (uint32_t i = 0; i < kMaxBindGroups; ++i)
-            {
-                boundBindGroups[i].Reset();
-                descriptorSets[i] = VK_NULL_HANDLE;
-            }
-        }
 
         if (queueType == QueueType::Graphics)
         {
@@ -3043,10 +2781,11 @@ namespace Alimer
 
     void VulkanCommandBuffer::BufferBarrier(const VulkanBuffer* buffer, BufferStates newState)
     {
-        if (buffer->currentState == newState)
+        BufferStates currentState = buffer->GetCurrentState();
+        if (currentState == newState)
             return;
 
-        VkBufferStateMapping before = ConvertBufferState(buffer->currentState);
+        VkBufferStateMapping before = ConvertBufferState(currentState);
         VkBufferStateMapping after = ConvertBufferState(newState);
 
         VkBufferMemoryBarrier2 barrier = {};
@@ -3063,7 +2802,7 @@ namespace Alimer
         bufferBarriers.push_back(barrier);
 
         // Update the buffer state
-        buffer->currentState = newState;
+        buffer->SetCurrentState(newState);
         numBarriersToCommit++;
 
         if (numBarriersToCommit >= kMaxBarrierCount)
@@ -3145,20 +2884,6 @@ namespace Alimer
         }
 
         numBarriersToCommit = 0;
-    }
-
-    void VulkanCommandBuffer::SetBindGroup(uint32_t groupIndex, RHIBindGroup* bindGroup)
-    {
-        ALIMER_VERIFY(bindGroup != nullptr);
-        ALIMER_VERIFY(groupIndex < kMaxBindGroups);
-
-        if (boundBindGroups[groupIndex].Get() != bindGroup)
-        {
-            bindGroupsDirty = true;
-            boundBindGroups[groupIndex] = static_cast<VulkanBindGroup*>(bindGroup);
-            descriptorSets[groupIndex] = boundBindGroups[groupIndex]->descriptorSet;
-            numBoundBindGroups = Max(groupIndex + 1, numBoundBindGroups);
-        }
     }
 
     void VulkanCommandBuffer::FlushBindGroups()
@@ -3306,13 +3031,13 @@ namespace Alimer
         return swapChainTexture;
     }
 
-    ComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
+    RHIComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
     {
         _computePassEncoder->Begin(descriptor);
         return _computePassEncoder;
     }
 
-    RenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
+    RHIRenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
     {
         _renderPassEncoder->Begin(descriptor);
         return _renderPassEncoder;
@@ -4689,9 +4414,6 @@ namespace Alimer
             buffer->deviceAddress = vkGetBufferDeviceAddress(handle, &info);
         }
 
-        // TODO
-        buffer->currentState = BufferStates::Undefined;
-
         // Issue data copy on request
         if (initialData != nullptr)
         {
@@ -5402,115 +5124,12 @@ namespace Alimer
         module->stageInfo.stage = static_cast<VkShaderStageFlagBits>(reflectModule.shader_stage);
         module->stageInfo.pName = module->entryPoint.c_str();
 
-        uint32_t bindingCount = 0;
-        reflectResult = spvReflectEnumerateDescriptorBindings(&reflectModule, &bindingCount, nullptr);
-        ALIMER_ASSERT(reflectResult == SPV_REFLECT_RESULT_SUCCESS);
-
-        std::vector<SpvReflectDescriptorBinding*> descriptorBindings(bindingCount);
-        reflectResult = spvReflectEnumerateDescriptorBindings(&reflectModule, &bindingCount, descriptorBindings.data());
-        ALIMER_ASSERT(reflectResult == SPV_REFLECT_RESULT_SUCCESS);
-
-#if TODO_REFL
-        for (auto& descriptorBinding : descriptorBindings)
-        {
-            const bool bindless = descriptorBinding->set > START_BINDLESS_SPACE;
-
-            // There can be padding between normal/bindless spaces because sets need to be bound contiguously
-            if (bindless)
-            {
-                reflection->bindlessBindings.resize(std::max(reflection->bindlessBindings.size(), (size_t)descriptorBinding->set));
-                reflection->bindlessBindings[descriptorBinding->set - 1].used = true;
-            }
-
-            auto& descriptor = bindless ? reflection->bindlessBindings[descriptorBinding->set].binding : reflection->layoutBindings[descriptorBinding->set].bindings.emplace_back();
-            descriptor.stageFlags = module->stage;
-            descriptor.binding = descriptorBinding->binding;
-            descriptor.descriptorCount = descriptorBinding->count;
-            descriptor.descriptorType = (VkDescriptorType)descriptorBinding->descriptor_type;
-
-            if (bindless)
-                continue;
-
-            auto& imageViewType = reflection->layoutBindings[descriptorBinding->set].imageViewTypes.emplace_back();
-            imageViewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-
-            // Immutable samples
-            if (descriptorBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER
-                && descriptorBinding->binding >= VULKAN_BINDING_SHIFT_S + kImmutableSamplerSlotBegin)
-            {
-                descriptor.pImmutableSamplers = immutableSamplers.data() + descriptorBinding->binding - VULKAN_BINDING_SHIFT_S - kImmutableSamplerSlotBegin;
-                continue;
-            }
-
-            if (descriptor.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-            {
-                // For now, always replace VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER with VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-                // It would be quite messy to track which buffer is dynamic and which is not in the binding code, consider multiple pipeline bind points too
-                // But maybe the dynamic uniform buffer is not always best because it occupies more registers (like DX12 root descriptor)?
-                descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                for (uint32_t i = 0; i < descriptor.descriptorCount; ++i)
-                {
-                    reflection->uniformBufferSizes[descriptor.binding + i] = descriptorBinding->block.size;
-                    reflection->uniformBufferDynamicSlots.push_back(descriptor.binding + i);
-                }
-
-                continue;
-            }
-
-            switch (descriptorBinding->descriptor_type)
-            {
-                default:
-                    break;
-                case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                    switch (descriptorBinding->image.dim)
-                    {
-                        default:
-                        case SpvDim1D:
-                            if (descriptorBinding->image.arrayed == 0)
-                            {
-                                imageViewType = VK_IMAGE_VIEW_TYPE_1D;
-                            }
-                            else
-                            {
-                                imageViewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-                            }
-                            break;
-                        case SpvDim2D:
-                            if (descriptorBinding->image.arrayed == 0)
-                            {
-                                imageViewType = VK_IMAGE_VIEW_TYPE_2D;
-                            }
-                            else
-                            {
-                                imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-                            }
-                            break;
-                        case SpvDim3D:
-                            imageViewType = VK_IMAGE_VIEW_TYPE_3D;
-                            break;
-                        case SpvDimCube:
-                            if (descriptorBinding->image.arrayed == 0)
-                            {
-                                imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
-                            }
-                            else
-                            {
-                                imageViewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-                            }
-                            break;
-                    }
-                    break;
-            }
-        }
-#endif // TODO_REFL
-
         // TODO: Shift sets here instead in shader compiler
-        VkShaderModuleCreateInfo moduleInfo = {};
-        moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        moduleInfo.codeSize = spvReflectGetCodeSize(&reflectModule);
-        moduleInfo.pCode = spvReflectGetCode(&reflectModule);
-
+        const VkShaderModuleCreateInfo moduleInfo = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = desc.byteCodeSize,
+            .pCode = (const uint32_t*)desc.byteCode
+        };
         VkResult result = vkCreateShaderModule(handle, &moduleInfo, nullptr, &module->stageInfo.module);
 
         if (result != VK_SUCCESS)
@@ -5523,205 +5142,7 @@ namespace Alimer
         return module;
     }
 
-    RHIBindGroupLayoutRef VulkanDevice::CreateBindGroupLayoutCore(const BindGroupLayoutDesc& desc)
-    {
-        const size_t bindingLayoutCount = desc.entryCount;
-
-        SharedPtr<VulkanBindGroupLayout> layout(new VulkanBindGroupLayout());
-        layout->device = this;
-        layout->layoutBindings.reserve(bindingLayoutCount);
-        layout->layoutBindingsOriginal.reserve(bindingLayoutCount);
-
-        for (size_t i = 0; i < bindingLayoutCount; ++i)
-        {
-            const BindGroupLayoutEntry& entry = desc.entries[i];
-
-            VkDescriptorSetLayoutBinding layoutBinding = {};
-            uint32_t registerOffset = 0;
-
-            if (entry.sampler.staticSampler != nullptr)
-            {
-                registerOffset = VulkanRegisterShift::kSampler;
-                VkSampler sampler = GetOrCreateVulkanSampler(entry.sampler.staticSampler);
-
-                layoutBinding.binding = entry.binding + registerOffset;
-                layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                layoutBinding.descriptorCount = 1;
-                layoutBinding.stageFlags = ToVkShaderStageFlags(entry.visibility);
-                layoutBinding.pImmutableSamplers = &sampler;
-                layout->layoutBindings.push_back(layoutBinding);
-                layout->layoutBindingsOriginal.push_back(entry.binding);
-                continue;
-            }
-
-            DescriptorType descriptorType = GetDescriptorType(entry);
-            layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-            switch (descriptorType)
-            {
-                case DescriptorType::Buffer:
-                    switch (entry.buffer.type)
-                    {
-                        case BufferBindingType::Constant:
-                            registerOffset = VulkanRegisterShift::kContantBuffer;
-                            if (entry.buffer.hasDynamicOffset)
-                            {
-                                layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                            }
-                            else
-                            {
-                                layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                            }
-                            break;
-
-                        case BufferBindingType::Storage:
-                        case BufferBindingType::ReadOnlyStorage:
-                            registerOffset = (entry.buffer.type == BufferBindingType::ReadOnlyStorage) ? VulkanRegisterShift::kSRV : VulkanRegisterShift::kUAV;
-                            // UniformTexelBuffer, StorageTexelBuffer ?
-                            if (entry.buffer.hasDynamicOffset)
-                            {
-                                layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                            }
-                            else
-                            {
-                                layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                            }
-                            break;
-                    }
-                    break;
-
-
-                case DescriptorType::Sampler:
-                    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                    registerOffset = VulkanRegisterShift::kSampler;
-                    break;
-
-                case DescriptorType::Texture:
-                    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    registerOffset = VulkanRegisterShift::kSRV;
-                    break;
-
-                case DescriptorType::StorageTexture:
-                    registerOffset = VulkanRegisterShift::kUAV;
-                    switch (entry.storageTexture.access)
-                    {
-                        case StorageTextureAccess::WriteOnly:
-                        case StorageTextureAccess::ReadWrite:
-                            layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                            break;
-                        case StorageTextureAccess::ReadOnly:
-                            layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                            break;
-                        case StorageTextureAccess::Undefined:
-                            ALIMER_UNREACHABLE();
-                    }
-
-                default:
-                    break;
-            }
-            layoutBinding.binding = registerOffset + entry.binding;
-            layoutBinding.descriptorCount = entry.count;
-            layoutBinding.stageFlags = ToVkShaderStageFlags(entry.visibility);
-
-            layout->layoutBindings.push_back(layoutBinding);
-            layout->layoutBindingsOriginal.push_back(entry.binding);
-        }
-
-        // Create entries for static samples
-        for (size_t samplerIndex = 0; samplerIndex < vkStaticSamplers.size(); samplerIndex++)
-        {
-            VkSampler sampler = vkStaticSamplers[samplerIndex];
-
-            uint32_t binding = kImmutableSamplerSlotBegin + static_cast<uint32_t>(samplerIndex);
-
-            VkDescriptorSetLayoutBinding layoutBinding = {};
-            layoutBinding.binding = binding + VulkanRegisterShift::kSampler;
-            layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-            layoutBinding.descriptorCount = 1;
-            layoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-            layoutBinding.pImmutableSamplers = &sampler;
-
-            layout->layoutBindings.push_back(layoutBinding);
-            layout->layoutBindingsOriginal.push_back(binding);
-        }
-
-        //layout->isBindless = true;
-        VkDescriptorSetLayoutCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        createInfo.bindingCount = (uint32_t)layout->layoutBindings.size();
-        createInfo.pBindings = layout->layoutBindings.data();
-
-        VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &layout->handle);
-        if (result != VK_SUCCESS)
-        {
-            return nullptr;
-        }
-
-        SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(layout->handle), desc.label);
-
-        return layout;
-    }
-
-    RHIBindGroupRef VulkanDevice::CreateBindGroupCore(RHIBindGroupLayout* layout, const BindGroupDesc& desc)
-    {
-        VulkanBindGroupLayout* vulkanLayout = static_cast<VulkanBindGroupLayout*>(layout);
-
-        auto AllocateDescriptorSet = [&](VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout setLayout, VkDescriptorSet& descriptorSet, uint32_t maxVariableDescriptorCounts)
-            {
-                // For variable length descriptor arrays, this specify the maximum count we expect them to be.
-                // Note that this value will apply to all bindings defined as variable arrays in the BindGroupLayout
-                // used to allocate this BindGroup
-                VkDescriptorSetVariableDescriptorCountAllocateInfo variableLengthInfo{};
-                variableLengthInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-                variableLengthInfo.descriptorSetCount = 1;
-                variableLengthInfo.pDescriptorCounts = &maxVariableDescriptorCounts;
-
-                VkDescriptorSetAllocateInfo allocInfo = {};
-                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                allocInfo.descriptorPool = descriptorPool;
-                allocInfo.descriptorSetCount = 1;
-                allocInfo.pSetLayouts = &setLayout;
-                allocInfo.pNext = &variableLengthInfo;
-
-                return vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
-            };
-
-        // Have we create a DescriptorSet pool already?
-        if (descriptorSetPools.empty())
-            descriptorSetPools.emplace_back(CreateDescriptorSetPool());
-
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-
-        //  Create DescriptorSet
-        const uint32_t maxVariableArrayLength = 0;
-        VkResult result = AllocateDescriptorSet(handle, descriptorSetPools.back(), vulkanLayout->handle, descriptorSet, maxVariableArrayLength);
-        // If we have run out of pool memory
-        if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
-        {
-            // We need to allocate a new DescriptorPool and retry
-            descriptorSetPools.emplace_back(CreateDescriptorSetPool());
-            result = AllocateDescriptorSet(handle, descriptorSetPools.back(), vulkanLayout->handle, descriptorSet, maxVariableArrayLength);
-        }
-        if (result != VK_SUCCESS)
-        {
-            return nullptr;
-        }
-
-        if (desc.label)
-        {
-            SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, reinterpret_cast<uint64_t>(descriptorSet), desc.label);
-        }
-
-        SharedPtr<VulkanBindGroup> vulkanBindGroup(new VulkanBindGroup());
-        vulkanBindGroup->device = this;
-        vulkanBindGroup->bindGroupLayout = vulkanLayout;
-        vulkanBindGroup->descriptorPool = descriptorSetPools.back();
-        vulkanBindGroup->descriptorSet = descriptorSet;
-        vulkanBindGroup->Update(desc.entryCount, desc.entries);
-
-        return vulkanBindGroup;
-    }
-
-    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDescriptor& desc)
+    RHIComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDescriptor& desc)
     {
         SharedPtr<VulkanComputePipeline> pipeline(new VulkanComputePipeline());
         pipeline->device = this;
@@ -5753,7 +5174,7 @@ namespace Alimer
         return pipeline;
     }
 
-    RenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDescriptor& desc)
+    RHIRenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDescriptor& desc)
     {
         SharedPtr<VulkanRenderPipeline> pipeline(new VulkanRenderPipeline());
         pipeline->device = this;
