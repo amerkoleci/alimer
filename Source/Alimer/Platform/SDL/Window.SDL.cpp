@@ -14,6 +14,7 @@ namespace
 }
 
 using namespace Alimer;
+using namespace Alimer::RHI;
 
 Window::Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
     : _impl(new WindowImpl())

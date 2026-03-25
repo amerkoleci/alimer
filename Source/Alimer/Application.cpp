@@ -8,6 +8,7 @@
 #include <thread>
 
 using namespace Alimer;
+using namespace Alimer::RHI;
 
 std::thread::id mainThreadId = std::this_thread::get_id();
 Application* Application::s_Instance = nullptr;
@@ -104,15 +105,15 @@ void Application::InitBeforeRun()
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};
 #if defined(_DEBUG)
-    factoryDesc.validationMode = RHIValidationMode::Enabled;
+    factoryDesc.validationMode = ValidationMode::Enabled;
 #endif
     _rhiFactory = RHIFactory::Create(factoryDesc);
     _mainWindow->CreateSurface(_rhiFactory);
-    _rhiAdapter = _rhiFactory->GetBestAdapter();
+    adapter = _rhiFactory->GetBestAdapter();
     RHIDeviceDesc deviceDesc{
         .label = "Main RHI Device"
     };
-    _rhiDevice = _rhiAdapter->CreateDevice(deviceDesc);
+    _rhiDevice = adapter->CreateDevice(deviceDesc);
     _mainWindow->CreateSwapChain(_rhiDevice);
 
     // We're ready, now init.
@@ -138,9 +139,9 @@ void Application::Render()
     // ImGui
     OnGui();
 
-    RHICommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(QueueType::Graphics, "Frame");
+    RHI::RHICommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(RHI::QueueType::Graphics, "Frame");
     //RHITexture* swapChainTexture = _mainWindow->GetSwapChain()->AcquireNextTexture();
-    RHITexture* swapChainTexture = commandBuffer->AcquireSwapChainTexture(_mainWindow->GetSwapChain());
+    RHI::RHITexture* swapChainTexture = commandBuffer->AcquireSwapChainTexture(_mainWindow->GetSwapChain());
     if (swapChainTexture != nullptr)
     {
         Draw(commandBuffer, swapChainTexture);

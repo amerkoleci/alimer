@@ -36,7 +36,6 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
 
     _vertexBuffer = device->CreateBuffer(sizeof(vertices), BufferUsage::Vertex, vertices);
 
-
     std::vector<ShaderMacro> macros = {
         { "VARIANT", "0" }
     };
@@ -90,7 +89,7 @@ void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTextu
         renderPassDescriptor.depthStencilAttachment = &depthStencilAttachment;
     }
 
-    RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
+    RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     struct PushData

@@ -14,7 +14,7 @@
 #include "Alimer/Platform/Win32/WindowsPlatform.h"
 #endif
 
-namespace Alimer
+namespace Alimer::RHI
 {
     namespace
     {
@@ -69,7 +69,7 @@ namespace Alimer
         }
     }
 
-    RHITextureView* RHITexture::GetDefaultView() const
+    TextureView* RHITexture::GetDefaultView() const
     {
         if (!defaultView)
         {
@@ -79,7 +79,7 @@ namespace Alimer
         return defaultView.Get();
     }
 
-    RHITextureView* RHITexture::GetView(const TextureViewDesc* desc) const
+    TextureView* RHITexture::GetView(const TextureViewDesc* desc) const
     {
         if (!CheckBitsAny(usage, TextureUsage::ShaderRead | TextureUsage::ShaderWrite | TextureUsage::RenderTarget))
         {
@@ -124,7 +124,7 @@ namespace Alimer
         auto it = views.find(hash);
         if (it == views.end())
         {
-            RHITextureViewRef newView = CreateView(creationDesc);
+            TextureViewRef newView = CreateView(creationDesc);
             if (!newView)
             {
                 LOGE("Failed to create TextureView");
@@ -138,8 +138,36 @@ namespace Alimer
         return it->second.Get();
     }
 
-    /* RHIComputePassEncoder */
-    GPUAllocation RHIComputePassEncoder::AllocateGPU(uint64_t size)
+    /* CommandEncoder */
+    void CommandEncoder::SetConstantBuffer(uint32_t slot, Buffer* buffer, uint64_t offset)
+    {
+        ALIMER_ASSERT(slot < kContantBufferCount);
+
+        if (table.CBV[slot] != buffer)
+        {
+            table.CBV[slot].Reset(buffer);
+            //binder.dirty |= DescriptorBinder::DIRTY_DESCRIPTOR;
+        }
+
+        if (table.CBV_offset[slot] != offset)
+        {
+            table.CBV_offset[slot] = offset;
+        }
+    }
+
+    void CommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    {
+        if (size > kMaxPushConstantsSize)
+        {
+            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
+            return;
+        }
+
+        SetPushConstantsCore(data, size, offset);
+    }
+
+    /* ComputePassEncoder */
+    GPUAllocation ComputePassEncoder::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
@@ -147,7 +175,7 @@ namespace Alimer
         }
 
         RHIDevice* device = GetCommandBuffer()->GetDevice();
-        RHILinearAllocator& allocator = device->GetFrameAllocator();
+        GpuLinearAllocator& allocator = device->GetFrameAllocator();
         const uint64_t alignment = Max(device->GetLimits().minConstantBufferOffsetAlignment, device->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();
@@ -174,7 +202,7 @@ namespace Alimer
         return allocation;
     }
 
-    void RHIComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void ComputePassEncoder::UploadBufferData(const Buffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -188,34 +216,22 @@ namespace Alimer
         CopyBufferToBuffer(allocation.buffer.Get(), allocation.offset, buffer, offset, size);
     }
 
-    /* RenderPassEncoder */
-    void RHIComputePassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
-    {
-        if (size > kMaxPushConstantsSize)
-        {
-            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
-            return;
-        }
-
-        SetPushConstantsCore(data, size, offset);
-    }
-
-    void RHIComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    void RHIComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    void ComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1u, 1u);
     }
 
-    void RHIComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    void ComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), DivideByMultiple(threadCountY, groupSizeX), 1u);
     }
 
-    void RHIComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    void ComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -224,7 +240,7 @@ namespace Alimer
         );
     }
 
-    void RHIComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void ComputePassEncoder::DispatchIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
 #if defined(_DEBUG)
         if (!CheckBitsAny(indirectBuffer->GetUsage(), BufferUsage::Indirect))
@@ -243,18 +259,6 @@ namespace Alimer
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    /* RHIRenderPassEncoder */
-    void RHIRenderPassEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
-    {
-        if (size > kMaxPushConstantsSize)
-        {
-            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
-            return;
-        }
-
-        SetPushConstantsCore(data, size, offset);
-    }
-
     /* RHICommandBuffer */
     void RHICommandBuffer::Reset(uint32_t frameIndex)
     {
@@ -262,7 +266,7 @@ namespace Alimer
         _encoderActive = false;
     }
 
-    RHIComputePassEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
     {
         if (_encoderActive)
         {
@@ -270,12 +274,12 @@ namespace Alimer
             return nullptr;
         }
 
-        RHIComputePassEncoder* computePassEncoder = BeginComputePassCore(descriptor);
+        ComputePassEncoder* computePassEncoder = BeginComputePassCore(descriptor);
         _encoderActive = true;
         return computePassEncoder;
     }
 
-    RHIRenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
+    RenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -283,7 +287,7 @@ namespace Alimer
             return nullptr;
         }
 
-        RHIRenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
+        RenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
         _encoderActive = true;
         return renderPassEncoder;
     }
@@ -303,7 +307,7 @@ namespace Alimer
     extern RHIFactoryRef Metal_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
-    RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
+    BufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
         if (desc.size > _limits.maxBufferSize)
         {
@@ -314,7 +318,7 @@ namespace Alimer
         return CreateBufferCore(desc, initialData);
     }
 
-    RHIBufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
+    BufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
     {
         if (size > _limits.maxBufferSize)
         {
@@ -482,7 +486,7 @@ namespace Alimer
         return CreateTextureCore(creationDesc, initialData);
     }
 
-    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor)
+    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(NativeHandle handle, const TextureDescriptor& descriptor)
     {
         if (!ValidateTextureDesc(descriptor))
         {
@@ -498,7 +502,7 @@ namespace Alimer
         return CreateTextureFromNativeHandleCore(handle, creationDesc);
     }
 
-    RHISamplerRef RHIDevice::CreateSampler(const SamplerDesc& desc)
+    SamplerRef RHIDevice::CreateSampler(const SamplerDesc& desc)
     {
         return CreateSamplerCore(desc);
     }
@@ -542,7 +546,7 @@ namespace Alimer
         return CreateRenderPipelineCore(descriptor);
     }
 
-    RHIComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDescriptor& descriptor)
+    ComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDescriptor& descriptor)
     {
         ALIMER_ASSERT(descriptor.shader != nullptr);
 
@@ -554,7 +558,7 @@ namespace Alimer
         ALIMER_ASSERT(desc.count > 0 && desc.count < kQuerySetMaxQueries);
 
         if (desc.type == QueryType::PipelineStatistics
-            && !QueryFeatureSupport(RHIFeature::PipelineStatisticsQuery))
+            && !QueryFeatureSupport(Feature::PipelineStatisticsQuery))
         {
             LOGE("PipelineStatistics queries are not supported");
             return nullptr;
@@ -571,22 +575,22 @@ namespace Alimer
     }
 
     /* RHIFactory */
-    bool IsRHIBackendSupported(RHIBackendType backend)
+    bool IsBackendSupported(BackendType backend)
     {
         switch (backend)
         {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            case RHIBackendType::D3D12:
+            case BackendType::D3D12:
                 return D3D12_IsSupported();
 #endif
 
 #if defined(ALIMER_RHI_VULKAN)
-            case RHIBackendType::Vulkan:
+            case BackendType::Vulkan:
                 return Vulkan_IsSupported();
 #endif
 
 #if defined(ALIMER_RHI_METAL)
-            case RHIBackendType::Metal:
+            case BackendType::Metal:
                 return false;
 #endif
 
@@ -595,36 +599,36 @@ namespace Alimer
         }
     }
 
-    RHIBackendType GetPlatformPreferredRHIBackend()
+    BackendType GetPlatformPreferredBackend()
     {
 #if defined(ALIMER_RHI_D3D12)&& defined(TODO)
         if (D3D12_IsSupported())
         {
-            return RHIBackendType::D3D12;
+            return BackendType::D3D12;
         }
 #endif
 #if defined(ALIMER_RHI_VULKAN)
         if (Vulkan_IsSupported())
         {
-            return RHIBackendType::Vulkan;
+            return BackendType::Vulkan;
         }
 #endif
 #if defined(ALIMER_RHI_METAL)
         if (Metal_IsSupported())
         {
-            return RHIBackendType::Metal;
+            return BackendType::Metal;
         }
 #endif
 
-        return RHIBackendType::Null;
+        return BackendType::Null;
     }
 
     RHIFactoryRef RHIFactory::Create(const RHIFactoryDesc& desc)
     {
-        RHIBackendType backend = desc.preferredBackend;
-        if (backend == RHIBackendType::Count)
+        BackendType backend = desc.preferredBackend;
+        if (backend == BackendType::Count)
         {
-            backend = GetPlatformPreferredRHIBackend();
+            backend = GetPlatformPreferredBackend();
         }
 
         RHIFactoryRef factory;
@@ -645,7 +649,7 @@ namespace Alimer
 #endif
 
 #if defined(ALIMER_RHI_VULKAN)
-            case RHIBackendType::Vulkan:
+            case BackendType::Vulkan:
                 if (Vulkan_IsSupported())
                 {
                     factory = Vulkan_CreateFactory(desc);
@@ -666,14 +670,14 @@ namespace Alimer
         return factory;
     }
 
-    RHIAdapter* RHIFactory::GetBestAdapter() const
+    Adapter* RHIFactory::GetBestAdapter() const
     {
-        RHIAdapter* adapter = nullptr;
-        uint32_t kind = (uint32_t)RHIAdapterType::Other + 1;
+        Adapter* adapter = nullptr;
+        uint32_t kind = (uint32_t)AdapterType::Other + 1;
         for (size_t i = 0, count = _adapters.size(); i < count; ++i)
         {
-            RHIAdapter* item = _adapters[i];
-            RHIAdapterType type = item->GetType();
+            Adapter* item = _adapters[i];
+            AdapterType type = item->GetType();
 
             if ((uint32_t)type < kind)
             {
@@ -690,89 +694,89 @@ namespace Alimer
         return (uint32_t)_adapters.size();
     }
 
-    RHIAdapter* RHIFactory::GetAdapter(uint32_t index) const
+    Adapter* RHIFactory::GetAdapter(uint32_t index) const
     {
         ALIMER_ASSERT(index < _adapters.size());
         return _adapters[index];
     }
 
-    const std::string ToString(RHIBackendType type)
+    const std::string ToString(BackendType type)
     {
         switch (type)
         {
-            case RHIBackendType::Null:         return "Null";
-            case RHIBackendType::Vulkan:       return "Vulkan";
-            case RHIBackendType::D3D12:        return "D3D12";
-            case RHIBackendType::Metal:        return "Metal";
+            case BackendType::Null:         return "Null";
+            case BackendType::Vulkan:       return "Vulkan";
+            case BackendType::D3D12:        return "D3D12";
+            case BackendType::Metal:        return "Metal";
             default:                        return "<UNKNOWN>";
         }
     }
 
-    const std::string ToString(RHIAdapterType type)
+    const std::string ToString(AdapterType type)
     {
         switch (type)
         {
-            case RHIAdapterType::IntegratedGpu:     return "IntegratedGpu";
-            case RHIAdapterType::DiscreteGpu:       return "DiscreteGpu";
-            case RHIAdapterType::VirtualGpu:        return "VirtualGpu";
-            case RHIAdapterType::Cpu:               return "Cpu";
-            default:                                return "Other";
+            case AdapterType::IntegratedGpu:     return "IntegratedGpu";
+            case AdapterType::DiscreteGpu:       return "DiscreteGpu";
+            case AdapterType::VirtualGpu:        return "VirtualGpu";
+            case AdapterType::Cpu:               return "Cpu";
+            default:                            return "Other";
         }
     }
 
-    RHIAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
+    AdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
     {
         switch (vendorId)
         {
             case (uint32_t)KnownGPUAdapterVendor::AMD:
-                return RHIAdapterVendor::AMD;
+                return AdapterVendor::AMD;
             case (uint32_t)KnownGPUAdapterVendor::NVIDIA:
-                return RHIAdapterVendor::NVIDIA;
+                return AdapterVendor::NVIDIA;
             case (uint32_t)KnownGPUAdapterVendor::INTEL:
-                return RHIAdapterVendor::Intel;
+                return AdapterVendor::Intel;
             case (uint32_t)KnownGPUAdapterVendor::ARM:
-                return RHIAdapterVendor::ARM;
+                return AdapterVendor::ARM;
             case (uint32_t)KnownGPUAdapterVendor::QUALCOMM:
-                return RHIAdapterVendor::Qualcomm;
+                return AdapterVendor::Qualcomm;
             case (uint32_t)KnownGPUAdapterVendor::IMGTECH:
-                return RHIAdapterVendor::ImgTech;
+                return AdapterVendor::ImgTech;
             case (uint32_t)KnownGPUAdapterVendor::MSFT:
-                return RHIAdapterVendor::MSFT;
+                return AdapterVendor::MSFT;
             case (uint32_t)KnownGPUAdapterVendor::APPLE:
-                return RHIAdapterVendor::Apple;
+                return AdapterVendor::Apple;
             case (uint32_t)KnownGPUAdapterVendor::MESA:
-                return RHIAdapterVendor::Mesa;
+                return AdapterVendor::Mesa;
             case (uint32_t)KnownGPUAdapterVendor::BROADCOM:
-                return RHIAdapterVendor::Broadcom;
+                return AdapterVendor::Broadcom;
 
             default:
-                return RHIAdapterVendor::Unknown;
+                return AdapterVendor::Unknown;
         }
     }
 
-    uint32_t AdapterVendorToVendorId(RHIAdapterVendor vendor)
+    uint32_t AdapterVendorToVendorId(AdapterVendor vendor)
     {
         switch (vendor)
         {
-            case RHIAdapterVendor::AMD:
+            case AdapterVendor::AMD:
                 return (uint32_t)KnownGPUAdapterVendor::AMD;
-            case RHIAdapterVendor::NVIDIA:
+            case AdapterVendor::NVIDIA:
                 return (uint32_t)KnownGPUAdapterVendor::NVIDIA;
-            case RHIAdapterVendor::Intel:
+            case AdapterVendor::Intel:
                 return (uint32_t)KnownGPUAdapterVendor::INTEL;
-            case RHIAdapterVendor::ARM:
+            case AdapterVendor::ARM:
                 return (uint32_t)KnownGPUAdapterVendor::ARM;
-            case RHIAdapterVendor::Qualcomm:
+            case AdapterVendor::Qualcomm:
                 return (uint32_t)KnownGPUAdapterVendor::QUALCOMM;
-            case RHIAdapterVendor::ImgTech:
+            case AdapterVendor::ImgTech:
                 return (uint32_t)KnownGPUAdapterVendor::IMGTECH;
-            case RHIAdapterVendor::MSFT:
+            case AdapterVendor::MSFT:
                 return (uint32_t)KnownGPUAdapterVendor::MSFT;
-            case RHIAdapterVendor::Apple:
+            case AdapterVendor::Apple:
                 return (uint32_t)KnownGPUAdapterVendor::APPLE;
-            case RHIAdapterVendor::Mesa:
+            case AdapterVendor::Mesa:
                 return (uint32_t)KnownGPUAdapterVendor::MESA;
-            case RHIAdapterVendor::Broadcom:
+            case AdapterVendor::Broadcom:
                 return (uint32_t)KnownGPUAdapterVendor::BROADCOM;
 
             default:
@@ -895,7 +899,7 @@ namespace Alimer
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
-        if (device->GetBackend() == RHIBackendType::D3D12)
+        if (device->GetBackend() == BackendType::D3D12)
         {
             dxil = true;
         }

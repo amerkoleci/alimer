@@ -5,6 +5,7 @@
 
 #include <Alimer/Alimer.h>
 using namespace Alimer;
+using namespace Alimer::RHI;
 
 class Sample
 {

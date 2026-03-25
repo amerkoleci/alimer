@@ -78,7 +78,7 @@ static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
     *tail = &desc; \
     tail = &desc.pNext
 
-namespace Alimer
+namespace Alimer::RHI
 {
     namespace
     {
@@ -951,7 +951,7 @@ namespace Alimer
     class VulkanRHIAdapter;
     class VulkanRHIFactory;
 
-    struct VulkanBuffer final : public RHIBuffer
+    struct VulkanBuffer final : public Buffer
     {
     private:
         VulkanDevice* device = nullptr;
@@ -970,7 +970,7 @@ namespace Alimer
 #endif
 
         explicit VulkanBuffer(VulkanDevice* device_, const BufferDesc& desc_)
-            : RHIBuffer(desc_)
+            : Buffer(desc_)
             , device(device_)
         {
 
@@ -982,7 +982,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
         void* GetMappedData() const override { return pMappedData; }
         GPUAddress GetGPUAddress() const override { return deviceAddress; }
-        RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
+        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
         void SetCurrentState(BufferStates state) const
         {
             currentState = state;
@@ -1019,17 +1019,17 @@ namespace Alimer
 
         uint64_t GetAllocatedSize() const { return allocatedSize; }
         void SetLabel(const char* label) override;
-        RHITextureViewRef CreateView(const TextureViewDesc& desc) const override;
-        RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
+        TextureViewRef CreateView(const TextureViewDesc& desc) const override;
+        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
     };
 
-    struct VulkanTextureView final : public RHITextureView
+    struct VulkanTextureView final : public TextureView
     {
         VulkanDevice* device;
         VkImageView handle = nullptr;
 
         explicit VulkanTextureView(const VulkanTexture* texture_, const TextureViewDesc& desc)
-            : RHITextureView(texture_, desc)
+            : TextureView(texture_, desc)
             , device(texture_->device)
         {
 
@@ -1038,10 +1038,10 @@ namespace Alimer
         ~VulkanTextureView() override;
 
         void SetLabel(const char* label) override;
-        RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
+        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
     };
 
-    struct VulkanSampler final : public RHISampler
+    struct VulkanSampler final : public Sampler
     {
         VulkanDevice* device = nullptr;
         SamplerDesc desc;
@@ -1062,7 +1062,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanComputePipeline final : public RHIComputePipeline
+    struct VulkanComputePipeline final : public ComputePipeline
     {
         VulkanDevice* device = nullptr;
         VkPipeline handle = VK_NULL_HANDLE;
@@ -1166,7 +1166,7 @@ namespace Alimer
 
     class VulkanCommandBuffer;
 
-    class VulkanComputePassEncoder final : public RHIComputePassEncoder
+    class VulkanComputePassEncoder final : public ComputePassEncoder
     {
         friend class VulkanCommandBuffer;
 
@@ -1181,13 +1181,13 @@ namespace Alimer
         void PopDebugGroup() override;
         void InsertDebugMarker(std::string_view markerLabel) override;
 
-        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) override;
-        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
+        void CopyBufferToBuffer(const Buffer* sourceBuffer, const Buffer* destinationBuffer) override;
+        void CopyBufferToBuffer(const Buffer* sourceBuffer, uint64_t sourceOffset, const Buffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
 
-        void SetPipeline(RHIComputePipeline* pipeline) override;
+        void SetPipeline(ComputePipeline* pipeline) override;
         void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
         void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-        void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DispatchIndirectCore(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
         void End() override;
         RHICommandBuffer* GetCommandBuffer() const override;
@@ -1203,7 +1203,7 @@ namespace Alimer
         SharedPtr<VulkanComputePipeline> _currentPipeline;
     };
 
-    class VulkanRenderPassEncoder final : public RHIRenderPassEncoder
+    class VulkanRenderPassEncoder final : public RenderPassEncoder
     {
         friend class VulkanCommandBuffer;
 
@@ -1230,18 +1230,18 @@ namespace Alimer
         void SetPipeline(RHIRenderPipeline* pipeline) override;
         void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
 
-        void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
-        void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
-        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format) override;
+        void SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset) override;
+        void SetVertexBuffers(uint32_t slot, uint32_t count, const Buffer** buffers, const uint64_t* offsets) override;
+        void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexFormat format) override;
 
         void PrepareDraw();
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-        void DrawIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawIndexedIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
         void DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ) override;
-        void DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
+        void DrawMeshIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawMeshIndirectCount(const Buffer* indirectBuffer, uint64_t indirectBufferOffset, const Buffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
 
         void End() override;
 
@@ -1281,20 +1281,20 @@ namespace Alimer
         void TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout);
         void CommitBarriers();
 
-        void FlushBindGroups();
+        void FlushBindGroups(const DescriptorBindingTable& table, bool graphics);
 
         void BeginQuery(const RHIQueryHeap* heap, uint32_t index) override;
         void EndQuery(const RHIQueryHeap* heap, uint32_t index) override;
-        void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) override;
+        void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const Buffer* destinationBuffer, uint64_t destinationOffset) override;
         void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) override;
 
         /* GraphicsContext */
         RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) override;
 
-        RHIComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
-        RHIRenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
+        ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
+        RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
 
-        void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
+        void BeginPredication(const Buffer* buffer, uint64_t offset, PredicationOperation operation) override;
         void EndPredication() override;
 
     private:
@@ -1370,8 +1370,10 @@ namespace Alimer
         };
 
         VulkanDevice* device;
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         bool mutableDescriptorType;
+        VkDescriptorSetLayout bindingsSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSet bindingsDescriptorSet = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         VulkanBindlessDescriptorHeap bindlessSampledImages;
 
         VulkanBindlessManager(VulkanDevice* device_);
@@ -1380,7 +1382,7 @@ namespace Alimer
         void BindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint);
 
     private:
-        VkDescriptorSetLayout bindingsSetLayout = VK_NULL_HANDLE;
+
         VkDescriptorSet descriptorSets[DESCRIPTOR_SET_COUNT] = {};
     };
 
@@ -1484,21 +1486,21 @@ namespace Alimer
         VulkanDevice(VulkanRHIAdapter* adapter, const RHIDeviceDesc& desc);
         ~VulkanDevice() override;
 
-        RHIBackendType GetBackend() const override { return RHIBackendType::Vulkan; }
+        BackendType GetBackend() const override { return BackendType::Vulkan; }
         void SetLabel(const char* label) override;
         bool WaitIdle() override;
         uint64_t CommitFrame() override;
 
-        RHIBufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
+        BufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
         RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) override;
-        RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) override;
-        RHISamplerRef CreateSamplerCore(const SamplerDesc& desc) override;
+        RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) override;
+        SamplerRef CreateSamplerCore(const SamplerDesc& desc) override;
 
         VkSampler GetOrCreateVulkanSampler(const SamplerDesc* desc);
         VkDescriptorPool CreateDescriptorSetPool();
 
         RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
-        RHIComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
+        ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
         RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
         RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) override;
         RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
@@ -1516,14 +1518,14 @@ namespace Alimer
 
         void ProcessDeletionQueue(bool force);
 
-        bool QueryFeatureSupport(RHIFeature feature) override;
+        bool QueryFeatureSupport(Feature feature) override;
         PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) override;
         bool QueryVertexFormatSupport(VertexAttributeFormat format);
-        RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
+        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
 
-        RHIAdapter* GetAdapter() const override;
+       Adapter* GetAdapter() const override;
 
         VkDevice GetHandle() const { return handle; }
         VulkanQueue& GetGraphicsQueue() { return queues[ecast(QueueType::Graphics)]; }
@@ -1605,7 +1607,7 @@ namespace Alimer
         std::mutex cmdBuffersLocker;
     };
 
-    class VulkanRHIAdapter final : public RHIAdapter
+    class VulkanRHIAdapter final : public Adapter
     {
     public:
         VulkanRHIFactory* factory;
@@ -1679,10 +1681,10 @@ namespace Alimer
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
 
-        RHIAdapterType GetType() const override { return _type; }
+        AdapterType GetType() const override { return type; }
 
     private:
-        RHIAdapterType _type = RHIAdapterType::Other;
+        AdapterType type = AdapterType::Other;
     };
 
     class VulkanRHIFactory final : public RHIFactory
@@ -1704,7 +1706,7 @@ namespace Alimer
         VulkanRHIFactory(const RHIFactoryDesc& desc);
         ~VulkanRHIFactory() override;
 
-        RHIBackendType GetBackend() const override { return RHIBackendType::Vulkan; }
+        BackendType GetBackend() const override { return BackendType::Vulkan; }
 
         RHISurfaceRef CreateSurface(void* window, void* display) override;
 
@@ -1740,14 +1742,14 @@ namespace Alimer
         //allocation->SetName(device->allocator, newLabel.data());
     }
 
-    RHINativeHandle VulkanBuffer::GetNativeHandle(RHINativeHandleType objectType)
+    NativeHandle VulkanBuffer::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
-            case RHINativeHandleType::VK_Buffer:
-                return RHINativeHandle(handle);
-            case RHINativeHandleType::SharedHandle:
-                return RHINativeHandle(sharedHandle);
+            case NativeHandleType::VK_Buffer:
+                return NativeHandle(handle);
+            case NativeHandleType::SharedHandle:
+                return NativeHandle(sharedHandle);
             default:
                 return nullptr;
         }
@@ -1787,20 +1789,20 @@ namespace Alimer
         //allocation->SetName(device->allocator, newLabel.data());
     }
 
-    RHINativeHandle VulkanTexture::GetNativeHandle(RHINativeHandleType objectType)
+    NativeHandle VulkanTexture::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
-            case RHINativeHandleType::VK_Image:
-                return RHINativeHandle(handle);
-            case RHINativeHandleType::SharedHandle:
-                return RHINativeHandle(sharedHandle);
+            case NativeHandleType::VK_Image:
+                return NativeHandle(handle);
+            case NativeHandleType::SharedHandle:
+                return NativeHandle(sharedHandle);
             default:
                 return nullptr;
         }
     }
 
-    RHITextureViewRef VulkanTexture::CreateView(const TextureViewDesc& desc) const
+    TextureViewRef VulkanTexture::CreateView(const TextureViewDesc& desc) const
     {
         SharedPtr<VulkanTextureView> textureView(new VulkanTextureView(this, desc));
 
@@ -1864,12 +1866,12 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(handle), label);
     }
 
-    RHINativeHandle VulkanTextureView::GetNativeHandle(RHINativeHandleType objectType)
+    NativeHandle VulkanTextureView::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
-            case RHINativeHandleType::VK_ImageView:
-                return RHINativeHandle(handle);
+            case NativeHandleType::VK_ImageView:
+                return NativeHandle(handle);
             default:
                 return nullptr;
         }
@@ -1877,7 +1879,8 @@ namespace Alimer
 
     /* VulkanSampler */
     VulkanSampler::~VulkanSampler()
-    {}
+    {
+    }
 
     void VulkanSampler::SetLabel(const char* label)
     {
@@ -2041,7 +2044,7 @@ namespace Alimer
         _commandBuffer->InsertDebugMarker(markerLabel);
     }
 
-    void VulkanComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
+    void VulkanComputePassEncoder::CopyBufferToBuffer(const Buffer* sourceBuffer, const Buffer* destinationBuffer)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2062,7 +2065,7 @@ namespace Alimer
         );
     }
 
-    void VulkanComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
+    void VulkanComputePassEncoder::CopyBufferToBuffer(const Buffer* sourceBuffer, uint64_t sourceOffset, const Buffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2083,7 +2086,7 @@ namespace Alimer
         );
     }
 
-    void VulkanComputePassEncoder::SetPipeline(RHIComputePipeline* pipeline)
+    void VulkanComputePassEncoder::SetPipeline(ComputePipeline* pipeline)
     {
         if (_currentPipeline.Get() == pipeline)
             return;
@@ -2114,7 +2117,7 @@ namespace Alimer
 
     void VulkanComputePassEncoder::PrepareDispatch()
     {
-        _commandBuffer->FlushBindGroups();
+        //_commandBuffer->FlushBindGroups();
     }
 
     void VulkanComputePassEncoder::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -2124,7 +2127,7 @@ namespace Alimer
         _device->vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    void VulkanComputePassEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanComputePassEncoder::DispatchIndirectCore(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -2464,14 +2467,14 @@ namespace Alimer
         );
     }
 
-    void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
+    void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset)
     {
         auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
 
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, 1u, &backendBuffer->handle, &offset);
     }
 
-    void VulkanRenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
+    void VulkanRenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const Buffer** buffers, const uint64_t* offsets)
     {
         ALIMER_ASSERT(buffers != nullptr);
         ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
@@ -2493,7 +2496,7 @@ namespace Alimer
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, count, vkBuffers, offsets);
     }
 
-    void VulkanRenderPassEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format)
+    void VulkanRenderPassEncoder::SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexFormat format)
     {
         if (format == IndexFormat::Undefined)
         {
@@ -2509,7 +2512,7 @@ namespace Alimer
 
     void VulkanRenderPassEncoder::PrepareDraw()
     {
-        _commandBuffer->FlushBindGroups();
+        _commandBuffer->FlushBindGroups(table, true);
     }
 
     void VulkanRenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -2526,7 +2529,7 @@ namespace Alimer
         _device->vkCmdDrawIndexed(_vkCommandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    void VulkanRenderPassEncoder::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
+    void VulkanRenderPassEncoder::DrawIndirect(const Buffer* buffer, uint64_t offset)
     {
         ALIMER_ASSERT(buffer);
         PrepareDraw();
@@ -2535,7 +2538,7 @@ namespace Alimer
         _device->vkCmdDrawIndirect(_vkCommandBuffer, vulkanBuffer->handle, offset, 1, (uint32_t)sizeof(DrawIndirectCommand));
     }
 
-    void VulkanRenderPassEncoder::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRenderPassEncoder::DrawIndexedIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -2551,7 +2554,7 @@ namespace Alimer
         _device->vkCmdDrawMeshTasksEXT(_vkCommandBuffer, threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
-    void VulkanRenderPassEncoder::DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRenderPassEncoder::DrawMeshIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -2565,7 +2568,7 @@ namespace Alimer
         );
     }
 
-    void VulkanRenderPassEncoder::DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
+    void VulkanRenderPassEncoder::DrawMeshIndirectCount(const Buffer* indirectBuffer, uint64_t indirectBufferOffset, const Buffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
     {
         ALIMER_ASSERT(indirectBuffer);
         ALIMER_ASSERT(countBuffer);
@@ -2886,8 +2889,58 @@ namespace Alimer
         numBarriersToCommit = 0;
     }
 
-    void VulkanCommandBuffer::FlushBindGroups()
+    void VulkanCommandBuffer::FlushBindGroups(const DescriptorBindingTable& table, bool graphics)
     {
+        return;
+        struct DescriptorTableInfo
+        {
+            VkDescriptorBufferInfo CBV[kContantBufferCount];
+        } infos = {};
+
+        struct DescriptorTableWrites
+        {
+            VkWriteDescriptorSet CBV[kContantBufferCount];
+        } writes = {};
+
+        const VkDescriptorBufferInfo nullBufferInfo = {
+            .buffer = device->nullBuffer,
+            .offset = 0,
+            .range = VK_WHOLE_SIZE
+        };
+
+        for (uint32_t i = 0; i < ALIMER_STATIC_ARRAY_SIZE(table.CBV); ++i)
+        {
+            BufferRef buffer = table.CBV[i];
+            auto& info = infos.CBV[i];
+            auto& write = writes.CBV[i];
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+            write.dstBinding = VulkanRegisterShift::kContantBuffer + i;
+            write.descriptorCount = 1;
+            write.dstSet = device->bindlessManager->bindingsDescriptorSet;
+            write.pBufferInfo = &info;
+
+            if (buffer != nullptr)
+            {
+                //auto internal_state = to_internal(&buffer);
+                //info.buffer = internal_state->resource;
+                //info.offset = i < device->dynamic_cbv_count ? 0 : table.CBV_offset[i];
+                //info.range = std::min(dynamic_cbv_maxsize, buffer.desc.size - table.CBV_offset[i]);
+            }
+            else
+            {
+                write.pBufferInfo = &nullBufferInfo;
+            }
+        }
+
+        device->vkUpdateDescriptorSets(
+            device->GetHandle(),
+            sizeof(writes) / sizeof(VkWriteDescriptorSet),
+            (const VkWriteDescriptorSet*)&writes,
+            0,
+            nullptr
+        );
+
 #if TODO
         if (!currentPipelineLayout)
             return;
@@ -2950,7 +3003,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
+    void VulkanCommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const Buffer* destinationBuffer, uint64_t destinationOffset)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         auto vulkanDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -3031,19 +3084,19 @@ namespace Alimer
         return swapChainTexture;
     }
 
-    RHIComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
     {
         _computePassEncoder->Begin(descriptor);
         return _computePassEncoder;
     }
 
-    RHIRenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
+    RenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
     {
         _renderPassEncoder->Begin(descriptor);
         return _renderPassEncoder;
     }
 
-    void VulkanCommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
+    void VulkanCommandBuffer::BeginPredication(const Buffer* buffer, uint64_t offset, PredicationOperation operation)
     {
         if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
         {
@@ -3089,6 +3142,7 @@ namespace Alimer
             .pPoolSizes = &poolSize,
         };
         VK_CHECK(device->vkCreateDescriptorPool(device->GetHandle(), &poolCreateInfo, nullptr, &descriptorPool));
+        device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_POOL, reinterpret_cast<uint64_t>(descriptorPool), "Bindless DescriptorPool");
 
         const VkDescriptorSetLayoutBinding setLayoutBinding = {
             .binding = 0,
@@ -3118,6 +3172,7 @@ namespace Alimer
             .pBindings = &setLayoutBinding,
         };
         VK_CHECK(device->vkCreateDescriptorSetLayout(device->GetHandle(), &setLayoutCreateInfo, nullptr, &descriptorSetLayout));
+        device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(descriptorSetLayout), "Bindless DescriptorSetLayout");
 
         const VkDescriptorSetVariableDescriptorCountAllocateInfo setVariableDescriptorCountAllocateInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
@@ -3133,6 +3188,7 @@ namespace Alimer
             .pSetLayouts = &descriptorSetLayout,
         };
         VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &descriptorSet));
+        device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, reinterpret_cast<uint64_t>(descriptorSet), "Bindless DescriptorSet");
 
         for (uint32_t i = 0; i < descriptorCount; ++i)
         {
@@ -3226,15 +3282,13 @@ namespace Alimer
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
             Vector<VkDescriptorBindingFlags> layoutBindingsFlags;
 
-            const VkDescriptorBindingFlags bindingFlags =
-                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-                | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-                | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-                ;
-
-            for (size_t i = 0; i < layoutBindings.size(); ++i)
+            for (uint32_t i = 0; i < kContantBufferCount; ++i)
             {
-                layoutBindingsFlags.push_back(bindingFlags);
+                VkDescriptorSetLayoutBinding& binding = layoutBindings.emplace_back();
+                binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                binding.binding = VulkanRegisterShift::kContantBuffer + i;
+                binding.descriptorCount = 1;
+                binding.stageFlags = VK_SHADER_STAGE_ALL;
             }
 
             // Create entries for static samples
@@ -3255,6 +3309,16 @@ namespace Alimer
                 //layout->layoutBindingsOriginal.push_back(binding);
             }
 
+            const VkDescriptorBindingFlags bindingFlags =
+                //VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                 VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+                ;
+            for (size_t i = 0; i < layoutBindings.size(); ++i)
+            {
+                layoutBindingsFlags.push_back(bindingFlags);
+            }
+
             const VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo = {
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
                 .bindingCount = (uint32_t)layoutBindingsFlags.size(),
@@ -3269,6 +3333,7 @@ namespace Alimer
             };
 
             VK_CHECK(device->vkCreateDescriptorSetLayout(device->GetHandle(), &layoutInfo, nullptr, &bindingsSetLayout));
+            device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(bindingsSetLayout), "Bindings SetLayout");
 
             // Bindless now
             VkPhysicalDeviceVulkan12Properties properties12 = device_->_adapter->properties12;
@@ -3285,10 +3350,9 @@ namespace Alimer
                 .descriptorSetCount = 1,
                 .pSetLayouts = &bindingsSetLayout,
             };
-            VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-            VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &descriptorSet));
+            VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &bindingsDescriptorSet));
 
-            descriptorSets[DESCRIPTOR_SET_BINDINGS] = descriptorSet;
+            descriptorSets[DESCRIPTOR_SET_BINDINGS] = bindingsDescriptorSet;
             descriptorSets[DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE] = bindlessSampledImages.descriptorSet;
         }
 
@@ -3335,6 +3399,8 @@ namespace Alimer
 
     void VulkanBindlessManager::BindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint)
     {
+        uint32_t uniformBufferDynamicOffsets[kContantBufferCount] = {};
+
         device->vkCmdBindDescriptorSets(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -3342,7 +3408,7 @@ namespace Alimer
             0,
             ALIMER_STATIC_ARRAY_SIZE(descriptorSets),
             descriptorSets,
-            0, nullptr
+            kContantBufferCount, uniformBufferDynamicOffsets
         );
     }
 
@@ -4280,7 +4346,7 @@ namespace Alimer
         return _frameCount;
     }
 
-    RHIBufferRef VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
+    BufferRef VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
     {
         SharedPtr<VulkanBuffer> buffer(new VulkanBuffer(this, desc));
 
@@ -4337,7 +4403,8 @@ namespace Alimer
             needBufferDeviceAddress = true;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::Predication) && QueryFeatureSupport(RHIFeature::Predication))
+        if (CheckBitsAny(desc.usage, BufferUsage::Predication) &&
+            QueryFeatureSupport(Feature::Predication))
         {
             createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
         }
@@ -4955,9 +5022,9 @@ namespace Alimer
         return texture;
     }
 
-    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc)
+    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc)
     {
-        if (handle.type != RHINativeHandleType::VK_Image)
+        if (handle.type != NativeHandleType::VK_Image)
             return nullptr;
 
         SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc));
@@ -4973,7 +5040,7 @@ namespace Alimer
         return texture;
     }
 
-    RHISamplerRef VulkanDevice::CreateSamplerCore(const SamplerDesc& desc)
+    SamplerRef VulkanDevice::CreateSamplerCore(const SamplerDesc& desc)
     {
         SharedPtr<VulkanSampler> sampler(new VulkanSampler());
         sampler->device = this;
@@ -5142,7 +5209,7 @@ namespace Alimer
         return module;
     }
 
-    RHIComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDescriptor& desc)
+    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDescriptor& desc)
     {
         SharedPtr<VulkanComputePipeline> pipeline(new VulkanComputePipeline());
         pipeline->device = this;
@@ -5914,60 +5981,60 @@ namespace Alimer
         destroyMutex.unlock();
     }
 
-    bool VulkanDevice::QueryFeatureSupport(RHIFeature feature)
+    bool VulkanDevice::QueryFeatureSupport(Feature feature)
     {
         switch (feature)  // NOLINT(clang-diagnostic-switch-enum)
         {
-            case RHIFeature::TimestampQuery:
+            case Feature::TimestampQuery:
                 return _adapter->properties2.properties.limits.timestampComputeAndGraphics == VK_TRUE;
 
-            case RHIFeature::PipelineStatisticsQuery:
+            case Feature::PipelineStatisticsQuery:
                 return _adapter->features2.features.pipelineStatisticsQuery == VK_TRUE;
 
-            case RHIFeature::TextureCompressionBC:
+            case Feature::TextureCompressionBC:
                 return _adapter->features2.features.textureCompressionBC == VK_TRUE;
 
-            case RHIFeature::TextureCompressionETC2:
+            case Feature::TextureCompressionETC2:
                 return _adapter->features2.features.textureCompressionETC2 == VK_TRUE;
 
-            case RHIFeature::TextureCompressionASTC_HDR:
+            case Feature::TextureCompressionASTC_HDR:
                 return _adapter->features13.textureCompressionASTC_HDR == VK_TRUE || _adapter->astcHdrFeatures.textureCompressionASTC_HDR == VK_TRUE;
 
-            case RHIFeature::TextureCompressionASTC:
+            case Feature::TextureCompressionASTC:
                 return _adapter->features2.features.textureCompressionASTC_LDR == VK_TRUE;
 
-            case RHIFeature::IndirectFirstInstance:
+            case Feature::IndirectFirstInstance:
                 return _adapter->features2.features.drawIndirectFirstInstance == VK_TRUE;
 
-            case RHIFeature::ShaderFloat16:
+            case Feature::ShaderFloat16:
                 // VK_KHR_16bit_storage core in 1.1
                 // VK_KHR_shader_float16_int8 core in 1.2
                 return true;
 
-            case RHIFeature::GPUUploadHeapSupported:
+            case Feature::GPUUploadHeapSupported:
                 // https://github.com/KhronosGroup/Vulkan-Docs/issues/2096
                 // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                 return true;
 
-            case RHIFeature::CopyQueueTimestampQuery:
+            case Feature::CopyQueueTimestampQuery:
                 return _adapter->properties2.properties.limits.timestampComputeAndGraphics == VK_TRUE;
 
-            case RHIFeature::TessellationShader:
+            case Feature::TessellationShader:
                 return _adapter->features2.features.tessellationShader == VK_TRUE;
 
-            case RHIFeature::DepthBoundsTest:
+            case Feature::DepthBoundsTest:
                 return _adapter->features2.features.depthBounds == VK_TRUE;
 
-            case RHIFeature::SamplerMirrorOnce:
+            case Feature::SamplerMirrorOnce:
                 return _adapter->features12.samplerMirrorClampToEdge == VK_TRUE;
 
-            case RHIFeature::SamplerBorder:
+            case Feature::SamplerBorder:
                 return true;
 
-            case RHIFeature::SamplerMinMax:
+            case Feature::SamplerMinMax:
                 return _adapter->features12.samplerFilterMinmax == VK_TRUE;
 
-            case RHIFeature::Bindless:
+            case Feature::Bindless:
                 // https://github.com/gfx-rs/wgpu/blob/trunk/wgpu-hal/src/vulkan/adapter.rs
                 return _adapter->features12.descriptorIndexing == VK_TRUE
                     && _adapter->features12.runtimeDescriptorArray == VK_TRUE
@@ -5976,20 +6043,20 @@ namespace Alimer
                     && _adapter->features12.shaderSampledImageArrayNonUniformIndexing == VK_TRUE
                     ;
 
-            case RHIFeature::DepthResolveMinMax:
+            case Feature::DepthResolveMinMax:
                 return
                     (_adapter->depthStencilResolveProperties.supportedDepthResolveModes & VK_RESOLVE_MODE_MIN_BIT) &&
                     (_adapter->depthStencilResolveProperties.supportedDepthResolveModes & VK_RESOLVE_MODE_MAX_BIT);
 
-            case RHIFeature::StencilResolveMinMax:
+            case Feature::StencilResolveMinMax:
                 return
                     (_adapter->depthStencilResolveProperties.supportedStencilResolveModes & VK_RESOLVE_MODE_MIN_BIT) &&
                     (_adapter->depthStencilResolveProperties.supportedStencilResolveModes & VK_RESOLVE_MODE_MAX_BIT);
 
-            case RHIFeature::ShaderOutputViewportIndex:
+            case Feature::ShaderOutputViewportIndex:
                 return _adapter->features12.shaderOutputLayer == VK_TRUE && _adapter->features12.shaderOutputViewportIndex == VK_TRUE;
 
-            case RHIFeature::CacheCoherentUMA:
+            case Feature::CacheCoherentUMA:
                 if (_adapter->memoryProperties2.memoryProperties.memoryHeapCount == 1 &&
                     _adapter->memoryProperties2.memoryProperties.memoryHeaps[0].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
                 {
@@ -5998,7 +6065,7 @@ namespace Alimer
 
                 return false;
 
-            case RHIFeature::Predication:
+            case Feature::Predication:
                 return _adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE;
 
             default:
@@ -6139,16 +6206,16 @@ namespace Alimer
         return true;
     }
 
-    RHINativeHandle VulkanDevice::GetNativeHandle(RHINativeHandleType objectType)
+    NativeHandle VulkanDevice::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
-            case RHINativeHandleType::VK_Instance:
-                return RHINativeHandle(_adapter->factory->handle);
-            case RHINativeHandleType::VK_PhysicalDevice:
-                return RHINativeHandle(_adapter->handle);
-            case RHINativeHandleType::VK_Device:
-                return RHINativeHandle(handle);
+            case NativeHandleType::VK_Instance:
+                return NativeHandle(_adapter->factory->handle);
+            case NativeHandleType::VK_PhysicalDevice:
+                return NativeHandle(_adapter->handle);
+            case NativeHandleType::VK_Device:
+                return NativeHandle(handle);
             default:
                 return nullptr;
         }
@@ -6164,7 +6231,7 @@ namespace Alimer
         return _adapter->IsDepthStencilFormatSupported(format);
     }
 
-    RHIAdapter* VulkanDevice::GetAdapter() const
+    Adapter* VulkanDevice::GetAdapter() const
     {
         return _adapter;
     }
@@ -6668,44 +6735,44 @@ namespace Alimer
         memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
         factory->vkGetPhysicalDeviceMemoryProperties2(handle, &memoryProperties2);
 
-        _properties.vendorID = properties2.properties.vendorID;
-        _properties.deviceID = properties2.properties.deviceID;
-        _properties.deviceName = properties2.properties.deviceName;
-        _properties.driverDescription = properties12.driverName;
+        properties.vendorID = properties2.properties.vendorID;
+        properties.deviceID = properties2.properties.deviceID;
+        properties.deviceName = properties2.properties.deviceName;
+        properties.driverDescription = properties12.driverName;
         if (properties12.driverInfo[0] != '\0')
         {
-            _properties.driverDescription += std::string(": ") + properties12.driverInfo;
+            properties.driverDescription += std::string(": ") + properties12.driverInfo;
         }
 
         switch (properties2.properties.deviceType)
         {
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                _type = RHIAdapterType::IntegratedGpu;
+                type = AdapterType::IntegratedGpu;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                _type = RHIAdapterType::DiscreteGpu;
+                type = AdapterType::DiscreteGpu;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                _type = RHIAdapterType::VirtualGpu;
+                type = AdapterType::VirtualGpu;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                _type = RHIAdapterType::Cpu;
+                type = AdapterType::Cpu;
                 break;
             default:
-                _type = RHIAdapterType::Other;
+                type = AdapterType::Other;
                 break;
         }
 
         static_assert(kUUIDSize == sizeof(properties11.deviceUUID));
-        memcpy(_properties.uuid, properties11.deviceUUID, kUUIDSize);
+        memcpy(properties.uuid, properties11.deviceUUID, kUUIDSize);
 
         if (properties11.deviceLUIDValid)
         {
             static_assert(kLUIDSize == sizeof(properties11.deviceLUID));
-            memcpy(_properties.luid, properties11.deviceLUID, kLUIDSize);
+            memcpy(properties.luid, properties11.deviceLUID, kLUIDSize);
         }
 
         // Go through the memory types to figure out the amount of VRAM on this physical device.
@@ -6714,11 +6781,11 @@ namespace Alimer
             VkMemoryHeap const& heap = memoryProperties2.memoryProperties.memoryHeaps[heapIndex];
             if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
             {
-                _properties.videoMemorySize += heap.size;
+                properties.videoMemorySize += heap.size;
             }
             else
             {
-                _properties.systemMemorySize += heap.size;
+                properties.systemMemorySize += heap.size;
             }
         }
 
@@ -6939,7 +7006,7 @@ namespace Alimer
 #endif
 #endif
 
-        if (desc.validationMode != RHIValidationMode::Disabled)
+        if (desc.validationMode != ValidationMode::Disabled)
         {
             // Determine the optimal validation layers to enable that are necessary for useful debugging
             std::vector<const char*> optimalValidationLyers = GetOptimalValidationLayers(availableInstanceLayers);
@@ -6947,7 +7014,7 @@ namespace Alimer
         }
 
         bool validationFeatures = false;
-        if (desc.validationMode == RHIValidationMode::GPU)
+        if (desc.validationMode == ValidationMode::GPU)
         {
             uint32_t layerInstanceExtensionCount;
             VK_CHECK(vkEnumerateInstanceExtensionProperties("VK_LAYER_KHRONOS_validation", &layerInstanceExtensionCount, nullptr));
@@ -6989,7 +7056,8 @@ namespace Alimer
 
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
 
-        if (desc.validationMode != RHIValidationMode::Disabled && debugUtils)
+        if (desc.validationMode != ValidationMode::Disabled &&
+            debugUtils)
         {
             debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
             debugUtilsCreateInfo.messageSeverity =
@@ -7000,7 +7068,7 @@ namespace Alimer
                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-            if (desc.validationMode == RHIValidationMode::Verbose)
+            if (desc.validationMode == ValidationMode::Verbose)
             {
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -7011,7 +7079,8 @@ namespace Alimer
         }
 
         VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
-        if (desc.validationMode == RHIValidationMode::GPU && validationFeatures)
+        if (desc.validationMode == ValidationMode::GPU &&
+            validationFeatures)
         {
             static const VkValidationFeatureEnableEXT enable_features[2] = {
                 VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
@@ -7032,7 +7101,8 @@ namespace Alimer
 #define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(handle, #fn);
 #include "RHI_Vulkan_Funcs.h"
 
-        if (desc.validationMode != RHIValidationMode::Disabled && debugUtils)
+        if (desc.validationMode != ValidationMode::Disabled &&
+            debugUtils)
         {
             result = vkCreateDebugUtilsMessengerEXT(handle, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger);
             if (result != VK_SUCCESS)

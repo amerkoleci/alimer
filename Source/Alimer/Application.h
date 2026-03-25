@@ -76,7 +76,7 @@ namespace Alimer
         virtual void Setup() {}
         virtual void Initialize() {}
         virtual void Update() {}
-        virtual void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) {}
+        virtual void Draw([[maybe_unused]] RHI::RHICommandBuffer* commandBuffer, [[maybe_unused]] RHI::RHITexture* outputTexture) {}
         virtual bool BeginDraw();
         virtual void EndDraw();
 
@@ -89,7 +89,7 @@ namespace Alimer
         bool _exitRequested{ false };
         bool _isActive{ false };
         Timer _timer;
-        RHIDeviceRef _rhiDevice;
+        RHI::RHIDeviceRef _rhiDevice;
 
     private:
         /* Platform App implementations */
@@ -103,8 +103,8 @@ namespace Alimer
         void Render();
 
         static Application* s_Instance;
-        RHIFactoryRef _rhiFactory = nullptr;
-        RHIAdapter* _rhiAdapter = nullptr;
+        RHI::RHIFactoryRef _rhiFactory = nullptr;
+        RHI::Adapter* adapter = nullptr;
         std::unique_ptr<Window> _mainWindow;
     };
 }

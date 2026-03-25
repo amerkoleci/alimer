@@ -7,6 +7,7 @@
 #include "Alimer/Core/Log.h"
 
 using namespace Alimer;
+using namespace Alimer::RHI;
 
 void Window::OnResized()
 {

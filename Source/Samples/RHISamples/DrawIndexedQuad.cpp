@@ -96,7 +96,7 @@ void DrawIndexedQuad::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTe
         renderPassDescriptor.depthStencilAttachment = &depthStencilAttachment;
     }
 
-    RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
+    RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);

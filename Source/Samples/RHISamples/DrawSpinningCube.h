@@ -5,7 +5,7 @@
 
 #include "Sample.h"
 
-class DrawIndexedQuad final : public Sample
+class DrawSpinningCube final : public Sample
 {
 public:
     void Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat) override;

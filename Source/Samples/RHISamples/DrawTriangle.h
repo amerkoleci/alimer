@@ -12,7 +12,6 @@ public:
     void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
 
 private:
-    RHIBufferRef _vertexBuffer;
+    BufferRef _vertexBuffer;
     RHIRenderPipelineRef _renderPipeline;
 };
-

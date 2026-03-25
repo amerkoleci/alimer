@@ -9,7 +9,7 @@ set (ALIMER_DEFAULT_VK_REGISTER_OFFSETS
 
 function(alimer_compile_shaders)
     set(options "")
-    set(oneValueArgs TARGET CONFIG FOLDER DXIL DXBC SPIRV_DXC COMPILER_OPTIONS_DXIL COMPILER_OPTIONS_DXBC COMPILER_OPTIONS_SPIRV)
+    set(oneValueArgs TARGET CONFIG FOLDER DXIL SPIRV_DXC COMPILER_OPTIONS_DXIL COMPILER_OPTIONS_SPIRV)
     set(multiValueArgs SOURCES)
     cmake_parse_arguments(params "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -36,6 +36,7 @@ function(alimer_compile_shaders)
             --binaryBlob
             --WX
             --stripReflection
+            --matrixRowMajor
             -I ${ALIMER_SHADERS_DEFINITIONS_DIR}
             -I ${ALIMER_SHADERS_INCLUDE_DIR}
             --outputExt .bin
@@ -49,26 +50,6 @@ function(alimer_compile_shaders)
         add_custom_command(TARGET ${params_TARGET} PRE_BUILD COMMAND ${compilerCommand})
     endif()
 
-    if (params_DXBC AND ALIMER_RHI_D3D12 AND ALIMER_COMPILE_DXBC)
-        set(compilerCommand ShaderMake
-            --config ${params_CONFIG}
-            --out ${params_DXBC}
-            --platform DXBC
-            --binaryBlob
-            --WX
-            --stripReflection
-            -I ${ALIMER_SHADERS_INCLUDE_DIR}
-            -D COMPILER_FXC
-            --outputExt .bin
-        )
-
-        separate_arguments(params_COMPILER_OPTIONS_DXBC NATIVE_COMMAND "${params_COMPILER_OPTIONS_DXBC}")
-
-        list(APPEND compilerCommand ${params_COMPILER_OPTIONS_DXBC})
-        
-        add_custom_command(TARGET ${params_TARGET} PRE_BUILD COMMAND ${compilerCommand})
-    endif()
-
     if (params_SPIRV_DXC AND ALIMER_RHI_VULKAN)       
         set(compilerCommand ShaderMake
             --config ${params_CONFIG}
@@ -76,6 +57,7 @@ function(alimer_compile_shaders)
             --platform SPIRV
             --binaryBlob
             --stripReflection
+            --matrixRowMajor
             -I ${ALIMER_SHADERS_DEFINITIONS_DIR}
             -I ${ALIMER_SHADERS_INCLUDE_DIR}
             --WX
@@ -121,11 +103,9 @@ function(alimer_compile_shaders_all_platforms)
     alimer_compile_shaders(TARGET ${params_TARGET}
                           CONFIG ${params_CONFIG}
                           FOLDER ${params_FOLDER}
-                          DXBC ${params_OUTPUT_BASE}/dxbc
                           DXIL ${params_OUTPUT_BASE}/dxil
                           SPIRV_DXC ${params_OUTPUT_BASE}/spirv
                           COMPILER_OPTIONS_DXIL ${params_COMPILER_OPTIONS_DXIL}
-                          COMPILER_OPTIONS_DXBC ${params_COMPILER_OPTIONS_DXBC}
                           COMPILER_OPTIONS_SPIRV ${params_COMPILER_OPTIONS_SPIRV}
                           SOURCES ${params_SOURCES}
     )
