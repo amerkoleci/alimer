@@ -39,8 +39,8 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     std::vector<ShaderMacro> macros = {
         { "VARIANT", "0" }
     };
-    RHIShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Triangle");
-    RHIShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Triangle", &macros);
+    ShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Triangle");
+    ShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Triangle", &macros);
 
     std::array<VertexAttribute, 2> vertexAttributes = {
         VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },
@@ -63,7 +63,7 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     _renderPipeline = device->CreateRenderPipeline(pipelineDesc);
 }
 
-void DrawTriangle::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTexture)
+void DrawTriangle::Draw(CommandBuffer* commandBuffer, RHITexture* outputTexture)
 {
     RenderPassColorAttachment colorAttachment;
     colorAttachment.view = outputTexture->GetDefaultView();

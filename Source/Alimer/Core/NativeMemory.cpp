@@ -5,9 +5,11 @@
 #include "Alimer/Core/NativeMemory.h"
 #include "Alimer/Math/MathHelper.h"
 #include "Alimer/Core/Log.h"
-
-#include <malloc.h>
 #include <stdlib.h>
+
+#if defined(_WIN32)
+#include <malloc.h>
+#endif /* defined(_WIN32) */
 
 using namespace Alimer;
 

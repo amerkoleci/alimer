@@ -78,7 +78,7 @@ static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
     *tail = &desc; \
     tail = &desc.pNext
 
-namespace Alimer::RHI
+namespace Alimer
 {
     namespace
     {
@@ -951,7 +951,7 @@ namespace Alimer::RHI
     class VulkanRHIAdapter;
     class VulkanRHIFactory;
 
-    struct VulkanBuffer final : public Buffer
+    struct VulkanBuffer final : public RHIBuffer
     {
     private:
         VulkanDevice* device = nullptr;
@@ -970,7 +970,7 @@ namespace Alimer::RHI
 #endif
 
         explicit VulkanBuffer(VulkanDevice* device_, const BufferDesc& desc_)
-            : Buffer(desc_)
+            : RHIBuffer(desc_)
             , device(device_)
         {
 
@@ -1019,17 +1019,17 @@ namespace Alimer::RHI
 
         uint64_t GetAllocatedSize() const { return allocatedSize; }
         void SetLabel(const char* label) override;
-        TextureViewRef CreateView(const TextureViewDesc& desc) const override;
+        RHITextureViewRef CreateView(const RHITextureViewDesc& desc) const override;
         NativeHandle GetNativeHandle(NativeHandleType objectType) override;
     };
 
-    struct VulkanTextureView final : public TextureView
+    struct VulkanTextureView final : public RHITextureView
     {
         VulkanDevice* device;
         VkImageView handle = nullptr;
 
-        explicit VulkanTextureView(const VulkanTexture* texture_, const TextureViewDesc& desc)
-            : TextureView(texture_, desc)
+        explicit VulkanTextureView(const VulkanTexture* texture_, const RHITextureViewDesc& desc)
+            : RHITextureView(texture_, desc)
             , device(texture_->device)
         {
 
@@ -1052,7 +1052,7 @@ namespace Alimer::RHI
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanShaderModule final : public RHIShaderModule
+    struct VulkanShaderModule final : public ShaderModule
     {
         VulkanDevice* device = nullptr;
         std::string entryPoint;
@@ -1071,7 +1071,7 @@ namespace Alimer::RHI
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanRenderPipeline final : public RHIRenderPipeline
+    struct VulkanRenderPipeline final : public RenderPipeline
     {
         VulkanDevice* device = nullptr;
         //VulkanPipelineLayoutReflection reflection{};
@@ -1082,10 +1082,10 @@ namespace Alimer::RHI
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanQueryHeap final : public RHIQueryHeap
+    struct VulkanQueryHeap final : public QueryHeap
     {
         VulkanDevice* device = nullptr;
-        QueryHeapDesc desc;
+        QueryHeapDescriptor desc;
         VkQueryPool handle = VK_NULL_HANDLE;
         uint32_t queryResultSize = 0;
 
@@ -1129,9 +1129,10 @@ namespace Alimer::RHI
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanQueue final
+    struct VulkanQueue final : public CommandQueue
     {
-        VkQueue queue = VK_NULL_HANDLE;
+        VkQueue handle = VK_NULL_HANDLE;
+        CommandQueueType queueType = CommandQueueType::Count;
 
         std::vector<SharedPtr<VulkanSwapChain>> swapchainUpdates;
         std::vector<VkSwapchainKHR> submitSwapchains;
@@ -1147,6 +1148,7 @@ namespace Alimer::RHI
         VkFence frameFences[kNumFramesInFlight] = {};
 
         void Submit(VulkanDevice* device, VkFence fence);
+        CommandQueueType GetType() const override { return queueType; }
     };
 
     struct VulkanUploadContext final
@@ -1181,16 +1183,16 @@ namespace Alimer::RHI
         void PopDebugGroup() override;
         void InsertDebugMarker(std::string_view markerLabel) override;
 
-        void CopyBufferToBuffer(const Buffer* sourceBuffer, const Buffer* destinationBuffer) override;
-        void CopyBufferToBuffer(const Buffer* sourceBuffer, uint64_t sourceOffset, const Buffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
+        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) override;
+        void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) override;
 
         void SetPipeline(ComputePipeline* pipeline) override;
         void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
         void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-        void DispatchIndirectCore(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
         void End() override;
-        RHICommandBuffer* GetCommandBuffer() const override;
+        CommandBuffer* GetCommandBuffer() const override;
 
     private:
         void ClearState();
@@ -1227,25 +1229,25 @@ namespace Alimer::RHI
         void SetShadingRate(ShadingRate rate) override;
         void SetDepthBounds(float minBounds, float maxBounds) override;
 
-        void SetPipeline(RHIRenderPipeline* pipeline) override;
+        void SetPipeline(RenderPipeline* pipeline) override;
         void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) override;
 
-        void SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset) override;
-        void SetVertexBuffers(uint32_t slot, uint32_t count, const Buffer** buffers, const uint64_t* offsets) override;
-        void SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexFormat format) override;
+        void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
+        void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
+        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format) override;
 
         void PrepareDraw();
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-        void DrawIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DrawIndexedIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
         void DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ) override;
-        void DrawMeshIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-        void DrawMeshIndirectCount(const Buffer* indirectBuffer, uint64_t indirectBufferOffset, const Buffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
+        void DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+        void DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
 
         void End() override;
 
-        RHICommandBuffer* GetCommandBuffer() const override;
+        CommandBuffer* GetCommandBuffer() const override;
 
     private:
         void ClearState();
@@ -1258,12 +1260,12 @@ namespace Alimer::RHI
         SharedPtr<VulkanRenderPipeline> _currentPipeline;
     };
 
-    class VulkanCommandBuffer final : public RHICommandBuffer
+    class VulkanCommandBuffer final : public CommandBuffer
     {
         friend class VulkanDevice;
 
     public:
-        VulkanCommandBuffer(VulkanDevice* device, QueueType queueType, uint32_t id);
+        VulkanCommandBuffer(VulkanDevice* device, CommandQueueType queueType, uint32_t id);
         ~VulkanCommandBuffer() override;
 
         void Begin(uint32_t frameIndex, std::string_view label);
@@ -1283,10 +1285,10 @@ namespace Alimer::RHI
 
         void FlushBindGroups(const DescriptorBindingTable& table, bool graphics);
 
-        void BeginQuery(const RHIQueryHeap* heap, uint32_t index) override;
-        void EndQuery(const RHIQueryHeap* heap, uint32_t index) override;
-        void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const Buffer* destinationBuffer, uint64_t destinationOffset) override;
-        void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) override;
+        void BeginQuery(const QueryHeap* heap, uint32_t index) override;
+        void EndQuery(const QueryHeap* heap, uint32_t index) override;
+        void ResolveQuery(const QueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) override;
+        void ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count) override;
 
         /* GraphicsContext */
         RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) override;
@@ -1294,14 +1296,14 @@ namespace Alimer::RHI
         ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
         RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
 
-        void BeginPredication(const Buffer* buffer, uint64_t offset, PredicationOperation operation) override;
+        void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
         void EndPredication() override;
 
     private:
         static constexpr uint32_t kMaxBarrierCount = 16;
 
         VulkanDevice* device;
-        QueueType queueType;
+        CommandQueueType queueType;
         uint32_t id;
 
         VkCommandPool commandPools[kNumFramesInFlight] = {};
@@ -1447,9 +1449,9 @@ namespace Alimer::RHI
     {
         uint32_t queueFamilyCount = 0;
 
-        uint32_t familyIndices[ecast(QueueType::Count)];
-        uint32_t queueIndices[ecast(QueueType::Count)] = {};
-        uint32_t counts[ecast(QueueType::Count)] = {};
+        uint32_t familyIndices[ecast(CommandQueueType::Count)];
+        uint32_t queueIndices[ecast(CommandQueueType::Count)] = {};
+        uint32_t counts[ecast(CommandQueueType::Count)] = {};
 
         uint32_t timestampValidBits = 0;
 
@@ -1466,7 +1468,7 @@ namespace Alimer::RHI
 
         bool IsComplete() const
         {
-            return familyIndices[ecast(QueueType::Graphics)] != VK_QUEUE_FAMILY_IGNORED;
+            return familyIndices[ecast(CommandQueueType::Graphics)] != VK_QUEUE_FAMILY_IGNORED;
         }
     };
 
@@ -1491,7 +1493,7 @@ namespace Alimer::RHI
         bool WaitIdle() override;
         uint64_t CommitFrame() override;
 
-        BufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
+        RHIBufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
         RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) override;
         RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) override;
         SamplerRef CreateSamplerCore(const SamplerDesc& desc) override;
@@ -1499,16 +1501,16 @@ namespace Alimer::RHI
         VkSampler GetOrCreateVulkanSampler(const SamplerDesc* desc);
         VkDescriptorPool CreateDescriptorSetPool();
 
-        RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
+        ShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
         ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
-        RHIRenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
-        RHIQueryHeapRef CreateQueryHeapCore(const QueryHeapDesc& desc) override;
+        RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
+        QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) override;
         RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
         void UpdateSwapChain(VulkanSwapChain* swapChain);
 
         void WriteShadingRateValue(ShadingRate rate, void* dest) const override;
 
-        RHICommandBuffer* BeginCommandBuffer(QueueType queue, std::string_view label = "") override;
+        CommandBuffer* BeginCommandBuffer(CommandQueueType queue, std::string_view label = "") override;
 
         void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices);
         void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices);
@@ -1528,9 +1530,9 @@ namespace Alimer::RHI
        Adapter* GetAdapter() const override;
 
         VkDevice GetHandle() const { return handle; }
-        VulkanQueue& GetGraphicsQueue() { return queues[ecast(QueueType::Graphics)]; }
-        VulkanQueue& GetComputeQueue() { return queues[ecast(QueueType::Compute)]; }
-        VulkanQueue& GetCopyQueue() { return queues[ecast(QueueType::Copy)]; }
+        VulkanQueue& GetGraphicsQueue() { return queues[ecast(CommandQueueType::Graphics)]; }
+        VulkanQueue& GetComputeQueue() { return queues[ecast(CommandQueueType::Compute)]; }
+        VulkanQueue& GetCopyQueue() { return queues[ecast(CommandQueueType::Copy)]; }
 
         /* Null resources */
         VkBuffer		nullBuffer = VK_NULL_HANDLE;
@@ -1573,7 +1575,7 @@ namespace Alimer::RHI
         bool shuttingDown{ false };
         VulkanRHIAdapter* _adapter;
         VkDevice handle = VK_NULL_HANDLE;
-        VulkanQueue queues[ecast(QueueType::Count)];
+        VulkanQueue queues[ecast(CommandQueueType::Count)];
 
         VmaAllocator allocator{ VK_NULL_HANDLE };
         VmaAllocator externalAllocator{ VK_NULL_HANDLE };
@@ -1802,7 +1804,7 @@ namespace Alimer::RHI
         }
     }
 
-    TextureViewRef VulkanTexture::CreateView(const TextureViewDesc& desc) const
+    RHITextureViewRef VulkanTexture::CreateView(const RHITextureViewDesc& desc) const
     {
         SharedPtr<VulkanTextureView> textureView(new VulkanTextureView(this, desc));
 
@@ -2044,7 +2046,7 @@ namespace Alimer::RHI
         _commandBuffer->InsertDebugMarker(markerLabel);
     }
 
-    void VulkanComputePassEncoder::CopyBufferToBuffer(const Buffer* sourceBuffer, const Buffer* destinationBuffer)
+    void VulkanComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2065,7 +2067,7 @@ namespace Alimer::RHI
         );
     }
 
-    void VulkanComputePassEncoder::CopyBufferToBuffer(const Buffer* sourceBuffer, uint64_t sourceOffset, const Buffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
+    void VulkanComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
     {
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -2127,7 +2129,7 @@ namespace Alimer::RHI
         _device->vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    void VulkanComputePassEncoder::DispatchIndirectCore(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanComputePassEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -2148,7 +2150,7 @@ namespace Alimer::RHI
         ClearState();
     }
 
-    RHICommandBuffer* VulkanComputePassEncoder::GetCommandBuffer() const
+    CommandBuffer* VulkanComputePassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
     }
@@ -2444,7 +2446,7 @@ namespace Alimer::RHI
         }
     }
 
-    void VulkanRenderPassEncoder::SetPipeline(RHIRenderPipeline* pipeline)
+    void VulkanRenderPassEncoder::SetPipeline(RenderPipeline* pipeline)
     {
         if (_currentPipeline.Get() == pipeline)
             return;
@@ -2467,14 +2469,14 @@ namespace Alimer::RHI
         );
     }
 
-    void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, const Buffer* buffer, uint64_t offset)
+    void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
     {
         auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
 
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, 1u, &backendBuffer->handle, &offset);
     }
 
-    void VulkanRenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const Buffer** buffers, const uint64_t* offsets)
+    void VulkanRenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
     {
         ALIMER_ASSERT(buffers != nullptr);
         ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
@@ -2496,7 +2498,7 @@ namespace Alimer::RHI
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, count, vkBuffers, offsets);
     }
 
-    void VulkanRenderPassEncoder::SetIndexBuffer(const Buffer* buffer, uint64_t offset, IndexFormat format)
+    void VulkanRenderPassEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format)
     {
         if (format == IndexFormat::Undefined)
         {
@@ -2529,7 +2531,7 @@ namespace Alimer::RHI
         _device->vkCmdDrawIndexed(_vkCommandBuffer, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    void VulkanRenderPassEncoder::DrawIndirect(const Buffer* buffer, uint64_t offset)
+    void VulkanRenderPassEncoder::DrawIndirect(const RHIBuffer* buffer, uint64_t offset)
     {
         ALIMER_ASSERT(buffer);
         PrepareDraw();
@@ -2538,7 +2540,7 @@ namespace Alimer::RHI
         _device->vkCmdDrawIndirect(_vkCommandBuffer, vulkanBuffer->handle, offset, 1, (uint32_t)sizeof(DrawIndirectCommand));
     }
 
-    void VulkanRenderPassEncoder::DrawIndexedIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRenderPassEncoder::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -2554,7 +2556,7 @@ namespace Alimer::RHI
         _device->vkCmdDrawMeshTasksEXT(_vkCommandBuffer, threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
-    void VulkanRenderPassEncoder::DrawMeshIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void VulkanRenderPassEncoder::DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
         ALIMER_ASSERT(indirectBuffer);
         PrepareDraw();
@@ -2568,7 +2570,7 @@ namespace Alimer::RHI
         );
     }
 
-    void VulkanRenderPassEncoder::DrawMeshIndirectCount(const Buffer* indirectBuffer, uint64_t indirectBufferOffset, const Buffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
+    void VulkanRenderPassEncoder::DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
     {
         ALIMER_ASSERT(indirectBuffer);
         ALIMER_ASSERT(countBuffer);
@@ -2597,13 +2599,13 @@ namespace Alimer::RHI
         ClearState();
     }
 
-    RHICommandBuffer* VulkanRenderPassEncoder::GetCommandBuffer() const
+    CommandBuffer* VulkanRenderPassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
     }
 
     /* VulkanCommandBuffer */
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, QueueType queueType_, uint32_t id_)
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, CommandQueueType queueType_, uint32_t id_)
         : device(device_)
         , queueType(queueType_)
         , id(id_)
@@ -2648,7 +2650,7 @@ namespace Alimer::RHI
 
     void VulkanCommandBuffer::Begin(uint32_t frameIndex, std::string_view label)
     {
-        RHICommandBuffer::Reset(frameIndex);
+        CommandBuffer::Reset(frameIndex);
         waits.clear();
         hasPendingWaits.store(false);
         presentSwapChains.clear();
@@ -2665,7 +2667,7 @@ namespace Alimer::RHI
         };
         VK_CHECK(device->vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        if (queueType == QueueType::Graphics)
+        if (queueType == CommandQueueType::Graphics)
         {
             VkRect2D scissors[16];
             for (uint32_t i = 0; i < ALIMER_STATIC_ARRAY_SIZE(scissors); ++i)
@@ -2910,7 +2912,7 @@ namespace Alimer::RHI
 
         for (uint32_t i = 0; i < ALIMER_STATIC_ARRAY_SIZE(table.CBV); ++i)
         {
-            BufferRef buffer = table.CBV[i];
+            RHIBufferRef buffer = table.CBV[i];
             auto& info = infos.CBV[i];
             auto& write = writes.CBV[i];
             write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -2965,7 +2967,7 @@ namespace Alimer::RHI
 
     }
 
-    void VulkanCommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
+    void VulkanCommandBuffer::BeginQuery(const QueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
@@ -2985,7 +2987,7 @@ namespace Alimer::RHI
         }
     }
 
-    void VulkanCommandBuffer::EndQuery(const RHIQueryHeap* heap, uint32_t index)
+    void VulkanCommandBuffer::EndQuery(const QueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
@@ -3003,7 +3005,7 @@ namespace Alimer::RHI
         }
     }
 
-    void VulkanCommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const Buffer* destinationBuffer, uint64_t destinationOffset)
+    void VulkanCommandBuffer::ResolveQuery(const QueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         auto vulkanDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
@@ -3031,7 +3033,7 @@ namespace Alimer::RHI
         );
     }
 
-    void VulkanCommandBuffer::ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count)
+    void VulkanCommandBuffer::ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
         device->vkCmdResetQueryPool(commandBuffer, vulkanHeap->handle, index, count);
@@ -3096,7 +3098,7 @@ namespace Alimer::RHI
         return _renderPassEncoder;
     }
 
-    void VulkanCommandBuffer::BeginPredication(const Buffer* buffer, uint64_t offset, PredicationOperation operation)
+    void VulkanCommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
     {
         if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
         {
@@ -3855,14 +3857,14 @@ namespace Alimer::RHI
         VkFenceCreateInfo fenceInfo = {};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-        for (uint8_t i = 0; i < ecast(QueueType::Count); i++)
+        for (uint8_t i = 0; i < ecast(CommandQueueType::Count); i++)
         {
             if (_adapter->queueFamilyIndices.familyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
             {
                 VkDeviceQueueInfo2 queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2 };
                 queueInfo.queueFamilyIndex = _adapter->queueFamilyIndices.familyIndices[i];
                 queueInfo.queueIndex = _adapter->queueFamilyIndices.queueIndices[i];
-                vkGetDeviceQueue2(handle, &queueInfo, &queues[i].queue);
+                vkGetDeviceQueue2(handle, &queueInfo, &queues[i].handle);
 
                 _adapter->queueFamilyIndices.counts[i] = _adapter->queueFamilyIndices.queueOffsets[_adapter->queueFamilyIndices.familyIndices[i]];
 
@@ -3870,10 +3872,12 @@ namespace Alimer::RHI
                 {
                     VK_CHECK(vkCreateFence(handle, &fenceInfo, nullptr, &queues[i].frameFences[frameIndex]));
                 }
+
+                queues[i].queueType = static_cast<CommandQueueType>(i);
             }
             else
             {
-                queues[i].queue = VK_NULL_HANDLE;
+                queues[i].handle = VK_NULL_HANDLE;
             }
         }
 
@@ -4147,9 +4151,9 @@ namespace Alimer::RHI
         WaitIdle();
         shuttingDown = true;
 
-        for (uint8_t i = 0; i < ecast(QueueType::Count); ++i)
+        for (uint8_t i = 0; i < ecast(CommandQueueType::Count); ++i)
         {
-            if (queues[i].queue == VK_NULL_HANDLE)
+            if (queues[i].handle == VK_NULL_HANDLE)
                 continue;
 
             for (uint32_t frameIndex = 0; frameIndex < kNumFramesInFlight; ++frameIndex)
@@ -4318,7 +4322,7 @@ namespace Alimer::RHI
             }
 
             // Final submits with fences.
-            for (uint8_t i = 0; i < ecast(QueueType::Count); ++i)
+            for (uint8_t i = 0; i < ecast(CommandQueueType::Count); ++i)
             {
                 queues[i].Submit(this, queues[i].frameFences[_frameIndex]);
             }
@@ -4332,9 +4336,9 @@ namespace Alimer::RHI
         // Initiate stalling CPU when GPU is not yet finished with next frame
         if (_frameCount >= kNumFramesInFlight)
         {
-            for (uint8_t i = 0; i < ecast(QueueType::Count); ++i)
+            for (uint8_t i = 0; i < ecast(CommandQueueType::Count); ++i)
             {
-                if (queues[i].queue == VK_NULL_HANDLE)
+                if (queues[i].handle == VK_NULL_HANDLE)
                     continue;
 
                 VK_CHECK(vkWaitForFences(handle, 1, &queues[i].frameFences[_frameIndex], true, 0xFFFFFFFFFFFFFFFF));
@@ -4346,7 +4350,7 @@ namespace Alimer::RHI
         return _frameCount;
     }
 
-    BufferRef VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
+    RHIBufferRef VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
     {
         SharedPtr<VulkanBuffer> buffer(new VulkanBuffer(this, desc));
 
@@ -4424,7 +4428,7 @@ namespace Alimer::RHI
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
 
-        uint32_t sharingIndices[ecast(QueueType::Count)];
+        uint32_t sharingIndices[ecast(CommandQueueType::Count)];
         FillBufferSharingIndices(createInfo, sharingIndices);
 
         VmaAllocationCreateInfo memoryInfo = {};
@@ -4700,7 +4704,7 @@ namespace Alimer::RHI
             createInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         }
 
-        uint32_t sharingIndices[ecast(QueueType::Count)];
+        uint32_t sharingIndices[ecast(CommandQueueType::Count)];
         FillImageSharingIndices(createInfo, sharingIndices);
 
         VkResult result = VK_SUCCESS;
@@ -5168,7 +5172,7 @@ namespace Alimer::RHI
         return pool;
     }
 
-    RHIShaderModuleRef VulkanDevice::CreateShaderModuleCore(const ShaderModuleDesc& desc)
+    ShaderModuleRef VulkanDevice::CreateShaderModuleCore(const ShaderModuleDesc& desc)
     {
         SharedPtr<VulkanShaderModule> module(new VulkanShaderModule());
         module->device = this;
@@ -5241,7 +5245,7 @@ namespace Alimer::RHI
         return pipeline;
     }
 
-    RHIRenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDescriptor& desc)
+    RenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDescriptor& desc)
     {
         SharedPtr<VulkanRenderPipeline> pipeline(new VulkanRenderPipeline());
         pipeline->device = this;
@@ -5527,7 +5531,7 @@ namespace Alimer::RHI
         return pipeline;
     }
 
-    RHIQueryHeapRef VulkanDevice::CreateQueryHeapCore(const QueryHeapDesc& desc)
+    QueryHeapRef VulkanDevice::CreateQueryHeapCore(const QueryHeapDescriptor& desc)
     {
         VkQueryPoolCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -5599,7 +5603,7 @@ namespace Alimer::RHI
         }
 
         // Present family not found, we cannot create SwapChain
-        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(QueueType::Graphics)])) == 0)
+        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(CommandQueueType::Graphics)])) == 0)
         {
             LOGE("Vulkan: No presentation queue found for GPU.");
             return nullptr;
@@ -5833,7 +5837,7 @@ namespace Alimer::RHI
         }
     }
 
-    RHICommandBuffer* VulkanDevice::BeginCommandBuffer(QueueType queue, std::string_view label)
+    CommandBuffer* VulkanDevice::BeginCommandBuffer(CommandQueueType queue, std::string_view label)
     {
         cmdBuffersLocker.lock();
         uint32_t index = cmdBuffersCount++;
@@ -6238,7 +6242,7 @@ namespace Alimer::RHI
 
     void VulkanQueue::Submit(VulkanDevice* device, VkFence fence)
     {
-        if (queue == VK_NULL_HANDLE)
+        if (handle == VK_NULL_HANDLE)
             return;
 
         ALIMER_ASSERT(submitSignalSemaphores.size() == submitSignalSemaphoreInfos.size());
@@ -6252,7 +6256,7 @@ namespace Alimer::RHI
         submitInfo.pCommandBufferInfos = submitCommandBufferInfos.data();
         submitInfo.signalSemaphoreInfoCount = (uint32_t)submitSignalSemaphoreInfos.size();
         submitInfo.pSignalSemaphoreInfos = submitSignalSemaphoreInfos.data();
-        VK_CHECK(device->vkQueueSubmit2(queue, 1, &submitInfo, fence));
+        VK_CHECK(device->vkQueueSubmit2(handle, 1, &submitInfo, fence));
 
         if (!submitSwapchains.empty())
         {
@@ -6264,7 +6268,7 @@ namespace Alimer::RHI
             presentInfo.pSwapchains = submitSwapchains.data();
             presentInfo.pImageIndices = submitSwapchainImageIndices.data();
 
-            const VkResult result = device->vkQueuePresentKHR(queue, &presentInfo);
+            const VkResult result = device->vkQueuePresentKHR(handle, &presentInfo);
             if (result != VK_SUCCESS)
             {
                 // Handle outdated error in present
@@ -6299,7 +6303,7 @@ namespace Alimer::RHI
 
     void VulkanDevice::CopyAllocator::Shutdown()
     {
-        device->vkQueueWaitIdle(device->queues[ecast(QueueType::Copy)].queue);
+        device->vkQueueWaitIdle(device->queues[ecast(CommandQueueType::Copy)].handle);
         for (auto& context : freeList)
         {
             device->vkDestroyCommandPool(device->handle, context.transferCommandPool, nullptr);
@@ -6341,10 +6345,10 @@ namespace Alimer::RHI
             VkCommandPoolCreateInfo poolCreateInfo = {};
             poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(QueueType::Copy)];
+            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(CommandQueueType::Copy)];
             VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transferCommandPool));
 
-            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(QueueType::Graphics)];
+            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(CommandQueueType::Graphics)];
             VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transitionCommandPool));
 
             VkCommandBufferAllocateInfo commandBufferInfo = {};
@@ -6423,8 +6427,8 @@ namespace Alimer::RHI
             submitInfo.signalSemaphoreInfoCount = 1;
             submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
-            std::scoped_lock lock(device->queues[ecast(QueueType::Copy)].locker);
-            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(QueueType::Copy)].queue, 1, &submitInfo, VK_NULL_HANDLE));
+            std::scoped_lock lock(device->queues[ecast(CommandQueueType::Copy)].locker);
+            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(CommandQueueType::Copy)].handle, 1, &submitInfo, VK_NULL_HANDLE));
         }
 
         // Graphics queue
@@ -6461,8 +6465,8 @@ namespace Alimer::RHI
             }
             submitInfo.pSignalSemaphoreInfos = signalSemaphoreInfos;
 
-            std::scoped_lock lock(device->queues[ecast(QueueType::Graphics)].locker);
-            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(QueueType::Graphics)].queue, 1, &submitInfo, VK_NULL_HANDLE));
+            std::scoped_lock lock(device->queues[ecast(CommandQueueType::Graphics)].locker);
+            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(CommandQueueType::Graphics)].handle, 1, &submitInfo, VK_NULL_HANDLE));
         }
 
         //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
@@ -6497,8 +6501,8 @@ namespace Alimer::RHI
             submitInfo.pSignalSemaphoreInfos = nullptr;
 
             // Final submit also signals fence!
-            std::scoped_lock lock(device->queues[ecast(QueueType::Compute)].locker);
-            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(QueueType::Compute)].queue, 1, &submitInfo, context.fence));
+            std::scoped_lock lock(device->queues[ecast(CommandQueueType::Compute)].locker);
+            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(CommandQueueType::Compute)].handle, 1, &submitInfo, context.fence));
         }
 
         std::scoped_lock lock(locker);
@@ -7036,7 +7040,7 @@ namespace Alimer::RHI
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = desc.label.data();
+        appInfo.pApplicationName = desc.label.empty() ? nullptr : desc.label.c_str();
         appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
         appInfo.pEngineName = ENGINE_NAME;
         appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
@@ -7518,7 +7522,7 @@ namespace Alimer::RHI
         indices.queueOffsets.resize(queueFamilyCount);
         indices.queuePriorities.resize(queueFamilyCount);
 
-        const auto FindVacantQueue = [&](QueueType type, VkQueueFlags required, VkQueueFlags ignore_flags,
+        const auto FindVacantQueue = [&](CommandQueueType type, VkQueueFlags required, VkQueueFlags ignore_flags,
             float priority) -> bool
             {
                 for (uint32_t familyIndex = 0; familyIndex < queueFamilyCount; familyIndex++)
@@ -7574,40 +7578,40 @@ namespace Alimer::RHI
                 return false;
             };
 
-        if (!FindVacantQueue(QueueType::Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
+        if (!FindVacantQueue(CommandQueueType::Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
         {
             LOGE("Vulkan: Could not find suitable graphics queue.");
             return indices;
         }
 
         // XXX: This assumes timestamp valid bits is the same for all queue types.
-        indices.timestampValidBits = queueFamilies[indices.familyIndices[ecast(QueueType::Graphics)]].queueFamilyProperties.timestampValidBits;
+        indices.timestampValidBits = queueFamilies[indices.familyIndices[ecast(CommandQueueType::Graphics)]].queueFamilyProperties.timestampValidBits;
 
         // Prefer standalone compute queue. If not, fall back to another graphics queue.
-        if (!FindVacantQueue(QueueType::Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
-            && !FindVacantQueue(QueueType::Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
+        if (!FindVacantQueue(CommandQueueType::Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
+            && !FindVacantQueue(CommandQueueType::Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
         {
             // Fallback to the graphics queue if we must.
-            indices.familyIndices[ecast(QueueType::Compute)] = indices.familyIndices[ecast(QueueType::Graphics)];
-            indices.queueIndices[ecast(QueueType::Compute)] = indices.queueIndices[ecast(QueueType::Graphics)];
+            indices.familyIndices[ecast(CommandQueueType::Compute)] = indices.familyIndices[ecast(CommandQueueType::Graphics)];
+            indices.queueIndices[ecast(CommandQueueType::Compute)] = indices.queueIndices[ecast(CommandQueueType::Graphics)];
         }
 
         // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
         // If not, fallback to a dedicated compute queue.
         // Finally, fallback to same queue as compute.
-        if (!FindVacantQueue(QueueType::Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
-            && !FindVacantQueue(QueueType::Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
+        if (!FindVacantQueue(CommandQueueType::Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
+            && !FindVacantQueue(CommandQueueType::Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
         {
-            indices.familyIndices[ecast(QueueType::Copy)] = indices.familyIndices[ecast(QueueType::Compute)];
-            indices.queueIndices[ecast(QueueType::Copy)] = indices.queueIndices[ecast(QueueType::Compute)];
+            indices.familyIndices[ecast(CommandQueueType::Copy)] = indices.familyIndices[ecast(CommandQueueType::Compute)];
+            indices.queueIndices[ecast(CommandQueueType::Copy)] = indices.queueIndices[ecast(CommandQueueType::Compute)];
         }
 
         if (supportsVideoQueue)
         {
-            if (!FindVacantQueue(QueueType::VideoDecode, VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
+            if (!FindVacantQueue(CommandQueueType::VideoDecode, VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
             {
-                indices.familyIndices[ecast(QueueType::VideoDecode)] = VK_QUEUE_FAMILY_IGNORED;
-                indices.queueIndices[ecast(QueueType::VideoDecode)] = UINT32_MAX;
+                indices.familyIndices[ecast(CommandQueueType::VideoDecode)] = VK_QUEUE_FAMILY_IGNORED;
+                indices.queueIndices[ecast(CommandQueueType::VideoDecode)] = UINT32_MAX;
             }
 
 #ifdef VK_ENABLE_BETA_EXTENSIONS
@@ -7653,6 +7657,12 @@ namespace Alimer::RHI
     bool Vulkan_IsSupported()
     {
         return VulkanRHIFactory::IsSupported();
+    }
+
+    Vector<Adapter*> Vulkan_InitAdapters()
+    {
+        static Vector<Adapter*> adapters;
+        return adapters;
     }
 
     RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc)

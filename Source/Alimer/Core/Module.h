@@ -1,0 +1,76 @@
+// Copyright (c) Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+
+#pragma once
+
+#include "AlimerConfig.h"
+#include <utility>
+
+namespace Alimer
+{
+    template<class T>
+    class ALIMER_API Module
+    {
+    public:
+        static T& Instance()
+        {
+            return *_Instance();
+        }
+
+        static T* InstancePtr()
+        {
+            return _Instance();
+        }
+
+        template<typename ...Args>
+        static void Start(Args &&...args)
+        {
+            _Instance() = new T(std::forward<Args>(args)...);
+        }
+
+        template<typename Derived, typename ...Args>
+        static void Start(Args &&...args)
+        {
+            static_assert((std::is_base_of<Module<T>, Derived>::value), "Specified type is not a valid Module.");
+
+            _Instance() = new Derived(std::forward<Args>(args)...);
+        }
+
+        template<typename Derived>
+        static void Start(Derived* instance)
+        {
+            static_assert((std::is_base_of<Module<T>, Derived>::value), "Specified type is not a valid Module.");
+
+            _Instance() = instance;
+        }
+
+        void Shutdown()
+        {
+            delete _Instance();
+        }
+
+        bool IsInitialized() const
+        {
+            return _Instance() != nullptr;
+        }
+
+    protected:
+        Module()
+        {
+        }
+
+        virtual ~Module() = default;
+
+        Module(Module&&) = delete;
+        Module(const Module&) = delete;
+        Module& operator=(Module&&) = delete;
+        Module& operator=(const Module&) = delete;
+
+        /** Returns a singleton instance of this module. */
+        static T*& _Instance()
+        {
+            static T* inst = nullptr;
+            return inst;
+        }
+    };
+}

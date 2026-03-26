@@ -5,7 +5,6 @@
 
 #include <Alimer/Alimer.h>
 using namespace Alimer;
-using namespace Alimer::RHI;
 
 class Sample
 {
@@ -14,7 +13,7 @@ public:
 
     virtual void Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat = PixelFormat::Depth32Float);
     virtual void Update(float deltaTime) {}
-    virtual void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) = 0;
+    virtual void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) = 0;
 
 protected:
     RHITextureRef _depthStencilTexture;

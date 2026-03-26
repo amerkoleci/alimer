@@ -92,8 +92,8 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
     _vertexBuffer = device->CreateBuffer(vertices.size() * sizeof(VertexPositionNormalTexture), BufferUsage::Vertex, vertices.data());
     _indexBuffer = device->CreateBuffer(indices.size() * sizeof(uint16_t), BufferUsage::Index, indices.data());
 
-    RHIShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Cube");
-    RHIShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Cube");
+    ShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Cube");
+    ShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Cube");
 
     std::array<VertexAttribute, 3> vertexAttributes = {
         VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionNormalTexture, position) },
@@ -117,7 +117,7 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
     _renderPipeline = device->CreateRenderPipeline(pipelineDesc);
 }
 
-void DrawSpinningCube::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTexture)
+void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputTexture)
 {
     static float rx = 0.0f;
     static float ry = 0.0f;

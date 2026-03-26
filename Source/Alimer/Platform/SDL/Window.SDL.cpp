@@ -14,7 +14,6 @@ namespace
 }
 
 using namespace Alimer;
-using namespace Alimer::RHI;
 
 Window::Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
     : _impl(new WindowImpl())
@@ -197,19 +196,19 @@ void Window::SetCursorVisible(bool value)
 }
 
 
-void Window::CreateSurface(RHIFactory* factory)
+void Window::CreateSurface()
 {
     [[maybe_unused]] SDL_PropertiesID properties = SDL_GetWindowProperties(_impl->handle);
 
 #if defined(SDL_PLATFORM_WIN32)
     void* hwnd = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-    _surface = factory->CreateSurface(hwnd, nullptr);
+    _surface = GRHIFactory->CreateSurface(hwnd, nullptr);
 #elif defined(SDL_PLATFORM_MACOS)
     void* layer = SDL_Metal_GetLayer(_impl->view);
-    _surface = factory->CreateSurface(layer, nullptr);
+    _surface = GRHIFactory->CreateSurface(layer, nullptr);
 #elif defined(SDL_PLATFORM_ANDROID)
     void* window = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
-    _surface = factory->CreateSurface(window, nullptr);
+    _surface = GRHIFactory->CreateSurface(window, nullptr);
 #elif defined(SDL_PLATFORM_LINUX)
     if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
     {
@@ -225,7 +224,7 @@ void Window::CreateSurface(RHIFactory* factory)
         struct wl_surface* surface = (struct wl_surface*)SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
         if (display && surface)
         {
-            _surface = factory->CreateSurface(surface, display);
+            _surface = GRHIFactory->CreateSurface(surface, display);
         }
     }
 #endif

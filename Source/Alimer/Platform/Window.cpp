@@ -7,13 +7,12 @@
 #include "Alimer/Core/Log.h"
 
 using namespace Alimer;
-using namespace Alimer::RHI;
 
 void Window::OnResized()
 {
     if (_swapChain != nullptr)
     {
-        _device->WaitIdle();
+        GRHIDevice->WaitIdle();
 
         //CreateSwapChain();
     }
@@ -21,9 +20,8 @@ void Window::OnResized()
     Resized.Emit();
 }
 
-void Window::CreateSwapChain(RHIDevice* device)
+void Window::CreateSwapChain()
 {
-    _device.Reset(device);
     UInt2 size = GetSize();
 
     const RHISwapChainDesc desc{
@@ -33,12 +31,12 @@ void Window::CreateSwapChain(RHIDevice* device)
         .colorFormat = _colorFormat,
         .presentMode = PresentMode::Fifo,
     };
-    _swapChain = _device->CreateSwapChain(_surface, desc);
+    _swapChain = GRHIDevice->CreateSwapChain(_surface, desc);
 }
 
 void Window::DestroySwapChain()
 {
-    _device->WaitIdle();
+    GRHIDevice->WaitIdle();
     _swapChain.Reset();
 }
 

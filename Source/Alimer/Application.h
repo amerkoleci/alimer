@@ -22,11 +22,30 @@ namespace Alimer
         WindowFlags flags = WindowFlags::Resizable | WindowFlags::Hidden;
     };
 
+    struct GraphicsOptions final
+    {
+        BackendType preferredBackend = BackendType::Count;
+#if defined(_DEBUG)
+        ValidationMode validationMode = ValidationMode::Enabled;
+#else
+        ValidationMode validationMode = ValidationMode::Disabled;
+#endif
+        //AdapterType adapterType = AdapterType::Auto;
+    };
+
     struct AppOptions final
     {
         /// Application name.
         std::string name = "Alimer";
+
+        /// Main windows options.
         WindowDesc window;
+
+        /// Graphics options
+        GraphicsOptions graphics;
+
+        /// Assets folder
+        std::string assetsDirectory = "Assets";
     };
 
     /// Class that provides graphics initialization, application logic, and rendering code.
@@ -76,7 +95,7 @@ namespace Alimer
         virtual void Setup() {}
         virtual void Initialize() {}
         virtual void Update() {}
-        virtual void Draw([[maybe_unused]] RHI::RHICommandBuffer* commandBuffer, [[maybe_unused]] RHI::RHITexture* outputTexture) {}
+        virtual void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) {}
         virtual bool BeginDraw();
         virtual void EndDraw();
 
@@ -88,8 +107,8 @@ namespace Alimer
         bool _running{ false };
         bool _exitRequested{ false };
         bool _isActive{ false };
+        bool _headless{ false };
         Timer _timer;
-        RHI::RHIDeviceRef _rhiDevice;
 
     private:
         /* Platform App implementations */
@@ -103,8 +122,7 @@ namespace Alimer
         void Render();
 
         static Application* s_Instance;
-        RHI::RHIFactoryRef _rhiFactory = nullptr;
-        RHI::Adapter* adapter = nullptr;
+        Adapter* adapter = nullptr;
         std::unique_ptr<Window> _mainWindow;
     };
 }

@@ -67,14 +67,14 @@ namespace Alimer
         void SetCursorVisible(bool value);
 
         [[nodiscard]] WindowImpl* GetImpl() const noexcept { return _impl; }
-        [[nodiscard]] RHI::RHISurface* GetSurface() const noexcept { return _surface.Get(); }
-        [[nodiscard]] RHI::RHISwapChain* GetSwapChain() const noexcept { return _swapChain.Get(); }
+        [[nodiscard]] RHISurface* GetSurface() const noexcept { return _surface.Get(); }
+        [[nodiscard]] RHISwapChain* GetSwapChain() const noexcept { return _swapChain.Get(); }
         PixelFormat GetColorFormat() const noexcept { return _colorFormat; }
 
     private:
         /* Called by Application */
-        void CreateSurface(RHI::RHIFactory* factory);
-        void CreateSwapChain(RHI::RHIDevice* device);
+        void CreateSurface();
+        void CreateSwapChain();
         void DestroySwapChain();
         void OnResized();
 
@@ -82,8 +82,7 @@ namespace Alimer
         uint32_t _id{};
         std::string _title;
         PixelFormat _colorFormat = PixelFormat::BGRA8UnormSrgb;
-        RHI::RHISurfaceRef _surface;
-        RHI::RHIDeviceRef _device;
-        RHI::RHISwapChainRef _swapChain;
+        RHISurfaceRef _surface;
+        RHISwapChainRef _swapChain;
     };
 }

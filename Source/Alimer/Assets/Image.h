@@ -30,7 +30,7 @@ namespace Alimer
         Alimer,
     };
 
-    using ImageDimension = RHI::TextureDimension;
+    using ImageDimension = TextureDimension;
 
     /// Description for image.
     struct ImageDesc

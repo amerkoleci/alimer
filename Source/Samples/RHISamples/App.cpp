@@ -14,7 +14,7 @@ public:
 
     void Setup() override;
     void Initialize() override;
-    void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
+    void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
 
 private:
     Sample* _runningSample = nullptr;
@@ -40,16 +40,16 @@ void RHISamplesApp::Initialize()
     PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
 
     //_runningSample = new DrawTriangle();
-    //_runningSample = new DrawIndexedQuad();
-    _runningSample = new DrawSpinningCube();
+    _runningSample = new DrawIndexedQuad();
+    //_runningSample = new DrawSpinningCube();
 
-    _runningSample->Initialize(_rhiDevice,
+    _runningSample->Initialize(GRHIDevice,
         GetMainWindow()->GetSizeInPixels(),
         GetMainWindow()->GetColorFormat(),
         depthStencilFormat);
 }
 
-void RHISamplesApp::Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)
+void RHISamplesApp::Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)
 {
     _runningSample->Draw(commandBuffer, outputTexture);
 }

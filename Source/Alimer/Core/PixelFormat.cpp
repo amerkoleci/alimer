@@ -455,11 +455,11 @@ namespace Alimer
         { PixelFormat::RGBA32Float,         "RGBA32Float",      16,   1, 1, PixelFormatKind::Float },
 
         // Depth-stencil formats
-        { PixelFormat::Stencil8,                "Stencil8",             4,   1, 1, PixelFormatKind::Uint },
         { PixelFormat::Depth16Unorm,            "Depth16Unorm",         2,   1, 1, PixelFormatKind::Unorm },
         { PixelFormat::Depth24UnormStencil8,    "Depth24UnormStencil8", 4,   1, 1, PixelFormatKind::Unorm },
         { PixelFormat::Depth32Float,            "Depth32Float",         4,   1, 1, PixelFormatKind::Float },
         { PixelFormat::Depth32FloatStencil8,    "Depth32FloatStencil8", 8,   1, 1, PixelFormatKind::Float },
+        { PixelFormat::Stencil8,                "Stencil8",             4,   1, 1, PixelFormatKind::Uint },
 
         // BC compressed formats
         { PixelFormat::BC1RGBAUnorm,            "BC1RGBAUnorm",         8,   4, 4, PixelFormatKind::Unorm },
@@ -519,20 +519,20 @@ namespace Alimer
         { PixelFormat::ASTC12x12Unorm,          "ASTC12x12Unorm",       16,   12, 12, PixelFormatKind::Unorm  },
         { PixelFormat::ASTC12x12UnormSrgb,      "ASTC12x12UnormSrgb",   16,   12, 12, PixelFormatKind::UnormSrgb },
         // ASTC HDR compressed formats
-        { PixelFormat::ASTC4x4HDR,              "ASTC4x4HDR",         16,   4, 4, PixelFormatKind::Float },
-        { PixelFormat::ASTC5x4HDR,              "ASTC5x4HDR",         16,   5, 4, PixelFormatKind::Float },
-        { PixelFormat::ASTC5x5HDR,              "ASTC5x5HDR",         16,   5, 5, PixelFormatKind::Float },
-        { PixelFormat::ASTC6x5HDR,              "ASTC6x5HDR",         16,   6, 5, PixelFormatKind::Float },
-        { PixelFormat::ASTC6x6HDR,              "ASTC6x6HDR",         16,   6, 6, PixelFormatKind::Float },
-        { PixelFormat::ASTC8x5HDR,              "ASTC8x5HDR",         16,   8, 5, PixelFormatKind::Float },
-        { PixelFormat::ASTC8x6HDR,              "ASTC8x6HDR",         16,   8, 6, PixelFormatKind::Float },
-        { PixelFormat::ASTC8x8HDR,              "ASTC8x8HDR",         16,   8, 8, PixelFormatKind::Float },
-        { PixelFormat::ASTC10x5HDR,             "ASTC10x5HDR",        16,   10, 5, PixelFormatKind::Float },
-        { PixelFormat::ASTC10x6HDR,             "ASTC10x6HDR",        16,   10, 6, PixelFormatKind::Float },
-        { PixelFormat::ASTC10x8HDR,             "ASTC10x8HDR",        16,   10, 8, PixelFormatKind::Float },
-        { PixelFormat::ASTC10x10HDR,            "ASTC10x10HDR",       16,   10, 10, PixelFormatKind::Float },
-        { PixelFormat::ASTC12x10HDR,            "ASTC12x10HDR",       16,   12, 10, PixelFormatKind::Float },
-        { PixelFormat::ASTC12x12HDR,            "ASTC12x12HDR",       16,   12, 12, PixelFormatKind::Float },
+        { PixelFormat::ASTC4x4HDR,              "ASTC4x4HDR",         16,   4, 4, PixelFormatKind::HDR },
+        { PixelFormat::ASTC5x4HDR,              "ASTC5x4HDR",         16,   5, 4, PixelFormatKind::HDR },
+        { PixelFormat::ASTC5x5HDR,              "ASTC5x5HDR",         16,   5, 5, PixelFormatKind::HDR },
+        { PixelFormat::ASTC6x5HDR,              "ASTC6x5HDR",         16,   6, 5, PixelFormatKind::HDR },
+        { PixelFormat::ASTC6x6HDR,              "ASTC6x6HDR",         16,   6, 6, PixelFormatKind::HDR },
+        { PixelFormat::ASTC8x5HDR,              "ASTC8x5HDR",         16,   8, 5, PixelFormatKind::HDR },
+        { PixelFormat::ASTC8x6HDR,              "ASTC8x6HDR",         16,   8, 6, PixelFormatKind::HDR },
+        { PixelFormat::ASTC8x8HDR,              "ASTC8x8HDR",         16,   8, 8, PixelFormatKind::HDR },
+        { PixelFormat::ASTC10x5HDR,             "ASTC10x5HDR",        16,   10, 5, PixelFormatKind::HDR },
+        { PixelFormat::ASTC10x6HDR,             "ASTC10x6HDR",        16,   10, 6, PixelFormatKind::HDR },
+        { PixelFormat::ASTC10x8HDR,             "ASTC10x8HDR",        16,   10, 8, PixelFormatKind::HDR },
+        { PixelFormat::ASTC10x10HDR,            "ASTC10x10HDR",       16,   10, 10, PixelFormatKind::HDR },
+        { PixelFormat::ASTC12x10HDR,            "ASTC12x10HDR",       16,   12, 10, PixelFormatKind::HDR },
+        { PixelFormat::ASTC12x12HDR,            "ASTC12x12HDR",       16,   12, 12, PixelFormatKind::HDR },
     };
 
     static_assert(

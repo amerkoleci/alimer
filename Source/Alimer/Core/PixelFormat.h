@@ -65,11 +65,11 @@ namespace Alimer
         RGBA32Sint,
         RGBA32Float,
         // Depth-stencil formats
-        Stencil8,
         Depth16Unorm,
         Depth24UnormStencil8,
         Depth32Float,
         Depth32FloatStencil8,
+        Stencil8,
         // BC compressed formats
         BC1RGBAUnorm,
         BC1RGBAUnormSrgb,
@@ -158,6 +158,8 @@ namespace Alimer
         Sint,
         /// Floating-point formats
         Float,
+        /// HDR formats.
+        HDR,
     };
 
     struct PixelFormatInfo

@@ -4,11 +4,12 @@
 #include "Alimer/Core/Assert.h"
 #include "Alimer/Core/Log.h"
 #include "Alimer/Core/Timer.h"
+#include "Alimer/Core/JobSystem.h"
 #include "Alimer/Application.h"
+#include "Alimer/Assets/AssetManager.h"
 #include <thread>
 
 using namespace Alimer;
-using namespace Alimer::RHI;
 
 std::thread::id mainThreadId = std::this_thread::get_id();
 Application* Application::s_Instance = nullptr;
@@ -27,7 +28,7 @@ Application::Application()
 {
     ALIMER_ASSERT_MSG(s_Instance == nullptr, "Cannot create more than one Application");
     Log::Init();
-    //JobSystem::Initialize();
+    JobSystem::Initialize();
     mainThreadId = std::this_thread::get_id();
 
     // Init platform first
@@ -42,13 +43,13 @@ Application::Application()
 
 Application::~Application()
 {
-    _rhiDevice->WaitIdle();
+    GRHIDevice->WaitIdle();
+    gAssets().Shutdown();
 
-    _rhiDevice.Reset();
+    GRHIDevice.Reset();
+    RHIShutdown();
     Log::Shutdown();
-#if TODO
-    //JobSystem::Shutdown();
-#endif
+    JobSystem::Shutdown();
     PlatformShutdown();
     s_Instance = nullptr;
 }
@@ -64,11 +65,6 @@ void Application::Run()
 
     // Allow config override.
     Setup();
-
-    //if (settings.graphics.preferredApi == GraphicsAPI::Count)
-    //{
-    //    settings.graphics.preferredApi = RHIGetPlatformPreferredApi();
-    //}
 
     // Run platform main loop.
     PlatformRunMainLoop();
@@ -102,19 +98,29 @@ void Application::DoUpdate()
 
 void Application::InitBeforeRun()
 {
+    JobSystem::Context ctx;
+    JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { gAssets().Start(_options.assetsDirectory); });
+
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};
-#if defined(_DEBUG)
-    factoryDesc.validationMode = ValidationMode::Enabled;
-#endif
-    _rhiFactory = RHIFactory::Create(factoryDesc);
-    _mainWindow->CreateSurface(_rhiFactory);
-    adapter = _rhiFactory->GetBestAdapter();
-    RHIDeviceDesc deviceDesc{
-        .label = "Main RHI Device"
-    };
-    _rhiDevice = adapter->CreateDevice(deviceDesc);
-    _mainWindow->CreateSwapChain(_rhiDevice);
+    factoryDesc.preferredBackend = _options.graphics.preferredBackend;
+    factoryDesc.validationMode = _options.graphics.validationMode;
+    factoryDesc.label = _options.name;
+    if (!RHIInit(factoryDesc))
+    {
+        LOGE("RHI: Failed to initialize");
+        _headless = true;
+    }
+    else
+    {
+        _mainWindow->CreateSurface();
+        adapter = GRHIFactory->GetBestAdapter();
+        RHIDeviceDesc deviceDesc{
+            .label = "Main RHI Device"
+        };
+        GRHIDevice = adapter->CreateDevice(deviceDesc);
+        _mainWindow->CreateSwapChain();
+    }
 
     // We're ready, now init.
     Initialize();
@@ -139,9 +145,9 @@ void Application::Render()
     // ImGui
     OnGui();
 
-    RHI::RHICommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(RHI::QueueType::Graphics, "Frame");
+    CommandBuffer* commandBuffer = GRHIDevice->BeginCommandBuffer(CommandQueueType::Graphics, "Frame");
     //RHITexture* swapChainTexture = _mainWindow->GetSwapChain()->AcquireNextTexture();
-    RHI::RHITexture* swapChainTexture = commandBuffer->AcquireSwapChainTexture(_mainWindow->GetSwapChain());
+    RHITexture* swapChainTexture = commandBuffer->AcquireSwapChainTexture(_mainWindow->GetSwapChain());
     if (swapChainTexture != nullptr)
     {
         Draw(commandBuffer, swapChainTexture);
@@ -158,10 +164,10 @@ void Application::Render()
 
 bool Application::BeginDraw()
 {
-    return !_mainWindow->IsMinimized() && !_rhiDevice->IsDeviceLost();
+    return !_mainWindow->IsMinimized() && !GRHIDevice->IsDeviceLost();
 }
 
 void Application::EndDraw()
 {
-    _rhiDevice->CommitFrame();
+    GRHIDevice->CommitFrame();
 }

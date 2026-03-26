@@ -14,7 +14,7 @@
 #include "Alimer/Platform/Win32/WindowsPlatform.h"
 #endif
 
-namespace Alimer::RHI
+namespace Alimer
 {
     namespace
     {
@@ -69,7 +69,7 @@ namespace Alimer::RHI
         }
     }
 
-    TextureView* RHITexture::GetDefaultView() const
+    RHITextureView* RHITexture::GetDefaultView() const
     {
         if (!defaultView)
         {
@@ -79,14 +79,14 @@ namespace Alimer::RHI
         return defaultView.Get();
     }
 
-    TextureView* RHITexture::GetView(const TextureViewDesc* desc) const
+    RHITextureView* RHITexture::GetView(const RHITextureViewDesc* desc) const
     {
         if (!CheckBitsAny(usage, TextureUsage::ShaderRead | TextureUsage::ShaderWrite | TextureUsage::RenderTarget))
         {
             LOGE("Cannot create TextureView for texture without ShaderRead, ShaderWrite or RenderTarget usage");
         }
 
-        TextureViewDesc creationDesc = {};
+        RHITextureViewDesc creationDesc = {};
         if (desc)
             creationDesc = *desc;
         //else
@@ -124,7 +124,7 @@ namespace Alimer::RHI
         auto it = views.find(hash);
         if (it == views.end())
         {
-            TextureViewRef newView = CreateView(creationDesc);
+            RHITextureViewRef newView = CreateView(creationDesc);
             if (!newView)
             {
                 LOGE("Failed to create TextureView");
@@ -139,7 +139,7 @@ namespace Alimer::RHI
     }
 
     /* CommandEncoder */
-    void CommandEncoder::SetConstantBuffer(uint32_t slot, Buffer* buffer, uint64_t offset)
+    void CommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
     {
         ALIMER_ASSERT(slot < kContantBufferCount);
 
@@ -202,7 +202,7 @@ namespace Alimer::RHI
         return allocation;
     }
 
-    void ComputePassEncoder::UploadBufferData(const Buffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void ComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -240,7 +240,7 @@ namespace Alimer::RHI
         );
     }
 
-    void ComputePassEncoder::DispatchIndirect(const Buffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void ComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
 #if defined(_DEBUG)
         if (!CheckBitsAny(indirectBuffer->GetUsage(), BufferUsage::Indirect))
@@ -259,14 +259,14 @@ namespace Alimer::RHI
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    /* RHICommandBuffer */
-    void RHICommandBuffer::Reset(uint32_t frameIndex)
+    /* CommandBuffer */
+    void CommandBuffer::Reset(uint32_t frameIndex)
     {
         _frameIndex = frameIndex;
         _encoderActive = false;
     }
 
-    ComputePassEncoder* RHICommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* CommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
     {
         if (_encoderActive)
         {
@@ -279,7 +279,7 @@ namespace Alimer::RHI
         return computePassEncoder;
     }
 
-    RenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
+    RenderPassEncoder* CommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -294,20 +294,21 @@ namespace Alimer::RHI
 
 #if defined(ALIMER_RHI_VULKAN)
     extern bool Vulkan_IsSupported();
+    extern Vector<Adapter*> Vulkan_InitAdapters();
     extern RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
 #if defined(ALIMER_RHI_D3D12) && defined(TODO)
     extern bool D3D12_IsSupported();
-    extern RHIFactoryRef D3D12_CreateFactory(const RHIFactoryDesc& desc);
+    extern RHIFactoryRef D3D12_CreateFactory(const FactoryDescriptor& desc);
 #endif
 
 #if defined(ALIMER_RHI_METAL)
     extern bool Metal_IsSupported();
-    extern RHIFactoryRef Metal_CreateFactory(const RHIFactoryDesc& desc);
+    extern RHIFactoryRef Metal_CreateFactory(const FactoryDescriptor& desc);
 #endif
 
-    BufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
+    RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
     {
         if (desc.size > _limits.maxBufferSize)
         {
@@ -318,7 +319,7 @@ namespace Alimer::RHI
         return CreateBufferCore(desc, initialData);
     }
 
-    BufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
+    RHIBufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
     {
         if (size > _limits.maxBufferSize)
         {
@@ -507,18 +508,18 @@ namespace Alimer::RHI
         return CreateSamplerCore(desc);
     }
 
-    RHIShaderModuleRef RHIDevice::CreateShaderModule(const ShaderModuleDesc& desc)
+    ShaderModuleRef RHIDevice::CreateShaderModule(const ShaderModuleDesc& descriptor)
     {
-        if (desc.byteCodeSize == 0 || desc.byteCode == nullptr)
+        if (descriptor.byteCodeSize == 0 || descriptor.byteCode == nullptr)
         {
             LOGE("Invalid shader module byteCode");
             return nullptr;
         }
 
-        return CreateShaderModuleCore(desc);
+        return CreateShaderModuleCore(descriptor);
     }
 
-    RHIRenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDescriptor& descriptor)
+    RenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDescriptor& descriptor)
     {
         // Vertex shader is necessary when not using mesh shaders
         if (descriptor.vertexShader == nullptr)
@@ -553,18 +554,18 @@ namespace Alimer::RHI
         return CreateComputePipelineCore(descriptor);
     }
 
-    RHIQueryHeapRef RHIDevice::CreateQueryHeap(const QueryHeapDesc& desc)
+    QueryHeapRef RHIDevice::CreateQueryHeap(const QueryHeapDescriptor& descriptor)
     {
-        ALIMER_ASSERT(desc.count > 0 && desc.count < kQuerySetMaxQueries);
+        ALIMER_ASSERT(descriptor.count > 0 && descriptor.count < kQuerySetMaxQueries);
 
-        if (desc.type == QueryType::PipelineStatistics
+        if (descriptor.type == QueryType::PipelineStatistics
             && !QueryFeatureSupport(Feature::PipelineStatisticsQuery))
         {
             LOGE("PipelineStatistics queries are not supported");
             return nullptr;
         }
 
-        return CreateQueryHeapCore(desc);
+        return CreateQueryHeapCore(descriptor);
     }
 
     RHISwapChainRef RHIDevice::CreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc)
@@ -575,6 +576,9 @@ namespace Alimer::RHI
     }
 
     /* RHIFactory */
+    RHIFactoryRef GRHIFactory = nullptr;
+    RHIDeviceRef GRHIDevice = nullptr;
+
     bool IsBackendSupported(BackendType backend)
     {
         switch (backend)
@@ -623,8 +627,11 @@ namespace Alimer::RHI
         return BackendType::Null;
     }
 
-    RHIFactoryRef RHIFactory::Create(const RHIFactoryDesc& desc)
+    bool RHIInit(const RHIFactoryDesc& desc)
     {
+        if (GRHIFactory)
+            return true;
+
         BackendType backend = desc.preferredBackend;
         if (backend == BackendType::Count)
         {
@@ -634,11 +641,11 @@ namespace Alimer::RHI
         RHIFactoryRef factory;
         switch (backend)
         {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+#if defined(ALIMER_RHI_D3D12) && defined(TODO)
             case RHIBackendType::D3D12:
                 if (D3D12_IsSupported())
                 {
-                    GRHIDevice = D3D12_CreateDevice(appName, desc);
+                    factory = D3D12_CreateDevice(appName, desc);
                 }
                 else
                 {
@@ -657,7 +664,7 @@ namespace Alimer::RHI
                 else
                 {
                     LOGF("Vulkan is not supported on current OS");
-                    return nullptr;
+                    return false;
                 }
                 break;
 #endif
@@ -667,7 +674,18 @@ namespace Alimer::RHI
                 break;
         }
 
-        return factory;
+        if (factory == nullptr)
+        {
+            return false;
+        }
+
+        GRHIFactory = factory;
+        return true;
+    }
+
+    void RHIShutdown()
+    {
+        GRHIFactory.Reset();
     }
 
     Adapter* RHIFactory::GetBestAdapter() const
@@ -895,7 +913,7 @@ namespace Alimer::RHI
         return s_VertexFormatTable[ecast(format)];
     }
 
-    RHIShaderModuleRef RHILoadShader(RHIDevice* device, ShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines)
+    ShaderModuleRef RHILoadShader(RHIDevice* device, ShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines)
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
@@ -934,7 +952,7 @@ namespace Alimer::RHI
         desc.byteCodeSize = permutationSize;
         desc.byteCode = permutationBytecode;
 
-        RHIShaderModuleRef shaderModule = device->CreateShaderModule(desc);
+        ShaderModuleRef shaderModule = device->CreateShaderModule(desc);
         return shaderModule;
     }
 }
