@@ -7,7 +7,7 @@
 ## Features
 
 * Support for Windows, Linux, macOS.
-* Modern rendering using Vulkan, Direct3D12, Metal and WebGPU.
+* Modern rendering using Vulkan, Direct3D12 and Metal.
 * Modern asset pipeline
 * Entity-Component-System architecture
 * Extentible input system with support for gamepads, keyboard, mouse and touch.

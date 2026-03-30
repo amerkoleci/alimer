@@ -13,5 +13,4 @@ public enum GraphicsBackend
     Vulkan,
     D3D12,
     Metal,
-    WebGPU,
 }
