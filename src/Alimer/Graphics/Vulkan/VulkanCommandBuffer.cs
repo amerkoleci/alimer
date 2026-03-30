@@ -222,46 +222,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         return _renderPassEncoder;
     }
 
-
-    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
-    {
-        VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
-        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
-
-        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
-        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
-        CommitBarriers();
-
-        VkBufferCopy copy = new()
-        {
-            srcOffset = 0,
-            dstOffset = 0,
-            size = Math.Min(backendSrcBuffer.Size, backendDestBuffer.Size)
-        };
-
-        _deviceApi.vkCmdCopyBuffer(_commandBuffer, backendSrcBuffer.Handle, backendDestBuffer.Handle, 1, &copy);
-    }
-
-    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
-    {
-
-        VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
-        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
-
-        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
-        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
-        CommitBarriers();
-
-        VkBufferCopy copy = new()
-        {
-            srcOffset = sourceOffset,
-            dstOffset = destinationOffset,
-            size = size
-        };
-
-        _deviceApi.vkCmdCopyBuffer(_commandBuffer, backendSrcBuffer.Handle, backendDestBuffer.Handle, 1, &copy);
-    }
-
     public override void Present(SwapChain swapChain)
     {
         VulkanSwapChain backendSwapChain = (VulkanSwapChain)swapChain;
@@ -515,6 +475,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
                 break;
         }
 
+        // Need to be called outside Render Pass Scope and Video Coding Scope
         _deviceApi.vkCmdCopyQueryPoolResults(
             _commandBuffer,
             backendQueryHeap.Handle,
@@ -530,6 +491,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     protected override void ResetQueryCore(QueryHeap queryHeap, uint index, uint count)
     {
         VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
+        // Need to be called outside Render Pass Scope and Video Coding Scope
         _deviceApi.vkCmdResetQueryPool(_commandBuffer, backendQueryHeap.Handle, index, count);
     }
 }

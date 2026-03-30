@@ -92,6 +92,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
         _commandBuffer.CommandList->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
     }
 
+    /// <inheritdoc/>
     protected override void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         PrepareDispatch();
@@ -99,12 +100,44 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
         _commandBuffer.CommandList->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
+    /// <inheritdoc/>
     protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDispatch();
 
         D3D12Buffer d3d12Buffer = (D3D12Buffer)indirectBuffer;
         _commandBuffer.CommandList->ExecuteIndirect(_commandBuffer.D3DDevice.DispatchIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
+    }
+
+    /// <inheritdoc/>
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
+    {
+        D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
+        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
+
+        _commandBuffer.BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        _commandBuffer.BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        _commandBuffer.CommitBarriers();
+
+        // Note: D3D12 inverts the order of source and destination parameters
+        _commandBuffer.CommandList->CopyResource(backendDestBuffer.Handle, backendSrcBuffer.Handle);
+    }
+
+    /// <inheritdoc/>
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    {
+        D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
+        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
+
+        _commandBuffer.BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        _commandBuffer.BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        _commandBuffer.CommitBarriers();
+
+        // Note: D3D12 inverts the order of source and destination parameters
+        _commandBuffer.CommandList->CopyBufferRegion(
+            backendDestBuffer.Handle, destinationOffset,
+            backendSrcBuffer.Handle, sourceOffset,
+            size);
     }
 
     private void PrepareDispatch()

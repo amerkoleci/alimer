@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Alimer.Editor.ViewModels;
 
@@ -15,6 +16,8 @@ public partial class MainViewModel : ViewModelBase, IMainView
         get => _title;
         set => SetProperty(ref _title, value);
     }
+
+    public RelayCommand OpenCommand { get; } = new(() => { /* Open file logic here */ });
 
     public string Greeting => "Welcome to Avalonia!";
 }

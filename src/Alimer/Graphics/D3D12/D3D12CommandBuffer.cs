@@ -511,35 +511,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _bindGroupsDirty = false;
     }
 
-    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
-    {
-        D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
-        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
-
-        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
-        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
-        CommitBarriers();
-
-        // Note: D3D12 inverts the order of source and destination parameters
-        _commandList6.Get()->CopyResource(backendDestBuffer.Handle, backendSrcBuffer.Handle);
-    }
-
-    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
-    {
-        D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
-        D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
-
-        BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
-        BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
-        CommitBarriers();
-
-        // Note: D3D12 inverts the order of source and destination parameters
-        _commandList6.Get()->CopyBufferRegion(
-            backendDestBuffer.Handle, destinationOffset,
-            backendSrcBuffer.Handle, sourceOffset,
-            size);
-    }
-
     protected override void BeginQueryCore(QueryHeap queryHeap, uint index)
     {
         D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();

@@ -190,28 +190,5 @@ public class ByteStreamTests
             stream.Write(value.Depth);
             stream.WriteEnum(value.Format);
         }
-
-        public void Serialize(BinarySerializer serializer)
-        {
-            // TODO: Enum
-
-            uint width = Width;
-            uint height = Height;
-            uint depth = Depth;
-            int format = (int)Format;
-
-            serializer.Serialize(ref width);
-            serializer.Serialize(ref height);
-            serializer.Serialize(ref depth);
-            serializer.Serialize(ref format);
-
-            if (serializer.IsReading)
-            {
-                Width = width;
-                Height = height;
-                Depth = depth;
-                Format = (PixelFormat)format;
-            }
-        }
     }
 }

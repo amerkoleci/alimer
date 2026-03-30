@@ -7,7 +7,7 @@ namespace Alimer.Graphics.Tests;
 
 public static class TestUtilities
 {
-    public static ShaderModule CompileShader(GraphicsDevice device, string fileName, ShaderStages stage, Utf8String entryPoint)
+    public static ShaderModule CompileShader(GraphicsDevice device, string fileName, ShaderStages stage, string entryPoint)
     {
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         string shaderSource = File.ReadAllText(Path.Combine(shadersPath, fileName));

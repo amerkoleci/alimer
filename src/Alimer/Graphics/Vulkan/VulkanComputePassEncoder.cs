@@ -104,4 +104,45 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
         VulkanBuffer vulkanBuffer = (VulkanBuffer)indirectBuffer;
         _deviceApi.vkCmdDispatchIndirect(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset);
     }
+
+    /// <inheritdoc/>
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
+    {
+        VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
+        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
+
+        _commandBuffer.BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        _commandBuffer.BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        _commandBuffer.CommitBarriers();
+
+        VkBufferCopy copy = new()
+        {
+            srcOffset = 0,
+            dstOffset = 0,
+            size = Math.Min(backendSrcBuffer.Size, backendDestBuffer.Size)
+        };
+
+        _deviceApi.vkCmdCopyBuffer(_commandBuffer.Handle, backendSrcBuffer.Handle, backendDestBuffer.Handle, 1, &copy);
+    }
+
+    /// <inheritdoc/>
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    {
+
+        VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
+        VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
+
+        _commandBuffer.BufferBarrier(backendSrcBuffer, BufferStates.CopySource);
+        _commandBuffer.BufferBarrier(backendDestBuffer, BufferStates.CopyDest);
+        _commandBuffer.CommitBarriers();
+
+        VkBufferCopy copy = new()
+        {
+            srcOffset = sourceOffset,
+            dstOffset = destinationOffset,
+            size = size
+        };
+
+        _deviceApi.vkCmdCopyBuffer(_commandBuffer.Handle, backendSrcBuffer.Handle, backendDestBuffer.Handle, 1, &copy);
+    }
 }

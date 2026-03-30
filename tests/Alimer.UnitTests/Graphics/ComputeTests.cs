@@ -24,7 +24,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
         using PipelineLayout pipelineLayout = Device.CreatePipelineLayout(pipelineLayoutDescription);
         Assert.That(() => pipelineLayout, Is.Not.Null);
 
-        using ShaderModule computeShader = TestUtilities.CompileShader(Device, "ComputeTexture.hlsl", ShaderStages.Compute, "computeMain"u8);
+        using ShaderModule computeShader = TestUtilities.CompileShader(Device, "ComputeTexture.hlsl", ShaderStages.Compute, "computeMain");
 
         ComputePipelineDescriptor descriptor = new(computeShader, pipelineLayout);
         using ComputePipeline pipeline = Device.CreateComputePipeline(descriptor);
