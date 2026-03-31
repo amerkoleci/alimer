@@ -38,6 +38,7 @@ struct VertexOutput
     float3 Tangent : TANGENT;
     float3 Bitangent : BITANGENT;
     float3 Color : COLOR;
+    nointerpolation int MaterialIndex : MATERIALINDEX;
 };
 
 struct VertexFullscreenQuadOutput

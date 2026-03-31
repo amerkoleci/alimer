@@ -26,6 +26,7 @@ using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
 using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
@@ -211,6 +212,14 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         ShaderResourceViewHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize, true, nonBindlessCount: 1024);
         SamplerHeap = new(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize, true, nonBindlessCount: 32);
 
+        // Try to load PIX (WinPixEventRuntime.dll)
+        if (NativeLibrary.TryLoad("WinPixEventRuntime.dll", out _winPixEventRuntimeDLL))
+        {
+            //PIXBeginEventOnCommandList = (PFN_PIXBeginEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXBeginEventOnCommandList");
+            //PIXEndEventOnCommandList = (PFN_PIXEndEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXEndEventOnCommandList");
+            //PIXSetMarkerOnCommandList = (PFN_PIXSetMarkerOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXSetMarkerOnCommandList");
+        }
+
         // Create command signatures
         {
             // DispatchIndirectCommand
@@ -250,7 +259,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             cmdSignatureDesc.pArgumentDescs = &drawIndexedInstancedArg;
             _drawIndexedIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
 
-            if (_limits.MeshShaderTier != MeshShaderTier.NotSupported)
+            if (_adapter.Features.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED)
             {
                 D3D12_INDIRECT_ARGUMENT_DESC dispatchMeshArg = new()
                 {
@@ -262,14 +271,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 cmdSignatureDesc.pArgumentDescs = &dispatchMeshArg;
                 _dispatchMeshIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
             }
-        }
-
-        // Try to load PIX (WinPixEventRuntime.dll)
-        if (NativeLibrary.TryLoad("WinPixEventRuntime.dll", out _winPixEventRuntimeDLL))
-        {
-            //PIXBeginEventOnCommandList = (PFN_PIXBeginEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXBeginEventOnCommandList");
-            //PIXEndEventOnCommandList = (PFN_PIXEndEventOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXEndEventOnCommandList");
-            //PIXSetMarkerOnCommandList = (PFN_PIXSetMarkerOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXSetMarkerOnCommandList");
         }
 
         // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
@@ -670,7 +671,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         AdvanceFrame();
 
         // Initiate stalling CPU when GPU is not yet finished with next frame
-        if (_frameCount >= MaxFramesInFlight)
+        if (_frameCount >= (uint)MaxFramesInFlight)
         {
             for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {

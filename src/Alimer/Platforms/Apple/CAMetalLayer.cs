@@ -9,9 +9,9 @@ namespace Alimer.Platforms.Apple;
 internal readonly partial struct CAMetalDrawable
 {
     #region Selectors
-    private static Selector s_sel_layer => "layer";
-    private static Selector s_sel_setLayer => "setLayer:";
-    private static readonly Selector s_sel_frame = "frame";
+    private static Selector s_sel_layer => "layer"u8;
+    private static Selector s_sel_setLayer => "setLayer:"u8;
+    private static readonly Selector s_sel_frame = "frame"u8;
     #endregion 
 
     public nint Handle { get; }
@@ -27,28 +27,28 @@ internal readonly partial struct CAMetalDrawable
 internal readonly partial struct CAMetalLayer
 {
     #region Selectors
-    private static ObjectiveCClass s_class => new(nameof(CAMetalLayer));
+    private static ObjectiveCClass s_class => new("CAMetalLayer"u8);
 
-    private static readonly Selector s_sel_maximumDrawableCount = "maximumDrawableCount";
-    private static readonly Selector s_sel_setMaximumDrawableCount = "setMaximumDrawableCount:";
+    private static readonly Selector s_sel_maximumDrawableCount = "maximumDrawableCount"u8;
+    private static readonly Selector s_sel_setMaximumDrawableCount = "setMaximumDrawableCount:"u8;
 
-    private static readonly Selector s_sel_framebufferOnly = "framebufferOnly";
-    private static readonly Selector s_sel_setFramebufferOnly = "setFramebufferOnly:";
+    private static readonly Selector s_sel_framebufferOnly = "framebufferOnly"u8;
+    private static readonly Selector s_sel_setFramebufferOnly = "setFramebufferOnly:"u8;
 
-    private static readonly Selector s_sel_isOpaque = "isOpaque";
-    private static readonly Selector s_sel_setOpaque = "setOpaque:";
+    private static readonly Selector s_sel_isOpaque = "isOpaque"u8;
+    private static readonly Selector s_sel_setOpaque = "setOpaque:"u8;
 
-    private static readonly Selector s_sel_displaySyncEnabled = "displaySyncEnabled";
-    private static readonly Selector s_sel_setDisplaySyncEnabled = "setDisplaySyncEnabled:";
+    private static readonly Selector s_sel_displaySyncEnabled = "displaySyncEnabled"u8;
+    private static readonly Selector s_sel_setDisplaySyncEnabled = "setDisplaySyncEnabled:"u8;
 
-    private static readonly Selector s_sel_drawableSize = "drawableSize";
-    private static readonly Selector s_sel_setDrawableSize = "setDrawableSize:";
+    private static readonly Selector s_sel_drawableSize = "drawableSize"u8;
+    private static readonly Selector s_sel_setDrawableSize = "setDrawableSize:"u8;
 
 
-    private static readonly Selector s_sel_frame = "frame";
-    private static readonly Selector s_sel_setFrame = "setFrame:";
+    private static readonly Selector s_sel_frame = "frame"u8;
+    private static readonly Selector s_sel_setFrame = "setFrame:"u8;
 
-    private static readonly Selector s_sel_nextDrawable = "nextDrawable";
+    private static readonly Selector s_sel_nextDrawable = "nextDrawable"u8;
     #endregion
 
     public nint Handle { get; }

@@ -22,8 +22,11 @@ internal static unsafe partial class ObjectiveC
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
     public static partial string sel_getName(nint selector);
 
+    [LibraryImport(ObjCRuntime)]
+    public static partial nint sel_registerName(ReadOnlySpan<byte> name);
+
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
-    public static unsafe partial nint sel_getUid(string name);
+    public static partial nint sel_registerName(string name);
 
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
     public static partial nint objc_getClass(string name);

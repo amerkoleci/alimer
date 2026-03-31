@@ -1,50 +1,38 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Linq;
-using System.Numerics;
 using System.Runtime.InteropServices;
-using Alimer.Engine;
 using Alimer.Graphics;
 using static Alimer.Utilities.UnsafeUtilities;
 
+using BindlessMaterialBufferIndex = System.Int32;
 namespace Alimer.Rendering;
 
-using InstanceDictionary = Dictionary<BindGroup, GPUBatchEntry>;
+using InstanceDictionary = Dictionary<BindlessMaterialBufferIndex, GPUBatchEntry>;
 //using GeometryDictionary = Dictionary<SubMesh, InstanceDictionary>;
 //using PipelineMaterials = Dictionary<GPURenderPipeline, MaterialGeometry>;
 
 public sealed unsafe class RenderBatch : DisposableObject
 {
+    private static uint InstanceSizeInBytes = SizeOf<GPUInstance>();
     private const uint InitialInstanceCount = 128;
 
-    private static uint InstanceSizeInBytes = SizeOf<InstanceData>(); // 4x float (16) + 1x float4 (color)
-
-    private sealed class PerFrame
-    {
-        public GpuBuffer? InstanceBuffer;
-        public BindGroup? InstanceBindGroup;
-    }
-
-    private PerFrame[]? _perFrameData;  
+    private GpuBuffer[] _instanceBuffer;
+    private BindGroup[] _instanceBindGroup;
     private uint _instanceCapacity = 0;
     private uint _totalInstanceCount = 0;
 
     // TODO: Fix this
     private Dictionary<GPURenderPipeline, Dictionary<SubMesh, InstanceDictionary>> _pipelineGeometries = [];
-    private readonly List<InstanceData> _instanceData = [];
+    private readonly List<GPUInstance> _instanceData = [];
 
     public RenderBatch(GraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
         Device = device;
-        _perFrameData = new PerFrame[(int)device.MaxFramesInFlight];
-        for (int i = 0; i < _perFrameData.Length; i++)
-        {
-            _perFrameData[i] = new PerFrame();
-        }
-
+        _instanceBuffer = new GpuBuffer[device.MaxFramesInFlight];
+        _instanceBindGroup = new BindGroup[device.MaxFramesInFlight];
         InstanceBindGroupLayout = ToDispose(device.CreateBindGroupLayout(
             "Instance bind group layout",
             new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.ShaderRead), 0, ShaderStages.Vertex)
@@ -59,24 +47,26 @@ public sealed unsafe class RenderBatch : DisposableObject
     {
         _instanceCapacity = capacity;
 
-        for (int i = 0; i < _perFrameData!.Length; i++)
+        for (int i = 0; i < _instanceBuffer.Length; i++)
         {
-            _perFrameData[i].InstanceBuffer?.Dispose();
+            _instanceBuffer[i]?.Dispose();
 
-            _perFrameData[i].InstanceBuffer = ToDispose(Device.CreateBuffer(
+            _instanceBuffer[i] = ToDispose(Device.CreateBuffer(
                 InstanceSizeInBytes * capacity,
                 BufferUsage.ShaderRead,
                 MemoryType.Upload,
                 label: $"Upload Instance Buffer Frame {i}"
                 ));
-            _perFrameData[i].InstanceBindGroup = InstanceBindGroupLayout.CreateBindGroup(
-                new BindGroupEntry(0, _perFrameData[i].InstanceBuffer!, stride: (uint)sizeof(InstanceData))
+            _instanceBindGroup[i] = InstanceBindGroupLayout.CreateBindGroup(
+                new BindGroupEntry(0, _instanceBuffer[i], stride: InstanceSizeInBytes)
             );
         }
     }
 
-    public void AddRenderable(SubMesh geometry, GPURenderPipeline pipeline, BindGroup bindGroups, GPUInstanceData instance)
+    public void AddRenderable(SubMesh geometry, GPURenderPipeline pipeline, BindlessMaterialBufferIndex materialBufferIndex, GPUInstanceData instance)
     {
+        int instanceBufferIndex = _instanceBuffer[Device.FrameIndex].BindlessShaderWriteIndex;
+
         if (!_pipelineGeometries.TryGetValue(pipeline, out Dictionary<SubMesh, InstanceDictionary>? geometryMaterials))
         {
             // Create new entry
@@ -90,18 +80,18 @@ public sealed unsafe class RenderBatch : DisposableObject
             geometryMaterials[geometry] = materialInstances;
         }
 
-        if (!materialInstances.TryGetValue(bindGroups, out GPUBatchEntry? instances))
+        if (!materialInstances.TryGetValue(materialBufferIndex, out GPUBatchEntry? instances))
         {
-            instances = new GPUBatchEntry((uint)_instanceData.Count);
-            materialInstances[bindGroups] = instances;
+            instances = new GPUBatchEntry(instanceBufferIndex, _instanceData.Count);
+            materialInstances[materialBufferIndex] = instances;
         }
 
-        instances.InstanceCount += instance.Count;
+        instances.InstanceCount++;
         instances.Transforms.Add(instance.WorldMatrix);
-        _instanceData.Add(new InstanceData
+        _instanceData.Add(new GPUInstance
         {
             worldMatrix = instance.WorldMatrix,
-            //materialIndex = instance.MaterialIndex
+            MaterialIndex = instance.MaterialIndex
         });
         //instances.Colors.Add(instance.Color);
         _totalInstanceCount += 1;
@@ -109,16 +99,14 @@ public sealed unsafe class RenderBatch : DisposableObject
 
     public BindGroup UpdateInstanceBuffer(uint frameIndex)
     {
-        PerFrame frame = _perFrameData![frameIndex];
-
         // Only upload if we have instance data
-        if (_instanceData.Count > 0)            
+        if (_instanceData.Count > 0)
         {
             var instanceData = CollectionsMarshal.AsSpan(_instanceData);
-            frame.InstanceBuffer!.SetData(instanceData);
+            _instanceBuffer[frameIndex].SetData(instanceData);
         }
 
-        return frame.InstanceBindGroup!;
+        return _instanceBindGroup[frameIndex];
     }
 
     public Dictionary<SubMesh, InstanceDictionary> GetGeometryList(GPURenderPipeline pipeline)
@@ -139,15 +127,17 @@ public sealed unsafe class RenderBatch : DisposableObject
     }
 }
 
-public record struct GPUInstanceData(Matrix4x4 WorldMatrix, uint MaterialIndex, uint Count = 1);
+public record struct GPUInstanceData(Matrix4x4 WorldMatrix, int MaterialIndex);
 
 public class GPUBatchEntry
 {
-    public GPUBatchEntry(uint firstInstance = 0)
+    public GPUBatchEntry(int instanceBufferIndex, int firstInstance = 0)
     {
-        FirstInstance = firstInstance;
+        InstanceBufferIndex = instanceBufferIndex;
+        FirstInstance = (uint)firstInstance;
     }
 
+    public readonly int InstanceBufferIndex;
     public readonly uint FirstInstance;
     public uint InstanceCount;
     public readonly List<Matrix4x4> Transforms = [];

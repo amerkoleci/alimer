@@ -11,6 +11,7 @@ using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.Windows.Windows;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -20,6 +21,8 @@ internal unsafe class D3D12Buffer : GpuBuffer
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     public readonly void* pMappedData;
+    private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
+    private readonly int _bindlessUAVIndex = InvalidBindlessIndex;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescriptor description, void* initialData)
         : base(description)
@@ -184,6 +187,12 @@ internal unsafe class D3D12Buffer : GpuBuffer
 
     /// <inheritdoc />
     public override GpuAddress GpuAddress { get; }
+
+    /// <inheritdoc />
+    public override int BindlessShaderReadIndex => _bindlessSRVIndex;
+
+    /// <inheritdoc />
+    public override int BindlessShaderWriteIndex => _bindlessSRVIndex;
 
     public ulong AllocatedSize { get; }
 

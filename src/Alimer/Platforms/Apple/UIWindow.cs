@@ -1,9 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using static Alimer.Platforms.Apple.ObjectiveC;
 
 namespace Alimer.Platforms.Apple;
@@ -11,7 +8,7 @@ namespace Alimer.Platforms.Apple;
 internal readonly partial struct CALayer
 {
     #region Selectors
-    private static Selector s_sel_addSublayer => "addSublayer:";
+    private static Selector s_sel_addSublayer => "addSublayer:"u8;
     #endregion 
 
     public nint Handle { get; }
@@ -30,11 +27,11 @@ internal readonly partial struct CALayer
 internal readonly partial struct UIView
 {
     #region Selectors
-    private static ObjectiveCClass s_class => new(nameof(UIView));
+    private static ObjectiveCClass s_class => new("UIView"u8);
 
-    private static Selector s_sel_layer => "layer";
-    private static Selector s_sel_setLayer => "setLayer:";
-    private static readonly Selector s_sel_frame = "frame";
+    private static Selector s_sel_layer => "layer"u8;
+    private static Selector s_sel_setLayer => "setLayer:"u8;
+    private static readonly Selector s_sel_frame = "frame"u8;
     #endregion 
 
     public nint Handle { get; }
@@ -58,7 +55,7 @@ internal readonly partial struct UIViewController
     #region Selectors
     private static ObjectiveCClass s_class => new(nameof(UIViewController));
 
-    private static readonly Selector s_sel_view = "view";
+    private static readonly Selector s_sel_view = "view"u8;
     #endregion 
 
     public nint Handle { get; }
@@ -80,9 +77,9 @@ internal readonly partial struct UIWindow
     #region Selectors
     private static ObjectiveCClass s_class => new(nameof(UIWindow));
 
-    private static readonly Selector s_sel_rootViewController = "rootViewController";
-    private static readonly Selector s_sel_setRootViewController = "setRootViewController:";
-    private static readonly Selector s_makeKeyAndVisible = "makeKeyAndVisible";
+    private static readonly Selector s_sel_rootViewController = "rootViewController"u8;
+    private static readonly Selector s_sel_setRootViewController = "setRootViewController:"u8;
+    private static readonly Selector s_makeKeyAndVisible = "makeKeyAndVisible"u8;
     #endregion 
 
     public nint Handle { get; }

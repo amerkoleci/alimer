@@ -60,16 +60,25 @@ public struct GPULight : IShaderConstantBuffer
 
 }
 
-public struct InstanceData : IShaderConstantBuffer
+public struct GPUInstance : IShaderConstantBuffer
 {
     public Matrix4x4 worldMatrix;
-    //public Color color;
-    //public uint materialIndex;
+    public int MaterialIndex;    // Index into the material buffer
+    public int VertexBufferIndex;// Bindless handle to the model's vertex buffer
+    public int BaseVertex;       // Base vertex offset within the vertex buffer
+    private int _pad0;
 }
 
 // Updated once per material
-public struct PBRMaterialUniforms : IShaderConstantBuffer
+public struct GPUMaterialPBR : IShaderConstantBuffer
 {
+    public int BaseIndex;
+    public int NormalIndex;
+    public int MetallicRoughnessIndex;
+    public int EmissiveIndex;
+    public int OcclusionIndex;
+    public int SamplerIndex;
+    private Vector2 _padding;
     public Color baseColorFactor;
     public Vector3 emissiveFactor;
     public float normalScale; 
@@ -84,6 +93,7 @@ public struct PBRMaterialUniforms : IShaderConstantBuffer
 
 public struct PBRPushConstants
 {
-    public uint baseColorTextureIndex;
-    public uint samplerIndex;
+    public int InstanceBufferIndex;
+    public int MaterialBufferIndex;
+    private Vector3 _pad;
 }

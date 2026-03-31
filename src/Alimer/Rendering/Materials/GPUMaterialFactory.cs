@@ -41,17 +41,16 @@ public interface IGPUMaterialFactory : IDisposable
     void Add(Material material);
     bool Remove(Material material);
 
-    //VertexBufferLayout GetLayout(Mesh mesh);
+    void BeginFrame(uint frameIndex);
+    int Write(Material material, out int materialIndex);
+
     GPURenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned);
-    BindGroup GetBindGroup(Material material, bool skinned);
 }
 
 public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMaterialFactory
     where TMaterial : Material
 {
     protected readonly List<TMaterial> _materials = [];
-    protected BindGroupLayout _bindGroupLayout;
-    private readonly Dictionary<int, BindGroup> _bindGroups = [];
     private readonly Dictionary<int, GPURenderPipeline> _renderPipelines = [];
 
     protected GPUMaterialFactory(RenderSystem system)
@@ -59,7 +58,6 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
         ArgumentNullException.ThrowIfNull(system, nameof(system));
 
         System = system;
-        _bindGroupLayout = ToDispose(CreateBindGroupLayout());
     }
 
     public RenderSystem System { get; }
@@ -74,7 +72,6 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
         _materials.Add(typedMaterial);
     }
 
-
     bool IGPUMaterialFactory.Remove(Material material)
     {
         if (material is not TMaterial typedMaterial)
@@ -82,10 +79,21 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
         return _materials.Remove(typedMaterial);
     }
+
+    int IGPUMaterialFactory.Write(Material material, out int materialIndex)
+    {
+        if (material is not TMaterial typedMaterial)
+            throw new ArgumentException($"Material must be of type {typeof(TMaterial).FullName}", nameof(material));
+
+        return Write(typedMaterial, out materialIndex);
+    }
     #endregion
 
-    protected abstract BindGroupLayout CreateBindGroupLayout();
-    protected abstract BindGroup CreateBindGroup(Material material);
+    public virtual void BeginFrame(uint frameIndex)
+    {
+    }
+
+    protected abstract int Write(TMaterial material, out int materialIndex);
 
     public virtual ShaderModule CreateVertexShaderModule(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)
     {
@@ -96,28 +104,12 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
     protected virtual PipelineLayout CreatePipelineLayout(bool skinned)
     {
-        Span<BindGroupLayout> bindGroupLayouts = [_bindGroupLayout,
-            System.InstanceBindGroupLayout,
+        Span<BindGroupLayout> bindGroupLayouts = [System.InstanceBindGroupLayout,
             System.ViewBindGroupLayout,
             System.FrameBindGroupLayout];
 
         PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
         return System.Device.CreatePipelineLayout(in descriptor);
-    }
-
-    public BindGroup GetBindGroup(Material material, bool skinned)
-    {
-        // TODO: Handle skin
-        int hashCode = HashCode.Combine(material.Id.GetHashCode(), skinned);
-        if (!_bindGroups.TryGetValue(hashCode, out BindGroup? bindGroup))
-        {
-            bindGroup = CreateBindGroup(material);
-            _bindGroups[hashCode] = ToDispose(bindGroup);
-        }
-
-        // TODO: Handle bind group update
-
-        return bindGroup;
     }
 
     public GPURenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)

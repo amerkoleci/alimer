@@ -38,6 +38,16 @@ public abstract unsafe class GpuBuffer : GraphicsObject, IGraphicsBindableResour
     /// </summary>
     public abstract GpuAddress GpuAddress { get; }
 
+    /// <summary>
+    /// Gets the bindless shader read (SRV) index of the view.
+    /// </summary>
+    public abstract int BindlessShaderReadIndex { get; }
+
+    /// <summary>
+    /// Gets the bindless shader write (UAV) index of the view.
+    /// </summary>
+    public abstract int BindlessShaderWriteIndex { get; }
+
     internal BufferStates CurrentState { get; set; }
     internal abstract void* GetMappedData();
 

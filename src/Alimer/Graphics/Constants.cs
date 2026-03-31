@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public static class Constants
 {
-    public const uint DefaultMaxFramesInFlight = 2u;
+    public const int DefaultMaxFramesInFlight = 2;
 
     public const int MaxColorAttachments = 8;
     public const int MaxVertexBufferBindings = 8;

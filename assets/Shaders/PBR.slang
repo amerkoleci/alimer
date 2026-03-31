@@ -105,37 +105,28 @@ float3 pbrPointLight(in GPULight light, in SurfaceInfo surface)
     return pbrSurfaceColor(L, surface, light.Color, attenuation);
 }
 
-// Material (space 0)
-ConstantBuffer<PBRMaterialUniforms> material : register(b0);
-Texture2D<float4> baseColorTexture : register(t0);
-Texture2D<float4> normalTexture : register(t1);
-Texture2D<float4> metallicRoughnessTexture : register(t2);
-Texture2D<float4> emissiveTexture : register(t3);
-Texture2D<float4> occlusionTexture : register(t4);
-// Texture2D<float4> transmissionTexture : register(t5, space1);
-SamplerState pbrSampler : register(s0);
-
-// Bindless
-#if defined(ALIMER_BINDLESS)
-// uniform Texture2D<float4>.Handle baseColorTexture;
-// uniform SamplerState.Handle pbrSampler;
-
-struct PBRPushConstants {
-    uint32_t baseColorTextureIndex;
-    uint32_t samplerIndex;
+// Bindless (TODO: Move to a common header)
+struct PushConstants
+{
+    int InstanceBufferIndex;
+    int MaterialBufferIndex;
+    float2 _pad;
 };
 
-ALIMER_PUSH_CONSTANTS(PBRPushConstants);
-#else
-Texture2D<float4> baseColorTexture : register(t0);
-#endif
+ALIMER_PUSH_CONSTANTS(PushConstants);
 
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {
-#if defined(ALIMER_BINDLESS)
-    Texture2D<float4> baseColorTexture = bindlessTexture2D[push.baseColorTextureIndex];
-#endif
+    StructuredBuffer<GPUMaterialPBR> materials = bindlessGPUMaterial[push.MaterialBufferIndex];
+    GPUMaterialPBR material = materials[input.MaterialIndex];
+
+    Texture2D<float4> baseColorTexture = bindlessTexture2D[material.baseIndex];
+    Texture2D<float4> normalTexture = bindlessTexture2D[material.normalIndex];
+    Texture2D<float4> metallicRoughnessTexture = bindlessTexture2D[material.metallicRoughnessIndex];
+    Texture2D<float4> emissiveTexture = bindlessTexture2D[material.emissiveIndex];
+    Texture2D<float4> occlusionTexture = bindlessTexture2D[material.occlusionIndex];
+    SamplerState pbrSampler = bindlessSamplers[material.samplerIndex];
 
     float2 baseColorUV = material.baseColorUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;
     const float4 baseColorMap = baseColorTexture.Sample(pbrSampler, baseColorUV);

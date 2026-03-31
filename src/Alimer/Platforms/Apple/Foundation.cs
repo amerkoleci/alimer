@@ -8,12 +8,16 @@ using static Alimer.Platforms.Apple.ObjectiveC;
 
 namespace Alimer.Platforms.Apple;
 
-internal readonly partial struct NSString : IDisposable
+public interface INativeObject
+{
+}
+
+internal readonly partial struct NSString : NSString.Interface, INativeObject, IDisposable
 {
     #region Selectors
-    private static readonly ObjectiveCClass s_class = new(nameof(NSString));
-    private static Selector sel_utf8String => "UTF8String";
-    private static Selector sel_initWithCharacters => "initWithCharacters:length:";
+    private static readonly ObjectiveCClass s_class = new("NSString"u8);
+    private static Selector sel_utf8String => "UTF8String"u8;
+    private static Selector sel_initWithCharacters => "initWithCharacters:length:"u8;
     #endregion 
 
     public nint Handle { get; }
@@ -56,14 +60,18 @@ internal readonly partial struct NSString : IDisposable
             return GetUtf8String(utf8Ptr);
         }
     }
+
+    public interface Interface : INativeObject
+    {
+    }
 }
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal readonly partial struct NSArray : IDisposable, IEquatable<NSArray>
 {
     #region Selectors
-    private static readonly Selector s_sel_count = "count";
-    private static readonly Selector s_sel_objectAtIndex = "objectAtIndex:";
+    private static readonly Selector s_sel_count = "count"u8;
+    private static readonly Selector s_sel_objectAtIndex = "objectAtIndex:"u8;
     #endregion
 
     public NSArray(nint handle) => Handle = handle;
@@ -106,10 +114,10 @@ internal readonly partial struct NSArray : IDisposable, IEquatable<NSArray>
 
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal readonly partial struct NSObject : IDisposable
+internal readonly partial struct NSObject : NSObject.Interface, INativeObject, IDisposable
 {
     #region Selectors
-    private static  Selector s_sel_isKindOfClass => "isKindOfClass:";
+    private static Selector s_sel_isKindOfClass => "isKindOfClass:"u8;
     #endregion
 
     public NSObject(nint handle) => Handle = handle;
@@ -125,4 +133,8 @@ internal readonly partial struct NSObject : IDisposable
     public static implicit operator nint(NSObject value) => value.Handle;
 
     public bool IsKindOfClass(nint @class) => bool_objc_msgSend(Handle, s_sel_isKindOfClass, @class);
+
+    public interface Interface : INativeObject
+    {
+    }
 }

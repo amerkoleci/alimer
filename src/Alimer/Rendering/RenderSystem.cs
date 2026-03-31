@@ -31,6 +31,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
         Debug.Assert(sizeof(GPULight) == 64, "GPULight must be 64 bytes");
+        Debug.Assert(sizeof(GPUInstance) == 80, "GPUInstance must be 80 bytes");
 
         Services = services;
         Device = services.GetService<GraphicsDevice>();
@@ -72,6 +73,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
         GPUMaterialFactories.RegisterDefault();
+
+        EmptyBindGroupLayout = ToDispose(Device.CreateBindGroupLayout());
+        EmptyBindGroup = ToDispose(EmptyBindGroupLayout.CreateBindGroup());
 
         _renderBatch = ToDispose(new RenderBatch(Device));
 
@@ -157,6 +161,10 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
+    // Until we fully move to bindless
+    public BindGroupLayout EmptyBindGroupLayout { get; }
+    public BindGroup EmptyBindGroup { get; }
+
     public BindGroupLayout InstanceBindGroupLayout => _renderBatch.InstanceBindGroupLayout; // 1
 
     // Set 2 (per view/camera)
@@ -205,6 +213,11 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         // Prepare frame instances (visible to camera)
         BoundingFrustum cameraFrustum = Scene.CurrentCamera.Frustum;
 
+        foreach(var factory in _gpuMaterialFactories.Values)
+        {
+            factory.BeginFrame(Device.FrameIndex);
+        }
+
         foreach (MeshComponent meshComponent in Components)
         {
             // Skip rendering if no mesh is assigned
@@ -234,16 +247,15 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                     throw new InvalidOperationException($"No GPU material factory found for material type '{material.GetType()}'.");
                 }
 
-                Matrix4x4 worldMatrix = meshComponent.Entity!.WorldTransform;
+                int bindlessShaderReadIndex = factory.Write(material, out int gpuMaterialIndex);
 
-                GPUInstanceData instanceData = new(worldMatrix, (uint)materialIndex, Count: 1);
+                Matrix4x4 worldMatrix = meshComponent.Entity!.WorldTransform;
+                GPUInstanceData instanceData = new(worldMatrix, gpuMaterialIndex);
 
                 bool skinned = false;
                 GPURenderPipeline pipeline = factory.GetPipeline(geometryLayout, material, skinned);
-                //GPUMaterialBindGroups bindGroups = new(factory.GetBindGroup(material, skinned));
-                BindGroup bindGroup = factory.GetBindGroup(material, skinned);
                 //RenderPrimitive primitive = new(subMesh, pipeline, bindGroups);
-                _renderBatch.AddRenderable(subMesh, pipeline, bindGroup, instanceData);
+                _renderBatch.AddRenderable(subMesh, pipeline, bindlessShaderReadIndex, instanceData);
             }
         }
     }
@@ -277,6 +289,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // Frame BindGroup (once per frame)
         renderPass.SetBindGroup(FrameBindGroupSpace, FrameBindGroup);
+
+        // TODO: Until we move to fully bindless
+        renderPass.SetBindGroup(0, EmptyBindGroup);
 
         // For each camera
         RenderCamera(renderPass, camera);
@@ -317,26 +332,25 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
                 foreach (var materialPair in materialList)
                 {
-                    var materialBindGroup = materialPair.Key;
-                    var instances = materialPair.Value;
+                    int materialBufferIndex = materialPair.Key;
+                    GPUBatchEntry instances = materialPair.Value;
 
-                    // TODO: GPUBindGroups
-                    //int i = material.firstBindGroupIndex;
-                    //for (const bindGroup of material.bindGroups) {
-                    //    passEncoder.setBindGroup(i++, bindGroup);
-                    //}
-
-                    passEncoder.SetBindGroup(0, materialBindGroup);
+                    //passEncoder.SetBindGroup(0, tuple.bindGroup);
 
                     PBRPushConstants pushConstants = new()
                     {
-                        baseColorTextureIndex = 1,
-                        samplerIndex = 0
+                        InstanceBufferIndex = instances.InstanceBufferIndex,
+                        MaterialBufferIndex = materialBufferIndex
                     };
                     passEncoder.SetPushConstants(pushConstants);
 
                     uint instanceCount = instances.InstanceCount + instances.FirstInstance;
-                    passEncoder.DrawIndexed((uint)geometry.IndexCount, instanceCount, (uint)geometry.IndexStart, 0, instances.FirstInstance);
+                    passEncoder.DrawIndexed((uint)geometry.IndexCount,
+                        instanceCount,
+                        (uint)geometry.IndexStart,
+                        0,
+                        instances.FirstInstance
+                        );
                 }
             }
         }

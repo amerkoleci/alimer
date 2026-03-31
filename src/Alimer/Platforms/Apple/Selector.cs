@@ -14,9 +14,19 @@ internal readonly partial struct Selector : IEquatable<Selector>
         Handle = handle;
     }
 
+    public Selector(Utf8ReadOnlyString name)
+    {
+        Handle = ObjectiveC.sel_registerName(name);
+
+        if (Handle == 0)
+        {
+            throw new InvalidOperationException($"Failed to get selector {name.ToString()}!");
+        }
+    }
+
     public Selector(string name)
     {
-        Handle = ObjectiveC.sel_getUid(name);
+        Handle = ObjectiveC.sel_registerName(name);
 
         if (Handle == 0)
         {
@@ -36,6 +46,8 @@ internal readonly partial struct Selector : IEquatable<Selector>
     public static Selector Null => new(0);
     public static implicit operator Selector(nint handle) => new(handle);
     public static implicit operator nint(Selector selector) => selector.Handle;
+    public static implicit operator Selector(ReadOnlySpan<byte> value) => new(value);
+    public static implicit operator Selector(Utf8ReadOnlyString value) => new(value);
     public static implicit operator Selector(string value) => new(value);
 
     public static bool operator ==(Selector left, Selector right) => left.Handle == right.Handle;

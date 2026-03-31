@@ -11,12 +11,12 @@ namespace Alimer.Platforms.Apple;
 internal readonly partial struct NSWindow
 {
     #region Selectors
-    private static ObjectiveCClass s_class => new(nameof(NSWindow));
+    private static ObjectiveCClass s_class => new("NSWindow"u8);
 
-    private static readonly Selector s_sel_title = "title";
-    private static readonly Selector s_sel_setTitle = "setTitle:";
-    private static readonly Selector s_sel_contentView = "contentView";
-    private static readonly Selector s_sel_setContentView = "setContentView:";
+    private static readonly Selector s_sel_title = "title"u8;
+    private static readonly Selector s_sel_setTitle = "setTitle:"u8;
+    private static readonly Selector s_sel_contentView = "contentView"u8;
+    private static readonly Selector s_sel_setContentView = "setContentView:"u8;
     #endregion 
 
     public nint Handle { get; }

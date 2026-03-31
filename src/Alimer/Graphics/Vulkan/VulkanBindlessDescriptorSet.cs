@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Constants;
 using static Vortice.Vulkan.Vulkan;
@@ -20,8 +21,21 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BindlessSamplerCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
         SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
         StorageImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
+        StorageBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageBuffers));
 
-        DescriptorSetCount = 3;
+        // Static Samplers
+        //new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
+        //new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
+        //new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
+        //new BindGroupLayoutEntry(SamplerDescriptor.LinearClamp, 103, ShaderStages.All),         // SamplerLinearClamp
+        //new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 104, ShaderStages.All),          // SamplerLinearWrap
+        //new BindGroupLayoutEntry(SamplerDescriptor.LinearMirror, 105, ShaderStages.All),        // SamplerLinearMirror
+        //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicClamp, 106, ShaderStages.All),    // SamplerAnisotropicClamp
+        //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicWrap, 107, ShaderStages.All),     // SamplerAnisotropicWrap
+        //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicMirror, 108, ShaderStages.All),   // SamplerAnisotropicMirror
+        //new BindGroupLayoutEntry(SamplerDescriptor.ComparisonDepth, 109, ShaderStages.All)      // SamplerAnisotropicMirror
+
+        DescriptorSetCount = 4;
     }
 
 
@@ -30,6 +44,7 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
     public VulkanBindlessDescriptorHeap Samplers { get; }
     public VulkanBindlessDescriptorHeap SampledImages { get; }
     public VulkanBindlessDescriptorHeap StorageImages { get; }
+    public VulkanBindlessDescriptorHeap StorageBuffers { get; }
     public int DescriptorSetCount { get; }
 
     public void Dispose()
@@ -37,6 +52,7 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         Samplers.Dispose();
         SampledImages.Dispose();
         StorageImages.Dispose();
+        StorageBuffers.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -47,6 +63,7 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         descriptorSets[0] = Samplers.DescriptorSet;
         descriptorSets[1] = SampledImages.DescriptorSet;
         descriptorSets[2] = StorageImages.DescriptorSet;
+        descriptorSets[3] = StorageBuffers.DescriptorSet;
 
         Device.DeviceApi.vkCmdBindDescriptorSets(
             commandBuffer,
@@ -55,6 +72,34 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
             firstSet,
             descriptorSets
         );
+    }
+
+    public int AllocateBindlessSRV(VkBuffer buffer, ulong offset = 0, ulong range = VK_WHOLE_SIZE)
+    {
+        int bindlessIndex = StorageBuffers.Allocate();
+        if (bindlessIndex == InvalidBindlessIndex)
+            return InvalidBindlessIndex;
+
+        VkDescriptorBufferInfo bufferInfo = new()
+        {
+            buffer = buffer,
+            offset = offset,
+            range = range
+        };
+
+        VkWriteDescriptorSet write = new()
+        {
+            dstSet = StorageBuffers.DescriptorSet,
+            dstBinding = 0,
+            dstArrayElement = (uint)bindlessIndex,
+            descriptorCount = 1,
+            descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            pBufferInfo = &bufferInfo
+        };
+
+        Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+
+        return bindlessIndex;
     }
 
     public int AllocateBindlessSRV(VkImageView view)
@@ -194,6 +239,62 @@ internal unsafe class VulkanBindlessDescriptorHeap : IDisposable
         {
             _freeList.Add((int)descriptorCount - i - 1);
         }
+
+        // Descriptor safety feature:
+        //	We init null descriptors for bindless index = 0 for access safety
+        //	Because shader compiler sometimes incorrectly loads descriptor outside of safety branch
+        //	Note: these are never freed, this is intentional
+        if (type != VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        {
+            int index = Allocate();
+            Debug.Assert(index == 0, "Descriptor safety feature error: descriptor index must be 0!");
+
+            VkWriteDescriptorSet write = new()
+            {
+                sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                dstSet = descriptorSet,
+                dstBinding = 0,
+                dstArrayElement = (uint)index,
+                descriptorCount = 1,
+                descriptorType = type,
+            };
+
+            VkDescriptorImageInfo imageInfo = default;
+            VkDescriptorBufferInfo bufferInfo = default;
+
+            switch (type)
+            {
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                    imageInfo.imageView = parent.Device.NullImage2DView;
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    write.pImageInfo = &imageInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                    VkBufferView nullBufferiew = parent.Device.NullBufferView;
+                    write.pTexelBufferView = &nullBufferiew;
+                    break;
+
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                    bufferInfo.buffer = parent.Device.NullBuffer;
+                    bufferInfo.range = VK_WHOLE_SIZE;
+                    write.pBufferInfo = &bufferInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                    imageInfo.imageView = parent.Device.NullImage2DView;
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    write.pImageInfo = &imageInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_SAMPLER:
+                    imageInfo.sampler = parent.Device.NullSampler;
+                    write.pImageInfo = &imageInfo;
+                    break;
+                default:
+                    throw new InvalidOperationException("Descriptor safety feature error: descriptor type not handled!");
+            }
+
+            parent.Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+        } 
     }
 
     public VulkanBindlessDescriptorSet Parent { get; }

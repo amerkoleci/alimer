@@ -2,16 +2,24 @@
 #include "VertexInputOutput.hlsli"
 #include "ShaderTypes.h"
 
-// Material (space 0)
+// Bindless (TODO: Move to a common header)
+struct PushConstants
+{
+    int InstanceBufferIndex;
+    int MaterialBufferIndex;
+    float2 _pad;
+};
+
+ALIMER_PUSH_CONSTANTS(PushConstants);
 
 [shader("vertex")]
 VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)
 {
-    InstanceData instance = instanceDataBuffer[instanceId];
+    StructuredBuffer<GPUInstance> instances = bindlessGPUInstance[push.InstanceBufferIndex];
+    GPUInstance instance = instances[instanceId];
 
-    float4x4 worldMatrix = instance.worldMatrix;
+    float4x4 worldMatrix = instance.WorldMatrix;
     //const float4 instanceColor = instance.color;
-    //const uint materialIndex = instance.materialIndex;
     float4 worldPosition = mul(float4(input.Position, 1.0f), worldMatrix);
 
     VertexOutput output;
@@ -42,5 +50,8 @@ VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)
     // output.Color = instanceColor.xyz;
     output.Color = float3(1.0f, 1.0f, 1.0f);
 #endif
+
+    output.MaterialIndex = instance.MaterialIndex;
+
     return output;
 }

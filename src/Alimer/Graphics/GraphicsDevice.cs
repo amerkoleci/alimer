@@ -20,7 +20,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         : base(description.Label)
     {
         Backend = backend;
-        MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, Constants.DefaultMaxFramesInFlight), 3u);
+        MaxFramesInFlight = Math.Min(Math.Max(description.MaxFramesInFlight, Constants.DefaultMaxFramesInFlight), 3);
         _frameAllocators = new GPULinearAllocator[MaxFramesInFlight];
         for (int i = 0; i < MaxFramesInFlight; i++)
         {
@@ -41,7 +41,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <summary>
     /// Gets the maximum number of frames that can be processed concurrently.
     /// </summary>
-    public uint MaxFramesInFlight { get; }
+    public int MaxFramesInFlight { get; }
 
     /// <summary>
     /// Get the device limits.
@@ -144,7 +144,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         // Begin new frame
         _frameAllocators[_frameIndex].Reset();
         _frameCount++;
-        _frameIndex = (uint)(_frameCount % MaxFramesInFlight);
+        _frameIndex = (uint)(_frameCount % (uint)MaxFramesInFlight);
     }
 
     protected virtual void ProcessDeletionQueue(bool force)
@@ -152,7 +152,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         while (!_deferredDestroyObjects.IsEmpty)
         {
             if (_deferredDestroyObjects.TryPeek(out Tuple<GraphicsObject, ulong>? item)
-                && (force || item.Item2 + MaxFramesInFlight < _frameCount))
+                && (force || item.Item2 + (uint)MaxFramesInFlight < _frameCount))
             {
                 if (_deferredDestroyObjects.TryDequeue(out item))
                 {

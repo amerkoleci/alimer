@@ -47,11 +47,6 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 /* Bindless */
 // TODO: Allow engine side static sampler configuration and remove definitions in code
 
-#ifndef ALIMER_BINDLESS
-#define ALIMER_BINDLESS 1
-#endif
-
-#if defined(ALIMER_BINDLESS)
 /* space 0-3 used by engine now */
 
 #if defined(ALIMER_SPIRV)
@@ -60,6 +55,7 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 4;
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 5;
 static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 6;
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER = 7;
 
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<float4> bindlessTexture2D[];
@@ -76,13 +72,11 @@ struct BindlessResource<SamplerState>
 	SamplerState operator[](uint index) { return (SamplerState)SamplerDescriptorHeap[index]; }
 };
 static const BindlessResource<SamplerState> bindlessSamplers;
-static const BindlessResource<Texture2D<float4>> bindlessTexture2D;
-static const BindlessResource<RWTexture2D<float4>> bindlessRWTexture2D;
+static const BindlessResource<Texture2D> bindlessTexture2D;
+static const BindlessResource<RWTexture2D<float4> > bindlessRWTexture2D;
 #else
 SamplerState bindlessSamplers[] : register(s0, space4);
 Texture2D bindlessTexture2D[] : register(t0, space5);
 #endif
-
-#endif /* defined(ALIMER_BINDLESS)  */
 
 #endif // _ALIMER_SHADER__

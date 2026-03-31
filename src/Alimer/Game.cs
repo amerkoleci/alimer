@@ -52,7 +52,7 @@ public abstract class Game : DisposableObject, IGame
         GraphicsAdapter = GraphicsManager.GetBestAdapter();
         GraphicsDeviceDescription deviceDescription = new()
         {
-            MaxFramesInFlight = 2u
+            MaxFramesInFlight = 2
         };
 
         GraphicsDevice = GraphicsAdapter.CreateDevice(in deviceDescription);

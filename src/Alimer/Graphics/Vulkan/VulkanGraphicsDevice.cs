@@ -773,30 +773,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             pDynamicStates = _pDynamicStates
         };
 
-        if (_adapter.Features12.descriptorIndexing
-            && _adapter.Features12.runtimeDescriptorArray
-            && _adapter.Features12.descriptorBindingPartiallyBound
-            && _adapter.Features12.shaderSampledImageArrayNonUniformIndexing
-            && _adapter.Features12.descriptorBindingVariableDescriptorCount
-            && _adapter.Features12.shaderSampledImageArrayNonUniformIndexing
-            && _adapter.Features12.shaderStorageBufferArrayNonUniformIndexing
-            && _adapter.Features12.shaderStorageImageArrayNonUniformIndexing
-            && _adapter.Features12.shaderUniformTexelBufferArrayNonUniformIndexing
-            && _adapter.Features12.shaderStorageTexelBufferArrayNonUniformIndexing
-            && _adapter.Features12.descriptorBindingSampledImageUpdateAfterBind
-            && _adapter.Features12.descriptorBindingStorageImageUpdateAfterBind
-            && _adapter.Features12.descriptorBindingStorageBufferUpdateAfterBind
-            && _adapter.Features12.descriptorBindingUniformTexelBufferUpdateAfterBind
-            && _adapter.Features12.descriptorBindingStorageTexelBufferUpdateAfterBind
-            && _adapter.Features12.descriptorBindingUpdateUnusedWhilePending
-            && _adapter.Features12.descriptorBindingPartiallyBound
-            //&& extendedFeatures.mutableDescriptorTypeFeatures.mutableDescriptorType
-            )
-        {
-            Bindless = true;
-            BindlessDescriptorSet = new VulkanBindlessDescriptorSet(this);
-        }
-
         // Pipeline Cache
         {
             // TODO: Add cache from disk
@@ -934,6 +910,30 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
+        if (_adapter.Features12.descriptorIndexing &&
+            _adapter.Features12.runtimeDescriptorArray &&
+            _adapter.Features12.descriptorBindingPartiallyBound &&
+            _adapter.Features12.shaderSampledImageArrayNonUniformIndexing &&
+            _adapter.Features12.descriptorBindingVariableDescriptorCount &&
+            _adapter.Features12.shaderSampledImageArrayNonUniformIndexing &&
+            _adapter.Features12.shaderStorageBufferArrayNonUniformIndexing &&
+            _adapter.Features12.shaderStorageImageArrayNonUniformIndexing &&
+            _adapter.Features12.shaderUniformTexelBufferArrayNonUniformIndexing &&
+            _adapter.Features12.shaderStorageTexelBufferArrayNonUniformIndexing &&
+            _adapter.Features12.descriptorBindingSampledImageUpdateAfterBind &&
+            _adapter.Features12.descriptorBindingStorageImageUpdateAfterBind &&
+            _adapter.Features12.descriptorBindingStorageBufferUpdateAfterBind &&
+            _adapter.Features12.descriptorBindingUniformTexelBufferUpdateAfterBind &&
+            _adapter.Features12.descriptorBindingStorageTexelBufferUpdateAfterBind &&
+            _adapter.Features12.descriptorBindingUpdateUnusedWhilePending &&
+            _adapter.Features12.descriptorBindingPartiallyBound
+            //&& extendedFeatures.mutableDescriptorTypeFeatures.mutableDescriptorType
+            )
+        {
+            Bindless = true;
+            BindlessDescriptorSet = new VulkanBindlessDescriptorSet(this);
+        }
+
         // Allocate at least one descriptor pool.
         _descriptorSetPools.Add(CreateDescriptorSetPool());
 
@@ -986,6 +986,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public VulkanBindlessDescriptorSet? BindlessDescriptorSet { get; }
 
     public VkBuffer NullBuffer => _nullBuffer;
+    public VkBufferView NullBufferView => _nullBufferView;
     public VkImageView NullImage1DView => _nullImageView1D;
     public VkImageView NullImage2DView => _nullImageView2D;
     public VkImageView NullImage3DView => _nullImageView3D;
@@ -1081,7 +1082,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         while (!_deferredDestroySemaphores.IsEmpty)
         {
             if (_deferredDestroySemaphores.TryPeek(out Tuple<VkSemaphore, ulong>? item)
-                && (force || item.Item2 + MaxFramesInFlight < _frameCount))
+                && (force || item.Item2 + (uint)MaxFramesInFlight < _frameCount))
             {
                 if (_deferredDestroySemaphores.TryDequeue(out item))
                 {
@@ -1360,7 +1361,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         AdvanceFrame();
 
         // Initiate stalling CPU when GPU is not yet finished with next frame
-        if (_frameCount >= MaxFramesInFlight)
+        if (_frameCount >= (uint)MaxFramesInFlight)
         {
             for (int i = 0; i < (int)CommandQueueType.Count; i++)
             {

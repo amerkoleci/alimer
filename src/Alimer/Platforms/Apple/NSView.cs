@@ -8,12 +8,12 @@ namespace Alimer.Platforms.Apple;
 internal readonly partial struct NSView
 {
     #region Selectors
-    private static ObjectiveCClass s_class => new(nameof(NSView));
+    private static ObjectiveCClass s_class => new("NSView"u8);
 
-    private static Selector s_sel_wantsLayer => "wantsLayer";
-    private static Selector s_sel_setWantsLayer => "setWantsLayer:";
-    private static Selector s_sel_layer => "layer";
-    private static Selector s_sel_setLayer => "setLayer:";
+    private static Selector s_sel_wantsLayer => "wantsLayer"u8;
+    private static Selector s_sel_setWantsLayer => "setWantsLayer:"u8;
+    private static Selector s_sel_layer => "layer"u8;
+    private static Selector s_sel_setLayer => "setLayer:"u8;
     #endregion 
 
     public nint Handle { get; }

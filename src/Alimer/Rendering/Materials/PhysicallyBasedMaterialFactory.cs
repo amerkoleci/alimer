@@ -2,49 +2,86 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Graphics;
+using static Alimer.Graphics.Constants;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Rendering;
 
 public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<PhysicallyBasedMaterial>
 {
-    private readonly GpuBuffer _materialBuffer;
+    private const uint InitialCount = 64;
+    private static uint GpuStructureSizeInBytes = SizeOf<GPUMaterialPBR>();
 
-    public unsafe PhysicallyBasedMaterialFactory(RenderSystem system)
+    private uint _materialCapacity = 0;
+    private readonly GpuBuffer[] _materialBuffer;
+    private unsafe GPUMaterialPBR* _mappedMaterialData;
+    private int _bindlessShaderReadIndex = InvalidBindlessIndex;
+    private int _materialCount = 0;
+
+    public PhysicallyBasedMaterialFactory(RenderSystem system)
         : base(system)
     {
-        BufferDescriptor bufferDescriptor = new((uint)sizeof(PBRMaterialUniforms), BufferUsage.Constant, MemoryType.Upload, label: "PBR Material Buffer");
-        _materialBuffer = ToDispose(system.Device.CreateBuffer(in bufferDescriptor));
+        _materialBuffer = new GpuBuffer[system.Device.MaxFramesInFlight];
+        ResizeBuffer(InitialCount);
     }
 
-    protected override BindGroupLayout CreateBindGroupLayout()
+    private void ResizeBuffer(uint capacity)
     {
-        return System.Device.CreateBindGroupLayout(
-            "PBR Material BindGroupLayout",
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // baseColorTexture
-            new BindGroupLayoutEntry(new SamplerBindingLayout(SamplerBindingType.Filtering), 0),  // baseColorSampler
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 1, ShaderStages.Fragment), // normalTexture
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 2, ShaderStages.Fragment), // metallicRoughnessTexture 
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 3, ShaderStages.Fragment), // emissiveTexture 
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 4, ShaderStages.Fragment), // occlusionTexture 
+        _materialCapacity = capacity;
 
-            // Static samplers
-            new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
-            new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
-            new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
-            new BindGroupLayoutEntry(SamplerDescriptor.LinearClamp, 103, ShaderStages.All),         // SamplerLinearClamp
-            new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 104, ShaderStages.All),          // SamplerLinearWrap
-            new BindGroupLayoutEntry(SamplerDescriptor.LinearMirror, 105, ShaderStages.All),        // SamplerLinearMirror
-            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicClamp, 106, ShaderStages.All),    // SamplerAnisotropicClamp
-            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicWrap, 107, ShaderStages.All),     // SamplerAnisotropicWrap
-            new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicMirror, 108, ShaderStages.All),   // SamplerAnisotropicMirror
-            new BindGroupLayoutEntry(SamplerDescriptor.ComparisonDepth, 109, ShaderStages.All)      // SamplerAnisotropicMirror
-            );
+        for (int i = 0; i < _materialBuffer.Length; i++)
+        {
+            _materialBuffer[i]?.Dispose();
+
+            BufferDescriptor descriptor = new(GpuStructureSizeInBytes * _materialCapacity, BufferUsage.ShaderRead, MemoryType.Upload, label: $"PBR Material Buffer {i}");
+            _materialBuffer[i] = ToDispose(System.Device.CreateBuffer(in descriptor));
+        }
     }
 
-    protected override unsafe PipelineLayout CreatePipelineLayout(bool skinned)
+    public override unsafe void BeginFrame(uint frameIndex)
     {
-        Span<BindGroupLayout> bindGroupLayouts = [_bindGroupLayout,
+        _materialCount = 0;
+        _mappedMaterialData = (GPUMaterialPBR*)_materialBuffer[frameIndex].GetMappedData();
+        _bindlessShaderReadIndex = _materialBuffer[frameIndex].BindlessShaderReadIndex;
+    }
+
+    protected override unsafe int Write(PhysicallyBasedMaterial material, out int materialIndex)
+    {
+        Texture baseColorTexture = material.BaseColorTexture ?? System.OpaqueWhiteTexture;
+        Texture normalTexture = material.NormalTexture ?? System.DefaultNormalTexture;
+        Texture metallicRoughnessTexture = material.MetallicRoughnessTexture ?? System.OpaqueWhiteTexture;
+        Texture emissiveTexture = material.EmissiveTexture ?? System.OpaqueWhiteTexture;
+        Texture occlusionTexture = material.OcclusionTexture ?? System.OpaqueWhiteTexture;
+
+        _mappedMaterialData[_materialCount] = new()
+        {
+            BaseIndex = baseColorTexture.DefaultView!.BindlessShaderReadIndex,
+            NormalIndex = normalTexture.DefaultView!.BindlessShaderReadIndex,
+            MetallicRoughnessIndex = metallicRoughnessTexture.DefaultView!.BindlessShaderReadIndex,
+            EmissiveIndex = emissiveTexture.DefaultView!.BindlessShaderReadIndex,
+            OcclusionIndex = occlusionTexture.DefaultView!.BindlessShaderReadIndex,
+            SamplerIndex = System.DefaultSampler.BindlessIndex,
+            baseColorFactor = material.BaseColorFactor,
+            emissiveFactor = material.EmissiveFactor,
+            normalScale = material.NormalScale,
+            metallicRoughnessFactor = new(material.MetallicFactor, material.RoughnessFactor),
+            occlusionStrength = material.OcclusionStrength,
+            alphaCutoff = material.AlphaCutoff,
+            baseColorUVSet = (int)material.BaseColorUVChannel,
+            normalUVSet = (int)material.NormalTextureUVChannel,
+            emissiveUVSet = (int)material.EmissiveTextureUVChannel,
+            metallicRoughnessUVSet = (int)material.MetallicRoughnessTextureUVChannel,
+        };
+
+        materialIndex = _materialCount++;
+        return _bindlessShaderReadIndex;
+    }
+
+
+    protected override PipelineLayout CreatePipelineLayout(bool skinned)
+    {
+        Span<BindGroupLayout> bindGroupLayouts = [
+            System.EmptyBindGroupLayout,
             System.InstanceBindGroupLayout,
             System.ViewBindGroupLayout,
             System.FrameBindGroupLayout];
@@ -62,41 +99,6 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
         bool roughnessOnly = IsFullyRough(pbrMaterial);
         ShaderModule fragmentShader = System.ShaderSystem.GetShaderModule("PBR", ShaderStages.Fragment);
         return fragmentShader;
-    }
-
-    protected override BindGroup CreateBindGroup(Material material)
-    {
-        if (material is not PhysicallyBasedMaterial pbrMaterial)
-            throw new ArgumentException("Material must be of type PhysicallyBasedMaterial", nameof(material));
-
-        // TODO: Should be one material buffer per material
-        PBRMaterialUniforms materialData = new()
-        {
-            baseColorFactor = pbrMaterial.BaseColorFactor,
-            emissiveFactor = pbrMaterial.EmissiveFactor,
-            normalScale = pbrMaterial.NormalScale,
-            metallicRoughnessFactor = new(pbrMaterial.MetallicFactor, pbrMaterial.RoughnessFactor),
-            occlusionStrength = pbrMaterial.OcclusionStrength,
-            alphaCutoff = pbrMaterial.AlphaCutoff,
-            baseColorUVSet = (int)pbrMaterial.BaseColorUVChannel,
-            normalUVSet = (int)pbrMaterial.NormalTextureUVChannel,
-            emissiveUVSet = (int)pbrMaterial.EmissiveTextureUVChannel,
-            metallicRoughnessUVSet = (int)pbrMaterial.MetallicRoughnessTextureUVChannel,
-        };
-        _materialBuffer.SetData(materialData);
-
-        BindGroup bindGroup = _bindGroupLayout.CreateBindGroup(
-            "PBR Material BindGroup",
-            new BindGroupEntry(0, _materialBuffer),
-            new BindGroupEntry(0, pbrMaterial.BaseColorTexture ?? System.OpaqueWhiteTexture),
-            new BindGroupEntry(1, pbrMaterial.NormalTexture ?? System.DefaultNormalTexture),
-            new BindGroupEntry(2, pbrMaterial.MetallicRoughnessTexture ?? System.OpaqueWhiteTexture),
-            new BindGroupEntry(3, pbrMaterial.EmissiveTexture ?? System.OpaqueWhiteTexture),
-            new BindGroupEntry(4, pbrMaterial.OcclusionTexture ?? System.OpaqueWhiteTexture),
-            new BindGroupEntry(0, System.DefaultSampler)
-        );
-
-        return bindGroup;
     }
 
     private static bool IsFullyRough(PhysicallyBasedMaterial material)
