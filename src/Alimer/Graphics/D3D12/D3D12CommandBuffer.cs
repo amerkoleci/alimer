@@ -57,7 +57,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     private bool _bindGroupsDirty;
     private int _numBoundBindGroups;
-    private readonly D3D12BindGroup[] _boundBindGroups = new D3D12BindGroup[MaxBindGroups];
+    private readonly D3D12BindGroup[] _boundBindGroups = new D3D12BindGroup[8];
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
     {
@@ -525,7 +525,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandList6.Get()->EndQuery(backendQueryHeap.Handle, backendQueryHeap.BackendQueryType, index);
     }
 
-    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GpuBuffer destinationBuffer, ulong destinationOffset)
     {
         D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();

@@ -14,7 +14,7 @@ using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Buffer : GraphicsBuffer
+internal unsafe class D3D12Buffer : GpuBuffer
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
@@ -183,7 +183,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     public bool ImmutableState { get; }
 
     /// <inheritdoc />
-    public override GPUAddress GpuAddress { get; }
+    public override GpuAddress GpuAddress { get; }
 
     public ulong AllocatedSize { get; }
 

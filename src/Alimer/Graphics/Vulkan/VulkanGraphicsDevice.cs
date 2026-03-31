@@ -19,7 +19,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VulkanGraphicsAdapter _adapter;
     private readonly uint[] _queueFamilyIndices;
     private readonly uint[] _queueIndices;
-    private readonly uint[] _queueCounts;
+    //private readonly uint[] _queueCounts;
+    private readonly uint _timestampValidBits = 0;
     private readonly GraphicsDeviceLimits _limits;
 
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
@@ -62,19 +63,23 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         _queueFamilyIndices = new uint[(int)CommandQueueType.Count];
         _queueIndices = new uint[(int)CommandQueueType.Count];
-        _queueCounts = new uint[(int)CommandQueueType.Count];
+        //_queueCounts = new uint[(int)CommandQueueType.Count];
         for (int i = 0; i < (int)CommandQueueType.Count; i++)
         {
             _queueFamilyIndices[i] = VK_QUEUE_FAMILY_IGNORED;
         }
 
         VkInstanceApi instanceApi = _adapter.VkGraphicsManager.InstanceApi;
+        instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, out uint queueFamilyCount);
 
-        instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, out uint count);
+        SupportsDepth24UnormStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D24_UNORM_S8_UINT);
+        SupportsDepth32FloatStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D32_SFLOAT_S8_UINT);
+        SupportsStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_S8_UINT);
+        Debug.Assert(SupportsDepth24UnormStencil8 || SupportsDepth32FloatStencil8);
 
-        VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[(int)count];
-        VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[(int)count];
-        for (int i = 0; i < count; ++i)
+        VkQueueFamilyProperties2* queueProps = stackalloc VkQueueFamilyProperties2[(int)queueFamilyCount];
+        VkQueueFamilyVideoPropertiesKHR* queueFamiliesVideo = stackalloc VkQueueFamilyVideoPropertiesKHR[(int)queueFamilyCount];
+        for (int i = 0; i < queueFamilyCount; ++i)
         {
             queueProps[i] = new();
 
@@ -85,18 +90,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             }
         }
 
-        instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(
-            _physicalDevice,
-            &count,
-            queueProps
-            );
-        int queueFamilyCount = (int)count;
-
+        uint count = queueFamilyCount;
+        instanceApi.vkGetPhysicalDeviceQueueFamilyProperties2(_physicalDevice, &count, queueProps);
         VkSurfaceKHR surface = VkSurfaceKHR.Null;
 
-        uint* offsets = stackalloc uint[queueFamilyCount];
-        float* priorities = stackalloc float[queueFamilyCount * (int)CommandQueueType.Count];
-        bool FindVacantQueue(VkQueueFlags required, VkQueueFlags ignored, float priority, ref uint family, ref uint index)
+        int queuePriorityArrayIndex = 0;
+        uint* queueOffsets = stackalloc uint[(int)queueFamilyCount];
+        float* queuePriorities = stackalloc float[(int)queueFamilyCount * (int)CommandQueueType.Count];
+        bool FindVacantQueue(CommandQueueType type, VkQueueFlags required, VkQueueFlags ignored, float priority)
         {
             for (uint i = 0; i < queueFamilyCount; i++)
             {
@@ -156,10 +157,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 if (queueProps[i].queueFamilyProperties.queueCount > 0 &&
                     (queueProps[i].queueFamilyProperties.queueFlags & required) == required)
                 {
-                    family = i;
+                    _queueFamilyIndices[(int)type] = i;
                     queueProps[i].queueFamilyProperties.queueCount--;
-                    index = offsets[i]++;
-                    priorities[i * (int)CommandQueueType.Count + index] = priority;
+                    _queueIndices[(int)type] = queueOffsets[i]++;
+                    queuePriorities[queuePriorityArrayIndex++] = priority;
                     return true;
                 }
             }
@@ -167,28 +168,26 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         // Find graphics queue
-        if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute,
-            VkQueueFlags.None, 0.5f,
-            ref _queueFamilyIndices[(int)CommandQueueType.Graphics],
-            ref _queueIndices[(int)CommandQueueType.Graphics]))
+        if (!FindVacantQueue(CommandQueueType.Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
         {
             throw new GraphicsException("Vulkan: Could not find graphics queue with compute and present");
         }
 
-        // Prefer another graphics queue since we can do async graphics that way.
-        // The compute queue is to be treated as high priority since we also do async graphics on it.
-        if (!FindVacantQueue(VkQueueFlags.Graphics | VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)CommandQueueType.Compute], ref _queueIndices[(int)CommandQueueType.Compute]) &&
-            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.None, 1.0f, ref _queueFamilyIndices[(int)CommandQueueType.Compute], ref _queueIndices[(int)CommandQueueType.Compute]))
+        // XXX: This assumes timestamp valid bits is the same for all queue types.
+        _timestampValidBits = queueProps[(int)CommandQueueType.Graphics].queueFamilyProperties.timestampValidBits;
+
+        // Prefer standalone compute queue. If not, fall back to another graphics queue.
+        if (!FindVacantQueue(CommandQueueType.Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f) &&
+            !FindVacantQueue(CommandQueueType.Compute, VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
         {
             _queueFamilyIndices[(int)CommandQueueType.Compute] = _queueFamilyIndices[(int)CommandQueueType.Graphics];
             _queueIndices[(int)CommandQueueType.Compute] = _queueIndices[(int)CommandQueueType.Graphics];
         }
 
         // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
-        // If not, fallback to a dedicated compute queue.
-        // Finally, fallback to same queue as compute.
-        if (!FindVacantQueue(VkQueueFlags.Transfer, VkQueueFlags.Graphics | VkQueueFlags.Compute, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.Copy], ref _queueIndices[(int)CommandQueueType.Copy]) &&
-            !FindVacantQueue(VkQueueFlags.Compute, VkQueueFlags.Graphics, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.Copy], ref _queueIndices[(int)CommandQueueType.Copy]))
+        // If not, fallback to a dedicated compute queue, finally, fallback to same queue as compute.
+        if (!FindVacantQueue(CommandQueueType.Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f) &&
+            !FindVacantQueue(CommandQueueType.Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
         {
             _queueFamilyIndices[(int)CommandQueueType.Copy] = _queueFamilyIndices[(int)CommandQueueType.Compute];
             _queueIndices[(int)CommandQueueType.Copy] = _queueIndices[(int)CommandQueueType.Compute];
@@ -196,7 +195,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         if (_adapter.Extensions.Video.Queue)
         {
-            if (!FindVacantQueue(VkQueueFlags.VideoDecodeKHR, 0, 0.5f, ref _queueFamilyIndices[(int)CommandQueueType.VideoDecode], ref _queueIndices[(int)CommandQueueType.VideoDecode]))
+            if (!FindVacantQueue(CommandQueueType.VideoDecode, VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
             {
                 _queueFamilyIndices[(int)CommandQueueType.VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
                 _queueIndices[(int)CommandQueueType.VideoDecode] = uint.MaxValue;
@@ -209,23 +208,25 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             //}
         }
 
+        queuePriorityArrayIndex = 0;
         uint queueCreateInfosCount = 0u;
-        VkDeviceQueueCreateInfo* queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[queueFamilyCount];
+        VkDeviceQueueCreateInfo* queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[(int)queueFamilyCount];
         for (uint i = 0; i < queueFamilyCount; i++)
         {
-            if (offsets[i] == 0)
+            if (queueOffsets[i] == 0)
                 continue;
 
             VkDeviceQueueCreateInfo queueCreateInfo = new()
             {
                 queueFamilyIndex = i,
-                queueCount = offsets[i],
-                pQueuePriorities = &priorities[i * (int)CommandQueueType.Count]
+                queueCount = queueOffsets[i],
+                pQueuePriorities = &queuePriorities[queuePriorityArrayIndex]
             };
             queueCreateInfos[queueCreateInfosCount] = queueCreateInfo;
             queueCreateInfosCount++;
 
-            _queueCounts[i] = offsets[_queueFamilyIndices[i]];
+            queuePriorityArrayIndex += (int)queueCreateInfo.queueCount;
+            //_queueCounts[i] = queueOffsets[_queueFamilyIndices[i]];
         }
 
         // Setup extensions and features
@@ -622,6 +623,124 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
         _copyAllocator = new(this);
 
+        // Limits and features
+        {
+
+
+            // TODO: Rest of limits
+            VkPhysicalDeviceProperties2 properties2 = _adapter.Properties2;
+            VkPhysicalDeviceLimits vkLimits = properties2.properties.limits;
+
+            // VUID-VkCopyBufferToImageInfo2-dstImage-07975: If "dstImage" does not have either a depth/stencil format or a multi-planar format,
+            //      "bufferOffset" must be a multiple of the texel block size
+            // VUID-VkCopyBufferToImageInfo2-dstImage-07978: If "dstImage" has a depth/stencil format,
+            //      "bufferOffset" must be a multiple of 4
+            // Least Common Multiple stride across all formats: 1, 2, 4, 8, 16 // TODO: rarely used "12" fucks up the beauty of power-of-2 numbers, such formats must be avoided!
+            const uint leastCommonMultipleStrideAccrossAllFormats = 16;
+
+            _limits = new GraphicsDeviceLimits
+            {
+                MaxTextureDimension1D = vkLimits.maxImageDimension1D,
+                MaxTextureDimension2D = vkLimits.maxImageDimension2D,
+                MaxTextureDimension3D = vkLimits.maxImageDimension3D,
+                MaxTextureDimensionCube = vkLimits.maxImageDimensionCube,
+                MaxTextureArrayLayers = vkLimits.maxImageArrayLayers,
+                MinConstantBufferOffsetAlignment = (uint)vkLimits.minUniformBufferOffsetAlignment,
+                MaxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange,
+                MinStorageBufferOffsetAlignment = (uint)properties2.properties.limits.minStorageBufferOffsetAlignment,
+                MaxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange,
+
+                TextureRowPitchAlignment = (uint)vkLimits.optimalBufferCopyRowPitchAlignment,
+                TextureDepthPitchAlignment = MathUtilities.LeastCommonMultiple((uint)vkLimits.optimalBufferCopyOffsetAlignment, leastCommonMultipleStrideAccrossAllFormats),
+
+                MaxBufferSize = _adapter.Properties13.maxBufferSize,
+                MaxColorAttachments = properties2.properties.limits.maxColorAttachments,
+                MaxViewports = properties2.properties.limits.maxViewports,
+
+                MaxVertexBuffers = properties2.properties.limits.maxVertexInputBindings,
+                MaxVertexAttributes = properties2.properties.limits.maxVertexInputAttributes,
+                MaxVertexBufferArrayStride = properties2.properties.limits.maxVertexInputBindingStride,
+
+                MaxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize,
+                MaxComputeInvocationsPerWorkGroup = properties2.properties.limits.maxComputeWorkGroupInvocations,
+                MaxComputeWorkGroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0],
+                MaxComputeWorkGroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1],
+                MaxComputeWorkGroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2],
+                MaxComputeWorkGroupsPerDimension = Math.Min(Math.Min(
+                    properties2.properties.limits.maxComputeWorkGroupCount[0],
+                    properties2.properties.limits.maxComputeWorkGroupCount[1]),
+                    properties2.properties.limits.maxComputeWorkGroupCount[2]
+                )
+            };
+
+            //_limits.conservativeRasterizationTier = ConservativeRasterizationTier::NotSupported;
+            //if (extensions.conservativeRasterization)
+            //{
+            //    _limits.conservativeRasterizationTier = ConservativeRasterizationTier::Tier1;
+            //
+            //    if (adapter->conservativeRasterizationProps.primitiveOverestimationSize < 1.0f / 2.0f && adapter->conservativeRasterizationProps.degenerateTrianglesRasterized)
+            //        _limits.conservativeRasterizationTier = ConservativeRasterizationTier::Tier2;
+            //    if (adapter->conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && adapter->conservativeRasterizationProps.degenerateTrianglesRasterized)
+            //        _limits.conservativeRasterizationTier = ConservativeRasterizationTier::Tier3;
+            //}
+
+            _limits.VariableShadingRateTier = VariableShadingRateTier.NotSupported;
+            if (adapter.Extensions.FragmentShadingRate)
+            {
+                if (adapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate)
+                {
+                    _limits.VariableShadingRateTier = VariableShadingRateTier.Tier1;
+                }
+
+                if (adapter.FragmentShadingRateFeatures.primitiveFragmentShadingRate &&
+                    adapter.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
+                {
+                    _limits.VariableShadingRateTier = VariableShadingRateTier.Tier2;
+                }
+
+                VkExtent2D tileExtent = adapter.FragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+                _limits.VariableShadingRateImageTileSize = Math.Max(tileExtent.width, tileExtent.height);
+                _limits.IsAdditionalVariableShadingRatesSupported = adapter.FragmentShadingRateProperties.maxFragmentSize.height > 2 || adapter.FragmentShadingRateProperties.maxFragmentSize.width > 2;
+            }
+
+            // Ray tracing
+            _limits.RayTracingTier = RayTracingTier.NotSupported;
+            if (adapter.Features12.bufferDeviceAddress &&
+                adapter.AccelerationStructureFeatures.accelerationStructure &&
+                adapter.RayTracingPipelineFeatures.rayTracingPipeline)
+            {
+                _limits.RayTracingTier = RayTracingTier.Tier1_0;
+
+                if (adapter.RayQueryFeatures.rayQuery)
+                {
+                    _limits.RayTracingTier = RayTracingTier.Tier1_1;
+                }
+
+                //if (OpacityMicromapFeatures.micromap)
+                //    m_Desc.tiers.rayTracing++;
+
+                _limits.RayTracing = new GraphicsDeviceRayTracingLimits()
+                {
+                    ShaderGroupIdentifierSize = adapter.RayTracingPipelineProperties.shaderGroupHandleSize,
+                    ShaderTableAlignment = adapter.RayTracingPipelineProperties.shaderGroupBaseAlignment,
+                    ShaderTableMaxStride = adapter.RayTracingPipelineProperties.maxShaderGroupStride,
+                    ShaderRecursionMaxDepth = adapter.RayTracingPipelineProperties.maxRayRecursionDepth,
+                    MaxGeometryCount = (uint)adapter.AccelerationStructureProperties.maxGeometryCount,
+                    MinAccelerationStructureScratchOffsetAlignment = adapter.AccelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment
+                };
+            }
+
+            // Mesh shader
+            _limits.MeshShaderTier = MeshShaderTier.NotSupported;
+            if (_adapter.MeshShaderFeatures.meshShader &&
+                _adapter.MeshShaderFeatures.taskShader)
+            {
+                _limits.MeshShaderTier = MeshShaderTier.Tier1;
+            }
+
+            TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
+        }
+
         // Dynamic PSO states
         _dynamicStateCount = 4;
         if (features2.features.depthBounds)
@@ -818,55 +937,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         // Allocate at least one descriptor pool.
         _descriptorSetPools.Add(CreateDescriptorSetPool());
 
-        // TODO: Rest of limits
-        VkPhysicalDeviceProperties2 properties2 = _adapter.Properties2;
-        VkPhysicalDeviceLimits vkLimits = properties2.properties.limits;
-
-        // VUID-VkCopyBufferToImageInfo2-dstImage-07975: If "dstImage" does not have either a depth/stencil format or a multi-planar format,
-        //      "bufferOffset" must be a multiple of the texel block size
-        // VUID-VkCopyBufferToImageInfo2-dstImage-07978: If "dstImage" has a depth/stencil format,
-        //      "bufferOffset" must be a multiple of 4
-        // Least Common Multiple stride across all formats: 1, 2, 4, 8, 16 // TODO: rarely used "12" fucks up the beauty of power-of-2 numbers, such formats must be avoided!
-        const uint leastCommonMultipleStrideAccrossAllFormats = 16;
-
-        _limits = new GraphicsDeviceLimits
-        {
-            MaxTextureDimension1D = vkLimits.maxImageDimension1D,
-            MaxTextureDimension2D = vkLimits.maxImageDimension2D,
-            MaxTextureDimension3D = vkLimits.maxImageDimension3D,
-            MaxTextureDimensionCube = vkLimits.maxImageDimensionCube,
-            MaxTextureArrayLayers = vkLimits.maxImageArrayLayers,
-            MaxBindGroups = vkLimits.maxBoundDescriptorSets,
-            MinConstantBufferOffsetAlignment = (uint)vkLimits.minUniformBufferOffsetAlignment,
-            MaxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange,
-            MinStorageBufferOffsetAlignment = (uint)properties2.properties.limits.minStorageBufferOffsetAlignment,
-            MaxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange,
-
-            TextureRowPitchAlignment = (uint)vkLimits.optimalBufferCopyRowPitchAlignment,
-            TextureDepthPitchAlignment = MathUtilities.LeastCommonMultiple((uint)vkLimits.optimalBufferCopyOffsetAlignment, leastCommonMultipleStrideAccrossAllFormats),
-
-            MaxBufferSize = _adapter.Properties13.maxBufferSize,
-            MaxColorAttachments = properties2.properties.limits.maxColorAttachments,
-            MaxViewports = properties2.properties.limits.maxViewports,
-
-            MaxVertexBuffers = properties2.properties.limits.maxVertexInputBindings,
-            MaxVertexAttributes = properties2.properties.limits.maxVertexInputAttributes,
-            MaxVertexBufferArrayStride = properties2.properties.limits.maxVertexInputBindingStride,
-
-            MaxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize,
-            MaxComputeInvocationsPerWorkGroup = properties2.properties.limits.maxComputeWorkGroupInvocations,
-            MaxComputeWorkGroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0],
-            MaxComputeWorkGroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1],
-            MaxComputeWorkGroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2],
-            MaxComputeWorkGroupsPerDimension = Math.Min(Math.Min(
-                properties2.properties.limits.maxComputeWorkGroupCount[0],
-                properties2.properties.limits.maxComputeWorkGroupCount[1]),
-                properties2.properties.limits.maxComputeWorkGroupCount[2]
-            )
-        };
-
-        TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
-
         void AddToFeatureChain(void* next)
         {
             VkBaseOutStructure* n = (VkBaseOutStructure*)next;
@@ -908,6 +978,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public ref readonly VkPipelineDynamicStateCreateInfo DynamicStateInfo => ref _dynamicStateInfo;
 
     public VkPipelineCache PipelineCache { get; }
+
+    public bool SupportsDepth24UnormStencil8 { get; }
+    public bool SupportsDepth32FloatStencil8 { get; }
+    public bool SupportsStencil8 { get; }
     public bool Bindless { get; }
     public VulkanBindlessDescriptorSet? BindlessDescriptorSet { get; }
 
@@ -1026,11 +1100,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     {
         switch (feature)
         {
-            case Feature.Depth32FloatStencil8:
-                return _adapter.SupportsDepth32FloatStencil8;
-
-            case Feature.TimestampQuery:
-                return _adapter.Properties2.properties.limits.timestampComputeAndGraphics == true;
 
             case Feature.PipelineStatisticsQuery:
                 return _adapter.Features2.features.pipelineStatisticsQuery == true;
@@ -1059,26 +1128,17 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 // VK_KHR_shader_float16_int8 core in 1.2
                 return true;
 
-            case Feature.RG11B10UfloatRenderable:
-                InstanceApi.vkGetPhysicalDeviceFormatProperties(_adapter.Handle, VkFormat.B10G11R11UfloatPack32, out VkFormatProperties rg11b10Properties);
-                if ((rg11b10Properties.optimalTilingFeatures & (VkFormatFeatureFlags.ColorAttachment | VkFormatFeatureFlags.ColorAttachmentBlend)) != 0u)
-                {
-                    return true;
-                }
+            //case Feature.BGRA8UnormStorage:
+            //    VkFormatProperties bgra8unormProperties;
+            //    InstanceApi.vkGetPhysicalDeviceFormatProperties(_adapter.Handle, VkFormat.B8G8R8A8Unorm, &bgra8unormProperties);
+            //    if ((bgra8unormProperties.optimalTilingFeatures & VkFormatFeatureFlags.StorageImage) != 0)
+            //    {
+            //        return true;
+            //    }
+            //    return false;
 
-                return false;
-
-            case Feature.BGRA8UnormStorage:
-                VkFormatProperties bgra8unormProperties;
-                InstanceApi.vkGetPhysicalDeviceFormatProperties(_adapter.Handle, VkFormat.B8G8R8A8Unorm, &bgra8unormProperties);
-                if ((bgra8unormProperties.optimalTilingFeatures & VkFormatFeatureFlags.StorageImage) != 0)
-                {
-                    return true;
-                }
-                return false;
-
-            case Feature.TextureComponentSwizzle:
-                return true;
+            case Feature.CopyQueueTimestampQuery:
+                return _adapter.Properties2.properties.limits.timestampComputeAndGraphics == true;
 
             case Feature.DepthBoundsTest:
                 return _adapter.Features2.features.depthBounds;
@@ -1114,23 +1174,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 
             case Feature.Bindless:
                 return Bindless;
-
-            case Feature.VariableRateShading:
-                return _adapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate;
-
-            case Feature.VariableRateShadingTier2:
-                return _adapter.FragmentShadingRateFeatures.attachmentFragmentShadingRate;
-
-            case Feature.RayTracing:
-                return _adapter.Features12.bufferDeviceAddress
-                    && _adapter.AccelerationStructureFeatures.accelerationStructure
-                    && _adapter.RayTracingPipelineFeatures.rayTracingPipeline;
-
-            case Feature.RayTracingTier2:
-                return _adapter.RayQueryFeatures.rayQuery && QueryFeatureSupport(Feature.RayTracing);
-
-            case Feature.MeshShader:
-                return _adapter.MeshShaderFeatures.meshShader && _adapter.MeshShaderFeatures.taskShader;
 
             default:
                 return false;
@@ -1249,7 +1292,43 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         return false;
     }
 
-    public VkFormat ToVkFormat(PixelFormat format) => _adapter.ToVkFormat(format);
+    public VkFormat ToVkFormat(PixelFormat format)
+    {
+        if (format == PixelFormat.Stencil8 && !SupportsStencil8)
+        {
+            if (SupportsDepth32FloatStencil8)
+            {
+                return VK_FORMAT_D32_SFLOAT_S8_UINT;
+            }
+
+            return VK_FORMAT_D24_UNORM_S8_UINT;
+        }
+
+        if (format == PixelFormat.Depth24UnormStencil8 && !SupportsDepth24UnormStencil8)
+        {
+            return VK_FORMAT_D32_SFLOAT_S8_UINT;
+        }
+
+        VkFormat vkFormat = VulkanUtils.ToVkFormat(format);
+        return vkFormat;
+    }
+
+    public bool IsDepthStencilFormatSupported(VkFormat format)
+    {
+        Debug.Assert(format == VK_FORMAT_D16_UNORM_S8_UINT
+            || format == VK_FORMAT_D24_UNORM_S8_UINT
+            || format == VK_FORMAT_D32_SFLOAT_S8_UINT
+            || format == VK_FORMAT_S8_UINT
+            );
+
+        VkFormatProperties2 properties2 = new();
+        InstanceApi.vkGetPhysicalDeviceFormatProperties2(
+            _adapter.Handle,
+            format,
+            &properties2
+            );
+        return (properties2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0;
+    }
 
     /// <inheritdoc />
     public override CommandQueue GetCommandQueue(CommandQueueType type) => _queues[(int)type];
@@ -1405,7 +1484,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override GpuBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
     {
         return new VulkanBuffer(this, descriptor, initialData);
     }
@@ -1542,7 +1621,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         };
 
         uint actualPoolSizeCount = 7;
-        if (QueryFeatureSupport(Feature.RayTracing))
+        if (Limits.RayTracingTier != RayTracingTier.NotSupported)
         {
             actualPoolSizeCount++;
         }

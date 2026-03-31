@@ -104,7 +104,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                         {
                             // Verify the layout entry expects an SRV (texture or read-only storage buffer)
                             bool isTexture = layoutEntry.BindingType == BindingInfoType.Texture;
-                            if (isTexture && entry.Resource is GraphicsBuffer)
+                            if (isTexture && entry.Resource is GpuBuffer)
                                 continue;
 
                             bool isShaderReadBuffer = layoutEntry.BindingType == BindingInfoType.Buffer && layoutEntry.Buffer.Type == BufferBindingType.ShaderRead;
@@ -112,7 +112,7 @@ internal unsafe class D3D12BindGroup : BindGroup
                             if (!isTexture && !isShaderReadBuffer)
                                 continue;
 
-                            if (entry.Resource is GraphicsBuffer buffer)
+                            if (entry.Resource is GpuBuffer buffer)
                             {
                                 D3D12Buffer backendBuffer = (D3D12Buffer)buffer;
                                 ulong offset = entry.Offset;

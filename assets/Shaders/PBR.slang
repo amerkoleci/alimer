@@ -59,8 +59,7 @@ float3 pbrSurfaceColorIbl(in SurfaceInfo surface)
     return ambient;
 }
 
-float3 pbrSurfaceColor(in float3 L, in SurfaceInfo surface, in float3 lightColor, in float lightIntensity,
-                       in float attenuation)
+float3 pbrSurfaceColor(in float3 L, in SurfaceInfo surface, in float3 lightColor, in float attenuation)
 {
     const float3 H = normalize(surface.V + L);
 
@@ -81,13 +80,13 @@ float3 pbrSurfaceColor(in float3 L, in SurfaceInfo surface, in float3 lightColor
     float3 Fd = surface.diffuseColor / Pi;
 
     // add to outgoing radiance Lo
-    float3 radiance = lightColor * lightIntensity * attenuation;
+    float3 radiance = lightColor * attenuation;
     return (kD * Fd + specular) * radiance * NdotL * surface.ao;
 }
 
-float3 pbrDirectionalLight(in LightData light, in SurfaceInfo surface)
+float3 pbrDirectionalLight(in GPULight light, in SurfaceInfo surface)
 {
-    return pbrSurfaceColor(normalize(light.direction), surface, light.color, light.intensity, 1);
+    return pbrSurfaceColor(normalize(light.Direction), surface, light.Color, 1);
 }
 
 float pointLightAttenuation(in float3 worldToLight, in float lightRange)
@@ -96,18 +95,19 @@ float pointLightAttenuation(in float3 worldToLight, in float lightRange)
     return clamp(1.f - pow(dist / lightRange, 4.f), 0.f, 1.f) / pow(dist, 2.f);
 }
 
-float3 pbrPointLight(in LightData light, in SurfaceInfo surface)
+float3 pbrPointLight(in GPULight light, in SurfaceInfo surface)
 {
-    const float3 worldToLight = light.position - surface.worldPos;
+    const float3 worldToLight = light.Position - surface.worldPos;
 
     const float3 L = normalize(worldToLight);
-    const float attenuation = pointLightAttenuation(worldToLight, light.range);
+    const float attenuation = pointLightAttenuation(worldToLight, light.Range);
 
-    return pbrSurfaceColor(L, surface, light.color, light.intensity, attenuation);
+    return pbrSurfaceColor(L, surface, light.Color, attenuation);
 }
 
 // Material (space 0)
 ConstantBuffer<PBRMaterialUniforms> material : register(b0);
+Texture2D<float4> baseColorTexture : register(t0);
 Texture2D<float4> normalTexture : register(t1);
 Texture2D<float4> metallicRoughnessTexture : register(t2);
 Texture2D<float4> emissiveTexture : register(t3);
@@ -134,7 +134,7 @@ Texture2D<float4> baseColorTexture : register(t0);
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {
 #if defined(ALIMER_BINDLESS)
-    Texture2D<float4> baseColorTexture = bindlessTexture2D[pushConstants.baseColorTextureIndex];
+    Texture2D<float4> baseColorTexture = bindlessTexture2D[push.baseColorTextureIndex];
 #endif
 
     float2 baseColorUV = material.baseColorUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;
@@ -203,9 +203,9 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
     // Calculate contribution from each light source
     for (uint i = 0; i < view.activeLightCount; i++)
     {
-        LightData light = lights[i];
+        GPULight light = lights[i];
         [branch]
-        if (light.type != (int)LightType::Directional)
+        if (light.Type != (int)LightType::Directional)
         {
             // calculate per-light radiance and add to outgoing radiance Lo
             Lo += pbrPointLight(light, surface);

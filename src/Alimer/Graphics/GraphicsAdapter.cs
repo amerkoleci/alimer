@@ -35,6 +35,27 @@ public abstract class GraphicsAdapter
     /// </summary>
     public abstract GraphicsAdapterType Type { get; }
 
+    public GpuAdapterVendor Vendor
+    {
+        get
+        {
+            return VendorId switch
+            {
+                (uint)KnownGPUAdapterVendor.NVIDIA => GpuAdapterVendor.NVIDIA,
+                (uint)KnownGPUAdapterVendor.AMD => GpuAdapterVendor.AMD,
+                (uint)KnownGPUAdapterVendor.INTEL => GpuAdapterVendor.Intel,
+                (uint)KnownGPUAdapterVendor.ARM => GpuAdapterVendor.ARM,
+                (uint)KnownGPUAdapterVendor.QUALCOMM => GpuAdapterVendor.Qualcomm,
+                (uint)KnownGPUAdapterVendor.IMGTECH => GpuAdapterVendor.ImgTech,
+                (uint)KnownGPUAdapterVendor.MSFT => GpuAdapterVendor.MSFT,
+                (uint)KnownGPUAdapterVendor.APPLE => GpuAdapterVendor.Apple,
+                (uint)KnownGPUAdapterVendor.MESA => GpuAdapterVendor.Mesa,
+                (uint)KnownGPUAdapterVendor.BROADCOM => GpuAdapterVendor.Broadcom,
+                _ => GpuAdapterVendor.Unknown
+            };
+        }
+    }
+
     /// <summary>
     /// Creates a new <see cref="GraphicsDevice"/> with the default options.
     /// </summary>

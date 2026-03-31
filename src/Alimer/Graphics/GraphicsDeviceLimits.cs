@@ -3,6 +3,16 @@
 
 namespace Alimer.Graphics;
 
+public struct GraphicsDeviceRayTracingLimits
+{
+    public ulong ShaderGroupIdentifierSize;
+    public ulong ShaderTableAlignment;
+    public ulong ShaderTableMaxStride;
+    public uint ShaderRecursionMaxDepth;
+    public uint MaxGeometryCount;
+    public uint MinAccelerationStructureScratchOffsetAlignment;
+}
+
 public struct GraphicsDeviceLimits
 {
     public uint MaxTextureDimension1D;
@@ -10,7 +20,6 @@ public struct GraphicsDeviceLimits
     public uint MaxTextureDimension3D;
     public uint MaxTextureDimensionCube;
     public uint MaxTextureArrayLayers;
-    public uint MaxBindGroups;
     //public uint MaxTexelBufferDimension2D;
 
     public uint MinConstantBufferOffsetAlignment;
@@ -38,12 +47,14 @@ public struct GraphicsDeviceLimits
     public uint MaxComputeWorkGroupsPerDimension;
 
     // VariableRateShading
-    public uint VariableRateShadingTileSize;
+    public VariableShadingRateTier VariableShadingRateTier;
+    public uint VariableShadingRateImageTileSize;
+    public bool IsAdditionalVariableShadingRatesSupported;
 
     // Ray tracing
-    public ulong RayTracingShaderGroupIdentifierSize;
-    public ulong RayTracingShaderTableAligment;
-    public ulong RayTracingShaderTableMaxStride;
-    public uint RayTracingShaderRecursionMaxDepth;
-    public uint RayTracingMaxGeometryCount;
+    public RayTracingTier RayTracingTier;
+    public GraphicsDeviceRayTracingLimits RayTracing;
+
+    // Mesh shader
+    public MeshShaderTier MeshShaderTier;
 }

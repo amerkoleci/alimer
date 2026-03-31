@@ -29,6 +29,9 @@ using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_SAMPLER_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_COMPONENT_MAPPING;
+using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
+using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
+using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using System.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
@@ -528,11 +531,45 @@ internal static unsafe class D3D12Utils
         };
     }
 
+    public static VariableShadingRateTier FromD3D12(this D3D12_VARIABLE_SHADING_RATE_TIER value)
+    {
+        return value switch
+        {
+            D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED => VariableShadingRateTier.NotSupported,
+            D3D12_VARIABLE_SHADING_RATE_TIER_1 => VariableShadingRateTier.Tier1,
+            D3D12_VARIABLE_SHADING_RATE_TIER_2 => VariableShadingRateTier.Tier2,
+            _ => VariableShadingRateTier.NotSupported,
+        };
+    }
+
+    public static RayTracingTier FromD3D12(this D3D12_RAYTRACING_TIER value)
+    {
+        return value switch
+        {
+            D3D12_RAYTRACING_TIER_NOT_SUPPORTED => RayTracingTier.NotSupported,
+            D3D12_RAYTRACING_TIER_1_0 => RayTracingTier.Tier1_0,
+            D3D12_RAYTRACING_TIER_1_1 => RayTracingTier.Tier1_1,
+            D3D12_RAYTRACING_TIER_1_2 => RayTracingTier.Tier1_2,
+            _ => RayTracingTier.NotSupported,
+        };
+    }
+
+    public static MeshShaderTier FromD3D12(this D3D12_MESH_SHADER_TIER value)
+    {
+        return value switch
+        {
+            D3D12_MESH_SHADER_TIER_NOT_SUPPORTED => MeshShaderTier.NotSupported,
+            D3D12_MESH_SHADER_TIER_1 => MeshShaderTier.Tier1,
+            _ => MeshShaderTier.NotSupported,
+        };
+    }
+
     public static uint ToD3D12(this TextureSwizzleChannels swizzle)
     {
         //D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
         return D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(swizzle.Red.ToD3D12(), swizzle.Green.ToD3D12(), swizzle.Blue.ToD3D12(), swizzle.Alpha.ToD3D12());
     }
+
 
     public static D3D12_SAMPLER_DESC ToD3D12SamplerDesc(in SamplerDescriptor description)
     {

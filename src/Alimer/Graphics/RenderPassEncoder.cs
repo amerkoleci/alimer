@@ -9,7 +9,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
 {
     protected ShadingRate _currentShadingRate = ShadingRate.Invalid;
 #if VALIDATE_USAGE
-    private GraphicsBuffer? _indexBuffer;
+    private GpuBuffer? _indexBuffer;
     private IndexFormat _indexFormat;
 #endif
 
@@ -35,7 +35,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         SetPipelineCore(pipeline);
     }
 
-    public void SetVertexBuffer(uint slot, GraphicsBuffer buffer, ulong offset = 0)
+    public void SetVertexBuffer(uint slot, GpuBuffer buffer, ulong offset = 0)
     {
 #if VALIDATE_USAGE
         if ((buffer.Usage & BufferUsage.Vertex) == 0)
@@ -48,7 +48,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         SetVertexBufferCore(slot, buffer, offset);
     }
 
-    public void SetIndexBuffer(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0)
+    public void SetIndexBuffer(GpuBuffer buffer, IndexFormat format, ulong offset = 0)
     {
 #if VALIDATE_USAGE
         if ((buffer.Usage & BufferUsage.Index) == 0)
@@ -123,7 +123,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     /// </summary>
     /// <param name="indirectBuffer"></param>
     /// <param name="indirectBufferOffset"></param>
-    public void DrawIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    public void DrawIndirect(GpuBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -131,7 +131,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         DrawIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    public void DrawIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    public void DrawIndirectCount(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -146,7 +146,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     /// </summary>
     /// <param name="indirectBuffer"></param>
     /// <param name="indirectBufferOffset"></param>
-    public void DrawIndexedIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    public void DrawIndexedIndirect(GpuBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -154,7 +154,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         DrawIndexedIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    public void DrawIndexedIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    public void DrawIndexedIndirectCount(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -171,7 +171,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         DispatchMeshCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    public void DispatchMeshIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    public void DispatchMeshIndirect(GpuBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
         PreDispatchMeshValidation();
         ValidateIndirectBuffer(indirectBuffer);
@@ -180,7 +180,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         DispatchMeshIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    public void DispatchMeshIndirectCount(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
+    public void DispatchMeshIndirectCount(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount = 1)
     {
         PreDispatchMeshValidation();
         ValidateIndirectBuffer(indirectBuffer);
@@ -211,19 +211,19 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
         SetDepthBoundsCore(minBounds, maxBounds);
     }
 
-    protected abstract void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0);
-    protected abstract void SetIndexBufferCore(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0);
+    protected abstract void SetVertexBufferCore(uint slot, GpuBuffer buffer, ulong offset = 0);
+    protected abstract void SetIndexBufferCore(GpuBuffer buffer, IndexFormat format, ulong offset = 0);
     protected abstract void SetDepthBoundsCore(float minBounds, float maxBounds);
 
     protected abstract void DrawCore(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
     protected abstract void DrawIndexedCore(uint indexCount, uint instanceCount, uint firstIndex, int baseVertex, uint firstInstance);
-    protected abstract void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
-    protected abstract void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
-    protected abstract void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
-    protected abstract void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+    protected abstract void DrawIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DrawIndexedIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DrawIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+    protected abstract void DrawIndexedIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount);
     protected abstract void DispatchMeshCore(uint groupCountX, uint groupCountY, uint groupCountZ);
-    protected abstract void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
-    protected abstract void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount);
+    protected abstract void DispatchMeshIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DispatchMeshIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount);
 
     #region Validation
 #if VALIDATE_USAGE
@@ -249,9 +249,9 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     [Conditional("VALIDATE_USAGE")]
     private void PreDispatchMeshValidation()
     {
-        if (!Device.QueryFeatureSupport(Feature.MeshShader))
+        if (Device.Limits.MeshShaderTier == MeshShaderTier.NotSupported)
         {
-            throw new GraphicsException($"Device doesn't support Feature.MeshShader.");
+            throw new GraphicsException($"Device doesn't support MeshShader");
         }
     }
     #endregion

@@ -87,7 +87,6 @@ internal unsafe class D3D12SwapChain : SwapChain
                     tempSwapChain.GetAddressOf()
                     ));
 
-
                 fixed (ISwapChainPanelNative** swapChainPanelNative = _swapChainPanelNative)
                 {
                     using ComPtr<IUnknown> swapChainPanel = default;

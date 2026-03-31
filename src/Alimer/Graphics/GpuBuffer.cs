@@ -6,11 +6,11 @@ using System.Diagnostics;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines a Graphics buffer.
+/// Defines a GPU buffer.
 /// </summary>
-public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableResource
+public abstract unsafe class GpuBuffer : GraphicsObject, IGraphicsBindableResource
 {
-    protected GraphicsBuffer(in BufferDescriptor descriptor)
+    protected GpuBuffer(in BufferDescriptor descriptor)
         : base(descriptor.Label)
     {
         Size = descriptor.Size;
@@ -36,7 +36,7 @@ public abstract unsafe class GraphicsBuffer : GraphicsObject, IGraphicsBindableR
     /// <summary>
     /// Gets the GPU virtual address associated with this resource.
     /// </summary>
-    public abstract GPUAddress GpuAddress { get; }
+    public abstract GpuAddress GpuAddress { get; }
 
     internal BufferStates CurrentState { get; set; }
     internal abstract void* GetMappedData();

@@ -12,12 +12,13 @@ internal unsafe class VulkanTextureView : TextureView
     private readonly VulkanTexture _texture;
     private VkImageView _handle = VkImageView.Null;
     private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
+    private readonly int _bindlessUAVIndex = InvalidBindlessIndex;
 
     public VulkanTextureView(VulkanTexture texture, in TextureViewDescriptor descriptor)
         : base(texture, descriptor)
     {
         _texture = texture;
-        VkFormat = texture.VkDevice.VkAdapter.ToVkFormat(descriptor.Format);
+        VkFormat = texture.VkDevice.ToVkFormat(descriptor.Format);
 
         uint arrayLayerCount = descriptor.ArrayLayerCount;
         if (descriptor.Dimension == TextureViewDimension.ViewCube
@@ -53,38 +54,24 @@ internal unsafe class VulkanTextureView : TextureView
         {
             if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
             {
-                _bindlessSRVIndex = texture.VkDevice.BindlessDescriptorSet!.SampledImages.Allocate();
-
-                if (_bindlessSRVIndex != InvalidBindlessIndex)
-                {
-                    VkDescriptorImageInfo imageInfo = new()
-                    {
-                        imageView = _handle,
-                        imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                    };
-
-                    VkWriteDescriptorSet write = new()
-                    {
-                        dstSet = texture.VkDevice.BindlessDescriptorSet!.SampledImages.DescriptorSet,
-                        dstBinding = 0,
-                        dstArrayElement = (uint)_bindlessSRVIndex,
-                        descriptorCount = 1,
-                        descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        pImageInfo = &imageInfo
-                    };
-
-                    texture.VkDevice.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
-                }
+                _bindlessSRVIndex = texture.VkDevice.BindlessDescriptorSet!.AllocateBindlessSRV(Handle);
             }
 
             if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
             {
+                _bindlessUAVIndex = texture.VkDevice.BindlessDescriptorSet!.AllocateBindlessUAV(Handle);
             }
         }
     }
 
     public VkImageView Handle => _handle;
     public VkFormat VkFormat { get; }
+
+    /// <inheritdoc />
+    public override int BindlessShaderReadIndex => _bindlessSRVIndex;
+
+    /// <inheritdoc />
+    public override int BindlessShaderWriteIndex => _bindlessUAVIndex;
 
     /// <inheitdoc />
     internal override void Destroy()

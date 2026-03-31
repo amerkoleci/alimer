@@ -5,6 +5,9 @@ namespace Alimer.Graphics;
 
 public record struct DepthStencilState
 {
+    public const byte DefaultStencilReadMask = 0xff;
+    public const byte DefaultStencilWriteMask = 0xff;
+
     public bool DepthWriteEnabled;
     public CompareFunction DepthCompare;
 
@@ -13,7 +16,6 @@ public record struct DepthStencilState
 
     public StencilFaceState StencilFront;
     public StencilFaceState StencilBack;
-
     public bool DepthBoundsTestEnable;
 
     public static DepthStencilState DepthNone => new(false, CompareFunction.Always);
@@ -34,10 +36,13 @@ public record struct DepthStencilState
         DepthWriteEnabled = true;
         DepthCompare = CompareFunction.LessEqual;
 
-        StencilReadMask = 0xFF;
-        StencilWriteMask = 0xFF;
-        StencilFront = StencilFaceState.Default;
-        StencilBack = StencilFaceState.Default;
+        StencilReadMask = DefaultStencilReadMask;
+        StencilWriteMask = DefaultStencilWriteMask;
+
+        StencilFront = new();
+        StencilBack = new();
+
+        DepthBoundsTestEnable = false;
     }
 
     /// <summary>

@@ -33,7 +33,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
     private bool _bindGroupsDirty;
     private int _numBoundBindGroups;
-    private readonly VkDescriptorSet[] _descriptorSets = new VkDescriptorSet[MaxBindGroups];
+    private readonly VkDescriptorSet[] _descriptorSets = new VkDescriptorSet[8];
     private readonly VulkanRenderPassEncoder _renderPassEncoder;
     private readonly VulkanComputePassEncoder _computePassEncoder;
 
@@ -459,7 +459,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GpuBuffer destinationBuffer, ulong destinationOffset)
     {
         VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
         VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();

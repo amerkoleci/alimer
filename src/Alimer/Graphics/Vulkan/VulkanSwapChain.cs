@@ -178,7 +178,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
 
         VkSurfaceFormatKHR surfaceFormat = new()
         {
-            format = _device.VkAdapter.ToVkFormat(ColorFormat),
+            format = _device.ToVkFormat(ColorFormat),
             colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
         };
         bool valid = false;

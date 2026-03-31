@@ -18,16 +18,13 @@ using static TerraFX.Interop.DirectX.D3D12_FEATURE;
 using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
 using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT2;
 using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
 using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
 using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
-using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
 using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 using static TerraFX.Interop.DirectX.DirectX;
@@ -253,10 +250,12 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             cmdSignatureDesc.pArgumentDescs = &drawIndexedInstancedArg;
             _drawIndexedIndirectCommandSignature = _device.Get()->CreateCommandSignature(&cmdSignatureDesc);
 
-            if (_adapter.Features.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1)
+            if (_limits.MeshShaderTier != MeshShaderTier.NotSupported)
             {
-                D3D12_INDIRECT_ARGUMENT_DESC dispatchMeshArg = new();
-                dispatchMeshArg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
+                D3D12_INDIRECT_ARGUMENT_DESC dispatchMeshArg = new()
+                {
+                    Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH
+                };
 
                 cmdSignatureDesc.ByteStride = (uint)sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
                 cmdSignatureDesc.NumArgumentDescs = 1;
@@ -273,11 +272,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             //PIXSetMarkerOnCommandList = (PFN_PIXSetMarkerOnCommandList)NativeLibrary.GetExport(_winPixEventRuntimeDLL, "PIXSetMarkerOnCommandList");
         }
 
-
-
         // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
         // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
-        const uint kMaxRootSignatureSize = 64u;
 
         _limits = new GraphicsDeviceLimits
         {
@@ -286,7 +282,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             MaxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION,
             MaxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION,
             MaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION,
-            MaxBindGroups = kMaxRootSignatureSize,
             //MaxTexelBufferDimension2D = (1u << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
             //UploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
             //UploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
@@ -322,52 +317,38 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
             // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
             MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
+            // VariableRateShading
+            VariableShadingRateTier = _adapter.Features.VariableShadingRateTier.FromD3D12()
         };
-
-        if (_adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2)
+        if (_limits.VariableShadingRateTier != VariableShadingRateTier.NotSupported)
         {
-            _limits.VariableRateShadingTileSize = _adapter.Features.ShadingRateImageTileSize;
+            _limits.VariableShadingRateImageTileSize = _adapter.Features.ShadingRateImageTileSize;
+            _limits.IsAdditionalVariableShadingRatesSupported = _adapter.Features.AdditionalShadingRatesSupported;
         }
 
+        // Raytracing
+        _limits.RayTracingTier = _adapter.Features.RaytracingTier.FromD3D12();
         if (_adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
         {
-            _limits.RayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
-            _limits.RayTracingShaderTableAligment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
-            _limits.RayTracingShaderTableMaxStride = ulong.MaxValue;
-            _limits.RayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
-            _limits.RayTracingMaxGeometryCount = (1 << 24) - 1;
+            _limits.RayTracing = new GraphicsDeviceRayTracingLimits()
+            {
+                ShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT,
+                ShaderTableAlignment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT,
+                ShaderTableMaxStride = ulong.MaxValue,
+                ShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH,
+                MaxGeometryCount = (1 << 24) - 1,
+                MinAccelerationStructureScratchOffsetAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT
+            };
         }
 
-        uint MaxNonSamplerDescriptors = 0;
-        uint MaxSamplerDescriptors = 0;
-        D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19 = default;
-        if (FAILED(_device.Get()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref options19)))
-        {
-            if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
-            {
-                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
-            }
-            else if (_adapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_2)
-            {
-                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-            }
-            else
-            {
-                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-            }
-            MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
-        }
-        else
-        {
-            MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
-            MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
-        }
+        // Mesh shader
+        _limits.MeshShaderTier = _adapter.Features.MeshShaderTier.FromD3D12();
 
         // Check for bindless resources support
         if (_adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
         {
             Bindless = true;
-            BindlessDescriptorSet = new D3D12BindlessDescriptorSet(this, MaxNonSamplerDescriptors, MaxSamplerDescriptors);
+            BindlessDescriptorSet = new D3D12BindlessDescriptorSet(this);
         }
 
         ulong timestampFrequency;
@@ -520,12 +501,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         switch (feature)
         {
             // Always supported features
-            case Feature.Depth32FloatStencil8:
-            case Feature.TimestampQuery:
             case Feature.PipelineStatisticsQuery:
             case Feature.TextureCompressionBC:
             case Feature.IndirectFirstInstance:
-            case Feature.TextureComponentSwizzle:
             case Feature.SamplerClampToBorder:
             case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:
@@ -541,21 +519,21 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             case Feature.ShaderFloat16:
                 //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
-                return _adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_2 && _adapter.Features.Native16BitShaderOpsSupported;
+                return _adapter.Features.Native16BitShaderOpsSupported;
 
-            case Feature.RG11B10UfloatRenderable:
-                return true;
+            //case Feature.BGRA8UnormStorage:
+            //    D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
+            //    bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            //    HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+            //    if (hr.SUCCEEDED &&
+            //        (bgra8unormFormatInfo.Support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0)
+            //    {
+            //        return true;
+            //    }
+            //    return false;
 
-            case Feature.BGRA8UnormStorage:
-                D3D12_FEATURE_DATA_FORMAT_SUPPORT bgra8unormFormatInfo = default;
-                bgra8unormFormatInfo.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-                HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &bgra8unormFormatInfo, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
-                if (hr.SUCCEEDED &&
-                    (bgra8unormFormatInfo.Support1 & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0)
-                {
-                    return true;
-                }
-                return false;
+            case Feature.CopyQueueTimestampQuery:
+                return _adapter.Features.CopyQueueTimestampQueriesSupported;
 
             case Feature.DepthBoundsTest:
                 return _adapter.Features.DepthBoundsTestSupported;
@@ -577,21 +555,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             case Feature.Bindless:
                 return Bindless;
-
-            case Feature.VariableRateShading:
-                return _adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1;
-
-            case Feature.VariableRateShadingTier2:
-                return _adapter.Features.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_2;
-
-            case Feature.RayTracing:
-                return _adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0;
-
-            case Feature.RayTracingTier2:
-                return _adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_1;
-
-            case Feature.MeshShader:
-                return _adapter.Features.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1;
 
             default:
                 return false;
@@ -741,7 +704,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override GpuBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
     {
         return new D3D12Buffer(this, descriptor, initialData);
     }
@@ -830,6 +793,28 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             fixed (D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc = &desc)
             {
                 Device->CreateShaderResourceView(resource, pDesc, descriptorHandle);
+            }
+
+            ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
+        }
+
+        return bindlessSRVIndex;
+    }
+
+    public int AllocateBindlessUAV(ID3D12Resource* resource, in D3D12_UNORDERED_ACCESS_VIEW_DESC desc)
+    {
+        int bindlessSRVIndex = BindlessDescriptorSet!.Resources.Allocate();
+
+        if (bindlessSRVIndex != InvalidBindlessIndex)
+        {
+            Debug.Assert(bindlessSRVIndex < BindlessDescriptorSet!.Resources.Capacity);
+
+            uint descriptorIndex = ShaderResourceViewHeap.AllocateBindlessDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
+
+            fixed (D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc = &desc)
+            {
+                Device->CreateUnorderedAccessView(resource, null, pDesc, descriptorHandle);
             }
 
             ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);

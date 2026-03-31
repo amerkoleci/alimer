@@ -13,8 +13,8 @@ namespace Alimer.Samples;
 public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 {
     private readonly Mesh _cubeMesh;
-    private readonly GraphicsBuffer _constantBuffer0;
-    private readonly GraphicsBuffer _constantBuffer1;
+    private readonly GpuBuffer _constantBuffer0;
+    private readonly GpuBuffer _constantBuffer1;
 
     private readonly BindGroupLayout _bindGroupLayout0;
     private readonly BindGroup _bindGroup0;

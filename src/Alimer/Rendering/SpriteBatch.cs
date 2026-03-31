@@ -38,8 +38,8 @@ public struct SpriteDrawData
 public class SpriteBatch : DisposableObject
 {
     private const uint MaxBatchSize = 1024;
-    private readonly GraphicsBuffer _spriteVertexBuffer;
-    private readonly GraphicsBuffer _spriteIndexBuffer;
+    private readonly GpuBuffer _spriteVertexBuffer;
+    private readonly GpuBuffer _spriteIndexBuffer;
 
     public unsafe SpriteBatch(GraphicsDevice device)
     {

@@ -9,10 +9,6 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanBindlessDescriptorSet : IDisposable
 {
-    //private const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 1000;
-    private const uint BINDLESS_RESOURCE_CAPACITY = 500000;
-    private const uint BINDLESS_SAMPLER_CAPACITY = 256; // it is chosen to be addressable by 8 bits
-
     public VulkanBindlessDescriptorSet(VulkanGraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device);
@@ -21,9 +17,11 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
 
         // Bindless samplers
         VkPhysicalDeviceVulkan12Properties properties12 = device.VkAdapter.Properties12;
-        Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BINDLESS_SAMPLER_CAPACITY, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
-        SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BINDLESS_RESOURCE_CAPACITY, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
-        DescriptorSetCount = 2;
+        Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BindlessSamplerCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
+        SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
+        StorageImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
+
+        DescriptorSetCount = 3;
     }
 
 
@@ -31,12 +29,14 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
 
     public VulkanBindlessDescriptorHeap Samplers { get; }
     public VulkanBindlessDescriptorHeap SampledImages { get; }
+    public VulkanBindlessDescriptorHeap StorageImages { get; }
     public int DescriptorSetCount { get; }
 
     public void Dispose()
     {
         Samplers.Dispose();
         SampledImages.Dispose();
+        StorageImages.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -46,6 +46,7 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
         Span<VkDescriptorSet> descriptorSets = stackalloc VkDescriptorSet[DescriptorSetCount];
         descriptorSets[0] = Samplers.DescriptorSet;
         descriptorSets[1] = SampledImages.DescriptorSet;
+        descriptorSets[2] = StorageImages.DescriptorSet;
 
         Device.DeviceApi.vkCmdBindDescriptorSets(
             commandBuffer,
@@ -54,6 +55,60 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
             firstSet,
             descriptorSets
         );
+    }
+
+    public int AllocateBindlessSRV(VkImageView view)
+    {
+        int bindlessIndex = SampledImages.Allocate();
+        if (bindlessIndex == InvalidBindlessIndex)
+            return InvalidBindlessIndex;
+
+        VkDescriptorImageInfo imageInfo = new()
+        {
+            imageView = view,
+            imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        };
+
+        VkWriteDescriptorSet write = new()
+        {
+            dstSet = SampledImages.DescriptorSet,
+            dstBinding = 0,
+            dstArrayElement = (uint)bindlessIndex,
+            descriptorCount = 1,
+            descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            pImageInfo = &imageInfo
+        };
+
+        Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+
+        return bindlessIndex;
+    }
+
+    public int AllocateBindlessUAV(VkImageView view)
+    {
+        int bindlessIndex = StorageImages.Allocate();
+        if (bindlessIndex == InvalidBindlessIndex)
+            return InvalidBindlessIndex;
+
+        VkDescriptorImageInfo imageInfo = new()
+        {
+            imageView = view,
+            imageLayout = VK_IMAGE_LAYOUT_GENERAL
+        };
+
+        VkWriteDescriptorSet write = new()
+        {
+            dstSet = StorageImages.DescriptorSet,
+            dstBinding = 0,
+            dstArrayElement = (uint)bindlessIndex,
+            descriptorCount = 1,
+            descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            pImageInfo = &imageInfo
+        };
+
+        Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+
+        return bindlessIndex;
     }
 }
 

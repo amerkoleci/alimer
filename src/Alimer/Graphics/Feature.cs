@@ -5,8 +5,6 @@ namespace Alimer.Graphics;
 
 public enum Feature
 {
-    Depth32FloatStencil8,
-    TimestampQuery,
     PipelineStatisticsQuery,
     TextureCompressionBC,
     TextureCompressionETC2,
@@ -14,10 +12,11 @@ public enum Feature
     TextureCompressionASTC_HDR,
     IndirectFirstInstance,
     ShaderFloat16,
-    RG11B10UfloatRenderable,
-    BGRA8UnormStorage,
-    TextureComponentSwizzle,
 
+    /// <summary>
+    /// <see cref="QueryType.Timestamp"/> used on copy command queue
+    /// </summary>
+    CopyQueueTimestampQuery,
     DepthBoundsTest,
     SamplerClampToBorder,
     SamplerMirrorClampToEdge,
@@ -30,9 +29,4 @@ public enum Feature
     Predication,
 
     Bindless,
-    VariableRateShading,
-    VariableRateShadingTier2,
-    RayTracing,
-    RayTracingTier2,
-    MeshShader,
 }

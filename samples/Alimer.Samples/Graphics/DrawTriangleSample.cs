@@ -10,7 +10,7 @@ namespace Alimer.Samples;
 [Description("Graphics - Draw Triangle")]
 public sealed class DrawTriangleSample : GraphicsSampleBase
 {
-    private GraphicsBuffer _vertexBuffer;
+    private GpuBuffer _vertexBuffer;
     private PipelineLayout _pipelineLayout;
     private RenderPipeline _renderPipeline;
 

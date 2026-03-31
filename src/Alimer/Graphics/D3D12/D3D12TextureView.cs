@@ -20,6 +20,7 @@ internal unsafe class D3D12TextureView : TextureView
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
     private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
+    private readonly int _bindlessUAVIndex = InvalidBindlessIndex;
 
     public D3D12TextureView(D3D12Texture texture, in TextureViewDescriptor descriptor)
         : base(texture, in descriptor)
@@ -51,9 +52,17 @@ internal unsafe class D3D12TextureView : TextureView
 
             if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
             {
+                D3D12_UNORDERED_ACCESS_VIEW_DESC uavViewDesc = GetUAVDescriptor();
+                _bindlessUAVIndex = texture.DXDevice.AllocateBindlessUAV(texture.Handle, in uavViewDesc);
             }
         }
     }
+
+    /// <inheritdoc />
+    public override int BindlessShaderReadIndex => _bindlessSRVIndex;
+
+    /// <inheritdoc />
+    public override int BindlessShaderWriteIndex => _bindlessSRVIndex;
 
     public DXGI_FORMAT RTVFormat { get; }
     public DXGI_FORMAT DSVFormat { get; }

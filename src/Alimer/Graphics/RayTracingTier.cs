@@ -6,6 +6,7 @@ namespace Alimer.Graphics;
 public enum RayTracingTier
 {
     NotSupported = 0,
-    Tier_1 = 1,
-    Tier_2 = 2,
+    Tier1_0,
+    Tier1_1,
+    Tier1_2,
 }

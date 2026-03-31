@@ -23,11 +23,11 @@
 #endif
 
 #if defined(METAL)
-#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> pushConstants : register(b0)
+#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> push : register(b0)
 #elif defined(__spirv__)
-#   define ALIMER_PUSH_CONSTANTS(Type) [[vk::push_constant]] Type pushConstants
+#   define ALIMER_PUSH_CONSTANTS(Type) [[vk::push_constant]] Type push
 #else
-#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> pushConstants : register(b999, space0)
+#   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> push : register(b999, space0)
 #endif
 
 #include "Math.hlsli"
@@ -59,9 +59,11 @@ SamplerComparisonState SamplerComparisonDepth : register(s109);
 /* VkDescriptorType */
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 4;
 static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 5;
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 6;
 
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindlessTexture2D[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<float4> bindlessTexture2D[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<float4> bindlessRWTexture2D[];
 #elif ALIMER_SHADER_MODEL >= 66
 template<typename T>
 struct BindlessResource
@@ -74,7 +76,8 @@ struct BindlessResource<SamplerState>
 	SamplerState operator[](uint index) { return (SamplerState)SamplerDescriptorHeap[index]; }
 };
 static const BindlessResource<SamplerState> bindlessSamplers;
-static const BindlessResource<Texture2D> bindlessTexture2D;
+static const BindlessResource<Texture2D<float4>> bindlessTexture2D;
+static const BindlessResource<RWTexture2D<float4>> bindlessRWTexture2D;
 #else
 SamplerState bindlessSamplers[] : register(s0, space4);
 Texture2D bindlessTexture2D[] : register(t0, space5);

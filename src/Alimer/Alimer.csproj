@@ -8,6 +8,8 @@
     <!-- Catch compiler-mismatch issues -->
     <WarningsAsErrors>CS9057</WarningsAsErrors>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Till we support them -->
+    <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

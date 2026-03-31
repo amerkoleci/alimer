@@ -262,7 +262,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         blendState.blendConstants[2] = 0.0f;
         blendState.blendConstants[3] = 0.0f;
 
-        VkFormat depthStencilFormat = _device.VkAdapter.ToVkFormat(descriptor.DepthStencilFormat);
+        VkFormat depthStencilFormat = _device.ToVkFormat(descriptor.DepthStencilFormat);
         VkPipelineRenderingCreateInfo renderingInfo = new()
         {
             colorAttachmentCount = colorAttachmentCount,

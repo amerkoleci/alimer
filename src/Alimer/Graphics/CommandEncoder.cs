@@ -39,9 +39,6 @@ public abstract unsafe class CommandEncoder
         ArgumentOutOfRangeException.ThrowIfLessThan(groupIndex, 0, nameof(groupIndex));
         ArgumentNullException.ThrowIfNull(bindGroup, nameof(bindGroup));
 
-        // TODO: Use GraphicsAdaterLimits.MaxBindGroups
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(groupIndex, MaxBindGroups, nameof(groupIndex));
-
         SetBindGroupCore(groupIndex, bindGroup, dynamicBufferOffsets);
     }
 
@@ -70,7 +67,7 @@ public abstract unsafe class CommandEncoder
 
     #region Validation
     [Conditional("VALIDATE_USAGE")]
-    protected static void ValidateIndirectBuffer(GraphicsBuffer indirectBuffer)
+    protected static void ValidateIndirectBuffer(GpuBuffer indirectBuffer)
     {
         if ((indirectBuffer.Usage & BufferUsage.Indirect) == 0)
         {

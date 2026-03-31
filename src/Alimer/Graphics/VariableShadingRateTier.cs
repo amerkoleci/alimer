@@ -3,9 +3,9 @@
 
 namespace Alimer.Graphics;
 
-public enum VariableRateShadingTier
+public enum VariableShadingRateTier
 {
     NotSupported = 0,
-    Tier_1 = 1,
-    Tier_2 = 2,
+    Tier1 = 1,
+    Tier2 = 2,
 }

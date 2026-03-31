@@ -63,23 +63,24 @@ enum class AlphaMode
 
 enum class LightType
 {
-    Invalid,
     Directional,
     Point,
     Spot,
 };
 
-struct ALIGNMENT LightData
+struct GPULight
 {
-    float3 position;
-    float3 direction;
-    float3 color;
-    float intensity;
-    float range;
-    float innerConeCos;
-    float outerConeCos;
-    uint type;
+    float3 Position;    // World-space position (unused for directional)
+    uint Type;          // 0=Directional, 1=Point, 2=Spot
+    float3 Color;       // Linear RGB × intensity
+    float Range;        // Effective falloff range
+    float3 Direction;  // Normalized world-space direction (directional/spot)
+    float _padding0;
+    float InnerConeCos;
+    float OuterConeCos;
+    float2 _padding1;
 };
+//static_assert(sizeof(GPULight) == 64, "GPULight must be 64 bytes");
 
 /* TODO: pack and use half*/
 struct ALIGNMENT PBRMaterialUniforms
@@ -112,7 +113,7 @@ SamplerState environmentSampler : register(s0, space3);
 
 // View (space 2)
 ConstantBuffer<PerViewData> view : register(b0, space2);
-StructuredBuffer<LightData> lights : register(t1, space2); // Until we fix D3D12 and Vulkan BindGroup (should be t0)
+StructuredBuffer<GPULight> lights : register(t1, space2); // Until we fix D3D12 and Vulkan BindGroup (should be t0)
 
 // Instance data + materials data (space 1)
 StructuredBuffer<InstanceData> instanceDataBuffer : register(t0, space1);

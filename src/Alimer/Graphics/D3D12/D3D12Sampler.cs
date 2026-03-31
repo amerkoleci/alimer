@@ -21,6 +21,7 @@ internal sealed unsafe class D3D12Sampler : Sampler
 
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
+
     /// <inheritdoc />
     public override int BindlessIndex => _bindlessIndex;
 

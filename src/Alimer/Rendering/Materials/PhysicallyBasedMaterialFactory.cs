@@ -7,7 +7,7 @@ namespace Alimer.Rendering;
 
 public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<PhysicallyBasedMaterial>
 {
-    private readonly GraphicsBuffer _materialBuffer;
+    private readonly GpuBuffer _materialBuffer;
 
     public unsafe PhysicallyBasedMaterialFactory(RenderSystem system)
         : base(system)

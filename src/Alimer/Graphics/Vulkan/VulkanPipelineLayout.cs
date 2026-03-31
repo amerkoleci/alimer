@@ -37,6 +37,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             int startIndex = BindlessLayoutFirstIndex;
             pSetLayouts[startIndex++] = device.BindlessDescriptorSet.Samplers.DescriptorSetLayout;
             pSetLayouts[startIndex++] = device.BindlessDescriptorSet.SampledImages.DescriptorSetLayout;
+            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.StorageImages.DescriptorSetLayout;
         }
 
         VkPushConstantRange pushConstantRange = new ()

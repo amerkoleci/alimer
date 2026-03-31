@@ -14,7 +14,7 @@ namespace Alimer.Samples;
 public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
 {
     private readonly Mesh _cubeMesh;
-    private readonly GraphicsBuffer _constantBuffer;
+    private readonly GpuBuffer _constantBuffer;
     private readonly Texture _texture;
 
     private readonly BindGroupLayout _bindGroupLayout;

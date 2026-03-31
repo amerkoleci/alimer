@@ -24,8 +24,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
     private bool _boundsDirty = true;
 
     //private GraphicsBuffer? _gpuPositionsBuffer;
-    private GraphicsBuffer? _gpuVertexBuffer;
-    private GraphicsBuffer? _gpuIndexBuffer;
+    private GpuBuffer? _gpuVertexBuffer;
+    private GpuBuffer? _gpuIndexBuffer;
 
     public Mesh(GraphicsDevice device,
         int vertexCount,
@@ -99,8 +99,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
     /// </summary>
     public BoundingBox Bounds => _bounds;
 
-    public GraphicsBuffer? GpuVertexBuffer => _gpuVertexBuffer;
-    public GraphicsBuffer? GpuIndexBuffer => _gpuIndexBuffer;
+    public GpuBuffer? GpuVertexBuffer => _gpuVertexBuffer;
+    public GpuBuffer? GpuIndexBuffer => _gpuIndexBuffer;
 
     /// <inheritdoc/>
     protected override void Destroy()

@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="GraphicsBuffer"/>.
+/// Structure that describes the <see cref="GpuBuffer"/>.
 /// </summary>
 public record struct BufferDescriptor
 {

@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Numerics;
 using Alimer.Engine;
 using Alimer.Graphics;
@@ -24,10 +25,12 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private readonly UnlitMaterial _defaultMaterial = new();
 
-    public RenderSystem(IServiceRegistry services)
+    public unsafe RenderSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
+
+        Debug.Assert(sizeof(GPULight) == 64, "GPULight must be 64 bytes");
 
         Services = services;
         Device = services.GetService<GraphicsDevice>();
@@ -108,7 +111,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             ViewConstantBuffer = ToDispose(new ConstantBuffer<PerViewData>(Device, label: "View Constant Buffer"));
 
             // Light structured buffer 
-            BufferDescriptor descriptor = new(SizeOf<LightData>() * 6, BufferUsage.ShaderRead, MemoryType.Upload, "Lights Structured Buffer");
+            BufferDescriptor descriptor = new(SizeOf<GPULight>() * 6, BufferUsage.ShaderRead, MemoryType.Upload, "Lights Structured Buffer");
             LightsStructuredBuffer = ToDispose(Device.CreateBuffer(in descriptor));
 
             ViewBindGroup = ToDispose(ViewBindGroupLayout.CreateBindGroup(
@@ -159,7 +162,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     // Set 2 (per view/camera)
     public BindGroupLayout ViewBindGroupLayout { get; } // 2
     public ConstantBuffer<PerViewData> ViewConstantBuffer { get; } // b0
-    public GraphicsBuffer LightsStructuredBuffer { get; } // b1 // LightData
+    public GpuBuffer LightsStructuredBuffer { get; } // b1 // LightData
     public BindGroup ViewBindGroup { get; }
 
     // Set 3 (per frame)
@@ -415,18 +418,18 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // Sort lights as well
         int lightCount = lightSystem.Lights.Count;
-        Span<LightData> lightData = new LightData[lightSystem.Lights.Count];
+        Span<GPULight> lightData = new GPULight[lightSystem.Lights.Count];
         int lightIndex = 0;
 
         foreach (LightComponent light in lightSystem.Lights)
         {
-            lightData[lightIndex] = new LightData
+            lightData[lightIndex] = new GPULight
             {
-                position = light.Entity!.WorldTransform.Translation,
-                direction = light.Entity!.Direction,
-                color = light.Color.ToVector3(),
-                intensity = light.Intensity,
-                type = (light.LightType == LightType.Directional) ? ShaderLightType.Directional : ShaderLightType.Point
+                Position = light.Entity!.WorldTransform.Translation,
+                Direction = light.Entity!.Direction,
+                Color = light.Color.ToVector3() * light.Intensity,
+                //intensity = light.Intensity,
+                Type = (light.LightType == LightType.Directional) ? ShaderLightType.Directional : ShaderLightType.Point
             };
             lightIndex++;
         }

@@ -37,6 +37,16 @@ public abstract class TextureView : IGraphicsBindableResource
     public TextureAspect Aspect { get; }
 
     /// <summary>
+    /// Gets the bindless shader read (SRV) index of the view.
+    /// </summary>
+    public abstract int BindlessShaderReadIndex { get; }
+
+    /// <summary>
+    /// Gets the bindless shader write (UAV) index of the view.
+    /// </summary>
+    public abstract int BindlessShaderWriteIndex { get; }
+
+    /// <summary>
     /// Gets or sets the label that identifies this object.
     /// </summary>
     public string? Label

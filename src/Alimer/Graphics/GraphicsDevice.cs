@@ -182,12 +182,12 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescriptor description)
+    public GpuBuffer CreateBuffer(in BufferDescriptor description)
     {
         return CreateBuffer(description, null);
     }
 
-    public GraphicsBuffer CreateBuffer(ulong size,
+    public GpuBuffer CreateBuffer(ulong size,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
@@ -195,12 +195,12 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(new BufferDescriptor(size, usage, memoryType, label), (void*)null);
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescriptor description, IntPtr initialData)
+    public GpuBuffer CreateBuffer(in BufferDescriptor description, IntPtr initialData)
     {
         return CreateBuffer(description, initialData.ToPointer());
     }
 
-    public GraphicsBuffer CreateBuffer(in BufferDescriptor description, void* initialData)
+    public GpuBuffer CreateBuffer(in BufferDescriptor description, void* initialData)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(BufferDescriptor.Size));
 
@@ -212,7 +212,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
 
         if ((description.Usage & BufferUsage.RayTracing) != 0 &&
-            !QueryFeatureSupport(Feature.RayTracing))
+            Limits.RayTracingTier == RayTracingTier.NotSupported)
         {
             throw new GraphicsException($"Buffer cannot be created with {BufferUsage.RayTracing} usage as adapter doesn't support it");
         }
@@ -221,7 +221,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBufferCore(description, initialData);
     }
 
-    public GraphicsBuffer CreateBuffer<T>(in BufferDescriptor description, ref T initialData) where T : unmanaged
+    public GpuBuffer CreateBuffer<T>(in BufferDescriptor description, ref T initialData) where T : unmanaged
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(BufferDescriptor.Size));
 
@@ -231,7 +231,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
     }
 
-    public GraphicsBuffer CreateBuffer<T>(Span<T> initialData,
+    public GpuBuffer CreateBuffer<T>(Span<T> initialData,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
@@ -244,7 +244,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
-    public GraphicsBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
+    public GpuBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
         BufferUsage usage = BufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
@@ -420,7 +420,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
-    protected abstract GraphicsBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
+    protected abstract GpuBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor);

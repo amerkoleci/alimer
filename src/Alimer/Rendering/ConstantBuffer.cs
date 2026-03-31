@@ -13,7 +13,7 @@ public sealed class ConstantBuffer<T> : DisposableObject
      where T : unmanaged
 {
     public readonly uint SizeInBytes;
-    public readonly GraphicsBuffer Handle;
+    public readonly GpuBuffer Handle;
 
     public ConstantBuffer(GraphicsDevice device, MemoryType memoryType = MemoryType.Upload, string? label = default)
     {

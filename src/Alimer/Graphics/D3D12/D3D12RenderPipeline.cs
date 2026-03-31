@@ -243,8 +243,9 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             pPipelineStateSubobjectStream = &stream,
             SizeInBytes = (nuint)sizeof(GraphicsPipelineStateStream1)
         };
-        if (descriptor.MeshShader is not null
-            && device.QueryFeatureSupport(Feature.MeshShader))
+
+        if (descriptor.MeshShader is not null &&
+            device.Limits.MeshShaderTier != MeshShaderTier.NotSupported)
         {
             streamDesc.SizeInBytes += (nuint)sizeof(GraphicsPipelineStateStream2);
         }

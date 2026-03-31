@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanBuffer : GraphicsBuffer
+internal unsafe class VulkanBuffer : GpuBuffer
 {
     private readonly VulkanGraphicsDevice _device;
     private VkBuffer _handle = VkBuffer.Null;
@@ -256,7 +256,7 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
-    public override GPUAddress GpuAddress { get; }
+    public override GpuAddress GpuAddress { get; }
 
     public VkBuffer Handle => _handle;
 

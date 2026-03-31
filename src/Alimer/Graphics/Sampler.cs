@@ -84,7 +84,7 @@ public abstract class Sampler : GraphicsObject, IGraphicsBindableResource
     public SamplerBorderColor BorderColor { get; }
 
     /// <summary>
-    /// Gets the bindless index of the resource
+    /// Gets the bindless index of the sampler.
     /// </summary>
     public abstract int BindlessIndex { get; }
 }

@@ -6,5 +6,5 @@ namespace Alimer.Graphics;
 public enum MeshShaderTier
 {
     NotSupported = 0,
-    Tier_1 = 1,
+    Tier1 = 1,
 }

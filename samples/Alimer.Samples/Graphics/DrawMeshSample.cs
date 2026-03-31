@@ -15,7 +15,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 {
     private readonly uint _indexCount;
     private readonly Mesh _mesh;
-    private readonly GraphicsBuffer _constantBuffer;
+    private readonly GpuBuffer _constantBuffer;
     private readonly Texture _texture;
     private readonly Sampler _sampler;
 

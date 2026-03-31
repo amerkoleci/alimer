@@ -3,12 +3,28 @@
 
 namespace Alimer.Graphics;
 
-public readonly record struct StencilFaceState
+public record struct StencilFaceState
 {
+    public StencilOperation FailOperation;
+    public StencilOperation DepthFailOperation;
+    public StencilOperation PassOperation;
+    public CompareFunction CompareFunction;
+
     /// <summary>
     /// A built-in description with default values.
     /// </summary>
-    public static StencilFaceState Default => new(StencilOperation.Keep, StencilOperation.Keep, StencilOperation.Keep, CompareFunction.Always);
+    public static StencilFaceState Default => new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DepthStencilState"/> struct with default values.
+    /// </summary>
+    public StencilFaceState()
+    {
+        FailOperation = StencilOperation.Keep;
+        DepthFailOperation = StencilOperation.Keep;
+        PassOperation = StencilOperation.Keep;
+        CompareFunction = CompareFunction.Always;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StencilFaceState"/> struct.
@@ -28,10 +44,4 @@ public readonly record struct StencilFaceState
         PassOperation = passOperation;
         CompareFunction = compareFunction;
     }
-
-
-    public StencilOperation FailOperation { get; init; }
-    public StencilOperation DepthFailOperation { get; init; }
-    public StencilOperation PassOperation { get; init; }
-    public CompareFunction CompareFunction { get; init; }
 }

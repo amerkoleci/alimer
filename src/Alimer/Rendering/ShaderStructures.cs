@@ -46,18 +46,18 @@ public enum ShaderLightType
     Spot,
 }
 
-public struct LightData : IShaderConstantBuffer
+public struct GPULight : IShaderConstantBuffer
 {
-    public float3 position;
+    public float3 Position;         // World-space position (unused for directional)
+    public ShaderLightType Type;    // 0=Directional, 1=Point, 2=Spot
+    public float3 Color;            // Linear RGB × intensity
+    public float Range;             // Effective falloff range
+    public float3 Direction;
     private float _padding0;
-    public float3 direction;
-    private float _padding1;
-    public float3 color;
-    public float intensity;
-    public float range;
-    public float innerConeCos;
-    public float outerConeCos;
-    public ShaderLightType type;
+    public float InnerConeCos;
+    public float OuterConeCos;
+    private Vector2 _padding1;
+
 }
 
 public struct InstanceData : IShaderConstantBuffer

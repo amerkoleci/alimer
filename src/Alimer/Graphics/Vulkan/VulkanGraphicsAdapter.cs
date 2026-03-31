@@ -394,12 +394,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             _ => GraphicsAdapterType.Other
         };
 
-        SupportsDepth24UnormStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D24_UNORM_S8_UINT);
-        SupportsDepth32FloatStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D32_SFLOAT_S8_UINT);
-        SupportsStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_S8_UINT);
-
-        Debug.Assert(SupportsDepth24UnormStencil8 || SupportsDepth32FloatStencil8);
-
 
         void AddToFeatureChain(void* next)
         {
@@ -421,10 +415,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public VulkanGraphicsManager VkGraphicsManager => (VulkanGraphicsManager)Manager;
     public VkInstanceApi InstanceApi { get; }
 
-    public bool SupportsDepth24UnormStencil8 { get; }
-    public bool SupportsDepth32FloatStencil8 { get; }
-    public bool SupportsStencil8 { get; }
-
     /// <inheritdoc />
     public override string DeviceName { get; }
 
@@ -438,41 +428,4 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public override GraphicsAdapterType Type { get; }
 
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new VulkanGraphicsDevice(this, description);
-
-    public bool IsDepthStencilFormatSupported(VkFormat format)
-    {
-        Debug.Assert(format == VK_FORMAT_D16_UNORM_S8_UINT
-            || format == VK_FORMAT_D24_UNORM_S8_UINT
-            || format == VK_FORMAT_D32_SFLOAT_S8_UINT
-            || format == VK_FORMAT_S8_UINT
-            );
-
-        VkGraphicsManager.InstanceApi.vkGetPhysicalDeviceFormatProperties(
-            Handle,
-            format,
-            out VkFormatProperties properties
-            );
-        return (properties.optimalTilingFeatures & VkFormatFeatureFlags.DepthStencilAttachment) != 0;
-    }
-
-    public VkFormat ToVkFormat(PixelFormat format)
-    {
-        if (format == PixelFormat.Stencil8 && !SupportsStencil8)
-        {
-            if (SupportsDepth32FloatStencil8)
-            {
-                return VK_FORMAT_D32_SFLOAT_S8_UINT;
-            }
-
-            return VK_FORMAT_D24_UNORM_S8_UINT;
-        }
-
-        if (format == PixelFormat.Depth24UnormStencil8 && !SupportsDepth24UnormStencil8)
-        {
-            return VK_FORMAT_D32_SFLOAT_S8_UINT;
-        }
-
-        VkFormat vkFormat = VulkanUtils.ToVkFormat(format);
-        return vkFormat;
-    }
 }

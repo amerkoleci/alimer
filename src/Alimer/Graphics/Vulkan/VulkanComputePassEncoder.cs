@@ -97,7 +97,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -106,7 +106,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
+    protected override void CopyBufferToBufferCore(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer)
     {
         VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
         VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
@@ -126,7 +126,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    protected override void CopyBufferToBufferCore(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
 
         VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();

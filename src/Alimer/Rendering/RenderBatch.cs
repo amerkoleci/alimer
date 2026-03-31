@@ -22,7 +22,7 @@ public sealed unsafe class RenderBatch : DisposableObject
 
     private sealed class PerFrame
     {
-        public GraphicsBuffer? InstanceBuffer;
+        public GpuBuffer? InstanceBuffer;
         public BindGroup? InstanceBindGroup;
     }
 

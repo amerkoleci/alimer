@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Enum indicating <see cref="GraphicsBuffer"/> state.
+/// Enum indicating <see cref="GpuBuffer"/> state.
 /// </summary>
 [Flags]
 internal enum BufferStates : uint

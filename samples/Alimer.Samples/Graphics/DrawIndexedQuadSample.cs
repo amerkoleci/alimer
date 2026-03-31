@@ -10,8 +10,8 @@ namespace Alimer.Samples;
 [Description("Graphics - DrawIndexed Quad")]
 public sealed class DrawIndexedQuadSample : GraphicsSampleBase
 {
-    private GraphicsBuffer _vertexBuffer;
-    private GraphicsBuffer _indexBuffer;
+    private GpuBuffer _vertexBuffer;
+    private GpuBuffer _indexBuffer;
     private PipelineLayout _pipelineLayout;
     private RenderPipeline _renderPipeline;
 

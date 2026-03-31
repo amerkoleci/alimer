@@ -54,7 +54,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    public void DispatchIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    public void DispatchIndirect(GpuBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -62,22 +62,22 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    public void CopyBufferToBuffer(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
+    public void CopyBufferToBuffer(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer)
     {
         CopyBufferToBufferCore(sourceBuffer, destinationBuffer);
     }
 
-    public void CopyBufferToBuffer(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    public void CopyBufferToBuffer(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
         CopyBufferToBufferCore(sourceBuffer, sourceOffset, destinationBuffer, destinationOffset, size);
     }
-    public GPUAllocation Allocate<T>(ulong alignment = 0)
+    public GpuAllocation Allocate<T>(ulong alignment = 0)
         where T : unmanaged
     {
         return Allocate(SizeOf<T>(), alignment);
     }
 
-    public GPUAllocation Allocate(ulong sizeInBytes, ulong alignment = 0)
+    public GpuAllocation Allocate(ulong sizeInBytes, ulong alignment = 0)
     {
         GPULinearAllocator allocator = Device.FrameAllocator;
         if (alignment == 0)
@@ -99,7 +99,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
                 MemoryType = MemoryType.Upload,
                 Label = "Frame Allocator Buffer"
             };
-            if (Device.QueryFeatureSupport(Feature.RayTracing))
+            if (Device.Limits.RayTracingTier != RayTracingTier.NotSupported)
             {
                 bufferDescriptor.Usage |= BufferUsage.RayTracing;
             }
@@ -108,7 +108,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
             allocator.Offset = 0;
         }
 
-        GPUAllocation allocation = new(allocator.Buffer!, allocator.Offset);
+        GpuAllocation allocation = new(allocator.Buffer!, allocator.Offset);
 
         // Offset allocator
         allocator.Offset += AlignUp(sizeInBytes, allocator.Alignment);
@@ -117,7 +117,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         return allocation;
     }
 
-    public void UploadBufferData<T>(GraphicsBuffer buffer, ulong offset, ReadOnlySpan<T> data)
+    public void UploadBufferData<T>(GpuBuffer buffer, ulong offset, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         if (data.Length is 0)
@@ -126,13 +126,13 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         }
 
         uint sizeInBytes = (uint)(SizeOf<T>() * data.Length);
-        GPUAllocation allocation = Allocate(sizeInBytes);
+        GpuAllocation allocation = Allocate(sizeInBytes);
         data.CopyTo(new(allocation.Data, data.Length));
 
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, sizeInBytes);
     }
 
-    public void UploadBufferData<T>(GraphicsBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
+    public void UploadBufferData<T>(GpuBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
     {
         if (buffer == null || sourceData == null)
             return;
@@ -141,15 +141,15 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         if (size == 0)
             return;
 
-        GPUAllocation allocation = Allocate(size);
+        GpuAllocation allocation = Allocate(size);
         NativeMemory.Copy(sourceData, allocation.Data, (nuint)size);
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, size);
     }
 
-    protected abstract void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer);
-    protected abstract void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size);
+    protected abstract void CopyBufferToBufferCore(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer);
+    protected abstract void CopyBufferToBufferCore(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size);
 
     protected abstract void SetPipelineCore(ComputePipeline pipeline);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
-    protected abstract void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DispatchIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset);
 }

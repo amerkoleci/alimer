@@ -7,8 +7,8 @@ namespace Alimer.Rendering;
 
 public sealed class SkyboxRenderer : IDisposable
 {
-    private readonly GraphicsBuffer _vertexBuffer;
-    private readonly GraphicsBuffer _indexBuffer;
+    private readonly GpuBuffer _vertexBuffer;
+    private readonly GpuBuffer _indexBuffer;
     private readonly BindGroupLayout _emptyBindGroupLayout;
     private readonly BindGroup _emptyBindGroup;
     private readonly PipelineLayout _pipelineLayout;
