@@ -42,19 +42,16 @@ internal unsafe class D3D12TextureView : TextureView
             }
         }
 
-        if (texture.DXDevice.Bindless)
+        if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
         {
-            if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
-            {
-                D3D12_SHADER_RESOURCE_VIEW_DESC srvViewDesc = GetSRVDescriptor();
-                _bindlessSRVIndex = texture.DXDevice.AllocateBindlessSRV(texture.Handle, in srvViewDesc);
-            }
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvViewDesc = GetSRVDescriptor();
+            _bindlessSRVIndex = texture.DXDevice.AllocateBindlessSRV(texture.Handle, in srvViewDesc);
+        }
 
-            if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
-            {
-                D3D12_UNORDERED_ACCESS_VIEW_DESC uavViewDesc = GetUAVDescriptor();
-                _bindlessUAVIndex = texture.DXDevice.AllocateBindlessUAV(texture.Handle, in uavViewDesc);
-            }
+        if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
+        {
+            D3D12_UNORDERED_ACCESS_VIEW_DESC uavViewDesc = GetUAVDescriptor();
+            _bindlessUAVIndex = texture.DXDevice.AllocateBindlessUAV(texture.Handle, in uavViewDesc);
         }
     }
 

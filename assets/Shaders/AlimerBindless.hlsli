@@ -9,10 +9,10 @@
 #if defined(ALIMER_SPIRV)
 /* TODO: Use VK_EXT_mutable_descriptor_type */
 /* VkDescriptorType */
-static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 3;
-static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 4;
-static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 5;
-static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER = 6;
+static const uint DESCRIPTOR_SET_BINDLESS_SAMPLER = 2;
+static const uint DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE = 3;
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 4;
+static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER = 5;
 
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<float4> bindlessTexture2D[];
@@ -60,12 +60,12 @@ struct PushConstants
 };
 ALIMER_PUSH_CONSTANTS(PushConstants);
 
-// Frame (space 2)
-ConstantBuffer<PerFrameData> frame : register(b0, space2);
-TextureCube<float4> environmentTexture : register(t0, space2);
-SamplerState environmentSampler : register(s0, space2);
+// Frame (space 1)
+ConstantBuffer<PerFrameData> frame : register(b0, space1);
+TextureCube<float4> environmentTexture : register(t0, space1);
+SamplerState environmentSampler : register(s0, space1);
 
-// View (space 1)
-ConstantBuffer<PerViewData> view : register(b0, space1);
+// View (space 0)
+ConstantBuffer<PerViewData> view : register(b0, space0);
 
 #endif // _ALIMER_SHADER_BINDLESS__

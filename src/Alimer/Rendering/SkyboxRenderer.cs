@@ -9,8 +9,6 @@ public sealed class SkyboxRenderer : IDisposable
 {
     private readonly GpuBuffer _vertexBuffer;
     private readonly GpuBuffer _indexBuffer;
-    private readonly BindGroupLayout _emptyBindGroupLayout;
-    private readonly BindGroup _emptyBindGroup;
     private readonly PipelineLayout _pipelineLayout;
     private readonly RenderPipeline _renderPipeline;
 
@@ -44,12 +42,7 @@ public sealed class SkyboxRenderer : IDisposable
         _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, BufferUsage.Vertex);
         _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, BufferUsage.Index);
 
-        _emptyBindGroupLayout = renderSystem.Device.CreateBindGroupLayout();
-        _emptyBindGroup = _emptyBindGroupLayout.CreateBindGroup();
-
-        Span <BindGroupLayout> bindGroupLayouts = [_emptyBindGroupLayout,
-            renderSystem.ViewBindGroupLayout,
-            renderSystem.FrameBindGroupLayout];
+        Span <BindGroupLayout> bindGroupLayouts = [renderSystem.ViewBindGroupLayout, renderSystem.FrameBindGroupLayout];
 
         PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
         _pipelineLayout = renderSystem.Device.CreatePipelineLayout(in descriptor);
@@ -73,8 +66,6 @@ public sealed class SkyboxRenderer : IDisposable
 
     public void Dispose()
     {
-        _emptyBindGroup.Dispose();
-        _emptyBindGroupLayout.Dispose();
         _pipelineLayout.Dispose();
         _renderPipeline.Dispose();
         _vertexBuffer.Dispose();
@@ -84,7 +75,6 @@ public sealed class SkyboxRenderer : IDisposable
     public void Draw(RenderPassEncoder renderPass)
     {
         // Skybox is part of the frame bind group, which should already be bound prior to calling this method.
-        renderPass.SetBindGroup(0, _emptyBindGroup);
         renderPass.SetPipeline(_renderPipeline);
         renderPass.SetVertexBuffer(0, _vertexBuffer);
         renderPass.SetIndexBuffer(_indexBuffer, IndexFormat.Uint16);

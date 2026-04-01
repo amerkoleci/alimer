@@ -50,17 +50,14 @@ internal unsafe class VulkanTextureView : TextureView
             Log.Error($"Vulkan: Failed to create ImageView, error: {result}");
         }
 
-        if (texture.VkDevice.Bindless)
+        if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
         {
-            if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
-            {
-                _bindlessSRVIndex = texture.VkDevice.BindlessDescriptorSet!.AllocateBindlessSRV(Handle);
-            }
+            _bindlessSRVIndex = texture.VkDevice.BindlessManager.AllocateBindlessSRV(Handle);
+        }
 
-            if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
-            {
-                _bindlessUAVIndex = texture.VkDevice.BindlessDescriptorSet!.AllocateBindlessUAV(Handle);
-            }
+        if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
+        {
+            _bindlessUAVIndex = texture.VkDevice.BindlessManager.AllocateBindlessUAV(Handle);
         }
     }
 

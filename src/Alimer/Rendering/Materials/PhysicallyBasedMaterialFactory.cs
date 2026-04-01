@@ -81,7 +81,6 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     protected override PipelineLayout CreatePipelineLayout(bool skinned)
     {
         Span<BindGroupLayout> bindGroupLayouts = [
-            System.EmptyBindGroupLayout,
             System.ViewBindGroupLayout,
             System.FrameBindGroupLayout];
 

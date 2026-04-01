@@ -61,6 +61,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         _adapter = adapter;
         _physicalDevice = adapter.Handle;
 
+        // Check bindless support
+        if (!_adapter.Bindless)
+        {
+            throw new GraphicsException($"Vulkan adapter {_adapter.DeviceName} does not support required bindless features.");
+        }
+
         _queueFamilyIndices = new uint[(int)CommandQueueType.Count];
         _queueIndices = new uint[(int)CommandQueueType.Count];
         //_queueCounts = new uint[(int)CommandQueueType.Count];
@@ -673,16 +679,23 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 )
             };
 
-            //_limits.conservativeRasterizationTier = ConservativeRasterizationTier::NotSupported;
-            //if (extensions.conservativeRasterization)
-            //{
-            //    _limits.conservativeRasterizationTier = ConservativeRasterizationTier::Tier1;
-            //
-            //    if (adapter->conservativeRasterizationProps.primitiveOverestimationSize < 1.0f / 2.0f && adapter->conservativeRasterizationProps.degenerateTrianglesRasterized)
-            //        _limits.conservativeRasterizationTier = ConservativeRasterizationTier::Tier2;
-            //    if (adapter->conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && adapter->conservativeRasterizationProps.degenerateTrianglesRasterized)
-            //        _limits.conservativeRasterizationTier = ConservativeRasterizationTier::Tier3;
-            //}
+            _limits.ConservativeRasterizationTier = ConservativeRasterizationTier.NotSupported;
+            if (_adapter.Extensions.ConservativeRasterization)
+            {
+                _limits.ConservativeRasterizationTier = ConservativeRasterizationTier.Tier1;
+
+                if (adapter.ConservativeRasterizationProperties.primitiveOverestimationSize < 1.0f / 2.0f &&
+                    adapter.ConservativeRasterizationProperties.degenerateTrianglesRasterized)
+                {
+                    _limits.ConservativeRasterizationTier = ConservativeRasterizationTier.Tier2;
+                }
+
+                if (adapter.ConservativeRasterizationProperties.primitiveOverestimationSize <= 1.0 / 256.0f &&
+                    adapter.ConservativeRasterizationProperties.degenerateTrianglesRasterized)
+                {
+                    _limits.ConservativeRasterizationTier = ConservativeRasterizationTier.Tier3;
+                }
+            }
 
             _limits.VariableShadingRateTier = VariableShadingRateTier.NotSupported;
             if (adapter.Extensions.FragmentShadingRate)
@@ -910,29 +923,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
-        if (_adapter.Features12.descriptorIndexing &&
-            _adapter.Features12.runtimeDescriptorArray &&
-            _adapter.Features12.descriptorBindingPartiallyBound &&
-            _adapter.Features12.shaderSampledImageArrayNonUniformIndexing &&
-            _adapter.Features12.descriptorBindingVariableDescriptorCount &&
-            _adapter.Features12.shaderSampledImageArrayNonUniformIndexing &&
-            _adapter.Features12.shaderStorageBufferArrayNonUniformIndexing &&
-            _adapter.Features12.shaderStorageImageArrayNonUniformIndexing &&
-            _adapter.Features12.shaderUniformTexelBufferArrayNonUniformIndexing &&
-            _adapter.Features12.shaderStorageTexelBufferArrayNonUniformIndexing &&
-            _adapter.Features12.descriptorBindingSampledImageUpdateAfterBind &&
-            _adapter.Features12.descriptorBindingStorageImageUpdateAfterBind &&
-            _adapter.Features12.descriptorBindingStorageBufferUpdateAfterBind &&
-            _adapter.Features12.descriptorBindingUniformTexelBufferUpdateAfterBind &&
-            _adapter.Features12.descriptorBindingStorageTexelBufferUpdateAfterBind &&
-            _adapter.Features12.descriptorBindingUpdateUnusedWhilePending &&
-            _adapter.Features12.descriptorBindingPartiallyBound
-            //&& extendedFeatures.mutableDescriptorTypeFeatures.mutableDescriptorType
-            )
-        {
-            Bindless = true;
-            BindlessDescriptorSet = new VulkanBindlessDescriptorSet(this);
-        }
+        // Creat bindless manager
+        BindlessManager = new VulkanBindlessManager(this);
 
         // Allocate at least one descriptor pool.
         _descriptorSetPools.Add(CreateDescriptorSetPool());
@@ -982,8 +974,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public bool SupportsDepth24UnormStencil8 { get; }
     public bool SupportsDepth32FloatStencil8 { get; }
     public bool SupportsStencil8 { get; }
-    public bool Bindless { get; }
-    public VulkanBindlessDescriptorSet? BindlessDescriptorSet { get; }
+    public VulkanBindlessManager BindlessManager { get; }
 
     public VkBuffer NullBuffer => _nullBuffer;
     public VkBufferView NullBufferView => _nullBufferView;
@@ -1045,7 +1036,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         _deviceApi.vkDestroyImageView(_nullImageViewCubeArray);
         _deviceApi.vkDestroyImageView(_nullImageView3D);
 
-        BindlessDescriptorSet?.Dispose();
+        BindlessManager.Dispose();
 
         ProcessDeletionQueue(true);
         _frameCount = 0;
@@ -1172,9 +1163,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 #endif
             case Feature.Predication:
                 return _adapter.ConditionalRenderingFeatures.conditionalRendering;
-
-            case Feature.Bindless:
-                return Bindless;
 
             default:
                 return false;

@@ -23,29 +23,26 @@ internal unsafe class VulkanSampler : Sampler
             OnLabelChanged(descriptor.Label!);
         }
 
-        if (device.Bindless)
+        _bindlessIndex = device.BindlessManager.Samplers.Allocate();
+
+        if (_bindlessIndex != InvalidBindlessIndex)
         {
-            _bindlessIndex = device.BindlessDescriptorSet!.Samplers.Allocate();
-
-            if (_bindlessIndex != InvalidBindlessIndex)
+            VkDescriptorImageInfo imageInfo = new()
             {
-                VkDescriptorImageInfo imageInfo = new()
-                {
-                    sampler = Handle
-                };
+                sampler = Handle
+            };
 
-                VkWriteDescriptorSet write = new()
-                {
-                    dstSet = device.BindlessDescriptorSet!.Samplers.DescriptorSet,
-                    dstBinding = 0,
-                    dstArrayElement = (uint)_bindlessIndex,
-                    descriptorCount = 1,
-                    descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-                    pImageInfo = &imageInfo
-                };
+            VkWriteDescriptorSet write = new()
+            {
+                dstSet = device.BindlessManager.Samplers.DescriptorSet,
+                dstBinding = 0,
+                dstArrayElement = (uint)_bindlessIndex,
+                descriptorCount = 1,
+                descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+                pImageInfo = &imageInfo
+            };
 
-                device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
-            }
+            device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
         }
     }
 

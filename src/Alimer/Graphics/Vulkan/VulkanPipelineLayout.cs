@@ -19,11 +19,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
         _device = device;
 
         int setLayoutCount = descriptor.BindGroupLayouts.Length;
-
-        if (device.BindlessDescriptorSet is not null)
-        {
-            setLayoutCount += device.BindlessDescriptorSet.DescriptorSetCount;
-        }
+        setLayoutCount += device.BindlessManager.DescriptorSetCount;
         VkDescriptorSetLayout* pSetLayouts = stackalloc VkDescriptorSetLayout[setLayoutCount];
 
         for (int i = 0; i < descriptor.BindGroupLayouts.Length; i++)
@@ -31,17 +27,14 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
             pSetLayouts[i] = ((VulkanBindGroupLayout)descriptor.BindGroupLayouts[i]).Handle;
         }
 
-        if (device.BindlessDescriptorSet is not null)
-        {
-            BindlessLayoutFirstIndex = descriptor.BindGroupLayouts.Length;
-            int startIndex = BindlessLayoutFirstIndex;
-            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.Samplers.DescriptorSetLayout;
-            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.SampledImages.DescriptorSetLayout;
-            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.StorageImages.DescriptorSetLayout;
-            pSetLayouts[startIndex++] = device.BindlessDescriptorSet.StorageBuffers.DescriptorSetLayout;
-        }
+        BindlessLayoutFirstIndex = descriptor.BindGroupLayouts.Length;
+        int startIndex = BindlessLayoutFirstIndex;
+        pSetLayouts[startIndex++] = device.BindlessManager.Samplers.DescriptorSetLayout;
+        pSetLayouts[startIndex++] = device.BindlessManager.SampledImages.DescriptorSetLayout;
+        pSetLayouts[startIndex++] = device.BindlessManager.StorageImages.DescriptorSetLayout;
+        pSetLayouts[startIndex++] = device.BindlessManager.StorageBuffers.DescriptorSetLayout;
 
-        VkPushConstantRange pushConstantRange = new ()
+        VkPushConstantRange pushConstantRange = new()
         {
             stageFlags = VK_SHADER_STAGE_ALL,
             offset = 0u,

@@ -8,39 +8,89 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanBindlessDescriptorSet : IDisposable
+internal unsafe class VulkanBindlessManager : IDisposable
 {
-    public VulkanBindlessDescriptorSet(VulkanGraphicsDevice device)
+    private enum DescriptorSet
+    {
+        /// <summary>
+        /// Default bindings, space0
+        /// </summary>
+        Bindings,
+        BindlessSampler,
+        BindlessStorageBuffer,
+        BindlessSampledImage,
+        BindlessStorageImage,
+        //BindlessUniformTexel,
+        //BindlessStorageTexelBuffer,
+        BindlessAcceleationStructure,
+        Count,
+    };
+
+    public VulkanBindlessManager(VulkanGraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device);
 
         Device = device;
 
-        // Bindless samplers
-        VkPhysicalDeviceVulkan12Properties properties12 = device.VkAdapter.Properties12;
-        Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BindlessSamplerCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
-        SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
-        StorageImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
-        StorageBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageBuffers));
+        uint setLayoutCount = 0;
+        VkDescriptorSetLayout * pSetLayouts = stackalloc VkDescriptorSetLayout[(int)DescriptorSet.Count];
+        if (MutableDescriptorType)
+        {
 
-        // Static Samplers
-        //new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
-        //new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
-        //new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
-        //new BindGroupLayoutEntry(SamplerDescriptor.LinearClamp, 103, ShaderStages.All),         // SamplerLinearClamp
-        //new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 104, ShaderStages.All),          // SamplerLinearWrap
-        //new BindGroupLayoutEntry(SamplerDescriptor.LinearMirror, 105, ShaderStages.All),        // SamplerLinearMirror
-        //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicClamp, 106, ShaderStages.All),    // SamplerAnisotropicClamp
-        //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicWrap, 107, ShaderStages.All),     // SamplerAnisotropicWrap
-        //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicMirror, 108, ShaderStages.All),   // SamplerAnisotropicMirror
-        //new BindGroupLayoutEntry(SamplerDescriptor.ComparisonDepth, 109, ShaderStages.All)      // SamplerAnisotropicMirror
+        }
+        else
+        {
+            // Bindless samplers
+            VkPhysicalDeviceVulkan12Properties properties12 = device.VkAdapter.Properties12;
+            Samplers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLER, Math.Min(BindlessSamplerCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages));
+            SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
+            StorageImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
+            StorageBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageBuffers));
+
+            // Static Samplers
+            //new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
+            //new BindGroupLayoutEntry(SamplerDescriptor.PointWrap, 101, ShaderStages.All),           // SamplerPointWrap
+            //new BindGroupLayoutEntry(SamplerDescriptor.PointMirror, 102, ShaderStages.All),         // SamplerPointMirror
+            //new BindGroupLayoutEntry(SamplerDescriptor.LinearClamp, 103, ShaderStages.All),         // SamplerLinearClamp
+            //new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 104, ShaderStages.All),          // SamplerLinearWrap
+            //new BindGroupLayoutEntry(SamplerDescriptor.LinearMirror, 105, ShaderStages.All),        // SamplerLinearMirror
+            //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicClamp, 106, ShaderStages.All),    // SamplerAnisotropicClamp
+            //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicWrap, 107, ShaderStages.All),     // SamplerAnisotropicWrap
+            //new BindGroupLayoutEntry(SamplerDescriptor.AnisotropicMirror, 108, ShaderStages.All),   // SamplerAnisotropicMirror
+            //new BindGroupLayoutEntry(SamplerDescriptor.ComparisonDepth, 109, ShaderStages.All)      // SamplerAnisotropicMirror
+        }
+
+        VkPushConstantRange pushConstantRange = new()
+        {
+            stageFlags = VK_SHADER_STAGE_ALL,
+            offset = 0u,
+            size = PushConstantsSize,
+        };
+
+        VkPipelineLayoutCreateInfo createInfo = new()
+        {
+            setLayoutCount = setLayoutCount,
+            pSetLayouts = pSetLayouts,
+            pushConstantRangeCount = 1u,
+            pPushConstantRanges = &pushConstantRange
+        };
+
+        VkResult result = device.DeviceApi.vkCreatePipelineLayout(in createInfo, out VkPipelineLayout pipelineLayout);
+        if (result != VK_SUCCESS)
+        {
+            Log.Error($"Vulkan: Failed to create {nameof(PipelineLayout)}.");
+            return;
+        }
+        PipelineLayout = pipelineLayout;
+        device.SetObjectName(VK_OBJECT_TYPE_PIPELINE_LAYOUT, pipelineLayout, "Bindless Pipeline Layout");
 
         DescriptorSetCount = 4;
     }
 
 
     public VulkanGraphicsDevice Device { get; }
-
+    public bool MutableDescriptorType { get;  }
+    public VkPipelineLayout PipelineLayout { get; }
     public VulkanBindlessDescriptorHeap Samplers { get; }
     public VulkanBindlessDescriptorHeap SampledImages { get; }
     public VulkanBindlessDescriptorHeap StorageImages { get; }
@@ -49,6 +99,8 @@ internal unsafe class VulkanBindlessDescriptorSet : IDisposable
 
     public void Dispose()
     {
+        Device.DeviceApi.vkDestroyPipelineLayout(PipelineLayout);
+
         Samplers.Dispose();
         SampledImages.Dispose();
         StorageImages.Dispose();
@@ -162,7 +214,7 @@ internal unsafe class VulkanBindlessDescriptorHeap : IDisposable
     private readonly Lock _lock = new();
     private readonly List<int> _freeList = [];
 
-    public VulkanBindlessDescriptorHeap(VulkanBindlessDescriptorSet parent, VkDescriptorType type, uint descriptorCount)
+    public VulkanBindlessDescriptorHeap(VulkanBindlessManager parent, VkDescriptorType type, uint descriptorCount)
     {
         ArgumentNullException.ThrowIfNull(parent);
         Parent = parent;
@@ -297,7 +349,7 @@ internal unsafe class VulkanBindlessDescriptorHeap : IDisposable
         } 
     }
 
-    public VulkanBindlessDescriptorSet Parent { get; }
+    public VulkanBindlessManager Parent { get; }
     public uint DescriptorCount { get; }
     public VkDescriptorPool DescriptorPool { get; }
     public VkDescriptorSetLayout DescriptorSetLayout { get; }

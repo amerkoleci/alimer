@@ -384,12 +384,9 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         //_currentPipelineLayout.AddRef();
 
         // Bind bindless descriptor sets
-        if (_queue.VkDevice.Bindless)
+        if (_queue.QueueType != CommandQueueType.Copy)
         {
-            if (_queue.QueueType != CommandQueueType.Copy)
-            {
-                _queue.VkDevice.BindlessDescriptorSet.Bind(_commandBuffer, _currentPipelineLayout, bindPoint);
-            }
+            _queue.VkDevice.BindlessManager.Bind(_commandBuffer, _currentPipelineLayout, bindPoint);
         }
     }
 

@@ -318,9 +318,17 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             MaxComputeWorkGroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z,
             // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
             MaxComputeWorkGroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION,
-            // VariableRateShading
-            VariableShadingRateTier = _adapter.Features.VariableShadingRateTier.FromD3D12()
+
         };
+
+        // Shader model
+        _limits.HighestShaderModel = _adapter.Features.HighestShaderModel.FromD3D12();
+
+        // ConservativeRasterization
+        _limits.ConservativeRasterizationTier = _adapter.Features.ConservativeRasterizationTier.FromD3D12();
+
+        // VariableRateShading
+        _limits.VariableShadingRateTier = _adapter.Features.VariableShadingRateTier.FromD3D12();
         if (_limits.VariableShadingRateTier != VariableShadingRateTier.NotSupported)
         {
             _limits.VariableShadingRateImageTileSize = _adapter.Features.ShadingRateImageTileSize;
@@ -346,11 +354,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _limits.MeshShaderTier = _adapter.Features.MeshShaderTier.FromD3D12();
 
         // Check for bindless resources support
-        if (_adapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6)
-        {
-            Bindless = true;
-            BindlessDescriptorSet = new D3D12BindlessDescriptorSet(this);
-        }
+        BindlessManager = new D3D12BindlessManager(this);
 
         ulong timestampFrequency;
         ThrowIfFailed(D3D12GraphicsQueue.Handle->GetTimestampFrequency(&timestampFrequency));
@@ -388,8 +392,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public ID3D12CommandSignature* DrawIndirectCommandSignature => _drawIndirectCommandSignature;
     public ID3D12CommandSignature* DrawIndexedIndirectCommandSignature => _drawIndexedIndirectCommandSignature;
     public ID3D12CommandSignature* DispatchMeshIndirectCommandSignature => _dispatchMeshIndirectCommandSignature;
-    public bool Bindless { get; }
-    public D3D12BindlessDescriptorSet? BindlessDescriptorSet { get; }
+    public D3D12BindlessManager BindlessManager { get; }
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
@@ -426,7 +429,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _drawIndirectCommandSignature.Dispose();
         _drawIndexedIndirectCommandSignature.Dispose();
         _dispatchMeshIndirectCommandSignature.Dispose();
-        BindlessDescriptorSet?.Dispose();
+        BindlessManager.Dispose();
 
         // Allocator.
         if (_memoryAllocator.Get() is not null)
@@ -548,14 +551,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
                 return (_adapter.Features.MaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
 
-            case Feature.ConservativeRasterization:
-                return _adapter.Features.ConservativeRasterizationTier != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED;
-
             case Feature.CacheCoherentUMA:
                 return _adapter.Features.CacheCoherentUMA();
-
-            case Feature.Bindless:
-                return Bindless;
 
             default:
                 return false;
@@ -782,11 +779,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     public int AllocateBindlessSRV(ID3D12Resource* resource, in D3D12_SHADER_RESOURCE_VIEW_DESC desc)
     {
-        int bindlessSRVIndex = BindlessDescriptorSet!.Resources.Allocate();
+        int bindlessSRVIndex = BindlessManager.Resources.Allocate();
 
         if (bindlessSRVIndex != InvalidBindlessIndex)
         {
-            Debug.Assert(bindlessSRVIndex < BindlessDescriptorSet!.Resources.Capacity);
+            Debug.Assert(bindlessSRVIndex < BindlessManager.Resources.Capacity);
 
             uint descriptorIndex = ShaderResourceViewHeap.AllocateBindlessDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
@@ -804,11 +801,11 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     public int AllocateBindlessUAV(ID3D12Resource* resource, in D3D12_UNORDERED_ACCESS_VIEW_DESC desc)
     {
-        int bindlessSRVIndex = BindlessDescriptorSet!.Resources.Allocate();
+        int bindlessSRVIndex = BindlessManager.Resources.Allocate();
 
         if (bindlessSRVIndex != InvalidBindlessIndex)
         {
-            Debug.Assert(bindlessSRVIndex < BindlessDescriptorSet!.Resources.Capacity);
+            Debug.Assert(bindlessSRVIndex < BindlessManager.Resources.Capacity);
 
             uint descriptorIndex = ShaderResourceViewHeap.AllocateBindlessDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);

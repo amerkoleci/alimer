@@ -4,17 +4,20 @@
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.D3D12_FEATURE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
+using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
 using static Alimer.Graphics.Constants;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12BindlessDescriptorSet : IDisposable
+internal unsafe class D3D12BindlessManager : IDisposable
 {
-    public D3D12BindlessDescriptorSet(D3D12GraphicsDevice device)
+    public D3D12BindlessManager(D3D12GraphicsDevice device)
     {
         Device = device;
+        // ResourceDescriptorHeap and SamplerDescriptorHeap access in shaders
+        UltimateBindless = device.DxAdapter.Features.HighestShaderModel >= D3D_SHADER_MODEL_6_6;
 
         uint MaxNonSamplerDescriptors = 0;
         uint MaxSamplerDescriptors = 0;
@@ -52,6 +55,7 @@ internal unsafe class D3D12BindlessDescriptorSet : IDisposable
 
 
     public D3D12GraphicsDevice Device { get; }
+    public bool UltimateBindless { get; }
     public D3D12BindlessDescriptorHeap Resources { get; }
     public D3D12BindlessDescriptorHeap Sampler { get; }
 
@@ -66,7 +70,7 @@ internal unsafe class D3D12BindlessDescriptorSet : IDisposable
         private readonly Lock _lock = new();
         private readonly List<int> _freeList = [];
 
-        public D3D12BindlessDescriptorHeap(D3D12BindlessDescriptorSet parent, uint capacity)
+        public D3D12BindlessDescriptorHeap(D3D12BindlessManager parent, uint capacity)
         {
             ArgumentNullException.ThrowIfNull(parent);
             Parent = parent;
@@ -78,7 +82,7 @@ internal unsafe class D3D12BindlessDescriptorSet : IDisposable
             }
         }
 
-        public D3D12BindlessDescriptorSet Parent { get; }
+        public D3D12BindlessManager Parent { get; }
         public uint Capacity { get; }
 
         public int Allocate()

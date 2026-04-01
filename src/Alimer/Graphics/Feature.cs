@@ -24,9 +24,6 @@ public enum Feature
     DepthResolveMinMax,
     StencilResolveMinMax,
 
-    ConservativeRasterization,
     CacheCoherentUMA,
     Predication,
-
-    Bindless,
 }

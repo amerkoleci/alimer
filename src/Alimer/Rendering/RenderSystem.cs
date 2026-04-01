@@ -17,9 +17,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     private const uint MinLightCapacity = 32;
     private static uint GpuLightStructureSizeInBytes = SizeOf<GpuLight>();
 
-    public const int FrameBindGroupSpace = 2;
-    public const int ViewBindGroupSpace = 1;
-    public const int MaterialBindGroupSpace = 0;
+    public const int FrameBindGroupSpace = 1;
+    public const int ViewBindGroupSpace = 0;
 
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
     private readonly RenderBatch _renderBatch;
@@ -77,9 +76,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
         GPUMaterialFactories.RegisterDefault();
-
-        EmptyBindGroupLayout = ToDispose(Device.CreateBindGroupLayout());
-        EmptyBindGroup = ToDispose(EmptyBindGroupLayout.CreateBindGroup());
 
         _renderBatch = ToDispose(new RenderBatch(Device));
 
@@ -156,10 +152,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture DefaultEnvironmentTexture { get; }
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
-
-    // Until we fully move to bindless
-    public BindGroupLayout EmptyBindGroupLayout { get; }
-    public BindGroup EmptyBindGroup { get; }
 
     // Set 1 (per view/camera)
     public BindGroupLayout ViewBindGroupLayout { get; } // 2
@@ -284,9 +276,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // Frame BindGroup (once per frame)
         renderPass.SetBindGroup(FrameBindGroupSpace, FrameBindGroup);
-
-        // TODO: Until we move to fully bindless
-        renderPass.SetBindGroup(MaterialBindGroupSpace, EmptyBindGroup);
 
         // For each camera
         RenderCamera(renderPass, camera);

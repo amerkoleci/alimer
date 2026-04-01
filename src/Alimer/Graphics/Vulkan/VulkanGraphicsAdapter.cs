@@ -46,6 +46,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceSamplerFilterMinmaxProperties SamplerFilterMinmaxProperties = default;
     public readonly VkPhysicalDeviceDepthStencilResolveProperties DepthStencilResolveProperties = default;
     public readonly VkPhysicalDeviceDepthClipEnableFeaturesEXT DepthClipEnableFeatures = default;
+    public readonly VkPhysicalDeviceConservativeRasterizationPropertiesEXT ConservativeRasterizationProperties = default;
     public readonly VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures = default;
     public readonly VkPhysicalDeviceAccelerationStructurePropertiesKHR AccelerationStructureProperties = default;
     public readonly VkPhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingPipelineFeatures = default;
@@ -102,6 +103,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceSamplerFilterMinmaxProperties samplerFilterMinmaxProperties = new();
         VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = new();
         VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProperties = default;
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = default;
         VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = default;
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = default;
@@ -231,6 +233,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             }
         }
 
+        if (extensions.ConservativeRasterization)
+        {
+            conservativeRasterizationProperties = new();
+            AddToPropertiesChain(&conservativeRasterizationProperties);
+        }
+
         if (Extensions.AccelerationStructure)
         {
             Debug.Assert(Extensions.DeferredHostOperations);
@@ -321,8 +329,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Debug.Assert(features12.descriptorIndexing);
         Debug.Assert(features12.runtimeDescriptorArray);
         Debug.Assert(features12.descriptorBindingPartiallyBound);
-        Debug.Assert(features12.descriptorBindingVariableDescriptorCount);
         Debug.Assert(features12.shaderSampledImageArrayNonUniformIndexing);
+        Debug.Assert(features12.descriptorBindingVariableDescriptorCount);
 
         bool synchronization2 = features13.synchronization2 || synchronization2Features.synchronization2;
         bool dynamicRendering = features13.dynamicRendering || dynamicRenderingFeatures.dynamicRendering;
@@ -368,6 +376,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Properties12 = properties12;
         Properties13 = properties13;
         Properties14 = properties14;
+        ConservativeRasterizationProperties = conservativeRasterizationProperties;
         AccelerationStructureProperties = accelerationStructureProperties;
         RayTracingPipelineProperties = rayTracingPipelineProperties;
         FragmentShadingRateProperties = fragmentShadingRateProperties;
@@ -394,6 +403,28 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             _ => GraphicsAdapterType.Other
         };
 
+        if (Features12.descriptorIndexing &&
+            Features12.runtimeDescriptorArray &&
+            Features12.descriptorBindingPartiallyBound &&
+            Features12.shaderSampledImageArrayNonUniformIndexing &&
+            Features12.descriptorBindingVariableDescriptorCount &&
+            Features12.shaderSampledImageArrayNonUniformIndexing &&
+            Features12.shaderStorageBufferArrayNonUniformIndexing &&
+            Features12.shaderStorageImageArrayNonUniformIndexing &&
+            Features12.shaderUniformTexelBufferArrayNonUniformIndexing &&
+            Features12.shaderStorageTexelBufferArrayNonUniformIndexing &&
+            Features12.descriptorBindingSampledImageUpdateAfterBind &&
+            Features12.descriptorBindingStorageImageUpdateAfterBind &&
+            Features12.descriptorBindingStorageBufferUpdateAfterBind &&
+            Features12.descriptorBindingUniformTexelBufferUpdateAfterBind &&
+            Features12.descriptorBindingStorageTexelBufferUpdateAfterBind &&
+            Features12.descriptorBindingUpdateUnusedWhilePending &&
+            Features12.descriptorBindingPartiallyBound
+            //&& extendedFeatures.mutableDescriptorTypeFeatures.mutableDescriptorType
+        )
+        {
+            Bindless = true;
+        }
 
         void AddToFeatureChain(void* next)
         {
@@ -426,6 +457,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 
     /// <inheritdoc />
     public override GraphicsAdapterType Type { get; }
+
+    public bool Bindless { get; }
 
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new VulkanGraphicsDevice(this, description);
 }

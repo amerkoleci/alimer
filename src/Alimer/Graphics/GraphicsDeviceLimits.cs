@@ -46,6 +46,14 @@ public struct GraphicsDeviceLimits
     public uint MaxComputeWorkGroupSizeZ;
     public uint MaxComputeWorkGroupsPerDimension;
 
+    /// <summary>
+    /// Highest supported shader model
+    /// </summary>
+    public ShaderModel HighestShaderModel;
+
+    // ConservativeRasterization
+    public ConservativeRasterizationTier ConservativeRasterizationTier;
+
     // VariableRateShading
     public VariableShadingRateTier VariableShadingRateTier;
     public uint VariableShadingRateImageTileSize;

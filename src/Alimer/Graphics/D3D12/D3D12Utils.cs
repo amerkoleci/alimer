@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using static TerraFX.Interop.DirectX.D3D_PRIMITIVE_TOPOLOGY;
+using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
 using static TerraFX.Interop.DirectX.D3D12;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_ACCESS;
 using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
@@ -29,6 +30,7 @@ using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_SAMPLER_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_COMPONENT_MAPPING;
+using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
 using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
@@ -517,6 +519,7 @@ internal static unsafe class D3D12Utils
         return descriptorRangeType;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_SHADER_COMPONENT_MAPPING ToD3D12(this TextureSwizzle value)
     {
         return value switch
@@ -531,6 +534,41 @@ internal static unsafe class D3D12Utils
         };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ShaderModel FromD3D12(this D3D_SHADER_MODEL value)
+    {
+        return value switch
+        {
+            D3D_SHADER_MODEL_6_0 => ShaderModel.Model_6_0,
+            D3D_SHADER_MODEL_6_1 => ShaderModel.Model_6_1,
+            D3D_SHADER_MODEL_6_2 => ShaderModel.Model_6_2,
+            D3D_SHADER_MODEL_6_3 => ShaderModel.Model_6_3,
+            D3D_SHADER_MODEL_6_4 => ShaderModel.Model_6_4,
+            D3D_SHADER_MODEL_6_5 => ShaderModel.Model_6_5,
+            D3D_SHADER_MODEL_6_6 => ShaderModel.Model_6_6,
+            D3D_SHADER_MODEL_6_7 => ShaderModel.Model_6_7,
+            D3D_SHADER_MODEL_6_8 => ShaderModel.Model_6_8,
+            D3D_SHADER_MODEL_6_9 => ShaderModel.Model_6_9,
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+    }
+
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ConservativeRasterizationTier FromD3D12(this D3D12_CONSERVATIVE_RASTERIZATION_TIER value)
+    {
+        return value switch
+        {
+            D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED => ConservativeRasterizationTier.NotSupported,
+            D3D12_CONSERVATIVE_RASTERIZATION_TIER_1 => ConservativeRasterizationTier.Tier1,
+            D3D12_CONSERVATIVE_RASTERIZATION_TIER_2 => ConservativeRasterizationTier.Tier2,
+            D3D12_CONSERVATIVE_RASTERIZATION_TIER_3 => ConservativeRasterizationTier.Tier3,
+            _ => ConservativeRasterizationTier.NotSupported,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VariableShadingRateTier FromD3D12(this D3D12_VARIABLE_SHADING_RATE_TIER value)
     {
         return value switch
@@ -542,6 +580,7 @@ internal static unsafe class D3D12Utils
         };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RayTracingTier FromD3D12(this D3D12_RAYTRACING_TIER value)
     {
         return value switch
@@ -554,6 +593,7 @@ internal static unsafe class D3D12Utils
         };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MeshShaderTier FromD3D12(this D3D12_MESH_SHADER_TIER value)
     {
         return value switch

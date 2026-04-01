@@ -199,9 +199,9 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         {
             VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[2]
             {
-                    VkValidationFeatureEnableEXT.GpuAssistedReserveBindingSlot,
-                    VkValidationFeatureEnableEXT.GpuAssisted
-                };
+                VkValidationFeatureEnableEXT.GpuAssistedReserveBindingSlot,
+                VkValidationFeatureEnableEXT.GpuAssisted
+            };
 
             validationFeaturesInfo.enabledValidationFeatureCount = 2;
             validationFeaturesInfo.pEnabledValidationFeatures = enabledValidationFeatures;

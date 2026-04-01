@@ -242,15 +242,12 @@ internal unsafe class VulkanBuffer : GpuBuffer
             }
         }
 
-        if (device.Bindless)
+        // Vulkan has no distinction between SRV and UAV, so we allocate bindless index for both if either is requested.
+        if ((descriptor.Usage & BufferUsage.ShaderRead) != 0 ||
+            (descriptor.Usage & BufferUsage.ShaderReadWrite) != 0)
         {
-            // Vulkan has no distinction between SRV and UAV, so we allocate bindless index for both if either is requested.
-            if ((descriptor.Usage & BufferUsage.ShaderRead) != 0 ||
-                (descriptor.Usage & BufferUsage.ShaderReadWrite) != 0)
-            {
-                _bindlessSRVIndex = device.BindlessDescriptorSet!.AllocateBindlessSRV(Handle);
-                _bindlessUAVIndex = _bindlessSRVIndex;
-            }
+            _bindlessSRVIndex = device.BindlessManager.AllocateBindlessSRV(Handle);
+            _bindlessUAVIndex = _bindlessSRVIndex;
         }
     }
 
