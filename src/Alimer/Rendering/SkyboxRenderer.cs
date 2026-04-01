@@ -48,7 +48,6 @@ public sealed class SkyboxRenderer : IDisposable
         _emptyBindGroup = _emptyBindGroupLayout.CreateBindGroup();
 
         Span <BindGroupLayout> bindGroupLayouts = [_emptyBindGroupLayout,
-            renderSystem.InstanceBindGroupLayout,
             renderSystem.ViewBindGroupLayout,
             renderSystem.FrameBindGroupLayout];
 

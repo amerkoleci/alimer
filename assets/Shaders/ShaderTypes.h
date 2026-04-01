@@ -83,7 +83,6 @@ struct GPULight
     float OuterConeCos;
     float2 _padding1;
 };
-//static_assert(sizeof(GPULight) == 64, "GPULight must be 64 bytes");
 
 /* TODO: pack and use half*/
 struct GPUMaterialPBR
@@ -107,28 +106,10 @@ struct GPUMaterialPBR
     int emissiveUVSet;
 };
 
-/* TODO: Handle in common and better way */
-#if defined(ALIMER_SPIRV)
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<GPUInstance> bindlessGPUInstance[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<GPUMaterialPBR> bindlessGPUMaterial[];
-#elif ALIMER_SHADER_MODEL >= 66
-static const BindlessResource<StructuredBuffer<GPUInstance> > bindlessGPUInstance[];
-static const BindlessResource<StructuredBuffer<GPUMaterialPBR> > bindlessGPUMaterial;
-#else
-#endif
-
-#ifndef __cplusplus
-// Frame (space 3)
-ConstantBuffer<PerFrameData> frame : register(b0, space3);
-TextureCube<float4> environmentTexture : register(t0, space3);
-SamplerState environmentSampler : register(s0, space3);
-
-// View (space 2)
-ConstantBuffer<PerViewData> view : register(b0, space2);
-StructuredBuffer<GPULight> lights : register(t1, space2); // Until we fix D3D12 and Vulkan BindGroup (should be t0)
-
-// Instance data + materials data (space 1)
-StructuredBuffer<GPUInstance> instanceDataBuffer : register(t0, space1);
-#endif
+#ifdef __cplusplus
+static_assert(sizeof(GPUInstance) == 80, "GPUInstance must be 80 bytes");
+static_assert(sizeof(GPULight) == 64, "GPULight must be 64 bytes");
+//static_assert(sizeof(GPUMaterial) == 48, "GPUMaterial must be 48 bytes");
+#endif 
 
 #endif // _ALIMER_SHADER__

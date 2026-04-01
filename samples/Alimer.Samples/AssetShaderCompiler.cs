@@ -20,10 +20,19 @@ public sealed class AssetShaderCompiler : IShaderCompiler
     public ShaderModule Compile(string fileName, ShaderStages stage, Dictionary<string, string>? defines = default)
     {
         string? shaderSourceFileName = default;
-        string extension = ".slang";
+        string extension = ".hlsl";
+        string fallbackExtension = ".slang";
         foreach (string path in _system.Paths)
         {
             string fullPath = Path.Combine(path, Path.ChangeExtension(fileName, extension));
+            if (File.Exists(fullPath))
+            {
+                shaderSourceFileName = fullPath;
+                break;
+            }
+
+            // Try with fallback extension (slang)
+            fullPath = Path.Combine(path, Path.ChangeExtension(fileName, fallbackExtension));
             if (File.Exists(fullPath))
             {
                 shaderSourceFileName = fullPath;

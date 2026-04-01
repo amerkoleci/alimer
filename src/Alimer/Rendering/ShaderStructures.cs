@@ -46,7 +46,7 @@ public enum ShaderLightType
     Spot,
 }
 
-public struct GPULight : IShaderConstantBuffer
+public struct GpuLight : IShaderConstantBuffer
 {
     public float3 Position;         // World-space position (unused for directional)
     public ShaderLightType Type;    // 0=Directional, 1=Point, 2=Spot
@@ -57,7 +57,6 @@ public struct GPULight : IShaderConstantBuffer
     public float InnerConeCos;
     public float OuterConeCos;
     private Vector2 _padding1;
-
 }
 
 public struct GPUInstance : IShaderConstantBuffer
@@ -95,5 +94,6 @@ public struct PBRPushConstants
 {
     public int InstanceBufferIndex;
     public int MaterialBufferIndex;
-    private Vector3 _pad;
+    public int LightBufferIndex;
+    private int _pad;
 }

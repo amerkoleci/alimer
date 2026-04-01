@@ -18,7 +18,6 @@ public sealed unsafe class RenderBatch : DisposableObject
     private const uint InitialInstanceCount = 128;
 
     private GpuBuffer[] _instanceBuffer;
-    private BindGroup[] _instanceBindGroup;
     private uint _instanceCapacity = 0;
     private uint _totalInstanceCount = 0;
 
@@ -32,16 +31,10 @@ public sealed unsafe class RenderBatch : DisposableObject
 
         Device = device;
         _instanceBuffer = new GpuBuffer[device.MaxFramesInFlight];
-        _instanceBindGroup = new BindGroup[device.MaxFramesInFlight];
-        InstanceBindGroupLayout = ToDispose(device.CreateBindGroupLayout(
-            "Instance bind group layout",
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.ShaderRead), 0, ShaderStages.Vertex)
-        ));
         ResizeInstanceBuffer(InitialInstanceCount);
     }
 
     public GraphicsDevice Device { get; }
-    public BindGroupLayout InstanceBindGroupLayout { get; }
 
     public void ResizeInstanceBuffer(uint capacity)
     {
@@ -57,9 +50,6 @@ public sealed unsafe class RenderBatch : DisposableObject
                 MemoryType.Upload,
                 label: $"Upload Instance Buffer Frame {i}"
                 ));
-            _instanceBindGroup[i] = InstanceBindGroupLayout.CreateBindGroup(
-                new BindGroupEntry(0, _instanceBuffer[i], stride: InstanceSizeInBytes)
-            );
         }
     }
 
@@ -97,7 +87,7 @@ public sealed unsafe class RenderBatch : DisposableObject
         _totalInstanceCount += 1;
     }
 
-    public BindGroup UpdateInstanceBuffer(uint frameIndex)
+    public void UpdateInstanceBuffer(uint frameIndex)
     {
         // Only upload if we have instance data
         if (_instanceData.Count > 0)
@@ -105,8 +95,6 @@ public sealed unsafe class RenderBatch : DisposableObject
             var instanceData = CollectionsMarshal.AsSpan(_instanceData);
             _instanceBuffer[frameIndex].SetData(instanceData);
         }
-
-        return _instanceBindGroup[frameIndex];
     }
 
     public Dictionary<SubMesh, InstanceDictionary> GetGeometryList(GPURenderPipeline pipeline)

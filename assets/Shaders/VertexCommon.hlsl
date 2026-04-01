@@ -1,16 +1,7 @@
 #include "Alimer.hlsli"
 #include "VertexInputOutput.hlsli"
 #include "ShaderTypes.h"
-
-// Bindless (TODO: Move to a common header)
-struct PushConstants
-{
-    int InstanceBufferIndex;
-    int MaterialBufferIndex;
-    float2 _pad;
-};
-
-ALIMER_PUSH_CONSTANTS(PushConstants);
+#include "AlimerBindless.hlsli"
 
 [shader("vertex")]
 VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)

@@ -1,7 +1,11 @@
+// Copyright (c) Amer Koleci and Contributors.
+// Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
+
 #include "Alimer.hlsli"
 #include "BRDF.hlsli"
 #include "ShaderTypes.h"
 #include "VertexInputOutput.hlsli"
+#include "AlimerBindless.hlsli"
 
 struct SurfaceInfo
 {
@@ -105,24 +109,16 @@ float3 pbrPointLight(in GPULight light, in SurfaceInfo surface)
     return pbrSurfaceColor(L, surface, light.Color, attenuation);
 }
 
-// Bindless (TODO: Move to a common header)
-struct PushConstants
-{
-    int InstanceBufferIndex;
-    int MaterialBufferIndex;
-    float2 _pad;
-};
-
-ALIMER_PUSH_CONSTANTS(PushConstants);
-
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
 {
     StructuredBuffer<GPUMaterialPBR> materials = bindlessGPUMaterial[push.MaterialBufferIndex];
+    StructuredBuffer<GPULight> lights = bindlessGPULight[push.LightBufferIndex];
+
     GPUMaterialPBR material = materials[input.MaterialIndex];
 
     Texture2D<float4> baseColorTexture = bindlessTexture2D[material.baseIndex];
-    Texture2D<float4> normalTexture = bindlessTexture2D[material.normalIndex];
+    
     Texture2D<float4> metallicRoughnessTexture = bindlessTexture2D[material.metallicRoughnessIndex];
     Texture2D<float4> emissiveTexture = bindlessTexture2D[material.emissiveIndex];
     Texture2D<float4> occlusionTexture = bindlessTexture2D[material.occlusionIndex];
@@ -146,8 +142,9 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
 
     // Apply normal mapping if texture is available
     [branch]
-    if (material.normalUVSet >= 0)
+    if (material.normalIndex >= 0)
     {
+        Texture2D<float4> normalTexture = bindlessTexture2D[material.normalIndex];
         // Sample normal map and convert from [0,1] to [-1,1] range
         float2 normalColorUV = material.normalUVSet == 0 ? input.TexCoord0.xy : input.TexCoord1.xy;
         float3 tangentNormal = normalTexture.Sample(pbrSampler, normalColorUV).rgb * 2.0f - 1.0f;

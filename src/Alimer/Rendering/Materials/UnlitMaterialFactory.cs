@@ -18,5 +18,6 @@ public sealed class UnlitMaterialFactory : GPUMaterialFactory<UnlitMaterial>
 
     protected override int Write(UnlitMaterial material, out int materialIndex) => throw new NotImplementedException();
 
+    protected override PipelineLayout CreatePipelineLayout(bool skinned) => throw new NotImplementedException();
     public override ShaderModule CreateFragmentShaderModule(Span<VertexBufferLayout> geometryLayout, Material material) => throw new NotImplementedException();
 }

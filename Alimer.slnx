@@ -22,6 +22,7 @@
   </Folder>
   <Folder Name="/assets/shaders/">
     <File Path="assets/Shaders/Alimer.hlsli" />
+    <File Path="assets/Shaders/AlimerBindless.hlsli" />
     <File Path="assets/Shaders/BRDF.hlsli" />
     <File Path="assets/Shaders/ColorSpace.hlsli" />
     <File Path="assets/Shaders/FullScreenQuad.slang" />
@@ -30,10 +31,10 @@
     <File Path="assets/Shaders/Math.hlsli" />
     <File Path="assets/Shaders/PBR.slang" />
     <File Path="assets/Shaders/ShaderTypes.h" />
-    <File Path="assets/Shaders/Skybox.slang" />
+    <File Path="assets/Shaders/Skybox.hlsl" />
     <File Path="assets/Shaders/Sprite.slang" />
-    <File Path="assets/Shaders/Unlit.slang" />
-    <File Path="assets/Shaders/VertexCommon.slang" />
+    <File Path="assets/Shaders/Unlit.hlsl" />
+    <File Path="assets/Shaders/VertexCommon.hlsl" />
     <File Path="assets/Shaders/VertexInputOutput.hlsli" />
   </Folder>
   <Folder Name="/editor/">

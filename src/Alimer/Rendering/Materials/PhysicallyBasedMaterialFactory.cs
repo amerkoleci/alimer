@@ -82,7 +82,6 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     {
         Span<BindGroupLayout> bindGroupLayouts = [
             System.EmptyBindGroupLayout,
-            System.InstanceBindGroupLayout,
             System.ViewBindGroupLayout,
             System.FrameBindGroupLayout];
 

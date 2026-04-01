@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using System.Numerics;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Numerics;
@@ -15,9 +14,11 @@ namespace Alimer.Rendering;
 public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 {
     // ShaderTypes.h
-    public const int FrameBindGroupSpace = 3;
-    public const int ViewBindGroupSpace = 2;
-    public const int InstanceBindGroupSpace = 1;
+    private const uint MinLightCapacity = 32;
+    private static uint GpuLightStructureSizeInBytes = SizeOf<GpuLight>();
+
+    public const int FrameBindGroupSpace = 2;
+    public const int ViewBindGroupSpace = 1;
     public const int MaterialBindGroupSpace = 0;
 
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
@@ -25,12 +26,15 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private readonly UnlitMaterial _defaultMaterial = new();
 
+    private uint _lightCapacity;
+    private GpuBuffer? _lightBuffer;
+
     public unsafe RenderSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
-        Debug.Assert(sizeof(GPULight) == 64, "GPULight must be 64 bytes");
+        Debug.Assert(GpuLightStructureSizeInBytes == 64, "GPULight must be 64 bytes");
         Debug.Assert(sizeof(GPUInstance) == 80, "GPUInstance must be 80 bytes");
 
         Services = services;
@@ -105,23 +109,15 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         // Per view (set 2)
         {
-            uint hackBinding = 1; // Should be 0 
             ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
                 "View BindGroupLayout",
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All),
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.ShaderRead), hackBinding, ShaderStages.Fragment)
+                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
             ));
 
             ViewConstantBuffer = ToDispose(new ConstantBuffer<PerViewData>(Device, label: "View Constant Buffer"));
-
-            // Light structured buffer 
-            BufferDescriptor descriptor = new(SizeOf<GPULight>() * 6, BufferUsage.ShaderRead, MemoryType.Upload, "Lights Structured Buffer");
-            LightsStructuredBuffer = ToDispose(Device.CreateBuffer(in descriptor));
-
             ViewBindGroup = ToDispose(ViewBindGroupLayout.CreateBindGroup(
                 "View BindGroup",
-                new BindGroupEntry(0, ViewConstantBuffer.Handle),
-                new BindGroupEntry(hackBinding, LightsStructuredBuffer)
+                new BindGroupEntry(0, ViewConstantBuffer.Handle)
                 ));
         }
 
@@ -165,15 +161,12 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public BindGroupLayout EmptyBindGroupLayout { get; }
     public BindGroup EmptyBindGroup { get; }
 
-    public BindGroupLayout InstanceBindGroupLayout => _renderBatch.InstanceBindGroupLayout; // 1
-
-    // Set 2 (per view/camera)
+    // Set 1 (per view/camera)
     public BindGroupLayout ViewBindGroupLayout { get; } // 2
     public ConstantBuffer<PerViewData> ViewConstantBuffer { get; } // b0
-    public GpuBuffer LightsStructuredBuffer { get; } // b1 // LightData
     public BindGroup ViewBindGroup { get; }
 
-    // Set 3 (per frame)
+    // Set 2 (per frame)
     public BindGroupLayout FrameBindGroupLayout { get; } // 3
     public ConstantBuffer<FrameConstants> FrameConstantBuffer { get; }
     public BindGroup FrameBindGroup { get; }
@@ -199,6 +192,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
             MultisampleColorTexture?.Dispose();
             DepthStencilTexture?.Dispose();
+
+            _lightBuffer?.Dispose();
         }
     }
 
@@ -213,7 +208,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         // Prepare frame instances (visible to camera)
         BoundingFrustum cameraFrustum = Scene.CurrentCamera.Frustum;
 
-        foreach(var factory in _gpuMaterialFactories.Values)
+        foreach (var factory in _gpuMaterialFactories.Values)
         {
             factory.BeginFrame(Device.FrameIndex);
         }
@@ -291,7 +286,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         renderPass.SetBindGroup(FrameBindGroupSpace, FrameBindGroup);
 
         // TODO: Until we move to fully bindless
-        renderPass.SetBindGroup(0, EmptyBindGroup);
+        renderPass.SetBindGroup(MaterialBindGroupSpace, EmptyBindGroup);
 
         // For each camera
         RenderCamera(renderPass, camera);
@@ -313,8 +308,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         passEncoder.SetBindGroup(ViewBindGroupSpace, ViewBindGroup);
 
         // Set 1 (per instance data)
-        BindGroup instanceBindGroup = _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
-        passEncoder.SetBindGroup(InstanceBindGroupSpace, instanceBindGroup);
+        _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
 
         // Loop through all the renderable entities and store them by pipeline.
         foreach (GPURenderPipeline pipeline in _renderBatch.SortedPipelines)
@@ -335,12 +329,11 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                     int materialBufferIndex = materialPair.Key;
                     GPUBatchEntry instances = materialPair.Value;
 
-                    //passEncoder.SetBindGroup(0, tuple.bindGroup);
-
                     PBRPushConstants pushConstants = new()
                     {
                         InstanceBufferIndex = instances.InstanceBufferIndex,
-                        MaterialBufferIndex = materialBufferIndex
+                        MaterialBufferIndex = materialBufferIndex,
+                        LightBufferIndex = _lightBuffer!.BindlessShaderReadIndex
                     };
                     passEncoder.SetPushConstants(pushConstants);
 
@@ -423,7 +416,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         ViewConstantBuffer.SetData(viewData);
     }
 
-    private void UpdateLights()
+    private unsafe void UpdateLights()
     {
         LightSystem? lightSystem = EntityManager?.Systems.Get<LightSystem>();
 
@@ -431,13 +424,26 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             return;
 
         // Sort lights as well
-        int lightCount = lightSystem.Lights.Count;
-        Span<GPULight> lightData = new GPULight[lightSystem.Lights.Count];
+        uint lightCount = (uint)lightSystem.Lights.Count;
+        if (_lightBuffer is null ||
+            lightCount > _lightCapacity)
+        {
+            _lightBuffer?.Dispose();
+
+            _lightCapacity = Math.Max(MinLightCapacity, lightCount);
+            BufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, BufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
+            _lightBuffer = Device.CreateBuffer(in descriptor);
+        }
+
+        // TODO: Resize Light Buffer if light count exceeds current capacity
+        GpuLight* lightData = (GpuLight*)_lightBuffer.GetMappedData();
+
         int lightIndex = 0;
 
+        // Write light data directly into the persistently-mapped buffer
         foreach (LightComponent light in lightSystem.Lights)
         {
-            lightData[lightIndex] = new GPULight
+            lightData[lightIndex] = new GpuLight
             {
                 Position = light.Entity!.WorldTransform.Translation,
                 Direction = light.Entity!.Direction,
@@ -447,10 +453,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             };
             lightIndex++;
         }
-
-
-        LightsStructuredBuffer.SetData(lightData);
-        //DirectionalLightGroupBuffer.SetData(lightData.AsSpan(), Unsafe.SizeOf<Vector4>());
     }
 
     private Texture CreateTextureFromColor(in Color color)
