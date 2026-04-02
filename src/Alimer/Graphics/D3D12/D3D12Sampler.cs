@@ -10,13 +10,15 @@ internal sealed unsafe class D3D12Sampler : Sampler
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly D3D12_SAMPLER_DESC _desc;
-    private readonly int _bindlessIndex = InvalidBindlessIndex;
+    private int _bindlessIndex = InvalidBindlessIndex;
 
     public D3D12Sampler(D3D12GraphicsDevice device, in SamplerDescriptor description)
         : base(description)
     {
         _device = device;
         _desc = D3D12Utils.ToD3D12SamplerDesc(in description);
+
+        _bindlessIndex = device.BindlessManager.AllocateSampler(_desc);
     }
 
     /// <inheritdoc />
@@ -33,5 +35,11 @@ internal sealed unsafe class D3D12Sampler : Sampler
 
     protected internal override void Destroy()
     {
+        if (_bindlessIndex != InvalidBindlessIndex)
+        {
+            _device.BindlessManager.FreeSampler(_bindlessIndex);
+        }
+
+        _bindlessIndex = InvalidBindlessIndex;
     }
 }

@@ -17,34 +17,30 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Buffer : GpuBuffer
 {
-    private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     public readonly void* pMappedData;
-    private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
-    private readonly int _bindlessUAVIndex = InvalidBindlessIndex;
 
-    public D3D12Buffer(D3D12GraphicsDevice device, in BufferDescriptor description, void* initialData)
-        : base(description)
+    public D3D12Buffer(D3D12GraphicsDevice device, in GpuBufferDescriptor descriptor, void* initialData)
+        : base(descriptor)
     {
-        _device = device;
+        DXDevice = device;
 
-        ulong alignedSize = description.Size;
-        if ((description.Usage & BufferUsage.Constant) != 0)
+        ulong alignedSize = descriptor.Size;
+        if ((descriptor.Usage & GpuBufferUsage.Constant) != 0)
         {
             alignedSize = MathUtilities.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
-        D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE;
-        if ((description.Usage & BufferUsage.ShaderReadWrite) != 0)
+        D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+        if ((descriptor.Usage & GpuBufferUsage.ShaderWrite) == GpuBufferUsage.ShaderWrite)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        if ((description.Usage & BufferUsage.ShaderRead) == 0 &&
-            (description.Usage & BufferUsage.RayTracing) == 0)
+        if ((descriptor.Usage & (GpuBufferUsage.ShaderRead | GpuBufferUsage.RayTracing)) != 0)
         {
-            resourceFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+            resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
 
         D3D12_RESOURCE_DESC1 resourceDesc = D3D12_RESOURCE_DESC1.Buffer(alignedSize, resourceFlags);
@@ -59,7 +55,7 @@ internal unsafe class D3D12Buffer : GpuBuffer
         D3D12_BARRIER_LAYOUT initialLayout = D3D12_BARRIER_LAYOUT_UNDEFINED;
         D3D12_RESOURCE_STATES initialStateLegacy = D3D12_RESOURCE_STATE_COMMON;
 
-        if (description.MemoryType == MemoryType.Readback)
+        if (descriptor.MemoryType == MemoryType.Readback)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_READBACK;
             resourceDesc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
@@ -67,7 +63,7 @@ internal unsafe class D3D12Buffer : GpuBuffer
             initialStateLegacy = D3D12_RESOURCE_STATE_COPY_DEST;
             ImmutableState = true;
         }
-        else if (description.MemoryType == MemoryType.Upload)
+        else if (descriptor.MemoryType == MemoryType.Upload)
         {
             allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
             initialStateLegacy = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -105,9 +101,9 @@ internal unsafe class D3D12Buffer : GpuBuffer
             return;
         }
 
-        if (!string.IsNullOrEmpty(description.Label))
+        if (!string.IsNullOrEmpty(descriptor.Label))
         {
-            OnLabelChanged(description.Label!);
+            OnLabelChanged(descriptor.Label!);
         }
 
         ulong allocatedSize;
@@ -125,13 +121,13 @@ internal unsafe class D3D12Buffer : GpuBuffer
         GpuAddress = _handle.Get()->GetGPUVirtualAddress();
         AllocatedSize = allocatedSize;
 
-        if (description.MemoryType == MemoryType.Readback)
+        if (descriptor.MemoryType == MemoryType.Readback)
         {
             void* mappedData;
             ThrowIfFailed(_handle.Get()->Map(0, null, &mappedData));
             pMappedData = mappedData;
         }
-        else if (description.MemoryType == MemoryType.Upload)
+        else if (descriptor.MemoryType == MemoryType.Upload)
         {
             D3D12_RANGE readRange = default;
             void* mappedData;
@@ -144,17 +140,17 @@ internal unsafe class D3D12Buffer : GpuBuffer
         {
             D3D12UploadContext context = default;
             void* mappedData = null;
-            if (description.MemoryType == MemoryType.Upload)
+            if (descriptor.MemoryType == MemoryType.Upload)
             {
                 mappedData = pMappedData;
             }
             else
             {
-                context = device.Allocate(description.Size);
+                context = device.Allocate(descriptor.Size);
                 mappedData = context.UploadBuffer.pMappedData;
             }
 
-            Unsafe.CopyBlockUnaligned(mappedData, initialData, (uint)description.Size);
+            Unsafe.CopyBlockUnaligned(mappedData, initialData, (uint)descriptor.Size);
             //std::memcpy(mappedData, initialData, desc.size);
 
             if (context.IsValid)
@@ -164,7 +160,7 @@ internal unsafe class D3D12Buffer : GpuBuffer
                     0,
                     context.UploadBuffer!.Handle,
                     0,
-                    description.Size
+                    descriptor.Size
                 );
 
                 device.Submit(ref context);
@@ -172,27 +168,23 @@ internal unsafe class D3D12Buffer : GpuBuffer
         }
     }
 
-    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in BufferDescriptor descriptor)
+    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in GpuBufferDescriptor descriptor)
         : base(descriptor)
     {
-        _device = device;
+        DXDevice = device;
         _handle = existingHandle;
     }
 
+    public D3D12GraphicsDevice DXDevice { get; }
+
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GraphicsDevice Device => DXDevice;
 
     public ID3D12Resource* Handle => _handle;
     public bool ImmutableState { get; }
 
     /// <inheritdoc />
     public override GpuAddress GpuAddress { get; }
-
-    /// <inheritdoc />
-    public override int BindlessShaderReadIndex => _bindlessSRVIndex;
-
-    /// <inheritdoc />
-    public override int BindlessShaderWriteIndex => _bindlessSRVIndex;
 
     public ulong AllocatedSize { get; }
 
@@ -208,6 +200,8 @@ internal unsafe class D3D12Buffer : GpuBuffer
     {
         _handle.Get()->SetName(newLabel);
     }
+
+    protected override GpuBufferView CreateViewCore(in GpuBufferViewDescriptor descriptor) => new D3D12BufferView(this, descriptor);
 
     internal override void* GetMappedData() => pMappedData;
 

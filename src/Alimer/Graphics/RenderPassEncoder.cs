@@ -38,7 +38,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     public void SetVertexBuffer(uint slot, GpuBuffer buffer, ulong offset = 0)
     {
 #if VALIDATE_USAGE
-        if ((buffer.Usage & BufferUsage.Vertex) == 0)
+        if ((buffer.Usage & GpuBufferUsage.Vertex) == 0)
         {
             throw new GraphicsException(
                 $"Buffer cannot be bound as Vertex buffer because it was not created with BufferUsage.Vertex.");
@@ -51,7 +51,7 @@ public abstract unsafe class RenderPassEncoder : CommandEncoder
     public void SetIndexBuffer(GpuBuffer buffer, IndexFormat format, ulong offset = 0)
     {
 #if VALIDATE_USAGE
-        if ((buffer.Usage & BufferUsage.Index) == 0)
+        if ((buffer.Usage & GpuBufferUsage.Index) == 0)
         {
             throw new GraphicsException(
                 $"Buffer cannot be bound as index buffer because it was not created with BufferUsage.Index.");

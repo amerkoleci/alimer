@@ -8,18 +8,17 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="GpuBuffer"/>.
 /// </summary>
-public record struct BufferDescriptor
+public record struct GpuBufferDescriptor
 {
-
     /// <summary>
     /// Gets or sets the size in bytes of the buffer.
     /// </summary>
     public required ulong Size;
 
     /// <summary>
-    /// Gets or sets the <see cref="BufferUsage"/> of the buffer.
+    /// Gets or sets the <see cref="GpuBufferUsage"/> of the buffer.
     /// </summary>
-    public BufferUsage Usage = BufferUsage.ShaderReadWrite;
+    public GpuBufferUsage Usage = GpuBufferUsage.ShaderReadWrite;
 
     /// <summary>
     /// Gets or sets the memory type of the buffer.
@@ -32,9 +31,9 @@ public record struct BufferDescriptor
     public string? Label;
 
     [SetsRequiredMembers]
-    public BufferDescriptor(
+    public GpuBufferDescriptor(
         ulong size,
-        BufferUsage usage = BufferUsage.ShaderReadWrite,
+        GpuBufferUsage usage = GpuBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
     {

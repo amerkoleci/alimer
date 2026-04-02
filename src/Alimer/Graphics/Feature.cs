@@ -18,7 +18,6 @@ public enum Feature
     /// </summary>
     CopyQueueTimestampQuery,
     DepthBoundsTest,
-    SamplerClampToBorder,
     SamplerMirrorClampToEdge,
     SamplerMinMax,
     DepthResolveMinMax,

@@ -14,6 +14,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
 
     private uint _materialCapacity = 0;
     private readonly GpuBuffer[] _materialBuffer;
+    private readonly GpuBufferView[] _materialBufferView;
     private unsafe GPUMaterialPBR* _mappedMaterialData;
     private int _bindlessShaderReadIndex = InvalidBindlessIndex;
     private int _materialCount = 0;
@@ -22,19 +23,22 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
         : base(system)
     {
         _materialBuffer = new GpuBuffer[system.Device.MaxFramesInFlight];
+        _materialBufferView = new GpuBufferView[system.Device.MaxFramesInFlight];
         ResizeBuffer(InitialCount);
     }
 
     private void ResizeBuffer(uint capacity)
     {
         _materialCapacity = capacity;
+        GpuBufferViewDescriptor viewDescriptor = GpuBufferViewDescriptor.CreateStructured(0, _materialCapacity, GpuStructureSizeInBytes);
 
         for (int i = 0; i < _materialBuffer.Length; i++)
         {
             _materialBuffer[i]?.Dispose();
 
-            BufferDescriptor descriptor = new(GpuStructureSizeInBytes * _materialCapacity, BufferUsage.ShaderRead, MemoryType.Upload, label: $"PBR Material Buffer {i}");
+            GpuBufferDescriptor descriptor = new(GpuStructureSizeInBytes * _materialCapacity, GpuBufferUsage.ShaderRead, MemoryType.Upload, label: $"PBR Material Buffer {i}");
             _materialBuffer[i] = ToDispose(System.Device.CreateBuffer(in descriptor));
+            _materialBufferView[i] = ToDispose(_materialBuffer[i].CreateView(viewDescriptor));
         }
     }
 
@@ -42,7 +46,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     {
         _materialCount = 0;
         _mappedMaterialData = (GPUMaterialPBR*)_materialBuffer[frameIndex].GetMappedData();
-        _bindlessShaderReadIndex = _materialBuffer[frameIndex].BindlessShaderReadIndex;
+        _bindlessShaderReadIndex = _materialBufferView[frameIndex].BindlessReadIndex;
     }
 
     protected override unsafe int Write(PhysicallyBasedMaterial material, out int materialIndex)

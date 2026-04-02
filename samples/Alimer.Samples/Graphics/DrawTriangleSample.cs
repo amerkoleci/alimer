@@ -22,7 +22,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
             new(new Vector3(-0.5f, -0.5f, 0.0f), Colors.Lime),
             new(new Vector3(0.5f, -0.5f, 0.0f), Colors.Blue),
         ];
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GpuBufferUsage.Vertex));
 
         PipelineLayoutDescriptor pipelineLayoutDescription = new();
         _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));

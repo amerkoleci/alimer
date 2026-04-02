@@ -24,10 +24,10 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             new(new Vector3(0.5f, -0.5f, 0.5f), Colors.Blue),
             new(new Vector3(-0.5f, -0.5f, 0.5f), Colors.Yellow),
         ];
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, BufferUsage.Vertex));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GpuBufferUsage.Vertex));
 
         ReadOnlySpan<ushort> indexData = [0, 2, 1, 0, 3, 2];
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, BufferUsage.Index));
+        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, GpuBufferUsage.Index));
 
         PipelineLayoutDescriptor pipelineLayoutDescription = new()
         {

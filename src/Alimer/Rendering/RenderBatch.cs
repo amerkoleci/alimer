@@ -18,6 +18,7 @@ public sealed unsafe class RenderBatch : DisposableObject
     private const uint InitialInstanceCount = 128;
 
     private GpuBuffer[] _instanceBuffer;
+    private GpuBufferView[] _instanceBufferView;
     private uint _instanceCapacity = 0;
     private uint _totalInstanceCount = 0;
 
@@ -31,6 +32,7 @@ public sealed unsafe class RenderBatch : DisposableObject
 
         Device = device;
         _instanceBuffer = new GpuBuffer[device.MaxFramesInFlight];
+        _instanceBufferView = new GpuBufferView[device.MaxFramesInFlight];
         ResizeInstanceBuffer(InitialInstanceCount);
     }
 
@@ -40,22 +42,26 @@ public sealed unsafe class RenderBatch : DisposableObject
     {
         _instanceCapacity = capacity;
 
+        GpuBufferViewDescriptor viewDescriptor = GpuBufferViewDescriptor.CreateStructured(0, capacity, InstanceSizeInBytes);
+
         for (int i = 0; i < _instanceBuffer.Length; i++)
         {
             _instanceBuffer[i]?.Dispose();
 
             _instanceBuffer[i] = ToDispose(Device.CreateBuffer(
                 InstanceSizeInBytes * capacity,
-                BufferUsage.ShaderRead,
+                GpuBufferUsage.ShaderRead,
                 MemoryType.Upload,
                 label: $"Upload Instance Buffer Frame {i}"
                 ));
+
+            _instanceBufferView[i] = ToDispose(_instanceBuffer[i].CreateView(viewDescriptor));
         }
     }
 
     public void AddRenderable(SubMesh geometry, GPURenderPipeline pipeline, BindlessMaterialBufferIndex materialBufferIndex, GPUInstanceData instance)
     {
-        int instanceBufferIndex = _instanceBuffer[Device.FrameIndex].BindlessShaderWriteIndex;
+        int instanceBufferIndex = _instanceBufferView[Device.FrameIndex].BindlessReadIndex;
 
         if (!_pipelineGeometries.TryGetValue(pipeline, out Dictionary<SubMesh, InstanceDictionary>? geometryMaterials))
         {

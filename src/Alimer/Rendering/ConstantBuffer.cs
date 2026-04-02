@@ -22,7 +22,7 @@ public sealed class ConstantBuffer<T> : DisposableObject
         uint minConstantBufferOffsetAlignment = device.Limits.MinConstantBufferOffsetAlignment;
         uint typeSize = SizeOf<T>();
         SizeInBytes = MathUtilities.AlignUp(typeSize, minConstantBufferOffsetAlignment);
-        BufferDescriptor descriptor = new(SizeInBytes, BufferUsage.Constant, memoryType, label);
+        GpuBufferDescriptor descriptor = new(SizeInBytes, GpuBufferUsage.Constant, memoryType, label);
         Handle = device.CreateBuffer(in descriptor);
     }
 

@@ -19,8 +19,8 @@ internal unsafe class D3D12TextureView : TextureView
     private readonly D3D12Texture _texture;
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
-    private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
-    private readonly int _bindlessUAVIndex = InvalidBindlessIndex;
+    private int _bindlessSRVIndex = InvalidBindlessIndex;
+    private int _bindlessUAVIndex = InvalidBindlessIndex;
 
     public D3D12TextureView(D3D12Texture texture, in TextureViewDescriptor descriptor)
         : base(texture, in descriptor)
@@ -45,13 +45,13 @@ internal unsafe class D3D12TextureView : TextureView
         if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
         {
             D3D12_SHADER_RESOURCE_VIEW_DESC srvViewDesc = GetSRVDescriptor();
-            _bindlessSRVIndex = texture.DXDevice.AllocateBindlessSRV(texture.Handle, in srvViewDesc);
+            _bindlessSRVIndex = texture.DXDevice.BindlessManager.AllocateSRV(texture.Handle, in srvViewDesc);
         }
 
         if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
         {
             D3D12_UNORDERED_ACCESS_VIEW_DESC uavViewDesc = GetUAVDescriptor();
-            _bindlessUAVIndex = texture.DXDevice.AllocateBindlessUAV(texture.Handle, in uavViewDesc);
+            _bindlessUAVIndex = texture.DXDevice.BindlessManager.AllocateUAV(texture.Handle, in uavViewDesc);
         }
     }
 
@@ -80,6 +80,18 @@ internal unsafe class D3D12TextureView : TextureView
             _texture.DXDevice.DepthStencilViewHeap.ReleaseDescriptors(index);
         }
         _DSVs.Clear();
+
+        if (_bindlessSRVIndex != InvalidBindlessIndex)
+        {
+            _texture.DXDevice.BindlessManager.FreeSRV(_bindlessSRVIndex);
+            _bindlessSRVIndex = InvalidBindlessIndex;
+        }
+
+        if (_bindlessUAVIndex != InvalidBindlessIndex)
+        {
+            _texture.DXDevice.BindlessManager.FreeUAV(_bindlessUAVIndex);
+            _bindlessUAVIndex = InvalidBindlessIndex;
+        }
     }
 
     public D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDescriptor()

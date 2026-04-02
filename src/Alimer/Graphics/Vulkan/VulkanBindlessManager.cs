@@ -46,6 +46,8 @@ internal unsafe class VulkanBindlessManager : IDisposable
             SampledImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
             StorageImages = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
             StorageBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageBuffers));
+            UniformTexelBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
+            StorageTexelBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
 
             // Static Samplers
             //new BindGroupLayoutEntry(SamplerDescriptor.PointClamp, 100, ShaderStages.All),          // SamplerPointClamp
@@ -95,6 +97,9 @@ internal unsafe class VulkanBindlessManager : IDisposable
     public VulkanBindlessDescriptorHeap SampledImages { get; }
     public VulkanBindlessDescriptorHeap StorageImages { get; }
     public VulkanBindlessDescriptorHeap StorageBuffers { get; }
+    public VulkanBindlessDescriptorHeap UniformTexelBuffers { get; }
+    public VulkanBindlessDescriptorHeap StorageTexelBuffers { get; }
+
     public int DescriptorSetCount { get; }
 
     public void Dispose()
@@ -105,6 +110,8 @@ internal unsafe class VulkanBindlessManager : IDisposable
         SampledImages.Dispose();
         StorageImages.Dispose();
         StorageBuffers.Dispose();
+        UniformTexelBuffers.Dispose();
+        StorageTexelBuffers.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -126,7 +133,8 @@ internal unsafe class VulkanBindlessManager : IDisposable
         );
     }
 
-    public int AllocateBindlessSRV(VkBuffer buffer, ulong offset = 0, ulong range = VK_WHOLE_SIZE)
+    #region BufferView
+    public int AllocateStorageBufferView(VkBuffer buffer, ulong offset, ulong range)
     {
         int bindlessIndex = StorageBuffers.Allocate();
         if (bindlessIndex == InvalidBindlessIndex)
@@ -154,6 +162,50 @@ internal unsafe class VulkanBindlessManager : IDisposable
         return bindlessIndex;
     }
 
+    public int AllocateUniformTexelBuffer(VkBufferView view)
+    {
+        int bindlessIndex = UniformTexelBuffers.Allocate();
+        if (bindlessIndex == InvalidBindlessIndex)
+            return InvalidBindlessIndex;
+
+        VkWriteDescriptorSet write = new()
+        {
+            dstSet = UniformTexelBuffers.DescriptorSet,
+            dstBinding = 0,
+            dstArrayElement = (uint)bindlessIndex,
+            descriptorCount = 1,
+            descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+            pTexelBufferView = &view
+        };
+
+        Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+
+        return bindlessIndex;
+    }
+
+    public int AllocateStorageTexelBuffer(VkBufferView view)
+    {
+        int bindlessIndex = StorageTexelBuffers.Allocate();
+        if (bindlessIndex == InvalidBindlessIndex)
+            return InvalidBindlessIndex;
+
+        VkWriteDescriptorSet write = new()
+        {
+            dstSet = StorageTexelBuffers.DescriptorSet,
+            dstBinding = 0,
+            dstArrayElement = (uint)bindlessIndex,
+            descriptorCount = 1,
+            descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+            pTexelBufferView = &view
+        };
+
+        Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
+
+        return bindlessIndex;
+    }
+    #endregion
+
+    #region Texture
     public int AllocateBindlessSRV(VkImageView view)
     {
         int bindlessIndex = SampledImages.Allocate();
@@ -206,7 +258,8 @@ internal unsafe class VulkanBindlessManager : IDisposable
         Device.DeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
 
         return bindlessIndex;
-    }
+    } 
+    #endregion
 }
 
 internal unsafe class VulkanBindlessDescriptorHeap : IDisposable

@@ -51,7 +51,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
         _mesh = ToDispose(meshAsset.Mesh);
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GpuBufferUsage.Constant, MemoryType.Upload));
 
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
 

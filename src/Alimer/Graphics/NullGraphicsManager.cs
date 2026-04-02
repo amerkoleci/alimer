@@ -72,7 +72,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     public override bool QueryVertexFormatSupport(VertexAttributeFormat format) => throw new NotImplementedException();
     public override void WaitIdle() => throw new NotImplementedException();
     protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor) => throw new NotImplementedException();
-    protected override unsafe GpuBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData) => throw new NotImplementedException();
+    protected override unsafe GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData) => throw new NotImplementedException();
     protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor) => throw new NotImplementedException();
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor descriptor) => throw new NotImplementedException();
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor) => throw new NotImplementedException();

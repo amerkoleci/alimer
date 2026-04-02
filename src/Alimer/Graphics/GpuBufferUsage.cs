@@ -7,7 +7,7 @@ namespace Alimer.Graphics;
 /// A bitmask indicating how a <see cref="GpuBuffer"/> is permitted to be used.
 /// </summary>
 [Flags]
-public enum BufferUsage
+public enum GpuBufferUsage
 {
     None = 0,
     /// <summary>
@@ -27,9 +27,13 @@ public enum BufferUsage
     /// </summary>
     ShaderRead = 1 << 3,
     /// <summary>
-    /// Supports shader read and write access.
+    /// Supports shader write access.
     /// </summary>
-    ShaderReadWrite = 1 << 4,
+    ShaderWrite = 1 << 4,
+    /// <summary>
+    /// Supports shader read-write access.
+    /// </summary>
+    ShaderReadWrite = ShaderRead | ShaderWrite,
     /// <summary>
     /// Supports indirect buffer access for indirect draw/dispatch.
     /// </summary>

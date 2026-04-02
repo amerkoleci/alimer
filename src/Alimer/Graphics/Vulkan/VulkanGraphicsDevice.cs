@@ -679,6 +679,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 )
             };
 
+            // ConservativeRasterization
             _limits.ConservativeRasterizationTier = ConservativeRasterizationTier.NotSupported;
             if (_adapter.Extensions.ConservativeRasterization)
             {
@@ -722,11 +723,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 adapter.AccelerationStructureFeatures.accelerationStructure &&
                 adapter.RayTracingPipelineFeatures.rayTracingPipeline)
             {
-                _limits.RayTracingTier = RayTracingTier.Tier1_0;
+                _limits.RayTracingTier = RayTracingTier.Tier1;
 
                 if (adapter.RayQueryFeatures.rayQuery)
                 {
-                    _limits.RayTracingTier = RayTracingTier.Tier1_1;
+                    _limits.RayTracingTier = RayTracingTier.Tier2;
                 }
 
                 //if (OpacityMicromapFeatures.micromap)
@@ -750,6 +751,51 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             {
                 _limits.MeshShaderTier = MeshShaderTier.Tier1;
             }
+
+            // Based on https://docs.vulkan.org/guide/latest/hlsl.html#_shader_model_coverage
+            bool atomicsI64 = (adapter.Features12.shaderBufferInt64Atomics || adapter.Features12.shaderSharedInt64Atomics) ? true : false;
+            //const bool atomicsF64 = (adapter->ShaderAtomicFloatFeatures.shaderBufferFloat64Atomics || ShaderAtomicFloatFeatures.shaderSharedFloat64Atomics) ? true : false;
+
+            _limits.HighestShaderModel = ShaderModel.Model_6_0;
+            if (adapter.Features11.multiview)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_1;
+            }
+
+            if (adapter.Features12.shaderFloat16 ||
+                adapter.Features2.features.shaderInt16)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_2;
+            }
+
+            if (_limits.RayTracingTier != RayTracingTier.NotSupported)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_3;
+            }
+
+            if (_limits.VariableShadingRateTier >= VariableShadingRateTier.Tier2)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_4;
+            }
+
+            if (_limits.MeshShaderTier != MeshShaderTier.NotSupported ||
+                _limits.RayTracingTier >= RayTracingTier.Tier2)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_5;
+            }
+
+            // Check mutableDescriptorType for D3D12 ultimate bindless model
+            if (atomicsI64)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_6;
+            }
+
+            if (adapter.Features2.features.shaderStorageImageMultisample)
+            {
+                _limits.HighestShaderModel = ShaderModel.Model_6_7;
+            }
+
+            // TODO: add SM 6.8 and 6.9 detection
 
             TimestampFrequency = (ulong)(1.0 / _adapter.Properties2.properties.limits.timestampPeriod * 1000 * 1000 * 1000);
         }
@@ -1135,9 +1181,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             case Feature.DepthBoundsTest:
                 return _adapter.Features2.features.depthBounds;
 
-            case Feature.SamplerClampToBorder:
-                return true;
-
             case Feature.SamplerMirrorClampToEdge:
                 return _adapter.Features12.samplerMirrorClampToEdge;
 
@@ -1473,7 +1516,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GpuBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData)
     {
         return new VulkanBuffer(this, descriptor, initialData);
     }

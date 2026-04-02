@@ -163,11 +163,11 @@ public static class PixelFormatUtils
     }
 
     /// <summary>
-    /// Get the number of bytes per format.
+    /// Gets the size in bytes or number of bytes in a block if the given format is a block compressed format.
     /// </summary>
     /// <param name="format"></param>
     /// <returns></returns>
-    public static uint GetFormatBytesPerBlock(this PixelFormat format)
+    public static uint GetSizeOrBytesPerBlock(this PixelFormat format)
     {
         Debug.Assert(s_formatInfos[(int)format].Format == format);
 
@@ -453,11 +453,11 @@ public static class PixelFormatUtils
     /// <param name="format"></param>
     /// <param name="width"></param>
     /// <returns></returns>
-    public static uint GetFormatRowPitch(this PixelFormat format, uint width)
+    public static uint GetRowPitch(this PixelFormat format, uint width)
     {
         Debug.Assert(width % GetFormatWidthCompressionRatio(format) == 0);
 
-        return (width / GetFormatWidthCompressionRatio(format)) * GetFormatBytesPerBlock(format);
+        return (width / GetFormatWidthCompressionRatio(format)) * GetSizeOrBytesPerBlock(format);
     }
 
     /// <summary>

@@ -33,7 +33,7 @@ public unsafe sealed class DrawTexturedFromFileCubeSample : GraphicsSampleBase
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GpuBufferUsage.Constant, MemoryType.Upload));
 
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         _texture = ToDispose(Texture.FromFile(GraphicsDevice, Path.Combine(texturesPath, "10points.png")));

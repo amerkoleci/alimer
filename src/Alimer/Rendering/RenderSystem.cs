@@ -27,6 +27,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private uint _lightCapacity;
     private GpuBuffer? _lightBuffer;
+    private GpuBufferView? _lightBufferView;
 
     public unsafe RenderSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
@@ -185,6 +186,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             MultisampleColorTexture?.Dispose();
             DepthStencilTexture?.Dispose();
 
+            _lightBufferView?.Dispose();
             _lightBuffer?.Dispose();
         }
     }
@@ -322,7 +324,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
                     {
                         InstanceBufferIndex = instances.InstanceBufferIndex,
                         MaterialBufferIndex = materialBufferIndex,
-                        LightBufferIndex = _lightBuffer!.BindlessShaderReadIndex
+                        LightBufferIndex = _lightBufferView!.BindlessReadIndex
                     };
                     passEncoder.SetPushConstants(pushConstants);
 
@@ -420,8 +422,11 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             _lightBuffer?.Dispose();
 
             _lightCapacity = Math.Max(MinLightCapacity, lightCount);
-            BufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, BufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
+            GpuBufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, GpuBufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
+            GpuBufferViewDescriptor viewDescriptor = GpuBufferViewDescriptor.CreateStructured(0, _lightCapacity, GpuLightStructureSizeInBytes);
+
             _lightBuffer = Device.CreateBuffer(in descriptor);
+            _lightBufferView = _lightBuffer.CreateView(viewDescriptor);
         }
 
         // TODO: Resize Light Buffer if light count exceeds current capacity

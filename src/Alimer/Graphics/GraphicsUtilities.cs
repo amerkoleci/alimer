@@ -10,7 +10,7 @@ public static class GraphicsUtilities
     public static ulong ComputeTextureMemorySizeInBytes(in TextureDescriptor description)
     {
         ulong size = 0;
-        uint bytesPerBlock = description.Format.GetFormatBytesPerBlock();
+        uint bytesPerBlock = description.Format.GetSizeOrBytesPerBlock();
         uint pixelsPerBlock = description.Format.GetFormatHeightCompressionRatio();
         uint numBlocksX = description.Width / pixelsPerBlock;
         uint numBlocksY = description.Height / pixelsPerBlock;

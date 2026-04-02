@@ -586,9 +586,9 @@ internal static unsafe class D3D12Utils
         return value switch
         {
             D3D12_RAYTRACING_TIER_NOT_SUPPORTED => RayTracingTier.NotSupported,
-            D3D12_RAYTRACING_TIER_1_0 => RayTracingTier.Tier1_0,
-            D3D12_RAYTRACING_TIER_1_1 => RayTracingTier.Tier1_1,
-            D3D12_RAYTRACING_TIER_1_2 => RayTracingTier.Tier1_2,
+            D3D12_RAYTRACING_TIER_1_0 => RayTracingTier.Tier1,
+            D3D12_RAYTRACING_TIER_1_1 => RayTracingTier.Tier2,
+            D3D12_RAYTRACING_TIER_1_2 => RayTracingTier.Tier3,
             _ => RayTracingTier.NotSupported,
         };
     }

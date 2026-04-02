@@ -39,8 +39,8 @@ public sealed class SkyboxRenderer : IDisposable
             3, 2, 7, 7, 6, 3    // Bottom
         ];
 
-        _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, BufferUsage.Vertex);
-        _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, BufferUsage.Index);
+        _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, GpuBufferUsage.Vertex);
+        _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, GpuBufferUsage.Index);
 
         Span <BindGroupLayout> bindGroupLayouts = [renderSystem.ViewBindGroupLayout, renderSystem.FrameBindGroupLayout];
 

@@ -8,11 +8,15 @@ using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
 using static Alimer.Graphics.Constants;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12;
+using System.Diagnostics;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12BindlessManager : IDisposable
 {
+    private readonly D3D12BindlessDescriptorHeap _resources;
+    private readonly D3D12BindlessDescriptorHeap _samplers;
+
     public D3D12BindlessManager(D3D12GraphicsDevice device)
     {
         Device = device;
@@ -49,15 +53,13 @@ internal unsafe class D3D12BindlessManager : IDisposable
 
         uint nonBindlessResourcesCount = 1024;
         uint nonBindlessSamplerCount = 32;
-        Resources = new D3D12BindlessDescriptorHeap(this, resourceCapacity - nonBindlessResourcesCount);
-        Sampler = new D3D12BindlessDescriptorHeap(this, samplersCapacity - nonBindlessSamplerCount);
+        _resources = new D3D12BindlessDescriptorHeap(this, resourceCapacity - nonBindlessResourcesCount);
+        _samplers = new D3D12BindlessDescriptorHeap(this, samplersCapacity - nonBindlessSamplerCount);
     }
 
 
     public D3D12GraphicsDevice Device { get; }
     public bool UltimateBindless { get; }
-    public D3D12BindlessDescriptorHeap Resources { get; }
-    public D3D12BindlessDescriptorHeap Sampler { get; }
 
     public void Dispose()
     {
@@ -65,7 +67,103 @@ internal unsafe class D3D12BindlessManager : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    internal class D3D12BindlessDescriptorHeap
+    public int AllocateSRV(ID3D12Resource* resource, in D3D12_SHADER_RESOURCE_VIEW_DESC desc)
+    {
+        int index = _resources.Allocate();
+
+        if (index != InvalidBindlessIndex)
+        {
+            Debug.Assert(index < _resources.Capacity);
+
+            uint descriptorIndex = Device.ShaderResourceViewHeap.AllocateBindlessDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = Device.ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
+
+            fixed (D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc = &desc)
+            {
+                Device.Device->CreateShaderResourceView(resource, pDesc, descriptorHandle);
+            }
+
+            Device.ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
+        }
+
+        return index;
+    }
+
+    public int AllocateUAV(ID3D12Resource* resource, in D3D12_UNORDERED_ACCESS_VIEW_DESC desc)
+    {
+        int index = _resources.Allocate();
+
+        if (index != InvalidBindlessIndex)
+        {
+            Debug.Assert(index < _resources.Capacity);
+
+            uint descriptorIndex = Device.ShaderResourceViewHeap.AllocateBindlessDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = Device.ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
+
+            fixed (D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc = &desc)
+            {
+                Device.Device->CreateUnorderedAccessView(resource, null, pDesc, descriptorHandle);
+            }
+
+            Device.ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
+        }
+
+        return index;
+    }
+
+    public int AllocateSampler(in D3D12_SAMPLER_DESC desc)
+    {
+        int index = _samplers.Allocate();
+
+        if (index != InvalidBindlessIndex)
+        {
+            Debug.Assert(index < _samplers.Capacity);
+
+            uint descriptorIndex = Device.SamplerHeap.AllocateBindlessDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = Device.SamplerHeap.GetCpuHandle(descriptorIndex);
+
+            fixed (D3D12_SAMPLER_DESC* pDesc = &desc)
+            {
+                Device.Device->CreateSampler(pDesc, descriptorHandle);
+            }
+
+            Device.SamplerHeap.CopyToShaderVisibleHeap(descriptorIndex);
+        }
+
+        return index;
+    }
+
+    public void FreeSRV(int index)
+    {
+        if (index == InvalidBindlessIndex)
+            return;
+
+        Debug.Assert(index < _resources.Capacity);
+        _resources.Free(index);
+        Device.ShaderResourceViewHeap.ReleaseBindlessDescriptor((uint)index);
+    }
+
+    public void FreeUAV(int index)
+    {
+        if (index == InvalidBindlessIndex)
+            return;
+
+        Debug.Assert(index < _resources.Capacity);
+        _resources.Free(index);
+        Device.ShaderResourceViewHeap.ReleaseBindlessDescriptor((uint)index);
+    }
+
+    public void FreeSampler(int index)
+    {
+        if (index == InvalidBindlessIndex)
+            return;
+
+        Debug.Assert(index < _samplers.Capacity);
+        _samplers.Free(index);
+        Device.SamplerHeap.ReleaseBindlessDescriptor((uint)index);
+    }
+
+    class D3D12BindlessDescriptorHeap
     {
         private readonly Lock _lock = new();
         private readonly List<int> _freeList = [];

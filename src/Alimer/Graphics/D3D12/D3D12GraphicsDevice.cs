@@ -508,7 +508,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.PipelineStatisticsQuery:
             case Feature.TextureCompressionBC:
             case Feature.IndirectFirstInstance:
-            case Feature.SamplerClampToBorder:
             case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:
             case Feature.StencilResolveMinMax:
@@ -702,7 +701,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GpuBuffer CreateBufferCore(in BufferDescriptor descriptor, void* initialData)
+    protected override GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData)
     {
         return new D3D12Buffer(this, descriptor, initialData);
     }
@@ -775,50 +774,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             Device = (nint)Device,
             Queue = (nint)D3D12GraphicsQueue.Handle
         });
-    }
-
-    public int AllocateBindlessSRV(ID3D12Resource* resource, in D3D12_SHADER_RESOURCE_VIEW_DESC desc)
-    {
-        int bindlessSRVIndex = BindlessManager.Resources.Allocate();
-
-        if (bindlessSRVIndex != InvalidBindlessIndex)
-        {
-            Debug.Assert(bindlessSRVIndex < BindlessManager.Resources.Capacity);
-
-            uint descriptorIndex = ShaderResourceViewHeap.AllocateBindlessDescriptor();
-            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
-
-            fixed (D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc = &desc)
-            {
-                Device->CreateShaderResourceView(resource, pDesc, descriptorHandle);
-            }
-
-            ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
-        }
-
-        return bindlessSRVIndex;
-    }
-
-    public int AllocateBindlessUAV(ID3D12Resource* resource, in D3D12_UNORDERED_ACCESS_VIEW_DESC desc)
-    {
-        int bindlessSRVIndex = BindlessManager.Resources.Allocate();
-
-        if (bindlessSRVIndex != InvalidBindlessIndex)
-        {
-            Debug.Assert(bindlessSRVIndex < BindlessManager.Resources.Capacity);
-
-            uint descriptorIndex = ShaderResourceViewHeap.AllocateBindlessDescriptor();
-            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = ShaderResourceViewHeap.GetCpuHandle(descriptorIndex);
-
-            fixed (D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc = &desc)
-            {
-                Device->CreateUnorderedAccessView(resource, null, pDesc, descriptorHandle);
-            }
-
-            ShaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
-        }
-
-        return bindlessSRVIndex;
     }
 
     [UnmanagedCallersOnly]

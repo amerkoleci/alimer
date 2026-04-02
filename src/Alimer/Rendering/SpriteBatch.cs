@@ -46,7 +46,7 @@ public class SpriteBatch : DisposableObject
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
         Device = device;
-        BufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), BufferUsage.ShaderRead, MemoryType.Upload)
+        GpuBufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), GpuBufferUsage.ShaderRead, MemoryType.Upload)
         {
             //spriteBufferDesc.stride = sizeof(SpriteDrawData);
             Label = "SpriteBatch Buffer"
@@ -55,7 +55,7 @@ public class SpriteBatch : DisposableObject
 
         // Create the index buffer
         ReadOnlySpan<ushort> indices = [0, 1, 2, 3, 0, 2];
-        _spriteIndexBuffer = device.CreateBuffer(indices, BufferUsage.Index, label: "SpriteBatch Index Buffer");
+        _spriteIndexBuffer = device.CreateBuffer(indices, GpuBufferUsage.Index, label: "SpriteBatch Index Buffer");
     }
 
     public GraphicsDevice Device { get; }

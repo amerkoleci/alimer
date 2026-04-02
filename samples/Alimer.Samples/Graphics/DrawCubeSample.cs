@@ -32,8 +32,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
-        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), BufferUsage.Constant, MemoryType.Upload));
-        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), BufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GpuBufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), GpuBufferUsage.Constant, MemoryType.Upload));
 
         _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
             new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex)

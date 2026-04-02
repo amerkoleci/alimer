@@ -232,6 +232,7 @@ internal unsafe class VulkanTexture : Texture
             }
 
             PixelFormatInfo formatInfo = descriptor.Format.GetFormatInfo();
+            uint dataStride = formatInfo.BytesPerBlock;
             uint blockSize = formatInfo.BlockWidth;
 
             List<VkBufferImageCopy> copyRegions = [];
@@ -251,7 +252,7 @@ internal unsafe class VulkanTexture : Texture
 
                     uint numBlocksX = Math.Max(1u, width / blockSize);
                     uint numBlocksY = Math.Max(1u, height / blockSize);
-                    uint dstRowPitch = numBlocksX * formatInfo.BytesPerBlock;
+                    uint dstRowPitch = numBlocksX * dataStride;
                     uint dstSlicePitch = dstRowPitch * numBlocksY;
 
                     for (uint z = 0; z < depth; ++z)

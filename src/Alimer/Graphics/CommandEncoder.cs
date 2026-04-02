@@ -69,7 +69,7 @@ public abstract unsafe class CommandEncoder
     [Conditional("VALIDATE_USAGE")]
     protected static void ValidateIndirectBuffer(GpuBuffer indirectBuffer)
     {
-        if ((indirectBuffer.Usage & BufferUsage.Indirect) == 0)
+        if ((indirectBuffer.Usage & GpuBufferUsage.Indirect) == 0)
         {
             throw new GraphicsException($"{nameof(indirectBuffer)} parameter must have been created with BufferUsage.Indirect.");
         }

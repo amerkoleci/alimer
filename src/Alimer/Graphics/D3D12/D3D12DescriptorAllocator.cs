@@ -122,7 +122,17 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         }
     }
 
+    public void ReleaseBindlessDescriptor(DescriptorIndex index)
+    {
+        ReleaseDescriptors(true, index, 1);
+    }
+
     public void ReleaseDescriptors(DescriptorIndex baseIndex, uint count = 1)
+    {
+        ReleaseDescriptors(false, baseIndex, count);
+    }
+
+    private void ReleaseDescriptors(bool bindless, DescriptorIndex baseIndex, uint count = 1)
     {
         if (count == 0)
             return;
@@ -143,8 +153,16 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
 
             NumAllocatedDescriptors -= count;
 
-            if (_searchStart > baseIndex)
-                _searchStart = baseIndex;
+            if (bindless)
+            {
+                if (_searchBindlessStart > baseIndex)
+                    _searchBindlessStart = baseIndex;
+            }
+            else
+            {
+                if (_searchStart > baseIndex)
+                    _searchStart = baseIndex;
+            }
         }
     }
 

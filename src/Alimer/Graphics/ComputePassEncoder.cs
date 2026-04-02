@@ -92,16 +92,16 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
             // Dispose old buffer
             allocator.Buffer?.Dispose();
 
-            BufferDescriptor bufferDescriptor = new()
+            GpuBufferDescriptor bufferDescriptor = new()
             {
                 Size = AlignUp((bufferSize + sizeInBytes) * 2, allocator.Alignment),
-                Usage = BufferUsage.Vertex | BufferUsage.Index | BufferUsage.Constant | BufferUsage.ShaderRead,
+                Usage = GpuBufferUsage.Vertex | GpuBufferUsage.Index | GpuBufferUsage.Constant | GpuBufferUsage.ShaderRead,
                 MemoryType = MemoryType.Upload,
                 Label = "Frame Allocator Buffer"
             };
             if (Device.Limits.RayTracingTier != RayTracingTier.NotSupported)
             {
-                bufferDescriptor.Usage |= BufferUsage.RayTracing;
+                bufferDescriptor.Usage |= GpuBufferUsage.RayTracing;
             }
 
             allocator.Buffer = Device.CreateBuffer(in bufferDescriptor);
