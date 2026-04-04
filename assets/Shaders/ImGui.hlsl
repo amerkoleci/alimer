@@ -21,12 +21,7 @@ struct PushConstants {
     float2 Translate;
 };
 
-// Bindings
-#ifdef __spirv__
-[[vk::push_constant]] PushConstants pushConstants;
-#else
-ConstantBuffer<PushConstants> pushConstants : register(b999, space0);
-#endif
+ALIMER_PUSH_CONSTANTS(PushConstants);
 
 SamplerState imguiSampler : register(s0);
 Texture2D<float4> imguiTexture : register(t0);
@@ -37,7 +32,7 @@ VSOutput vertexMain(VSInput input)
     VSOutput output;
 
     // Transform position
-    output.Position = float4(input.Position * pushConstants.Scale + pushConstants.Translate, 0.0, 1.0);
+    output.Position = float4(input.Position * push.Scale + push.Translate, 0.0, 1.0);
 
     // Pass UV and color to fragment shader
     output.TexCoord = input.TexCoord;

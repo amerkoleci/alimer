@@ -36,8 +36,6 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
         _cbvUavSrvRootParameterIndex = new uint[setLayoutCount];
         _samplerRootParameterIndex = new uint[setLayoutCount];
 
-        List<D3D12_STATIC_SAMPLER_DESC> staticSamplers = [];
-
         // Count root parameter count first
         int rootParameterCount = 0;
         for (int i = 0; i < setLayoutCount; i++)
@@ -104,72 +102,85 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
                 rootParameterIndex++;
             }
-
-            if (bindGroupLayout.StaticSamplers.Count > 0)
-            {
-                Span<D3D12_STATIC_SAMPLER_DESC> bindGroupLayoutStaticSamplers = CollectionsMarshal.AsSpan(bindGroupLayout.StaticSamplers);
-                foreach (ref D3D12_STATIC_SAMPLER_DESC staticSampler in bindGroupLayoutStaticSamplers)
-                {
-                    //Debug.Assert(staticSampler.RegisterSpace == D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
-                    staticSampler.RegisterSpace = (uint)i;
-
-                    staticSamplers.Add(staticSampler);
-                }
-            }
         }
 
         PushConstantsBaseIndex = rootParameterIndex;
         rootParameters[rootParameterIndex++].InitAsConstants(PushConstantsSize / 4, PushConstantsShaderRegister);
 
-        Span<D3D12_STATIC_SAMPLER_DESC> staticSamplersSpan = CollectionsMarshal.AsSpan(staticSamplers);
+        // Static Samplers
+        Span<SamplerDescriptor> staticSamplers =
+        [
+            SamplerDescriptor.PointClamp,
+            SamplerDescriptor.PointWrap,
+            SamplerDescriptor.PointMirror,
+            SamplerDescriptor.LinearClamp,
+            SamplerDescriptor.LinearWrap,
+            SamplerDescriptor.LinearMirror,
+            SamplerDescriptor.AnisotropicClamp,
+            SamplerDescriptor.AnisotropicWrap,
+            SamplerDescriptor.AnisotropicMirror,
+            SamplerDescriptor.ComparisonDepth
+        ];
 
-        fixed (D3D12_STATIC_SAMPLER_DESC* staticSamplerDescs = staticSamplersSpan)
+        D3D12_STATIC_SAMPLER_DESC* d3dStaticSamplers = stackalloc D3D12_STATIC_SAMPLER_DESC[StaticSamplerCount];
+
+        for (int i = 0; i < StaticSamplerCount; ++i)
         {
-            D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-            flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+            uint shaderRegister = StaticSamplerRegisterSpaceBegin + (uint)i;
+            D3D12_STATIC_SAMPLER_DESC staticSamplerDesc = D3D12Utils.ToD3D12StaticSamplerDesc(
+                shaderRegister,
+                staticSamplers[i],
+                D3D12_SHADER_VISIBILITY_ALL,
+                0
+                );
 
-            if (device.BindlessManager.UltimateBindless)
-            {
-                flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-                flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
-            }
+            d3dStaticSamplers[i] = staticSamplerDesc;
+        }
 
-            D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc = new(
-                (uint)rootParameterCount,
-                rootParameters,
-                (uint)staticSamplers.Count,
-                staticSamplerDescs,
-                flags
-            );
+        D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+        flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-            using ComPtr<ID3DBlob> rootSignatureBlob = default;
-            using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
+        if (device.BindlessManager.UltimateBindless)
+        {
+            flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+            flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+        }
 
-            HRESULT hr = D3DX12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
-                device.DxAdapter.Features.RootSignatureHighestVersion,
-                rootSignatureBlob.GetAddressOf(),
-                rootSignatureErrorBlob.GetAddressOf());
-            if (hr.FAILED)
-            {
-                string errors = Marshal.PtrToStringAnsi((nint)rootSignatureErrorBlob.Get()->GetBufferPointer())!;
-                Log.Error($"D3D12SerializeVersionedRootSignature failed: {errors}");
-                return;
-            }
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc = new(
+            (uint)rootParameterCount,
+            rootParameters,
+            (uint)StaticSamplerCount,
+            d3dStaticSamplers,
+            flags
+        );
 
-            hr = device.Device->CreateRootSignature(0,
-                rootSignatureBlob.Get()->GetBufferPointer(),
-                rootSignatureBlob.Get()->GetBufferSize(),
-                __uuidof<ID3D12RootSignature>(),
-                (void**)_handle.GetAddressOf());
-            if (hr.FAILED)
-            {
-                return;
-            }
+        using ComPtr<ID3DBlob> rootSignatureBlob = default;
+        using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
 
-            if (!string.IsNullOrEmpty(descriptor.Label))
-            {
-                OnLabelChanged(descriptor.Label!);
-            }
+        HRESULT hr = D3DX12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
+            device.DxAdapter.Features.RootSignatureHighestVersion,
+            rootSignatureBlob.GetAddressOf(),
+            rootSignatureErrorBlob.GetAddressOf());
+        if (hr.FAILED)
+        {
+            string errors = Marshal.PtrToStringAnsi((nint)rootSignatureErrorBlob.Get()->GetBufferPointer())!;
+            Log.Error($"D3D12SerializeVersionedRootSignature failed: {errors}");
+            return;
+        }
+
+        hr = device.Device->CreateRootSignature(0,
+            rootSignatureBlob.Get()->GetBufferPointer(),
+            rootSignatureBlob.Get()->GetBufferSize(),
+            __uuidof<ID3D12RootSignature>(),
+            (void**)_handle.GetAddressOf());
+        if (hr.FAILED)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(descriptor.Label))
+        {
+            OnLabelChanged(descriptor.Label!);
         }
     }
 

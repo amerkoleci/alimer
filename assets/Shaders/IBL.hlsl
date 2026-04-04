@@ -2,10 +2,10 @@
 #include "ShaderTypes.h"
 #include "VertexInputOutput.hlsli"
 
-enum class BRDF : uint {
-    Lambert,
-    TrowbridgeReitz,
-};
+//enum class BRDF : uint {
+//    Lambert,
+//    TrowbridgeReitz,
+//};
 
 static float3 CubeDirectionFromFaceAndUV(in int face, in float2 uv)
 {

@@ -19,8 +19,8 @@ internal unsafe class D3D12TextureView : TextureView
     private readonly D3D12Texture _texture;
     private readonly Dictionary<int, DescriptorIndex> _RTVs = [];
     private readonly Dictionary<int, DescriptorIndex> _DSVs = [];
-    private int _bindlessSRVIndex = InvalidBindlessIndex;
-    private int _bindlessUAVIndex = InvalidBindlessIndex;
+    private int _bindlessReadIndex = InvalidBindlessIndex;
+    private int _bindlessReadWriteIndex = InvalidBindlessIndex;
 
     public D3D12TextureView(D3D12Texture texture, in TextureViewDescriptor descriptor)
         : base(texture, in descriptor)
@@ -45,21 +45,21 @@ internal unsafe class D3D12TextureView : TextureView
         if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
         {
             D3D12_SHADER_RESOURCE_VIEW_DESC srvViewDesc = GetSRVDescriptor();
-            _bindlessSRVIndex = texture.DXDevice.BindlessManager.AllocateSRV(texture.Handle, in srvViewDesc);
+            _bindlessReadIndex = texture.DXDevice.BindlessManager.AllocateSRV(texture.Handle, in srvViewDesc);
         }
 
         if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
         {
             D3D12_UNORDERED_ACCESS_VIEW_DESC uavViewDesc = GetUAVDescriptor();
-            _bindlessUAVIndex = texture.DXDevice.BindlessManager.AllocateUAV(texture.Handle, in uavViewDesc);
+            _bindlessReadWriteIndex = texture.DXDevice.BindlessManager.AllocateUAV(texture.Handle, in uavViewDesc);
         }
     }
 
     /// <inheritdoc />
-    public override int BindlessShaderReadIndex => _bindlessSRVIndex;
+    public override int BindlessReadIndex => _bindlessReadIndex;
 
     /// <inheritdoc />
-    public override int BindlessShaderWriteIndex => _bindlessSRVIndex;
+    public override int BindlessReadWriteIndex => _bindlessReadWriteIndex;
 
     public DXGI_FORMAT RTVFormat { get; }
     public DXGI_FORMAT DSVFormat { get; }
@@ -81,16 +81,16 @@ internal unsafe class D3D12TextureView : TextureView
         }
         _DSVs.Clear();
 
-        if (_bindlessSRVIndex != InvalidBindlessIndex)
+        if (_bindlessReadIndex != InvalidBindlessIndex)
         {
-            _texture.DXDevice.BindlessManager.FreeSRV(_bindlessSRVIndex);
-            _bindlessSRVIndex = InvalidBindlessIndex;
+            _texture.DXDevice.BindlessManager.FreeSRV(_bindlessReadIndex);
+            _bindlessReadIndex = InvalidBindlessIndex;
         }
 
-        if (_bindlessUAVIndex != InvalidBindlessIndex)
+        if (_bindlessReadWriteIndex != InvalidBindlessIndex)
         {
-            _texture.DXDevice.BindlessManager.FreeUAV(_bindlessUAVIndex);
-            _bindlessUAVIndex = InvalidBindlessIndex;
+            _texture.DXDevice.BindlessManager.FreeUAV(_bindlessReadWriteIndex);
+            _bindlessReadWriteIndex = InvalidBindlessIndex;
         }
     }
 

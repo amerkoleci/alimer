@@ -75,9 +75,6 @@ internal unsafe class VulkanBindGroup : BindGroup
         for (uint i = 0; i < _layout.Entries.Length; i++)
         {
             ref BindGroupLayoutEntry layoutEntry = ref _layout.Entries[i];
-            if (layoutEntry.StaticSampler.HasValue)
-                continue;
-
             ref VkDescriptorSetLayoutBinding layoutBinding = ref _layout.GetLayoutBinding(i);
             VkDescriptorType descriptorType = layoutBinding.descriptorType;
 

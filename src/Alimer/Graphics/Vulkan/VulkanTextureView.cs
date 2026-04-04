@@ -9,15 +9,13 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe class VulkanTextureView : TextureView
 {
-    private readonly VulkanTexture _texture;
     private VkImageView _handle = VkImageView.Null;
-    private readonly int _bindlessSRVIndex = InvalidBindlessIndex;
-    private readonly int _bindlessUAVIndex = InvalidBindlessIndex;
+    private readonly int _bindlessReadIndex = InvalidBindlessIndex;
+    private readonly int _bindlessReadWriteIndex = InvalidBindlessIndex;
 
     public VulkanTextureView(VulkanTexture texture, in TextureViewDescriptor descriptor)
         : base(texture, descriptor)
     {
-        _texture = texture;
         VkFormat = texture.VkDevice.ToVkFormat(descriptor.Format);
 
         uint arrayLayerCount = descriptor.ArrayLayerCount;
@@ -52,34 +50,47 @@ internal unsafe class VulkanTextureView : TextureView
 
         if (texture.Usage.HasFlag(TextureUsage.ShaderRead))
         {
-            _bindlessSRVIndex = texture.VkDevice.BindlessManager.AllocateBindlessSRV(Handle);
+            _bindlessReadIndex = texture.VkDevice.BindlessManager.AllocateBindlessSRV(Handle);
         }
 
         if (texture.Usage.HasFlag(TextureUsage.ShaderWrite))
         {
-            _bindlessUAVIndex = texture.VkDevice.BindlessManager.AllocateBindlessUAV(Handle);
+            _bindlessReadWriteIndex = texture.VkDevice.BindlessManager.AllocateBindlessUAV(Handle);
         }
     }
 
+    public VulkanTexture VkTexture => (VulkanTexture)Texture;
     public VkImageView Handle => _handle;
     public VkFormat VkFormat { get; }
 
     /// <inheritdoc />
-    public override int BindlessShaderReadIndex => _bindlessSRVIndex;
+    public override int BindlessReadIndex => _bindlessReadIndex;
 
     /// <inheritdoc />
-    public override int BindlessShaderWriteIndex => _bindlessUAVIndex;
+    public override int BindlessReadWriteIndex => _bindlessReadWriteIndex;
 
     /// <inheitdoc />
     internal override void Destroy()
     {
-        _texture.VkDevice.DeviceApi.vkDestroyImageView(_handle);
+        VulkanBindlessManager bindlessManager = VkTexture.VkDevice.BindlessManager;
+
+        if (_bindlessReadIndex != InvalidBindlessIndex)
+        {
+            bindlessManager.SampledImages.Free(_bindlessReadIndex);
+        }
+
+        if (_bindlessReadWriteIndex != InvalidBindlessIndex)
+        {
+            bindlessManager.StorageImages.Free(_bindlessReadWriteIndex);
+        }
+
+        VkTexture.VkDevice.DeviceApi.vkDestroyImageView(_handle);
         _handle = VkImageView.Null;
     }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _texture.VkDevice.SetObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, Handle.Handle, newLabel);
+        VkTexture.VkDevice.SetObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, Handle.Handle, newLabel);
     }
 }

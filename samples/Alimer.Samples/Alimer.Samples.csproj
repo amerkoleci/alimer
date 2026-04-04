@@ -31,7 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Slangc.NET" />
     <PackageReference Include="Vortice.Dxc.Native" />
   </ItemGroup>
 

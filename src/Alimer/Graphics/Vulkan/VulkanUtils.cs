@@ -630,7 +630,7 @@ internal static class VulkanUtils
     {
         return value switch
         {
-            SamplerMinMagFilter.Nearest => VK_FILTER_NEAREST,
+            SamplerMinMagFilter.Point => VK_FILTER_NEAREST,
             SamplerMinMagFilter.Linear => VK_FILTER_LINEAR,
             _ => VK_FILTER_NEAREST,
         };
@@ -641,7 +641,7 @@ internal static class VulkanUtils
     {
         return value switch
         {
-            SamplerMipFilter.Nearest => VK_SAMPLER_MIPMAP_MODE_NEAREST,
+            SamplerMipFilter.Point => VK_SAMPLER_MIPMAP_MODE_NEAREST,
             SamplerMipFilter.Linear => VK_SAMPLER_MIPMAP_MODE_LINEAR,
             _ => VK_SAMPLER_MIPMAP_MODE_NEAREST,
         };
@@ -652,11 +652,11 @@ internal static class VulkanUtils
     {
         return value switch
         {
-            SamplerAddressMode.Repeat => VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            SamplerAddressMode.MirrorRepeat => VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-            SamplerAddressMode.ClampToEdge => VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            SamplerAddressMode.ClampToBorder => VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-            SamplerAddressMode.MirrorClampToEdge => samplerMirrorClampToEdge ? VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+            SamplerAddressMode.Wrap => VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            SamplerAddressMode.Mirror => VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+            SamplerAddressMode.Clamp => VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            SamplerAddressMode.Border => VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+            SamplerAddressMode.MirrorOnce => samplerMirrorClampToEdge ? VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
             _ => VK_SAMPLER_ADDRESS_MODE_REPEAT,
         };
     }

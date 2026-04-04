@@ -47,6 +47,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceDepthStencilResolveProperties DepthStencilResolveProperties = default;
     public readonly VkPhysicalDeviceDepthClipEnableFeaturesEXT DepthClipEnableFeatures = default;
     public readonly VkPhysicalDeviceConservativeRasterizationPropertiesEXT ConservativeRasterizationProperties = default;
+    public readonly VkPhysicalDeviceSampleLocationsPropertiesEXT SampleLocationsProperties = default;
     public readonly VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures = default;
     public readonly VkPhysicalDeviceAccelerationStructurePropertiesKHR AccelerationStructureProperties = default;
     public readonly VkPhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingPipelineFeatures = default;
@@ -104,6 +105,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceDepthStencilResolveProperties depthStencilResolveProperties = new();
         VkPhysicalDeviceDepthClipEnableFeaturesEXT depthClipEnableFeatures = default;
         VkPhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProperties = default;
+        VkPhysicalDeviceSampleLocationsPropertiesEXT sampleLocationsProperties = default;
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = default;
         VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = default;
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures = default;
@@ -237,6 +239,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         {
             conservativeRasterizationProperties = new();
             AddToPropertiesChain(&conservativeRasterizationProperties);
+        }
+
+        if (extensions.SampleLocations)
+        {
+            sampleLocationsProperties = new();
+            AddToPropertiesChain(&sampleLocationsProperties);
         }
 
         if (Extensions.AccelerationStructure)
@@ -377,6 +385,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Properties13 = properties13;
         Properties14 = properties14;
         ConservativeRasterizationProperties = conservativeRasterizationProperties;
+        SampleLocationsProperties = sampleLocationsProperties;
         AccelerationStructureProperties = accelerationStructureProperties;
         RayTracingPipelineProperties = rayTracingPipelineProperties;
         FragmentShadingRateProperties = fragmentShadingRateProperties;

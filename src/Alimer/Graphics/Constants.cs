@@ -21,6 +21,10 @@ public static class Constants
     public const uint ArrayLayerCountUndefined = uint.MaxValue;
     public const ulong WholeSize = ulong.MaxValue;
 
+    // Must match the static sampler Alimer.hlsl
+    public const int StaticSamplerCount = 10; 
+    public const int StaticSamplerRegisterSpaceBegin = 100;
+
     /// <summary>
     /// Invalid bindless index.
     /// </summary>

@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 [Flags]
-public enum PixelFormatSupport
+public enum PixelFormatSupport : ulong
 {
     None = 0,
 
@@ -18,4 +18,5 @@ public enum PixelFormatSupport
     ShaderUavLoad = (1 << 6),
     ShaderUavStore = (1 << 7),
     ShaderAtomic = (1 << 8),
+    ShadingRate = (1 << 9),
 }

@@ -5,6 +5,9 @@ namespace Alimer.Graphics;
 
 public enum SamplerMinMagFilter
 {
-    Nearest = 0,
-    Linear = 1
+    Point = 0,
+    Linear = 1,
+
+    // Vulkan names
+    Nearest = Point,
 }

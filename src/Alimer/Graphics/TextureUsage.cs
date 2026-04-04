@@ -22,6 +22,10 @@ public enum TextureUsage
     /// </summary>
     ShaderWrite = 1 << 1,
     /// <summary>
+    /// Supports shader read-write access.
+    /// </summary>
+    ShaderReadWrite = ShaderRead | ShaderWrite,
+    /// <summary>
     /// Supports rendering to the texture in a render pass.
     /// </summary>
     RenderTarget = 1 << 2,

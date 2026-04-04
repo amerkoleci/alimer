@@ -1,12 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.InteropServices;
 using Alimer.Assets;
 using Alimer.Graphics;
 using Alimer.Input;
 using Alimer.Shaders;
-using Slangc.NET;
 
 namespace Alimer.Samples;
 
@@ -76,12 +74,11 @@ public abstract class GraphicsSampleBase : SampleBase
         string fileName,
         ShaderStages stage,
         string entryPoint,
-        Dictionary<string, string>? defines = default,
-        string[]? searchPaths = null)
+        Dictionary<string, string>? defines = default)
     {
         // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
-        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".slang");
+        string shaderSourceFileName = Path.ChangeExtension(Path.Combine(shadersPath, fileName), ".hlsl");
         // DXC
         ShaderFormat shaderFormat = ShaderFormat.SPIRV;
         switch (GraphicsDevice.Backend)

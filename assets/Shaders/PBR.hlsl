@@ -11,8 +11,8 @@ struct SurfaceInfo
 {
     // Fill these yourself:
     float3 worldPos; // world space position
-    float3 V;        // normalized vector from the shading location to the eye
-    float3 N;        // surface normal in the world space
+    float3 V; // normalized vector from the shading location to the eye
+    float3 N; // surface normal in the world space
 
     float roughness;
     float metalness;
@@ -30,7 +30,7 @@ struct SurfaceInfo
     float3 F0;
 };
 
-float3 getDiffuseLightColor(in float3 N)
+float3 getDiffuseLightColor(TextureCube<float4> environmentTexture, SamplerState environmentSampler, in float3 N)
 {
     float width, height, numberOfLevels;
     environmentTexture.GetDimensions(0, width, height, numberOfLevels);
@@ -39,7 +39,7 @@ float3 getDiffuseLightColor(in float3 N)
     return environmentTexture.SampleLevel(environmentSampler, N, diffuseLevel).rgb;
 }
 
-float3 getSpecularLightColor(in float3 R, in float roughness)
+float3 getSpecularLightColor(TextureCube<float4> environmentTexture, SamplerState environmentSampler, in float3 R, in float roughness)
 {
     float width, height, numberOfLevels;
     environmentTexture.GetDimensions(0, width, height, numberOfLevels);
@@ -48,14 +48,14 @@ float3 getSpecularLightColor(in float3 R, in float roughness)
     return environmentTexture.SampleLevel(environmentSampler, R, rough).rgb;
 }
 
-float3 pbrSurfaceColorIbl(in SurfaceInfo surface)
+float3 pbrSurfaceColorIbl(in SurfaceInfo surface, TextureCube<float4> environmentTexture, SamplerState environmentSampler)
 {
     float3 kS = FresnelSchlickRoughness(surface.NdotV, surface.F0, surface.roughness);
     float3 kD = (float3(1.f, 1.f, 1.f) - kS) * (1.f - surface.metalness);
-    float3 irradiance = getDiffuseLightColor(surface.N);
+    float3 irradiance = getDiffuseLightColor(environmentTexture, environmentSampler, surface.N);
     float3 diffuse = irradiance * surface.diffuseColor;
 
-    float3 prefilteredColor = getSpecularLightColor(surface.R, surface.roughness);
+    float3 prefilteredColor = getSpecularLightColor(environmentTexture, environmentSampler, surface.R, surface.roughness);
     float2 envBrdf = envBRDFApprox(surface.roughness, surface.NdotV);
     float3 specular = prefilteredColor * (surface.specularColor * envBrdf.x + envBrdf.y);
 
@@ -110,7 +110,7 @@ float3 pbrPointLight(in GPULight light, in SurfaceInfo surface)
 }
 
 [shader("pixel")]
-float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) : SV_TARGET
+float4 fragmentMain(in VertexOutput input, in bool isFrontFace : SV_IsFrontFace) : SV_TARGET
 {
     StructuredBuffer<GPUMaterialPBR> materials = bindlessGPUMaterial[push.MaterialBufferIndex];
     StructuredBuffer<GPULight> lights = bindlessGPULight[push.LightBufferIndex];
@@ -136,7 +136,7 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
     surface.worldPos = input.WorldPosition;
 
     // Calculate view direction (fragment to camera)
-    surface.V = normalize(view.cameraPosition.xyz - surface.worldPos);
+    surface.V = normalize(frame.cameraPosition.xyz - surface.worldPos);
 
     surface.N = normalize(input.Normal);
 
@@ -151,7 +151,7 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
         tangentNormal.rg *= material.normalScale;
 
         // Construct tangent-space to world-space transformation matrix (TBN)
-        float3 T = normalize(input.Tangent.xyz);   // Tangent
+        float3 T = normalize(input.Tangent.xyz); // Tangent
         float3 B = normalize(input.Bitangent.xyz); // Bitangent (w = handedness)
         float3x3 TBN = float3x3(T, B, surface.N);
 
@@ -186,14 +186,16 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
     surface.F0 = lerp(dielectricSpec, color.rgb, surface.metalness);
 
     // reflectance equation
-    float3 Lo = pbrSurfaceColorIbl(surface);
+    TextureCube<float4> environmentTexture = bindlessTextureCube[frame.EnvironmentTextureIndex];
+    SamplerState environmentSampler = SamplerLinearWrap; // bindlessSamplers[frame.EnvironmentSamplerIndex];
+    float3 Lo = pbrSurfaceColorIbl(surface, environmentTexture, environmentSampler);
 
     // Calculate contribution from each light source
-    for (uint i = 0; i < view.activeLightCount; i++)
+    for (uint i = 0; i < frame.activeLightCount; i++)
     {
         GPULight light = lights[i];
         [branch]
-        if (light.Type != (int)LightType::Directional)
+        if (light.Type != (int) LightType::Directional)
         {
             // calculate per-light radiance and add to outgoing radiance Lo
             Lo += pbrPointLight(light, surface);
@@ -203,7 +205,7 @@ float4 fragmentMain(in VertexOutput input, in bool isFrontFace: SV_IsFrontFace) 
             Lo += pbrDirectionalLight(light, surface);
         }
     }
-    Lo += (surface.diffuseColor * surface.ao * view.ambientLight) + surface.emissive;
+    Lo += (surface.diffuseColor * surface.ao * frame.ambientLight) + surface.emissive;
 
     return float4(Lo, surface.alpha);
 }

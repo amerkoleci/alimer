@@ -59,11 +59,11 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
 
         _mappedMaterialData[_materialCount] = new()
         {
-            BaseIndex = baseColorTexture.DefaultView!.BindlessShaderReadIndex,
-            NormalIndex = normalTexture.DefaultView!.BindlessShaderReadIndex,
-            MetallicRoughnessIndex = metallicRoughnessTexture.DefaultView!.BindlessShaderReadIndex,
-            EmissiveIndex = emissiveTexture.DefaultView!.BindlessShaderReadIndex,
-            OcclusionIndex = occlusionTexture.DefaultView!.BindlessShaderReadIndex,
+            BaseIndex = baseColorTexture.DefaultView!.BindlessReadIndex,
+            NormalIndex = normalTexture.DefaultView!.BindlessReadIndex,
+            MetallicRoughnessIndex = metallicRoughnessTexture.DefaultView!.BindlessReadIndex,
+            EmissiveIndex = emissiveTexture.DefaultView!.BindlessReadIndex,
+            OcclusionIndex = occlusionTexture.DefaultView!.BindlessReadIndex,
             SamplerIndex = System.DefaultSampler.BindlessIndex,
             baseColorFactor = material.BaseColorFactor,
             emissiveFactor = material.EmissiveFactor,
@@ -84,9 +84,7 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
 
     protected override PipelineLayout CreatePipelineLayout(bool skinned)
     {
-        Span<BindGroupLayout> bindGroupLayouts = [
-            System.ViewBindGroupLayout,
-            System.FrameBindGroupLayout];
+        Span<BindGroupLayout> bindGroupLayouts = [System.FrameBindGroupLayout];
 
         PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
         return System.Device.CreatePipelineLayout(in descriptor);

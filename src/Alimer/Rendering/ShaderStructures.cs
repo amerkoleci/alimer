@@ -15,16 +15,8 @@ namespace Alimer.Rendering;
 // TODO: Source generator for defined types
 // Must match shader layout (ShaderTypes.h)
 
-// Updated once per frame
-public struct FrameConstants : IShaderConstantBuffer
-{
-    public float ElapsedTime;
-    public float TotalTime;
-    private float2 _padding0; // Padding to align to 16 bytes
-}
-
-// Updated once per camera/view
-public struct PerViewData : IShaderConstantBuffer
+// Updated once per frame and camera/view
+public struct GPUFrameData : IShaderConstantBuffer
 {
     public float4x4 viewMatrix;
     public float4x4 projectionMatrix;
@@ -32,9 +24,13 @@ public struct PerViewData : IShaderConstantBuffer
     public float4x4 inverseViewMatrix;
     public float4x4 inverseProjectionMatrix;
     public float3 cameraPosition;
-    private float _padding0; // Padding to align to 16 bytes
-    public float3 ambientLight;
     public uint activeLightCount;
+    public float3 ambientLight;
+    private int _padding0; // Padding to align to 16 bytes
+    public int EnvironmentTextureIndex;
+    public int environmentSamplerIndex;
+    public float elapsedTime;
+    public float totalTime;
 }
 
 // Updated once per camera/view
@@ -46,7 +42,7 @@ public enum ShaderLightType
     Spot,
 }
 
-public struct GpuLight : IShaderConstantBuffer
+public struct GPULight : IShaderConstantBuffer
 {
     public float3 Position;         // World-space position (unused for directional)
     public ShaderLightType Type;    // 0=Directional, 1=Point, 2=Spot

@@ -5,9 +5,16 @@ namespace Alimer.Graphics;
 
 public enum SamplerAddressMode
 {
-    Repeat,
-    MirrorRepeat,
-    ClampToEdge,
-    ClampToBorder,
-    MirrorClampToEdge,
+    Clamp,
+    Wrap,
+    Mirror,
+    MirrorOnce,
+    Border,
+
+    // Vulkan names
+    ClampToEdge = Clamp,
+    Repeat = Wrap,
+    MirroredRepeat = Mirror,
+    ClampToBorder = Border,
+    MirrorClampToEdge = MirrorOnce
 }

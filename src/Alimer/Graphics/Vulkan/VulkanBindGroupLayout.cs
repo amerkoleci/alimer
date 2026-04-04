@@ -18,34 +18,12 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     {
         VkDevice = device;
 
-        VkDescriptorSetLayoutCreateFlags flags = VkDescriptorSetLayoutCreateFlags.None;
         LayoutBindingCount = description.Entries.Length;
         _bindings = AllocateArray<VkDescriptorSetLayoutBinding>((uint)LayoutBindingCount);
-
-        bool isPush = false;
-        if (isPush)
-            flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT;
 
         for (int i = 0; i < LayoutBindingCount; i++)
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
-
-            if (entry.StaticSampler.HasValue)
-            {
-                uint registerOffset = device.GetRegisterOffset(VK_DESCRIPTOR_TYPE_SAMPLER);
-                VkSampler sampler = device.GetOrCreateVulkanSampler(entry.StaticSampler.Value);
-
-                _bindings[i] = new VkDescriptorSetLayoutBinding
-                {
-                    binding = entry.Binding + registerOffset,
-                    descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-                    descriptorCount = 1u,
-                    stageFlags = VK_SHADER_STAGE_ALL,
-                    pImmutableSamplers = &sampler,
-                };
-                continue;
-            }
-
             (VkDescriptorType DescriptorType, uint RegisterOffset) = device.GetVkDescriptorType(entry);
 
             _bindings[i] = new VkDescriptorSetLayoutBinding
@@ -57,19 +35,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
             };
         }
 
-        VkDescriptorSetLayoutCreateInfo createInfo = new()
-        {
-            flags = flags,
-            bindingCount = (uint)LayoutBindingCount,
-            pBindings = _bindings
-        };
-
-        VkResult result = VkDevice.DeviceApi.vkCreateDescriptorSetLayout(&createInfo, null, out _handle);
-        if (result != VkResult.Success)
-        {
-            Log.Error($"Vulkan: Failed to create {nameof(BindGroupLayout)}.");
-            return;
-        }
+        _handle = device.BindlessManager.BindingsSetLayout;
 
         if (!string.IsNullOrEmpty(description.Label))
         {
@@ -89,14 +55,14 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        VkDevice.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _handle, newLabel);
+        //VkDevice.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _handle, newLabel);
     }
 
     /// <inheitdoc />
     protected internal override void Destroy()
     {
         Free(_bindings);
-        VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(_handle);
+        //VkDevice.DeviceApi.vkDestroyDescriptorSetLayout(_handle);
     }
 
     /// <inheritdoc />

@@ -410,13 +410,17 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         if (!_bindGroupsDirty)
             return;
 
+        uint kContantBufferCount = 1;
+        uint* uniformBufferDynamicOffsets = stackalloc uint[(int)kContantBufferCount];
+
         _deviceApi.vkCmdBindDescriptorSets(
             _commandBuffer,
             bindPoint,
             _currentPipelineLayout.Handle,
             0u,
             (uint)_currentPipelineLayout.BindGroupLayoutCount,
-            (VkDescriptorSet*)Unsafe.AsPointer(ref MemoryMarshal.GetArrayDataReference(_descriptorSets))
+            (VkDescriptorSet*)Unsafe.AsPointer(ref MemoryMarshal.GetArrayDataReference(_descriptorSets)),
+            kContantBufferCount, uniformBufferDynamicOffsets
         );
         _bindGroupsDirty = false;
     }

@@ -42,7 +42,7 @@ public sealed class SkyboxRenderer : IDisposable
         _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, GpuBufferUsage.Vertex);
         _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, GpuBufferUsage.Index);
 
-        Span <BindGroupLayout> bindGroupLayouts = [renderSystem.ViewBindGroupLayout, renderSystem.FrameBindGroupLayout];
+        Span <BindGroupLayout> bindGroupLayouts = [renderSystem.FrameBindGroupLayout];
 
         PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
         _pipelineLayout = renderSystem.Device.CreatePipelineLayout(in descriptor);

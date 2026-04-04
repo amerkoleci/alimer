@@ -327,6 +327,9 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         // ConservativeRasterization
         _limits.ConservativeRasterizationTier = _adapter.Features.ConservativeRasterizationTier.FromD3D12();
 
+        // ProgrammableSamplePositions
+        _limits.ProgrammableSamplePositionsTier = _adapter.Features.ProgrammableSamplePositionsTier.FromD3D12();
+
         // VariableRateShading
         _limits.VariableShadingRateTier = _adapter.Features.VariableShadingRateTier.FromD3D12();
         if (_limits.VariableShadingRateTier != VariableShadingRateTier.NotSupported)

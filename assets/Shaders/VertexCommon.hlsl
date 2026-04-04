@@ -16,7 +16,7 @@ VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)
     VertexOutput output;
 
     // Clip-space position
-    output.Position = mul(worldPosition, view.viewProjectionMatrix);
+    output.Position = mul(worldPosition, frame.viewProjectionMatrix);
     output.WorldPosition = worldPosition.xyz / worldPosition.w;
 
     // World-space normal

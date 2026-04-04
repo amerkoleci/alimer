@@ -387,6 +387,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             AddToFeatureChain(&depthClipEnableFeatures);
         }
 
+        if (_adapter.Extensions.SampleLocations)
+        {
+            enabledDeviceExtensions.Add(VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME);
+        }
+
         if (_adapter.Extensions.ShaderViewportIndexLayer)
         {
             enabledDeviceExtensions.Add(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
@@ -696,6 +701,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 {
                     _limits.ConservativeRasterizationTier = ConservativeRasterizationTier.Tier3;
                 }
+            }
+
+            // ProgrammableSamplePositions
+            if (_adapter.Extensions.SampleLocations)
+            {
+                _limits.ProgrammableSamplePositionsTier = ProgrammableSamplePositionsTier.Tier1;
+
+                VkSampleCountFlags allSampleCounts = VK_SAMPLE_COUNT_1_BIT | VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT | VK_SAMPLE_COUNT_8_BIT | VK_SAMPLE_COUNT_16_BIT;
+                if (_adapter.SampleLocationsProperties.sampleLocationSampleCounts == allSampleCounts) // like in D3D12 spec
+                {
+                    _limits.ProgrammableSamplePositionsTier = ProgrammableSamplePositionsTier.Tier2;
+                }
+            }
+            else
+            {
+                _limits.ProgrammableSamplePositionsTier = ProgrammableSamplePositionsTier.NotSupported;
             }
 
             _limits.VariableShadingRateTier = VariableShadingRateTier.NotSupported;
@@ -1259,6 +1280,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             result |= PixelFormatSupport.ShaderAtomic;
         }
 
+        if (props.formatProperties.optimalTilingFeatures.HasFlag(VK_FORMAT_FEATURE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR))
+        {
+            result |= PixelFormatSupport.ShadingRate;
+        }
+
 #if TODO
         // Ensure that the handle type is supported.
         VkImageFormatProperties2 props2 = { };
@@ -1791,28 +1817,14 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 switch (entry.Buffer.Type)
                 {
                     case BufferBindingType.Constant:
-                        if (entry.Buffer.HasDynamicOffset)
-                        {
-                            vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                        }
-                        else
-                        {
-                            vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                        }
+                        vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                         break;
 
                     case BufferBindingType.ShaderRead:
                     case BufferBindingType.ShaderReadWrite:
                         // UniformTexelBuffer, StorageTexelBuffer ?
                         readOnlyStorage = (entry.Buffer.Type == BufferBindingType.ShaderRead);
-                        if (entry.Buffer.HasDynamicOffset)
-                        {
-                            vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                        }
-                        else
-                        {
-                            vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                        }
+                        vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                         break;
                 }
                 break;

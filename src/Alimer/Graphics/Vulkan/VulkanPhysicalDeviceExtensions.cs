@@ -51,6 +51,7 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool TextureCompressionASTC_HDR;
     public bool TextureCompressionASTC_3D;
 
+    public bool SampleLocations;
     public bool ShaderViewportIndexLayer;
     public bool AccelerationStructure;
     public bool RaytracingPipeline;
@@ -161,6 +162,10 @@ internal struct VulkanPhysicalDeviceExtensions
                 else if (extensionName == VK_EXT_TEXTURE_COMPRESSION_ASTC_3D_EXTENSION_NAME)
                 {
                     extensions.TextureCompressionASTC_3D = true;
+                }
+                else if (extensionName == VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME)
+                {
+                    extensions.SampleLocations = true;
                 }
                 else if (extensionName == VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)
                 {

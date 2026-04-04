@@ -175,6 +175,7 @@ internal unsafe readonly struct D3D12Features
     public D3D12_TILED_RESOURCES_TIER TiledResourcesTier => _options.TiledResourcesTier;
     public D3D12_RESOURCE_BINDING_TIER ResourceBindingTier => _options.ResourceBindingTier;
     public D3D12_CONSERVATIVE_RASTERIZATION_TIER ConservativeRasterizationTier => _options.ConservativeRasterizationTier;
+    public D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER ProgrammableSamplePositionsTier => _options2.ProgrammableSamplePositionsTier;
     public bool DepthBoundsTestSupported => _options2.DepthBoundsTestSupported;
     public bool CopyQueueTimestampQueriesSupported => _options3.CopyQueueTimestampQueriesSupported;
 

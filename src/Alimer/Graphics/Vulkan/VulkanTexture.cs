@@ -23,26 +23,30 @@ internal unsafe class VulkanTexture : Texture
         VkDevice = device;
         VkFormat = device.ToVkFormat(descriptor.Format);
         bool isDepthStencil = descriptor.Format.IsDepthStencilFormat();
-        VkImageCreateFlags flags = VkImageCreateFlags.None;
         VkImageType imageType = descriptor.Dimension.ToVk();
         VkImageUsageFlags usage = VkImageUsageFlags.None;
         VkExtent3D extent = default;
         uint arrayLayers = 1u;
+        VkImageCreateFlags flags =
+            VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT      // typeless (basic)
+            | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT    // typeless (advanced)
+            | VK_IMAGE_CREATE_ALIAS_BIT             // matches https://learn.microsoft.com/en-us/windows/win32/direct3d12/memory-aliasing-and-data-inheritance#data-inheritance
+            ;
 
         switch (descriptor.Dimension)
         {
             case TextureDimension.Texture1D:
                 extent = new VkExtent3D(descriptor.Width, 1u, 1u);
-                arrayLayers = (uint)ArrayLayers;
+                arrayLayers = ArrayLayers;
                 break;
 
             case TextureDimension.Texture2D:
                 extent = new VkExtent3D(descriptor.Width, descriptor.Height, 1u);
-                arrayLayers = (uint)ArrayLayers;
+                arrayLayers = ArrayLayers;
                 break;
 
             case TextureDimension.Texture3D:
-                extent = new VkExtent3D(descriptor.Width, descriptor.Height, (uint)Depth);
+                extent = new VkExtent3D(descriptor.Width, descriptor.Height, Depth);
                 arrayLayers = 1u;
                 // When using 3D textures as render targets, we need to be able to create 2d array views.
                 if ((descriptor.Usage & TextureUsage.RenderTarget) != 0)
@@ -53,7 +57,7 @@ internal unsafe class VulkanTexture : Texture
 
             case TextureDimension.TextureCube:
                 extent = new VkExtent3D(descriptor.Width, descriptor.Height, 1u);
-                arrayLayers = (uint)ActualArrayLayers;
+                arrayLayers = ActualArrayLayers;
                 flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                 break;
         }

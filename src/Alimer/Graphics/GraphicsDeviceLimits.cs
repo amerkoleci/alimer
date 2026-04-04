@@ -54,6 +54,9 @@ public struct GraphicsDeviceLimits
     // ConservativeRasterization
     public ConservativeRasterizationTier ConservativeRasterizationTier;
 
+    // ProgrammableSamplePositions
+    public ProgrammableSamplePositionsTier ProgrammableSamplePositionsTier;
+
     // VariableRateShading
     public VariableShadingRateTier VariableShadingRateTier;
     public uint VariableShadingRateImageTileSize;

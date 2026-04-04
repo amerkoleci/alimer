@@ -6,6 +6,7 @@ using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Numerics;
 using static Alimer.Utilities.UnsafeUtilities;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Rendering;
 
@@ -15,10 +16,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 {
     // ShaderTypes.h
     private const uint MinLightCapacity = 32;
-    private static uint GpuLightStructureSizeInBytes = SizeOf<GpuLight>();
-
-    public const int FrameBindGroupSpace = 1;
-    public const int ViewBindGroupSpace = 0;
+    private static uint GpuLightStructureSizeInBytes = SizeOf<GPULight>();
 
     private readonly Dictionary<Type, IGPUMaterialFactory> _gpuMaterialFactories = [];
     private readonly RenderBatch _renderBatch;
@@ -83,40 +81,20 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         // TODO: Implement ring buffer
 
         // Per frame (set 3)
-        {
-            FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
-                "Frame BindGroupLayout",
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All),
-                new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment), // environmentTexture
-                new BindGroupLayoutEntry(SamplerDescriptor.LinearWrap, 0)  // environmentSampler
-                ));
-
-            // TODO: Configure environment texture/sampler in frame bind group
-            string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
-            EnvironmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
-
-            FrameConstantBuffer = ToDispose(new ConstantBuffer<FrameConstants>(Device, label: "Frame Constant Buffer"));
-            FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
-                "Frame BindGroup",
-                new BindGroupEntry(0, FrameConstantBuffer.Handle),
-                new BindGroupEntry(0, EnvironmentMap)
-                ));
-        }
-
-
-        // Per view (set 2)
-        {
-            ViewBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
-                "View BindGroupLayout",
-                new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
+        FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
+            "Frame BindGroupLayout",
+            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
             ));
 
-            ViewConstantBuffer = ToDispose(new ConstantBuffer<PerViewData>(Device, label: "View Constant Buffer"));
-            ViewBindGroup = ToDispose(ViewBindGroupLayout.CreateBindGroup(
-                "View BindGroup",
-                new BindGroupEntry(0, ViewConstantBuffer.Handle)
-                ));
-        }
+        // TODO: Configure environment texture/sampler in frame bind group
+        string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
+        EnvironmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
+
+        FrameConstantBuffer = ToDispose(new ConstantBuffer<GPUFrameData>(Device, label: "Frame Constant Buffer"));
+        FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
+            "Frame BindGroup",
+            new BindGroupEntry(0, FrameConstantBuffer.Handle)
+            ));
 
         // Skybox renderer
         SkyboxRenderer = ToDispose(new SkyboxRenderer(this));
@@ -154,14 +132,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
-    // Set 1 (per view/camera)
-    public BindGroupLayout ViewBindGroupLayout { get; } // 2
-    public ConstantBuffer<PerViewData> ViewConstantBuffer { get; } // b0
-    public BindGroup ViewBindGroup { get; }
-
-    // Set 2 (per frame)
     public BindGroupLayout FrameBindGroupLayout { get; } // 3
-    public ConstantBuffer<FrameConstants> FrameConstantBuffer { get; }
+    public ConstantBuffer<GPUFrameData> FrameConstantBuffer { get; }
     public BindGroup FrameBindGroup { get; }
     public SkyboxRenderer SkyboxRenderer { get; }
     public ShaderSystem ShaderSystem { get; }
@@ -259,7 +231,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public void Render(CommandBuffer commandBuffer, Texture output, CameraComponent camera, GameTime time)
     {
-        UpdateFrame(time);
         UpdateLights();
 
         RenderPassColorAttachment colorAttachment = new(output.DefaultView!, Colors.Black)
@@ -276,11 +247,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         RenderPassEncoder renderPass = commandBuffer.BeginRenderPass(renderPassDescriptor);
 
-        // Frame BindGroup (once per frame)
-        renderPass.SetBindGroup(FrameBindGroupSpace, FrameBindGroup);
-
         // For each camera
-        RenderCamera(renderPass, camera);
+        RenderCamera(renderPass, camera, time);
 
         // Draw skybox from environment map
         if (EnvironmentMap is not null)
@@ -291,12 +259,12 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         renderPass.EndEncoding();
     }
 
-    private void RenderCamera(RenderPassEncoder passEncoder, CameraComponent camera)
+    private void RenderCamera(RenderPassEncoder passEncoder, CameraComponent camera, GameTime time)
     {
-        UpdateCamera(camera);
+        UpdateFrame(camera, time);
 
-        // Set 2 (per view/camera)
-        passEncoder.SetBindGroup(ViewBindGroupSpace, ViewBindGroup);
+        // Per frame + camera/view
+        passEncoder.SetBindGroup(0, FrameBindGroup);
 
         // Set 1 (per instance data)
         _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
@@ -371,40 +339,32 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         Resize(MainWindow.SizeInPixels);
     }
 
-    private void UpdateFrame(GameTime gameTime)
-    {
-        FrameConstants frameData = new()
-        {
-            ElapsedTime = (float)gameTime.Elapsed.TotalSeconds,
-            TotalTime = (float)gameTime.Total.TotalSeconds
-        };
-
-        FrameConstantBuffer.SetData(frameData);
-    }
-
-    private void UpdateCamera(CameraComponent camera)
+    private void UpdateFrame(CameraComponent camera, GameTime gameTime)
     {
         LightSystem? lightSystem = EntityManager?.Systems.Get<LightSystem>();
 
-        PerViewData viewData = new()
+        GPUFrameData frameData = new()
         {
             viewMatrix = camera.ViewMatrix,
             projectionMatrix = camera.ProjectionMatrix,
             viewProjectionMatrix = camera.ViewProjectionMatrix
         };
-        _ = Matrix4x4.Invert(viewData.viewProjectionMatrix, out viewData.inverseViewMatrix);
-        _ = Matrix4x4.Invert(viewData.projectionMatrix, out viewData.inverseProjectionMatrix);
+        _ = Matrix4x4.Invert(frameData.viewProjectionMatrix, out frameData.inverseViewMatrix);
+        _ = Matrix4x4.Invert(frameData.projectionMatrix, out frameData.inverseProjectionMatrix);
 
         // https://github.com/Aminator/DirectX12GameEngine/blob/master/DirectX12GameEngine.Rendering/Materials/MaterialAttributes.cs
-        viewData.cameraPosition = camera.Entity!.Transform.Position;
-        viewData.ambientLight = new Vector3(0.05f, 0.05f, 0.05f);
-        viewData.activeLightCount = 0;
+        frameData.cameraPosition = camera.Entity!.Transform.Position;
+        frameData.ambientLight = new Vector3(0.05f, 0.05f, 0.05f);
+        frameData.activeLightCount = 0;
         if (lightSystem is not null)
         {
-            viewData.activeLightCount = (uint)lightSystem.Lights.Count;
+            frameData.activeLightCount = (uint)lightSystem.Lights.Count;
         }
+        frameData.EnvironmentTextureIndex = EnvironmentMap is not null ? EnvironmentMap.DefaultView!.BindlessReadIndex : InvalidBindlessIndex;
+        frameData.elapsedTime = (float)gameTime.Elapsed.TotalSeconds;
+        frameData.totalTime = (float)gameTime.Total.TotalSeconds;
 
-        ViewConstantBuffer.SetData(viewData);
+        FrameConstantBuffer.SetData(frameData);
     }
 
     private unsafe void UpdateLights()
@@ -430,14 +390,14 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         }
 
         // TODO: Resize Light Buffer if light count exceeds current capacity
-        GpuLight* lightData = (GpuLight*)_lightBuffer.GetMappedData();
+        GPULight* lightData = (GPULight*)_lightBuffer.GetMappedData();
 
         int lightIndex = 0;
 
         // Write light data directly into the persistently-mapped buffer
         foreach (LightComponent light in lightSystem.Lights)
         {
-            lightData[lightIndex] = new GpuLight
+            lightData[lightIndex] = new GPULight
             {
                 Position = light.Entity!.WorldTransform.Translation,
                 Direction = light.Entity!.Direction,

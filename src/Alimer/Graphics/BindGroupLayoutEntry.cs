@@ -6,16 +6,14 @@ namespace Alimer.Graphics;
 public readonly struct BufferBindingLayout
 {
     public readonly BufferBindingType Type = BufferBindingType.Constant;
-    public readonly bool HasDynamicOffset = false;
 
     public BufferBindingLayout()
     {
     }
 
-    public BufferBindingLayout(BufferBindingType type, bool hasDynamicOffset = false)
+    public BufferBindingLayout(BufferBindingType type)
     {
         Type = type;
-        HasDynamicOffset = hasDynamicOffset;
     }
 }
 
@@ -108,8 +106,6 @@ public readonly struct BindGroupLayoutEntry
 
     public readonly SamplerBindingLayout Sampler;
 
-    public readonly SamplerDescriptor? StaticSampler;
-
     public readonly TextureBindingLayout Texture;
     public readonly StorageTextureBindingLayout StorageTexture;
     public readonly AccelerationStructureBindingLayout AccelerationStructure;
@@ -126,13 +122,6 @@ public readonly struct BindGroupLayoutEntry
         Binding = binding;
         Visibility = visibility;
         Sampler = sampler;
-    }
-
-    public BindGroupLayoutEntry(SamplerDescriptor staticSampler, uint binding, ShaderStages visibility = ShaderStages.All)
-    {
-        Binding = binding;
-        Visibility = visibility;
-        StaticSampler = staticSampler;
     }
 
     public BindGroupLayoutEntry(TextureBindingLayout texture, uint binding, ShaderStages visibility = ShaderStages.All)
@@ -157,7 +146,7 @@ public readonly struct BindGroupLayoutEntry
             {
                 return BindingInfoType.Buffer;
             }
-            else if (Sampler.Type != SamplerBindingType.Undefined || StaticSampler.HasValue)
+            else if (Sampler.Type != SamplerBindingType.Undefined)
             {
                 return BindingInfoType.Sampler;
             }

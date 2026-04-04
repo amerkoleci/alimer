@@ -28,14 +28,7 @@ struct DrawIndexedIndirectCommand
     uint firstInstance;
 };
 
-struct PerFrameData
-{
-    float elapsedTime;
-    float totalTime;
-    float2 _padding;
-};
-
-struct PerViewData
+struct GPUFrameData
 {
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
@@ -43,9 +36,13 @@ struct PerViewData
     float4x4 inverseViewMatrix;
     float4x4 inverseProjectionMatrix;
     float3 cameraPosition;
-    float _padding0;
-    float3 ambientLight;
     uint activeLightCount;
+    float3 ambientLight;
+    int _padding0;
+    int EnvironmentTextureIndex;
+    int EnvironmentSamplerIndex;
+    float elapsedTime;
+    float totalTime;
 };
 
 enum class AlphaMode

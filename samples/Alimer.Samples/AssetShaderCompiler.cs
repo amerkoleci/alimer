@@ -4,7 +4,6 @@
 using Alimer.Graphics;
 using Alimer.Rendering;
 using Alimer.Shaders;
-using Slangc.NET;
 
 namespace Alimer.Samples;
 
@@ -20,8 +19,7 @@ public sealed class AssetShaderCompiler : IShaderCompiler
     public ShaderModule Compile(string fileName, ShaderStages stage, Dictionary<string, string>? defines = default)
     {
         string? shaderSourceFileName = default;
-        string extension = ".hlsl";
-        string fallbackExtension = ".slang";
+        const string extension = ".hlsl";
         foreach (string path in _system.Paths)
         {
             string fullPath = Path.Combine(path, Path.ChangeExtension(fileName, extension));
@@ -31,6 +29,8 @@ public sealed class AssetShaderCompiler : IShaderCompiler
                 break;
             }
 
+#if SLANG_COMPILER
+            const string fallbackExtension = ".slang";
             // Try with fallback extension (slang)
             fullPath = Path.Combine(path, Path.ChangeExtension(fileName, fallbackExtension));
             if (File.Exists(fullPath))
@@ -38,6 +38,7 @@ public sealed class AssetShaderCompiler : IShaderCompiler
                 shaderSourceFileName = fullPath;
                 break;
             }
+#endif
         }
 
         if (string.IsNullOrEmpty(shaderSourceFileName))
@@ -58,6 +59,7 @@ public sealed class AssetShaderCompiler : IShaderCompiler
                 throw new NotSupportedException($"Shader stage '{stage}' is not supported.");
         }
 
+#if SLANG_COMPILER
         // TODO: ShaderLibrary (without -entry and -stage)
         bool useSlangCompiler = false;
         if (useSlangCompiler)
@@ -139,7 +141,8 @@ public sealed class AssetShaderCompiler : IShaderCompiler
             ShaderModuleDescriptor descriptor = new(stage, bytecode, entryPoint);
             return _system.Device.CreateShaderModule(in descriptor);
         }
-        else
+        else 
+#endif
         {
             // DXC
             ShaderFormat shaderFormat = ShaderFormat.SPIRV;

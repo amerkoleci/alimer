@@ -13,7 +13,6 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
 {
     public readonly List<D3D12_DESCRIPTOR_RANGE1> CbvUavSrvDescriptorRanges = [];
     public readonly List<D3D12_DESCRIPTOR_RANGE1> SamplerDescriptorRanges = [];
-    public readonly List<D3D12_STATIC_SAMPLER_DESC> StaticSamplers = [];
 
     public D3D12BindGroupLayout(D3D12GraphicsDevice device, in BindGroupLayoutDescriptor description)
         : base(description)
@@ -28,16 +27,6 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
         for (int i = 0; i < bindingCount; i++)
         {
             ref readonly BindGroupLayoutEntry entry = ref description.Entries[i];
-            if (entry.StaticSampler.HasValue)
-            {
-                D3D12_STATIC_SAMPLER_DESC statiSamplerDesc = D3D12Utils.ToD3D12StaticSamplerDesc(
-                    entry.Binding,
-                    entry.StaticSampler.Value,
-                    entry.Visibility.ToD3D12(),
-                    D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START);
-                StaticSamplers.Add(statiSamplerDesc);
-                continue;
-            }
 
             D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = entry.ToD3D12RangeType();
 

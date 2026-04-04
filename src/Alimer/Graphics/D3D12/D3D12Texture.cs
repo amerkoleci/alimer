@@ -5,17 +5,13 @@ using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 using static Alimer.Graphics.D3D12.D3D12Utils;
 using static Alimer.Utilities.MemoryUtilities;
-using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
 using static TerraFX.Interop.DirectX.D3D12_TEXTURE_LAYOUT;
 using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.E;
 using static TerraFX.Interop.Windows.Windows;
-using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
 

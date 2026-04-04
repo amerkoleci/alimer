@@ -31,6 +31,7 @@ using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.DirectX.D3D12_SAMPLER_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADER_COMPONENT_MAPPING;
 using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
+using static TerraFX.Interop.DirectX.D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER;
 using static TerraFX.Interop.DirectX.D3D12_VARIABLE_SHADING_RATE_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
@@ -267,7 +268,7 @@ internal static unsafe class D3D12Utils
     {
         return filter switch
         {
-            SamplerMinMagFilter.Nearest => D3D12_FILTER_TYPE_POINT,
+            SamplerMinMagFilter.Point => D3D12_FILTER_TYPE_POINT,
             SamplerMinMagFilter.Linear => D3D12_FILTER_TYPE_LINEAR,
             _ => D3D12_FILTER_TYPE_POINT,
         };
@@ -278,7 +279,7 @@ internal static unsafe class D3D12Utils
     {
         return filter switch
         {
-            SamplerMipFilter.Nearest => D3D12_FILTER_TYPE_POINT,
+            SamplerMipFilter.Point => D3D12_FILTER_TYPE_POINT,
             SamplerMipFilter.Linear => D3D12_FILTER_TYPE_LINEAR,
             _ => D3D12_FILTER_TYPE_POINT,
         };
@@ -289,11 +290,11 @@ internal static unsafe class D3D12Utils
     {
         return filter switch
         {
-            SamplerAddressMode.Repeat => D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-            SamplerAddressMode.MirrorRepeat => D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-            SamplerAddressMode.ClampToEdge => D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-            SamplerAddressMode.ClampToBorder => D3D12_TEXTURE_ADDRESS_MODE_BORDER,
-            SamplerAddressMode.MirrorClampToEdge => D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE,
+            SamplerAddressMode.Wrap => D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            SamplerAddressMode.Mirror => D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+            SamplerAddressMode.Clamp => D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+            SamplerAddressMode.Border => D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+            SamplerAddressMode.MirrorOnce => D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE,
             _ => D3D12_TEXTURE_ADDRESS_MODE_WRAP,
         };
     }
@@ -553,8 +554,6 @@ internal static unsafe class D3D12Utils
         };
     }
 
-
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ConservativeRasterizationTier FromD3D12(this D3D12_CONSERVATIVE_RASTERIZATION_TIER value)
     {
@@ -565,6 +564,18 @@ internal static unsafe class D3D12Utils
             D3D12_CONSERVATIVE_RASTERIZATION_TIER_2 => ConservativeRasterizationTier.Tier2,
             D3D12_CONSERVATIVE_RASTERIZATION_TIER_3 => ConservativeRasterizationTier.Tier3,
             _ => ConservativeRasterizationTier.NotSupported,
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ProgrammableSamplePositionsTier FromD3D12(this D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER value)
+    {
+        return value switch
+        {
+            D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED => ProgrammableSamplePositionsTier.NotSupported,
+            D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_1 => ProgrammableSamplePositionsTier.Tier1,
+            D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_2 => ProgrammableSamplePositionsTier.Tier2,
+            _ => ProgrammableSamplePositionsTier.NotSupported,
         };
     }
 
