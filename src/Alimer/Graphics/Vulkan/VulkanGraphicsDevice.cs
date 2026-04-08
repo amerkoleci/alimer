@@ -7,6 +7,7 @@ using Vortice.Vulkan;
 using XenoAtom.Collections;
 using static Alimer.Graphics.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
+using static Alimer.Graphics.Vulkan.VmaAllocatorCreateFlags;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using System.Collections.Concurrent;
@@ -248,6 +249,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
         AddToFeatureChain(&features11);
         AddToFeatureChain(&features12);
+
         if (_adapter.ApiVersion >= VK_API_VERSION_1_3)
         {
             AddToFeatureChain(&features13);
@@ -577,40 +579,36 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 #endif
 
         // Core in 1.1
-        VmaAllocatorCreateFlags allocatorFlags =
-            VmaAllocatorCreateFlags.KHRDedicatedAllocation | VmaAllocatorCreateFlags.KHRBindMemory2;
+        VmaAllocatorCreateFlags allocatorFlags = 0;
 
         if (_adapter.Extensions.MemoryBudget)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryBudget;
-        }
-
-        if (_adapter.Extensions.AMD_DeviceCoherentMemory)
-        {
-            allocatorFlags |= VmaAllocatorCreateFlags.AMDDeviceCoherentMemory;
+            allocatorFlags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
         }
 
         if (_adapter.Features12.bufferDeviceAddress)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.BufferDeviceAddress;
+            allocatorFlags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+        }
+
+        if (_adapter.Extensions.AMD_DeviceCoherentMemory)
+        {
+            allocatorFlags |= VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
         }
 
         if (_adapter.Extensions.MemoryPriority)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.EXTMemoryPriority;
+            allocatorFlags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
         }
 
-        if (_adapter.ApiVersion < VkVersion.Version_1_3)
+        if (_adapter.Maintenance4)
         {
-            //if (_adapter.Maintenance4Features.maintenance4)
-            //{
-            //    allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance4;
-            //}
+            allocatorFlags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
         }
 
-        if (_adapter.Extensions.Maintenance5)
+        if (_adapter.Maintenance5)
         {
-            allocatorFlags |= VmaAllocatorCreateFlags.KHRMaintenance5;
+            allocatorFlags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
         }
 
         VmaAllocatorCreateInfo allocatorCreateInfo = new()
@@ -618,7 +616,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             physicalDevice = PhysicalDevice,
             device = _handle,
             instance = _adapter.VkGraphicsManager.Instance,
-            vulkanApiVersion = VkVersion.Version_1_3,
+            vulkanApiVersion = new VkVersion(0, 1, _adapter.ApiVersion.Minor, 0),
             flags = allocatorFlags,
         };
         vmaCreateAllocator(in allocatorCreateInfo, out _allocator).CheckResult();
@@ -990,11 +988,11 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             _nullSampler = GetOrCreateVulkanSampler(new SamplerDescriptor());
         }
 
-        // Creat bindless manager
-        BindlessManager = new VulkanBindlessManager(this);
-
         // Allocate at least one descriptor pool.
         _descriptorSetPools.Add(CreateDescriptorSetPool());
+
+        // Create bindless manager
+        BindlessManager = new VulkanBindlessManager(this);
 
         void AddToFeatureChain(void* next)
         {
@@ -1633,9 +1631,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         _descriptorSetPools.Add(CreateDescriptorSetPool());
     }
 
-    public VkResult AllocateDescriptorSet(VkDescriptorSetLayout descriptorSetLayout,
-        VkDescriptorSet* descriptorSet,
-        uint maxVariableDescriptorCounts)
+    public VkResult AllocateDescriptorSet(VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSet* descriptorSet)
     {
         VkDescriptorPool descriptorPool = _descriptorSetPools[^1];
 
@@ -1646,17 +1642,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             descriptorSetCount = 1,
             pSetLayouts = &descriptorSetLayout
         };
-
-        // For variable length descriptor arrays, this specify the maximum count we expect them to be.
-        // Note that this value will apply to all bindings defined as variable arrays in the BindGroupLayout
-        // used to allocate this BindGroup
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variableLengthInfo = new();
-        if (maxVariableDescriptorCounts > 0)
-        {
-            variableLengthInfo.descriptorSetCount = 1;
-            variableLengthInfo.pDescriptorCounts = &maxVariableDescriptorCounts;
-            allocInfo.pNext = &variableLengthInfo;
-        }
 
         return _deviceApi.vkAllocateDescriptorSets(&allocInfo, descriptorSet);
     }

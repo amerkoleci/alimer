@@ -162,7 +162,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             applicationVersion = new VkVersion(1, 0, 0),
             pEngineName = pEngineName,
             engineVersion = new VkVersion(1, 0, 0),
-            apiVersion = VK_API_VERSION_1_3
+            apiVersion = VK_API_VERSION_1_4
         };
 
         using Utf8StringArray vkLayerNames = new(instanceLayers);
@@ -180,13 +180,15 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
 
         if (options.ValidationMode != GraphicsValidationMode.Disabled && DebugUtils)
         {
-            debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
-            debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
+            debugUtilsCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+            debugUtilsCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
             if (options.ValidationMode == GraphicsValidationMode.Verbose)
             {
-                debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Verbose;
-                debugUtilsCreateInfo.messageSeverity |= VkDebugUtilsMessageSeverityFlagsEXT.Info;
+                debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+                debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+
+                debugUtilsCreateInfo.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
             }
 
             debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
@@ -197,13 +199,15 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
 
         if (options.ValidationMode == GraphicsValidationMode.Gpu && validationFeatures)
         {
-            VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[2]
+            // Should we add VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT?
+            VkValidationFeatureEnableEXT* enabledValidationFeatures = stackalloc VkValidationFeatureEnableEXT[3]
             {
-                VkValidationFeatureEnableEXT.GpuAssistedReserveBindingSlot,
-                VkValidationFeatureEnableEXT.GpuAssisted
+                VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+                VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+                VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
             };
 
-            validationFeaturesInfo.enabledValidationFeatureCount = 2;
+            validationFeaturesInfo.enabledValidationFeatureCount = 3;
             validationFeaturesInfo.pEnabledValidationFeatures = enabledValidationFeatures;
             validationFeaturesInfo.pNext = createInfo.pNext;
 
@@ -257,7 +261,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             // We require minimum 1.2
             VkPhysicalDeviceProperties2 properties = new();
             _instanceApi.vkGetPhysicalDeviceProperties2(physicalDevice, &properties);
-            if (properties.properties.apiVersion < VK_API_VERSION_1_2)
+            if (properties.properties.apiVersion < VK_API_VERSION_1_3)
             {
                 continue;
             }
@@ -304,9 +308,9 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             }
 
             VkVersion apiVersion = vkEnumerateInstanceVersion();
-            if (apiVersion < VK_API_VERSION_1_2)
+            if (apiVersion < VK_API_VERSION_1_3)
             {
-                Log.Warn("Vulkan 1.2 is required!");
+                Log.Warn("Vulkan 1.3 is required!");
                 return false;
             }
 

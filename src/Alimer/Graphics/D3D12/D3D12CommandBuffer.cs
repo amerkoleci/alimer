@@ -442,7 +442,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         //_currentPipelineLayout.AddRef();
     }
 
-    public void SetBindGroup(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
+    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
     {
         if (_boundBindGroups[groupIndex] != bindGroup)
         {

@@ -287,7 +287,7 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
 
     public static Image FromStream(Stream stream, int channels = 4, bool srgb = true)
     {
-        Span<byte> data = stackalloc byte[(int)stream.Length];
+        Span<byte> data = stream.Length < 2048 ? stackalloc byte[(int)stream.Length] : new byte[(int)stream.Length];
         stream.ReadExactly(data);
         return FromMemory(data, channels, srgb);
     }

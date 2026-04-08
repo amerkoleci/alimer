@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Text;
 using Vortice.Vulkan;
 using static Vortice.Vulkan.Vulkan;
+using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.Vulkan;
 
@@ -129,15 +130,17 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         AddToFeatureChain(&features12);
         AddToPropertiesChain(&properties11);
         AddToPropertiesChain(&properties12);
-        if (properties2.properties.apiVersion >= VkVersion.Version_1_3)
+
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
         {
             features13 = new();
             properties13 = new();
+
             AddToFeatureChain(&features13);
             AddToPropertiesChain(&properties13);
         }
 
-        if (properties2.properties.apiVersion >= VkVersion.Version_1_4)
+        if (properties2.properties.apiVersion >= VK_API_VERSION_1_4)
         {
             features14 = new();
             properties14 = new();
@@ -340,11 +343,11 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         Debug.Assert(features12.shaderSampledImageArrayNonUniformIndexing);
         Debug.Assert(features12.descriptorBindingVariableDescriptorCount);
 
-        bool synchronization2 = features13.synchronization2 || synchronization2Features.synchronization2;
-        bool dynamicRendering = features13.dynamicRendering || dynamicRenderingFeatures.dynamicRendering;
+        Synchronization2 = features13.synchronization2 || synchronization2Features.synchronization2;
+        DynamicRendering = features13.dynamicRendering || dynamicRenderingFeatures.dynamicRendering;
 
-        Debug.Assert(synchronization2);
-        Debug.Assert(dynamicRendering);
+        Debug.Assert(Synchronization2);
+        Debug.Assert(DynamicRendering);
 
         Features2 = features2;
         Features11 = features11;
@@ -397,6 +400,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         // Core 1.4
         Maintenance6Properties = maintenance6Properties;
         PushDescriptorProperties = pushDescriptorProperties;
+        //PushDescriptor = features14.pushDescriptor || pushDescriptorProperties.maxPushDescriptors > 0;
+        MaxPushDescriptors = Math.Max(Properties14.maxPushDescriptors, PushDescriptorProperties.maxPushDescriptors);
 
         // 
         DeviceName = Encoding.UTF8.GetString(properties2.properties.deviceName, (int)VK_MAX_PHYSICAL_DEVICE_NAME_SIZE).TrimEnd('\0');
@@ -435,6 +440,8 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             Bindless = true;
         }
 
+        Debug.Assert(properties2.properties.limits.maxDescriptorSetUniformBuffersDynamic >= DynamicContantBufferCount);
+
         void AddToFeatureChain(void* next)
         {
             VkBaseOutStructure* n = (VkBaseOutStructure*)next;
@@ -468,6 +475,12 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public override GraphicsAdapterType Type { get; }
 
     public bool Bindless { get; }
+    public bool Synchronization2 { get; }
+    public bool DynamicRendering { get; }
+    public bool Maintenance4 => Features13.maintenance4 || Maintenance4Features.maintenance4;
+    public bool Maintenance5 => Features14.maintenance5 || Maintenance5Features.maintenance5;
+    public bool Maintenance6 => Features14.maintenance6 || Maintenance6Features.maintenance6;
+    public uint MaxPushDescriptors { get;  }
 
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new VulkanGraphicsDevice(this, description);
 }

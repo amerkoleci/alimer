@@ -7,6 +7,8 @@ using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Graphics;
 
+// TODO: Do we expose barriers here?
+
 public abstract unsafe class CommandEncoder
 {
     protected bool _hasLabel;
@@ -31,15 +33,19 @@ public abstract unsafe class CommandEncoder
 
     public void SetBindGroup(int groupIndex, BindGroup bindGroup)
     {
-        SetBindGroup(groupIndex, bindGroup, []);
-    }
-
-    public void SetBindGroup(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
-    {
         ArgumentOutOfRangeException.ThrowIfLessThan(groupIndex, 0, nameof(groupIndex));
         ArgumentNullException.ThrowIfNull(bindGroup, nameof(bindGroup));
 
-        SetBindGroupCore(groupIndex, bindGroup, dynamicBufferOffsets);
+        SetBindGroupCore(groupIndex, bindGroup);
+    }
+
+    public void SetConstantBuffer(uint slot, GpuBuffer buffer, ulong offset = 0)
+    {
+        ValidateConstantBuffer(buffer);
+#if VALIDATE_USAGE
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(slot, (uint)DynamicContantBufferCount, nameof(slot));
+#endif
+        SetConstantBufferCore(slot, buffer, offset);
     }
 
     public void SetPushConstants<T>(T data, uint offset = 0)
@@ -62,16 +68,26 @@ public abstract unsafe class CommandEncoder
         SetPushConstantsCore(data, size, offset);
     }
 
-    protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets);
+    protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup);
+    protected abstract void SetConstantBufferCore(uint slot, GpuBuffer buffer, ulong offset);
     protected abstract void SetPushConstantsCore(void* data, uint size, uint offset);
 
     #region Validation
     [Conditional("VALIDATE_USAGE")]
-    protected static void ValidateIndirectBuffer(GpuBuffer indirectBuffer)
+    protected static void ValidateConstantBuffer(GpuBuffer buffer)
     {
-        if ((indirectBuffer.Usage & GpuBufferUsage.Indirect) == 0)
+        if ((buffer.Usage & GpuBufferUsage.Constant) == 0)
         {
-            throw new GraphicsException($"{nameof(indirectBuffer)} parameter must have been created with BufferUsage.Indirect.");
+            throw new GraphicsException($"{nameof(buffer)} parameter must have been created with {GpuBufferUsage.Constant} usage.");
+        }
+    }
+
+    [Conditional("VALIDATE_USAGE")]
+    protected static void ValidateIndirectBuffer(GpuBuffer buffer)
+    {
+        if ((buffer.Usage & GpuBufferUsage.Indirect) == 0)
+        {
+            throw new GraphicsException($"{nameof(buffer)} parameter must have been created with {GpuBufferUsage.Indirect} usage.");
         }
     }
 
@@ -90,5 +106,16 @@ public abstract unsafe class CommandEncoder
         private readonly CommandEncoder _encoder = encoder;
 
         public void Dispose() => _encoder.PopDebugGroup();
+    }
+}
+
+public readonly struct DescriptorBindingTable
+{
+    public GpuBuffer?[] ConstantBuffer { get; } = new GpuBuffer?[DynamicContantBufferCount];
+    public ulong[] ConstantBufferOffset { get; } = new ulong[DynamicContantBufferCount];
+
+    public DescriptorBindingTable()
+    {
+
     }
 }

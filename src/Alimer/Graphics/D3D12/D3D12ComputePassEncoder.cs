@@ -75,10 +75,13 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetBindGroupCore(int groupIndex, BindGroup bindGroup, Span<uint> dynamicBufferOffsets)
+    protected override void SetBindGroupCore(int groupIndex, BindGroup bindGroup)
     {
-        _commandBuffer.SetBindGroup(groupIndex, bindGroup, dynamicBufferOffsets);
+        _commandBuffer.SetBindGroup(groupIndex, bindGroup);
     }
+
+    /// <inheritdoc/>
+    protected override void SetConstantBufferCore(uint slot, GpuBuffer buffer, ulong offset) => throw new NotImplementedException();
 
     /// <inheritdoc/>
     protected override void SetPushConstantsCore(void* data, uint size, uint offset)

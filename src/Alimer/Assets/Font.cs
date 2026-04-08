@@ -45,12 +45,12 @@ public sealed unsafe class Font : Asset
 
     public static Font FromStream(Stream stream, bool srgb = true)
     {
-        byte[] data = new byte[stream.Length];
-        stream.ReadExactly(data, 0, (int)stream.Length);
+        Span<byte> data = stream.Length < 2048 ? stackalloc byte[(int)stream.Length] : new byte[(int)stream.Length];
+        stream.ReadExactly(data);
         return FromMemory(data, srgb);
     }
 
-    public static unsafe Font FromMemory(byte[] data, bool srgb = true)
+    public static Font FromMemory(Span<byte> data, bool srgb = true)
     {
         fixed (byte* dataPtr = data)
         {

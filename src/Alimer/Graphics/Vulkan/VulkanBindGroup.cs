@@ -18,21 +18,7 @@ internal unsafe class VulkanBindGroup : BindGroup
         _device = layout.VkDevice;
         _layout = layout;
 
-        // Allocate DescriptorSet from the bind group pool
-        uint maxVariableArrayLength = 0;
-        VkDescriptorSet descriptorSet = VkDescriptorSet.Null;
-        VkResult result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
-
-        // If we have run out of pool memory and rely on internalPools, create a new internal pool and retry
-        if (result == VK_ERROR_OUT_OF_POOL_MEMORY
-            || result == VK_ERROR_FRAGMENTED_POOL)
-        {
-            _device.AllocateDescriptorPool();
-            result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
-            result.CheckResult();
-        }
-
-        _handle = descriptorSet;
+        _handle = layout.VkDevice.BindlessManager.BindingsDescriptorSet;
 
         if (!string.IsNullOrEmpty(descriptor.Label))
         {
@@ -53,7 +39,6 @@ internal unsafe class VulkanBindGroup : BindGroup
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, _handle, newLabel);
     }
 
     /// <inheitdoc />

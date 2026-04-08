@@ -26,6 +26,7 @@ internal unsafe class VulkanBindlessManager : IDisposable
         Count,
     }
     private readonly VkDescriptorSetLayout _bindingsSetLayout;
+    private readonly VkDescriptorSet[] _descriptorSets;
 
     public VulkanBindlessManager(VulkanGraphicsDevice device)
     {
@@ -38,7 +39,7 @@ internal unsafe class VulkanBindlessManager : IDisposable
         VkResult result = VK_SUCCESS;
         if (MutableDescriptorType)
         {
-
+            _descriptorSets = [];
         }
         else
         {
@@ -52,13 +53,13 @@ internal unsafe class VulkanBindlessManager : IDisposable
             StorageTexelBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
 
             // First set (space0)
-            int kContantBufferCount = 1;
-            int totalLayoutBindings = kContantBufferCount + StaticSamplerCount;
+            int totalLayoutBindingsWithoutStaticSamplers = DynamicContantBufferCount;
+            int totalLayoutBindings = totalLayoutBindingsWithoutStaticSamplers + StaticSamplerCount;
             VkDescriptorSetLayoutBinding* layoutBindings = stackalloc VkDescriptorSetLayoutBinding[totalLayoutBindings];
             VkDescriptorBindingFlags* layoutBindingsFlags = stackalloc VkDescriptorBindingFlags[totalLayoutBindings];
 
             int bindingIndex = 0;
-            for (uint i = 0; i < kContantBufferCount; ++i)
+            for (uint i = 0; i < DynamicContantBufferCount; ++i)
             {
                 ref VkDescriptorSetLayoutBinding binding = ref layoutBindings[bindingIndex++];
                 binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -94,12 +95,13 @@ internal unsafe class VulkanBindlessManager : IDisposable
                 binding.pImmutableSamplers = &sampler;
             }
 
+            // Flags for bindings, excluded static samplers
             VkDescriptorBindingFlags bindingFlags =
                 //VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
                 VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
                ;
-            for (uint i = 0; i < totalLayoutBindings; ++i)
+            for (uint i = 0; i < totalLayoutBindingsWithoutStaticSamplers; ++i)
             {
                 layoutBindingsFlags[i] = bindingFlags;
             }
@@ -123,7 +125,20 @@ internal unsafe class VulkanBindlessManager : IDisposable
                 Log.Error($"Vulkan: Failed to create {nameof(PipelineLayout)}.");
                 return;
             }
-            device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _bindingsSetLayout, "Bindings SetLayout");
+            device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _bindingsSetLayout, "Bindings DescriptorSetLayout");
+
+            // Setup descriptor sets
+            VkDescriptorSet descriptorSet = VkDescriptorSet.Null;
+            result = device.AllocateDescriptorSet(_bindingsSetLayout, &descriptorSet);
+            // If we have run out of pool memory and rely on internalPools, create a new internal pool and retry
+            if (result == VK_ERROR_OUT_OF_POOL_MEMORY
+                || result == VK_ERROR_FRAGMENTED_POOL)
+            {
+                //_device.AllocateDescriptorPool();
+                //result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
+                //result.CheckResult();
+            }
+            device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSet, "Bindings DescriptorSet");
 
             pSetLayouts[(int)DescriptorSet.Bindings] = _bindingsSetLayout;
             pSetLayouts[(int)DescriptorSet.BindlessSampler] = Samplers.DescriptorSetLayout;
@@ -132,6 +147,13 @@ internal unsafe class VulkanBindlessManager : IDisposable
             pSetLayouts[(int)DescriptorSet.BindlessStorageBuffer] = StorageBuffers.DescriptorSetLayout;
 
             setLayoutCount = (uint)DescriptorSet.Count;
+
+            _descriptorSets = new VkDescriptorSet[(int)DescriptorSet.Count];
+            _descriptorSets[(int)DescriptorSet.Bindings] = descriptorSet;
+            _descriptorSets[(int)DescriptorSet.BindlessSampler] = Samplers.DescriptorSet;
+            _descriptorSets[(int)DescriptorSet.BindlessSampledImage] = SampledImages.DescriptorSet;
+            _descriptorSets[(int)DescriptorSet.BindlessStorageImage] = StorageImages.DescriptorSet;
+            _descriptorSets[(int)DescriptorSet.BindlessStorageBuffer] = StorageBuffers.DescriptorSet;
         }
 
         VkPushConstantRange pushConstantRange = new()
@@ -165,6 +187,7 @@ internal unsafe class VulkanBindlessManager : IDisposable
     public VulkanGraphicsDevice Device { get; }
     public bool MutableDescriptorType { get; }
     public VkDescriptorSetLayout BindingsSetLayout => _bindingsSetLayout;
+    public VkDescriptorSet BindingsDescriptorSet => _descriptorSets[(int)DescriptorSet.Bindings];
     public VkPipelineLayout PipelineLayout { get; }
     public VulkanBindlessDescriptorHeap Samplers { get; }
     public VulkanBindlessDescriptorHeap SampledImages { get; }
@@ -189,21 +212,15 @@ internal unsafe class VulkanBindlessManager : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public void Bind(VkCommandBuffer commandBuffer, VulkanPipelineLayout pipelineLayout, VkPipelineBindPoint bindPoint)
+    public void Bind(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint, Span<uint> dynamicOffsets)
     {
-        uint firstSet = (uint)pipelineLayout.BindlessLayoutFirstIndex;
-        Span<VkDescriptorSet> descriptorSets = stackalloc VkDescriptorSet[DescriptorSetCount];
-        descriptorSets[0] = Samplers.DescriptorSet;
-        descriptorSets[1] = SampledImages.DescriptorSet;
-        descriptorSets[2] = StorageImages.DescriptorSet;
-        descriptorSets[3] = StorageBuffers.DescriptorSet;
-
         Device.DeviceApi.vkCmdBindDescriptorSets(
             commandBuffer,
             bindPoint,
-            pipelineLayout.Handle,
-            firstSet,
-            descriptorSets
+            PipelineLayout.Handle,
+            0,
+            _descriptorSets,
+            dynamicOffsets
         );
     }
 
@@ -420,9 +437,9 @@ internal unsafe class VulkanBindlessDescriptorHeap : IDisposable
         }
 
         // Descriptor safety feature:
-        //	We init null descriptors for bindless index = 0 for access safety
-        //	Because shader compiler sometimes incorrectly loads descriptor outside of safety branch
-        //	Note: these are never freed, this is intentional
+        // We init null descriptors for bindless index = 0 for access safety
+        // Because shader compiler sometimes incorrectly loads descriptor outside of safety branch
+        // Note: these are never freed, this is intentional
         if (type != VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
         {
             int index = Allocate();

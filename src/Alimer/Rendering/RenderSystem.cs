@@ -91,10 +91,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         EnvironmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
 
         FrameConstantBuffer = ToDispose(new ConstantBuffer<GPUFrameData>(Device, label: "Frame Constant Buffer"));
-        FrameBindGroup = ToDispose(FrameBindGroupLayout.CreateBindGroup(
-            "Frame BindGroup",
-            new BindGroupEntry(0, FrameConstantBuffer.Handle)
-            ));
 
         // Skybox renderer
         SkyboxRenderer = ToDispose(new SkyboxRenderer(this));
@@ -134,7 +130,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public BindGroupLayout FrameBindGroupLayout { get; } // 3
     public ConstantBuffer<GPUFrameData> FrameConstantBuffer { get; }
-    public BindGroup FrameBindGroup { get; }
+    //public BindGroup FrameBindGroup { get; }
     public SkyboxRenderer SkyboxRenderer { get; }
     public ShaderSystem ShaderSystem { get; }
 
@@ -264,7 +260,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         UpdateFrame(camera, time);
 
         // Per frame + camera/view
-        passEncoder.SetBindGroup(0, FrameBindGroup);
+        passEncoder.SetConstantBuffer(0, FrameConstantBuffer.Handle);
 
         // Set 1 (per instance data)
         _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
