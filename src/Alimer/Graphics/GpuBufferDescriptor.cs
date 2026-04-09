@@ -6,9 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="GpuBuffer"/>.
+/// Structure that describes the <see cref="GPUBuffer"/>.
 /// </summary>
-public record struct GpuBufferDescriptor
+public record struct GPUBufferDescriptor
 {
     /// <summary>
     /// Gets or sets the size in bytes of the buffer.
@@ -16,9 +16,9 @@ public record struct GpuBufferDescriptor
     public required ulong Size;
 
     /// <summary>
-    /// Gets or sets the <see cref="GpuBufferUsage"/> of the buffer.
+    /// Gets or sets the <see cref="GPUBufferUsage"/> of the buffer.
     /// </summary>
-    public GpuBufferUsage Usage = GpuBufferUsage.ShaderReadWrite;
+    public GPUBufferUsage Usage = GPUBufferUsage.ShaderReadWrite;
 
     /// <summary>
     /// Gets or sets the memory type of the buffer.
@@ -31,9 +31,9 @@ public record struct GpuBufferDescriptor
     public string? Label;
 
     [SetsRequiredMembers]
-    public GpuBufferDescriptor(
+    public GPUBufferDescriptor(
         ulong size,
-        GpuBufferUsage usage = GpuBufferUsage.ShaderReadWrite,
+        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
     {

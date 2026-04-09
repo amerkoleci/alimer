@@ -30,10 +30,10 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         : base(descriptor.Label)
     {
         _device = device;
-        D3DLayout = (D3D12PipelineLayout)descriptor.Layout;
+        D3DLayout = descriptor.Layout is not null ? (D3D12PipelineLayout)descriptor.Layout : default;
 
         GraphicsPipelineStateStream stream = new();
-        stream.stream1.pRootSignature = D3DLayout.Handle;
+        stream.stream1.pRootSignature = D3DLayout is not null ? D3DLayout.Handle : device.BindlessManager.UniversalRootSignature;
 
         // ShaderStages
         // Mesh Pipeline (D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
@@ -267,7 +267,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     public override PipelineLayout Layout => D3DLayout;
 
     public ID3D12PipelineState* Handle => _handle;
-    public D3D12PipelineLayout D3DLayout { get; }
+    public D3D12PipelineLayout? D3DLayout { get; }
     public ID3D12RootSignature* RootSignature => D3DLayout.Handle;
 
     public D3D_PRIMITIVE_TOPOLOGY D3DPrimitiveTopology { get; }

@@ -177,7 +177,6 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
             return;
 
         VulkanRenderPipeline backendPipeline = (VulkanRenderPipeline)pipeline;
-        _commandBuffer.SetPipelineLayout(backendPipeline.VkLayout, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         _deviceApi.vkCmdBindPipeline(_commandBuffer.Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, backendPipeline.Handle);
         _currentPipeline = backendPipeline;
@@ -190,7 +189,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetConstantBufferCore(uint slot, GpuBuffer buffer, ulong offset)
+    protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset)
     {
         _commandBuffer.SetConstantBuffer(slot, buffer, offset);
     }
@@ -353,7 +352,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdSetDepthBounds(_commandBuffer.Handle, minBounds, maxBounds);
     }
 
-    protected override void SetVertexBufferCore(uint slot, GpuBuffer buffer, ulong offset = 0)
+    protected override void SetVertexBufferCore(uint slot, GPUBuffer buffer, ulong offset = 0)
     {
         VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
         VkBuffer vkBuffer = vulkanBuffer.Handle;
@@ -361,7 +360,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdBindVertexBuffers(_commandBuffer.Handle, slot, 1, &vkBuffer, &offset);
     }
 
-    protected override void SetIndexBufferCore(GpuBuffer buffer, IndexFormat format, ulong offset = 0)
+    protected override void SetIndexBufferCore(GPUBuffer buffer, IndexFormat format, ulong offset = 0)
     {
         VulkanBuffer vulkanBuffer = (VulkanBuffer)buffer;
         VkIndexType vkIndexType = (format == IndexFormat.Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
@@ -382,7 +381,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdDrawIndexed(_commandBuffer.Handle, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    protected override void DrawIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DrawIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -390,7 +389,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdDrawIndirect(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndirectCommand));
     }
 
-    protected override void DrawIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DrawIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 
@@ -404,7 +403,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
             );
     }
 
-    protected override void DrawIndexedIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DrawIndexedIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -412,7 +411,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdDrawIndexedIndirect(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDrawIndexedIndirectCommand));
     }
 
-    protected override void DrawIndexedIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DrawIndexedIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 
@@ -433,7 +432,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdDrawMeshTasksEXT(_commandBuffer.Handle, groupCountX, groupCountY, groupCountZ);
     }
 
-    protected override void DispatchMeshIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchMeshIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -441,7 +440,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi.vkCmdDrawMeshTasksIndirectEXT(_commandBuffer.Handle, vulkanBuffer.Handle, indirectBufferOffset, 1, (uint)sizeof(VkDispatchIndirectCommand));
     }
 
-    protected override void DispatchMeshIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DispatchMeshIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 

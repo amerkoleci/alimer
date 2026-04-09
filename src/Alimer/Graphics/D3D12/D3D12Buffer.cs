@@ -15,30 +15,30 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Buffer : GpuBuffer
+internal unsafe class D3D12Buffer : GPUBuffer
 {
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     public readonly void* pMappedData;
 
-    public D3D12Buffer(D3D12GraphicsDevice device, in GpuBufferDescriptor descriptor, void* initialData)
+    public D3D12Buffer(D3D12GraphicsDevice device, in GPUBufferDescriptor descriptor, void* initialData)
         : base(descriptor)
     {
         DXDevice = device;
 
         ulong alignedSize = descriptor.Size;
-        if ((descriptor.Usage & GpuBufferUsage.Constant) != 0)
+        if ((descriptor.Usage & GPUBufferUsage.Constant) != 0)
         {
             alignedSize = MathUtilities.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-        if ((descriptor.Usage & GpuBufferUsage.ShaderWrite) == GpuBufferUsage.ShaderWrite)
+        if ((descriptor.Usage & GPUBufferUsage.ShaderWrite) == GPUBufferUsage.ShaderWrite)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        if ((descriptor.Usage & (GpuBufferUsage.ShaderRead | GpuBufferUsage.RayTracing)) != 0)
+        if ((descriptor.Usage & (GPUBufferUsage.ShaderRead | GPUBufferUsage.RayTracing)) != 0)
         {
             resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
@@ -168,7 +168,7 @@ internal unsafe class D3D12Buffer : GpuBuffer
         }
     }
 
-    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in GpuBufferDescriptor descriptor)
+    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in GPUBufferDescriptor descriptor)
         : base(descriptor)
     {
         DXDevice = device;
@@ -184,7 +184,7 @@ internal unsafe class D3D12Buffer : GpuBuffer
     public bool ImmutableState { get; }
 
     /// <inheritdoc />
-    public override GpuAddress GpuAddress { get; }
+    public override GPUAddress GpuAddress { get; }
 
     public ulong AllocatedSize { get; }
 
@@ -201,7 +201,7 @@ internal unsafe class D3D12Buffer : GpuBuffer
         _handle.Get()->SetName(newLabel);
     }
 
-    protected override GpuBufferView CreateViewCore(in GpuBufferViewDescriptor descriptor) => new D3D12BufferView(this, descriptor);
+    protected override GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor) => new D3D12BufferView(this, descriptor);
 
     internal override void* GetMappedData() => pMappedData;
 

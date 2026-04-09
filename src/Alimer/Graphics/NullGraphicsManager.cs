@@ -13,10 +13,10 @@ internal class NullGraphicsManager : GraphicsManager
         _adapters = [new NullGraphicsAdapter(this)];
     }
 
-    public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
+    public override ReadOnlySpan<GPUAdapter> Adapters => _adapters;
 }
 
-internal class NullGraphicsAdapter : GraphicsAdapter
+internal class NullGraphicsAdapter : GPUAdapter
 {
     public NullGraphicsAdapter(GraphicsManager manager)
         : base(manager)
@@ -52,7 +52,7 @@ internal class NullGraphicsDevice : GraphicsDevice
         _limits = new();
     }
 
-    public override GraphicsAdapter Adapter { get; }
+    public override GPUAdapter Adapter { get; }
 
     public override GraphicsDeviceLimits Limits => _limits;
 
@@ -72,7 +72,7 @@ internal class NullGraphicsDevice : GraphicsDevice
     public override bool QueryVertexFormatSupport(VertexAttributeFormat format) => throw new NotImplementedException();
     public override void WaitIdle() => throw new NotImplementedException();
     protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor) => throw new NotImplementedException();
-    protected override unsafe GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData) => throw new NotImplementedException();
+    protected override unsafe GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData) => throw new NotImplementedException();
     protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor) => throw new NotImplementedException();
     protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor descriptor) => throw new NotImplementedException();
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor) => throw new NotImplementedException();

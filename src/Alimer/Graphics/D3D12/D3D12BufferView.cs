@@ -20,16 +20,16 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12BufferView : GpuBufferView
+internal unsafe class D3D12BufferView : GPUBufferView
 {
     private int _bindlessReadIndex = InvalidBindlessIndex;
     private int _bindlessReadWriteIndex = InvalidBindlessIndex;
 
-    public D3D12BufferView(D3D12Buffer buffer, in GpuBufferViewDescriptor descriptor)
+    public D3D12BufferView(D3D12Buffer buffer, in GPUBufferViewDescriptor descriptor)
         : base(buffer, descriptor)
     {
-        bool shaderRead = (buffer.Usage & GpuBufferUsage.ShaderRead) != 0;
-        bool shaderReadWrite = (buffer.Usage & GpuBufferUsage.ShaderWrite) != 0;
+        bool shaderRead = (buffer.Usage & GPUBufferUsage.ShaderRead) != 0;
+        bool shaderReadWrite = (buffer.Usage & GPUBufferUsage.ShaderWrite) != 0;
 
         if (shaderRead)
         {

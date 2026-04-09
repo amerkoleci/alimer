@@ -27,9 +27,8 @@ struct DrawData2
 };
 
 //ALIMER_PUSH_CONSTANTS(DrawData, draw);
-ConstantBuffer<DrawData> draw : register(b0, space0);
-//ConstantBuffer<DrawData2> draw2 : register(b0, space1);
-ConstantBuffer<DrawData2> draw2 : register(b0, space1);
+ConstantBuffer<DrawData> draw : register(b0);
+ConstantBuffer<DrawData2> draw2 : register(b1);
 
 [shader("vertex")]
 VertexOutput vertexMain(in VertexInput input, uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)

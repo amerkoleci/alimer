@@ -8,7 +8,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// An base graphics object that was created by <see cref="GraphicsDevice"/>.
 /// </summary>
-public abstract class GraphicsObject : GraphicsObjectBase
+public abstract class GraphicsObject : GPUBaseObject
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="GraphicsObject" /> class.

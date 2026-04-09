@@ -54,7 +54,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    public void DispatchIndirect(GpuBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    public void DispatchIndirect(GPUBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -62,62 +62,17 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    public void CopyBufferToBuffer(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer)
+    public void CopyBufferToBuffer(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer)
     {
         CopyBufferToBufferCore(sourceBuffer, destinationBuffer);
     }
 
-    public void CopyBufferToBuffer(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    public void CopyBufferToBuffer(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
         CopyBufferToBufferCore(sourceBuffer, sourceOffset, destinationBuffer, destinationOffset, size);
     }
-    public GpuAllocation Allocate<T>(ulong alignment = 0)
-        where T : unmanaged
-    {
-        return Allocate(SizeOf<T>(), alignment);
-    }
 
-    public GpuAllocation Allocate(ulong sizeInBytes, ulong alignment = 0)
-    {
-        GPULinearAllocator allocator = Device.FrameAllocator;
-        if (alignment == 0)
-            alignment = Device.LinearAllocatorAlignment;
-
-        ulong bufferSize = (allocator.Buffer is null) ? 0 : allocator.Buffer.Size;
-        ulong freeSpace = bufferSize - allocator.Offset;
-        if (sizeInBytes > freeSpace)
-        {
-            allocator.Alignment = alignment;
-
-            // Dispose old buffer
-            allocator.Buffer?.Dispose();
-
-            GpuBufferDescriptor bufferDescriptor = new()
-            {
-                Size = AlignUp((bufferSize + sizeInBytes) * 2, allocator.Alignment),
-                Usage = GpuBufferUsage.Vertex | GpuBufferUsage.Index | GpuBufferUsage.Constant | GpuBufferUsage.ShaderRead,
-                MemoryType = MemoryType.Upload,
-                Label = "Frame Allocator Buffer"
-            };
-            if (Device.Limits.RayTracingTier != RayTracingTier.NotSupported)
-            {
-                bufferDescriptor.Usage |= GpuBufferUsage.RayTracing;
-            }
-
-            allocator.Buffer = Device.CreateBuffer(in bufferDescriptor);
-            allocator.Offset = 0;
-        }
-
-        GpuAllocation allocation = new(allocator.Buffer!, allocator.Offset);
-
-        // Offset allocator
-        allocator.Offset += AlignUp(sizeInBytes, allocator.Alignment);
-
-        Debug.Assert(allocation.IsValid());
-        return allocation;
-    }
-
-    public void UploadBufferData<T>(GpuBuffer buffer, ulong offset, ReadOnlySpan<T> data)
+    public void UploadBufferData<T>(GPUBuffer buffer, ulong offset, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         if (data.Length is 0)
@@ -126,13 +81,13 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         }
 
         uint sizeInBytes = (uint)(SizeOf<T>() * data.Length);
-        GpuAllocation allocation = Allocate(sizeInBytes);
+        GPUAllocation allocation = Allocate(sizeInBytes);
         data.CopyTo(new(allocation.Data, data.Length));
 
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, sizeInBytes);
     }
 
-    public void UploadBufferData<T>(GpuBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
+    public void UploadBufferData(GPUBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
     {
         if (buffer == null || sourceData == null)
             return;
@@ -141,15 +96,15 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         if (size == 0)
             return;
 
-        GpuAllocation allocation = Allocate(size);
+        GPUAllocation allocation = Allocate(size);
         NativeMemory.Copy(sourceData, allocation.Data, (nuint)size);
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, size);
     }
 
-    protected abstract void CopyBufferToBufferCore(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer);
-    protected abstract void CopyBufferToBufferCore(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size);
+    protected abstract void CopyBufferToBufferCore(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer);
+    protected abstract void CopyBufferToBufferCore(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size);
 
     protected abstract void SetPipelineCore(ComputePipeline pipeline);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
-    protected abstract void DispatchIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DispatchIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset);
 }

@@ -22,7 +22,7 @@ public static class Constants
     public const ulong WholeSize = ulong.MaxValue;
 
     // Must match the static sampler Alimer.hlsl
-    public const int DynamicContantBufferCount = 3; // b0, b1 , b2 in shader
+    public const int DynamicContantBufferCount = 4; // b0, b1, b2, b3 in shader
     public const int StaticSamplerCount = 10; 
     public const int StaticSamplerRegisterSpaceBegin = 100;
 

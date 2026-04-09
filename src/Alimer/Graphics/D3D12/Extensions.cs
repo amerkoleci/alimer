@@ -5,7 +5,7 @@ namespace Alimer.Graphics.D3D12;
 
 internal static class Extensions
 {
-    extension(GpuBuffer buffer)
+    extension(GPUBuffer buffer)
     {
         internal D3D12Buffer ToD3D12()
         {

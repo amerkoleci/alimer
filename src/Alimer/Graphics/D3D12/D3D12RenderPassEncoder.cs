@@ -273,10 +273,16 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             return;
 
         D3D12RenderPipeline backendPipeline = (D3D12RenderPipeline)pipeline;
-        _commandBuffer.SetPipelineLayout(backendPipeline.D3DLayout);
 
         _commandBuffer.CommandList->SetPipelineState(backendPipeline.Handle);
-        _commandBuffer.CommandList->SetGraphicsRootSignature(backendPipeline.RootSignature);
+
+        // Legacy: Until we move fully bindless
+        if (backendPipeline.D3DLayout is not null)
+        {
+            _commandBuffer.SetPipelineLayout(backendPipeline.D3DLayout);
+            _commandBuffer.CommandList->SetGraphicsRootSignature(backendPipeline.RootSignature);
+        }
+
         _commandBuffer.CommandList->IASetPrimitiveTopology(backendPipeline.D3DPrimitiveTopology);
 
         _currentPipeline = backendPipeline;
@@ -289,14 +295,17 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetConstantBufferCore(uint slot, GpuBuffer buffer, ulong offset) => throw new NotImplementedException();
+    protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset)
+    {
+        _commandBuffer.SetConstantBuffer(slot, buffer, offset);
+    }
 
     /// <inheritdoc/>
     protected override void SetPushConstantsCore(void* data, uint size, uint offset)
     {
         Debug.Assert(_currentPipeline != null);
 
-        uint rootParameterIndex = _currentPipeline.D3DLayout.PushConstantsBaseIndex;
+        uint rootParameterIndex = _currentPipeline.D3DLayout.PushConstantsIndex;
         uint num32BitValuesToSet = size / sizeof(uint);
         uint destOffsetIn32BitValues = offset / sizeof(uint);
 
@@ -390,7 +399,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->OMSetDepthBounds(minBounds, maxBounds);
     }
 
-    protected override void SetVertexBufferCore(uint slot, GpuBuffer buffer, ulong offset = 0)
+    protected override void SetVertexBufferCore(uint slot, GPUBuffer buffer, ulong offset = 0)
     {
         D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
 
@@ -399,7 +408,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _vboViews[slot].StrideInBytes = 0;
     }
 
-    protected override void SetIndexBufferCore(GpuBuffer buffer, IndexFormat format, ulong offset = 0)
+    protected override void SetIndexBufferCore(GPUBuffer buffer, IndexFormat format, ulong offset = 0)
     {
         D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
 
@@ -424,7 +433,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    protected override void DrawIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DrawIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -432,7 +441,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->ExecuteIndirect(_commandBuffer.D3DDevice.DrawIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
 
-    protected override void DrawIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DrawIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 
@@ -445,7 +454,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     }
 
 
-    protected override void DrawIndexedIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DrawIndexedIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -454,7 +463,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
 
-    protected override void DrawIndexedIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DrawIndexedIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 
@@ -473,7 +482,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->DispatchMesh(groupCountX, groupCountY, groupCountZ);
     }
 
-    protected override void DispatchMeshIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchMeshIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -481,7 +490,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->ExecuteIndirect(_commandBuffer.D3DDevice.DispatchMeshIndirectCommandSignature, 1, backendBuffer.Handle, indirectBufferOffset, null, 0);
     }
 
-    protected override void DispatchMeshIndirectCountCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset, GpuBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DispatchMeshIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 

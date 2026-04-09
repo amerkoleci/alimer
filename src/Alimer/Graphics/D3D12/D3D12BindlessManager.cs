@@ -8,14 +8,22 @@ using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
 using static Alimer.Graphics.Constants;
 using static TerraFX.Interop.Windows.Windows;
 using static TerraFX.Interop.DirectX.D3D12;
+using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_ROOT_DESCRIPTOR_FLAGS;
+using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
+using static TerraFX.Interop.DirectX.DirectX;
 using System.Diagnostics;
+using TerraFX.Interop.Windows;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12BindlessManager : IDisposable
 {
+    private const uint PushConstantsShaderRegister = 999; // b999 in shader
     private readonly D3D12BindlessDescriptorHeap _resources;
     private readonly D3D12BindlessDescriptorHeap _samplers;
+    private readonly ComPtr<ID3D12RootSignature> _universalRootSignature;
 
     public D3D12BindlessManager(D3D12GraphicsDevice device)
     {
@@ -55,15 +63,99 @@ internal unsafe class D3D12BindlessManager : IDisposable
         uint nonBindlessSamplerCount = 32;
         _resources = new D3D12BindlessDescriptorHeap(this, resourceCapacity - nonBindlessResourcesCount);
         _samplers = new D3D12BindlessDescriptorHeap(this, samplersCapacity - nonBindlessSamplerCount);
+
+        // Create universal root signature with bindless descriptor tables
+        {
+            uint rootParameterCount = 1 + DynamicContantBufferCount;
+            D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[(int)rootParameterCount];
+            rootParameters[PushConstantsIndex].InitAsConstants(PushConstantsSize / 4, PushConstantsShaderRegister);
+            DynamicConstantBufferStartIndex = PushConstantsIndex + 1;
+            // Dynamic Constant buffers
+            for (uint i = 0; i < DynamicContantBufferCount; ++i)
+            {
+                rootParameters[DynamicConstantBufferStartIndex + i].InitAsConstantBufferView(i, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_ALL);
+            }
+
+            // Static Samplers
+            Span<SamplerDescriptor> staticSamplers =
+            [
+                SamplerDescriptor.PointClamp,
+                SamplerDescriptor.PointWrap,
+                SamplerDescriptor.PointMirror,
+                SamplerDescriptor.LinearClamp,
+                SamplerDescriptor.LinearWrap,
+                SamplerDescriptor.LinearMirror,
+                SamplerDescriptor.AnisotropicClamp,
+                SamplerDescriptor.AnisotropicWrap,
+                SamplerDescriptor.AnisotropicMirror,
+                SamplerDescriptor.ComparisonDepth
+            ];
+
+            D3D12_STATIC_SAMPLER_DESC* d3dStaticSamplers = stackalloc D3D12_STATIC_SAMPLER_DESC[StaticSamplerCount];
+
+            for (int i = 0; i < StaticSamplerCount; ++i)
+            {
+                uint shaderRegister = StaticSamplerRegisterSpaceBegin + (uint)i;
+                D3D12_STATIC_SAMPLER_DESC staticSamplerDesc = D3D12Utils.ToD3D12StaticSamplerDesc(
+                    shaderRegister,
+                    staticSamplers[i],
+                    D3D12_SHADER_VISIBILITY_ALL,
+                    0
+                    );
+
+                d3dStaticSamplers[i] = staticSamplerDesc;
+            }
+
+            D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+            if (UltimateBindless)
+            {
+                flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+                flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+            }
+
+            D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignatureDesc = new(
+                rootParameterCount,
+                rootParameters,
+                StaticSamplerCount,
+                d3dStaticSamplers,
+                flags
+            );
+
+            using ComPtr<ID3DBlob> rootSignatureBlob = default;
+            using ComPtr<ID3DBlob> rootSignatureErrorBlob = default;
+
+            HRESULT hr = D3DX12SerializeVersionedRootSignature(&versionedRootSignatureDesc,
+                device.DxAdapter.Features.RootSignatureHighestVersion,
+                rootSignatureBlob.GetAddressOf(),
+                rootSignatureErrorBlob.GetAddressOf());
+            if (hr.FAILED)
+            {
+                string errors = Marshal.PtrToStringAnsi((nint)rootSignatureErrorBlob.Get()->GetBufferPointer())!;
+                Log.Error($"D3D12SerializeVersionedRootSignature failed: {errors}");
+                return;
+            }
+
+            hr = device.Device->CreateRootSignature(0,
+                rootSignatureBlob.Get()->GetBufferPointer(),
+                rootSignatureBlob.Get()->GetBufferSize(),
+                __uuidof<ID3D12RootSignature>(),
+                (void**)_universalRootSignature.GetAddressOf());
+            ThrowIfFailed(hr);
+        }
     }
 
 
     public D3D12GraphicsDevice Device { get; }
     public bool UltimateBindless { get; }
 
+    public ID3D12RootSignature* UniversalRootSignature => _universalRootSignature;
+    public uint PushConstantsIndex { get; }
+    public uint DynamicConstantBufferStartIndex { get;  }
+
     public void Dispose()
     {
-        //Samplers.Dispose();
+        _universalRootSignature.Dispose();
         GC.SuppressFinalize(this);
     }
 

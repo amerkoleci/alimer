@@ -81,14 +81,14 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetConstantBufferCore(uint slot, GpuBuffer buffer, ulong offset) => throw new NotImplementedException();
+    protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset) => throw new NotImplementedException();
 
     /// <inheritdoc/>
     protected override void SetPushConstantsCore(void* data, uint size, uint offset)
     {
         Debug.Assert(_currentPipeline != null);
 
-        uint rootParameterIndex = _currentPipeline.D3DLayout.PushConstantsBaseIndex;
+        uint rootParameterIndex = _currentPipeline.D3DLayout.PushConstantsIndex;
         uint num32BitValuesToSet = size / sizeof(uint);
         uint destOffsetIn32BitValues = offset / sizeof(uint);
 
@@ -104,7 +104,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void DispatchIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -113,7 +113,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer)
+    protected override void CopyBufferToBufferCore(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer)
     {
         D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
@@ -127,7 +127,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    protected override void CopyBufferToBufferCore(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
         D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();

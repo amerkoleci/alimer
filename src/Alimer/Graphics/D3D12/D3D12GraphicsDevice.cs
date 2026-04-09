@@ -365,7 +365,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override GraphicsAdapter Adapter => _adapter;
+    public override GPUAdapter Adapter => _adapter;
 
     /// <inheritdoc />
     public override GraphicsDeviceLimits Limits => _limits;
@@ -704,7 +704,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData)
+    protected override GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData)
     {
         return new D3D12Buffer(this, descriptor, initialData);
     }

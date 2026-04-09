@@ -16,6 +16,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     private const uint MaxBarrierCount = 16;
 
     private readonly VulkanCommandQueue _queue;
+    private readonly VulkanBindlessManager _bindlessManager;
     private readonly VkInstanceApi _instanceApi;
     private readonly VkDeviceApi _deviceApi;
     private readonly VkCommandPool[] _commandPools;
@@ -29,8 +30,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     private readonly VkImageMemoryBarrier2[] _imageBarriers = new VkImageMemoryBarrier2[MaxBarrierCount];
     private readonly VkBufferMemoryBarrier2[] _bufferBarriers = new VkBufferMemoryBarrier2[MaxBarrierCount];
 
-    private VulkanPipelineLayout? _currentPipelineLayout;
-
     protected readonly DescriptorBindingTable _bindingTable = new();
     private DescriptorBindingDirtyFlags _bindingDirtyFlags;
     private int _numBoundBindGroups;
@@ -41,6 +40,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     public VulkanCommandBuffer(VulkanCommandQueue queue)
     {
         _queue = queue;
+        _bindlessManager = queue.VkDevice.BindlessManager;
         _instanceApi = queue.VkDevice.InstanceApi;
         _deviceApi = queue.VkDevice.DeviceApi;
 
@@ -109,7 +109,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
     {
         base.Reset(frameIndex);
-        _currentPipelineLayout = default;
         _memoryBarrierCount = 0;
         _bufferBarrierCount = 0;
         _imageBarrierCount = 0;
@@ -361,17 +360,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-
-    public void SetPipelineLayout(VulkanPipelineLayout newPipelineLayout, VkPipelineBindPoint bindPoint)
-    {
-        if (_currentPipelineLayout == newPipelineLayout)
-            return;
-
-        _currentPipelineLayout = newPipelineLayout;
-        //_currentPipelineLayout.AddRef();
-    }
-
-    public void SetConstantBuffer(uint slot, GpuBuffer buffer, ulong offset)
+    public void SetConstantBuffer(uint slot, GPUBuffer buffer, ulong offset)
     {
         if (_bindingTable.ConstantBuffer[slot] != buffer)
         {
@@ -396,10 +385,9 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     public void SetPushConstants(void* data, uint size, uint offset)
     {
         Debug.Assert(size <= _queue.VkDevice.VkAdapter.Properties2.properties.limits.maxPushConstantsSize);
-        Debug.Assert(_currentPipelineLayout != null);
 
         _deviceApi.vkCmdPushConstants(_commandBuffer.Handle,
-            _currentPipelineLayout.Handle,
+            _bindlessManager.PipelineLayout,
             VK_SHADER_STAGE_ALL,
             offset,
             size,
@@ -408,8 +396,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
     public void FlushBindGroups(VkPipelineBindPoint bindPoint)
     {
-        Debug.Assert(_currentPipelineLayout != null);
-
         if (_bindingDirtyFlags == DescriptorBindingDirtyFlags.None)
             return;
 
@@ -429,21 +415,21 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
             for (uint i = 0; i < _bindingTable.ConstantBuffer.Length; ++i)
             {
-                GpuBuffer? buffer = _bindingTable.ConstantBuffer[i];
+                GPUBuffer? buffer = _bindingTable.ConstantBuffer[i];
                 ref VkWriteDescriptorSet write = ref bufferInfoWrite[i];
                 write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                 write.dstBinding = VulkanRegisterShift.ContantBuffer + i;
                 write.descriptorCount = 1;
-                write.dstSet = _queue.VkDevice.BindlessManager.BindingsDescriptorSet;
+                write.dstSet = _bindlessManager.BindingsDescriptorSet;
                 write.pBufferInfo = &bufferInfo[i];
 
                 if (buffer is not null)
                 {
                     VulkanBuffer backendBuffer = buffer.ToVk();
                     bufferInfo[i].buffer = backendBuffer.Handle;
-                    bufferInfo[i].offset = 0; // i < DynamicContantBufferCount ? 0 : table.CBV_offset[i];
-                    bufferInfo[i].range = VK_WHOLE_SIZE; // std::min(dynamic_cbv_maxsize, buffer.desc.size - table.CBV_offset[i]);
+                    bufferInfo[i].offset = i < DynamicContantBufferCount ? 0 : _bindingTable.ConstantBufferOffset[i];
+                    bufferInfo[i].range = MathUtilities.AlignUp(buffer.Size - _bindingTable.ConstantBufferOffset[i], _queue.VkDevice.Limits.MinConstantBufferOffsetAlignment);
                 }
                 else
                 {
@@ -454,11 +440,11 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             _deviceApi.vkUpdateDescriptorSets(
                 (uint)_bindingTable.ConstantBuffer.Length,
                 bufferInfoWrite,
-				0, null
-			);
+                0, null
+            );
         }
 
-        _queue.VkDevice.BindlessManager.Bind(_commandBuffer, bindPoint, uniformBufferDynamicOffsets);
+        _bindlessManager.Bind(_commandBuffer, bindPoint, uniformBufferDynamicOffsets);
         _bindingDirtyFlags = DescriptorBindingDirtyFlags.None;
     }
 
@@ -497,7 +483,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GpuBuffer destinationBuffer, ulong destinationOffset)
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset)
     {
         VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
         VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();

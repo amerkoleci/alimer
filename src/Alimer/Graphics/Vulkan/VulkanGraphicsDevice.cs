@@ -1003,7 +1003,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    public override GraphicsAdapter Adapter => _adapter;
+    public override GPUAdapter Adapter => _adapter;
 
     /// <inheritdoc />
     public override GraphicsDeviceLimits Limits => _limits;
@@ -1540,7 +1540,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData)
+    protected override GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData)
     {
         return new VulkanBuffer(this, descriptor, initialData);
     }

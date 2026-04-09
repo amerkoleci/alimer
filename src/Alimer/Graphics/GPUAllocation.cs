@@ -3,9 +3,9 @@
 
 namespace Alimer.Graphics;
 
-public unsafe ref struct GpuAllocation
+public readonly unsafe ref struct GPUAllocation
 {
-    public GpuAllocation(GpuBuffer buffer, ulong offset)
+    public GPUAllocation(GPUBuffer buffer, ulong offset)
     {
         ArgumentNullException.ThrowIfNull(buffer, nameof(buffer));
 
@@ -14,7 +14,7 @@ public unsafe ref struct GpuAllocation
         Data = (byte*)buffer.GetMappedData() + offset;
     }
 
-    public GpuBuffer? Buffer { get; }
+    public GPUBuffer? Buffer { get; }
     public ulong Offset { get; }
     public void* Data { get; } 
 
@@ -23,7 +23,7 @@ public unsafe ref struct GpuAllocation
 
 public class GPULinearAllocator
 {
-    public GpuBuffer? Buffer;
+    public GPUBuffer? Buffer;
     public ulong Offset;
     public ulong Alignment;
 

@@ -3,17 +3,15 @@
 
 namespace Alimer.Graphics;
 
-public abstract class GraphicsAdapter
+/// <summary>
+/// Defines a physical GPU adapter.
+/// </summary>
+public abstract class GPUAdapter(GraphicsManager manager)
 {
-    protected GraphicsAdapter(GraphicsManager manager)
-    {
-        Manager = manager;
-    }
-
     /// <summary>
     /// Gets the manager associated with this adapter.
     /// </summary>
-    public GraphicsManager Manager { get; }
+    public GraphicsManager Manager { get; } = manager;
 
     /// <summary>
     /// Gets the name of the device.
@@ -35,23 +33,23 @@ public abstract class GraphicsAdapter
     /// </summary>
     public abstract GraphicsAdapterType Type { get; }
 
-    public GpuAdapterVendor Vendor
+    public GPUAdapterVendor Vendor
     {
         get
         {
             return VendorId switch
             {
-                (uint)KnownGPUAdapterVendor.NVIDIA => GpuAdapterVendor.NVIDIA,
-                (uint)KnownGPUAdapterVendor.AMD => GpuAdapterVendor.AMD,
-                (uint)KnownGPUAdapterVendor.INTEL => GpuAdapterVendor.Intel,
-                (uint)KnownGPUAdapterVendor.ARM => GpuAdapterVendor.ARM,
-                (uint)KnownGPUAdapterVendor.QUALCOMM => GpuAdapterVendor.Qualcomm,
-                (uint)KnownGPUAdapterVendor.IMGTECH => GpuAdapterVendor.ImgTech,
-                (uint)KnownGPUAdapterVendor.MSFT => GpuAdapterVendor.MSFT,
-                (uint)KnownGPUAdapterVendor.APPLE => GpuAdapterVendor.Apple,
-                (uint)KnownGPUAdapterVendor.MESA => GpuAdapterVendor.Mesa,
-                (uint)KnownGPUAdapterVendor.BROADCOM => GpuAdapterVendor.Broadcom,
-                _ => GpuAdapterVendor.Unknown
+                (uint)KnownGPUAdapterVendor.NVIDIA => GPUAdapterVendor.NVIDIA,
+                (uint)KnownGPUAdapterVendor.AMD => GPUAdapterVendor.AMD,
+                (uint)KnownGPUAdapterVendor.INTEL => GPUAdapterVendor.Intel,
+                (uint)KnownGPUAdapterVendor.ARM => GPUAdapterVendor.ARM,
+                (uint)KnownGPUAdapterVendor.QUALCOMM => GPUAdapterVendor.Qualcomm,
+                (uint)KnownGPUAdapterVendor.IMGTECH => GPUAdapterVendor.ImgTech,
+                (uint)KnownGPUAdapterVendor.MSFT => GPUAdapterVendor.MSFT,
+                (uint)KnownGPUAdapterVendor.APPLE => GPUAdapterVendor.Apple,
+                (uint)KnownGPUAdapterVendor.MESA => GPUAdapterVendor.Mesa,
+                (uint)KnownGPUAdapterVendor.BROADCOM => GPUAdapterVendor.Broadcom,
+                _ => GPUAdapterVendor.Unknown
             };
         }
     }

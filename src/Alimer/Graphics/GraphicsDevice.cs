@@ -8,7 +8,7 @@ using Alimer.Utilities;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsDevice : GraphicsObjectBase
+public abstract unsafe class GraphicsDevice : GPUBaseObject
 {
     protected uint _frameIndex = 0;
     protected ulong _frameCount = 0;
@@ -34,9 +34,9 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     public GraphicsBackend Backend { get; }
 
     /// <summary>
-    /// Get the <see cref="GraphicsAdapter"/> object that created this object.
+    /// Get the <see cref="GPUAdapter"/> object that created this object.
     /// </summary>
-    public abstract GraphicsAdapter Adapter { get; }
+    public abstract GPUAdapter Adapter { get; }
 
     /// <summary>
     /// Gets the maximum number of frames that can be processed concurrently.
@@ -182,60 +182,60 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
 
     }
 
-    public GpuBuffer CreateBuffer(in GpuBufferDescriptor descriptor)
+    public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor)
     {
         return CreateBuffer(descriptor, null);
     }
 
-    public GpuBuffer CreateBuffer(ulong size,
-        GpuBufferUsage usage = GpuBufferUsage.ShaderReadWrite,
+    public GPUBuffer CreateBuffer(ulong size,
+        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
     {
-        return CreateBuffer(new GpuBufferDescriptor(size, usage, memoryType, label), (void*)null);
+        return CreateBuffer(new GPUBufferDescriptor(size, usage, memoryType, label), (void*)null);
     }
 
-    public GpuBuffer CreateBuffer(in GpuBufferDescriptor descriptor, IntPtr initialData)
+    public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor, IntPtr initialData)
     {
         return CreateBuffer(descriptor, initialData.ToPointer());
     }
 
-    public GpuBuffer CreateBuffer(in GpuBufferDescriptor descriptor, void* initialData)
+    public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor, void* initialData)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Size, 4u, nameof(GpuBufferDescriptor.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Size, 4u, nameof(GPUBufferDescriptor.Size));
 
 #if VALIDATE_USAGE
-        if ((descriptor.Usage & GpuBufferUsage.Predication) != 0 &&
+        if ((descriptor.Usage & GPUBufferUsage.Predication) != 0 &&
             !QueryFeatureSupport(Feature.Predication))
         {
-            throw new GraphicsException($"Buffer cannot be created with {GpuBufferUsage.Predication} usage as adapter doesn't support it");
+            throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.Predication} usage as adapter doesn't support it");
         }
 
-        if ((descriptor.Usage & GpuBufferUsage.RayTracing) != 0 &&
+        if ((descriptor.Usage & GPUBufferUsage.RayTracing) != 0 &&
             Limits.RayTracingTier == RayTracingTier.NotSupported)
         {
-            throw new GraphicsException($"Buffer cannot be created with {GpuBufferUsage.RayTracing} usage as adapter doesn't support it");
+            throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.RayTracing} usage as adapter doesn't support it");
         }
 #endif
         // ID3D12Device::CreateCommittedResource3: A buffer cannot be created on a D3D12_HEAP_TYPE_UPLOAD or D3D12_HEAP_TYPE_READBACK heap when either D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET or D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS is used.
-        if ((descriptor.Usage & GpuBufferUsage.ShaderWrite) == GpuBufferUsage.ShaderWrite)
+        if ((descriptor.Usage & GPUBufferUsage.ShaderWrite) == GPUBufferUsage.ShaderWrite)
         {
             if (descriptor.MemoryType == MemoryType.Readback)
             {
-                throw new GraphicsException($"Buffer cannot be created with {GpuBufferUsage.ShaderWrite} usage and {MemoryType.Readback} memory type");
+                throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.ShaderWrite} usage and {MemoryType.Readback} memory type");
             }
             else if (descriptor.MemoryType == MemoryType.Upload)
             {
-                throw new GraphicsException($"Buffer cannot be created with {GpuBufferUsage.ShaderWrite} usage and {MemoryType.Upload} memory type");
+                throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.ShaderWrite} usage and {MemoryType.Upload} memory type");
             }
         }
 
         return CreateBufferCore(descriptor, initialData);
     }
 
-    public GpuBuffer CreateBuffer<T>(in GpuBufferDescriptor description, ref T initialData) where T : unmanaged
+    public GPUBuffer CreateBuffer<T>(in GPUBufferDescriptor description, ref T initialData) where T : unmanaged
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(GpuBufferDescriptor.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(GPUBufferDescriptor.Size));
 
         fixed (void* initialDataPtr = &initialData)
         {
@@ -243,8 +243,8 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         }
     }
 
-    public GpuBuffer CreateBuffer<T>(Span<T> initialData,
-        GpuBufferUsage usage = GpuBufferUsage.ShaderReadWrite,
+    public GPUBuffer CreateBuffer<T>(Span<T> initialData,
+        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
         where T : unmanaged
@@ -252,12 +252,12 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         int typeSize = sizeof(T);
         ArgumentException.ThrowIfFalse(initialData.Length > 0, nameof(initialData));
 
-        GpuBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
+        GPUBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
-    public GpuBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
-        GpuBufferUsage usage = GpuBufferUsage.ShaderReadWrite,
+    public GPUBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
+        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
         where T : unmanaged
@@ -265,7 +265,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
         int typeSize = sizeof(T);
         ArgumentException.ThrowIfFalse(initialData.Length > 0, nameof(initialData));
 
-        GpuBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
+        GPUBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
@@ -432,7 +432,7 @@ public abstract unsafe class GraphicsDevice : GraphicsObjectBase
     /// <returns></returns>
     public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
-    protected abstract GpuBuffer CreateBufferCore(in GpuBufferDescriptor descriptor, void* initialData);
+    protected abstract GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
     protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor);

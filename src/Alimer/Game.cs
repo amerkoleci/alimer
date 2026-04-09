@@ -108,9 +108,9 @@ public abstract class Game : DisposableObject, IGame
     public GraphicsManager GraphicsManager { get; }
 
     /// <summary>
-    /// Gets the <see cref="Graphics.GraphicsAdapter"/> used to create the <see cref="GraphicsDevice"/>.
+    /// Gets the <see cref="Graphics.GPUAdapter"/> used to create the <see cref="GraphicsDevice"/>.
     /// </summary>
-    public GraphicsAdapter GraphicsAdapter { get; }
+    public GPUAdapter GraphicsAdapter { get; }
 
     /// <summary>
     /// Gets the <see cref="Graphics.GraphicsDevice"/> created by the application.

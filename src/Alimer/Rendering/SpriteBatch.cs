@@ -38,15 +38,15 @@ public struct SpriteDrawData
 public class SpriteBatch : DisposableObject
 {
     private const uint MaxBatchSize = 1024;
-    private readonly GpuBuffer _spriteVertexBuffer;
-    private readonly GpuBuffer _spriteIndexBuffer;
+    private readonly GPUBuffer _spriteVertexBuffer;
+    private readonly GPUBuffer _spriteIndexBuffer;
 
     public unsafe SpriteBatch(GraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
         Device = device;
-        GpuBufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), GpuBufferUsage.ShaderRead, MemoryType.Upload)
+        GPUBufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), GPUBufferUsage.ShaderRead, MemoryType.Upload)
         {
             //spriteBufferDesc.stride = sizeof(SpriteDrawData);
             Label = "SpriteBatch Buffer"
@@ -55,7 +55,7 @@ public class SpriteBatch : DisposableObject
 
         // Create the index buffer
         ReadOnlySpan<ushort> indices = [0, 1, 2, 3, 0, 2];
-        _spriteIndexBuffer = device.CreateBuffer(indices, GpuBufferUsage.Index, label: "SpriteBatch Index Buffer");
+        _spriteIndexBuffer = device.CreateBuffer(indices, GPUBufferUsage.Index, label: "SpriteBatch Index Buffer");
     }
 
     public GraphicsDevice Device { get; }

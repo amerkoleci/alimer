@@ -38,6 +38,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     private static readonly D3D12_RESOURCE_STATES s_ValidCopyResourceStates = D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_COPY_SOURCE;
 
     private readonly D3D12CommandQueue _queue;
+    private readonly D3D12BindlessManager _bindlessManager;
     private readonly ComPtr<ID3D12CommandAllocator>[] _commandAllocators;
     private readonly ComPtr<ID3D12GraphicsCommandList6> _commandList6;
     private readonly ComPtr<ID3D12GraphicsCommandList7> _commandList7;
@@ -54,6 +55,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     private readonly D3D12_BUFFER_BARRIER[] _bufferBarriers = new D3D12_BUFFER_BARRIER[MaxBarriers];
 
     private D3D12PipelineLayout? _currentPipelineLayout;
+    protected readonly DescriptorBindingTable _bindingTable = new();
 
     private bool _bindGroupsDirty;
     private int _numBoundBindGroups;
@@ -62,6 +64,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     public D3D12CommandBuffer(D3D12CommandQueue queue)
     {
         _queue = queue;
+        _bindlessManager = queue.D3DDevice.BindlessManager;
 
         _commandAllocators = new ComPtr<ID3D12CommandAllocator>[queue.D3DDevice.MaxFramesInFlight];
         for (int i = 0; i < _commandAllocators.Length; ++i)
@@ -131,6 +134,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         Array.Clear(_textureBarriers, 0, _textureBarriers.Length);
         Array.Clear(_bufferBarriers, 0, _bufferBarriers.Length);
         Array.Clear(_boundBindGroups, 0, _boundBindGroups.Length);
+        _bindingTable.Reset();
 
         // Start the command list in a default state:
         ThrowIfFailed(_commandAllocators[frameIndex].Get()->Reset());
@@ -150,6 +154,9 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
                 _queue.D3DDevice.SamplerHeap.ShaderVisibleHeap,
             };
             _commandList6.Get()->SetDescriptorHeaps(2, descriptorHeaps);
+
+            // Set univeral root signature as well
+            _commandList6.Get()->SetGraphicsRootSignature(_bindlessManager.UniversalRootSignature);
         }
 
         if (_queue.QueueType == CommandQueueType.Graphics)
@@ -452,6 +459,27 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
     }
 
+    public void SetConstantBuffer(uint slot, GPUBuffer buffer, ulong offset)
+    {
+        if (_bindingTable.ConstantBuffer[slot] != buffer || _bindingTable.ConstantBufferOffset[slot] != offset)
+        {
+            _bindingTable.ConstantBuffer[slot] = buffer;
+            _bindingTable.ConstantBufferOffset[slot] = offset;
+
+            if (slot < DynamicContantBufferCount)
+            {
+                D3D12Buffer backendBuffer = buffer.ToD3D12();
+                _commandList6.Get()->SetGraphicsRootConstantBufferView(
+                    _bindlessManager.DynamicConstantBufferStartIndex + slot,
+                    backendBuffer.GpuAddress + offset
+                    );
+            }
+            else
+            {
+            }
+        }
+    }
+
     protected override ComputePassEncoder BeginComputePassCore(in ComputePassDescriptor descriptor)
     {
         _computePassEncoder.Begin(in descriptor);
@@ -466,6 +494,13 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public void FlushBindGroups(bool graphics)
     {
+        // Until we handle fully bindless
+        if (_currentPipelineLayout is null)
+        {
+            _bindGroupsDirty = false;
+            return;
+        }
+
         Debug.Assert(_currentPipelineLayout != null);
 
         if (!_bindGroupsDirty)
@@ -525,7 +560,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandList6.Get()->EndQuery(backendQueryHeap.Handle, backendQueryHeap.BackendQueryType, index);
     }
 
-    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GpuBuffer destinationBuffer, ulong destinationOffset)
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset)
     {
         D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();

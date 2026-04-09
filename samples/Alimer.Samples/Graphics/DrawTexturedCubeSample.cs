@@ -13,7 +13,7 @@ namespace Alimer.Samples;
 public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 {
     private readonly Mesh _cubeMesh;
-    private readonly GpuBuffer _constantBuffer;
+    private readonly GPUBuffer _constantBuffer;
     private readonly Texture _texture;
     private readonly Sampler _sampler;
 
@@ -34,7 +34,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
         _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
         //_cubeMesh = ToDispose(Mesh.CreateSphere(5.0f));
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GpuBufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GPUBufferUsage.Constant, MemoryType.Upload));
 
         ReadOnlySpan<uint> pixels = [
             0xFFFFFFFF,

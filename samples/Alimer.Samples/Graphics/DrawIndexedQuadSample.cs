@@ -10,9 +10,8 @@ namespace Alimer.Samples;
 [Description("Graphics - DrawIndexed Quad")]
 public sealed class DrawIndexedQuadSample : GraphicsSampleBase
 {
-    private GpuBuffer _vertexBuffer;
-    private GpuBuffer _indexBuffer;
-    private PipelineLayout _pipelineLayout;
+    private GPUBuffer _vertexBuffer;
+    private GPUBuffer _indexBuffer;
     private RenderPipeline _renderPipeline;
 
     public DrawIndexedQuadSample(IServiceRegistry services, Window mainWindow)
@@ -24,16 +23,10 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             new(new Vector3(0.5f, -0.5f, 0.5f), Colors.Blue),
             new(new Vector3(-0.5f, -0.5f, 0.5f), Colors.Yellow),
         ];
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GpuBufferUsage.Vertex));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GPUBufferUsage.Vertex));
 
         ReadOnlySpan<ushort> indexData = [0, 2, 1, 0, 3, 2];
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, GpuBufferUsage.Index));
-
-        PipelineLayoutDescriptor pipelineLayoutDescription = new()
-        {
-            Label = "PipelineLayout"
-        };
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
+        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, GPUBufferUsage.Index));
 
         using ShaderModule vertexShader = CompileShaderModule("Triangle", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("Triangle", ShaderStages.Fragment, "fragmentMain");
@@ -44,7 +37,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,

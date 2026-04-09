@@ -17,7 +17,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
         : base(descriptor.Label)
     {
         _device = device;
-        VkLayout = (VulkanPipelineLayout)descriptor.Layout;
+        VkLayout = descriptor.Layout is not null ? (VulkanPipelineLayout)descriptor.Layout : default;
 
         // ShaderStages
         uint shaderStageCount = 0;
@@ -287,7 +287,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
             pDepthStencilState = (descriptor.DepthStencilFormat == PixelFormat.Undefined) ? null : &depthStencilState,
             pColorBlendState = &blendState,
             pDynamicState = &dynamicState,
-            layout = VkLayout.Handle,
+            layout = VkLayout is null ? _device.BindlessManager.PipelineLayout.Handle : VkLayout.Handle,
             basePipelineHandle = VkPipeline.Null,
             basePipelineIndex = 0
         };
@@ -316,7 +316,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
     public override PipelineLayout Layout => VkLayout;
 
     public VkPipeline Handle => _handle;
-    public VulkanPipelineLayout VkLayout { get; }
+    public VulkanPipelineLayout? VkLayout { get; }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)

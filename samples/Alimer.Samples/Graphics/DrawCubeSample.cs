@@ -13,16 +13,8 @@ namespace Alimer.Samples;
 public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 {
     private readonly Mesh _cubeMesh;
-    private readonly GpuBuffer _constantBuffer0;
-    private readonly GpuBuffer _constantBuffer1;
+    private readonly GPUBuffer _constantBuffer0;
 
-    private readonly BindGroupLayout _bindGroupLayout0;
-    private readonly BindGroup _bindGroup0;
-
-    private readonly BindGroupLayout _bindGroupLayout1;
-    private readonly BindGroup _bindGroup1;
-
-    private readonly PipelineLayout _pipelineLayout;
     private readonly RenderPipeline _renderPipeline;
 
     private Stopwatch _clock;
@@ -32,26 +24,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
-        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GpuBufferUsage.Constant, MemoryType.Upload));
-        _constantBuffer1 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Color), GpuBufferUsage.Constant, MemoryType.Upload));
-
-        _bindGroupLayout0 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
-            new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Vertex)
-            ));
-
-        _bindGroup0 = ToDispose(_bindGroupLayout0.CreateBindGroup(
-            new BindGroupEntry(0, _constantBuffer0)
-            ));
-
-        _bindGroupLayout1 = ToDispose(GraphicsDevice.CreateBindGroupLayout(
-            new BindGroupLayoutEntry(new BufferBindingLayout(), 0, ShaderStages.Fragment)
-            ));
-
-        _bindGroup1 = ToDispose(_bindGroupLayout1.CreateBindGroup(
-            new BindGroupEntry(0, _constantBuffer1)
-            ));
-
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout0, _bindGroupLayout1));
+        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GPUBufferUsage.Constant, MemoryType.Upload));
 
         using ShaderModule vertexShader = CompileShaderModule("Cube", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("Cube", ShaderStages.Fragment, "fragmentMain");
@@ -61,7 +34,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,
@@ -84,7 +57,6 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _constantBuffer0.SetData(worldViewProjection);
 
         Color testColor = new(0.0f, 1.0f, 1.0f, 1.0f);
-        _constantBuffer1.SetData(testColor);
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!.DefaultView!);
@@ -95,8 +67,9 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
         renderPassEncoder.SetPipeline(_renderPipeline!);
-        renderPassEncoder.SetBindGroup(0, _bindGroup0);
-        renderPassEncoder.SetBindGroup(1, _bindGroup1);
+        //renderPassEncoder.SetConstantBuffer(0, _constantBuffer0);
+        renderPassEncoder.SetDynamicConstantBuffer(0, worldViewProjection);
+        renderPassEncoder.SetDynamicConstantBuffer(1, testColor);
 
         _cubeMesh.Draw(renderPassEncoder);
         renderPassEncoder.EndEncoding();

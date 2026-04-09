@@ -79,7 +79,7 @@ public abstract class CommandBuffer
         EndQueryCore(queryHeap, index);
     }
 
-    public void ResolveQuery(QueryHeap queryHeap, uint index, uint count, GpuBuffer destinationBuffer, ulong destinationOffset)
+    public void ResolveQuery(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(queryHeap.Count, index);
 
@@ -97,7 +97,7 @@ public abstract class CommandBuffer
     protected abstract void BeginQueryCore(QueryHeap queryHeap, uint index);
     protected abstract void EndQueryCore(QueryHeap queryHeap, uint index);
 
-    protected abstract void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GpuBuffer destinationBuffer, ulong destinationOffset);
+    protected abstract void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset);
     protected abstract void ResetQueryCore(QueryHeap queryHeap, uint index, uint count);
     #endregion
 

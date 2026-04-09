@@ -24,8 +24,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     private readonly UnlitMaterial _defaultMaterial = new();
 
     private uint _lightCapacity;
-    private GpuBuffer? _lightBuffer;
-    private GpuBufferView? _lightBufferView;
+    private GPUBuffer? _lightBuffer;
+    private GPUBufferView? _lightBufferView;
 
     public unsafe RenderSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
@@ -90,8 +90,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         EnvironmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
 
-        FrameConstantBuffer = ToDispose(new ConstantBuffer<GPUFrameData>(Device, label: "Frame Constant Buffer"));
-
         // Skybox renderer
         SkyboxRenderer = ToDispose(new SkyboxRenderer(this));
 
@@ -128,9 +126,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
 
-    public BindGroupLayout FrameBindGroupLayout { get; } // 3
-    public ConstantBuffer<GPUFrameData> FrameConstantBuffer { get; }
-    //public BindGroup FrameBindGroup { get; }
+    public BindGroupLayout FrameBindGroupLayout { get; } 
     public SkyboxRenderer SkyboxRenderer { get; }
     public ShaderSystem ShaderSystem { get; }
 
@@ -257,10 +253,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private void RenderCamera(RenderPassEncoder passEncoder, CameraComponent camera, GameTime time)
     {
-        UpdateFrame(camera, time);
-
-        // Per frame + camera/view
-        passEncoder.SetConstantBuffer(0, FrameConstantBuffer.Handle);
+        UpdateFrame(passEncoder, camera, time);
 
         // Set 1 (per instance data)
         _renderBatch.UpdateInstanceBuffer(Device.FrameIndex);
@@ -335,7 +328,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         Resize(MainWindow.SizeInPixels);
     }
 
-    private void UpdateFrame(CameraComponent camera, GameTime gameTime)
+    private void UpdateFrame(RenderPassEncoder passEncoder, CameraComponent camera, GameTime gameTime)
     {
         LightSystem? lightSystem = EntityManager?.Systems.Get<LightSystem>();
 
@@ -348,7 +341,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         _ = Matrix4x4.Invert(frameData.viewProjectionMatrix, out frameData.inverseViewMatrix);
         _ = Matrix4x4.Invert(frameData.projectionMatrix, out frameData.inverseProjectionMatrix);
 
-        // https://github.com/Aminator/DirectX12GameEngine/blob/master/DirectX12GameEngine.Rendering/Materials/MaterialAttributes.cs
         frameData.cameraPosition = camera.Entity!.Transform.Position;
         frameData.ambientLight = new Vector3(0.05f, 0.05f, 0.05f);
         frameData.activeLightCount = 0;
@@ -360,7 +352,10 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         frameData.elapsedTime = (float)gameTime.Elapsed.TotalSeconds;
         frameData.totalTime = (float)gameTime.Total.TotalSeconds;
 
-        FrameConstantBuffer.SetData(frameData);
+        // Per frame + camera/view
+        Matrix4x4 test = Matrix4x4.Identity;
+        //passEncoder.SetDynamicConstantBuffer(0, test);
+        passEncoder.SetDynamicConstantBuffer(0, frameData);
     }
 
     private unsafe void UpdateLights()
@@ -378,8 +373,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             _lightBuffer?.Dispose();
 
             _lightCapacity = Math.Max(MinLightCapacity, lightCount);
-            GpuBufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, GpuBufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
-            GpuBufferViewDescriptor viewDescriptor = GpuBufferViewDescriptor.CreateStructured(0, _lightCapacity, GpuLightStructureSizeInBytes);
+            GPUBufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, GPUBufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
+            GPUBufferViewDescriptor viewDescriptor = GPUBufferViewDescriptor.CreateStructured(0, _lightCapacity, GpuLightStructureSizeInBytes);
 
             _lightBuffer = Device.CreateBuffer(in descriptor);
             _lightBufferView = _lightBuffer.CreateView(viewDescriptor);

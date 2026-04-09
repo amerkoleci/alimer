@@ -65,7 +65,6 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
             return;
 
         VulkanComputePipeline backendPipeline = (VulkanComputePipeline)pipeline;
-        _commandBuffer.SetPipelineLayout(backendPipeline.VkLayout, VK_PIPELINE_BIND_POINT_COMPUTE);
 
         _deviceApi.vkCmdBindPipeline(_commandBuffer.Handle, VK_PIPELINE_BIND_POINT_COMPUTE, backendPipeline.Handle);
         _currentPipeline = backendPipeline;
@@ -78,7 +77,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetConstantBufferCore(uint slot, GpuBuffer buffer, ulong offset)
+    protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset)
     {
         _commandBuffer.SetConstantBuffer(slot, buffer, offset);
     }
@@ -103,7 +102,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void DispatchIndirectCore(GpuBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -112,7 +111,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GpuBuffer sourceBuffer, GpuBuffer destinationBuffer)
+    protected override void CopyBufferToBufferCore(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer)
     {
         VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();
         VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
@@ -132,7 +131,7 @@ internal unsafe class VulkanComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GpuBuffer sourceBuffer, ulong sourceOffset, GpuBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    protected override void CopyBufferToBufferCore(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
 
         VulkanBuffer backendSrcBuffer = sourceBuffer.ToVk();

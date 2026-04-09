@@ -7,13 +7,13 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanBufferView : GpuBufferView
+internal unsafe class VulkanBufferView : GPUBufferView
 {
     private int _bindlessReadIndex = InvalidBindlessIndex;
     private int _bindlessReadWriteIndex = InvalidBindlessIndex;
     private VkBufferView _handle = VkBufferView.Null;
 
-    public VulkanBufferView(VulkanBuffer buffer, in GpuBufferViewDescriptor descriptor)
+    public VulkanBufferView(VulkanBuffer buffer, in GPUBufferViewDescriptor descriptor)
         : base(buffer, descriptor)
     {
         ulong offsetInBytes = descriptor.ElementOffset * descriptor.ElementSize;
@@ -45,8 +45,8 @@ internal unsafe class VulkanBufferView : GpuBufferView
                 return;
             }
 
-            bool shaderRead = (buffer.Usage & GpuBufferUsage.ShaderRead) != 0;
-            bool shaderReadWrite = (buffer.Usage & GpuBufferUsage.ShaderWrite) != 0;
+            bool shaderRead = (buffer.Usage & GPUBufferUsage.ShaderRead) != 0;
+            bool shaderReadWrite = (buffer.Usage & GPUBufferUsage.ShaderWrite) != 0;
 
             if (shaderRead)
             {

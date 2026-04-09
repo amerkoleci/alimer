@@ -6,7 +6,7 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsManager : GraphicsObjectBase
+public abstract unsafe class GraphicsManager : GPUBaseObject
 {
     protected GraphicsManager(in GraphicsManagerOptions options)
         : base(options.Label)
@@ -20,9 +20,9 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     public GraphicsValidationMode ValidationMode { get; }
 
     /// <summary>
-    /// Gets the list of available <see cref="GraphicsAdapter"/>.
+    /// Gets the list of available <see cref="GPUAdapter"/>.
     /// </summary>
-    public abstract ReadOnlySpan<GraphicsAdapter> Adapters { get; }
+    public abstract ReadOnlySpan<GPUAdapter> Adapters { get; }
 
     public static bool IsBackendSupport(GraphicsBackend backendType)
     {
@@ -149,11 +149,11 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     /// </summary>
     /// <param name="adapter"></param>
     /// <returns><c>true</c> if an adapter was found; otherwise <c>false</c></returns>
-    public bool TryGetBestAdapter([NotNullWhen(true)] out GraphicsAdapter? adapter)
+    public bool TryGetBestAdapter([NotNullWhen(true)] out GPUAdapter? adapter)
     {
         adapter = null;
         int kind = (int)GraphicsAdapterType.Other + 1;
-        foreach (GraphicsAdapter adapter1 in Adapters)
+        foreach (GPUAdapter adapter1 in Adapters)
         {
             if ((int)adapter1.Type < kind)
             {
@@ -172,9 +172,9 @@ public abstract unsafe class GraphicsManager : GraphicsObjectBase
     /// </summary>
     /// <returns>The best adapter</returns>
     /// <exception cref="GraphicsException">If no adapter were found.</exception>
-    public GraphicsAdapter GetBestAdapter()
+    public GPUAdapter GetBestAdapter()
     {
-        if (TryGetBestAdapter(out GraphicsAdapter? adapter))
+        if (TryGetBestAdapter(out GPUAdapter? adapter))
         {
             return adapter!;
         }

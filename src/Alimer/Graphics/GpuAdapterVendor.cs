@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public enum GpuAdapterVendor : uint
+public enum GPUAdapterVendor : uint
 {
     /// <summary>
     /// Adapter vendor is unknown

@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Describes the CPU access for <see cref="GpuBuffer"/> and <see cref="Texture"/>.
+/// Describes the CPU access for <see cref="GPUBuffer"/> and <see cref="Texture"/>.
 /// </summary>
 public enum MemoryType
 {

@@ -15,7 +15,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 {
     private readonly uint _indexCount;
     private readonly Mesh _mesh;
-    private readonly GpuBuffer _constantBuffer;
+    private readonly GPUBuffer _constantBuffer;
     private readonly Texture _texture;
     private readonly Sampler _sampler;
 
@@ -51,7 +51,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
         _mesh = ToDispose(meshAsset.Mesh);
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GpuBufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GPUBufferUsage.Constant, MemoryType.Upload));
 
         _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
 

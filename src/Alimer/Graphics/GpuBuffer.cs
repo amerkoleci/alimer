@@ -8,9 +8,9 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a GPU buffer.
 /// </summary>
-public abstract unsafe class GpuBuffer : GraphicsObject, IGraphicsBindableResource
+public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResource
 {
-    protected GpuBuffer(in GpuBufferDescriptor descriptor)
+    protected GPUBuffer(in GPUBufferDescriptor descriptor)
         : base(descriptor.Label)
     {
         Size = descriptor.Size;
@@ -26,7 +26,7 @@ public abstract unsafe class GpuBuffer : GraphicsObject, IGraphicsBindableResour
     /// <summary>
     /// A bitmask indicating this buffer usage.
     /// </summary>
-    public GpuBufferUsage Usage { get; }
+    public GPUBufferUsage Usage { get; }
 
     /// <summary>
     /// Gets the memory type of this buffer.
@@ -36,12 +36,12 @@ public abstract unsafe class GpuBuffer : GraphicsObject, IGraphicsBindableResour
     /// <summary>
     /// Gets the GPU virtual address associated with this resource.
     /// </summary>
-    public abstract GpuAddress GpuAddress { get; }
+    public abstract GPUAddress GpuAddress { get; }
 
     internal BufferStates CurrentState { get; set; }
     internal abstract void* GetMappedData();
 
-    public GpuBufferView CreateView(in GpuBufferViewDescriptor descriptor)
+    public GPUBufferView CreateView(in GPUBufferViewDescriptor descriptor)
     {
         return CreateViewCore(in descriptor);
     }
@@ -88,7 +88,7 @@ public abstract unsafe class GpuBuffer : GraphicsObject, IGraphicsBindableResour
         }
     }
 
-    protected abstract GpuBufferView CreateViewCore(in GpuBufferViewDescriptor descriptor);
+    protected abstract GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor);
     protected abstract void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes);
     protected abstract void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes);
 }

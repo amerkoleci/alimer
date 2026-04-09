@@ -9,7 +9,7 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
+internal unsafe class VulkanGraphicsAdapter : GPUAdapter
 {
     // Features
     public readonly VkVersion ApiVersion;

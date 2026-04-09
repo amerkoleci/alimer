@@ -10,8 +10,7 @@ namespace Alimer.Samples;
 [Description("Graphics - Draw Triangle")]
 public sealed class DrawTriangleSample : GraphicsSampleBase
 {
-    private GpuBuffer _vertexBuffer;
-    private PipelineLayout _pipelineLayout;
+    private GPUBuffer _vertexBuffer;
     private RenderPipeline _renderPipeline;
 
     public DrawTriangleSample(IServiceRegistry services, Window mainWindow)
@@ -22,10 +21,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
             new(new Vector3(-0.5f, -0.5f, 0.0f), Colors.Lime),
             new(new Vector3(0.5f, -0.5f, 0.0f), Colors.Blue),
         ];
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GpuBufferUsage.Vertex));
-
-        PipelineLayoutDescriptor pipelineLayoutDescription = new();
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(pipelineLayoutDescription));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GPUBufferUsage.Vertex));
 
         using ShaderModule vertexShader = CompileShaderModule("Triangle", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("Triangle", ShaderStages.Fragment, "fragmentMain");
@@ -35,7 +31,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,

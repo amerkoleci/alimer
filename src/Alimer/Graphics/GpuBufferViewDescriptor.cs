@@ -6,9 +6,9 @@ using static Alimer.Graphics.Constants;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="GpuBufferView"/>.
+/// Structure that describes the <see cref="GPUBufferView"/>.
 /// </summary>
-public record struct GpuBufferViewDescriptor
+public record struct GPUBufferViewDescriptor
 {
     /// <summary>
     /// Gets or sets the number of elements from the start of the buffer to offset.
@@ -31,9 +31,9 @@ public record struct GpuBufferViewDescriptor
     public PixelFormat ElementFormat = PixelFormat.Undefined;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="GpuBufferViewDescriptor"/> struct with default values.
+    /// Initializes a new instance of the <see cref="GPUBufferViewDescriptor"/> struct with default values.
     /// </summary>
-    public GpuBufferViewDescriptor()
+    public GPUBufferViewDescriptor()
     {
     }
 
@@ -43,9 +43,9 @@ public record struct GpuBufferViewDescriptor
     /// <param name="byteOffset">The offset in bytes</param>
     /// <param name="byteCount">The number of elements in the view.</param>
     /// <returns></returns>
-    public static GpuBufferViewDescriptor CreateRaw(uint byteOffset, uint byteCount)
+    public static GPUBufferViewDescriptor CreateRaw(uint byteOffset, uint byteCount)
     {
-        return new GpuBufferViewDescriptor()
+        return new GPUBufferViewDescriptor()
         {
             ElementOffset = byteOffset >> 2,
             ElementCount = byteCount >> 2,
@@ -61,9 +61,9 @@ public record struct GpuBufferViewDescriptor
     /// <param name="elementCount">The number of elements in the view.</param>
     /// <param name="elementSize">The size in bytes of each element.</param>
     /// <returns></returns>
-    public static GpuBufferViewDescriptor CreateStructured(uint elementOffset, uint elementCount, uint elementSize)
+    public static GPUBufferViewDescriptor CreateStructured(uint elementOffset, uint elementCount, uint elementSize)
     {
-        return new GpuBufferViewDescriptor()
+        return new GPUBufferViewDescriptor()
         {
             ElementOffset = elementOffset,
             ElementCount = elementCount,
@@ -79,9 +79,9 @@ public record struct GpuBufferViewDescriptor
     /// <param name="elementCount">The number of elements in the view</param>
     /// <param name="elementFormat">The <see cref="PixelFormat"/> of each element</param>
     /// <returns></returns>
-    public static GpuBufferViewDescriptor CreateTyped(uint elementOffset, uint elementCount, PixelFormat elementFormat)
+    public static GPUBufferViewDescriptor CreateTyped(uint elementOffset, uint elementCount, PixelFormat elementFormat)
     {
-        return new GpuBufferViewDescriptor()
+        return new GPUBufferViewDescriptor()
         {
             ElementOffset = elementOffset,
             ElementCount = elementCount,

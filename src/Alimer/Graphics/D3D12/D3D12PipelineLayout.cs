@@ -29,7 +29,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     {
         _device = device;
 
-        PushConstantsBaseIndex = ~0u;
+        PushConstantsIndex = ~0u;
 
         // TODO: Handle dynamic constant buffers
         int setLayoutCount = descriptor.BindGroupLayouts.Length;
@@ -104,7 +104,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
             }
         }
 
-        PushConstantsBaseIndex = rootParameterIndex;
+        PushConstantsIndex = rootParameterIndex;
         rootParameters[rootParameterIndex++].InitAsConstants(PushConstantsSize / 4, PushConstantsShaderRegister);
 
         // Static Samplers
@@ -189,7 +189,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
 
     public ID3D12RootSignature* Handle => _handle;
 
-    public uint PushConstantsBaseIndex { get; }
+    public uint PushConstantsIndex { get; }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
