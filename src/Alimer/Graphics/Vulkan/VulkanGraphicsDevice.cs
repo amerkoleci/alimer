@@ -15,14 +15,14 @@ using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
+internal unsafe partial class VulkanGraphicsDevice : GPUDevice
 {
     private readonly VulkanGraphicsAdapter _adapter;
     private readonly uint[] _queueFamilyIndices;
     private readonly uint[] _queueIndices;
     //private readonly uint[] _queueCounts;
     private readonly uint _timestampValidBits = 0;
-    private readonly GraphicsDeviceLimits _limits;
+    private readonly GPUDeviceLimits _limits;
 
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
     private readonly VkDevice _handle = VkDevice.Null;
@@ -647,20 +647,21 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             // Least Common Multiple stride across all formats: 1, 2, 4, 8, 16 // TODO: rarely used "12" fucks up the beauty of power-of-2 numbers, such formats must be avoided!
             const uint leastCommonMultipleStrideAccrossAllFormats = 16;
 
-            _limits = new GraphicsDeviceLimits
+            _limits = new GPUDeviceLimits
             {
                 MaxTextureDimension1D = vkLimits.maxImageDimension1D,
                 MaxTextureDimension2D = vkLimits.maxImageDimension2D,
                 MaxTextureDimension3D = vkLimits.maxImageDimension3D,
                 MaxTextureDimensionCube = vkLimits.maxImageDimensionCube,
                 MaxTextureArrayLayers = vkLimits.maxImageArrayLayers,
-                MinConstantBufferOffsetAlignment = (uint)vkLimits.minUniformBufferOffsetAlignment,
+                MinConstantBufferOffsetAlignment = vkLimits.minUniformBufferOffsetAlignment,
                 MaxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange,
-                MinStorageBufferOffsetAlignment = (uint)properties2.properties.limits.minStorageBufferOffsetAlignment,
+                MinStorageBufferOffsetAlignment = properties2.properties.limits.minStorageBufferOffsetAlignment,
                 MaxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange,
 
-                TextureRowPitchAlignment = (uint)vkLimits.optimalBufferCopyRowPitchAlignment,
+                TextureRowPitchAlignment = vkLimits.optimalBufferCopyRowPitchAlignment,
                 TextureDepthPitchAlignment = MathUtilities.LeastCommonMultiple((uint)vkLimits.optimalBufferCopyOffsetAlignment, leastCommonMultipleStrideAccrossAllFormats),
+                MinLinearAllocatorOffsetAlignment = Math.Max(vkLimits.minUniformBufferOffsetAlignment, properties2.properties.limits.minStorageBufferOffsetAlignment),
 
                 MaxBufferSize = _adapter.Properties13.maxBufferSize,
                 MaxColorAttachments = properties2.properties.limits.maxColorAttachments,
@@ -752,7 +753,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 //if (OpacityMicromapFeatures.micromap)
                 //    m_Desc.tiers.rayTracing++;
 
-                _limits.RayTracing = new GraphicsDeviceRayTracingLimits()
+                _limits.RayTracing = new RayTracingLimits()
                 {
                     ShaderGroupIdentifierSize = adapter.RayTracingPipelineProperties.shaderGroupHandleSize,
                     ShaderTableAlignment = adapter.RayTracingPipelineProperties.shaderGroupBaseAlignment,
@@ -1006,7 +1007,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public override GPUAdapter Adapter => _adapter;
 
     /// <inheritdoc />
-    public override GraphicsDeviceLimits Limits => _limits;
+    public override GPUDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }

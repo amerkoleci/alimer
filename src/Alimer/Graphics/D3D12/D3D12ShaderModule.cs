@@ -22,7 +22,7 @@ internal sealed unsafe class D3D12ShaderModule : ShaderModule
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GPUDevice Device => _device;
 
     public ref readonly D3D12_SHADER_BYTECODE ByteCode => ref _byteCode;
 

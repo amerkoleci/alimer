@@ -593,19 +593,27 @@ internal unsafe static partial class AlimerApi
 
     #region Font
     [LibraryImport(LibraryName)]
-    public static partial nint Alimer_FontCreateFromMemory(void* data, nuint size);
+    public static partial nint alimerFontCreateFromMemory(void* data, nuint size);
 
     [LibraryImport(LibraryName)]
-    public static partial void Alimer_FontDestroy(nint handle);
+    public static partial void alimerFontDestroy(nint handle);
 
     [LibraryImport(LibraryName)]
-    public static partial void Alimer_FontGetMetrics(nint handle, out int ascent, out int descent, out int linegap);
+    public static partial void alimerFontGetMetrics(nint handle, out int ascent, out int descent, out int linegap);
 
     [LibraryImport(LibraryName)]
-    public static partial int Alimer_FontGetGlyphIndex(nint handle, int codepoint);
+    public static partial int alimerFontGetGlyphIndex(nint handle, int codepoint);
     [LibraryImport(LibraryName)]
-    public static partial float Alimer_FontGetScale(nint handle, float size);
+    public static partial float alimerFontGetScale(nint handle, float size);
+
     [LibraryImport(LibraryName)]
-    public static partial float Alimer_FontGetKerning(nint handle, int glyph1, int glyph2, float scale);
+    public static partial float alimerFontGetScalePixelHeight(nint font, float height);
+    [LibraryImport(LibraryName)]
+    public static partial float alimerFontGetKerning(nint font, int glyph1, int glyph2, float scale);
+
+    [LibraryImport(LibraryName)]
+    public static partial void alimerFontGetCharacter(nint font, int glyph, float scale, out int width, out int height, out float advance, out float offsetX, out float offsetY, out int visible);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerFontGetPixels(nint font, void* dest, int glyph, int width, int height, float scale);
     #endregion
 }

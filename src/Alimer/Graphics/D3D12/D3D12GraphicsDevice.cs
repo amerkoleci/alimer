@@ -33,14 +33,14 @@ using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.Windows;
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12GraphicsDevice : GraphicsDevice
+internal unsafe class D3D12GraphicsDevice : GPUDevice
 {
     private readonly D3D12GraphicsAdapter _adapter;
     private readonly ComPtr<ID3D12Device5> _device = default;
     private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
     private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
-    private readonly GraphicsDeviceLimits _limits;
+    private readonly GPUDeviceLimits _limits;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
@@ -276,7 +276,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
         // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
 
-        _limits = new GraphicsDeviceLimits
+        _limits = new GPUDeviceLimits
         {
             MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
             MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
@@ -293,6 +293,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             TextureRowPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
             TextureDepthPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+            MinLinearAllocatorOffsetAlignment = Math.Max((uint)D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT),
 
             MaxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul,
 
@@ -342,7 +343,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         _limits.RayTracingTier = _adapter.Features.RaytracingTier.FromD3D12();
         if (_adapter.Features.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
         {
-            _limits.RayTracing = new GraphicsDeviceRayTracingLimits()
+            _limits.RayTracing = new RayTracingLimits()
             {
                 ShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT,
                 ShaderTableAlignment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT,
@@ -368,7 +369,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public override GPUAdapter Adapter => _adapter;
 
     /// <inheritdoc />
-    public override GraphicsDeviceLimits Limits => _limits;
+    public override GPUDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }

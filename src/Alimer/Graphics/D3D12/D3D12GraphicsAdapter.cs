@@ -76,7 +76,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GPUAdapter, IDisposable
     /// <inheritdoc />
     public override GraphicsAdapterType Type { get; }
 
-    protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new D3D12GraphicsDevice(this, description);
+    protected override GPUDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new D3D12GraphicsDevice(this, description);
 
     public void Dispose()
     {

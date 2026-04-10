@@ -47,7 +47,7 @@ internal unsafe class VulkanSampler : Sampler
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GPUDevice Device => _device;
     public VkSampler Handle { get; }
     public override int BindlessIndex => _bindlessIndex;
 

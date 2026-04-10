@@ -74,7 +74,7 @@ internal unsafe class D3D12QueryHeap : QueryHeap
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GPUDevice Device => _device;
 
     public ID3D12QueryHeap* Handle => _handle;
 

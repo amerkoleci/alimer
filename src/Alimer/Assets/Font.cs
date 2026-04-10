@@ -2,24 +2,36 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using Alimer.Numerics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Assets;
 
-public sealed unsafe class Font : Asset
+public sealed class Font : Asset
 {
+    public struct Glyph
+    {
+        public int GlyphIndex;
+        public int Width;
+        public int Height;
+        public float Advance;
+        public Vector2 Offset;
+        public float Scale;
+        public bool Visible;
+    }
+
     private readonly nint _handle;
 
-    private readonly Dictionary<int, int> _codepointToGlyphLookup = new();
+    private readonly Dictionary<int, int> _codepointToGlyphLookup = [];
 
     private Font(nint handle)
     {
-        Debug.Assert(handle != 0);
+        Debug.Assert(handle != null);
 
         _handle = handle;
 
         // Get font properties
-        Alimer_FontGetMetrics(_handle, out int ascent, out int descent, out int linegap);
+        alimerFontGetMetrics(_handle, out int ascent, out int descent, out int linegap);
         Ascent = ascent;
         Descent = descent;
         LineGap = linegap;
@@ -28,7 +40,7 @@ public sealed unsafe class Font : Asset
     /// <inheritdoc/>
     protected override void Destroy()
     {
-        Alimer_FontDestroy(_handle);
+        alimerFontDestroy(_handle);
     }
 
     public int Ascent { get; }
@@ -37,24 +49,24 @@ public sealed unsafe class Font : Asset
     public int Height => Ascent - Descent;
     public int LineHeight => Ascent - Descent + LineGap; // Leading
 
-    public static Font FromFile(string filePath, bool srgb = true)
+    public static Font FromFile(string filePath)
     {
         using FileStream stream = new(filePath, FileMode.Open);
-        return FromStream(stream, srgb);
+        return FromStream(stream);
     }
 
-    public static Font FromStream(Stream stream, bool srgb = true)
+    public static Font FromStream(Stream stream)
     {
         Span<byte> data = stream.Length < 2048 ? stackalloc byte[(int)stream.Length] : new byte[(int)stream.Length];
         stream.ReadExactly(data);
-        return FromMemory(data, srgb);
+        return FromMemory(data);
     }
 
-    public static Font FromMemory(Span<byte> data, bool srgb = true)
+    public static unsafe Font FromMemory(Span<byte> data)
     {
         fixed (byte* dataPtr = data)
         {
-            nint handle = Alimer_FontCreateFromMemory(dataPtr, (uint)data.Length);
+            nint handle = alimerFontCreateFromMemory(dataPtr, (uint)data.Length);
             if (handle == 0)
                 throw new Exception("Unable to parse Font Data");
 
@@ -69,7 +81,7 @@ public sealed unsafe class Font : Asset
     {
         if (!_codepointToGlyphLookup.TryGetValue(codepoint, out int glyphIndex))
         {
-            _codepointToGlyphLookup[codepoint] = glyphIndex = Alimer_FontGetGlyphIndex(_handle, codepoint);
+            _codepointToGlyphLookup[codepoint] = glyphIndex = alimerFontGetGlyphIndex(_handle, codepoint);
         }
 
         return glyphIndex;
@@ -90,7 +102,8 @@ public sealed unsafe class Font : Asset
     {
         Debug.Assert(_handle != 0, "Invalid Font");
 
-        return Alimer_FontGetScale(_handle, size);
+
+        return alimerFontGetScale(_handle, size);
     }
 
     /// <summary>
@@ -120,6 +133,61 @@ public sealed unsafe class Font : Asset
     {
         Debug.Assert(_handle != 0, "Invalid Font");
 
-        return Alimer_FontGetKerning(_handle, glyph1, glyph2, scale);
+        return alimerFontGetKerning(_handle, glyph1, glyph2, scale);
+    }
+
+    /// <summary>
+	/// Gets Glyph Metrics of a given char at a given scale
+	/// </summary>
+	public Glyph GetGlyph(char character, float scale)
+    {
+        return GetGlyphByIndex(GetGlyphIndex(character), scale);
+    }
+
+    /// <summary>
+    /// Gets Glyph Metrics of a given unicode codepoint at a given scale
+    /// </summary>
+    public Glyph GetGlyph(int codepoint, float scale)
+    {
+        return GetGlyphByIndex(GetGlyphIndex(codepoint), scale);
+    }
+
+    /// <summary>
+	/// Gets Glyph Metrics of a given glyph at a given scale
+	/// </summary>
+	public Glyph GetGlyphByIndex(int glyphIndex, float scale)
+    {
+        alimerFontGetCharacter(_handle, glyphIndex, scale,
+            out int width, out int height, out float advance, out float offsetX, out float offsetY, out int visible);
+
+        return new()
+        {
+            GlyphIndex = glyphIndex,
+            Width = width,
+            Height = height,
+            Advance = advance,
+            Offset = new Vector2(offsetX, offsetY),
+            Scale = scale,
+            Visible = visible != 0,
+        };
+    }
+
+    /// <summary>
+	/// Renders a glyph to the given <see cref="Span{ColorRgba}" /> destination.
+	/// </summary>
+	public unsafe bool GetPixels(in Glyph glyph, Span<ColorRgba> destination)
+    {
+        if (!glyph.Visible)
+            return false;
+
+        if (destination.Length < glyph.Width * glyph.Height)
+            return false;
+
+        fixed (ColorRgba* ptr = destination)
+        {
+            alimerFontGetPixels(_handle, ptr, glyph.GlyphIndex, glyph.Width, glyph.Height, glyph.Scale);
+        }
+
+        return true;
     }
 }

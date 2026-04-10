@@ -73,7 +73,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _queue.VkDevice;
+    public override GPUDevice Device => _queue.VkDevice;
     public VulkanGraphicsDevice VkDevice => _queue.VkDevice;
     public VkCommandBuffer Handle => _commandBuffer;
     public uint DynamicContantBufferCount { get; }

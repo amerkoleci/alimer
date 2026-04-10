@@ -15,13 +15,13 @@ public sealed class ShaderSystem : IDisposable
 {
     private Dictionary<int, ShaderModule> _shaderModules = [];
 
-    public ShaderSystem(GraphicsDevice device)
+    public ShaderSystem(GPUDevice device)
     {
         Device = device;
         Backend = device.Backend;
     }
 
-    public GraphicsDevice Device { get; }
+    public GPUDevice Device { get; }
     public GraphicsBackend Backend { get; }
     public List<string> Paths { get; } = [];
     public IShaderCompiler? Compiler { get; set; }

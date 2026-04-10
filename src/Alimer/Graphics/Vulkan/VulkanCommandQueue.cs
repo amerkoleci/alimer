@@ -54,7 +54,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => VkDevice;
+    public override GPUDevice Device => VkDevice;
 
     /// <inheritdoc />
     public override CommandQueueType QueueType { get; }

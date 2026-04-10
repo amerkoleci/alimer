@@ -61,7 +61,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GPUDevice Device => _device;
 
     /// <inheritdoc />
     public override PipelineLayout Layout => VkLayout;

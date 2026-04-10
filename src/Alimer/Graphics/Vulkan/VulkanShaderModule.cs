@@ -52,7 +52,7 @@ internal unsafe class VulkanShaderModule : ShaderModule
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GPUDevice Device => _device;
     public VkShaderModule Handle => _handle;
     public ref readonly VkPipelineShaderStageCreateInfo StageInfo => ref _stageInfo;
 

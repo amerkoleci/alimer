@@ -24,7 +24,7 @@ public abstract class GPUBufferView : GraphicsObject
     public GPUBuffer Buffer { get; }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => Buffer.Device;
+    public override GPUDevice Device => Buffer.Device;
 
     public uint ElementOffset { get; }
     public uint ElementCount { get; }

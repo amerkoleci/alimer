@@ -126,7 +126,7 @@ internal unsafe class D3D12SwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => _device;
+    public override GPUDevice Device => _device;
 
     public DXGI_FORMAT BackBufferFormat { get; }
     public uint BackBufferCount { get; private set; }

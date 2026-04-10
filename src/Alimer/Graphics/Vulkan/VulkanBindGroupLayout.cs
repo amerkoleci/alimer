@@ -44,7 +44,7 @@ internal unsafe class VulkanBindGroupLayout : BindGroupLayout
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => VkDevice;
+    public override GPUDevice Device => VkDevice;
 
     public VulkanGraphicsDevice VkDevice { get; }
     public VkDescriptorSetLayout Handle => _handle;

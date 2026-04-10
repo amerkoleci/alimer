@@ -11,7 +11,7 @@ namespace Alimer;
 
 unsafe partial class AlimerApi
 {
-    public const string LibraryName = "alimer_physics";
+    public const string LibraryName = "alimer_native";
 
     #region Enums
     public enum PhysicsShapeType

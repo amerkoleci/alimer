@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
+using Alimer.Assets;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Physics;
@@ -49,7 +50,6 @@ public sealed class SampleBrowserGame : Game
                 testLoadEntity.Deserialize(objectDeserializer);
             }
         }
-
 
         // Setup shader system (until we have a proper asset pipeline)
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");

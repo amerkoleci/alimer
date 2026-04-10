@@ -55,20 +55,20 @@ public abstract class GPUAdapter(GraphicsManager manager)
     }
 
     /// <summary>
-    /// Creates a new <see cref="GraphicsDevice"/> with the default options.
+    /// Creates a new <see cref="GPUDevice"/> with the default options.
     /// </summary>
     /// <returns></returns>
-    public GraphicsDevice CreateDevice() => CreateDevice(new GraphicsDeviceDescription());
+    public GPUDevice CreateDevice() => CreateDevice(new GraphicsDeviceDescription());
 
     /// <summary>
-    /// Creates a new <see cref="GraphicsDevice"/> with the specified options.
+    /// Creates a new <see cref="GPUDevice"/> with the specified options.
     /// </summary>
     /// <param name="description">The graphics device description.</param>
     /// <returns>The graphics device associated with this adapter.</returns>
-    public GraphicsDevice CreateDevice(in GraphicsDeviceDescription description)
+    public GPUDevice CreateDevice(in GraphicsDeviceDescription description)
     {
         return CreateDeviceCore(description);
     }
 
-    protected abstract GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description);
+    protected abstract GPUDevice CreateDeviceCore(in GraphicsDeviceDescription description);
 }

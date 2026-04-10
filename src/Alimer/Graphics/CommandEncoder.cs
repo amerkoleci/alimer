@@ -18,7 +18,7 @@ public abstract unsafe class CommandEncoder
     {
     }
 
-    public abstract GraphicsDevice Device { get; }
+    public abstract GPUDevice Device { get; }
 
     public abstract void EndEncoding();
 
@@ -105,7 +105,7 @@ public abstract unsafe class CommandEncoder
     {
         GPULinearAllocator allocator = Device.FrameAllocator;
         if (alignment == 0)
-            alignment = Device.LinearAllocatorAlignment;
+            alignment = Device.Limits.MinLinearAllocatorOffsetAlignment;
 
         ulong bufferSize = (allocator.Buffer is null) ? 0 : allocator.Buffer.Size;
         ulong freeSpace = bufferSize - allocator.Offset;

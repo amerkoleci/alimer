@@ -6,7 +6,7 @@ using System.Reflection;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// An base graphics object that was created by <see cref="GraphicsDevice"/>.
+/// An base graphics object that was created by <see cref="GPUDevice"/>.
 /// </summary>
 public abstract class GraphicsObject : GPUBaseObject
 {
@@ -20,9 +20,9 @@ public abstract class GraphicsObject : GPUBaseObject
     }
 
     /// <summary>
-    /// Get the <see cref="GraphicsDevice"/> object that created this object.
+    /// Get the <see cref="GPUDevice"/> object that created this object.
     /// </summary>
-    public abstract GraphicsDevice Device { get; }
+    public abstract GPUDevice Device { get; }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

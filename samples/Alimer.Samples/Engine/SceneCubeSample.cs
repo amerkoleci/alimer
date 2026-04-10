@@ -26,7 +26,7 @@ public sealed class SceneCubeSample : SampleBase
         : base("Engine - Scene Cube")
     {
         Services = services;
-        GraphicsDevice = services.GetService<GraphicsDevice>();
+        GraphicsDevice = services.GetService<GPUDevice>();
         Scene = services.GetService<SceneSystem>();
         Entity root = new();
 
@@ -119,7 +119,7 @@ public sealed class SceneCubeSample : SampleBase
     }
 
     public IServiceRegistry Services { get; }
-    public GraphicsDevice GraphicsDevice { get; }
+    public GPUDevice GraphicsDevice { get; }
     public SceneSystem Scene { get; }
 
     public override void Update(GameTime time)

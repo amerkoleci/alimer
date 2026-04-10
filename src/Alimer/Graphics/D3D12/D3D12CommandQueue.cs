@@ -57,7 +57,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => D3DDevice;
+    public override GPUDevice Device => D3DDevice;
 
     /// <inheritdoc />
     public override CommandQueueType QueueType => _queueType;

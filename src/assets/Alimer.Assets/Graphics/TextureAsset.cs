@@ -44,7 +44,7 @@ public class TextureAsset : AssetWithSource
         return new(width, height, format, MemoryMarshal.Cast<T, byte>(data));
     }
 
-    public Texture CreateRuntime(GraphicsDevice device)
+    public Texture CreateRuntime(GPUDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
         ArgumentNullException.ThrowIfNull(Data, nameof(Data));

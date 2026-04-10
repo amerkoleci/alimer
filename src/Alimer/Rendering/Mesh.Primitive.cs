@@ -8,12 +8,12 @@ namespace Alimer.Rendering;
 
 partial class Mesh
 {
-    public static Mesh CreateCube(GraphicsDevice device, float size, float uScale = 1.0f, float vScale = 1.0f)
+    public static Mesh CreateCube(GPUDevice device, float size, float uScale = 1.0f, float vScale = 1.0f)
     {
         return CreateBox(device, new(size), uScale, vScale);
     }
 
-    public static Mesh CreateBox(GraphicsDevice device, Vector3 size, float uScale = 1.0f, float vScale = 1.0f)
+    public static Mesh CreateBox(GPUDevice device, Vector3 size, float uScale = 1.0f, float vScale = 1.0f)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
@@ -90,7 +90,7 @@ partial class Mesh
         return mesh;
     }
 
-    public static Mesh CreateSphere(GraphicsDevice device, float radius = 0.5f, int tessellation = 16, float uScale = 1.0f, float vScale = 1.0f)
+    public static Mesh CreateSphere(GPUDevice device, float radius = 0.5f, int tessellation = 16, float uScale = 1.0f, float vScale = 1.0f)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 

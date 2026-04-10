@@ -35,15 +35,15 @@ internal class NullGraphicsAdapter : GPUAdapter
 
     public override GraphicsAdapterType Type { get; }
 
-    protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description)
+    protected override GPUDevice CreateDeviceCore(in GraphicsDeviceDescription description)
     {
         return new NullGraphicsDevice(this, description);
     }
 }
 
-internal class NullGraphicsDevice : GraphicsDevice
+internal class NullGraphicsDevice : GPUDevice
 {
-    private readonly GraphicsDeviceLimits _limits;
+    private readonly GPUDeviceLimits _limits;
 
     public NullGraphicsDevice(NullGraphicsAdapter adapter, in GraphicsDeviceDescription description)
         : base(GraphicsBackend.Null, in description)
@@ -54,7 +54,7 @@ internal class NullGraphicsDevice : GraphicsDevice
 
     public override GPUAdapter Adapter { get; }
 
-    public override GraphicsDeviceLimits Limits => _limits;
+    public override GPUDeviceLimits Limits => _limits;
 
     public override ulong TimestampFrequency => 0;
 

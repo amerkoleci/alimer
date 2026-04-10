@@ -9,7 +9,7 @@ public abstract class GraphicsDeviceTestBase : IDisposable
 
     public GraphicsManager Manager { get; }
     public GPUAdapter Adapter { get; }
-    public GraphicsDevice Device { get; }
+    public GPUDevice Device { get; }
 
     protected GraphicsDeviceTestBase(GraphicsBackend backendType = GraphicsBackend.Default)
     {

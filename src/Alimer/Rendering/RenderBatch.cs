@@ -26,7 +26,7 @@ public sealed unsafe class RenderBatch : DisposableObject
     private Dictionary<GPURenderPipeline, Dictionary<SubMesh, InstanceDictionary>> _pipelineGeometries = [];
     private readonly List<GPUInstance> _instanceData = [];
 
-    public RenderBatch(GraphicsDevice device)
+    public RenderBatch(GPUDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
@@ -36,7 +36,7 @@ public sealed unsafe class RenderBatch : DisposableObject
         ResizeInstanceBuffer(InitialInstanceCount);
     }
 
-    public GraphicsDevice Device { get; }
+    public GPUDevice Device { get; }
 
     public void ResizeInstanceBuffer(uint capacity)
     {

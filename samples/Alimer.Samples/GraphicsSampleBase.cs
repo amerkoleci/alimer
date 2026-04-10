@@ -15,7 +15,7 @@ public abstract class GraphicsSampleBase : SampleBase
     {
         Services = services;
         GraphicsManager = services.GetService<GraphicsManager>();
-        GraphicsDevice = services.GetService<GraphicsDevice>();
+        GraphicsDevice = services.GetService<GPUDevice>();
         AssetManager = services.GetService<IAssetManager>();
         Input = services.GetService<InputManager>();
         MainWindow = mainWindow;
@@ -26,7 +26,7 @@ public abstract class GraphicsSampleBase : SampleBase
     public IServiceRegistry Services { get; }
 
     public GraphicsManager GraphicsManager { get; }
-    public GraphicsDevice GraphicsDevice { get; }
+    public GPUDevice GraphicsDevice { get; }
     public Window MainWindow { get; }
     public PixelFormat[] ColorFormats => [MainWindow.ColorFormat];
     public PixelFormat DepthStencilFormat { get; set; } = PixelFormat.Depth32Float;

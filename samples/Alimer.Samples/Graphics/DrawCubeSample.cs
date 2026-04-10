@@ -67,8 +67,8 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
         renderPassEncoder.SetPipeline(_renderPipeline!);
-        //renderPassEncoder.SetConstantBuffer(0, _constantBuffer0);
-        renderPassEncoder.SetDynamicConstantBuffer(0, worldViewProjection);
+        renderPassEncoder.SetConstantBuffer(0, _constantBuffer0);
+        //renderPassEncoder.SetDynamicConstantBuffer(0, worldViewProjection);
         renderPassEncoder.SetDynamicConstantBuffer(1, testColor);
 
         _cubeMesh.Draw(renderPassEncoder);

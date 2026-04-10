@@ -16,7 +16,7 @@ public sealed class ImGuiSystem : GameSystem
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
-        GraphicsDevice = services.GetService<GraphicsDevice>();
+        GraphicsDevice = services.GetService<GPUDevice>();
         MainWindow = services.GetService<Window>();
 
         _context = ImGui.CreateContext();
@@ -45,7 +45,7 @@ public sealed class ImGuiSystem : GameSystem
         io.Fonts.Flags |= ImFontAtlasFlags.NoBakedLines;
     }
 
-    public GraphicsDevice GraphicsDevice { get; }
+    public GPUDevice GraphicsDevice { get; }
     public Window MainWindow { get; }
     public ref readonly ImGuiContextPtr Context => ref _context;
 

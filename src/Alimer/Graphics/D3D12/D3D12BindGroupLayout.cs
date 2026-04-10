@@ -107,7 +107,7 @@ internal unsafe class D3D12BindGroupLayout : BindGroupLayout
     }
 
     /// <inheritdoc />
-    public override GraphicsDevice Device => DXDevice;
+    public override GPUDevice Device => DXDevice;
 
     public D3D12GraphicsDevice DXDevice { get; }
 
