@@ -4,7 +4,7 @@
 #ifndef ALIMER_FONT_H_
 #define ALIMER_FONT_H_ 1
 
-#include "alimer.h"
+#include "alimer_platform.h"
 
 /* Forward */
 typedef struct Font Font;

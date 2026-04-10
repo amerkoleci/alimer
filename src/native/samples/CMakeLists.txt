@@ -16,7 +16,6 @@ function(add_sample SAMPLE_NAME)
     endif ()
     target_link_libraries(${SAMPLE_NAME}
         alimer_native
-        alimer_physics
     )
 
     set_target_properties(${SAMPLE_NAME} PROPERTIES

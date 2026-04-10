@@ -4,40 +4,9 @@
 #ifndef ALIMER_PHYSICS_H_
 #define ALIMER_PHYSICS_H_ 1
 
-#if defined(ALIMER_SHARED_LIBRARY)
-#    if defined(_WIN32)
-#        if defined(ALIMER_IMPLEMENTATION)
-#            define _ALIMER_EXPORT __declspec(dllexport)
-#        else
-#            define _ALIMER_EXPORT __declspec(dllimport)
-#        endif
-#    else
-#        if defined(ALIMER_IMPLEMENTATION)
-#            define _ALIMER_EXPORT __attribute__((visibility("default")))
-#        else
-#            define _ALIMER_EXPORT
-#        endif
-#    endif
-#else
-#    define _ALIMER_EXPORT
-#endif
+#include "alimer_platform.h"
 
-#ifdef __cplusplus
-#    define _ALIMER_EXTERN extern "C"
-#else
-#    define _ALIMER_EXTERN extern
-#endif
-
-#define ALIMER_PHYSICS_API _ALIMER_EXTERN _ALIMER_EXPORT
-
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-
-/* Version API */
-#define ALIMER_PHYSICS_VERSION_MAJOR    1
-#define ALIMER_PHYSICS_VERSION_MINOR    0
-#define ALIMER_PHYSICS_VERSION_PATCH	0
+#define ALIMER_PHYSICS_API ALIMER_API
 
 /* Forward */
 typedef struct PhysicsWorld PhysicsWorld;
@@ -66,27 +35,6 @@ typedef enum PhysicsShapeType {
     PhysicsShapeType_Count,
     _PhysicsShapeType_Force32 = 0x7FFFFFFF
 } PhysicsShapeType;
-
-typedef struct Vector3 {
-    float x;
-    float y;
-    float z;
-} Vector3;
-
-typedef struct Quaternion {
-    float x;
-    float y;
-    float z;
-    float w;
-} Quaternion;
-
-/// 4x4 row-major matrix: 32 bit floating point components
-typedef struct Matrix4x4 {
-    float m11, m12, m13, m14;
-    float m21, m22, m23, m24;
-    float m31, m32, m33, m34;
-    float m41, m42, m43, m44;
-} Matrix4x4;
 
 typedef struct PhysicsWorldConfig {
     uint32_t maxBodies;

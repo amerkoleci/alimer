@@ -290,8 +290,4 @@ message(STATUS "  Samples         ${ALIMER_SAMPLES}")
 add_subdirectory(third_party)
 add_subdirectory(engine)
 
-if (ALIMER_PHYSICS)
-    add_subdirectory(physics)
-endif ()
-
 add_subdirectory(samples)

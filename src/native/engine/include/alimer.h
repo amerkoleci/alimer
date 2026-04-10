@@ -220,12 +220,6 @@ static const WindowFlags WindowFlags_Maximized = 0x0000000000000010;
 static const WindowFlags WindowFlags_AlwaysOnTop = 0x0000000000000020;
 
 /* Structs */
-typedef struct Vector3 {
-    float x;
-    float y;
-    float z;
-} Vector3;
-
 typedef struct PixelFormatInfo {
     PixelFormat format;
     const char* name;

@@ -24,6 +24,11 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     src/alimer_image.cpp
     src/alimer_font.cpp
     src/alimer_scene.cpp
+    src/third_party/miniaudio.h
+    src/third_party/tinyexr.h
+    src/third_party/vk_mem_alloc.h
+    src/third_party/cgltf.h
+    src/third_party/cgltf_write.h
 )
 
 group_sources()
@@ -75,6 +80,15 @@ if (ALIMER_IMAGE_KTX)
     )
 
     target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMAGE_KTX)
+endif ()
+
+if (ALIMER_PHYSICS)
+    target_sources(${TARGET_NAME} PRIVATE
+        include/alimer_physics.h
+        src/alimer_physics.cpp
+    )
+    
+    target_link_libraries(${TARGET_NAME} PRIVATE Jolt)
 endif ()
 
 if (NOT EMSCRIPTEN)
