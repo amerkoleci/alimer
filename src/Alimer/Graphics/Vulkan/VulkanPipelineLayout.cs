@@ -23,7 +23,7 @@ internal unsafe class VulkanPipelineLayout : PipelineLayout
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     public VkPipelineLayout Handle => _handle;
 

@@ -36,7 +36,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         Debug.Assert(sizeof(GPUInstance) == 80, "GPUInstance must be 80 bytes");
 
         Services = services;
-        Device = services.GetService<GPUDevice>();
+        Device = services.GetService<GraphicsDevice>();
         Scene = services.GetService<SceneSystem>();
         ShaderSystem = services.GetService<ShaderSystem>();
         MainWindow = services.GetService<Window>();
@@ -99,7 +99,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     public IServiceRegistry Services { get; }
 
-    public GPUDevice Device { get; }
+    public GraphicsDevice Device { get; }
     public SceneSystem Scene { get; }
     public Window MainWindow { get; }
 

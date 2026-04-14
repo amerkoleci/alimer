@@ -29,7 +29,7 @@ internal unsafe class VulkanBindGroup : BindGroup
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
     public override BindGroupLayout Layout => _layout;

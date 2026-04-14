@@ -30,7 +30,7 @@ internal unsafe class VulkanAccelerationStructure : AccelerationStructure
 
     public VkAccelerationStructureKHR Handle => _handle;
 
-    public override GPUDevice Device => throw new NotImplementedException();
+    public override GraphicsDevice Device => throw new NotImplementedException();
 
     /// <inheritdoc />
     protected internal override void Destroy()

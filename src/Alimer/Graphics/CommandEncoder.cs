@@ -18,7 +18,7 @@ public abstract unsafe class CommandEncoder
     {
     }
 
-    public abstract GPUDevice Device { get; }
+    public abstract GraphicsDevice Device { get; }
 
     public abstract void EndEncoding();
 

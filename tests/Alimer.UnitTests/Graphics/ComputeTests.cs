@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace Alimer.Graphics.Tests;
 
-[TestFixture(TestOf = typeof(GPUDevice))]
+[TestFixture(TestOf = typeof(GraphicsDevice))]
 public abstract class ComputeTests : GraphicsDeviceTestBase
 {
     protected ComputeTests(GraphicsBackend backendType)
@@ -32,7 +32,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
     }
 }
 
-[TestFixture(TestOf = typeof(GPUDevice))]
+[TestFixture(TestOf = typeof(GraphicsDevice))]
 public class D3D12ComputeTests : ComputeTests
 {
     public D3D12ComputeTests()
@@ -42,7 +42,7 @@ public class D3D12ComputeTests : ComputeTests
     }
 }
 
-[TestFixture(TestOf = typeof(GPUDevice))]
+[TestFixture(TestOf = typeof(GraphicsDevice))]
 public class VulkanComputeTests : ComputeTests
 {
     public VulkanComputeTests()

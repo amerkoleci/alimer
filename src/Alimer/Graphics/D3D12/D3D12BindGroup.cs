@@ -31,7 +31,7 @@ internal unsafe class D3D12BindGroup : BindGroup
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
     public override BindGroupLayout Layout => _layout;

@@ -15,14 +15,14 @@ using System.Diagnostics;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe partial class VulkanGraphicsDevice : GPUDevice
+internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
 {
     private readonly VulkanGraphicsAdapter _adapter;
     private readonly uint[] _queueFamilyIndices;
     private readonly uint[] _queueIndices;
     //private readonly uint[] _queueCounts;
     private readonly uint _timestampValidBits = 0;
-    private readonly GPUDeviceLimits _limits;
+    private readonly GraphicsDeviceLimits _limits;
 
     private readonly VkPhysicalDevice _physicalDevice = VkPhysicalDevice.Null;
     private readonly VkDevice _handle = VkDevice.Null;
@@ -647,7 +647,7 @@ internal unsafe partial class VulkanGraphicsDevice : GPUDevice
             // Least Common Multiple stride across all formats: 1, 2, 4, 8, 16 // TODO: rarely used "12" fucks up the beauty of power-of-2 numbers, such formats must be avoided!
             const uint leastCommonMultipleStrideAccrossAllFormats = 16;
 
-            _limits = new GPUDeviceLimits
+            _limits = new GraphicsDeviceLimits
             {
                 MaxTextureDimension1D = vkLimits.maxImageDimension1D,
                 MaxTextureDimension2D = vkLimits.maxImageDimension2D,
@@ -1004,10 +1004,10 @@ internal unsafe partial class VulkanGraphicsDevice : GPUDevice
     }
 
     /// <inheritdoc />
-    public override GPUAdapter Adapter => _adapter;
+    public override GraphicsAdapter Adapter => _adapter;
 
     /// <inheritdoc />
-    public override GPUDeviceLimits Limits => _limits;
+    public override GraphicsDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }

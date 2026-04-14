@@ -31,7 +31,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer = commandBuffer;
     }
 
-    public override GPUDevice Device => _commandBuffer.Device;
+    public override GraphicsDevice Device => _commandBuffer.Device;
 
     public void Begin(in RenderPassDescriptor descriptor)
     {

@@ -21,7 +21,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
         _commandBuffer = commandBuffer;
     }
 
-    public override GPUDevice Device => _commandBuffer.Device;
+    public override GraphicsDevice Device => _commandBuffer.Device;
 
     public void Begin(in ComputePassDescriptor descriptor)
     {

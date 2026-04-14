@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Structure that describes the <see cref="GPUDevice"/>.
+/// Structure that describes the <see cref="GraphicsDevice"/>.
 /// </summary>
 public record struct GraphicsDeviceDescription
 {
@@ -18,7 +18,7 @@ public record struct GraphicsDeviceDescription
     public int MaxFramesInFlight { get; set; } = Constants.DefaultMaxFramesInFlight;
 
     /// <summary>
-    /// Gets or sets the label of <see cref="GPUDevice"/>.
+    /// Gets or sets the label of <see cref="GraphicsDevice"/>.
     /// </summary>
     public string? Label { get; set; } = default;
 }

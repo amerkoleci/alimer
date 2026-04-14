@@ -13,9 +13,9 @@ public abstract class CommandBuffer
     }
 
     /// <summary>
-    /// Get the <see cref="GPUDevice"/> object that created this object.
+    /// Get the <see cref="GraphicsDevice"/> object that created this object.
     /// </summary>
-    public abstract GPUDevice Device { get; }
+    public abstract GraphicsDevice Device { get; }
 
     protected virtual void Reset(uint frameIndex)
     {

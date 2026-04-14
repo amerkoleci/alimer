@@ -60,7 +60,7 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
     public override uint QueryResultSize { get; }

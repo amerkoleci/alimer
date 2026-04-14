@@ -185,7 +185,7 @@ internal unsafe class D3D12PipelineLayout : PipelineLayout
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     public ID3D12RootSignature* Handle => _handle;
 

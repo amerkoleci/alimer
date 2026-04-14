@@ -51,7 +51,7 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
     public override PipelineLayout Layout => D3DLayout;

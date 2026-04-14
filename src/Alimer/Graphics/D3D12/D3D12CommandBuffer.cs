@@ -86,7 +86,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _queue.Device;
+    public override GraphicsDevice Device => _queue.Device;
 
     public D3D12GraphicsDevice D3DDevice => _queue.D3DDevice;
     public ID3D12GraphicsCommandList6* CommandList => _commandList6;

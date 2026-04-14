@@ -9,7 +9,7 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanGraphicsAdapter : GPUAdapter
+internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
 {
     // Features
     public readonly VkVersion ApiVersion;
@@ -482,5 +482,5 @@ internal unsafe class VulkanGraphicsAdapter : GPUAdapter
     public bool Maintenance6 => Features14.maintenance6 || Maintenance6Features.maintenance6;
     public uint MaxPushDescriptors { get;  }
 
-    protected override GPUDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new VulkanGraphicsDevice(this, description);
+    protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new VulkanGraphicsDevice(this, description);
 }

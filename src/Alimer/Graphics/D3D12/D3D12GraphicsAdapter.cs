@@ -10,7 +10,7 @@ using static TerraFX.Interop.Windows.Windows;
 
 namespace Alimer.Graphics.D3D12;
 
-internal sealed unsafe class D3D12GraphicsAdapter : GPUAdapter, IDisposable
+internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 {
     private readonly ComPtr<IDXGIAdapter1> _handle;
 
@@ -76,7 +76,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GPUAdapter, IDisposable
     /// <inheritdoc />
     public override GraphicsAdapterType Type { get; }
 
-    protected override GPUDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new D3D12GraphicsDevice(this, description);
+    protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new D3D12GraphicsDevice(this, description);
 
     public void Dispose()
     {

@@ -9,9 +9,9 @@ using Alimer.Utilities;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines a GPU logical device using given <see cref="GPUAdapter"/>.
+/// Defines a GPU logical device using given <see cref="GraphicsAdapter"/>.
 /// </summary>
-public abstract unsafe class GPUDevice : GPUBaseObject
+public abstract unsafe class GraphicsDevice : GPUBaseObject
 {
     protected uint _frameIndex = 0;
     protected ulong _frameCount = 0;
@@ -19,7 +19,7 @@ public abstract unsafe class GPUDevice : GPUBaseObject
     protected bool _shuttingDown;
     protected readonly GPULinearAllocator[] _frameAllocators;
 
-    public GPUDevice(GraphicsBackend backend, in GraphicsDeviceDescription description)
+    public GraphicsDevice(GraphicsBackend backend, in GraphicsDeviceDescription description)
         : base(description.Label)
     {
         Backend = backend;
@@ -37,9 +37,9 @@ public abstract unsafe class GPUDevice : GPUBaseObject
     public GraphicsBackend Backend { get; }
 
     /// <summary>
-    /// Get the <see cref="GPUAdapter"/> object that created this object.
+    /// Get the <see cref="GraphicsAdapter"/> object that created this object.
     /// </summary>
-    public abstract GPUAdapter Adapter { get; }
+    public abstract GraphicsAdapter Adapter { get; }
 
     /// <summary>
     /// Gets the maximum number of frames that can be processed concurrently.
@@ -49,7 +49,7 @@ public abstract unsafe class GPUDevice : GPUBaseObject
     /// <summary>
     /// Get the device limits.
     /// </summary>
-    public abstract GPUDeviceLimits Limits { get; }
+    public abstract GraphicsDeviceLimits Limits { get; }
 
     /// <summary>
     /// Gets the graphics command queue used to submit rendering commands to the GPU.

@@ -21,7 +21,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         _deviceApi = deviceApi;
     }
 
-    public override GPUDevice Device => _commandBuffer.Device;
+    public override GraphicsDevice Device => _commandBuffer.Device;
 
     public void Begin(in RenderPassDescriptor descriptor)
     {

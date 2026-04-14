@@ -310,7 +310,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
 
     /// <inheritdoc />
     public override PipelineLayout Layout => VkLayout;

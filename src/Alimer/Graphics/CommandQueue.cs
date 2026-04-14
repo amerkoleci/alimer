@@ -6,9 +6,9 @@ namespace Alimer.Graphics;
 public abstract class CommandQueue
 {
     /// <summary>
-    /// Get the <see cref="GPUDevice"/> object that created this object.
+    /// Get the <see cref="GraphicsDevice"/> object that created this object.
     /// </summary>
-    public abstract GPUDevice Device { get; }
+    public abstract GraphicsDevice Device { get; }
 
     /// <summary>
     /// Gets the type of this queue.

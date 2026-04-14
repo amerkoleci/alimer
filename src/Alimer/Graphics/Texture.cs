@@ -299,20 +299,20 @@ public abstract partial class Texture : GraphicsObject, IGraphicsBindableResourc
         }
     }
 
-    public static Texture FromFile(GPUDevice device, string filePath, int channels = 4, bool srgb = true)
+    public static Texture FromFile(GraphicsDevice device, string filePath, int channels = 4, bool srgb = true)
     {
         using FileStream stream = new(filePath, FileMode.Open);
         return FromStream(device, stream, channels, srgb);
     }
 
-    public static Texture FromStream(GPUDevice device, Stream stream, int channels = 4, bool srgb = true)
+    public static Texture FromStream(GraphicsDevice device, Stream stream, int channels = 4, bool srgb = true)
     {
         Span<byte> data = stream.Length < 2048 ? stackalloc byte[(int)stream.Length] : new byte[(int)stream.Length];
         stream.ReadExactly(data);
         return FromMemory(device, data, channels, srgb);
     }
 
-    public static Texture FromMemory(GPUDevice device, Span<byte> data, int channels = 4, bool srgb = true)
+    public static Texture FromMemory(GraphicsDevice device, Span<byte> data, int channels = 4, bool srgb = true)
     {
         using Image image = Image.FromMemory(data, channels, srgb);
 

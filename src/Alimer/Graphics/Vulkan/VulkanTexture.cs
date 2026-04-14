@@ -402,7 +402,7 @@ internal unsafe class VulkanTexture : Texture
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => VkDevice;
+    public override GraphicsDevice Device => VkDevice;
 
     public VulkanGraphicsDevice VkDevice { get; }
     public VkImage Handle => _handle;

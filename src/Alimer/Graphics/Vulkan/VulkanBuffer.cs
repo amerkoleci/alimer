@@ -255,7 +255,7 @@ internal unsafe class VulkanBuffer : GPUBuffer
     public VulkanGraphicsDevice VkDevice { get; }
 
     /// <inheritdoc />
-    public override GPUDevice Device => VkDevice;
+    public override GraphicsDevice Device => VkDevice;
 
     /// <inheritdoc />
     public override GPUAddress GpuAddress { get; }

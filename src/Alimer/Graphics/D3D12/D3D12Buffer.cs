@@ -178,7 +178,7 @@ internal unsafe class D3D12Buffer : GPUBuffer
     public D3D12GraphicsDevice DXDevice { get; }
 
     /// <inheritdoc />
-    public override GPUDevice Device => DXDevice;
+    public override GraphicsDevice Device => DXDevice;
 
     public ID3D12Resource* Handle => _handle;
     public bool ImmutableState { get; }

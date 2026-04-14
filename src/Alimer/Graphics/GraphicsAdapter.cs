@@ -6,7 +6,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a physical GPU adapter.
 /// </summary>
-public abstract class GPUAdapter(GraphicsManager manager)
+public abstract class GraphicsAdapter(GraphicsManager manager)
 {
     /// <summary>
     /// Gets the manager associated with this adapter.
@@ -55,20 +55,20 @@ public abstract class GPUAdapter(GraphicsManager manager)
     }
 
     /// <summary>
-    /// Creates a new <see cref="GPUDevice"/> with the default options.
+    /// Creates a new <see cref="GraphicsDevice"/> with the default options.
     /// </summary>
     /// <returns></returns>
-    public GPUDevice CreateDevice() => CreateDevice(new GraphicsDeviceDescription());
+    public GraphicsDevice CreateDevice() => CreateDevice(new GraphicsDeviceDescription());
 
     /// <summary>
-    /// Creates a new <see cref="GPUDevice"/> with the specified options.
+    /// Creates a new <see cref="GraphicsDevice"/> with the specified options.
     /// </summary>
     /// <param name="description">The graphics device description.</param>
     /// <returns>The graphics device associated with this adapter.</returns>
-    public GPUDevice CreateDevice(in GraphicsDeviceDescription description)
+    public GraphicsDevice CreateDevice(in GraphicsDeviceDescription description)
     {
         return CreateDeviceCore(description);
     }
 
-    protected abstract GPUDevice CreateDeviceCore(in GraphicsDeviceDescription description);
+    protected abstract GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description);
 }

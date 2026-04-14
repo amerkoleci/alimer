@@ -25,7 +25,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     public static bool IsSupported => s_isSupported.Value;
 
     /// <inheritdoc/>
-    public override ReadOnlySpan<GPUAdapter> Adapters => _adapters;
+    public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
 
     public VulkanGraphicsManager(in GraphicsManagerOptions options)
         : base(in options)

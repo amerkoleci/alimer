@@ -113,7 +113,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => _device;
+    public override GraphicsDevice Device => _device;
     public VkSwapchainKHR Handle => _handle;
     public uint AcquireSemaphoreIndex => _acquireSemaphoreIndex;
     public VkSemaphore AcquireSemaphore => _acquireSemaphores![_acquireSemaphoreIndex];

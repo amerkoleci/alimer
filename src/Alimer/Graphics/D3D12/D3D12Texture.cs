@@ -322,7 +322,7 @@ internal unsafe class D3D12Texture : Texture
     }
 
     /// <inheritdoc />
-    public override GPUDevice Device => DXDevice;
+    public override GraphicsDevice Device => DXDevice;
 
     public D3D12GraphicsDevice DXDevice { get; }
     public DXGI_FORMAT DxgiFormat { get; }

@@ -20,9 +20,9 @@ public abstract unsafe class GraphicsManager : GPUBaseObject
     public GraphicsValidationMode ValidationMode { get; }
 
     /// <summary>
-    /// Gets the list of available <see cref="GPUAdapter"/>.
+    /// Gets the list of available <see cref="GraphicsAdapter"/>.
     /// </summary>
-    public abstract ReadOnlySpan<GPUAdapter> Adapters { get; }
+    public abstract ReadOnlySpan<GraphicsAdapter> Adapters { get; }
 
     public static bool IsBackendSupport(GraphicsBackend backendType)
     {
@@ -149,11 +149,11 @@ public abstract unsafe class GraphicsManager : GPUBaseObject
     /// </summary>
     /// <param name="adapter"></param>
     /// <returns><c>true</c> if an adapter was found; otherwise <c>false</c></returns>
-    public bool TryGetBestAdapter([NotNullWhen(true)] out GPUAdapter? adapter)
+    public bool TryGetBestAdapter([NotNullWhen(true)] out GraphicsAdapter? adapter)
     {
         adapter = null;
         int kind = (int)GraphicsAdapterType.Other + 1;
-        foreach (GPUAdapter adapter1 in Adapters)
+        foreach (GraphicsAdapter adapter1 in Adapters)
         {
             if ((int)adapter1.Type < kind)
             {
@@ -172,9 +172,9 @@ public abstract unsafe class GraphicsManager : GPUBaseObject
     /// </summary>
     /// <returns>The best adapter</returns>
     /// <exception cref="GraphicsException">If no adapter were found.</exception>
-    public GPUAdapter GetBestAdapter()
+    public GraphicsAdapter GetBestAdapter()
     {
-        if (TryGetBestAdapter(out GPUAdapter? adapter))
+        if (TryGetBestAdapter(out GraphicsAdapter? adapter))
         {
             return adapter!;
         }

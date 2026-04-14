@@ -41,7 +41,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         // | PostProcessSteps.Debone
         ;
 
-    public MeshImporter(GPUDevice device)
+    public MeshImporter(GraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
@@ -49,7 +49,7 @@ public sealed class MeshImporter : AssetImporter<MeshAsset, MeshMetadata>
         _assImp = Assimp.GetApi();
     }
 
-    public GPUDevice Device { get; }
+    public GraphicsDevice Device { get; }
 
     public Task<MeshAsset> ImportGLTF(MeshMetadata metadata)
     {

@@ -33,7 +33,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     public static bool IsSupported => s_isSupported.Value;
 
     /// <inheritdoc/>
-    public override ReadOnlySpan<GPUAdapter> Adapters => _adapters;
+    public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
 
     public D3D12GraphicsManager(in GraphicsManagerOptions options)
         : base(in options)

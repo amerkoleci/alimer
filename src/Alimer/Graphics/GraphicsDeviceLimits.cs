@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines the <see cref="GPUDevice"/> ray tracing limits and capabilities.
+/// Defines the <see cref="GraphicsDevice"/> ray tracing limits and capabilities.
 /// </summary>
 public struct RayTracingLimits
 {
@@ -17,10 +17,10 @@ public struct RayTracingLimits
 }
 
 /// <summary>
-/// Defines <see cref="GPUDevice"/> limits and capabilities.
+/// Defines <see cref="GraphicsDevice"/> limits and capabilities.
 /// These limits are determined by the underlying graphics API and the GPU hardware.
 /// </summary>
-public struct GPUDeviceLimits
+public struct GraphicsDeviceLimits
 {
     public uint MaxTextureDimension1D;
     public uint MaxTextureDimension2D;

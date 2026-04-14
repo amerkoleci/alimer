@@ -27,7 +27,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
     private GPUBuffer? _gpuVertexBuffer;
     private GPUBuffer? _gpuIndexBuffer;
 
-    public Mesh(GPUDevice device,
+    public Mesh(GraphicsDevice device,
         int vertexCount,
         Span<VertexAttribute> vertexAttributes,
         int vertexStride = 0)
@@ -62,7 +62,7 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
         _positionOffset = GetVertexAttributeOffset(VertexAttributeSemantic.Position);
     }
 
-    public GPUDevice Device { get; }
+    public GraphicsDevice Device { get; }
 
     /// <summary>
     /// The number of vertices in the vertex buffers.

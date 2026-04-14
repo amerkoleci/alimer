@@ -33,14 +33,14 @@ using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.Windows;
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12GraphicsDevice : GPUDevice
+internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 {
     private readonly D3D12GraphicsAdapter _adapter;
     private readonly ComPtr<ID3D12Device5> _device = default;
     private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
     private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
-    private readonly GPUDeviceLimits _limits;
+    private readonly GraphicsDeviceLimits _limits;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
@@ -276,7 +276,7 @@ internal unsafe class D3D12GraphicsDevice : GPUDevice
         // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
         // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
 
-        _limits = new GPUDeviceLimits
+        _limits = new GraphicsDeviceLimits
         {
             MaxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION,
             MaxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION,
@@ -366,10 +366,10 @@ internal unsafe class D3D12GraphicsDevice : GPUDevice
     }
 
     /// <inheritdoc />
-    public override GPUAdapter Adapter => _adapter;
+    public override GraphicsAdapter Adapter => _adapter;
 
     /// <inheritdoc />
-    public override GPUDeviceLimits Limits => _limits;
+    public override GraphicsDeviceLimits Limits => _limits;
 
     /// <inheritdoc />
     public override ulong TimestampFrequency { get; }

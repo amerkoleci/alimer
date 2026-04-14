@@ -41,7 +41,7 @@ public class SpriteBatch : DisposableObject
     private readonly GPUBuffer _spriteVertexBuffer;
     private readonly GPUBuffer _spriteIndexBuffer;
 
-    public unsafe SpriteBatch(GPUDevice device)
+    public unsafe SpriteBatch(GraphicsDevice device)
     {
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
@@ -58,7 +58,7 @@ public class SpriteBatch : DisposableObject
         _spriteIndexBuffer = device.CreateBuffer(indices, GPUBufferUsage.Index, label: "SpriteBatch Index Buffer");
     }
 
-    public GPUDevice Device { get; }
+    public GraphicsDevice Device { get; }
 
     /// <summary>Finalizes an instance of the <see cref="SpriteBatch" /> class.</summary>
     ~SpriteBatch() => Dispose(disposing: false);

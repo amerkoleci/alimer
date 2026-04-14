@@ -4,7 +4,7 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Enum defining backend type of <see cref="GPUDevice"/>.
+/// Enum defining backend type of <see cref="GraphicsDevice"/>.
 /// </summary>
 public enum GraphicsBackend
 {

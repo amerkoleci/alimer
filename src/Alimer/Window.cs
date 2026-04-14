@@ -90,7 +90,7 @@ public sealed partial class Window
         }
     }
 
-    public void CreateSwapChain(GPUDevice device)
+    public void CreateSwapChain(GraphicsDevice device)
     {
         SizeI swapChainSize = SizeInPixels;
         SwapChainDescriptor description = new(Surface, swapChainSize.Width, swapChainSize.Height, ColorFormat);
